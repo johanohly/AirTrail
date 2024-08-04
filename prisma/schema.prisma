@@ -1,0 +1,26 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator kysely {
+  provider = "prisma-kysely"
+
+  output   = "../src/lib/db"
+  fileName = "schema.d.ts"
+}
+
+model User {
+  id        String @id
+  twitch_id String
+  username  String
+
+  sessions Session[]
+}
+
+model Session {
+  id         String @id
+  expires_at Int
+  user_id    String
+  user       User   @relation(fields: [user_id], references: [id])
+}

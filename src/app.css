@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+	background: theme(colors.zinc.900);
+	color: white;
+}
