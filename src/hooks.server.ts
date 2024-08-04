@@ -1,8 +1,7 @@
-import { initLucia, lucia } from '$lib/server/auth';
+import { lucia } from '$lib/server/auth';
 import type { Cookie } from 'lucia';
 
 export async function handle({ event, resolve }) {
-	initLucia(event.url.origin);
 	const sessionId = event.cookies.get(lucia.sessionCookieName);
 	if (!sessionId) {
 		event.locals.user = null;

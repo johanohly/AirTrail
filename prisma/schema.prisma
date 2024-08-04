@@ -1,26 +1,55 @@
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = "file:../db.sqlite"
 }
 
 generator kysely {
   provider = "prisma-kysely"
 
-  output   = "../src/lib/db"
-  fileName = "schema.d.ts"
+  output    = "../src/lib/db"
+  fileName  = "schema.d.ts"
+  camelCase = true
 }
 
-model User {
-  id        String @id
-  twitch_id String
-  username  String
+model user {
+  id           String @id
+  username     String @unique
+  password     String
+  display_name String
 
-  sessions Session[]
+  /// @kyselyType('user' | 'admin')
+  role String
+
+  sessions session[]
+  flight   flight[]
 }
 
-model Session {
+model flight {
+  id        Int    @id @default(autoincrement())
+  from      String
+  departure Int
+  to        String
+  arrival   Int
+
+  flight_number String?
+  seat          String?
+  seat_number   String?
+  /// @kyselyType('economy' | 'economy+' | 'business' | 'first' | 'private')
+  seat_class    String?
+  /// @kyselyType('leisure' | 'business' | 'crew' | 'other')
+  flight_reason String?
+  airline       String?
+  aircraft      String?
+  aircraft_reg  String?
+  note          String?
+
+  user_id String
+  user    user   @relation(fields: [user_id], references: [id])
+}
+
+model session {
   id         String @id
   expires_at Int
   user_id    String
-  user       User   @relation(fields: [user_id], references: [id])
+  user       user   @relation(fields: [user_id], references: [id])
 }
