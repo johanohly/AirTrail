@@ -5,10 +5,10 @@
   import { onMount } from "svelte";
   import { toast } from "svelte-sonner";
   import { TowerControl, LoaderCircle } from "@o7/icon/lucide";
-  import SuperDebug, { superForm } from "sveltekit-superforms";
+  import { superForm } from "sveltekit-superforms";
   import * as Form from "$lib/components/ui/form";
   import { zod } from "sveltekit-superforms/adapters";
-  import { signUpSchema } from "$lib/auth/schemas";
+  import { signUpSchema } from "$lib/zod/auth";
 
   const query = trpc.user.isSetup.query();
   const isSetup = $query.data;

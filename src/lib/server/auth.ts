@@ -5,8 +5,8 @@ import type { DB } from '$lib/db/schema';
 import { sqlite } from '$lib/db';
 
 const adapter = new BetterSqlite3Adapter(sqlite, {
-	user: 'user',
-	session: 'session',
+	user: 'User',
+	session: 'Session',
 });
 
 export const lucia = new Lucia(adapter, {

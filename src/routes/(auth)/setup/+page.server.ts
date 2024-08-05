@@ -2,7 +2,7 @@ import type { Actions, PageServerLoad } from "./$types";
 import { trpcServer } from "$lib/server/server";
 import { message, setError, superValidate } from "sveltekit-superforms";
 import { zod } from "sveltekit-superforms/adapters";
-import { signUpSchema } from "$lib/auth/schemas";
+import { signUpSchema } from "$lib/zod/auth";
 import { fail, redirect } from "@sveltejs/kit";
 import { createSession, createUser, usernameExists } from "$lib/server/utils/auth";
 import { generateId } from "lucia";

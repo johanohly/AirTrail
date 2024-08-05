@@ -1,11 +1,11 @@
 import { db } from "$lib/db";
 import { sql } from "kysely";
-import type { user } from "$lib/db/schema";
+import type { User } from "$lib/db/schema";
 import type { Lucia } from "lucia";
 import type { Cookies } from "@sveltejs/kit";
 
-export const createUser = async (id: string, username: string, password: string, displayName: string, role: user["role"]) => {
-  const result = await db.insertInto("user").values({ id, username, password, displayName, role }).executeTakeFirst();
+export const createUser = async (id: string, username: string, password: string, displayName: string, role: User["role"]) => {
+  const result = await db.insertInto("User").values({ id, username, password, displayName, role }).executeTakeFirst();
   return result.numInsertedOrUpdatedRows && result.numInsertedOrUpdatedRows > 0;
 };
 
@@ -29,6 +29,6 @@ export const deleteSession = async (lucia: Lucia, cookies: Cookies) => {
 };
 
 export const usernameExists = async (username: string) => {
-  const users = await db.selectFrom("user").where("username", "=", username).select(sql`1`.as("exists")).execute();
+  const users = await db.selectFrom("User").where("username", "=", username).select(sql`1`.as("exists")).execute();
   return users.length > 0;
 };

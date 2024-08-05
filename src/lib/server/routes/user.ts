@@ -7,7 +7,7 @@ export const userRouter = router({
     return user;
   }),
   isSetup: publicProcedure.query(async () => {
-    const users = await db.selectFrom("user").select(sql`1`.as("exists")).limit(1).execute();
+    const users = await db.selectFrom("User").select(sql`1`.as("exists")).limit(1).execute();
     return users.length > 0;
   })
 });
