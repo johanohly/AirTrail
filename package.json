@@ -10,6 +10,9 @@
     "lint": "svelte-kit sync && eslint --max-warnings 0 --fix . && svelte-check"
   },
   "dependencies": {
+    "@deck.gl/core": "~8.8.0",
+    "@deck.gl/layers": "~8.8.0",
+    "@deck.gl/mapbox": "~8.8.0",
     "@o7/icon": "^0.2.3",
     "@tanstack/svelte-query": "^5.51.16",
     "@trpc/client": "^10.45.2",
@@ -21,8 +24,10 @@
     "devalue": "^5.0.0",
     "formsnap": "^1.0.1",
     "kysely": "^0.27.4",
+    "maplibre-gl": "^4.5.1",
     "mode-watcher": "^0.4.1",
     "oslo": "^1.2.1",
+    "svelte-maplibre": "^0.9.10",
     "svelte-motion": "^0.12.2",
     "svelte-sonner": "^0.3.27",
     "sveltekit-superforms": "^2.16.1",

@@ -12,7 +12,7 @@
   {#if item.href}
     <a href={item.href} target={item.href.startsWith("http") ? "_blank" : "_self"} referrerpolicy="no-referrer">
       <Tooltip.Root openDelay={0}>
-        <Tooltip.Trigger class="hover:bg-zinc-900/80 transition-all duration-200 rounded-full p-3 mx-0">
+        <Tooltip.Trigger class="hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 transition-all duration-200 rounded-full p-3 mx-0">
           <svelte:component this={item.icon} size={22} strokeWidth={1.2} />
         </Tooltip.Trigger>
         <Tooltip.Content sideOffset={8}>
@@ -22,7 +22,7 @@
     </a>
   {:else}
     <Tooltip.Root openDelay={0}>
-      <Tooltip.Trigger class="hover:bg-zinc-900/80 transition-all duration-200 rounded-full p-3 mx-0">
+      <Tooltip.Trigger class="hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 transition-all duration-200 rounded-full p-3 mx-0">
         <svelte:component this={item.icon} size={22} strokeWidth={1.2} />
       </Tooltip.Trigger>
       <Tooltip.Content sideOffset={8}>

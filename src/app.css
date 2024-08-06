@@ -80,6 +80,10 @@
     }
 }
 
+html, body {
+    @apply h-full;
+}
+
 .page-container {
     @apply container mx-auto px-4 md:px-10 py-10 space-y-10;
 }
