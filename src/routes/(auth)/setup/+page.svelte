@@ -4,11 +4,12 @@
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
   import { toast } from "svelte-sonner";
-  import { TowerControl, LoaderCircle } from "@o7/icon/lucide";
+  import { LoaderCircle } from "@o7/icon/lucide";
   import { superForm } from "sveltekit-superforms";
   import * as Form from "$lib/components/ui/form";
   import { zod } from "sveltekit-superforms/adapters";
   import { signUpSchema } from "$lib/zod/auth";
+  import { Globe } from "$lib/components/ui/globe";
 
   const query = trpc.user.isSetup.query();
   const isSetup = $query.data;
@@ -31,8 +32,8 @@
   const { form: formData, enhance, delayed } = form;
 </script>
 
-<div class="w-full lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px]">
-  <div class="flex items-center justify-center py-12">
+<div class="h-full grid lg:grid-cols-2">
+  <div class="flex items-center justify-center">
     <div class="mx-auto grid w-[350px] gap-6">
       <div class="grid gap-2 text-center">
         <h1 class="text-3xl font-bold">Welcome</h1>
@@ -71,7 +72,7 @@
       </form>
     </div>
   </div>
-  <div class="bg-muted hidden lg:block">
-    <TowerControl class="text-blue-500" size="" />
+  <div class="items-center justify-center relative hidden lg:flex">
+    <Globe />
   </div>
 </div>

@@ -18,7 +18,7 @@
 
   const dockVariants = tv({
     base:
-      "mx-auto w-max mt-8 h-[58px] p-2 flex gap-2 rounded-2xl border bg-background/70 backdrop-blur-md"
+      "h-[58px] p-2 flex gap-2 rounded-2xl border bg-background/70 backdrop-blur-md"
   });
 
   let dockElement: HTMLDivElement;

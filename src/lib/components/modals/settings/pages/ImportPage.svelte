@@ -1,15 +1,19 @@
 <script lang="ts">
-  import { Card } from "$lib/components/ui/card";
-  import { Upload } from "@o7/icon/lucide";
-  import { cn } from "$lib/utils";
-  import { processFile } from "$lib/import";
+  import { PageHeader } from ".";
   import { Button } from "$lib/components/ui/button";
-  import { Separator } from "$lib/components/ui/separator";
-  import { toast } from "svelte-sonner";
+  import { Card } from "$lib/components/ui/card";
+  import { cn } from "$lib/utils";
+  import { Upload } from "@o7/icon/lucide";
   import { trpc } from "$lib/trpc";
+  import { processFile } from "$lib/import";
+  import { toast } from "svelte-sonner";
 
-  let files: FileList | undefined;
-  let fileError: string | null = null;
+  let { invalidator }: {
+    invalidator?: { onSuccess: () => void };
+  } = $props();
+
+  let files: FileList | null = $state(null);
+  let fileError: string | null = $state(null);
 
   const validateFile = () => {
     const file = files?.[0];
@@ -24,8 +28,8 @@
     }
   };
 
-  $: canImport = files?.[0] && !fileError;
-  const createMany = trpc.flight.createMany.mutation();
+  const canImport = $derived(!!files?.[0] && !fileError);
+  const createMany = trpc.flight.createMany.mutation(invalidator);
 
   const handleImport = async () => {
     const file = files?.[0];
@@ -34,28 +38,21 @@
     const flights = await processFile(file);
     if (!flights.length) {
       toast.error("No flights found in the file");
-      files = undefined;
+      files = null;
       return;
     }
 
     await $createMany.mutateAsync(flights);
 
     toast.success(`Imported ${flights.length} flights`);
-    files = undefined;
+    files = null;
   };
 </script>
 
-<div class="space-y-6">
-  <div>
-    <h3 class="text-lg font-medium">Import</h3>
-    <p class="text-muted-foreground text-sm">
-      Supported platforms: FlightRadar24
-    </p>
-  </div>
-  <Separator />
-  <label class="mt-6" for="file">
+<PageHeader title="Import" subtitle="Supported platforms: FlightRadar24">
+  <label for="file" class="block">
     <Card
-      class={cn("cursor-pointer py-12 border-2 border-dashed flex flex-col items-center hover:bg-card-hover", {"border-destructive": fileError})}>
+      class={cn("cursor-pointer py-12 border-2 border-dashed flex flex-col items-center hover:bg-card-hover dark:hover:bg-dark-2", {"border-destructive": fileError})}>
       <Upload />
       {#if fileError}
         {fileError}
@@ -67,4 +64,4 @@
   <input onchange={validateFile} id="file" name="file" type="file" accept=".csv,.txt" bind:files
          class="hidden" />
   <Button on:click={handleImport} disabled={!canImport}>Import</Button>
-</div>
+</PageHeader>

@@ -9,6 +9,10 @@ export const createUser = async (id: string, username: string, password: string,
   return result.numInsertedOrUpdatedRows && result.numInsertedOrUpdatedRows > 0;
 };
 
+export const getUser = async (username: string) => {
+  return db.selectFrom("User").where("username", "=", username).selectAll().executeTakeFirst();
+};
+
 export const createSession = async (lucia: Lucia, userId: string, cookies: Cookies) => {
   const session = await lucia.createSession(userId, {});
   const sessionCookie = lucia.createSessionCookie(session.id);

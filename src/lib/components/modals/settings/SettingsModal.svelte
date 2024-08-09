@@ -1,15 +1,22 @@
 <script lang="ts">
-  import { page } from "$app/stores";
   import { cn } from "$lib/utils";
-  import { Button } from "$lib/components/ui/button";
-  import { cubicInOut } from "svelte/easing";
-  import { crossfade } from "svelte/transition";
   import { Separator } from "$lib/components/ui/separator";
+  import { crossfade } from "svelte/transition";
+  import { cubicInOut } from "svelte/easing";
+  import { Modal } from "$lib/components/ui/modal";
+  import { Button } from "$lib/components/ui/button";
+  import { ImportPage, OverviewPage } from "./pages";
 
   const SETTINGS_PAGES = [
-    { title: "Overview", href: "/settings/overview" },
-    { title: "Import", href: "/settings/import" }
-  ];
+    { title: "Overview", id: "overview" },
+    { title: "Import", id: "import" }
+  ] as const;
+
+  let { open = $bindable(), invalidator, activeTab = "import" }: {
+    open: boolean;
+    invalidator?: { onSuccess: () => void };
+    activeTab?: (typeof SETTINGS_PAGES)[number]["id"];
+  } = $props();
 
   const [send, receive] = crossfade({
     duration: 250,
@@ -17,8 +24,8 @@
   });
 </script>
 
-<div class="page-container">
-  <div class="space-y-6 p-10 pb-16 block">
+<Modal bind:open>
+  <div class="space-y-6">
     <div class="space-y-0.5">
       <h2 class="text-2xl font-bold tracking-tight">Settings</h2>
       <p class="text-muted-foreground">
@@ -27,13 +34,13 @@
     </div>
     <Separator class="my-6" />
     <div class="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
-      <aside class="-mx-4 lg:w-1/5">
+      <aside class="md:-mx-4 lg:w-1/5">
         <nav class="flex space-x-2 lg:flex-col lg:space-x-0 lg:space-y-1">
           {#each SETTINGS_PAGES as item}
-            {@const isActive = $page.url.pathname === item.href}
+            {@const isActive = activeTab === item.id}
 
             <Button
-              href={item.href}
+              on:click={() => activeTab = item.id}
               variant="ghost"
               class={cn(
 				!isActive && "hover:underline",
@@ -56,8 +63,12 @@
         </nav>
       </aside>
       <div class="flex-1 lg:max-w-2xl">
-        <slot />
+        {#if activeTab === "overview"}
+          <OverviewPage />
+        {:else if activeTab === "import"}
+          <ImportPage {invalidator} />
+        {/if}
       </div>
     </div>
   </div>
-</div>
+</Modal>
