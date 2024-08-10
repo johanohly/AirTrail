@@ -8,7 +8,7 @@
     children
   }: {
     classes: string;
-    gradient: boolean;
+    gradient?: boolean;
     children: Snippet;
   } = $props();
 </script>

@@ -3,11 +3,11 @@
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import * as Drawer from "$lib/components/ui/drawer/index.js";
 
-  let { open = $bindable(), classes = "max-w-lg" } = $props();
+  let { open = $bindable(), classes = "max-w-lg", dialogOnly = false } = $props();
   const useDialog = isMediumScreen;
 </script>
 
-{#if $useDialog}
+{#if $useDialog || dialogOnly}
   <Dialog.Root bind:open preventScroll={false}>
     <Dialog.Content {classes}>
       <slot />

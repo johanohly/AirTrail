@@ -8,14 +8,16 @@
     PlaneTakeoff,
     PlaneLanding,
     ArrowRight,
-    CircleFadingPlus
+    CircleFadingPlus,
+    SquarePen,
+    X
   } from "@o7/icon/lucide";
   import dayjs from "dayjs";
   import duration from "dayjs/plugin/duration";
   import { Separator } from "$lib/components/ui/separator";
   import { Button } from "$lib/components/ui/button";
   import { LabelledSeparator } from "$lib/components/ui/separator/index.js";
-  import { findByIata } from "$lib/utils";
+  import { airlineFromString, airportByIata } from "$lib/utils";
   import * as Tooltip from "$lib/components/ui/tooltip";
   import { formatSeat } from "$lib/utils/data";
 
@@ -62,15 +64,17 @@
           : dateFormatter.format(arrDate)
         : null;
 
+      const airline = f.airline ? airlineFromString(f.airline) : null;
+
       return {
         ...f,
         from: {
           iata: f.from,
-          name: findByIata(f.from)?.name
+          name: airportByIata(f.from)?.name
         },
         to: {
           iata: f.to,
-          name: findByIata(f.to)?.name
+          name: airportByIata(f.to)?.name
         },
         duration: dayjs.duration(f.duration, "seconds").format("H[h] m[m]"),
         month: f.departure
@@ -78,7 +82,8 @@
           : null,
         depTime: depDate ? dateFormatter.format(depDate) : null,
         arrTime,
-        seat: formatSeat(f)
+        seat: formatSeat(f),
+        airline
       };
     });
   });
@@ -105,100 +110,134 @@
   });
 </script>
 
-<Modal bind:open classes="max-w-[90%] max-h-[95%] overflow-y-auto">
+<Modal bind:open classes="max-w-[90%] max-h-[95%] overflow-y-auto" dialogOnly>
   <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
-  {#each Object.entries(flightsByYear) as [year, flights] (year)}
-    <LabelledSeparator classes="mt-4">
-      <h3
-        class="border px-4 py-1 rounded-full border-dashed text-sm font-medium leading-7"
-      >
-        {year}
-      </h3>
-    </LabelledSeparator>
-    <div class="space-y-2">
-      {#each flights as flight (flight.id)}
-        <Card level="2" class="flex items-center p-3">
-          <div
-            class="flex items-stretch sm:items-center max-sm:flex-col-reverse max-sm:content-start flex-1 h-full min-w-0"
-          >
-            {#if flight.month}
-              <div class="max-sm:hidden flex justify-center shrink-0 w-11">
-                <span class="text-lg font-medium">{flight.month}</span>
-              </div>
-              <Separator
-                orientation="vertical"
-                class="max-sm:hidden h-10 mx-3"
-              />
-            {/if}
-            {#if flight.depTime && flight.arrTime}
-              <div class="flex flex-col w-32 shrink-0">
-                <div class="flex items-center">
-                  <PlaneTakeoff size="16" class="mr-1" />
-                  <p class="text-sm">{flight.depTime}</p>
+  {#if Object.keys(flightsByYear).length === 0}
+    <p class="text-lg text-muted-foreground">No flights found</p>
+  {:else}
+    {#each Object.entries(flightsByYear) as [year, flights] (year)}
+      <LabelledSeparator classes="mt-4">
+        <h3
+          class="border px-4 py-1 rounded-full border-dashed text-sm font-medium leading-7"
+        >
+          {year}
+        </h3>
+      </LabelledSeparator>
+      <div class="space-y-2">
+        {#each flights as flight (flight.id)}
+          <Card level="2" class="flex items-center p-3">
+            <div
+              class="flex items-stretch md:items-center max-md:flex-col-reverse max-md:content-start flex-1 h-full min-w-0"
+            >
+              {#if flight.month}
+                <div class="max-md:hidden flex justify-center shrink-0 w-11">
+                  <span class="text-lg font-medium">{flight.month}</span>
                 </div>
-                <div class="flex items-center">
-                  <PlaneLanding size="16" class="mr-1" />
-                  <p
-                    class="text-sm overflow-hidden overflow-ellipsis whitespace-nowrap"
-                  >
-                    {flight.arrTime}
-                  </p>
+                <Separator
+                  orientation="vertical"
+                  class="max-md:hidden h-10 mx-3"
+                />
+              {/if}
+              {#if flight.depTime && flight.arrTime}
+                <div class="max-md:hidden flex flex-col w-32 shrink-0">
+                  {@render flightTimes(flight)}
+                </div>
+              {/if}
+              <div class="px-4 flex md:hidden">
+                {#if flight.depTime && flight.arrTime}
+                  <div class="flex flex-col w-32 shrink-0">
+                    {@render flightTimes(flight)}
+                  </div>
+                {/if}
+                <div class="hidden sm:flex flex-col">
+                  {@render seatAndAirline(flight)}
+                </div>
+                <div class="flex justify-end w-full">
+                  {@render actions(flight)}
                 </div>
               </div>
-              <Separator class="my-4 sm:hidden" />
-            {/if}
-            <div class="flex flex-col w-48 shrink-0">
-              {#if flight.seat}
-                <Tooltip.AutoTooltip text={flight.seat} classes="text-sm truncate" />
-              {:else}
-                <Button class="justify-start px-1" variant="ghost" size="sm">
-                  <CircleFadingPlus size="16" class="mr-1" />
-                  Add seat
-                </Button>
-              {/if}
-              {#if flight.airline}
-                <Tooltip.AutoTooltip text={flight.airline} classes="text-sm text-muted-foreground truncate" />
-              {:else}
-                <p class="text-sm text-transparent">.</p>
-              {/if}
-            </div>
-            <div class="flex flex-1 px-16">
-              <div class="w-full grid grid-cols-[auto_1fr_auto] gap-3">
-                {@render airport(flight.from)}
-                <div class="h-full flex flex-col justify-center">
-                  <div class="relative">
-                    <div
-                      class="relative w-full h-[1px] border-b border-dashed border-dark-2 dark:border-zinc-500"
-                    >
+              <Separator class="my-4 md:hidden" />
+              <div class="max-lg:hidden flex flex-col w-48 shrink-0">
+                {@render seatAndAirline(flight)}
+              </div>
+              <div class="flex flex-1 px-16">
+                <div class="w-full grid grid-cols-[auto_1fr_auto] gap-3">
+                  {@render airport(flight.from)}
+                  <div class="h-full flex flex-col justify-center">
+                    <div class="relative">
                       <div
-                        class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-1 bg-card dark:bg-dark-2 text-dark-2 dark:text-zinc-500"
+                        class="relative w-full h-[1px] border-b border-dashed border-dark-2 dark:border-zinc-500"
                       >
-                        <div class="flex flex-col items-center">
-                          <Plane size="20" />
-                          <span class="text-xs">{flight.duration}</span>
+                        <div
+                          class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-1 bg-card dark:bg-dark-2 text-dark-2 dark:text-zinc-500"
+                        >
+                          <div class="flex flex-col items-center">
+                            <Plane size="20" />
+                            <span class="text-xs">{flight.duration}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
+                  {@render airport(flight.to)}
                 </div>
-                {@render airport(flight.to)}
+              </div>
+              <div class="hidden md:flex">
+                {@render actions(flight)}
               </div>
             </div>
-            <Button variant="ghost" size="sm" class="max-sm:hidden">
-              Show
-              <ArrowRight class="ml-1 size-4" />
-            </Button>
-          </div>
-        </Card>
-      {/each}
-    </div>
-  {/each}
+          </Card>
+        {/each}
+      </div>
+    {/each}
+  {/if}
 </Modal>
+
+{#snippet flightTimes(flight)}
+<div class="flex items-center">
+  <PlaneTakeoff size="16" class="mr-1" />
+  <p class="text-sm">{flight.depTime}</p>
+</div>
+<div class="flex items-center">
+  <PlaneLanding size="16" class="mr-1" />
+  <p
+    class="text-sm overflow-hidden overflow-ellipsis whitespace-nowrap"
+  >
+    {flight.arrTime}
+  </p>
+</div>
+{/snippet}
+
+{#snippet seatAndAirline(flight)}
+{#if flight.seat}
+  <Tooltip.AutoTooltip text={flight.seat} classes="text-sm truncate" />
+{:else}
+  <Button class="justify-start px-1" variant="ghost" size="sm">
+    <CircleFadingPlus size="16" class="mr-1" />
+    Add seat
+  </Button>
+{/if}
+{#if flight.airline}
+  <Tooltip.AutoTooltip text={flight.airline.name} classes="text-sm text-muted-foreground truncate" />
+{:else}
+  <p class="text-sm text-transparent">.</p>
+{/if}
+{/snippet}
+
+{#snippet actions(flight)}
+<div class="flex items-center gap-2">
+  <Button variant="outline" size="icon">
+    <SquarePen size="20" />
+  </Button>
+  <Button variant="outline" size="icon">
+    <X size="24" />
+  </Button>
+</div>
+{/snippet}
 
 {#snippet airport(airport)}
 <div class="w-11 flex flex-col items-center justify-center">
   <span class="text-lg font-bold">{airport.iata}</span>
   <Tooltip.AutoTooltip text={airport.name} classes="w-32 text-xs text-muted-foreground truncate" />
-
 </div>
 {/snippet}

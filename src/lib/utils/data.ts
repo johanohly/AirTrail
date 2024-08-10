@@ -7,8 +7,8 @@ export const prepareFlightArcData = (data: APIFlight[]) => {
   if (!data) return [];
 
   return data.map((flight) => {
-    const fromAirport = findByIata(flight.from);
-    const toAirport = findByIata(flight.to);
+    const fromAirport = airportByIata(flight.from);
+    const toAirport = airportByIata(flight.to);
     if (!fromAirport || !toAirport) return null;
 
     return {
@@ -23,7 +23,7 @@ export const prepareFlightArcData = (data: APIFlight[]) => {
 };
 
 export const formatSeat = (f: APIFlight) => {
-  const t = (s) => toTitleCase(s);
+  const t = (s: string) => toTitleCase(s);
 
   return f.seat && f.seatNumber && f.seatClass
     ? `${t(f.seatClass)} (${f.seat} ${f.seatNumber})`
@@ -36,6 +36,18 @@ export const formatSeat = (f: APIFlight) => {
           : null;
 };
 
-export const findByIata = (iata: string): typeof AIRPORTS[0] | undefined => {
+export const airportByIata = (iata: string): typeof AIRPORTS[0] | undefined => {
   return AIRPORTS.find((airport) => airport.iata === iata);
 };
+
+const AIRLINE_REGEX = /(?<Name>.*) \((?<IATA>[0-9A-Z]{2})\/(?<ICAO>[a-zA-Z]{3})\)/
+export const airlineFromString = (s: string) => {
+  const match = s.match(AIRLINE_REGEX);
+  if (!match || !match.groups) return null;
+
+  return {
+    name: match.groups.Name,
+    iata: match.groups.IATA,
+    icao: match.groups.ICAO
+  };
+}

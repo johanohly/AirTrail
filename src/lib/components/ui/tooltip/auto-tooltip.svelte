@@ -11,7 +11,6 @@
 
   let trigger: HTMLParagraphElement;
   $effect(() => {
-    console.log(trigger.scrollWidth, trigger.clientWidth);
     if (open) {
       if (trigger.scrollWidth <= trigger.clientWidth) {
         open = false;
