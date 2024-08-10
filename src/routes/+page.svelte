@@ -9,7 +9,7 @@
   import { linearClamped } from "$lib/utils";
   import { AIRPORTS } from "$lib/data/airports";
   import { toast } from "svelte-sonner";
-  import { prepareFlightData } from "$lib/utils/data";
+  import { prepareFlightArcData } from "$lib/utils/data";
   import { AddFlightModal, ListFlightsModal, SettingsModal } from "$lib/components/modals";
 
   const PRIMARY = [
@@ -63,7 +63,7 @@
       const data = $flights.data;
       if (!data) return [];
 
-      return prepareFlightData(data);
+      return prepareFlightArcData(data);
     }
   );
 

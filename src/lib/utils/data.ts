@@ -1,8 +1,9 @@
 import { AIRPORTS } from "$lib/data/airports";
 import { distanceBetween } from "$lib/utils/distance";
 import type { APIFlight } from "$lib/db";
+import { toTitleCase } from "$lib/utils/other";
 
-export const prepareFlightData = (data: APIFlight[]) => {
+export const prepareFlightArcData = (data: APIFlight[]) => {
   if (!data) return [];
 
   return data.map((flight) => {
@@ -19,6 +20,20 @@ export const prepareFlightData = (data: APIFlight[]) => {
       toName: toAirport.name
     };
   });
+};
+
+export const formatSeat = (f: APIFlight) => {
+  const t = (s) => toTitleCase(s);
+
+  return f.seat && f.seatNumber && f.seatClass
+    ? `${t(f.seatClass)} (${f.seat} ${f.seatNumber})`
+    : f.seat && f.seatNumber
+      ? `${f.seat} ${f.seatNumber}`
+      : f.seat && f.seatClass
+        ? `${t(f.seatClass)} (${f.seat})`
+        : f.seat
+          ? f.seat
+          : null;
 };
 
 export const findByIata = (iata: string): typeof AIRPORTS[0] | undefined => {
