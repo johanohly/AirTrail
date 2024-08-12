@@ -4,3 +4,4 @@ export { readFile } from './file';
 export { airportByIata, airlineFromString } from './data';
 export { distanceBetween, linearClamped } from './distance';
 export { isUsingAmPm } from './datetime';
+export { calculateZoomLevel } from './latlng';
