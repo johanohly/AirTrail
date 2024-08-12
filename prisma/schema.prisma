@@ -21,7 +21,7 @@ model User {
   role String
 
   sessions Session[]
-  flight   Flight[]
+  flights  Flight[]
 }
 
 model Flight {

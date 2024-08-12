@@ -6,7 +6,7 @@
   import { mode, toggleMode } from "mode-watcher";
   import { DeckGlLayer, MapLibre, Popup } from "svelte-maplibre";
   import { ArcLayer, IconLayer } from "@deck.gl/layers";
-  import { linearClamped } from "$lib/utils";
+  import { linearClamped } from '$lib/utils';
   import { AIRPORTS } from "$lib/data/airports";
   import { toast } from "svelte-sonner";
   import { prepareFlightArcData } from "$lib/utils/data";
