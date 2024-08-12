@@ -21,9 +21,6 @@ export const calculateZoomLevel = (data: ({ from: [number, number], to: [number,
 		zoom -= 1;
 	}
 
-	console.log('centerLat', centerLat);
-	console.log('centerLng', centerLng);
-	console.log('zoom', zoom);
 	return {
 		center: [centerLat, centerLng],
 		zoom,
