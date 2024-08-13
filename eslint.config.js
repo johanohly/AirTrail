@@ -48,7 +48,7 @@ export default ts.config(
 	},
 	{
 		rules: {
-			'prettier/prettier': 'warn',
+			'prettier/prettier': ['warn', { endOfLine: 'auto' }],
 		},
 	},
 	{ ignores: ['**/.svelte-kit', 'build/', 'dist/'] },

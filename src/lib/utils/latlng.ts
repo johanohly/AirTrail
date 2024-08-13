@@ -1,9 +1,16 @@
 import { isLargeScreen } from '$lib/utils/size';
 import { get } from 'svelte/store';
 
-export const calculateZoomLevel = (data: ({ from: [number, number], to: [number, number] } | null)[]) => {
+export const calculateZoomLevel = (
+	data: ({ from: number[]; to: number[] } | null)[],
+): {
+	center: [number, number];
+	zoom: number;
+} => {
 	const latitudes = data.map((d) => d.from[0]).concat(data.map((d) => d.to[0]));
-	const longitudes = data.map((d) => d.from[1]).concat(data.map((d) => d.to[1]));
+	const longitudes = data
+		.map((d) => d.from[1])
+		.concat(data.map((d) => d.to[1]));
 
 	const minLat = Math.min(...latitudes);
 	const maxLat = Math.max(...latitudes);
@@ -20,6 +27,8 @@ export const calculateZoomLevel = (data: ({ from: [number, number], to: [number,
 	if (!get(isLargeScreen)) {
 		zoom -= 1;
 	}
+
+	console.log('zoom', zoom);
 
 	return {
 		center: [centerLat, centerLng],

@@ -89,3 +89,11 @@ html, body {
 .page-container {
     @apply container mx-auto px-4 md:px-10 py-10 space-y-10;
 }
+
+.maplibregl-popup-content {
+    @apply !bg-popover !text-popover-foreground;
+}
+
+.maplibregl-popup-tip {
+    @apply !border-t-popover
+}
