@@ -91,7 +91,7 @@ html, body {
 }
 
 .maplibregl-popup-content {
-    @apply !bg-popover !text-popover-foreground;
+    @apply !bg-popover dark:!bg-dark-2 !text-popover-foreground !drop-shadow-2xl !rounded-lg
 }
 
 .maplibregl-popup-tip {

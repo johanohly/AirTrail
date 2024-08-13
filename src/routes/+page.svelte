@@ -13,6 +13,8 @@
 	import { AddFlightModal, ListFlightsModal, SettingsModal } from '$lib/components/modals';
 	import { Button } from '$lib/components/ui/button';
 
+	const PRIMARY_COLOR = [59, 130, 246];
+
 	const PRIMARY = [
 		{
 			label: 'Add flight',
@@ -94,30 +96,39 @@
 		class="relative h-full"
 		standardControls
 	>
-		{#key $mode}
-			<DeckGlLayer
-				type={ArcLayer}
-				data={flightArcs}
-				getSourcePosition={(d) => d.from}
-				getTargetPosition={(d) => d.to}
-				getSourceColor={[255, 255, 255]}
-				getTargetColor={[255, 255, 255]}
-				getWidth={(d) => linearClamped(d.distance)}
-				getHeight={0}
-				greatCircle={true}
-			>
-				<Popup openOn="click" let:data let:close>
-					<div class="flex flex-col">
-						<h4 class="text-lg font-semibold">
-							From {data.fromName} to {data.toName}
-						</h4>
-						<Button onclick={() => {close(); deleteFlight(data.id)}} variant="outline" size="icon">
-							<Trash2 size="20" />
-						</Button>
-					</div>
-				</Popup>
-			</DeckGlLayer>
-		{/key}
+		<DeckGlLayer
+			type={ArcLayer}
+			data={flightArcs}
+			getSourcePosition={(d) => d.from}
+			getTargetPosition={(d) => d.to}
+			getSourceColor={PRIMARY_COLOR}
+			getTargetColor={PRIMARY_COLOR}
+			getWidth={(d) => linearClamped(d.distance)}
+			getHeight={0}
+			greatCircle={true}
+		/>
+		<DeckGlLayer
+			type={ArcLayer}
+			data={flightArcs}
+			getSourcePosition={(d) => d.from}
+			getTargetPosition={(d) => d.to}
+			getSourceColor={[0,0,0,0]}
+			getTargetColor={[0,0,0,0]}
+			getWidth={(d) => linearClamped(d.distance) * 8}
+			getHeight={0}
+			greatCircle={true}
+		>
+			<Popup openOn="click" let:data let:close>
+				<div class="flex flex-col">
+					<h4 class="text-lg font-semibold">
+						From {data.fromName} to {data.toName}
+					</h4>
+					<Button onclick={() => {close(); deleteFlight(data.id)}} variant="outline" size="icon">
+						<Trash2 size="20" />
+					</Button>
+				</div>
+			</Popup>
+		</DeckGlLayer>
 
 		<!-- Both the size and sizeScale don't really matter a lot, the main values are the maxPixels and minPixels, because the unit is meters -->
 		<DeckGlLayer
