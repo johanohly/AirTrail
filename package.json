@@ -33,7 +33,7 @@
     "maplibre-gl": "^4.5.1",
     "mode-watcher": "^0.4.1",
     "oslo": "^1.2.1",
-    "svelte-maplibre": "^0.9.10",
+    "svelte-maplibre": "^0.9.11",
     "svelte-motion": "^0.12.2",
     "svelte-sonner": "^0.3.27",
     "sveltekit-superforms": "^2.16.1",

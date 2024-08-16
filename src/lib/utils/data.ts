@@ -1,7 +1,7 @@
-import { AIRPORTS } from "$lib/data/airports";
-import { distanceBetween } from "$lib/utils/distance";
-import type { APIFlight } from "$lib/db";
-import { toTitleCase } from "$lib/utils/other";
+import { AIRPORTS } from '$lib/data/airports';
+import { distanceBetween } from '$lib/utils/distance';
+import type { APIFlight } from '$lib/db';
+import { toTitleCase } from '$lib/utils/other';
 import { AIRLINES } from '$lib/data/airlines';
 
 export const prepareFlightArcData = (data: APIFlight[]) => {
@@ -14,13 +14,13 @@ export const prepareFlightArcData = (data: APIFlight[]) => {
 
     return {
       id: flight.id,
-      distance: distanceBetween([fromAirport.longitude, fromAirport.latitude], [toAirport.longitude, toAirport.latitude]) / 1000,
-      from: [fromAirport.longitude, fromAirport.latitude],
-      to: [toAirport.longitude, toAirport.latitude],
+      distance: distanceBetween([fromAirport.lon, fromAirport.lat], [toAirport.lon, toAirport.lat]) / 1000,
+      from: [fromAirport.lon, fromAirport.lat],
+      to: [toAirport.lon, toAirport.lat],
       fromName: fromAirport.name,
-      toName: toAirport.name
+      toName: toAirport.name,
     };
-  });
+  }).filter((d) => d !== null);
 };
 
 export const formatSeat = (f: APIFlight) => {
@@ -38,9 +38,9 @@ export const formatSeat = (f: APIFlight) => {
 };
 
 export const airportFromIata = (iata: string): typeof AIRPORTS[0] | undefined => {
-  return AIRPORTS.find((airport) => airport.code === iata);
+  return AIRPORTS.find((airport) => airport.IATA === iata);
 };
 
 export const airlineFromIata = (iata: string) => {
   return AIRLINES.find((airline) => airline.iata === iata) ?? null;
-}
+};

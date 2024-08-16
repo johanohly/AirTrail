@@ -74,7 +74,6 @@ export const processFR24File = async (content: string) => {
     return [];
   }
 
-  console.log(data);
   const flights: Omit<Flight, 'id' | 'userId'>[] = [];
   for (const row of data) {
     const from = extractAirportIATA(row.from);
