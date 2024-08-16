@@ -1,7 +1,7 @@
 export { toTitleCase, cn, flyAndScale } from './other';
 export { parseCsv } from './csv';
 export { readFile } from './file';
-export { airportByIata, airlineFromString } from './data';
+export { airportFromIata, airlineFromIata } from './data';
 export { distanceBetween, linearClamped } from './distance';
 export { isUsingAmPm } from './datetime';
 export { calculateZoomLevel } from './latlng';

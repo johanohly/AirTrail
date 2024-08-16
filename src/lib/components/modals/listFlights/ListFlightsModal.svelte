@@ -17,7 +17,7 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { Button } from '$lib/components/ui/button';
 	import { LabelledSeparator } from '$lib/components/ui/separator/index.js';
-	import { airlineFromString, airportByIata, cn, isUsingAmPm } from '$lib/utils';
+	import { airlineFromIata, airportFromIata, cn, isUsingAmPm } from '$lib/utils';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { formatSeat } from '$lib/utils/data';
 
@@ -64,17 +64,17 @@
 					: dateFormatter.format(arrDate)
 				: null;
 
-			const airline = f.airline ? airlineFromString(f.airline) : null;
+			const airline = f.airline ? airlineFromIata(f.airline) : null;
 
 			return {
 				...f,
 				from: {
 					iata: f.from,
-					name: airportByIata(f.from)?.name,
+					name: airportFromIata(f.from)?.name,
 				},
 				to: {
 					iata: f.to,
-					name: airportByIata(f.to)?.name,
+					name: airportFromIata(f.to)?.name,
 				},
 				duration: dayjs.duration(f.duration, 'seconds').format('H[h] m[m]'),
 				month: f.departure

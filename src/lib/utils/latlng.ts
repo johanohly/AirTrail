@@ -28,8 +28,6 @@ export const calculateZoomLevel = (
 		zoom -= 1;
 	}
 
-	console.log('zoom', zoom);
-
 	return {
 		center: [centerLat, centerLng],
 		zoom,

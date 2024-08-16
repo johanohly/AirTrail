@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { trpc } from '$lib/trpc';
 	import { Dock, DockTooltipItem } from '$lib/components/dock';
-	import { GitBranchPlus, Settings, LayoutList, Trash2 } from '@o7/icon/lucide';
+	import { ChartColumn, GitBranchPlus, Settings, LayoutList, Trash2 } from '@o7/icon/lucide';
 	import { Separator } from '$lib/components/ui/separator';
 	import { mode, toggleMode } from 'mode-watcher';
 	import { DeckGlLayer, MapLibre, Popup } from 'svelte-maplibre';
@@ -10,7 +10,7 @@
 	import { AIRPORTS } from '$lib/data/airports';
 	import { toast } from 'svelte-sonner';
 	import { prepareFlightArcData } from '$lib/utils/data';
-	import { AddFlightModal, ListFlightsModal, SettingsModal } from '$lib/components/modals';
+	import { AddFlightModal, ListFlightsModal, SettingsModal, StatisticsModal } from '$lib/components/modals';
 	import { Button } from '$lib/components/ui/button';
 
 	const PRIMARY_COLOR = [59, 130, 246];
@@ -28,6 +28,13 @@
 			icon: LayoutList,
 			onClick: () => {
 				listFlightsModalOpen = true;
+			},
+		},
+		{
+			label: 'Statistics',
+			icon: ChartColumn,
+			onClick: () => {
+				statisticsModalOpen = true;
 			},
 		},
 	];
@@ -82,11 +89,13 @@
 
 	let addFlightModalOpen = $state(false);
 	let listFlightsModalOpen = $state(false);
+	let statisticsModalOpen = $state(false);
 	let settingsModalOpen = $state(false);
 </script>
 
 <AddFlightModal bind:open={addFlightModalOpen} />
 <ListFlightsModal bind:open={listFlightsModalOpen} {flights} />
+<StatisticsModal bind:open={statisticsModalOpen} {flights} />
 <SettingsModal bind:open={settingsModalOpen} {invalidator} />
 
 <div class="relative h-[100dvh]">
@@ -134,7 +143,7 @@
 		<DeckGlLayer
 			type={IconLayer}
 			data={AIRPORTS}
-			getPosition={(d) => [d.lon, d.lat]}
+			getPosition={(d) => [d.longitude, d.latitude]}
 			getIcon={(d) => "marker"}
 			getColor={[255, 255, 255]}
 			getSize={500}
