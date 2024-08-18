@@ -7,20 +7,26 @@ import { AIRLINES } from '$lib/data/airlines';
 export const prepareFlightArcData = (data: APIFlight[]) => {
   if (!data) return [];
 
-  return data.map((flight) => {
-    const fromAirport = airportFromIata(flight.from);
-    const toAirport = airportFromIata(flight.to);
-    if (!fromAirport || !toAirport) return null;
+  return data
+    .map((flight) => {
+      const fromAirport = airportFromIata(flight.from);
+      const toAirport = airportFromIata(flight.to);
+      if (!fromAirport || !toAirport) return null;
 
-    return {
-      id: flight.id,
-      distance: distanceBetween([fromAirport.lon, fromAirport.lat], [toAirport.lon, toAirport.lat]) / 1000,
-      from: [fromAirport.lon, fromAirport.lat],
-      to: [toAirport.lon, toAirport.lat],
-      fromName: fromAirport.name,
-      toName: toAirport.name,
-    };
-  }).filter((d) => d !== null);
+      return {
+        id: flight.id,
+        distance:
+          distanceBetween(
+            [fromAirport.lon, fromAirport.lat],
+            [toAirport.lon, toAirport.lat],
+          ) / 1000,
+        from: [fromAirport.lon, fromAirport.lat],
+        to: [toAirport.lon, toAirport.lat],
+        fromName: fromAirport.name,
+        toName: toAirport.name,
+      };
+    })
+    .filter((d) => d !== null);
 };
 
 export const formatSeat = (f: APIFlight) => {
@@ -37,7 +43,9 @@ export const formatSeat = (f: APIFlight) => {
           : null;
 };
 
-export const airportFromIata = (iata: string): typeof AIRPORTS[0] | undefined => {
+export const airportFromIata = (
+  iata: string,
+): (typeof AIRPORTS)[0] | undefined => {
   return AIRPORTS.find((airport) => airport.IATA === iata);
 };
 

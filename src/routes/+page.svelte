@@ -1,12 +1,21 @@
 <script lang="ts">
   import { trpc } from '$lib/trpc';
   import { Dock, DockTooltipItem } from '$lib/components/dock';
-  import { ChartColumn, GitBranchPlus, Settings, LayoutList, Trash2 } from '@o7/icon/lucide';
+  import {
+    ChartColumn,
+    GitBranchPlus,
+    Settings,
+    LayoutList,
+    Trash2,
+  } from '@o7/icon/lucide';
   import { Home } from '@o7/icon/material';
   import { Separator } from '$lib/components/ui/separator';
   import { mode, toggleMode } from 'mode-watcher';
   import {
-    AttributionControl, Control, ControlButton, ControlGroup,
+    AttributionControl,
+    Control,
+    ControlButton,
+    ControlGroup,
     DeckGlLayer,
     GeolocateControl,
     MapLibre,
@@ -18,7 +27,12 @@
   import { AIRPORTS } from '$lib/data/airports';
   import { toast } from 'svelte-sonner';
   import { prepareFlightArcData } from '$lib/utils/data';
-  import { AddFlightModal, ListFlightsModal, SettingsModal, StatisticsModal } from '$lib/components/modals';
+  import {
+    AddFlightModal,
+    ListFlightsModal,
+    SettingsModal,
+    StatisticsModal,
+  } from '$lib/components/modals';
   import { Button } from '$lib/components/ui/button';
   import maplibregl from 'maplibre-gl';
   import { OnResizeEnd } from '$lib/components/helpers';
@@ -70,33 +84,47 @@
   };
   const deleteFlightMutation = trpc.flight.delete.mutation(invalidator);
 
-  let map: maplibregl.Map;
+  let map: maplibregl.Map | undefined = $state(undefined);
   const style = $derived(
     $mode === 'light'
       ? 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
-      : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json');
+      : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+  );
 
   function fitFlights() {
-    if (!map || !$flights.data || !$flights.data.length) return;
+    if (!map || !flightArcs) return;
 
-    map.fitBounds(calculateBounds(flightArcs), { padding: { left: 24, right: 24, top: 24, bottom: 24 } });
-  };
+    const bounds = calculateBounds(flightArcs);
+    if (!bounds) return;
+
+    map.fitBounds(bounds, {
+      padding: { left: 24, right: 24, top: 36, bottom: 36 },
+    });
+  }
+
+  // Fit flights whenever the flights change
+  $effect(() => {
+    fitFlights();
+  });
 
   const flightArcs = $derived.by(() => {
-      const data = $flights.data;
-      if (!data || !data.length) return [];
+    const data = $flights.data;
+    if (!data || !data.length) return [];
 
-      return prepareFlightArcData(data);
-    },
-  );
+    return prepareFlightArcData(data);
+  });
   const visitedAirports = $derived.by(() => {
     const data = flightArcs;
     if (!data || !data.length) return [];
 
-    let visited = [];
+    let visited: { position: number[]; name: string }[] = [];
     data.forEach((trip) => {
-      if (!visited.includes(trip.from)) visited.push({ position: trip.from, name: trip.fromName });
-      if (!visited.includes(trip.to)) visited.push({ position: trip.to, name: trip.toName });
+      if (!trip) return;
+
+      if (!visited.includes({ position: trip.from, name: trip.fromName }))
+        visited.push({ position: trip.from, name: trip.fromName });
+      if (!visited.includes({ position: trip.to, name: trip.toName }))
+        visited.push({ position: trip.to, name: trip.toName });
     });
 
     return visited;
@@ -127,9 +155,9 @@
 
 <div class="relative h-[100dvh]">
   <MapLibre
+    on:load={()=> fitFlights()}
     bind:map
     {style}
-    bounds={calculateBounds(flightArcs)}
     diffStyleUpdates
     class="relative h-full"
     attributionControl={false}
@@ -140,9 +168,11 @@
     {#if flightArcs}
       <Control position="top-left">
         <ControlGroup>
-          <ControlButton on:click={() => fitFlights()}
-                         title="Show all flights"
-                         class="text-black">
+          <ControlButton
+            on:click={() => fitFlights()}
+            title="Show all flights"
+            class="text-black"
+          >
             <Home />
           </ControlButton>
         </ControlGroup>
@@ -164,8 +194,8 @@
       data={flightArcs}
       getSourcePosition={(d) => d.from}
       getTargetPosition={(d) => d.to}
-      getSourceColor={[0,0,0,0]}
-      getTargetColor={[0,0,0,0]}
+      getSourceColor={[0, 0, 0, 0]}
+      getTargetColor={[0, 0, 0, 0]}
       getWidth={(d) => linearClamped(d.distance) * 8}
       getHeight={0}
       greatCircle={true}
@@ -175,7 +205,14 @@
           <h4 class="text-lg font-semibold">
             From {data.fromName} to {data.toName}
           </h4>
-          <Button onclick={() => {close(); deleteFlight(data.id)}} variant="outline" size="icon">
+          <Button
+            onclick={() => {
+              close();
+              deleteFlight(data.id);
+            }}
+            variant="outline"
+            size="icon"
+          >
             <Trash2 size="20" />
           </Button>
         </div>
@@ -186,7 +223,7 @@
       type={IconLayer}
       data={visitedAirports}
       getPosition={(d) => d.position}
-      getIcon={(d) => "marker"}
+      getIcon={(d) => 'marker'}
       getColor={PRIMARY_COLOR}
       getSize={30}
       iconAtlas="https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/icon-atlas.png"
@@ -200,9 +237,11 @@
     <!-- Both the size and sizeScale don't really matter a lot, the main values are the maxPixels and minPixels, because the unit is meters -->
     <DeckGlLayer
       type={IconLayer}
-      data={AIRPORTS.filter((d) => !visitedAirports.some((v) => v.name === d.name))}
+      data={AIRPORTS.filter(
+        (d) => !visitedAirports.some((v) => v.name === d.name),
+      )}
       getPosition={(d) => [d.lon, d.lat]}
-      getIcon={(d) => "marker"}
+      getIcon={(d) => 'marker'}
       getColor={[255, 255, 255]}
       getSize={(d) => linearClamped(d.tier, 4, 18, 50, 100)}
       sizeScale={10}
@@ -223,11 +262,7 @@
   </div>
 
   <div class="absolute bottom-6 left-1/2 translate-x-[-50%]">
-    <Dock
-      let:mouseX
-      let:distance
-      let:magnification
-    >
+    <Dock let:mouseX let:distance let:magnification>
       {#each PRIMARY as item}
         <DockTooltipItem {item} {mouseX} {distance} {magnification} />
       {/each}
