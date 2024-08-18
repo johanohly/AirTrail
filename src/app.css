@@ -94,6 +94,18 @@ html, body {
     @apply !bg-popover dark:!bg-dark-2 !text-popover-foreground !drop-shadow-2xl !rounded-lg
 }
 
-.maplibregl-popup-tip {
-    @apply !border-popover dark:!border-dark-2
+.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+    @apply !border-l-popover dark:!border-l-dark-2
+}
+
+.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+    @apply !border-r-popover dark:!border-r-dark-2
+}
+
+.maplibregl-popup-anchor-top .maplibregl-popup-tip {
+    @apply !border-b-popover dark:!border-b-dark-2
+}
+
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+    @apply !border-t-popover dark:!border-t-dark-2
 }

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { trpc } from '$lib/trpc';
   import { Dock, DockTooltipItem } from '$lib/components/dock';
-  import { ChartColumn, GitBranchPlus, Settings, LayoutList, Trash2, House } from '@o7/icon/lucide';
+  import { ChartColumn, GitBranchPlus, Settings, LayoutList, Trash2 } from '@o7/icon/lucide';
   import { Home } from '@o7/icon/material';
   import { Separator } from '$lib/components/ui/separator';
   import { mode, toggleMode } from 'mode-watcher';
@@ -20,6 +20,9 @@
   import { prepareFlightArcData } from '$lib/utils/data';
   import { AddFlightModal, ListFlightsModal, SettingsModal, StatisticsModal } from '$lib/components/modals';
   import { Button } from '$lib/components/ui/button';
+  import maplibregl from 'maplibre-gl';
+  import { OnResizeEnd } from '$lib/components/helpers';
+  import { onMount } from 'svelte';
 
   const PRIMARY_COLOR = [59, 130, 246];
 
@@ -54,11 +57,6 @@
         settingsModalOpen = true;
       },
     },
-    /*{
-      label: "FlightRadar24",
-      icon: Radar,
-      href: "https://flightradar24.com"
-    }*/
   ];
 
   const { data } = $props();
@@ -72,10 +70,17 @@
   };
   const deleteFlightMutation = trpc.flight.delete.mutation(invalidator);
 
+  let map: maplibregl.Map;
   const style = $derived(
     $mode === 'light'
       ? 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
       : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json');
+
+  function fitFlights() {
+    if (!map || !$flights.data || !$flights.data.length) return;
+
+    map.fitBounds(calculateBounds(flightArcs), { padding: { left: 24, right: 24, top: 24, bottom: 24 } });
+  };
 
   const flightArcs = $derived.by(() => {
       const data = $flights.data;
@@ -84,6 +89,18 @@
       return prepareFlightArcData(data);
     },
   );
+  const visitedAirports = $derived.by(() => {
+    const data = flightArcs;
+    if (!data || !data.length) return [];
+
+    let visited = [];
+    data.forEach((trip) => {
+      if (!visited.includes(trip.from)) visited.push({ position: trip.from, name: trip.fromName });
+      if (!visited.includes(trip.to)) visited.push({ position: trip.to, name: trip.toName });
+    });
+
+    return visited;
+  });
 
   const deleteFlight = async (id: number) => {
     const toastId = toast.loading('Deleting flight...');
@@ -101,6 +118,8 @@
   let settingsModalOpen = $state(false);
 </script>
 
+<OnResizeEnd callback={fitFlights} />
+
 <AddFlightModal bind:open={addFlightModalOpen} />
 <ListFlightsModal bind:open={listFlightsModalOpen} {flights} {deleteFlight} />
 <StatisticsModal bind:open={statisticsModalOpen} {flights} />
@@ -108,9 +127,10 @@
 
 <div class="relative h-[100dvh]">
   <MapLibre
-    let:map
+    bind:map
     {style}
     bounds={calculateBounds(flightArcs)}
+    diffStyleUpdates
     class="relative h-full"
     attributionControl={false}
   >
@@ -120,7 +140,8 @@
     {#if flightArcs}
       <Control position="top-left">
         <ControlGroup>
-          <ControlButton on:click={() => map.fitBounds(calculateBounds(flightArcs))} title="Show all flights"
+          <ControlButton on:click={() => fitFlights()}
+                         title="Show all flights"
                          class="text-black">
             <Home />
           </ControlButton>
@@ -161,10 +182,25 @@
       </Popup>
     </DeckGlLayer>
 
+    <DeckGlLayer
+      type={IconLayer}
+      data={visitedAirports}
+      getPosition={(d) => d.position}
+      getIcon={(d) => "marker"}
+      getColor={PRIMARY_COLOR}
+      getSize={30}
+      iconAtlas="https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/icon-atlas.png"
+      iconMapping="https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/icon-atlas.json"
+    >
+      <Popup openOn="click" let:data>
+        {data.name}
+      </Popup>
+    </DeckGlLayer>
+
     <!-- Both the size and sizeScale don't really matter a lot, the main values are the maxPixels and minPixels, because the unit is meters -->
     <DeckGlLayer
       type={IconLayer}
-      data={AIRPORTS}
+      data={AIRPORTS.filter((d) => !visitedAirports.some((v) => v.name === d.name))}
       getPosition={(d) => [d.lon, d.lat]}
       getIcon={(d) => "marker"}
       getColor={[255, 255, 255]}

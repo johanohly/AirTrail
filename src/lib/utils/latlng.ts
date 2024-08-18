@@ -11,7 +11,7 @@ export const calculateBounds = (
     .concat(data.map((d) => d.to[1]));
 
   return [
-    [Math.min(...latitudes), Math.min(...longitudes) - 7],
-    [Math.max(...latitudes), Math.max(...longitudes) + 7],
+    [Math.min(...latitudes), Math.min(...longitudes)],
+    [Math.max(...latitudes), Math.max(...longitudes)],
   ];
 };
