@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import createGlobe from "cobe";
-  import { spring } from "svelte/motion";
-  import { cn } from "$lib/utils";
-  import { mode } from "mode-watcher";
+  import { onMount } from 'svelte';
+  import createGlobe from 'cobe';
+  import { spring } from 'svelte/motion';
+  import { cn } from '$lib/utils';
+  import { mode } from 'mode-watcher';
 
   const getThemeOptions = (): {
     dark: number;
@@ -13,31 +13,31 @@
     markerColor: [number, number, number];
     glowColor: [number, number, number];
   } => {
-    return $mode === "light"
+    return $mode === 'light'
       ? {
         dark: 0,
         diffuse: 0.4,
         mapBrightness: 1.2,
         baseColor: [0.3, 0.3, 0.3],
-        markerColor: [251 / 255, 100 / 255, 21 / 255],
-        glowColor: [1, 1, 1]
+        markerColor: [60 / 255, 131 / 255, 246 / 255],
+        glowColor: [1, 1, 1],
       }
       : {
         dark: 1,
         diffuse: 1.2,
         mapBrightness: 6,
         baseColor: [0.1, 0.1, 0.1],
-        markerColor: [251 / 255, 100 / 255, 21 / 255],
-        glowColor: [1, 1, 1]
+        markerColor: [60 / 255, 131 / 255, 246 / 255],
+        glowColor: [1, 1, 1],
       };
   };
 
   let x = spring(0, {
     stiffness: 0.04,
     damping: 0.4,
-    precision: 0.005
+    precision: 0.005,
   });
-  let className = "";
+  let className = '';
   export { className as class };
   let pointerInteracting: any = null;
   let pointerInteractionMovement = 0;
@@ -65,7 +65,7 @@
     state.glowColor = theme.glowColor;
   };
   onMount(() => {
-    window.addEventListener("resize", onResize);
+    window.addEventListener('resize', onResize);
     onResize();
     const globe = createGlobe(canvas, {
       devicePixelRatio: 2,
@@ -85,13 +85,13 @@
         { location: [19.4326, -99.1332], size: 0.04 },
         { location: [40.7128, -74.006], size: 0.1 },
         { location: [34.6937, 135.5022], size: 0.05 },
-        { location: [41.0082, 28.9784], size: 0.06 }
+        { location: [41.0082, 28.9784], size: 0.06 },
       ],
-      onRender: onRender
+      onRender: onRender,
     });
 
     return () => {
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener('resize', onResize);
       globe.destroy();
     };
   });
