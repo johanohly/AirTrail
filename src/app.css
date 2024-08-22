@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -91,21 +91,9 @@ html, body {
 }
 
 .maplibregl-popup-content {
-    @apply !bg-popover dark:!bg-dark-2 !text-popover-foreground !drop-shadow-2xl !rounded-lg
+    @apply !p-0 !bg-popover dark:!bg-dark-2 !text-popover-foreground !drop-shadow-2xl !rounded-lg
 }
 
-.maplibregl-popup-anchor-right .maplibregl-popup-tip {
-    @apply !border-l-popover dark:!border-l-dark-2
-}
-
-.maplibregl-popup-anchor-left .maplibregl-popup-tip {
-    @apply !border-r-popover dark:!border-r-dark-2
-}
-
-.maplibregl-popup-anchor-top .maplibregl-popup-tip {
-    @apply !border-b-popover dark:!border-b-dark-2
-}
-
-.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
-    @apply !border-t-popover dark:!border-t-dark-2
+.maplibregl-popup-tip {
+    @apply !border-none
 }
