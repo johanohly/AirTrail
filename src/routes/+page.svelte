@@ -165,7 +165,7 @@
     <AttributionControl compact={true} />
     <NavigationControl />
     <GeolocateControl />
-    {#if flightArcs}
+    {#if flightArcs.length}
       <Control position="top-left">
         <ControlGroup>
           <ControlButton
@@ -178,6 +178,7 @@
         </ControlGroup>
       </Control>
     {/if}
+
     <DeckGlLayer
       type={ArcLayer}
       data={flightArcs}
