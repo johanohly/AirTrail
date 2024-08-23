@@ -31,6 +31,8 @@
   getLineWidth={1}
   getFillColor={[...AIRPORT_COLOR, 50]}
   getLineColor={[...AIRPORT_COLOR, 255]}
+  highlightColor={[...AIRPORT_COLOR, 80]}
+  autoHighlight
   stroked
 >
   <Popup openOn="hover" anchor="top-left" offset={12} let:data>
