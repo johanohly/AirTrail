@@ -17,8 +17,8 @@ export const prepareFlightArcData = (data: APIFlight[]) => {
   const routeMap: {
     [key: string]: {
       distance: number;
-      from: { position: [number, number], iata: string | null, name: string, country: string };
-      to: { position: [number, number], iata: string | null, name: string, country: string };
+      from: { position: [number, number], iata: string | null, icao: string, name: string, country: string };
+      to: { position: [number, number], iata: string | null, icao: string, name: string, country: string };
       flights: { route: string, date: string, airline: string | null }[];
       airlines: string[];
     }
@@ -39,12 +39,14 @@ export const prepareFlightArcData = (data: APIFlight[]) => {
         from: {
           position: [fromAirport.lon, fromAirport.lat],
           iata: fromAirport.IATA,
+          icao: fromAirport.ICAO,
           name: fromAirport.name,
           country: fromAirport.country,
         },
         to: {
           position: [toAirport.lon, toAirport.lat],
           iata: toAirport.IATA,
+          icao: toAirport.ICAO,
           name: toAirport.name,
           country: toAirport.country,
         },
