@@ -70,7 +70,7 @@
     fitFlights();
   });
 
-  let hoveredArc = $state(null);
+  let hoveredArc = $state.raw(null); // required so that we can compare against non-proxies object
 </script>
 
 <OnResizeEnd callback={fitFlights} />
@@ -107,8 +107,8 @@
     data={flightArcs}
     getSourcePosition={(d) => d.from.position}
     getTargetPosition={(d) => d.to.position}
-    getSourceColor={(d) => hoveredArc && $state.is(d, hoveredArc) ? HOVER_COLOR : FROM_COLOR}
-    getTargetColor={(d) => hoveredArc && $state.is(d, hoveredArc) ? HOVER_COLOR : TO_COLOR}
+    getSourceColor={(d) => hoveredArc && d === hoveredArc ? HOVER_COLOR : FROM_COLOR}
+    getTargetColor={(d) => hoveredArc && d === hoveredArc ? HOVER_COLOR : TO_COLOR}
     updateTriggers={{ getSourceColor: hoveredArc, getTargetColor: hoveredArc }}
     getWidth={(d) => linearClamped(d.distance)}
     getHeight={0}
