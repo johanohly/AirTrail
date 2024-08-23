@@ -107,10 +107,6 @@
 <div class="relative h-[100dvh]">
   <Map {flights} {deleteFlight} />
 
-  <div class="absolute top-0 left-1/2">
-    <button onclick={toggleMode}>Toggle</button>
-  </div>
-
   <div class="absolute bottom-6 left-1/2 translate-x-[-50%]">
     <Dock let:mouseX let:distance let:magnification>
       {#each PRIMARY as item}
