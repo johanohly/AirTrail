@@ -28,7 +28,7 @@
 
   const FROM_COLOR = [59, 130, 246]; // Also the primary color
   const TO_COLOR = [139, 92, 246]; // TW violet-500
-  const HOVER_COLOR = [132, 204, 22];
+  const HOVER_COLOR = [16, 185, 129];
 
   let {
     flights,
