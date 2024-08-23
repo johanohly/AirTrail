@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { Dialog as DialogPrimitive } from "bits-ui";
-  import X from "lucide-svelte/icons/x";
-  import * as Dialog from "./index.js";
-  import { cn, flyAndScale } from "$lib/utils";
+  import { Dialog as DialogPrimitive } from 'bits-ui';
+  import X from 'lucide-svelte/icons/x';
+  import * as Dialog from './index.js';
+  import { cn, flyAndScale } from '$lib/utils';
 
-  let { classes = "max-w-lg" } = $props();
+  let { classes = 'max-w-lg' } = $props();
 </script>
 
 <!--
@@ -16,18 +16,15 @@ I never got it animating.
 
 <Dialog.Portal>
   <Dialog.Overlay />
-  <DialogPrimitive.Content
-    asChild
-    let:builder
-  >
+  <DialogPrimitive.Content asChild let:builder>
     <div
-      transition:flyAndScale={{duration: 200}}
+      transition:flyAndScale={{ duration: 200 }}
       use:builder.action
       {...builder}
       class={cn(
-			"bg-background fixed left-[50%] top-[50%] z-50 grid w-full translate-x-[-50%] translate-y-[-50%] gap-4 border p-6 shadow-lg sm:rounded-lg md:w-full",
-			classes
-		)}
+        'bg-background fixed left-[50%] top-[50%] z-50 grid w-full translate-x-[-50%] translate-y-[-50%] gap-4 border p-6 shadow-lg sm:rounded-lg md:w-full',
+        classes,
+      )}
     >
       <slot />
       <DialogPrimitive.Close

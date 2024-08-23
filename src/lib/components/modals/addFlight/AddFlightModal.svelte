@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Modal } from "$lib/components/ui/modal";
+  import { Modal } from '$lib/components/ui/modal';
 
   export let open = false;
 </script>

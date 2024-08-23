@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Separator } from "$lib/components/ui/separator";
+  import { Separator } from '$lib/components/ui/separator';
 
   export let title: string;
   export let subtitle: string;

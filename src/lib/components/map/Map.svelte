@@ -1,5 +1,10 @@
 <script lang="ts">
-  import { calculateBounds, linearClamped, prepareFlightData, prepareFlightArcData } from '$lib/utils/index.js';
+  import {
+    calculateBounds,
+    linearClamped,
+    prepareFlightData,
+    prepareFlightArcData,
+  } from '$lib/utils/index.js';
   import {
     AttributionControl,
     Control,
@@ -22,7 +27,9 @@
 
   const FLIGHT_COLOR = [59, 130, 246]; // Also the primary color
 
-  let { flights }: {
+  let {
+    flights,
+  }: {
     flights: Readable<{ data: APIFlight[] | undefined }>;
   } = $props();
 
@@ -38,7 +45,7 @@
     if (!data || !data.length) return [];
 
     return prepareFlightData(data);
-  })
+  });
 
   const flightArcs = $derived.by(() => {
     return prepareFlightArcData(flightData);
@@ -116,13 +123,19 @@
       <div class="flex flex-col px-3 pt-3">
         <h3 class="font-thin text-muted-foreground">Route</h3>
         <h4 class="flex items-center text-lg">
-          <img src="https://flagcdn.com/{data.from.country.toLowerCase()}.svg" alt={data.from.country}
-               class="w-8 h-5 mr-2" />
+          <img
+            src="https://flagcdn.com/{data.from.country.toLowerCase()}.svg"
+            alt={data.from.country}
+            class="w-8 h-5 mr-2"
+          />
           {data.from.iata} - {data.from.name}
         </h4>
         <h4 class="flex items-center text-lg">
-          <img src="https://flagcdn.com/{data.to.country.toLowerCase()}.svg" alt={data.to.country}
-               class="w-8 h-5 mr-2" />
+          <img
+            src="https://flagcdn.com/{data.to.country.toLowerCase()}.svg"
+            alt={data.to.country}
+            class="w-8 h-5 mr-2"
+          />
           {data.to.iata} - {data.to.name}
         </h4>
       </div>
@@ -134,11 +147,15 @@
         </h4>
         <h4 class="font-semibold">
           {data.flights.length}
-          <span class="font-thin text-muted-foreground">trip{data.flights.length !== 1 ? 's' : '' }</span>
+          <span class="font-thin text-muted-foreground"
+            >trip{data.flights.length !== 1 ? 's' : ''}</span
+          >
         </h4>
         <h4 class="font-semibold">
           {data.airlines.length}
-          <span class="font-thin text-muted-foreground">airline{data.airlines.length !== 1 ? 's' : ''}</span>
+          <span class="font-thin text-muted-foreground"
+            >airline{data.airlines.length !== 1 ? 's' : ''}</span
+          >
         </h4>
       </div>
       <div class="h-[1px] bg-muted my-3" />
@@ -156,7 +173,9 @@
           </div>
         {/each}
         {#if data.flights.length > 5}
-          <h4 class="font-thin text-muted-foreground">+{data.flights.length - 5} more</h4>
+          <h4 class="font-thin text-muted-foreground">
+            +{data.flights.length - 5} more
+          </h4>
         {/if}
       </div>
     </Popup>

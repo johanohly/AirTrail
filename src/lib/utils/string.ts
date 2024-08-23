@@ -4,10 +4,6 @@ export const toTitleCase = (str: string) => {
   });
 };
 
-export const pluralize = (
-  count: number,
-  singular: string,
-  plural?: string,
-) => {
+export const pluralize = (count: number, singular: string, plural?: string) => {
   return count === 1 ? singular : (plural ?? `${singular}s`);
 };

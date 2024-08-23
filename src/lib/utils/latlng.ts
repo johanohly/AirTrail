@@ -5,7 +5,9 @@ export const calculateBounds = (
     return undefined;
   }
 
-  const latitudes = data.map((d) => d.from.position[0]).concat(data.map((d) => d.to.position[0]));
+  const latitudes = data
+    .map((d) => d.from.position[0])
+    .concat(data.map((d) => d.to.position[0]));
   const longitudes = data
     .map((d) => d.from.position[1])
     .concat(data.map((d) => d.to.position[1]));

@@ -15,21 +15,21 @@
   } => {
     return $mode === 'light'
       ? {
-        dark: 0,
-        diffuse: 0.4,
-        mapBrightness: 1.2,
-        baseColor: [0.3, 0.3, 0.3],
-        markerColor: [60 / 255, 131 / 255, 246 / 255],
-        glowColor: [1, 1, 1],
-      }
+          dark: 0,
+          diffuse: 0.4,
+          mapBrightness: 1.2,
+          baseColor: [0.3, 0.3, 0.3],
+          markerColor: [60 / 255, 131 / 255, 246 / 255],
+          glowColor: [1, 1, 1],
+        }
       : {
-        dark: 1,
-        diffuse: 1.2,
-        mapBrightness: 6,
-        baseColor: [0.1, 0.1, 0.1],
-        markerColor: [60 / 255, 131 / 255, 246 / 255],
-        glowColor: [1, 1, 1],
-      };
+          dark: 1,
+          diffuse: 1.2,
+          mapBrightness: 6,
+          baseColor: [0.1, 0.1, 0.1],
+          markerColor: [60 / 255, 131 / 255, 246 / 255],
+          glowColor: [1, 1, 1],
+        };
   };
 
   let x = spring(0, {
@@ -97,26 +97,21 @@
   });
 </script>
 
-<main
-  class={cn(
-    "mx-auto aspect-[1/1] w-full max-w-[80%]",
-    className
-  )}
->
+<main class={cn('mx-auto aspect-[1/1] w-full max-w-[80%]', className)}>
   <canvas
     class="h-full w-full [contain:layout_paint_size]"
     bind:this={canvas}
     on:pointerdown={(e) => {
       pointerInteracting = e.clientX - pointerInteractionMovement;
-      canvas.style.cursor = "grabbing";
+      canvas.style.cursor = 'grabbing';
     }}
     on:pointerup={() => {
       pointerInteracting = null;
-      canvas.style.cursor = "grab";
+      canvas.style.cursor = 'grab';
     }}
     on:pointerout={() => {
       pointerInteracting = null;
-      canvas.style.cursor = "grab";
+      canvas.style.cursor = 'grab';
     }}
     on:mousemove={(e) => {
       if (pointerInteracting !== null) {

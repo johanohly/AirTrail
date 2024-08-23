@@ -23,24 +23,30 @@ const FR24_FLIGHT_REASON_MAP: Record<string, Flight['flightReason']> = {
   '4': 'other',
 };
 
-const nullTransformer = (v: string) => v === '' ? null : v;
+const nullTransformer = (v: string) => (v === '' ? null : v);
 
 const FR24Flight = z.object({
-  'date': z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  'flight_number': z.string().transform(nullTransformer),
-  'from': z.string(),
-  'to': z.string(),
-  'dep_time': z.string().regex(/^\d{2}:\d{2}:\d{2}$/).nullable(),
-  'arr_time': z.string().regex(/^\d{2}:\d{2}:\d{2}$/).nullable(),
-  'duration': z.string().regex(/^\d{2}:\d{2}:\d{2}$/),
-  'airline': z.string().transform((v) => v === ' (/)' ? null : v),
-  'aircraft': z.string().transform((v) => v === ' ()' ? null : v),
-  'registration': z.string().transform(nullTransformer),
-  'seat_number': z.string().transform(nullTransformer),
-  'seat_type': z.string().transform(nullTransformer),
-  'flight_class': z.string().transform(nullTransformer),
-  'flight_reason': z.string().transform(nullTransformer),
-  'note': z.string().transform(nullTransformer),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  flight_number: z.string().transform(nullTransformer),
+  from: z.string(),
+  to: z.string(),
+  dep_time: z
+    .string()
+    .regex(/^\d{2}:\d{2}:\d{2}$/)
+    .nullable(),
+  arr_time: z
+    .string()
+    .regex(/^\d{2}:\d{2}:\d{2}$/)
+    .nullable(),
+  duration: z.string().regex(/^\d{2}:\d{2}:\d{2}$/),
+  airline: z.string().transform((v) => (v === ' (/)' ? null : v)),
+  aircraft: z.string().transform((v) => (v === ' ()' ? null : v)),
+  registration: z.string().transform(nullTransformer),
+  seat_number: z.string().transform(nullTransformer),
+  seat_type: z.string().transform(nullTransformer),
+  flight_class: z.string().transform(nullTransformer),
+  flight_reason: z.string().transform(nullTransformer),
+  note: z.string().transform(nullTransformer),
 });
 
 const extractAirportIATA = (airport: string) => {
@@ -53,7 +59,8 @@ const extractAirportIATA = (airport: string) => {
   return match.groups?.IATA;
 };
 
-const AIRLINE_REGEX = /(?<Name>.*) \((?<IATA>[0-9A-Z]{2})\/(?<ICAO>[a-zA-Z]{3})\)/;
+const AIRLINE_REGEX =
+  /(?<Name>.*) \((?<IATA>[0-9A-Z]{2})\/(?<ICAO>[a-zA-Z]{3})\)/;
 const extractAirlineIATA = (airline: string) => {
   const match = airline.match(AIRLINE_REGEX);
   if (!match) {
@@ -88,14 +95,25 @@ export const processFR24File = async (content: string) => {
       row.arr_time = null;
     }
 
-    const departure = row.dep_time ? dayjs(`${row.date} ${row.dep_time}`, 'YYYY-MM-DD HH:mm:ss') : null;
-    const arrival = row.arr_time ? dayjs(`${row.date} ${row.arr_time}`, 'YYYY-MM-DD HH:mm:ss') : null;
+    const departure = row.dep_time
+      ? dayjs(`${row.date} ${row.dep_time}`, 'YYYY-MM-DD HH:mm:ss')
+      : null;
+    const arrival = row.arr_time
+      ? dayjs(`${row.date} ${row.arr_time}`, 'YYYY-MM-DD HH:mm:ss')
+      : null;
 
-    const duration = row.duration.split(':').reduce((acc, val, idx) => acc + parseInt(val) * Math.pow(60, 2 - idx), 0);
+    const duration = row.duration
+      .split(':')
+      .reduce(
+        (acc, val, idx) => acc + parseInt(val) * Math.pow(60, 2 - idx),
+        0,
+      );
 
     const seatType = FR24_SEAT_TYPE_MAP?.[row.seat_type ?? 'noop'] ?? null;
-    const seatClass = FR24_FLIGHT_CLASS_MAP?.[row.flight_class ?? 'noop'] ?? null;
-    const flightReason = FR24_FLIGHT_REASON_MAP?.[row.flight_reason ?? 'noop'] ?? null;
+    const seatClass =
+      FR24_FLIGHT_CLASS_MAP?.[row.flight_class ?? 'noop'] ?? null;
+    const flightReason =
+      FR24_FLIGHT_REASON_MAP?.[row.flight_reason ?? 'noop'] ?? null;
 
     const airline = row.airline ? extractAirlineIATA(row.airline) : null;
 
