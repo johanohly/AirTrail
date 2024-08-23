@@ -16,7 +16,12 @@
   import { Separator } from '$lib/components/ui/separator';
   import { Button } from '$lib/components/ui/button';
   import { LabelledSeparator } from '$lib/components/ui/separator/index.js';
-  import { airlineFromIata, airportFromIata, cn, isUsingAmPm } from '$lib/utils';
+  import {
+    airlineFromIata,
+    airportFromIata,
+    cn,
+    isUsingAmPm,
+  } from '$lib/utils';
   import * as Tooltip from '$lib/components/ui/tooltip';
   import { formatSeat } from '$lib/utils/data';
 
@@ -140,17 +145,23 @@
                 />
               {/if}
               {#if flight.depTime && flight.arrTime}
-                <div class={cn("max-md:hidden flex flex-col shrink-0",
-                  isUsingAmPm() ? "w-36" : "w-32"
-                )}>
+                <div
+                  class={cn(
+                    'max-md:hidden flex flex-col shrink-0',
+                    isUsingAmPm() ? 'w-36' : 'w-32',
+                  )}
+                >
                   {@render flightTimes(flight)}
                 </div>
               {/if}
               <div class="px-4 flex md:hidden">
                 {#if flight.depTime && flight.arrTime}
-                  <div class={cn("flex flex-col shrink-0",
-										isUsingAmPm() ? "w-36" : "w-32"
-									)}>
+                  <div
+                    class={cn(
+                      'flex flex-col shrink-0',
+                      isUsingAmPm() ? 'w-36' : 'w-32',
+                    )}
+                  >
                     {@render flightTimes(flight)}
                   </div>
                 {/if}
@@ -199,50 +210,58 @@
 </Modal>
 
 {#snippet flightTimes(flight)}
-<div class="flex items-center">
-  <PlaneTakeoff size="16" class="mr-1" />
-  <p class="text-sm">{flight.depTime}</p>
-</div>
-<div class="flex items-center">
-  <PlaneLanding size="16" class="mr-1" />
-  <p
-    class="text-sm overflow-hidden overflow-ellipsis whitespace-nowrap"
-  >
-    {flight.arrTime}
-  </p>
-</div>
+  <div class="flex items-center">
+    <PlaneTakeoff size="16" class="mr-1" />
+    <p class="text-sm">{flight.depTime}</p>
+  </div>
+  <div class="flex items-center">
+    <PlaneLanding size="16" class="mr-1" />
+    <p class="text-sm overflow-hidden overflow-ellipsis whitespace-nowrap">
+      {flight.arrTime}
+    </p>
+  </div>
 {/snippet}
 
 {#snippet seatAndAirline(flight)}
-{#if flight.seat}
-  <Tooltip.AutoTooltip text={flight.seat} classes="text-sm truncate" />
-{:else}
-  <Button class="justify-start px-1" variant="ghost" size="sm">
-    <CircleFadingPlus size="16" class="mr-1" />
-    Add seat
-  </Button>
-{/if}
-{#if flight.airline}
-  <Tooltip.AutoTooltip text={flight.airline.name} classes="text-sm text-muted-foreground truncate" />
-{:else}
-  <p class="text-sm text-transparent">.</p>
-{/if}
+  {#if flight.seat}
+    <Tooltip.AutoTooltip text={flight.seat} classes="text-sm truncate" />
+  {:else}
+    <Button class="justify-start px-1" variant="ghost" size="sm">
+      <CircleFadingPlus size="16" class="mr-1" />
+      Add seat
+    </Button>
+  {/if}
+  {#if flight.airline}
+    <Tooltip.AutoTooltip
+      text={flight.airline.name}
+      classes="text-sm text-muted-foreground truncate"
+    />
+  {:else}
+    <p class="text-sm text-transparent">.</p>
+  {/if}
 {/snippet}
 
 {#snippet actions(flight)}
-<div class="flex items-center gap-2">
-  <Button variant="outline" size="icon">
-    <SquarePen size="20" />
-  </Button>
-  <Button variant="outline" size="icon" on:click={() => deleteFlight(flight.id)}>
-    <X size="24" />
-  </Button>
-</div>
+  <div class="flex items-center gap-2">
+    <Button variant="outline" size="icon">
+      <SquarePen size="20" />
+    </Button>
+    <Button
+      variant="outline"
+      size="icon"
+      on:click={() => deleteFlight(flight.id)}
+    >
+      <X size="24" />
+    </Button>
+  </div>
 {/snippet}
 
 {#snippet airport(airport)}
-<div class="w-11 flex flex-col items-center justify-center">
-  <span class="text-lg font-bold">{airport.iata}</span>
-  <Tooltip.AutoTooltip text={airport.name} classes="w-32 text-xs text-muted-foreground truncate" />
-</div>
+  <div class="w-11 flex flex-col items-center justify-center">
+    <span class="text-lg font-bold">{airport.iata}</span>
+    <Tooltip.AutoTooltip
+      text={airport.name}
+      classes="w-32 text-xs text-muted-foreground truncate"
+    />
+  </div>
 {/snippet}

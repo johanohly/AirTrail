@@ -1,14 +1,16 @@
 export const calculateBounds = (
-  data: ({ from: number[]; to: number[] } | null)[],
+  data: ({ from: { position: number[] }; to: { position: number[] } } | null)[],
 ): [[number, number], [number, number]] | undefined => {
   if (!data.length) {
     return undefined;
   }
 
-  const latitudes = data.map((d) => d.from[0]).concat(data.map((d) => d.to[0]));
+  const latitudes = data
+    .map((d) => d.from.position[0])
+    .concat(data.map((d) => d.to.position[0]));
   const longitudes = data
-    .map((d) => d.from[1])
-    .concat(data.map((d) => d.to[1]));
+    .map((d) => d.from.position[1])
+    .concat(data.map((d) => d.to.position[1]));
 
   return [
     [Math.min(...latitudes), Math.min(...longitudes)],

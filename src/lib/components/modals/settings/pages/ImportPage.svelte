@@ -1,14 +1,16 @@
 <script lang="ts">
-  import { PageHeader } from ".";
-  import { Button } from "$lib/components/ui/button";
-  import { Card } from "$lib/components/ui/card";
-  import { cn } from "$lib/utils";
-  import { Upload } from "@o7/icon/lucide";
-  import { trpc } from "$lib/trpc";
-  import { processFile } from "$lib/import";
-  import { toast } from "svelte-sonner";
+  import { PageHeader } from '.';
+  import { Button } from '$lib/components/ui/button';
+  import { Card } from '$lib/components/ui/card';
+  import { cn } from '$lib/utils';
+  import { Upload } from '@o7/icon/lucide';
+  import { trpc } from '$lib/trpc';
+  import { processFile } from '$lib/import';
+  import { toast } from 'svelte-sonner';
 
-  let { invalidator }: {
+  let {
+    invalidator,
+  }: {
     invalidator?: { onSuccess: () => void };
   } = $props();
 
@@ -19,10 +21,10 @@
     const file = files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith(".csv") && !file.name.endsWith(".txt")) {
-      fileError = "File must be a CSV or TXT file";
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.txt')) {
+      fileError = 'File must be a CSV or TXT file';
     } else if (file.size > 5 * 1024 * 1024) {
-      fileError = "File must be less than 5MB";
+      fileError = 'File must be less than 5MB';
     } else {
       fileError = null;
     }
@@ -37,7 +39,7 @@
 
     const flights = await processFile(file);
     if (!flights.length) {
-      toast.error("No flights found in the file");
+      toast.error('No flights found in the file');
       files = null;
       return;
     }
@@ -52,16 +54,27 @@
 <PageHeader title="Import" subtitle="Supported platforms: FlightRadar24">
   <label for="file" class="block">
     <Card
-      class={cn("cursor-pointer py-12 border-2 border-dashed flex flex-col items-center hover:bg-card-hover dark:hover:bg-dark-2", {"border-destructive": fileError})}>
+      class={cn(
+        'cursor-pointer py-12 border-2 border-dashed flex flex-col items-center hover:bg-card-hover dark:hover:bg-dark-2',
+        { 'border-destructive': fileError },
+      )}
+    >
       <Upload />
       {#if fileError}
         {fileError}
       {:else}
-        {files?.[0]?.name ?? "Upload file"}
+        {files?.[0]?.name ?? 'Upload file'}
       {/if}
     </Card>
   </label>
-  <input onchange={validateFile} id="file" name="file" type="file" accept=".csv,.txt" bind:files
-         class="hidden" />
+  <input
+    onchange={validateFile}
+    id="file"
+    name="file"
+    type="file"
+    accept=".csv,.txt"
+    bind:files
+    class="hidden"
+  />
   <Button on:click={handleImport} disabled={!canImport}>Import</Button>
 </PageHeader>

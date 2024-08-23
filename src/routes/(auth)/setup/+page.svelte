@@ -1,22 +1,22 @@
 <script lang="ts">
-  import { trpc } from "$lib/trpc";
-  import { Input } from "$lib/components/ui/input";
-  import { goto } from "$app/navigation";
-  import { onMount } from "svelte";
-  import { toast } from "svelte-sonner";
-  import { LoaderCircle } from "@o7/icon/lucide";
-  import { superForm } from "sveltekit-superforms";
-  import * as Form from "$lib/components/ui/form";
-  import { zod } from "sveltekit-superforms/adapters";
-  import { signUpSchema } from "$lib/zod/auth";
-  import { Globe } from "$lib/components/ui/globe";
+  import { trpc } from '$lib/trpc';
+  import { Input } from '$lib/components/ui/input';
+  import { goto } from '$app/navigation';
+  import { onMount } from 'svelte';
+  import { toast } from 'svelte-sonner';
+  import { LoaderCircle } from '@o7/icon/lucide';
+  import { superForm } from 'sveltekit-superforms';
+  import * as Form from '$lib/components/ui/form';
+  import { zod } from 'sveltekit-superforms/adapters';
+  import { signUpSchema } from '$lib/zod/auth';
+  import { Globe } from '$lib/components/ui/globe';
 
   const query = trpc.user.isSetup.query();
   const isSetup = $query.data;
   onMount(() => {
     if (isSetup) {
-      toast.info("AirTrail is already setup");
-      goto("/");
+      toast.info('AirTrail is already setup');
+      goto('/');
     }
   });
 
@@ -27,7 +27,7 @@
       if (form.message) {
         toast.error(form.message.text);
       }
-    }
+    },
   });
   const { form: formData, enhance, delayed } = form;
 </script>

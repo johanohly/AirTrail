@@ -6,10 +6,12 @@ AirTrail is a web application that allows users to track their flights and view 
 
 ### Data Sources
 
-> [Airport Data](https://github.com/lxndrblz/Airports)
+> [Airport Data](https://github.com/komed3/airportmap-database)
 >
 > Extracted by
 > [scripts/update-airports-data.cjs](https://github.com/JohanOhly/AirTrail/blob/main/scripts/update-airports-data.cjs).
+
+> [Country Flags](https://flagpedia.net)
 
 ### Logo
 

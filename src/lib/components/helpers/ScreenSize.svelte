@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { screenSizeStore } from "$lib/utils/size";
+  import { screenSizeStore } from '$lib/utils/size';
 
   let width;
   let height;

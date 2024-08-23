@@ -3,10 +3,8 @@ import { twMerge } from 'tailwind-merge';
 import { cubicOut } from 'svelte/easing';
 import type { TransitionConfig } from 'svelte/transition';
 
-export const toTitleCase = (str: string) => {
-  return str.replace(/\w\S*/g, (txt) => {
-    return txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase();
-  });
+export const deepCompare = (a: object, b: object): boolean => {
+  return JSON.stringify(a) === JSON.stringify(b);
 };
 
 export function cn(...inputs: ClassValue[]) {

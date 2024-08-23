@@ -1,1 +1,2 @@
 src/lib/db/schema.d.ts
+src/lib/data/airports.ts

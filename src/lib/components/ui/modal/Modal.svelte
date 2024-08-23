@@ -1,9 +1,13 @@
 <script lang="ts">
-  import { isMediumScreen } from "$lib/utils/size";
-  import * as Dialog from "$lib/components/ui/dialog/index.js";
-  import * as Drawer from "$lib/components/ui/drawer/index.js";
+  import { isMediumScreen } from '$lib/utils/size';
+  import * as Dialog from '$lib/components/ui/dialog/index.js';
+  import * as Drawer from '$lib/components/ui/drawer/index.js';
 
-  let { open = $bindable(), classes = "max-w-lg", dialogOnly = false } = $props();
+  let {
+    open = $bindable(),
+    classes = 'max-w-lg',
+    dialogOnly = false,
+  } = $props();
   const useDialog = isMediumScreen;
 </script>
 

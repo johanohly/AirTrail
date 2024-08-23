@@ -1,4 +1,4 @@
-import maplibregl, { type LngLatLike } from "maplibre-gl";
+import maplibregl, { type LngLatLike } from 'maplibre-gl';
 
 const { LngLat } = maplibregl;
 
@@ -8,7 +8,13 @@ export const distanceBetween = (a: LngLatLike, b: LngLatLike): number => {
   return from.distanceTo(to);
 };
 
-export const linearClamped = (distance: number, minDistance = 0, maxDistance = 15000, min = 1, max = 4): number => {
+export const linearClamped = (
+  distance: number,
+  minDistance = 0,
+  maxDistance = 15000,
+  min = 1,
+  max = 4,
+): number => {
   // Ensure distance is within the bounds
   if (distance < minDistance) {
     distance = minDistance;
@@ -17,6 +23,8 @@ export const linearClamped = (distance: number, minDistance = 0, maxDistance = 1
   }
 
   // Linear mapping to the range [min, max]
-  const value = min + ((distance - minDistance) / (maxDistance - minDistance)) * (max - min);
+  const value =
+    min +
+    ((distance - minDistance) / (maxDistance - minDistance)) * (max - min);
   return value;
 };
