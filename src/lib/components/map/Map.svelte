@@ -24,8 +24,11 @@
   import type { Readable } from 'svelte/store';
   import type { APIFlight } from '$lib/db';
   import { Airports } from '.';
+  import { deepCompare } from '$lib/utils/other';
 
-  const FLIGHT_COLOR = [59, 130, 246]; // Also the primary color
+  const FROM_COLOR = [59, 130, 246]; // Also the primary color
+  const TO_COLOR = [139, 92, 246]; // TW violet-500
+  const HOVER_COLOR = [132, 204, 22];
 
   let {
     flights,
@@ -58,7 +61,7 @@
     if (!bounds) return;
 
     map.fitBounds(bounds, {
-      padding: { left: 24, right: 24, top: 36, bottom: 36 },
+      padding: { left: 42, right: 42, top: 36, bottom: 36 },
     });
   };
 
@@ -66,6 +69,8 @@
   $effect(() => {
     fitFlights();
   });
+
+  let hoveredArc = $state(null);
 </script>
 
 <OnResizeEnd callback={fitFlights} />
@@ -102,13 +107,15 @@
     data={flightArcs}
     getSourcePosition={(d) => d.from.position}
     getTargetPosition={(d) => d.to.position}
-    getSourceColor={FLIGHT_COLOR}
-    getTargetColor={FLIGHT_COLOR}
+    getSourceColor={(d) => hoveredArc && $state.is(d, hoveredArc) ? HOVER_COLOR : FROM_COLOR}
+    getTargetColor={(d) => hoveredArc && $state.is(d, hoveredArc) ? HOVER_COLOR : TO_COLOR}
+    updateTriggers={{ getSourceColor: hoveredArc, getTargetColor: hoveredArc }}
     getWidth={(d) => linearClamped(d.distance)}
     getHeight={0}
     greatCircle={true}
   />
   <DeckGlLayer
+    bind:hovered={hoveredArc}
     type={ArcLayer}
     data={flightArcs}
     getSourcePosition={(d) => d.from.position}

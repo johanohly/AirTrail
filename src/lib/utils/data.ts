@@ -163,8 +163,8 @@ export const prepareVisitedAirports = (data: FlightData[]) => {
   const maxArrivals = Math.max(...visited.map((v) => v.arrivals));
   const maxDepartures = Math.max(...visited.map((v) => v.departures));
 
-  const MIN_FREQUENCY = 1;
-  const MAX_FREQUENCY = 5;
+  const MIN_FREQUENCY = 0.5;
+  const MAX_FREQUENCY = 3;
   visited.forEach((v) => {
     const normalizedArrivals = v.arrivals / maxArrivals;
     const normalizedDepartures = v.departures / maxDepartures;

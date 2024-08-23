@@ -6,8 +6,10 @@
     pluralize,
     prepareVisitedAirports,
   } from '$lib/utils';
+  import { isSmallScreen } from '$lib/utils/size';
 
-  const AIRPORT_COLOR = [125, 211, 252]; // Tailwind blue-300
+  //const AIRPORT_COLOR = [125, 211, 252]; // Tailwind blue-300
+  const AIRPORT_COLOR = [16, 185, 129]; // Tailwind emerald-500
 
   let { flights }: { flights: FlightData[] } = $props();
   const visitedAirports = $derived.by(() => {
@@ -23,10 +25,10 @@
   data={visitedAirports}
   getPosition={(d) => d.position}
   getRadius={(d) => d.frequency * 50_000}
-  radiusMinPixels={30}
+  radiusMinPixels={$isSmallScreen ? 20 : 10}
   radiusMaxPixels={100}
   lineWidthUnits="pixels"
-  getLineWidth={3}
+  getLineWidth={1}
   getFillColor={[...AIRPORT_COLOR, 50]}
   getLineColor={[...AIRPORT_COLOR, 255]}
   stroked

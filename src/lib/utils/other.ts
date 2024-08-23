@@ -3,6 +3,10 @@ import { twMerge } from 'tailwind-merge';
 import { cubicOut } from 'svelte/easing';
 import type { TransitionConfig } from 'svelte/transition';
 
+export const deepCompare = (a: object, b: object): boolean => {
+  return JSON.stringify(a) === JSON.stringify(b);
+};
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
