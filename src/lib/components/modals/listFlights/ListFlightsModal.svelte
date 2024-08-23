@@ -1,7 +1,5 @@
 <script lang="ts">
   import { Modal } from '$lib/components/ui/modal';
-  import type { Readable } from 'svelte/store';
-  import type { APIFlight } from '$lib/db';
   import { Card } from '$lib/components/ui/card';
   import {
     Plane,
@@ -18,8 +16,7 @@
   import { LabelledSeparator } from '$lib/components/ui/separator/index.js';
   import {
     airlineFromIata,
-    airportFromIata,
-    cn,
+    cn, type FlightData,
     isUsingAmPm,
   } from '$lib/utils';
   import * as Tooltip from '$lib/components/ui/tooltip';
@@ -50,12 +47,12 @@
     deleteFlight,
   }: {
     open?: boolean;
-    flights: Readable<{ data: APIFlight[] | undefined }>;
+    flights: FlightData[];
     deleteFlight: (id: number) => Promise<void>;
   } = $props();
 
   const parsedFlights = $derived.by(() => {
-    const data = $flights.data;
+    const data = flights;
     if (!data) return [];
 
     return data.map((f) => {
@@ -75,12 +72,12 @@
       return {
         ...f,
         from: {
-          iata: f.from,
-          name: airportFromIata(f.from)?.name,
+          iata: f.from.IATA,
+          name: f.from.name
         },
         to: {
-          iata: f.to,
-          name: airportFromIata(f.to)?.name,
+          iata: f.to.IATA,
+          name: f.to.name
         },
         duration: dayjs.duration(f.duration, 'seconds').format('H[h] m[m]'),
         month: f.departure

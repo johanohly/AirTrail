@@ -23,7 +23,11 @@
     Popup,
   } from 'svelte-maplibre';
   import { ArcLayer, IconLayer } from '@deck.gl/layers';
-  import { calculateBounds, linearClamped } from '$lib/utils';
+  import {
+    calculateBounds,
+    linearClamped,
+    prepareFlightData,
+  } from '$lib/utils';
   import { AIRPORTS } from '$lib/data/airports';
   import { toast } from 'svelte-sonner';
   import { prepareFlightArcData } from '$lib/utils/data';
@@ -74,7 +78,14 @@
 
   const { data } = $props();
   const user = data.user;
-  const flights = trpc.flight.list.query();
+  const rawFlights = trpc.flight.list.query();
+
+  const flights = $derived.by(() => {
+    const data = $rawFlights.data;
+    if (!data || !data.length) return [];
+
+    return prepareFlightData(data);
+  });
 
   const invalidator = {
     onSuccess: () => {
@@ -105,7 +116,7 @@
 <SettingsModal bind:open={settingsModalOpen} {invalidator} />
 
 <div class="relative h-[100dvh]">
-  <Map {flights} {deleteFlight} />
+  <Map {flights} />
 
   <div class="absolute bottom-6 left-1/2 translate-x-[-50%]">
     <Dock let:mouseX let:distance let:magnification>

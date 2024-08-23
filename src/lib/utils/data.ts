@@ -25,6 +25,7 @@ type Airport = {
 type FlightAirport = {
   from: Airport;
   to: Airport;
+  distance: number;
 };
 export type FlightData = ExcludedType<APIFlight, FlightAirport> & FlightAirport;
 
@@ -41,6 +42,11 @@ export const prepareFlightData = (data: APIFlight[]): FlightData[] => {
         ...flight,
         from: fromAirport,
         to: toAirport,
+        distance:
+          distanceBetween(
+            [fromAirport.lon, fromAirport.lat],
+            [toAirport.lon, toAirport.lat],
+          ) / 1000,
       };
     })
     .filter((f) => f !== null);
@@ -75,11 +81,7 @@ export const prepareFlightArcData = (data: FlightData[]) => {
     const key = [flight.from.name, flight.to.name].sort().join('-');
     if (!routeMap[key]) {
       routeMap[key] = {
-        distance:
-          distanceBetween(
-            [flight.from.lon, flight.from.lat],
-            [flight.to.lon, flight.to.lat],
-          ) / 1000,
+        distance: flight.distance,
         from: {
           position: [flight.from.lon, flight.from.lat],
           iata: flight.from.IATA,
