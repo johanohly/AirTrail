@@ -13,12 +13,14 @@
   subtitle="Customize the appearance of the application."
 >
   <div class="space-y-2">
-    <h3 class="text-sm font-medium">Dark mode</h3>
+    <h3 class="text-sm font-medium">Color Theme</h3>
     <p class="text-muted-foreground text-[0.8rem]">
       By default, the application will use the system's theme.
     </p>
     <RadioGroup.Root bind:value class="flex flex-col md:flex-row">
-      <Label class="w-full [&:has([data-state=checked])>div]:border-primary">
+      <Label
+        class="w-full cursor-pointer [&:has([data-state=checked])>div]:border-primary"
+      >
         <RadioGroup.Item value="dark" class="sr-only" />
         <div
           class="border-muted bg-popover hover:bg-accent hover:text-accent-foreground items-center rounded-md border-2 p-1"
@@ -44,7 +46,9 @@
         </div>
         <span class="block w-full p-2 text-center font-normal"> Dark </span>
       </Label>
-      <Label class="w-full [&:has([data-state=checked])>div]:border-primary">
+      <Label
+        class="w-full cursor-pointer [&:has([data-state=checked])>div]:border-primary"
+      >
         <RadioGroup.Item value="light" class="sr-only" />
         <div
           class="border-muted hover:border-accent items-center rounded-md border-2 p-1"

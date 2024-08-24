@@ -3,14 +3,23 @@
   import FlightsPerMonth from './charts/FlightsPerMonth.svelte';
   import FlightsPerWeekday from './charts/FlightsPerWeekday.svelte';
   import StatsCard from './StatsCard.svelte';
-  import { type FlightData, formatDistance, formatDuration, formatNumber } from '$lib/utils';
+  import PieCharts from './charts/PieCharts.svelte';
+  import {
+    type FlightData,
+    formatDistance,
+    formatDuration,
+    formatNumber,
+  } from '$lib/utils';
+  import type { User } from '$lib/db/schema';
 
   let {
     open = $bindable(),
     flights,
+    user,
   }: {
     open?: boolean;
     flights: FlightData[];
+    user: User;
   } = $props();
 
   let flightCount = flights.length;
@@ -29,7 +38,9 @@
       </StatsCard>
       <StatsCard classes="py-4 px-8">
         <h3 class="text-sm font-medium">Distance</h3>
-        <span class="text-2xl font-bold">{formatDistance(totalDistance)}</span>
+        <span class="text-2xl font-bold"
+          >{formatDistance(totalDistance, user.unit === 'metric')}</span
+        >
       </StatsCard>
       <StatsCard classes="py-4 px-8">
         <h3 class="text-sm font-medium">Duration</h3>
@@ -40,7 +51,8 @@
         <span class="text-2xl font-bold">{formatNumber(airports)}</span>
       </StatsCard>
     </div>
-    <div class="flex gap-4">
+    <PieCharts {flights} />
+    <div class="flex flex-col md:flex-row gap-4">
       <FlightsPerMonth {flights} />
       <FlightsPerWeekday {flights} />
     </div>

@@ -16,6 +16,7 @@ type ExcludedType<T, U> = {
 type Airport = {
   name: string;
   country: string;
+  continent: string;
   lat: number;
   lon: number;
   IATA: string | null;

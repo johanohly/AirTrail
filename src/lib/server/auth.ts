@@ -20,6 +20,7 @@ export const lucia = new Lucia(adapter, {
       username: db.username,
       password: db.password,
       displayName: db.displayName,
+      unit: db.unit,
       role: db.role,
     };
   },
@@ -28,6 +29,6 @@ export const lucia = new Lucia(adapter, {
 declare module 'lucia' {
   interface Register {
     Lucia: typeof lucia;
-    DatabaseUserAttributes: DB['user'];
+    DatabaseUserAttributes: DB['User'];
   }
 }

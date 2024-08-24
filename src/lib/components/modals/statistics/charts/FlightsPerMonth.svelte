@@ -1,5 +1,4 @@
 <script lang="ts">
-  import dayjs from 'dayjs';
   import {
     Area,
     Axis,
@@ -51,8 +50,7 @@
     const months = Array.from({ length: 12 }, (_, i) => i);
     return months.map((month) => {
       const monthFlights = data.filter(
-        (flight) =>
-          flight.departure && dayjs.unix(flight.departure).month() === month,
+        (flight) => flight.date.month() === month,
       );
       return {
         month,
@@ -70,7 +68,7 @@
     y="flights"
     yNice={2}
     padding={{ left: 16, bottom: 16 }}
-    tooltip={{ mode: 'band' }}
+    tooltip={{ mode: 'bisect-x' }}
   >
     <Svg>
       <Axis
@@ -93,6 +91,8 @@
       </LinearGradient>
     </Svg>
     <Tooltip
+      x="data"
+      y="data"
       header={(data) => {
         return MONTHS[data.month];
       }}

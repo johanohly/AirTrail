@@ -112,7 +112,7 @@
 
 <AddFlightModal bind:open={addFlightModalOpen} />
 <ListFlightsModal bind:open={listFlightsModalOpen} {flights} {deleteFlight} />
-<StatisticsModal bind:open={statisticsModalOpen} {flights} />
+<StatisticsModal bind:open={statisticsModalOpen} {flights} {user} />
 <SettingsModal bind:open={settingsModalOpen} {invalidator} />
 
 <div class="relative h-[100dvh]">

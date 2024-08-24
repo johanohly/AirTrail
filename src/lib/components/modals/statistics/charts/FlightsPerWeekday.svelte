@@ -1,5 +1,4 @@
 <script lang="ts">
-  import dayjs from 'dayjs';
   import {
     Area,
     Axis,
@@ -24,8 +23,7 @@
     const weekdays = Array.from({ length: 7 }, (_, i) => i);
     return weekdays.map((weekday) => {
       const weekdayFlights = data.filter(
-        (flight) =>
-          flight.departure && dayjs.unix(flight.departure).day() === weekday,
+        (flight) => flight.date.day() === weekday,
       );
       return {
         weekday,
@@ -43,7 +41,7 @@
     y="flights"
     yNice={2}
     padding={{ left: 16, bottom: 16 }}
-    tooltip={{ mode: 'band' }}
+    tooltip={{ mode: 'bisect-x' }}
   >
     <Svg>
       <Axis
@@ -66,6 +64,8 @@
       </LinearGradient>
     </Svg>
     <Tooltip
+      x="data"
+      y="data"
       header={(data) => {
         return WEEKDAYS[data.weekday];
       }}
