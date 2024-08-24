@@ -28,7 +28,7 @@
       }
     },
   });
-  const { form: formData, enhance, delayed } = form;
+  const { form: formData, enhance, submitting } = form;
 </script>
 
 <div class="h-full grid lg:grid-cols-2">
@@ -55,8 +55,8 @@
           </Form.Control>
           <Form.FieldErrors />
         </Form.Field>
-        <Form.Button disabled={$delayed}>
-          {#if $delayed}
+        <Form.Button disabled={$submitting}>
+          {#if $submitting}
             <LoaderCircle class="animate-spin mr-1" size="18" />
           {/if}
           Log in
