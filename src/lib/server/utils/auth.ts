@@ -9,11 +9,12 @@ export const createUser = async (
   username: string,
   password: string,
   displayName: string,
+  unit: User['unit'],
   role: User['role'],
 ) => {
   const result = await db
     .insertInto('User')
-    .values({ id, username, password, displayName, role })
+    .values({ id, username, password, displayName, unit, role })
     .executeTakeFirst();
   return result.numInsertedOrUpdatedRows && result.numInsertedOrUpdatedRows > 0;
 };

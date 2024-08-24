@@ -27,7 +27,7 @@ export const actions: Actions = {
       return fail(400, { form });
     }
 
-    const { username, password, displayName } = form.data;
+    const { username, password, displayName, unit } = form.data;
     const exists = await usernameExists(username);
     if (exists) {
       return setError(form, 'username', 'Username already exists');
@@ -42,6 +42,7 @@ export const actions: Actions = {
       username,
       hashedPassword,
       displayName,
+      unit,
       'admin',
     );
 

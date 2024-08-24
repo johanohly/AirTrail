@@ -22,12 +22,13 @@ type Airport = {
   ICAO: string;
   wiki: string | null;
 };
-type FlightAirport = {
+type FlightOverrides = {
+  date: dayjs.Dayjs;
   from: Airport;
   to: Airport;
   distance: number;
 };
-export type FlightData = ExcludedType<APIFlight, FlightAirport> & FlightAirport;
+export type FlightData = ExcludedType<APIFlight, FlightOverrides> & FlightOverrides;
 
 export const prepareFlightData = (data: APIFlight[]): FlightData[] => {
   if (!data) return [];
@@ -40,6 +41,7 @@ export const prepareFlightData = (data: APIFlight[]): FlightData[] => {
 
       return {
         ...flight,
+        date: dayjs(flight.date, 'YYYY-MM-DD'),
         from: fromAirport,
         to: toAirport,
         distance:
@@ -185,14 +187,12 @@ export const prepareVisitedAirports = (data: FlightData[]) => {
 const formatSimpleFlight = (f: FlightData) => {
   return {
     route: `${f.from.IATA ?? f.from.ICAO} - ${f.to.IATA ?? f.to.ICAO}`,
-    date: f.departure
-      ? dateFormatter.format(dayjs.unix(f.departure).toDate())
-      : '',
+    date: dateFormatter.format(f.date.toDate()),
     airline: f.airline ?? '',
   };
 };
 
-export const formatSeat = (f: APIFlight) => {
+export const formatSeat = (f: FlightData) => {
   const t = (s: string) => toTitleCase(s);
 
   return f.seat && f.seatNumber && f.seatClass

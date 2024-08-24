@@ -7,9 +7,11 @@
   import { LoaderCircle } from '@o7/icon/lucide';
   import { superForm } from 'sveltekit-superforms';
   import * as Form from '$lib/components/ui/form';
+  import * as Select from '$lib/components/ui/select';
   import { zod } from 'sveltekit-superforms/adapters';
   import { signUpSchema } from '$lib/zod/auth';
   import { Globe } from '$lib/components/ui/globe';
+  import { toTitleCase } from '$lib/utils';
 
   const query = trpc.user.isSetup.query();
   const isSetup = $query.data;
@@ -29,7 +31,7 @@
       }
     },
   });
-  const { form: formData, enhance, delayed } = form;
+  const { form: formData, enhance, submitting } = form;
 </script>
 
 <div class="h-full grid lg:grid-cols-2">
@@ -63,8 +65,31 @@
           </Form.Control>
           <Form.FieldErrors />
         </Form.Field>
-        <Form.Button disabled={$delayed}>
-          {#if $delayed}
+        <Form.Field {form} name="unit">
+          <Form.Control let:attrs>
+            <Form.Label>Unit of measurement</Form.Label>
+            <Select.Root
+              selected={{
+                label: toTitleCase($formData.unit),
+                value: $formData.unit,
+              }}
+              onSelectedChange={(v) => {
+                v && ($formData.unit = v.value);
+              }}
+            >
+              <Select.Trigger {...attrs}>
+                <Select.Value placeholder="Select a unit" />
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="metric" label="Metric" />
+                <Select.Item value="imperial" label="Imperial" />
+              </Select.Content>
+            </Select.Root>
+          </Form.Control>
+          <Form.FieldErrors />
+        </Form.Field>
+        <Form.Button disabled={$submitting}>
+          {#if $submitting}
             <LoaderCircle class="animate-spin mr-1" size="18" />
           {/if}
           Create

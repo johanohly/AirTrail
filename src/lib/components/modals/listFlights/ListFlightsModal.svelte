@@ -32,6 +32,11 @@
     timeZone: 'UTC',
     day: 'numeric',
     month: 'short',
+  })
+  const datetimeFormatter = new Intl.DateTimeFormat(undefined, {
+    timeZone: 'UTC',
+    day: 'numeric',
+    month: 'short',
     hour: 'numeric',
     minute: 'numeric',
   });
@@ -64,7 +69,7 @@
       const arrTime = arrDate
         ? sameDay
           ? timeFormatter.format(arrDate)
-          : dateFormatter.format(arrDate)
+          : datetimeFormatter.format(arrDate)
         : null;
 
       const airline = f.airline ? airlineFromIata(f.airline) : null;
@@ -80,10 +85,8 @@
           name: f.to.name
         },
         duration: dayjs.duration(f.duration, 'seconds').format('H[h] m[m]'),
-        month: f.departure
-          ? monthFormatter.format(dayjs.unix(f.departure).toDate())
-          : null,
-        depTime: depDate ? dateFormatter.format(depDate) : null,
+        month: monthFormatter.format(f.date.toDate()),
+        depTime: depDate ? datetimeFormatter.format(depDate) : dateFormatter.format(f.date.toDate()),
         arrTime,
         seat: formatSeat(f),
         airline,
@@ -101,14 +104,12 @@
   const flightsByYear = $derived.by(() => {
     return filteredFlights.reduce(
       (acc, f) => {
-        const year = f.departure
-          ? dayjs.unix(f.departure).year()
-          : 'Not specified';
+        const year = f.date.year();
         if (!acc[year]) acc[year] = [];
         acc[year].push(f);
         return acc;
       },
-      {} as Record<number | 'Not specified', typeof parsedFlights>,
+      {} as Record<number, typeof parsedFlights>,
     );
   });
 </script>
@@ -132,36 +133,30 @@
             <div
               class="flex items-stretch md:items-center max-md:flex-col-reverse max-md:content-start flex-1 h-full min-w-0"
             >
-              {#if flight.month}
-                <div class="max-md:hidden flex justify-center shrink-0 w-11">
-                  <span class="text-lg font-medium">{flight.month}</span>
-                </div>
-                <Separator
-                  orientation="vertical"
-                  class="max-md:hidden h-10 mx-3"
-                />
-              {/if}
-              {#if flight.depTime && flight.arrTime}
+              <div class="max-md:hidden flex justify-center shrink-0 w-11">
+                <span class="text-lg font-medium">{flight.month}</span>
+              </div>
+              <Separator
+                orientation="vertical"
+                class="max-md:hidden h-10 mx-3"
+              />
+              <div
+                class={cn(
+                  'max-md:hidden flex flex-col shrink-0',
+                  isUsingAmPm() ? 'w-36' : 'w-32',
+                )}
+              >
+                {@render flightTimes(flight)}
+              </div>
+              <div class="px-4 flex md:hidden">
                 <div
                   class={cn(
-                    'max-md:hidden flex flex-col shrink-0',
+                    'flex flex-col shrink-0',
                     isUsingAmPm() ? 'w-36' : 'w-32',
                   )}
                 >
                   {@render flightTimes(flight)}
                 </div>
-              {/if}
-              <div class="px-4 flex md:hidden">
-                {#if flight.depTime && flight.arrTime}
-                  <div
-                    class={cn(
-                      'flex flex-col shrink-0',
-                      isUsingAmPm() ? 'w-36' : 'w-32',
-                    )}
-                  >
-                    {@render flightTimes(flight)}
-                  </div>
-                {/if}
                 <div class="hidden sm:flex flex-col">
                   {@render seatAndAirline(flight)}
                 </div>
@@ -212,10 +207,13 @@
     <p class="text-sm">{flight.depTime}</p>
   </div>
   <div class="flex items-center">
-    <PlaneLanding size="16" class="mr-1" />
-    <p class="text-sm overflow-hidden overflow-ellipsis whitespace-nowrap">
-      {flight.arrTime}
-    </p>
+    {#if flight.arrTime}
+      <PlaneLanding size="16" class="mr-1" />
+      <p class="text-sm overflow-hidden overflow-ellipsis whitespace-nowrap">
+        {flight.arrTime}
+      </p>
+    {/if}
+      <p class="text-sm text-transparent">.</p>
   </div>
 {/snippet}
 

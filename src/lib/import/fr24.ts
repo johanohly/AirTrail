@@ -118,9 +118,10 @@ export const processFR24File = async (content: string) => {
     const airline = row.airline ? extractAirlineIATA(row.airline) : null;
 
     flights.push({
+      date: row.date, // YYYY-MM-DD
       from,
-      departure: departure?.unix() ?? null,
       to,
+      departure: departure?.unix() ?? null,
       arrival: arrival?.unix() ?? null,
       duration,
       seat: seatType,
