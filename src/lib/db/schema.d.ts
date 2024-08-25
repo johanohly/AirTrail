@@ -6,9 +6,10 @@ export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export type Flight = {
     id: Generated<number>;
+    date: string;
     from: string;
-    departure: number | null;
     to: string;
+    departure: number | null;
     arrival: number | null;
     duration: number;
     flightNumber: string | null;
@@ -41,6 +42,10 @@ export type User = {
     username: string;
     password: string;
     displayName: string;
+    /**
+     * @kyselyType('metric' | 'imperial')
+     */
+    unit: 'metric' | 'imperial';
     /**
      * @kyselyType('user' | 'admin')
      */

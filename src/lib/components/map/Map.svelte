@@ -2,8 +2,8 @@
   import {
     calculateBounds,
     linearClamped,
-    prepareFlightData,
     prepareFlightArcData,
+    type FlightData,
   } from '$lib/utils/index.js';
   import {
     AttributionControl,
@@ -21,10 +21,7 @@
   import maplibregl from 'maplibre-gl';
   import { mode } from 'mode-watcher';
   import { OnResizeEnd } from '$lib/components/helpers';
-  import type { Readable } from 'svelte/store';
-  import type { APIFlight } from '$lib/db';
   import { Airports } from '.';
-  import { deepCompare } from '$lib/utils/other';
 
   const FROM_COLOR = [59, 130, 246]; // Also the primary color
   const TO_COLOR = [139, 92, 246]; // TW violet-500
@@ -33,7 +30,7 @@
   let {
     flights,
   }: {
-    flights: Readable<{ data: APIFlight[] | undefined }>;
+    flights: FlightData[];
   } = $props();
 
   let map: maplibregl.Map | undefined = $state(undefined);
@@ -43,15 +40,8 @@
       : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
   );
 
-  const flightData = $derived.by(() => {
-    const data = $flights.data;
-    if (!data || !data.length) return [];
-
-    return prepareFlightData(data);
-  });
-
   const flightArcs = $derived.by(() => {
-    return prepareFlightArcData(flightData);
+    return prepareFlightArcData(flights);
   });
 
   const fitFlights = () => {
@@ -100,15 +90,17 @@
     </Control>
   {/if}
 
-  <Airports flights={flightData} />
+  <Airports {flights} />
 
   <DeckGlLayer
     type={ArcLayer}
     data={flightArcs}
     getSourcePosition={(d) => d.from.position}
     getTargetPosition={(d) => d.to.position}
-    getSourceColor={(d) => hoveredArc && d === hoveredArc ? HOVER_COLOR : FROM_COLOR}
-    getTargetColor={(d) => hoveredArc && d === hoveredArc ? HOVER_COLOR : TO_COLOR}
+    getSourceColor={(d) =>
+      hoveredArc && d === hoveredArc ? HOVER_COLOR : FROM_COLOR}
+    getTargetColor={(d) =>
+      hoveredArc && d === hoveredArc ? HOVER_COLOR : TO_COLOR}
     updateTriggers={{ getSourceColor: hoveredArc, getTargetColor: hoveredArc }}
     getWidth={(d) => linearClamped(d.distance)}
     getHeight={0}

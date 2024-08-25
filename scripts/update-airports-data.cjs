@@ -1,6 +1,6 @@
 var fs = require('fs');
 
-const IGNORED_FIELDS = ["GPS", "LOCAL", "type", "restriction", "alt", "gmt_offset", "continent", "region", "municipality", "activation", "service", "home"];
+const IGNORED_FIELDS = ["GPS", "LOCAL", "type", "restriction", "alt", "gmt_offset", "region", "municipality", "activation", "service", "home"];
 
 (async () => {
   const res = await fetch('https://raw.githubusercontent.com/komed3/airportmap-database/master/airport.csv');

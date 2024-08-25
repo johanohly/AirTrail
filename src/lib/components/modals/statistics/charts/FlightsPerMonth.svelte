@@ -1,22 +1,56 @@
 <script lang="ts">
-  import type { Readable } from 'svelte/store';
-  import type { APIFlight } from '$lib/db';
-  import dayjs from 'dayjs';
-  import { Axis, Bars, Chart, Svg, Tooltip, TooltipItem } from 'layerchart';
+  import {
+    Area,
+    Axis,
+    Chart,
+    LinearGradient,
+    Points,
+    Svg,
+    Tooltip,
+    TooltipItem,
+  } from 'layerchart';
   import { scaleBand } from 'd3-scale';
+  import type { FlightData } from '$lib/utils';
 
-  let { flights }: { flights: Readable<{ data: APIFlight[] | undefined }> } =
-    $props();
+  const SHORT_MONTHS = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  const MONTHS = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
+  let { flights }: { flights: FlightData[] } = $props();
 
   const flightsPerMonth = $derived.by(() => {
-    const data = $flights.data;
+    const data = flights;
     if (!data) return;
 
     const months = Array.from({ length: 12 }, (_, i) => i);
     return months.map((month) => {
       const monthFlights = data.filter(
-        (flight) =>
-          flight.departure && dayjs.unix(flight.departure).month() === month,
+        (flight) => flight.date.month() === month,
       );
       return {
         month,
@@ -34,50 +68,33 @@
     y="flights"
     yNice={2}
     padding={{ left: 16, bottom: 16 }}
-    tooltip={{ mode: 'band' }}
+    tooltip={{ mode: 'bisect-x' }}
   >
     <Svg>
-      <Axis placement="left" grid rule />
+      <Axis
+        placement="left"
+        grid
+        rule
+        ticks={(scale) => scale.ticks?.().filter(Number.isInteger)}
+        format="integer"
+      />
       <Axis
         placement="bottom"
         format={(i) => {
-          const months = [
-            'Jan',
-            'Feb',
-            'Mar',
-            'Apr',
-            'May',
-            'Jun',
-            'Jul',
-            'Aug',
-            'Sep',
-            'Oct',
-            'Nov',
-            'Dec',
-          ];
-          return months[i] ?? '';
+          return SHORT_MONTHS[i] ?? '';
         }}
         rule
       />
-      <Bars radius={4} strokeWidth={1} class="fill-primary" />
+      <LinearGradient class="from-primary/50 to-primary/0" vertical let:url>
+        <Area line={{ class: 'stroke-2 stroke-primary' }} fill={url} />
+        <Points r={5} class="fill-primary" />
+      </LinearGradient>
     </Svg>
     <Tooltip
+      x="data"
+      y="data"
       header={(data) => {
-        const months = [
-          'January',
-          'February',
-          'March',
-          'April',
-          'May',
-          'June',
-          'July',
-          'August',
-          'September',
-          'October',
-          'November',
-          'December',
-        ];
-        return months[data.month];
+        return MONTHS[data.month];
       }}
       let:data
     >

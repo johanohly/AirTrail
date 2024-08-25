@@ -16,6 +16,8 @@ model User {
   username     String @unique
   password     String
   display_name String
+  /// @kyselyType('metric' | 'imperial')
+  unit         String
 
   /// @kyselyType('user' | 'admin')
   role String
@@ -26,9 +28,10 @@ model User {
 
 model Flight {
   id        Int    @id @default(autoincrement())
+  date      String
   from      String
-  departure Int?
   to        String
+  departure Int?
   arrival   Int?
   duration  Int
 
@@ -46,7 +49,7 @@ model Flight {
   note          String?
 
   user_id String
-  user    User   @relation(fields: [user_id], references: [id])
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model Session {

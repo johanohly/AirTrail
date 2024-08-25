@@ -10,6 +10,7 @@ export const signUpSchema = z.object({
     }),
   password: z.string().min(8),
   displayName: z.string().min(3),
+  unit: z.enum(['imperial', 'metric']).default('metric'),
 });
 
 export const signInSchema = z.object({
