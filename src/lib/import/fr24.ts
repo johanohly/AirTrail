@@ -49,26 +49,26 @@ const FR24Flight = z.object({
   note: z.string().transform(nullTransformer),
 });
 
-const extractAirportIATA = (airport: string) => {
+const extractAirportICAO = (airport: string) => {
   const match = airport.match(FR24_AIRPORT_REGEX);
   if (!match) {
-    console.error(`Failed to extract IATA code from airport: ${airport}`);
+    console.error(`Failed to extract ICAO code from airport: ${airport}`);
     return null;
   }
 
-  return match.groups?.IATA;
+  return match.groups?.ICAO;
 };
 
 const AIRLINE_REGEX =
   /(?<Name>.*) \((?<IATA>[0-9A-Z]{2})\/(?<ICAO>[a-zA-Z]{3})\)/;
-const extractAirlineIATA = (airline: string) => {
+const extractAirlineICAO = (airline: string) => {
   const match = airline.match(AIRLINE_REGEX);
   if (!match) {
-    console.error(`Failed to extract IATA code from airline: ${airline}`);
+    console.error(`Failed to extract ICAO code from airline: ${airline}`);
     return null;
   }
 
-  return match.groups?.IATA ?? null;
+  return match.groups?.ICAO ?? null;
 };
 
 export const processFR24File = async (content: string) => {
@@ -83,8 +83,8 @@ export const processFR24File = async (content: string) => {
 
   const flights: Omit<Flight, 'id' | 'userId'>[] = [];
   for (const row of data) {
-    const from = extractAirportIATA(row.from);
-    const to = extractAirportIATA(row.to);
+    const from = extractAirportICAO(row.from);
+    const to = extractAirportICAO(row.to);
     if (!from || !to) {
       continue;
     }
@@ -115,7 +115,7 @@ export const processFR24File = async (content: string) => {
     const flightReason =
       FR24_FLIGHT_REASON_MAP?.[row.flight_reason ?? 'noop'] ?? null;
 
-    const airline = row.airline ? extractAirlineIATA(row.airline) : null;
+    const airline = row.airline ? extractAirlineICAO(row.airline) : null;
 
     flights.push({
       date: row.date, // YYYY-MM-DD

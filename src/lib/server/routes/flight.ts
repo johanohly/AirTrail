@@ -21,6 +21,14 @@ export const flightRouter = router({
         .where('userId', '=', user.id)
         .execute();
     }),
+  create: authedProcedure
+    .input(z.custom<Omit<Flight, 'id' | 'userId'>>())
+    .mutation(async ({ ctx: { user }, input }) => {
+      await db
+        .insertInto('Flight')
+        .values({ ...input, userId: user.id })
+        .execute();
+    }),
   createMany: authedProcedure
     .input(z.custom<Omit<Flight, 'id' | 'userId'>[]>())
     .mutation(async ({ ctx: { user }, input }) => {

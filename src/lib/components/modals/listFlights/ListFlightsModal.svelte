@@ -15,8 +15,9 @@
   import { Button } from '$lib/components/ui/button';
   import { LabelledSeparator } from '$lib/components/ui/separator/index.js';
   import {
-    airlineFromIata,
-    cn, type FlightData,
+    airlineFromICAO,
+    cn,
+    type FlightData,
     isUsingAmPm,
   } from '$lib/utils';
   import * as Tooltip from '$lib/components/ui/tooltip';
@@ -32,7 +33,7 @@
     timeZone: 'UTC',
     day: 'numeric',
     month: 'short',
-  })
+  });
   const datetimeFormatter = new Intl.DateTimeFormat(undefined, {
     timeZone: 'UTC',
     day: 'numeric',
@@ -72,21 +73,23 @@
           : datetimeFormatter.format(arrDate)
         : null;
 
-      const airline = f.airline ? airlineFromIata(f.airline) : null;
+      const airline = f.airline ? airlineFromICAO(f.airline) : null;
 
       return {
         ...f,
         from: {
           iata: f.from.IATA,
-          name: f.from.name
+          name: f.from.name,
         },
         to: {
           iata: f.to.IATA,
-          name: f.to.name
+          name: f.to.name,
         },
         duration: dayjs.duration(f.duration, 'seconds').format('H[h] m[m]'),
         month: monthFormatter.format(f.date.toDate()),
-        depTime: depDate ? datetimeFormatter.format(depDate) : dateFormatter.format(f.date.toDate()),
+        depTime: depDate
+          ? datetimeFormatter.format(depDate)
+          : dateFormatter.format(f.date.toDate()),
         arrTime,
         seat: formatSeat(f),
         airline,
@@ -213,7 +216,7 @@
         {flight.arrTime}
       </p>
     {/if}
-      <p class="text-sm text-transparent">.</p>
+    <p class="text-sm text-transparent">.</p>
   </div>
 {/snippet}
 

@@ -110,7 +110,7 @@
   let settingsModalOpen = $state(false);
 </script>
 
-<AddFlightModal bind:open={addFlightModalOpen} />
+<AddFlightModal bind:open={addFlightModalOpen} {invalidator} />
 <ListFlightsModal bind:open={listFlightsModalOpen} {flights} {deleteFlight} />
 <StatisticsModal bind:open={statisticsModalOpen} {flights} {user} />
 <SettingsModal bind:open={settingsModalOpen} {invalidator} />

@@ -29,15 +29,16 @@ type FlightOverrides = {
   to: Airport;
   distance: number;
 };
-export type FlightData = ExcludedType<APIFlight, FlightOverrides> & FlightOverrides;
+export type FlightData = ExcludedType<APIFlight, FlightOverrides> &
+  FlightOverrides;
 
 export const prepareFlightData = (data: APIFlight[]): FlightData[] => {
   if (!data) return [];
 
   return data
     .map((flight) => {
-      const fromAirport = airportFromIata(flight.from);
-      const toAirport = airportFromIata(flight.to);
+      const fromAirport = airportFromICAO(flight.from);
+      const toAirport = airportFromICAO(flight.to);
       if (!fromAirport || !toAirport) return null;
 
       return {
@@ -207,10 +208,10 @@ export const formatSeat = (f: FlightData) => {
           : null;
 };
 
-export const airportFromIata = (iata: string): Airport | undefined => {
-  return AIRPORTS.find((airport) => airport.IATA === iata);
+export const airportFromICAO = (icao: string): Airport | undefined => {
+  return AIRPORTS.find((airport) => airport.ICAO === icao);
 };
 
-export const airlineFromIata = (iata: string) => {
-  return AIRLINES.find((airline) => airline.iata === iata) ?? null;
+export const airlineFromICAO = (icao: string) => {
+  return AIRLINES.find((airline) => airline.icao === icao) ?? null;
 };

@@ -6,8 +6,8 @@ export {
   prepareFlightData,
   prepareFlightArcData,
   prepareVisitedAirports,
-  airportFromIata,
-  airlineFromIata,
+  airportFromICAO,
+  airlineFromICAO,
 } from './data';
 export { distanceBetween, linearClamped } from './distance';
 export { isUsingAmPm } from './datetime';
