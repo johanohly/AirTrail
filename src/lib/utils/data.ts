@@ -13,7 +13,7 @@ const dateFormatter = new Intl.DateTimeFormat('en', {
 type ExcludedType<T, U> = {
   [P in keyof T as P extends keyof U ? never : P]: T[P];
 };
-type Airport = {
+export type Airport = {
   name: string;
   country: string;
   continent: string;
@@ -178,13 +178,14 @@ export const prepareVisitedAirports = (data: FlightData[]) => {
     const combinedFrequency = v.arrivals + v.departures;
 
     // Normalize and scale the frequency
-    const normalizedFrequency = maxFrequency === 0 ? 0 : combinedFrequency / maxFrequency;
+    const normalizedFrequency =
+      maxFrequency === 0 ? 0 : combinedFrequency / maxFrequency;
     v.frequency = Math.min(
       MAX_FREQUENCY,
       Math.max(
         MIN_FREQUENCY,
-        normalizedFrequency * (MAX_FREQUENCY - MIN_FREQUENCY) + MIN_FREQUENCY
-      )
+        normalizedFrequency * (MAX_FREQUENCY - MIN_FREQUENCY) + MIN_FREQUENCY,
+      ),
     );
   });
 

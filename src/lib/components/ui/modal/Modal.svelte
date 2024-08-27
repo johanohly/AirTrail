@@ -7,12 +7,13 @@
     open = $bindable(),
     classes = 'max-w-lg',
     dialogOnly = false,
+    closeOnOutsideClick = true,
   } = $props();
   const useDialog = isMediumScreen;
 </script>
 
 {#if $useDialog || dialogOnly}
-  <Dialog.Root bind:open preventScroll={false}>
+  <Dialog.Root bind:open preventScroll={false} {closeOnOutsideClick}>
     <Dialog.Content {classes}>
       <slot />
     </Dialog.Content>

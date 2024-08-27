@@ -32,10 +32,12 @@ export const actions: Actions = {
     const from = form.data.from;
     if (!airportFromICAO(from)) {
       setError(form, 'from', 'Invalid airport code');
+      return fail(400, { form });
     }
     const to = form.data.to;
     if (!airportFromICAO(to)) {
       setError(form, 'to', 'Invalid airport code');
+      return fail(400, { form });
     }
 
     const departure = dayjs(form.data.departure).format('YYYY-MM-DD');
