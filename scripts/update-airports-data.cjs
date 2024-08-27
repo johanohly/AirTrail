@@ -28,7 +28,7 @@ const IGNORED_FIELDS = ["GPS", "LOCAL", "type", "restriction", "alt", "gmt_offse
       airport[headers[i]] = cell;
     });
     return airport;
-  }).filter(airport => airport.tier > 3);
+  }).filter(airport => airport.tier > 3 && airport.ICAO.length === 4);
 
   const airportsDataJson = JSON.stringify(airportsData, null);
   const airportsTs = `export const AIRPORTS = ${airportsDataJson};`;
