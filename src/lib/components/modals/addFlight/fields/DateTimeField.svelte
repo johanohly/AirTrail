@@ -14,6 +14,8 @@
   import * as Popover from '$lib/components/ui/popover';
   import type { SuperForm } from 'sveltekit-superforms';
   import type { Writable } from 'svelte/store';
+  import { Info } from '@o7/icon/lucide';
+  import { TextTooltip } from '$lib/components/ui/tooltip/index.js';
 
   let {
     field,
@@ -40,9 +42,9 @@
 <div class="grid gap-2 grid-cols-[3fr_2fr]">
   <Form.Field {form} name={field} class="flex flex-col">
     <Form.Control let:attrs>
-      <Form.Label
-        >{toTitleCase(field)}{field === 'departure' ? ' *' : ''}</Form.Label
-      >
+      <Form.Label>
+        {toTitleCase(field)}{field === 'departure' ? ' *' : ''}
+      </Form.Label>
       <Popover.Root>
         <Popover.Trigger
           class={cn(
@@ -78,7 +80,12 @@
   </Form.Field>
   <Form.Field {form} name={`${field}Time`} class="flex flex-col">
     <Form.Control let:attrs>
-      <Form.Label>Time</Form.Label>
+      <Form.Label class="flex gap-1">
+        Time
+        <TextTooltip text="Time can be in 24-hour and 12-hour format">
+          <Info size="15" />
+        </TextTooltip>
+      </Form.Label>
       <Input {...attrs} bind:value={$formData[`${field}Time`]} />
     </Form.Control>
     <Form.FieldErrors />
