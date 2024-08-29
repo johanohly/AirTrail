@@ -22,7 +22,7 @@
   const {
     elements: { menu, input, option },
     states: { open, inputValue, touchedInput, selected },
-  } = createCombobox({
+  } = createCombobox<string>({
     forceVisible: true,
   });
   selected.subscribe((item) => {
@@ -107,9 +107,9 @@
                 <span class="text-lg truncate">{airport.name}</span>
               </div>
               <span class="text-sm opacity-75"
-                >{airport.IATA ?? airport.ICAO}{airport.IATA
-                  ? ` - ${airport.ICAO}`
-                  : ''}</span
+              >{airport.IATA ?? airport.ICAO}{airport.IATA
+                ? ` - ${airport.ICAO}`
+                : ''}</span
               >
             </div>
           </li>
