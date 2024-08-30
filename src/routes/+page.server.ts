@@ -3,7 +3,7 @@ import { trpcServer } from '$lib/server/server';
 import { message, setError, superValidate } from 'sveltekit-superforms';
 import { addFlightSchema } from '$lib/zod/flight';
 import { zod } from 'sveltekit-superforms/adapters';
-import { fail } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 import { airportFromICAO } from '$lib/utils';
 import { db } from '$lib/db';
 import dayjs from 'dayjs';
@@ -20,33 +20,47 @@ export const load: PageServerLoad = async (event) => {
 };
 
 export const actions: Actions = {
-  'add-flight': async (event) => {
-    const form = await superValidate(event, zod(addFlightSchema));
+  'add-flight': async ({ locals, request }) => {
+    const form = await superValidate(request, zod(addFlightSchema));
     if (!form.valid) return fail(400, { form });
 
-    const user = event.locals.user;
-    if (!user)
-      return message(form, {
-        type: 'error',
-        text: 'You must be logged in to add a flight',
-      });
+    const user = locals.user;
+    if (!user) {
+      return error(401, 'You must be logged in to add a flight');
+    }
 
     const from = form.data.from;
+    const to = form.data.to;
+    const duration = form.data.duration;
+    if (from === to && !duration) {
+      setError(
+        form,
+        'duration',
+        'Duration must be set when origin and destination are the same',
+      );
+    }
     if (!airportFromICAO(from)) {
       setError(form, 'from', 'Invalid airport code');
-      return fail(400, { form });
     }
-    const to = form.data.to;
     if (!airportFromICAO(to)) {
       setError(form, 'to', 'Invalid airport code');
-      return fail(400, { form });
     }
 
     const departureDate = dayjs(form.data.departure);
-    const departure = form.data.departureTime
-      ? mergeTimeWithDate(departureDate, form.data.departureTime)
-      : undefined;
-    console.log(departure?.toISOString());
+    let departure: number | undefined;
+    try {
+      departure = form.data.departureTime
+        ? mergeTimeWithDate(departureDate, form.data.departureTime).unix()
+        : undefined;
+    } catch (e) {
+      setError(form, 'departureTime', 'Invalid time format');
+    }
+    console.log(departure);
+
+    // Catches all the setErrors above
+    if (!form.valid) {
+      return fail(400, { form });
+    }
 
     /*
     const resp = await db
@@ -72,20 +86,26 @@ export const actions: Actions = {
   },
 };
 
+const timePartsRegex = /^(\d{1,2}):(\d{2})(?:\s?(am|pm))?$/i;
 const mergeTimeWithDate = (
   dateOnly: dayjs.Dayjs,
   timeString: string,
 ): dayjs.Dayjs => {
-  const normalizedTimeString = timeString.replace(/(am|pm)$/i, ' $1');
-
-  const is12HourFormat = /(?:am|pm)$/i.test(normalizedTimeString);
-  const timeFormat = is12HourFormat ? 'hh:mm A' : 'HH:mm';
-
-  const timeParsed = dayjs(normalizedTimeString, timeFormat);
-
-  if (!timeParsed.isValid()) {
+  const match = timeString.match(timePartsRegex);
+  if (!match) {
+    throw new Error('Invalid time format');
+  }
+  const [, hours, minutes, ampm] = match;
+  if (!hours || !minutes) {
     throw new Error('Invalid time format');
   }
 
-  return dateOnly.hour(timeParsed.hour()).minute(timeParsed.minute()).second(0);
+  if (ampm && ampm.toLowerCase() === 'pm') {
+    return dateOnly
+      .hour(+hours + 12)
+      .minute(+minutes)
+      .second(0);
+  }
+
+  return dateOnly.hour(+hours).minute(+minutes).second(0);
 };

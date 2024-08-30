@@ -58,7 +58,7 @@
 </script>
 
 <Form.Field {form} name={field} class="flex flex-col">
-  <Form.Control>
+  <Form.Control let:attrs>
     <Form.Label>{toTitleCase(field)} *</Form.Label>
     <div class="relative">
       <input
@@ -76,6 +76,7 @@
         {/if}
       </div>
     </div>
+    <input hidden bind:value={$formData[field]} name={attrs.name} />
   </Form.Control>
   {#if $open}
     <ul
@@ -107,9 +108,9 @@
                 <span class="text-lg truncate">{airport.name}</span>
               </div>
               <span class="text-sm opacity-75"
-              >{airport.IATA ?? airport.ICAO}{airport.IATA
-                ? ` - ${airport.ICAO}`
-                : ''}</span
+                >{airport.IATA ?? airport.ICAO}{airport.IATA
+                  ? ` - ${airport.ICAO}`
+                  : ''}</span
               >
             </div>
           </li>

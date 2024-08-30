@@ -15,7 +15,9 @@
   import type { SuperForm } from 'sveltekit-superforms';
   import type { Writable } from 'svelte/store';
   import { Info } from '@o7/icon/lucide';
-  import { TextTooltip } from '$lib/components/ui/tooltip/index.js';
+  import { TextTooltip } from '$lib/components/ui/tooltip';
+  import { z } from 'zod';
+  import type { addFlightSchema } from '$lib/zod/flight';
 
   let {
     field,
@@ -25,12 +27,7 @@
   }: {
     field: 'departure' | 'arrival';
     form: SuperForm<Record<string, unknown>>;
-    formData: Writable<{
-      departure?: string;
-      departureTime?: string;
-      arrival?: string;
-      arrivalTime?: string;
-    }>;
+    formData: Writable<z.infer<typeof addFlightSchema>>;
     validate: (field: string) => void;
   } = $props();
 
@@ -73,8 +70,8 @@
             }}
           />
         </Popover.Content>
-        <input hidden bind:value={$formData[field]} name={attrs.name} />
       </Popover.Root>
+      <input hidden bind:value={$formData[field]} name={attrs.name} />
     </Form.Control>
     <Form.FieldErrors />
   </Form.Field>
