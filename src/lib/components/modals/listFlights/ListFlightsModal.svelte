@@ -117,7 +117,7 @@
   });
 </script>
 
-<Modal bind:open classes="h-full overflow-y-auto !rounded-none" dialogOnly>
+<Modal bind:open classes="flex flex-col h-full overflow-y-auto !rounded-none" dialogOnly>
   <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
   {#if Object.keys(flightsByYear).length === 0}
     <p class="text-lg text-muted-foreground">No flights found</p>
