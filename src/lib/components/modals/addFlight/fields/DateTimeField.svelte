@@ -13,7 +13,6 @@
   import * as Form from '$lib/components/ui/form';
   import * as Popover from '$lib/components/ui/popover';
   import type { SuperForm } from 'sveltekit-superforms';
-  import type { Writable } from 'svelte/store';
   import { Info } from '@o7/icon/lucide';
   import { TextTooltip } from '$lib/components/ui/tooltip';
   import { z } from 'zod';
@@ -26,9 +25,9 @@
     validate,
   }: {
     field: 'departure' | 'arrival';
-    form: SuperForm<Record<string, unknown>>;
-    formData: Writable<z.infer<typeof addFlightSchema>>;
-    validate: (field: string) => void;
+    form: SuperForm<z.infer<typeof addFlightSchema>>;
+    formData: typeof form.form;
+    validate: typeof form.validate;
   } = $props();
 
   let dateValue: DateValue | undefined = $state(

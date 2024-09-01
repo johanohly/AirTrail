@@ -1,4 +1,5 @@
 import Root from './input.svelte';
+import Textarea from './textarea.svelte';
 
 export type FormInputEvent<T extends Event = Event> = T & {
   currentTarget: EventTarget & HTMLInputElement;
@@ -26,4 +27,5 @@ export {
   Root,
   //
   Root as Input,
+  Textarea,
 };

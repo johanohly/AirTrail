@@ -3,6 +3,7 @@ import type { APIFlight } from '$lib/db';
 import { AIRLINES } from '$lib/data/airlines';
 import dayjs from 'dayjs';
 import { distanceBetween, toTitleCase } from '$lib/utils';
+import { PersistentLRUCache } from '$lib/utils/lru-cache';
 
 const dateFormatter = new Intl.DateTimeFormat('en', {
   year: 'numeric',
@@ -221,3 +222,11 @@ export const airportFromICAO = (icao: string): Airport | undefined => {
 export const airlineFromICAO = (icao: string) => {
   return AIRLINES.find((airline) => airline.icao === icao) ?? null;
 };
+
+const cacheOptions = {
+  max: 100,
+};
+export const airportSearchCache = new PersistentLRUCache<string, Airport[]>(
+  cacheOptions,
+  'airport-search',
+);

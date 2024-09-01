@@ -33,7 +33,7 @@ model Flight {
   to        String
   departure Int?
   arrival   Int?
-  duration  Int
+  duration  Int?
 
   flight_number String?
   /// @kyselyType('window' | 'aisle' | 'middle' | 'other')
@@ -43,7 +43,9 @@ model Flight {
   seat_class    String?
   /// @kyselyType('leisure' | 'business' | 'crew' | 'other')
   flight_reason String?
+  /// ICAO airline code
   airline       String?
+  /// ICAO type code
   aircraft      String?
   aircraft_reg  String?
   note          String?

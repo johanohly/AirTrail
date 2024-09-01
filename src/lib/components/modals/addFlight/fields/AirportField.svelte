@@ -1,13 +1,14 @@
 <script lang="ts">
   import * as Form from '$lib/components/ui/form';
   import type { SuperForm } from 'sveltekit-superforms';
-  import type { Writable } from 'svelte/store';
   import { createCombobox, melt } from '@melt-ui/svelte';
   import { fly } from 'svelte/transition';
   import { ChevronDown, ChevronUp } from '@o7/icon/lucide';
   import { api } from '$lib/trpc';
-  import type { Airport } from '$lib/utils/data';
+  import { type Airport, airportSearchCache } from '$lib/utils/data';
   import { toTitleCase } from '$lib/utils';
+  import { z } from 'zod';
+  import type { addFlightSchema } from '$lib/zod/flight';
 
   let {
     field,
@@ -15,8 +16,8 @@
     formData,
   }: {
     field: 'from' | 'to';
-    form: SuperForm<Record<string, unknown>>;
-    formData: Writable<{ from: string; to: string }>;
+    form: SuperForm<z.infer<typeof addFlightSchema>>;
+    formData: typeof form.form;
   } = $props();
 
   const {
@@ -48,10 +49,16 @@
   let loading = $state(false);
   $effect(() => {
     if ($touchedInput && $inputValue !== '' && !loading) {
+      const cached = airportSearchCache.get($inputValue);
+      if (cached) {
+        airports = cached;
+        return;
+      }
+      loading = true;
       debounce(async () => {
-        loading = true;
-        airports = await api.airport.search.query($inputValue);
+        airports = await api.autocomplete.airport.query($inputValue);
         loading = false;
+        airportSearchCache.set($inputValue, airports);
       });
     }
   });

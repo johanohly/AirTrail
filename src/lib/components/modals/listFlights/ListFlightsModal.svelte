@@ -79,13 +79,17 @@
         ...f,
         from: {
           iata: f.from.IATA,
+          icao: f.from.ICAO,
           name: f.from.name,
         },
         to: {
           iata: f.to.IATA,
+          icao: f.to.ICAO,
           name: f.to.name,
         },
-        duration: dayjs.duration(f.duration, 'seconds').format('H[h] m[m]'),
+        duration: f.duration
+          ? dayjs.duration(f.duration, 'seconds').format('H[h] m[m]')
+          : '',
         month: monthFormatter.format(f.date.toDate()),
         depTime: depDate
           ? datetimeFormatter.format(depDate)
@@ -117,7 +121,11 @@
   });
 </script>
 
-<Modal bind:open classes="flex flex-col h-full overflow-y-auto !rounded-none" dialogOnly>
+<Modal
+  bind:open
+  classes="flex flex-col h-full overflow-y-auto !rounded-none"
+  dialogOnly
+>
   <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
   {#if Object.keys(flightsByYear).length === 0}
     <p class="text-lg text-muted-foreground">No flights found</p>
@@ -256,7 +264,7 @@
 
 {#snippet airport(airport)}
   <div class="w-11 flex flex-col items-center justify-center">
-    <span class="text-lg font-bold">{airport.iata}</span>
+    <span class="text-lg font-bold">{airport.iata || airport.icao}</span>
     <Tooltip.AutoTooltip
       text={airport.name}
       classes="w-32 text-xs text-muted-foreground truncate"

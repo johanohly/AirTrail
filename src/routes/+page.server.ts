@@ -1,6 +1,12 @@
 import type { Actions, PageServerLoad } from './$types';
 import { trpcServer } from '$lib/server/server';
-import { message, setError, superValidate } from 'sveltekit-superforms';
+import {
+  message,
+  setError,
+  type SuperForm,
+  superValidate,
+  type SuperValidated,
+} from 'sveltekit-superforms';
 import { addFlightSchema } from '$lib/zod/flight';
 import { zod } from 'sveltekit-superforms/adapters';
 import { error, fail } from '@sveltejs/kit';
@@ -9,6 +15,7 @@ import { db } from '$lib/db';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import duration from 'dayjs/plugin/duration';
+import { z } from 'zod';
 
 dayjs.extend(customParseFormat);
 dayjs.extend(duration);
@@ -33,14 +40,6 @@ export const actions: Actions = {
 
     const from = form.data.from;
     const to = form.data.to;
-    const durationInput = form.data.duration;
-    if (from === to && !durationInput) {
-      return returnError(
-        form,
-        'duration',
-        'Duration must be set when origin and destination are the same',
-      );
-    }
 
     const fromAirport = airportFromICAO(from);
     if (!fromAirport) {
@@ -71,18 +70,11 @@ export const actions: Actions = {
       return returnError(form, 'arrivalTime', 'Invalid time format');
     }
 
-    let duration: number;
-    if (durationInput) {
-      const [hours, minutes] = durationInput.split(':').map(Number);
-      duration = dayjs
-        .duration({
-          hours,
-          minutes,
-        })
-        .asSeconds();
-    } else if (departure && arrival) {
+    let duration: number | undefined;
+    if (departure && arrival) {
       duration = arrival - departure;
-    } else {
+    } else if (fromAirport != toAirport) {
+      // if the airports are the same, the duration can't be calculated
       const fromLonLat = { lon: fromAirport.lon, lat: fromAirport.lat };
       const toLonLat = { lon: toAirport.lon, lat: toAirport.lat };
       const distance = distanceBetween(fromLonLat, toLonLat) / 1000;
@@ -138,7 +130,11 @@ const mergeTimeWithDate = (
   return dateOnly.hour(+hours).minute(+minutes).second(0);
 };
 
-const returnError = (form: any, field: string, message: string) => {
+const returnError = (
+  form: Awaited<ReturnType<typeof superValidate>>,
+  field: string,
+  message: string,
+) => {
   setError(form, field, message);
   return fail(400, { form });
 };

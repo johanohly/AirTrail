@@ -11,7 +11,7 @@ export type Flight = {
     to: string;
     departure: number | null;
     arrival: number | null;
-    duration: number;
+    duration: number | null;
     flightNumber: string | null;
     /**
      * @kyselyType('window' | 'aisle' | 'middle' | 'other')
