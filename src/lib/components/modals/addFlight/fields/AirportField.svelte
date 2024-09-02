@@ -53,6 +53,8 @@
       if (cached) {
         airports = cached;
         return;
+      } else {
+        airports = [];
       }
       loading = true;
       debounce(async () => {
@@ -60,6 +62,8 @@
         loading = false;
         airportSearchCache.set($inputValue, airports);
       });
+    } else {
+      airports = [];
     }
   });
 </script>
