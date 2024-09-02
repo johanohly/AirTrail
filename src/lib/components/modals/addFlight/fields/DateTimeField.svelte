@@ -1,19 +1,12 @@
 <script lang="ts">
-  import { cn, toTitleCase } from '$lib/utils';
+  import { flyAndScale, toTitleCase } from '$lib/utils';
   import { buttonVariants } from '$lib/components/ui/button';
-  import * as df from '@layerstack/utils';
-  import {
-    type DateValue,
-    getLocalTimeZone,
-    parseDate,
-  } from '@internationalized/date';
-  import { Calendar } from '$lib/components/ui/calendar';
-  import { CalendarDays } from '@o7/icon/lucide';
+  import { type DateValue, parseDate } from '@internationalized/date';
+  import { CalendarDays, ArrowLeft, ArrowRight, Info } from '@o7/icon/lucide';
   import { Input } from '$lib/components/ui/input';
   import * as Form from '$lib/components/ui/form';
-  import * as Popover from '$lib/components/ui/popover';
+  import { DatePicker } from 'bits-ui';
   import type { SuperForm } from 'sveltekit-superforms';
-  import { Info } from '@o7/icon/lucide';
   import { TextTooltip } from '$lib/components/ui/tooltip';
   import { z } from 'zod';
   import type { addFlightSchema } from '$lib/zod/flight';
@@ -41,35 +34,124 @@
       <Form.Label>
         {toTitleCase(field)}{field === 'departure' ? ' *' : ''}
       </Form.Label>
-      <Popover.Root>
-        <Popover.Trigger
-          class={cn(
-            buttonVariants({ variant: 'outline' }),
-            'h-10 justify-start text-left font-normal',
-            !dateValue && 'text-muted-foreground',
-          )}
-          {...attrs}
-        >
-          <CalendarDays class="mr-2" size="16" />
-          {dateValue
-            ? df.format(dateValue.toDate(getLocalTimeZone()))
-            : 'Pick a date'}
-        </Popover.Trigger>
-        <Popover.Content class="w-auto p-0" align="start">
-          <Calendar
-            bind:value={dateValue}
-            onValueChange={(value) => {
-              if (value === undefined) {
-                $formData[field] = undefined;
-                validate(field);
-                return;
-              }
-              $formData[field] = value.toDate('UTC').toISOString();
-              validate(field);
-            }}
-          />
-        </Popover.Content>
-      </Popover.Root>
+      <DatePicker.Root
+        bind:value={dateValue}
+        onValueChange={(value) => {
+          if (value === undefined) {
+            $formData[field] = undefined;
+            validate(field);
+            return;
+          }
+          $formData[field] = value.toDate('UTC').toISOString();
+          validate(field);
+        }}
+        weekdayFormat="short"
+        fixedWeeks={true}
+        weekStartsOn={1}
+        minValue={parseDate('1970-01-01')}
+      >
+        <div class="flex w-full max-w-[232px] flex-col gap-1.5">
+          <DatePicker.Input
+            let:segments
+            class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {#each segments as { part, value }}
+              <div class="inline-block select-none">
+                {#if part === 'literal'}
+                  <DatePicker.Segment {part} class="text-muted-foreground">
+                    {value}
+                  </DatePicker.Segment>
+                {:else}
+                  <DatePicker.Segment
+                    {part}
+                    class="rounded-md px-1 hover:bg-muted focus:bg-muted focus:text-foreground focus-visible:!ring-0 focus-visible:!ring-offset-0 aria-[valuetext=Empty]:text-muted-foreground"
+                  >
+                    {value}
+                  </DatePicker.Segment>
+                {/if}
+              </div>
+            {/each}
+            <DatePicker.Trigger
+              class="ml-auto inline-flex items-center justify-center text-muted-foreground transition-all hover:text-foreground active:text-foreground"
+              {...attrs}
+            >
+              <CalendarDays size="20" />
+            </DatePicker.Trigger>
+          </DatePicker.Input>
+          <DatePicker.Content
+            sideOffset={6}
+            transition={flyAndScale}
+            transitionConfig={{ duration: 150, y: -8 }}
+            class="z-50"
+          >
+            <DatePicker.Calendar
+              class="rounded-[15px] border bg-popover p-[22px] shadow-popover"
+              let:months
+              let:weekdays
+            >
+              <DatePicker.Header class="flex items-center justify-between">
+                <DatePicker.PrevButton
+                  class={buttonVariants({ variant: 'outline', size: 'icon' })}
+                >
+                  <ArrowLeft />
+                </DatePicker.PrevButton>
+                <DatePicker.Heading class="text-[15px] font-medium" />
+                <DatePicker.NextButton
+                  class={buttonVariants({ variant: 'outline', size: 'icon' })}
+                >
+                  <ArrowRight />
+                </DatePicker.NextButton>
+              </DatePicker.Header>
+              <div
+                class="flex flex-col space-y-4 pt-4 sm:flex-row sm:space-x-4 sm:space-y-0"
+              >
+                {#each months as month}
+                  <DatePicker.Grid
+                    class="w-full border-collapse select-none space-y-1"
+                  >
+                    <DatePicker.GridHead>
+                      <DatePicker.GridRow
+                        class="mb-1 flex w-full justify-between"
+                      >
+                        {#each weekdays as day}
+                          <DatePicker.HeadCell
+                            class="w-10 rounded-md text-xs !font-normal text-muted-foreground"
+                          >
+                            <div>{day.slice(0, 2)}</div>
+                          </DatePicker.HeadCell>
+                        {/each}
+                      </DatePicker.GridRow>
+                    </DatePicker.GridHead>
+                    <DatePicker.GridBody>
+                      {#each month.weeks as weekDates}
+                        <DatePicker.GridRow class="flex w-full">
+                          {#each weekDates as date}
+                            <DatePicker.Cell
+                              {date}
+                              class="relative size-10 !p-0 text-center text-sm"
+                            >
+                              <DatePicker.Day
+                                {date}
+                                month={month.value}
+                                class="group relative inline-flex size-10 items-center justify-center whitespace-nowrap rounded-[9px] border border-transparent bg-transparent p-0 text-sm font-normal text-foreground transition-all hover:border-foreground data-[disabled]:pointer-events-none data-[outside-month]:pointer-events-none data-[selected]:bg-foreground data-[selected]:font-medium data-[disabled]:text-foreground/30 data-[selected]:text-background data-[unavailable]:text-muted-foreground data-[unavailable]:line-through"
+                              >
+                                <div
+                                  class="absolute top-[5px] hidden size-1 rounded-full bg-foreground transition-all group-data-[today]:block group-data-[selected]:bg-background"
+                                />
+                                {date.day}
+                              </DatePicker.Day>
+                            </DatePicker.Cell>
+                          {/each}
+                        </DatePicker.GridRow>
+                      {/each}
+                    </DatePicker.GridBody>
+                  </DatePicker.Grid>
+                {/each}
+              </div>
+            </DatePicker.Calendar>
+          </DatePicker.Content>
+        </div>
+      </DatePicker.Root>
       <input hidden bind:value={$formData[field]} name={attrs.name} />
     </Form.Control>
     <Form.FieldErrors />

@@ -1,12 +1,6 @@
 import type { Actions, PageServerLoad } from './$types';
 import { trpcServer } from '$lib/server/server';
-import {
-  message,
-  setError,
-  type SuperForm,
-  superValidate,
-  type SuperValidated,
-} from 'sveltekit-superforms';
+import { message, setError, superValidate } from 'sveltekit-superforms';
 import { addFlightSchema } from '$lib/zod/flight';
 import { zod } from 'sveltekit-superforms/adapters';
 import { error, fail } from '@sveltejs/kit';
@@ -15,7 +9,6 @@ import { db } from '$lib/db';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import duration from 'dayjs/plugin/duration';
-import { z } from 'zod';
 
 dayjs.extend(customParseFormat);
 dayjs.extend(duration);
@@ -51,6 +44,11 @@ export const actions: Actions = {
     }
 
     const departureDate = dayjs(form.data.departure);
+    if (departureDate.isBefore(dayjs('1970-01-01'))) {
+      // Y2K38
+      return returnError(form, 'departure', 'Too far in the past');
+    }
+
     let departure: number | undefined;
     try {
       departure = form.data.departureTime
@@ -60,12 +58,22 @@ export const actions: Actions = {
       return returnError(form, 'departureTime', 'Invalid time format');
     }
 
-    const arrivalDate = dayjs(form.data.arrival);
+    const arrivalDate = form.data.arrival
+      ? dayjs(form.data.arrival)
+      : undefined;
+    if (arrivalDate && arrivalDate.isBefore(dayjs('1970-01-01'))) {
+      return returnError(form, 'arrival', 'Too far in the past');
+    }
+    if (arrivalDate && arrivalDate.isBefore(departureDate)) {
+      return returnError(form, 'arrival', 'Arrival must be after departure');
+    }
+
     let arrival: number | undefined;
     try {
-      arrival = form.data.arrivalTime
-        ? mergeTimeWithDate(arrivalDate, form.data.arrivalTime).unix()
-        : undefined;
+      arrival =
+        arrivalDate && form.data.arrivalTime
+          ? mergeTimeWithDate(arrivalDate, form.data.arrivalTime).unix()
+          : undefined;
     } catch (e) {
       return returnError(form, 'arrivalTime', 'Invalid time format');
     }
