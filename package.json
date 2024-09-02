@@ -6,6 +6,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "dev": "vite dev",
+    "db:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
     "lint": "svelte-kit sync && eslint --max-warnings 0 --fix . && svelte-check"
   },
@@ -52,6 +53,7 @@
     "@melt-ui/pp": "^0.3.2",
     "@melt-ui/svelte": "^0.83.0",
     "@sveltejs/adapter-auto": "^3.2.2",
+    "@sveltejs/adapter-node": "^5.2.2",
     "@sveltejs/kit": "^2.5.24",
     "@sveltejs/vite-plugin-svelte": "^3.1.1",
     "@types/better-sqlite3": "^7.6.11",
