@@ -5,10 +5,15 @@
   import { fly } from 'svelte/transition';
   import { ChevronDown, ChevronUp } from '@o7/icon/lucide';
   import { api } from '$lib/trpc';
-  import { type Airport, airportSearchCache } from '$lib/utils/data';
+  import {
+    type Airport,
+    airportFromICAO,
+    airportSearchCache,
+  } from '$lib/utils/data';
   import { toTitleCase } from '$lib/utils';
   import { z } from 'zod';
   import type { addFlightSchema } from '$lib/zod/flight';
+  import { writable } from 'svelte/store';
 
   let {
     field,
@@ -20,11 +25,21 @@
     formData: typeof form.form;
   } = $props();
 
+  const selected = writable(
+    $formData[field]
+      ? {
+          label: airportFromICAO($formData[field])?.name,
+          value: $formData[field],
+        }
+      : undefined,
+  );
+
   const {
     elements: { menu, input, option },
-    states: { open, inputValue, touchedInput, selected },
+    states: { open, inputValue, touchedInput },
   } = createCombobox<string>({
     forceVisible: true,
+    selected,
   });
   selected.subscribe((item) => {
     if (item) {
@@ -70,7 +85,7 @@
 
 <Form.Field {form} name={field} class="flex flex-col">
   <Form.Control let:attrs>
-    <Form.Label>{toTitleCase(field)} *</Form.Label>
+    <Form.Label>{toTitleCase(field)}{field === 'from' ? ' *' : ''}</Form.Label>
     <div class="relative">
       <input
         use:melt={$input}
