@@ -1,7 +1,12 @@
 <script lang="ts">
   import { flyAndScale, toTitleCase } from '$lib/utils';
   import { buttonVariants } from '$lib/components/ui/button';
-  import { type DateValue, parseDate } from '@internationalized/date';
+  import {
+    type DateValue,
+    parseAbsolute,
+    parseAbsoluteToLocal,
+    parseDate,
+  } from '@internationalized/date';
   import { CalendarDays, ArrowLeft, ArrowRight, Info } from '@o7/icon/lucide';
   import { Input } from '$lib/components/ui/input';
   import * as Form from '$lib/components/ui/form';
@@ -24,7 +29,7 @@
   } = $props();
 
   let dateValue: DateValue | undefined = $state(
-    $formData[field] ? parseDate($formData[field]) : undefined,
+    $formData[field] ? parseAbsoluteToLocal($formData[field]) : undefined,
   );
 </script>
 
@@ -45,6 +50,7 @@
           $formData[field] = value.toDate('UTC').toISOString();
           validate(field);
         }}
+        granularity="day"
         weekdayFormat="short"
         fixedWeeks={true}
         weekStartsOn={1}
