@@ -1,6 +1,6 @@
 datasource db {
-  provider = "sqlite"
-  url      = "file:../db.sqlite"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 generator kysely {
@@ -11,7 +11,7 @@ generator kysely {
   camelCase = true
 }
 
-model User {
+model user {
   id           String @id
   username     String @unique
   password     String
@@ -22,17 +22,17 @@ model User {
   /// @kyselyType('user' | 'admin')
   role String
 
-  sessions Session[]
-  flights  Flight[]
+  sessions session[]
+  flights  flight[]
 }
 
-model Flight {
-  id        Int    @id @default(autoincrement())
+model flight {
+  id        Int     @id @default(autoincrement())
   date      String
   from      String
   to        String
-  departure Int?
-  arrival   Int?
+  departure BigInt?
+  arrival   BigInt?
   duration  Int?
 
   flight_number String?
@@ -51,12 +51,12 @@ model Flight {
   note          String?
 
   user_id String
-  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user    user   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
-model Session {
+model session {
   id         String @id
   expires_at Int
   user_id    String
-  user       User   @relation(fields: [user_id], references: [id])
+  user       user   @relation(fields: [user_id], references: [id])
 }

@@ -8,7 +8,7 @@ export const userRouter = router({
   }),
   isSetup: publicProcedure.query(async () => {
     const users = await db
-      .selectFrom('User')
+      .selectFrom('user')
       .select(sql`1`.as('exists'))
       .limit(1)
       .execute();

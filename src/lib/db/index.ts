@@ -1,22 +1,20 @@
 import {
   CamelCasePlugin,
   Kysely,
+  PostgresDialect,
   type RawBuilder,
   sql,
-  SqliteDialect,
 } from 'kysely';
-import Database from 'better-sqlite3';
+import pg from 'pg';
 import { DATABASE_URL } from '$env/static/private';
-import type { DB, Flight } from './schema';
+import type { DB, flight, user } from './schema';
 
-export const sqlite = new Database(DATABASE_URL);
-sqlite.pragma('journal_mode = WAL');
-sqlite.pragma('foreign_keys = ON');
+const dialect = new PostgresDialect({
+  pool: new pg.Pool({ connectionString: DATABASE_URL }),
+});
 
 export const db = new Kysely<DB>({
-  dialect: new SqliteDialect({
-    database: sqlite,
-  }),
+  dialect,
   plugins: [new CamelCasePlugin()],
 });
 
@@ -24,4 +22,6 @@ export function json<T>(obj: T): RawBuilder<T> {
   return sql`${JSON.stringify(obj)}`;
 }
 
-export type APIFlight = Omit<Flight, 'id'> & { id: number };
+export type User = user;
+export type Flight = flight;
+export type APIFlight = Omit<flight, 'id'> & { id: number };

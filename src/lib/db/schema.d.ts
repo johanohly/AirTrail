@@ -4,13 +4,13 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   : ColumnType<T, T | undefined, T>;
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
-export type Flight = {
+export type flight = {
     id: Generated<number>;
     date: string;
     from: string;
     to: string;
-    departure: number | null;
-    arrival: number | null;
+    departure: string | null;
+    arrival: string | null;
     duration: number | null;
     flightNumber: string | null;
     /**
@@ -26,18 +26,24 @@ export type Flight = {
      * @kyselyType('leisure' | 'business' | 'crew' | 'other')
      */
     flightReason: 'leisure' | 'business' | 'crew' | 'other' | null;
+    /**
+     * ICAO airline code
+     */
     airline: string | null;
+    /**
+     * ICAO type code
+     */
     aircraft: string | null;
     aircraftReg: string | null;
     note: string | null;
     userId: string;
 };
-export type Session = {
+export type session = {
     id: string;
     expiresAt: number;
     userId: string;
 };
-export type User = {
+export type user = {
     id: string;
     username: string;
     password: string;
@@ -52,7 +58,7 @@ export type User = {
     role: 'user' | 'admin';
 };
 export type DB = {
-    Flight: Flight;
-    Session: Session;
-    User: User;
+    flight: flight;
+    session: session;
+    user: user;
 };

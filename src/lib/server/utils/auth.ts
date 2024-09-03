@@ -1,6 +1,5 @@
-import { db } from '$lib/db';
+import { db, type User } from '$lib/db';
 import { sql } from 'kysely';
-import type { User } from '$lib/db/schema';
 import type { Lucia } from 'lucia';
 import type { Cookies } from '@sveltejs/kit';
 
@@ -13,7 +12,7 @@ export const createUser = async (
   role: User['role'],
 ) => {
   const result = await db
-    .insertInto('User')
+    .insertInto('user')
     .values({ id, username, password, displayName, unit, role })
     .executeTakeFirst();
   return result.numInsertedOrUpdatedRows && result.numInsertedOrUpdatedRows > 0;
@@ -21,7 +20,7 @@ export const createUser = async (
 
 export const getUser = async (username: string) => {
   return db
-    .selectFrom('User')
+    .selectFrom('user')
     .where('username', '=', username)
     .selectAll()
     .executeTakeFirst();
@@ -52,7 +51,7 @@ export const deleteSession = async (lucia: Lucia, cookies: Cookies) => {
 
 export const usernameExists = async (username: string) => {
   const users = await db
-    .selectFrom('User')
+    .selectFrom('user')
     .where('username', '=', username)
     .select(sql`1`.as('exists'))
     .execute();

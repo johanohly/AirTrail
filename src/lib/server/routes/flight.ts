@@ -1,12 +1,11 @@
 import { authedProcedure, router } from '../trpc';
-import { db } from '$lib/db';
+import { db, type Flight } from '$lib/db';
 import { z } from 'zod';
-import type { Flight } from '$lib/db/schema';
 
 export const flightRouter = router({
   list: authedProcedure.query(async ({ ctx: { user } }) => {
     const flights = await db
-      .selectFrom('Flight')
+      .selectFrom('flight')
       .selectAll()
       .where('userId', '=', user.id)
       .execute();
@@ -16,7 +15,7 @@ export const flightRouter = router({
     .input(z.number())
     .mutation(async ({ ctx: { user }, input }) => {
       await db
-        .deleteFrom('Flight')
+        .deleteFrom('flight')
         .where('id', '=', input)
         .where('userId', '=', user.id)
         .execute();
@@ -25,7 +24,7 @@ export const flightRouter = router({
     .input(z.custom<Omit<Flight, 'id' | 'userId'>>())
     .mutation(async ({ ctx: { user }, input }) => {
       await db
-        .insertInto('Flight')
+        .insertInto('flight')
         .values({ ...input, userId: user.id })
         .execute();
     }),
@@ -33,6 +32,6 @@ export const flightRouter = router({
     .input(z.custom<Omit<Flight, 'id' | 'userId'>[]>())
     .mutation(async ({ ctx: { user }, input }) => {
       const flights = input.map((flight) => ({ ...flight, userId: user.id }));
-      await db.insertInto('Flight').values(flights).execute();
+      await db.insertInto('flight').values(flights).execute();
     }),
 });
