@@ -62,8 +62,8 @@
     if (!data) return [];
 
     return data.map((f) => {
-      const depDate = f.departure ? dayjs.unix(f.departure).toDate() : null;
-      const arrDate = f.arrival ? dayjs.unix(f.arrival).toDate() : null;
+      const depDate = f.departure;
+      const arrDate = f.arrival;
 
       const sameDay =
         depDate && arrDate && dayjs(depDate).isSame(arrDate, 'day');
