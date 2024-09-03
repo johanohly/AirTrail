@@ -9,9 +9,8 @@ import pg from 'pg';
 import { DATABASE_URL } from '$env/static/private';
 import type { DB, flight, user } from './schema';
 
-const dialect = new PostgresDialect({
-  pool: new pg.Pool({ connectionString: DATABASE_URL }),
-});
+export const pool = new pg.Pool({ connectionString: DATABASE_URL });
+const dialect = new PostgresDialect({ pool });
 
 export const db = new Kysely<DB>({
   dialect,
@@ -23,5 +22,8 @@ export function json<T>(obj: T): RawBuilder<T> {
 }
 
 export type User = user;
-export type Flight = flight;
-export type APIFlight = Omit<flight, 'id'> & { id: number };
+export type Flight = Omit<flight, 'id' | 'departure' | 'arrival'> & {
+  id: number;
+  departure: Date | null;
+  arrival: Date | null;
+};

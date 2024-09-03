@@ -9,8 +9,8 @@ export type flight = {
     date: string;
     from: string;
     to: string;
-    departure: string | null;
-    arrival: string | null;
+    departure: Timestamp | null;
+    arrival: Timestamp | null;
     duration: number | null;
     flightNumber: string | null;
     /**
@@ -40,7 +40,7 @@ export type flight = {
 };
 export type session = {
     id: string;
-    expiresAt: number;
+    expiresAt: Timestamp;
     userId: string;
 };
 export type user = {

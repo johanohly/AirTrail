@@ -1,6 +1,6 @@
 import { readFile } from '$lib/utils';
 import { processFR24File } from '$lib/import/fr24';
-import type { Flight } from '$lib/db/schema';
+import type { Flight } from '$lib/db';
 
 export const processFile = async (
   file: File,

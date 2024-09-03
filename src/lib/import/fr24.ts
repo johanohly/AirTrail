@@ -1,7 +1,7 @@
-import type { Flight } from '$lib/db/schema';
 import { parseCsv } from '$lib/utils';
 import { z } from 'zod';
 import dayjs from 'dayjs';
+import type { Flight } from '$lib/db';
 
 const FR24_AIRPORT_REGEX = /\((?<IATA>[a-zA-Z]{3})\/(?<ICAO>[a-zA-Z]{4})\)/;
 const FR24_SEAT_TYPE_MAP: Record<string, Flight['seat']> = {
@@ -121,8 +121,8 @@ export const processFR24File = async (content: string) => {
       date: row.date, // YYYY-MM-DD
       from,
       to,
-      departure: departure?.unix() ?? null,
-      arrival: arrival?.unix() ?? null,
+      departure: departure?.toDate() ?? null,
+      arrival: arrival?.toDate() ?? null,
       duration,
       seat: seatType,
       seatNumber: row.seat_number,

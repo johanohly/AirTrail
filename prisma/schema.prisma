@@ -27,12 +27,12 @@ model user {
 }
 
 model flight {
-  id        Int     @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   date      String
   from      String
   to        String
-  departure BigInt?
-  arrival   BigInt?
+  departure DateTime?
+  arrival   DateTime?
   duration  Int?
 
   flight_number String?
@@ -55,8 +55,8 @@ model flight {
 }
 
 model session {
-  id         String @id
-  expires_at Int
+  id         String   @id
+  expires_at DateTime @db.Timestamptz
   user_id    String
-  user       user   @relation(fields: [user_id], references: [id])
+  user       user     @relation(fields: [user_id], references: [id])
 }

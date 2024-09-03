@@ -4206,7 +4206,11 @@ export const AIRLINES = [
     Code: 'NU',
     ICAO: 'NWY',
   },
-  { Name: 'New Zealand - Royal New Zealand Air Force', Code: null, ICAO: 'KIW' },
+  {
+    Name: 'New Zealand - Royal New Zealand Air Force',
+    Code: null,
+    ICAO: 'KIW',
+  },
   {
     Name: 'NG Eagle',
     Code: '2N',

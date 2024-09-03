@@ -1,5 +1,5 @@
 import { AIRPORTS } from '$lib/data/airports';
-import type { APIFlight } from '$lib/db';
+import type { Flight } from '$lib/db';
 import { AIRLINES } from '$lib/data/airlines';
 import dayjs from 'dayjs';
 import { distanceBetween, toTitleCase } from '$lib/utils';
@@ -30,10 +30,10 @@ type FlightOverrides = {
   to: Airport;
   distance: number;
 };
-export type FlightData = ExcludedType<APIFlight, FlightOverrides> &
+export type FlightData = ExcludedType<Flight, FlightOverrides> &
   FlightOverrides;
 
-export const prepareFlightData = (data: APIFlight[]): FlightData[] => {
+export const prepareFlightData = (data: Flight[]): FlightData[] => {
   if (!data) return [];
 
   return data

@@ -1,12 +1,12 @@
 import { Lucia } from 'lucia';
-import { BetterSqlite3Adapter } from '@lucia-auth/adapter-sqlite';
 import { dev } from '$app/environment';
 import type { DB } from '$lib/db/schema';
-import { sqlite } from '$lib/db';
+import { NodePostgresAdapter } from '@lucia-auth/adapter-postgresql';
+import { pool } from '$lib/db';
 
-const adapter = new BetterSqlite3Adapter(sqlite, {
-  user: 'User',
-  session: 'Session',
+const adapter = new NodePostgresAdapter(pool, {
+  user: 'user',
+  session: 'session',
 });
 
 export const lucia = new Lucia(adapter, {
@@ -29,6 +29,6 @@ export const lucia = new Lucia(adapter, {
 declare module 'lucia' {
   interface Register {
     Lucia: typeof lucia;
-    DatabaseUserAttributes: DB['User'];
+    DatabaseUserAttributes: DB['user'];
   }
 }

@@ -49,10 +49,10 @@ export const actions: Actions = {
       return returnError(form, 'departure', 'Too far in the past');
     }
 
-    let departure: number | undefined;
+    let departure: Date | undefined;
     try {
       departure = form.data.departureTime
-        ? mergeTimeWithDate(departureDate, form.data.departureTime).unix()
+        ? mergeTimeWithDate(departureDate, form.data.departureTime).toDate()
         : undefined;
     } catch (e) {
       return returnError(form, 'departureTime', 'Invalid time format');
@@ -68,11 +68,11 @@ export const actions: Actions = {
       return returnError(form, 'arrival', 'Arrival must be after departure');
     }
 
-    let arrival: number | undefined;
+    let arrival: Date | undefined;
     try {
       arrival =
         arrivalDate && form.data.arrivalTime
-          ? mergeTimeWithDate(arrivalDate, form.data.arrivalTime).unix()
+          ? mergeTimeWithDate(arrivalDate, form.data.arrivalTime).toDate()
           : undefined;
     } catch (e) {
       return returnError(form, 'arrivalTime', 'Invalid time format');
@@ -80,7 +80,7 @@ export const actions: Actions = {
 
     let duration: number | undefined;
     if (departure && arrival) {
-      duration = arrival - departure;
+      duration = Math.abs(arrival.getTime() - departure.getTime()) / 1000;
     } else if (fromAirport != toAirport) {
       // if the airports are the same, the duration can't be calculated
       const fromLonLat = { lon: fromAirport.lon, lat: fromAirport.lat };
@@ -91,7 +91,7 @@ export const actions: Actions = {
     }
 
     const resp = await db
-      .insertInto('Flight')
+      .insertInto('flight')
       .values({
         userId: user.id,
         from,
