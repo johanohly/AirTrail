@@ -80,14 +80,16 @@ export const actions: Actions = {
 
     let duration: number | undefined;
     if (departure && arrival) {
-      duration = Math.abs(arrival.getTime() - departure.getTime()) / 1000;
+      duration = Math.round(
+        Math.abs(arrival.getTime() - departure.getTime()) / 1000,
+      );
     } else if (fromAirport != toAirport) {
       // if the airports are the same, the duration can't be calculated
       const fromLonLat = { lon: fromAirport.lon, lat: fromAirport.lat };
       const toLonLat = { lon: toAirport.lon, lat: toAirport.lat };
       const distance = distanceBetween(fromLonLat, toLonLat) / 1000;
       const durationHours = distance / 805 + 0.5; // 805 km/h is the average speed of a commercial jet, add 0.5 hours for takeoff and landing
-      duration = dayjs.duration(durationHours, 'hours').asSeconds();
+      duration = Math.round(dayjs.duration(durationHours, 'hours').asSeconds());
     }
 
     const resp = await db
