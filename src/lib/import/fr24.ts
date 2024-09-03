@@ -96,10 +96,10 @@ export const processFR24File = async (content: string) => {
     }
 
     const departure = row.dep_time
-      ? dayjs(`${row.date} ${row.dep_time}`, 'YYYY-MM-DD HH:mm:ss')
+      ? dayjs(`${row.date} ${row.dep_time}`, 'YYYY-MM-DD HH:mm:ss').toDate()
       : null;
     const arrival = row.arr_time
-      ? dayjs(`${row.date} ${row.arr_time}`, 'YYYY-MM-DD HH:mm:ss')
+      ? dayjs(`${row.date} ${row.arr_time}`, 'YYYY-MM-DD HH:mm:ss').toDate()
       : null;
 
     const duration = row.duration
@@ -121,8 +121,8 @@ export const processFR24File = async (content: string) => {
       date: row.date, // YYYY-MM-DD
       from,
       to,
-      departure: departure?.toDate() ?? null,
-      arrival: arrival?.toDate() ?? null,
+      departure,
+      arrival,
       duration,
       seat: seatType,
       seatNumber: row.seat_number,
