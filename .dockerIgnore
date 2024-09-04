@@ -1,0 +1,6 @@
+**
+!/src/**
+!/static/**
+!/package.json
+!/bun.lockb
+!/prisma/**

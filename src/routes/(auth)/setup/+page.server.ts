@@ -10,8 +10,8 @@ import {
   usernameExists,
 } from '$lib/server/utils/auth';
 import { generateId } from 'lucia';
-import { Argon2id } from 'oslo/password';
 import { lucia } from '$lib/server/auth';
+import { hashPassword } from '$lib/server/utils/password';
 
 export const load: PageServerLoad = async (event) => {
   await trpcServer.user.isSetup.ssr(event);
@@ -34,7 +34,7 @@ export const actions: Actions = {
     }
 
     const userId = generateId(15);
-    const hashedPassword = await new Argon2id().hash(password);
+    const hashedPassword = await hashPassword(password);
 
     // Always create the first user as an admin
     const success = await createUser(

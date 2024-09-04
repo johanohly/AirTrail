@@ -4,9 +4,9 @@ import { message, superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { signInSchema } from '$lib/zod/auth';
 import { createSession, getUser } from '$lib/server/utils/auth';
-import { Argon2id } from 'oslo/password';
 import { lucia } from '$lib/server/auth';
 import { fail, redirect } from '@sveltejs/kit';
+import { verifyPassword } from '$lib/server/utils/password';
 
 export const load: PageServerLoad = async (event) => {
   await trpcServer.user.isSetup.ssr(event);
@@ -29,7 +29,7 @@ export const actions: Actions = {
       return message(form, 'Invalid username or password', { status: 403 });
     }
 
-    const validPassword = await new Argon2id().verify(user.password, password);
+    const validPassword = await verifyPassword(user.password, password);
     if (!validPassword) {
       return message(form, 'Invalid username or password', { status: 403 });
     }
