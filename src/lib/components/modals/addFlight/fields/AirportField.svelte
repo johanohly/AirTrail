@@ -85,7 +85,7 @@
 
 <Form.Field {form} name={field} class="flex flex-col">
   <Form.Control let:attrs>
-    <Form.Label>{toTitleCase(field)}{field === 'from' ? ' *' : ''}</Form.Label>
+    <Form.Label>{toTitleCase(field)} *</Form.Label>
     <div class="relative">
       <input
         use:melt={$input}
