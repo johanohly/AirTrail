@@ -13,7 +13,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://airtrail:SECURE_PASSWORD_HERE@db:5432/airtrail?schema=public
     restart: unless-stopped
-    image: airtrail
+    image: johly/airtrail:latest
     ports:
       - 3000:3000
     depends_on:
