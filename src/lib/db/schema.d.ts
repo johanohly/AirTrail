@@ -9,8 +9,14 @@ export type flight = {
     date: string;
     from: string;
     to: string;
-    departure: Timestamp | null;
-    arrival: Timestamp | null;
+    /**
+     * YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
+     */
+    departure: string | null;
+    /**
+     * YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
+     */
+    arrival: string | null;
     duration: number | null;
     flightNumber: string | null;
     /**

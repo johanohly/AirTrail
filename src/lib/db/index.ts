@@ -22,8 +22,6 @@ export function json<T>(obj: T): RawBuilder<T> {
 }
 
 export type User = user;
-export type Flight = Omit<flight, 'id' | 'departure' | 'arrival'> & {
+export type Flight = Omit<flight, 'id'> & {
   id: number;
-  departure: Date | null;
-  arrival: Date | null;
 };

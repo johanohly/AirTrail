@@ -18,6 +18,7 @@ export type Airport = {
   name: string;
   country: string;
   continent: string;
+  tz: number;
   lat: number;
   lon: number;
   IATA: string | null;
@@ -26,6 +27,8 @@ export type Airport = {
 };
 type FlightOverrides = {
   date: dayjs.Dayjs;
+  departure: dayjs.Dayjs | null;
+  arrival: dayjs.Dayjs | null;
   from: Airport;
   to: Airport;
   distance: number;
@@ -47,6 +50,12 @@ export const prepareFlightData = (data: Flight[]): FlightData[] => {
         date: dayjs(flight.date, 'YYYY-MM-DD'),
         from: fromAirport,
         to: toAirport,
+        departure: flight.departure
+          ? dayjs(flight.departure).add(fromAirport.tz, 'minutes')
+          : null, // convert to local time
+        arrival: flight.arrival
+          ? dayjs(flight.arrival).add(toAirport.tz, 'minutes')
+          : null, // convert to local time
         distance:
           distanceBetween(
             [fromAirport.lon, fromAirport.lat],

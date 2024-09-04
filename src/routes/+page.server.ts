@@ -4,7 +4,7 @@ import { message, setError, superValidate } from 'sveltekit-superforms';
 import { addFlightSchema } from '$lib/zod/flight';
 import { zod } from 'sveltekit-superforms/adapters';
 import { error, fail } from '@sveltejs/kit';
-import { airportFromICAO, distanceBetween } from '$lib/utils';
+import { airportFromICAO, distanceBetween, toISOString } from '$lib/utils';
 import { db } from '$lib/db';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
@@ -43,19 +43,27 @@ export const actions: Actions = {
       return returnError(form, 'to', 'Invalid airport code');
     }
 
-    const departureDate = dayjs(form.data.departure);
+    let departureDate = dayjs(form.data.departure);
     if (departureDate.isBefore(dayjs('1970-01-01'))) {
       // Y2K38
       return returnError(form, 'departure', 'Too far in the past');
     }
 
-    let departure: Date | undefined;
+    let departure: dayjs.Dayjs | undefined;
     try {
       departure = form.data.departureTime
-        ? mergeTimeWithDate(departureDate, form.data.departureTime).toDate()
+        ? mergeTimeWithDate(departureDate, form.data.departureTime).subtract(
+            fromAirport.tz,
+            'minutes',
+          ) // convert to UTC
         : undefined;
     } catch (e) {
       return returnError(form, 'departureTime', 'Invalid time format');
+    }
+
+    // adjust departureDate if a departure time is provided and makes it necessary - e.g. 23:00 EDT on the 1st is 03:00 UTC on the 2nd
+    if (departure && departureDate.diff(departure, 'days') !== 0) {
+      departureDate = departure;
     }
 
     const arrivalDate = form.data.arrival
@@ -64,25 +72,33 @@ export const actions: Actions = {
     if (arrivalDate && arrivalDate.isBefore(dayjs('1970-01-01'))) {
       return returnError(form, 'arrival', 'Too far in the past');
     }
-    if (arrivalDate && arrivalDate.isBefore(departureDate)) {
-      return returnError(form, 'arrival', 'Arrival must be after departure');
+    if (arrivalDate && !form.data.arrivalTime) {
+      return returnError(
+        form,
+        'arrival',
+        'Cannot have arrival date without time',
+      );
     }
 
-    let arrival: Date | undefined;
+    let arrival: dayjs.Dayjs | undefined;
     try {
       arrival =
         arrivalDate && form.data.arrivalTime
-          ? mergeTimeWithDate(arrivalDate, form.data.arrivalTime).toDate()
+          ? mergeTimeWithDate(arrivalDate, form.data.arrivalTime).subtract(
+              toAirport.tz,
+              'minutes',
+            ) // convert to UTC
           : undefined;
     } catch (e) {
       return returnError(form, 'arrivalTime', 'Invalid time format');
     }
+    if (arrival && departure && arrival.isBefore(departure)) {
+      return returnError(form, 'arrival', 'Arrival must be after departure');
+    }
 
     let duration: number | undefined;
     if (departure && arrival) {
-      duration = Math.round(
-        Math.abs(arrival.getTime() - departure.getTime()) / 1000,
-      );
+      duration = arrival.diff(departure, 'seconds');
     } else if (fromAirport != toAirport) {
       // if the airports are the same, the duration can't be calculated
       const fromLonLat = { lon: fromAirport.lon, lat: fromAirport.lat };
@@ -99,8 +115,8 @@ export const actions: Actions = {
         from,
         to,
         duration,
-        departure,
-        arrival,
+        departure: departure ? toISOString(departure) : null,
+        arrival: arrival ? toISOString(arrival) : null,
         date: departureDate.format('YYYY-MM-DD'),
       })
       .execute();

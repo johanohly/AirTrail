@@ -1,4 +1,4 @@
-import { parseCsv } from '$lib/utils';
+import { airportFromICAO, parseCsv, toISOString } from '$lib/utils';
 import { z } from 'zod';
 import dayjs from 'dayjs';
 import type { Flight } from '$lib/db';
@@ -83,8 +83,14 @@ export const processFR24File = async (content: string) => {
 
   const flights: Omit<Flight, 'id' | 'userId'>[] = [];
   for (const row of data) {
-    const from = extractAirportICAO(row.from);
-    const to = extractAirportICAO(row.to);
+    const fromCode = extractAirportICAO(row.from);
+    const toCode = extractAirportICAO(row.to);
+    if (!fromCode || !toCode) {
+      continue;
+    }
+
+    const from = airportFromICAO(fromCode);
+    const to = airportFromICAO(toCode);
     if (!from || !to) {
       continue;
     }
@@ -96,11 +102,21 @@ export const processFR24File = async (content: string) => {
     }
 
     const departure = row.dep_time
-      ? dayjs(`${row.date} ${row.dep_time}`, 'YYYY-MM-DD HH:mm:ss').toDate()
+      ? dayjs(`${row.date} ${row.dep_time}`, 'YYYY-MM-DD HH:mm:ss').subtract(
+          from.tz,
+          'minutes',
+        ) // convert to UTC
       : null;
-    const arrival = row.arr_time
-      ? dayjs(`${row.date} ${row.arr_time}`, 'YYYY-MM-DD HH:mm:ss').toDate()
+    let arrival = row.arr_time
+      ? dayjs(`${row.date} ${row.arr_time}`, 'YYYY-MM-DD HH:mm:ss').subtract(
+          to.tz,
+          'minutes',
+        ) // convert to UTC
       : null;
+    if (departure && arrival && arrival < departure) {
+      // assume arrival is on the next day
+      arrival = dayjs(arrival).add(1, 'day');
+    }
 
     const duration = row.duration
       .split(':')
@@ -119,10 +135,10 @@ export const processFR24File = async (content: string) => {
 
     flights.push({
       date: row.date, // YYYY-MM-DD
-      from,
-      to,
-      departure,
-      arrival,
+      from: from.ICAO,
+      to: to.ICAO,
+      departure: departure ? toISOString(departure) : null,
+      arrival: arrival ? toISOString(arrival) : null,
       duration,
       seat: seatType,
       seatNumber: row.seat_number,

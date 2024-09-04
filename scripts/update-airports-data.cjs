@@ -6,7 +6,7 @@ const IGNORED_FIELDS = [
   'type',
   'restriction',
   'alt',
-  'gmt_offset',
+  'timezone',
   'region',
   'municipality',
   'activation',
@@ -37,12 +37,13 @@ const IGNORED_FIELDS = [
         if (IGNORED_FIELDS.includes(headers[i])) {
           return;
         }
+        const header = headers[i] === 'gmt_offset' ? 'tz' : headers[i];
 
         let cell = cell_ === '' || cell_ === 'NULL' ? null : cell_;
         if (!isNaN(+cell) && cell !== null) {
           cell = +cell;
         }
-        airport[headers[i]] = cell;
+        airport[header] = cell;
       });
       return airport;
     })

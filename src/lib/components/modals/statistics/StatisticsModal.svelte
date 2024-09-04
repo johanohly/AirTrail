@@ -10,7 +10,7 @@
     formatDuration,
     formatNumber,
   } from '$lib/utils';
-  import type { User } from '$lib/db/schema';
+  import type { User } from '$lib/db';
 
   let {
     open = $bindable(),
@@ -24,7 +24,10 @@
 
   let flightCount = flights.length;
   let totalDistance = flights.reduce((acc, curr) => (acc += curr.distance), 0);
-  let totalDuration = flights.reduce((acc, curr) => (acc += curr.duration), 0);
+  let totalDuration = flights.reduce(
+    (acc, curr) => (acc += curr.duration ?? 0),
+    0,
+  );
   let airports = new Set(flights.flatMap((f) => [f.from.name, f.to.name])).size;
 </script>
 

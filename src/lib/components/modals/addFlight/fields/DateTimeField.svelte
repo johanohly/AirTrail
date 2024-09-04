@@ -4,7 +4,6 @@
   import {
     type DateValue,
     parseAbsolute,
-    parseAbsoluteToLocal,
     parseDate,
   } from '@internationalized/date';
   import { CalendarDays, ArrowLeft, ArrowRight, Info } from '@o7/icon/lucide';
@@ -29,7 +28,7 @@
   } = $props();
 
   let dateValue: DateValue | undefined = $state(
-    $formData[field] ? parseAbsoluteToLocal($formData[field]) : undefined,
+    $formData[field] ? parseAbsolute($formData[field], 'UTC') : undefined,
   );
 </script>
 
@@ -166,7 +165,7 @@
     <Form.Control let:attrs>
       <Form.Label class="flex gap-1">
         Time
-        <TextTooltip text="Time can be in 24-hour and 12-hour format">
+        <TextTooltip text="Local time. Time can be in 24-hour and 12-hour format.">
           <Info size="15" />
         </TextTooltip>
       </Form.Label>

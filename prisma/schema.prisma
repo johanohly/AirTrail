@@ -31,8 +31,10 @@ model flight {
   date      String
   from      String
   to        String
-  departure DateTime?
-  arrival   DateTime?
+  /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
+  departure String?
+  /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
+  arrival   String?
   duration  Int?
 
   flight_number String?

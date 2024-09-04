@@ -69,8 +69,8 @@
         depDate && arrDate && dayjs(depDate).isSame(arrDate, 'day');
       const arrTime = arrDate
         ? sameDay
-          ? timeFormatter.format(arrDate)
-          : datetimeFormatter.format(arrDate)
+          ? timeFormatter.format(arrDate.toDate())
+          : datetimeFormatter.format(arrDate.toDate())
         : null;
 
       const airline = f.airline ? airlineFromICAO(f.airline) : null;
@@ -92,7 +92,7 @@
           : '',
         month: monthFormatter.format(f.date.toDate()),
         depTime: depDate
-          ? datetimeFormatter.format(depDate)
+          ? datetimeFormatter.format(depDate.toDate())
           : dateFormatter.format(f.date.toDate()),
         arrTime,
         seat: formatSeat(f),

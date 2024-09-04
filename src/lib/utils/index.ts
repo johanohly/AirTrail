@@ -10,7 +10,7 @@ export {
   airlineFromICAO,
 } from './data';
 export { distanceBetween, linearClamped } from './distance';
-export { isUsingAmPm } from './datetime';
+export { toISOString, isUsingAmPm } from './datetime';
 export { calculateBounds } from './latlng';
 export { toTitleCase, pluralize } from './string';
 export { formatNumber, formatDistance, formatDuration } from './number';
