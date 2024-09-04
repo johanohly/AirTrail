@@ -1,7 +1,6 @@
 <script lang="ts">
   import {
     calculateBounds,
-    linearClamped,
     prepareFlightArcData,
     type FlightData,
   } from '$lib/utils/index.js';
@@ -102,7 +101,7 @@
     getTargetColor={(d) =>
       hoveredArc && d === hoveredArc ? HOVER_COLOR : TO_COLOR}
     updateTriggers={{ getSourceColor: hoveredArc, getTargetColor: hoveredArc }}
-    getWidth={(d) => linearClamped(d.distance)}
+    getWidth={2}
     getHeight={0}
     greatCircle={true}
   />
@@ -114,7 +113,7 @@
     getTargetPosition={(d) => d.to.position}
     getSourceColor={[0, 0, 0, 0]}
     getTargetColor={[0, 0, 0, 0]}
-    getWidth={(d) => linearClamped(d.distance) * 8}
+    getWidth={3 * 6}
     getHeight={0}
     greatCircle={true}
   >

@@ -6,41 +6,16 @@
     GitBranchPlus,
     Settings,
     LayoutList,
-    Trash2,
   } from '@o7/icon/lucide';
-  import { Home } from '@o7/icon/material';
   import { Separator } from '$lib/components/ui/separator';
-  import { mode, toggleMode } from 'mode-watcher';
-  import {
-    AttributionControl,
-    Control,
-    ControlButton,
-    ControlGroup,
-    DeckGlLayer,
-    GeolocateControl,
-    MapLibre,
-    NavigationControl,
-    Popup,
-  } from 'svelte-maplibre';
-  import { ArcLayer, IconLayer } from '@deck.gl/layers';
-  import {
-    calculateBounds,
-    linearClamped,
-    prepareFlightData,
-  } from '$lib/utils';
-  import { AIRPORTS } from '$lib/data/airports';
+  import { prepareFlightData } from '$lib/utils';
   import { toast } from 'svelte-sonner';
-  import { prepareFlightArcData } from '$lib/utils/data';
   import {
     AddFlightModal,
     ListFlightsModal,
     SettingsModal,
     StatisticsModal,
   } from '$lib/components/modals';
-  import { Button } from '$lib/components/ui/button';
-  import maplibregl from 'maplibre-gl';
-  import { OnResizeEnd } from '$lib/components/helpers';
-  import { onMount } from 'svelte';
   import { Map } from '$lib/components/map';
 
   const PRIMARY = [
