@@ -1,4 +1,5 @@
 FROM oven/bun:debian AS base
+RUN apt-get update && apt-get install -y postgresql-client
 WORKDIR /app
 
 FROM base AS install
@@ -7,7 +8,7 @@ COPY package.json bun.lockb /temp/dev/
 RUN cd /temp/dev && bun install --frozen-lockfile
 
 RUN mkdir -p /temp/prod
-COPY package.json bun.lockb /temp/prod/
+COPY package.json bun.lockb svelte.config.js /temp/prod/
 RUN cd /temp/prod && bun install --frozen-lockfile --production
 
 FROM base AS prerelease

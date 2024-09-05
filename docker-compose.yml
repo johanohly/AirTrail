@@ -1,19 +1,22 @@
-version: "3.5"
 services:
   db:
+    container_name: airtrail_db
     image: postgres:16-alpine
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      POSTGRES_DB: airtrail
-      POSTGRES_USER: airtrail
-      POSTGRES_PASSWORD: SECURE_PASSWORD_HERE
+      POSTGRES_DB: ${DB_DATABASE_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - db_data:/var/lib/postgresql/data
   airtrail:
-    environment:
-      - DATABASE_URL=postgresql://airtrail:SECURE_PASSWORD_HERE@db:5432/airtrail?schema=public
-    restart: unless-stopped
+    container_name: airtrail
     image: johly/airtrail:latest
+    restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - 3000:3000
     depends_on:
