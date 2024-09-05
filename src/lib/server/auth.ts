@@ -3,6 +3,7 @@ import { dev } from '$app/environment';
 import type { DB } from '$lib/db/schema';
 import { NodePostgresAdapter } from '@lucia-auth/adapter-postgresql';
 import { pool } from '$lib/db';
+import { env } from '$env/dynamic/private';
 
 const adapter = new NodePostgresAdapter(pool, {
   user: 'user',
@@ -12,7 +13,7 @@ const adapter = new NodePostgresAdapter(pool, {
 export const lucia = new Lucia(adapter, {
   sessionCookie: {
     attributes: {
-      secure: !dev,
+      secure: !dev && env.ORIGIN?.startsWith('https://'),
     },
   },
   getUserAttributes(db) {
