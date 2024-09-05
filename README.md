@@ -1,3 +1,5 @@
+<img src="static/showcase/toggle.png" alt="AirTrail Website Preview" />
+
 ### AirTrail
 
 AirTrail is a web application that allows users to track their flights and view their flight history.
