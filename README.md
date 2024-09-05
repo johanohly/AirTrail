@@ -25,6 +25,7 @@ wget -O .env https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.exam
 ```
 
 or download the files manually from the repository.
+
 Note: If you download the files manually, the `.env.example` file should be renamed to `.env`.
 
 ### Step 2: Configure the environment variables
