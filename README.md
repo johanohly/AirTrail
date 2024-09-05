@@ -1,8 +1,26 @@
-<img src="static/showcase/toggle.png" alt="AirTrail Website Preview" />
+<div align="center">
+  <a href="https://github.com/othneildrew/Best-README-Template">
+    <img src="static/favicon.png" alt="AirTrail logo" width="80" height="80">
+  </a>
 
-### AirTrail
+  <h3 align="center">AirTrail</h3>
 
-AirTrail is a web application that allows users to track their flights and view their flight history.
+  <p align="center">
+    A web application that allows users to track their flights and view their flight history.
+  </p>
+</div>
+
+<img src="static/showcase/toggle.png" alt="AirTrail Preview">
+
+## ✨ Features
+
+- **World Map**: View all your flights on an interactive world map.
+- **Flight History**: Keep track of all your flights in one place.
+- **Statistics**: Get insights into your flight history with statistics.
+- **User Authentication**: Allow multiple users and secure your data with user authentication.
+- **Responsive Design**: Use the application on any device with a responsive design.
+- **Dark Mode**: Switch between light and dark mode.
+- **Import Flights**: Import flights from various sources.
 
 ## 🚀 Getting Started
 
@@ -45,12 +63,15 @@ docker compose up -d
 
 > [!NOTE]
 > If you get an error `unknown shorthand flag: 'd' in -d`, you are probably running the wrong Docker version. (This
-> happens, for example, with the docker.io package in Ubuntu 22.04.3 LTS.) You can correct the problem by `apt remove`ing
-> Ubuntu's docker.io package and installing docker and docker-compose via [Docker's official repository](https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository).
-> 
-> Note that the correct command really is `docker compose`, not `docker-compose`. 
+> happens, for example, with the docker.io package in Ubuntu 22.04.3 LTS.) You can correct the problem by `apt remove`
+> ing
+> Ubuntu's docker.io package and installing docker and docker-compose
+> via [Docker's official repository](https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository).
+>
+> Note that the correct command really is `docker compose`, not `docker-compose`.
 
 ### Step 4: Upgrading
+
 When a new version of the application is released, you can upgrade by running the following command:
 
 ```bash
