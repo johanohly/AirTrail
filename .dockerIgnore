@@ -1,7 +1,0 @@
-**
-!/src/**
-!/static/**
-!/package.json
-!/bun.lockb
-!/svelte.config.js
-!/prisma/**

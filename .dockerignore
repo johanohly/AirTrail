@@ -1,0 +1,12 @@
+**
+!/src/**
+!/static/**
+!/prisma/**
+!/temp/**
+!/docker-entrypoint.sh
+!/package.json
+!/bun.lockb
+!/svelte.config.js
+!/vite.config.ts
+!/tailwind.config.js
+!/postcss.config.mjs
