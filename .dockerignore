@@ -1,6 +1,7 @@
 **
-!/src/**
 !/static/**
+/static/showcase/**
+!/src/**
 !/prisma/**
 !/temp/**
 !/docker-entrypoint.sh
