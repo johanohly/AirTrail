@@ -22,6 +22,7 @@
   } from '$lib/utils';
   import * as Tooltip from '$lib/components/ui/tooltip';
   import { formatSeat } from '$lib/utils/data';
+  import { Confirm } from '$lib/components/helpers';
 
   dayjs.extend(duration);
 
@@ -61,50 +62,52 @@
     const data = flights;
     if (!data) return [];
 
-    return data.map((f) => {
-      const depDate = f.departure;
-      const arrDate = f.arrival;
+    return data
+      .map((f) => {
+        const depDate = f.departure;
+        const arrDate = f.arrival;
 
-      const sameDay =
-        depDate && arrDate && dayjs(depDate).isSame(arrDate, 'day');
-      const arrTime = arrDate
-        ? sameDay
-          ? timeFormatter.format(arrDate.toDate())
-          : datetimeFormatter.format(arrDate.toDate())
-        : null;
+        const sameDay =
+          depDate && arrDate && dayjs(depDate).isSame(arrDate, 'day');
+        const arrTime = arrDate
+          ? sameDay
+            ? timeFormatter.format(arrDate.toDate())
+            : datetimeFormatter.format(arrDate.toDate())
+          : null;
 
-      const airline = f.airline ? airlineFromICAO(f.airline) : null;
+        const airline = f.airline ? airlineFromICAO(f.airline) : null;
 
-      return {
-        ...f,
-        from: {
-          iata: f.from.IATA,
-          icao: f.from.ICAO,
-          name: f.from.name,
-        },
-        to: {
-          iata: f.to.IATA,
-          icao: f.to.ICAO,
-          name: f.to.name,
-        },
-        duration: f.duration
-          ? dayjs.duration(f.duration, 'seconds').format('H[h] m[m]')
-          : '',
-        month: monthFormatter.format(f.date.toDate()),
-        depTime: depDate
-          ? datetimeFormatter.format(depDate.toDate())
-          : dateFormatter.format(f.date.toDate()),
-        arrTime,
-        seat: formatSeat(f),
-        airline,
-      };
-    }).sort((a, b) => {
-      if (a.departure && b.departure) {
-        return b.departure.unix() - a.departure.unix();
-      } else {
-        return b.date.unix() - a.date.unix();
-      }
-    });
+        return {
+          ...f,
+          from: {
+            iata: f.from.IATA,
+            icao: f.from.ICAO,
+            name: f.from.name,
+          },
+          to: {
+            iata: f.to.IATA,
+            icao: f.to.ICAO,
+            name: f.to.name,
+          },
+          duration: f.duration
+            ? dayjs.duration(f.duration, 'seconds').format('H[h] m[m]')
+            : '',
+          month: monthFormatter.format(f.date.toDate()),
+          depTime: depDate
+            ? datetimeFormatter.format(depDate.toDate())
+            : dateFormatter.format(f.date.toDate()),
+          arrTime,
+          seat: formatSeat(f),
+          airline,
+        };
+      })
+      .sort((a, b) => {
+        if (a.departure && b.departure) {
+          return b.departure.unix() - a.departure.unix();
+        } else {
+          return b.date.unix() - a.date.unix();
+        }
+      });
   });
 
   const filteredFlights = $derived.by(() => {
@@ -260,16 +263,20 @@
 
 {#snippet actions(flight)}
   <div class="flex items-center gap-2">
-    <Button variant="outline" size="icon">
+    <Button disabled variant="outline" size="icon">
       <SquarePen size="20" />
     </Button>
-    <Button
-      variant="outline"
-      size="icon"
-      on:click={() => deleteFlight(flight.id)}
+    <Confirm
+      onConfirm={() => deleteFlight(flight.id)}
+      title="Remove Flight"
+      description="Are you sure you want to remove this flight?"
+      triggerVariant="outline"
+      triggerSize="icon"
     >
-      <X size="24" />
-    </Button>
+      {#snippet triggerContent()}
+        <X size="24" />
+      {/snippet}
+    </Confirm>
   </div>
 {/snippet}
 
