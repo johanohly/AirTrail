@@ -5,20 +5,24 @@
   import { cubicInOut } from 'svelte/easing';
   import { Modal } from '$lib/components/ui/modal';
   import { Button } from '$lib/components/ui/button';
-  import { ImportPage, GeneralPage, AppearancePage } from './pages';
+  import { ImportPage, GeneralPage, AppearancePage, UsersPage } from './pages';
+  import type { User } from 'lucia';
 
   const SETTINGS_PAGES = [
     { title: 'General', id: 'general' },
+    { title: 'Users', id: 'users' },
     { title: 'Appearance', id: 'appearance' },
     { title: 'Import', id: 'import' },
   ] as const;
 
   let {
     open = $bindable(),
+    user,
     invalidator,
     activeTab = 'general',
   }: {
     open: boolean;
+    user: User;
     invalidator?: { onSuccess: () => void };
     activeTab?: (typeof SETTINGS_PAGES)[number]['id'];
   } = $props();
@@ -33,9 +37,7 @@
   <div class="space-y-6">
     <div class="space-y-0.5">
       <h2 class="text-2xl font-bold tracking-tight">Settings</h2>
-      <p class="text-muted-foreground">
-        Manage your account settings and import flights from other sources.
-      </p>
+      <p class="text-muted-foreground">Manage your AirTrail instance.</p>
     </div>
     <Separator class="my-6" />
     <div class="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
@@ -69,7 +71,9 @@
       </aside>
       <div class="flex-1 lg:max-w-2xl">
         {#if activeTab === 'general'}
-          <GeneralPage />
+          <GeneralPage {user} />
+        {:else if activeTab === 'users'}
+          <UsersPage />
         {:else if activeTab === 'appearance'}
           <AppearancePage />
         {:else if activeTab === 'import'}

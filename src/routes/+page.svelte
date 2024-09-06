@@ -52,7 +52,7 @@
   ];
 
   const { data } = $props();
-  const user = data.user;
+  const user = data.user!;
   const rawFlights = trpc.flight.list.query();
 
   const flights = $derived.by(() => {
@@ -88,7 +88,7 @@
 <AddFlightModal bind:open={addFlightModalOpen} {invalidator} />
 <ListFlightsModal bind:open={listFlightsModalOpen} {flights} {deleteFlight} />
 <StatisticsModal bind:open={statisticsModalOpen} {flights} {user} />
-<SettingsModal bind:open={settingsModalOpen} {invalidator} />
+<SettingsModal bind:open={settingsModalOpen} {user} {invalidator} />
 
 <div class="relative h-[100dvh]">
   <Map {flights} />
