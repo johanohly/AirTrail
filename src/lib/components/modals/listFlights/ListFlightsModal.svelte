@@ -98,6 +98,12 @@
         seat: formatSeat(f),
         airline,
       };
+    }).sort((a, b) => {
+      if (a.departure && b.departure) {
+        return b.departure.unix() - a.departure.unix();
+      } else {
+        return b.date.unix() - a.date.unix();
+      }
     });
   });
 
@@ -109,7 +115,7 @@
   });
 
   const flightsByYear = $derived.by(() => {
-    return filteredFlights.reduce(
+    const raw = filteredFlights.reduce(
       (acc, f) => {
         const year = f.date.year();
         if (!acc[year]) acc[year] = [];
@@ -118,6 +124,11 @@
       },
       {} as Record<number, typeof parsedFlights>,
     );
+    return Object.entries(raw)
+      .sort(([yearA], [yearB]) => Number(yearB) - Number(yearA))
+      .map(([year, flights]) => {
+        return { year, flights };
+      });
   });
 </script>
 
@@ -127,10 +138,10 @@
   dialogOnly
 >
   <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
-  {#if Object.keys(flightsByYear).length === 0}
+  {#if flightsByYear.length === 0}
     <p class="text-lg text-muted-foreground">No flights found</p>
   {:else}
-    {#each Object.entries(flightsByYear) as [year, flights] (year)}
+    {#each flightsByYear as { year, flights } (year)}
       <LabelledSeparator classes="mt-4">
         <h3
           class="border px-4 py-1 rounded-full border-dashed text-sm font-medium leading-7"
