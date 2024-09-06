@@ -8,7 +8,7 @@
   import {
     AirportField,
     DateTimeField,
-  } from '$lib/components/modals/addFlight/fields';
+  } from '$lib/components/modals/add-flight/fields';
   import OptionalFlightInformation from './OptionalFlightInformation.svelte';
 
   let {
@@ -16,10 +16,8 @@
     invalidator,
   }: { open: boolean; invalidator: { onSuccess: () => void } } = $props();
 
-  type Message = { type: 'success' | 'error'; text: string };
-
   const form = superForm(
-    defaults<Infer<typeof addFlightSchema>, Message>(zod(addFlightSchema)),
+    defaults<Infer<typeof addFlightSchema>>(zod(addFlightSchema)),
     {
       validators: zod(addFlightSchema),
       onUpdated({ form }) {

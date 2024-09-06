@@ -6,6 +6,7 @@ import {
 } from '../trpc';
 import { db } from '$lib/db';
 import { sql } from 'kysely';
+import { z } from 'zod';
 
 export const userRouter = router({
   me: authedProcedure.query(({ ctx: { user } }) => {
@@ -18,6 +19,13 @@ export const userRouter = router({
       .limit(1)
       .execute();
     return users.length > 0;
+  }),
+  delete: adminProcedure.input(z.string()).mutation(async ({ input }) => {
+    const result = await db
+      .deleteFrom('user')
+      .where('id', '=', input)
+      .executeTakeFirst();
+    return result.numDeletedRows > 0;
   }),
   list: adminProcedure.query(async () => {
     return db.selectFrom('user').selectAll('user').execute();

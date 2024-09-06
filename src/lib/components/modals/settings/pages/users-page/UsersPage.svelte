@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { PageHeader } from '.';
+  import { PageHeader } from '../index';
   import { api } from '$lib/trpc';
   import type { User } from '$lib/db';
   import { toTitleCase } from '$lib/utils';
@@ -7,11 +7,13 @@
   import { Card } from '$lib/components/ui/card';
   import { toast } from 'svelte-sonner';
   import { Button } from '$lib/components/ui/button';
+  import AddUserModal from '$lib/components/modals/settings/pages/users-page/AddUserModal.svelte';
+  import { Confirm } from '$lib/components/helpers';
 
   let loading = $state(true);
   let users: User[] = $state([]);
 
-  $effect(() => {
+  const updateUsers = () => {
     api.user.list
       .query()
       .then((data) => {
@@ -24,11 +26,33 @@
       .finally(() => {
         loading = false;
       });
-    loading = false;
+  };
+
+  const deleteUser = async (id: string) => {
+    const success = await api.user.delete.mutate(id);
+    if (!success) {
+      return void toast.error('Failed to delete user.');
+    }
+    updateUsers();
+    toast.success('User deleted.');
+  };
+
+  $effect(() => {
+    updateUsers();
   });
+
+  let addUserModal = $state(false);
 </script>
 
+<AddUserModal bind:open={addUserModal} {updateUsers} />
+
 <PageHeader title="Users" subtitle="Manage who can access AirTrail.">
+  {#snippet headerRight()}
+    <Button variant="default" onclick={() => (addUserModal = true)}>
+      Add User
+    </Button>
+  {/snippet}
+
   {#if loading}
     <LoaderCircle class="animate-spin" />
   {:else if users.length === 0}
@@ -37,7 +61,7 @@
     <div class="space-y-2">
       {#each users as user}
         <Card level="2" class="flex items-center p-3">
-          <div class="flex items-center flex-1 h-full min-w-0">
+          <div class="flex items-center flex-1 gap-4 h-full min-w-0">
             <div class="flex flex-col min-w-0 w-2/5">
               <h4 class="leading-4 truncate">{user.displayName}</h4>
               <p class="text-sm text-muted-foreground truncate">
@@ -57,9 +81,17 @@
             <Button disabled variant="outline" size="icon">
               <SquarePen size="20" />
             </Button>
-            <Button disabled variant="outline" size="icon">
-              <X size="24" />
-            </Button>
+            <Confirm
+              onConfirm={async () => deleteUser(user.id)}
+              title="Remove User"
+              description="Are you sure you want to remove this user?"
+              triggerVariant="outline"
+              triggerSize="icon"
+            >
+              {#snippet triggerContent()}
+                <X size="24" />
+              {/snippet}
+            </Confirm>
           </div>
         </Card>
       {/each}

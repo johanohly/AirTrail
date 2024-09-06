@@ -47,7 +47,7 @@ export const actions: Actions = {
     );
 
     if (!success) {
-      return message(form, 'Failed to create user');
+      return message(form, { type: 'error', text: 'Failed to create user' });
     }
 
     await createSession(lucia, userId, event.cookies);

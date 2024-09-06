@@ -13,7 +13,7 @@
 >
   <div class="flex justify-between">
     <div>
-      <h4 class="font-medium leading-4">Johan Ohly</h4>
+      <h4 class="font-medium leading-4">{user.displayName}</h4>
       <span class="text-sm text-muted-foreground">{toTitleCase(user.role)}</span
       >
     </div>
