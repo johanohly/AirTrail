@@ -5,7 +5,6 @@
   import { Button } from '$lib/components/ui/form';
 
   let { user }: { user: User } = $props();
-  console.log(user);
 </script>
 
 <PageHeader

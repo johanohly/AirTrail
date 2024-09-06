@@ -1,4 +1,9 @@
-import { authedProcedure, publicProcedure, router } from '../trpc';
+import {
+  adminProcedure,
+  authedProcedure,
+  publicProcedure,
+  router,
+} from '../trpc';
 import { db } from '$lib/db';
 import { sql } from 'kysely';
 
@@ -13,5 +18,8 @@ export const userRouter = router({
       .limit(1)
       .execute();
     return users.length > 0;
+  }),
+  list: adminProcedure.query(async () => {
+    return db.selectFrom('user').selectAll('user').execute();
   }),
 });

@@ -31,19 +31,30 @@
     duration: 250,
     easing: cubicInOut,
   });
+
+  const authorized_pages = SETTINGS_PAGES.filter((page) => {
+    if (user.role === 'admin') return true;
+    return page.id !== 'users';
+  });
 </script>
 
 <Modal bind:open classes="max-w-2xl">
   <div class="space-y-6">
     <div class="space-y-0.5">
       <h2 class="text-2xl font-bold tracking-tight">Settings</h2>
-      <p class="text-muted-foreground">Manage your AirTrail instance.</p>
+      <p class="text-muted-foreground">
+        {#if user.role === 'admin'}
+          Manage your AirTrail instance.
+        {:else}
+          Manage your account settings.
+        {/if}
+      </p>
     </div>
     <Separator class="my-6" />
     <div class="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
       <aside class="md:-mx-4 lg:w-1/5">
         <nav class="flex space-x-2 lg:flex-col lg:space-x-0 lg:space-y-1">
-          {#each SETTINGS_PAGES as item}
+          {#each authorized_pages as item}
             {@const isActive = activeTab === item.id}
 
             <Button
