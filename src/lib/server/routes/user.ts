@@ -20,7 +20,24 @@ export const userRouter = router({
       .execute();
     return users.length > 0;
   }),
-  delete: adminProcedure.input(z.string()).mutation(async ({ input }) => {
+  delete: adminProcedure.input(z.string()).mutation(async ({ ctx, input }) => {
+    const user = await db
+      .selectFrom('user')
+      .selectAll()
+      .where('id', '=', input)
+      .executeTakeFirst();
+    if (!user) {
+      return false;
+    }
+
+    // Only allow deleting users if the user is an owner or the user is an admin and the user is not an admin or owner
+    if (
+      user.role === 'owner' ||
+      (ctx.user.role === 'admin' && user.role !== 'user')
+    ) {
+      return false;
+    }
+
     const result = await db
       .deleteFrom('user')
       .where('id', '=', input)

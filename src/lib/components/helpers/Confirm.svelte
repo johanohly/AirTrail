@@ -11,6 +11,7 @@
     triggerContent,
     triggerSize,
     triggerClass,
+    triggerDisabled = $bindable(false),
     confirmText = 'Confirm',
     cancelText = 'Cancel',
   }: {
@@ -21,6 +22,7 @@
     triggerContent: Snippet;
     triggerSize?: ButtonProps['size'];
     triggerClass?: string;
+    triggerDisabled?: boolean;
     confirmText?: string;
     cancelText?: string;
   } = $props();
@@ -35,7 +37,13 @@
 
 <AlertDialog.Root>
   <AlertDialog.Trigger asChild let:builder>
-    <Button builders={[builder]} variant={triggerVariant} size={triggerSize} class={triggerClass}>
+    <Button
+      builders={[builder]}
+      variant={triggerVariant}
+      size={triggerSize}
+      class={triggerClass}
+      disabled={triggerDisabled}
+    >
       {@render triggerContent()}
     </Button>
   </AlertDialog.Trigger>

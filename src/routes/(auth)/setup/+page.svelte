@@ -40,7 +40,7 @@
       <div class="grid gap-2 text-center">
         <h1 class="text-3xl font-bold">Welcome</h1>
         <p class="text-muted-foreground text-balance">
-          Welcome to AirTrail! Please setup an admin account to get started.
+          Welcome to AirTrail! Please set up your owner account to get started.
         </p>
       </div>
       <form method="POST" use:enhance class="grid gap-4">

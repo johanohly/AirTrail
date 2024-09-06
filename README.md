@@ -1,5 +1,5 @@
 <div align="center">
-  <a href="https://github.com/othneildrew/Best-README-Template">
+  <a href="https://github.com/JohanOhly/AirTrail">
     <img src="static/favicon.png" alt="AirTrail logo" width="80" height="80">
   </a>
 

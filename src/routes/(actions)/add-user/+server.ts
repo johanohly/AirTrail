@@ -2,7 +2,6 @@ import { zod } from 'sveltekit-superforms/adapters';
 import type { RequestHandler } from './$types';
 import { actionResult, setError, superValidate } from 'sveltekit-superforms';
 import { addUserSchema } from '$lib/zod/user';
-import { db } from '$lib/db';
 import { generateId } from 'lucia';
 import { hashPassword } from '$lib/server/utils/password';
 import { createUser, usernameExists } from '$lib/server/utils/auth';
@@ -15,7 +14,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   if (!user) {
     return actionResult('error', 'You must be logged in to create users.', 401);
   }
-  if (user.role !== 'admin') {
+  if (user.role === 'user') {
     return actionResult('error', 'You must be an admin to create users.', 403);
   }
 

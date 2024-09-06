@@ -36,14 +36,14 @@ export const actions: Actions = {
     const userId = generateId(15);
     const hashedPassword = await hashPassword(password);
 
-    // Always create the first user as an admin
+    // Always create the first user as the owner
     const success = await createUser(
       userId,
       username,
       hashedPassword,
       displayName,
       unit,
-      'admin',
+      'owner',
     );
 
     if (!success) {

@@ -59,9 +59,9 @@ export type user = {
      */
     unit: 'metric' | 'imperial';
     /**
-     * @kyselyType('user' | 'admin')
+     * @kyselyType('user' | 'admin' | 'owner')
      */
-    role: 'user' | 'admin';
+    role: 'user' | 'admin' | 'owner';
 };
 export type DB = {
     flight: flight;

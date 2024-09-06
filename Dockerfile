@@ -1,5 +1,4 @@
 FROM oven/bun:debian AS base
-RUN apt-get update && apt-get install -y postgresql-client
 WORKDIR /app
 
 FROM base AS install

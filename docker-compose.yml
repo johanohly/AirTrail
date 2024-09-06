@@ -2,7 +2,7 @@ services:
   db:
     container_name: airtrail_db
     image: postgres:16-alpine
-    restart: unless-stopped
+    restart: always
     env_file:
       - .env
     environment:
@@ -11,16 +11,22 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   airtrail:
     container_name: airtrail
     image: johly/airtrail:latest
-    restart: unless-stopped
+    restart: always
     env_file:
       - .env
     ports:
       - 3000:3000
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   db_data:

@@ -19,7 +19,7 @@ model user {
   /// @kyselyType('metric' | 'imperial')
   unit         String
 
-  /// @kyselyType('user' | 'admin')
+  /// @kyselyType('user' | 'admin' | 'owner')
   role String
 
   sessions session[]
@@ -60,5 +60,5 @@ model session {
   id         String   @id
   expires_at DateTime @db.Timestamptz
   user_id    String
-  user       user     @relation(fields: [user_id], references: [id])
+  user       user     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }

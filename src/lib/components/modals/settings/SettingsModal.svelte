@@ -33,7 +33,7 @@
   });
 
   const authorized_pages = SETTINGS_PAGES.filter((page) => {
-    if (user.role === 'admin') return true;
+    if (user.role !== 'user') return true;
     return page.id !== 'users';
   });
 </script>
@@ -43,7 +43,7 @@
     <div class="space-y-0.5">
       <h2 class="text-2xl font-bold tracking-tight">Settings</h2>
       <p class="text-muted-foreground">
-        {#if user.role === 'admin'}
+        {#if user.role !== 'user'}
           Manage your AirTrail instance.
         {:else}
           Manage your account settings.
@@ -84,7 +84,7 @@
         {#if activeTab === 'general'}
           <GeneralPage {user} />
         {:else if activeTab === 'users'}
-          <UsersPage />
+          <UsersPage {user} />
         {:else if activeTab === 'appearance'}
           <AppearancePage />
         {:else if activeTab === 'import'}

@@ -26,12 +26,20 @@ export const actions: Actions = {
 
     const user = await getUser(username);
     if (!user) {
-      return message(form, 'Invalid username or password', { status: 403 });
+      return message(
+        form,
+        { type: 'error', text: 'Invalid username or password' },
+        { status: 403 },
+      );
     }
 
     const validPassword = await verifyPassword(user.password, password);
     if (!validPassword) {
-      return message(form, 'Invalid username or password', { status: 403 });
+      return message(
+        form,
+        { type: 'error', text: 'Invalid username or password' },
+        { status: 403 },
+      );
     }
 
     await createSession(lucia, user.id, event.cookies);

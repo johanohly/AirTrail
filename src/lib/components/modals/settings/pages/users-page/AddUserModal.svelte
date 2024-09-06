@@ -68,7 +68,7 @@
         <Form.Label class="flex gap-1">
           Role
           <TextTooltip
-            text="Admins can manage everything about the AirTrail instance."
+            text="Admins can do everything except delete other admins or the owner."
           >
             <Info size="15" />
           </TextTooltip>

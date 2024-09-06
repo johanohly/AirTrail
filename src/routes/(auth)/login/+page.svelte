@@ -24,7 +24,7 @@
     validators: zod(signInSchema),
     onUpdated({ form }) {
       if (form.message) {
-        toast.error(form.message);
+        toast.error(form.message.text);
       }
     },
   });
