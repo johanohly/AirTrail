@@ -5,15 +5,30 @@ on:
     branches:
       - main
 
-defaults:
-  run:
-    shell: bash
-    working-directory: ./docs
-
 jobs:
+  pre-checks:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.found_paths.outputs.docs == 'true' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - id: found_paths
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            docs:
+              - 'docs/**'
+
   build:
     name: Build Docs
+    needs: pre-checks
+    if: ${{ needs.pre-checks.outputs.should_run == 'true' }}
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./docs
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,7 +45,7 @@ jobs:
       - name: Upload Build Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: build
+          path: docs/build/
 
   deploy:
     name: Deploy to GitHub Pages
