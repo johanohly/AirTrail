@@ -30,13 +30,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: npm install
+        run: bun install --frozen-lockfile
       - name: Build website
-        run: npm run build
+        run: bun run build
 
       - name: Upload Build Artifact
         uses: actions/upload-pages-artifact@v3
