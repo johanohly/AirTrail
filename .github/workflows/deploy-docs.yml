@@ -23,7 +23,6 @@ jobs:
   build:
     name: Build Docs
     needs: pre-checks
-    if: ${{ needs.pre-checks.outputs.should_run == 'true' }}
     runs-on: ubuntu-latest
     defaults:
       run:
