@@ -17,7 +17,7 @@ See the software [requirements](/docs/install/requirements).
 Run the following command in your terminal to install AirTrail:
 
 ```bash
-curl -o- https://raw.githubusercontent.com/JohanOhly/AirTrail/main/install.sh | bash
+bash <(curl -o- https://raw.githubusercontent.com/JohanOhly/AirTrail/main/install.sh)
 ```
 
 This will
