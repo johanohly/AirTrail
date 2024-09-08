@@ -8,10 +8,10 @@ const config: Config = {
   favicon: 'img/airtrail-logo.png',
 
   url: 'https://johanohly.github.io',
-  baseUrl: '/airtrail/',
+  baseUrl: '/AirTrail/',
 
-  organizationName: 'johanohly',
-  projectName: 'airtrail',
+  organizationName: 'JohanOhly',
+  projectName: 'AirTrail',
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',

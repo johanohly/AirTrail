@@ -24,6 +24,7 @@ jobs:
     name: Build Docs
     needs: pre-checks
     runs-on: ubuntu-latest
+    if: ${{ needs.pre-checks.outputs.should_run == 'true' }}
     defaults:
       run:
         working-directory: ./docs
@@ -32,7 +33,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
 
-      - name: Remove postcss.config.mjs
+      - name: Remove broken postcss.config.mjs
         run: rm -f /home/runner/work/AirTrail/AirTrail/postcss.config.mjs
 
       - name: Install dependencies
