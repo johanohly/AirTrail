@@ -7,7 +7,7 @@ sidebar_position: 1
 The import feature allows you to import flight data from other sources into AirTrail.
 Currently, AirTrail only supports importing flights from [MyFlightradar24](https://my.flightradar24.com).
 
-## Import Flights from MyFlightradar24
+## Import flights from MyFlightradar24
 
 While logged in to your MyFlightradar24 account, follow these steps to export your flights:
 
