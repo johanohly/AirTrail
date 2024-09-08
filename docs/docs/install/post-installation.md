@@ -1,10 +1,14 @@
 ---
-sidebar_position: 3
+sidebar_position: 4
 ---
 
 # Post Installation
 
 Right after you have AirTrail up and running, you should follow the steps below to get started.
+
+:::tip
+If you followed the installation guide, you can access the AirTrail application by visiting `http://<host-ip-address>:3000` in your web browser.
+:::
 
 ## Register the owner user
 
