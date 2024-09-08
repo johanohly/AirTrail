@@ -1,4 +1,4 @@
-#!/bin/bash -i
+#!/bin/bash
 
 create_directory() {
   local -r directory='./airtrail'
@@ -69,4 +69,3 @@ EOF
 }
 
 main
-ain
