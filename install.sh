@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash -i
 
 create_directory() {
   local -r directory='./airtrail'
