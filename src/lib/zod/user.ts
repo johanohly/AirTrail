@@ -15,5 +15,27 @@ export const userSchema = z.object({
 });
 
 export const editUserSchema = userSchema.omit({ password: true, role: true });
+export const editPasswordSchema = z
+  .object({
+    currentPassword: z.string().min(8, 'Must be at least 8 characters long'),
+    newPassword: z.string().min(8, 'Must be at least 8 characters long'),
+    confirmPassword: z.string(),
+  })
+  .superRefine(({ currentPassword, newPassword, confirmPassword }, ctx) => {
+    if (newPassword !== confirmPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Passwords do not match',
+        path: ['confirmPassword'],
+      });
+    }
+    if (currentPassword === newPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'New password must be different from current password',
+        path: ['newPassword'],
+      });
+    }
+  });
 
 export const addUserSchema = userSchema;

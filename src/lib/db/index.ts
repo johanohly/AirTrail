@@ -21,7 +21,4 @@ export function json<T>(obj: T): RawBuilder<T> {
   return sql`${JSON.stringify(obj)}`;
 }
 
-export type User = user;
-export type Flight = Omit<flight, 'id'> & {
-  id: number;
-};
+export type { User, ServerUser, Flight } from './types';

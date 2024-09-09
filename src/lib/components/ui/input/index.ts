@@ -1,5 +1,6 @@
 import Root from './input.svelte';
 import Textarea from './textarea.svelte';
+import PasswordInput from './password-input.svelte';
 
 export type FormInputEvent<T extends Event = Event> = T & {
   currentTarget: EventTarget & HTMLInputElement;
@@ -28,4 +29,5 @@ export {
   //
   Root as Input,
   Textarea,
+  PasswordInput,
 };

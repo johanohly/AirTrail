@@ -1,9 +1,5 @@
 <script lang="ts">
-  import SuperDebug, {
-    defaults,
-    type Infer,
-    superForm,
-  } from 'sveltekit-superforms';
+  import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
   import { editUserSchema } from '$lib/zod/user';
   import * as Form from '$lib/components/ui/form';
@@ -11,19 +7,22 @@
   import { Input } from '$lib/components/ui/input';
   import { toTitleCase } from '$lib/utils';
   import { toast } from 'svelte-sonner';
-  import type { User } from '$lib/db';
-
-  let { user }: { user: User } = $props();
+  import { page } from '$app/stores';
+  import EditPassword from './EditPassword.svelte';
 
   const form = superForm(
-    defaults<Infer<typeof editUserSchema>>(user, zod(editUserSchema)),
+    defaults<Infer<typeof editUserSchema>>(
+      $page.data.user,
+      zod(editUserSchema),
+    ),
     {
+      resetForm: false,
       validators: zod(editUserSchema),
       onUpdated({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
             toast.success(form.message.text);
-            return void location.reload();
+            return;
           }
           toast.error(form.message.text);
         }
@@ -34,7 +33,6 @@
 </script>
 
 <form method="POST" action="/edit-user" use:enhance>
-  <SuperDebug data={$formData} stringTruncate={20} />
   <Form.Field {form} name="username">
     <Form.Control let:attrs>
       <Form.Label>Username</Form.Label>
@@ -73,5 +71,10 @@
     </Form.Control>
     <Form.FieldErrors />
   </Form.Field>
-  <Form.Button class="mt-1">Save</Form.Button>
+  <div class="flex items-center justify-between">
+    <Form.Button class="mt-1">Save</Form.Button>
+    <div>
+      <EditPassword />
+    </div>
+  </div>
 </form>

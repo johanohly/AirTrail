@@ -1,4 +1,4 @@
-export { cn, flyAndScale } from './other';
+export { cn, flyAndScale, postViaForm } from './other';
 export { parseCsv } from './csv';
 export { readFile } from './file';
 export {

@@ -9,8 +9,7 @@
   import { Button } from '$lib/components/ui/button';
   import AddUserModal from '$lib/components/modals/settings/pages/users-page/AddUserModal.svelte';
   import { Confirm } from '$lib/components/helpers';
-
-  let { user }: { user: User } = $props();
+  import { page } from '$app/stores';
 
   let loading = $state(true);
   let users: User[] = $state([]);
@@ -43,7 +42,7 @@
     if (current_user.role === 'owner') {
       return false;
     }
-    if (current_user.role === 'admin' && user.role === 'admin') {
+    if (current_user.role === 'admin' && $page.data.user?.role === 'admin') {
       return false;
     }
     return true;

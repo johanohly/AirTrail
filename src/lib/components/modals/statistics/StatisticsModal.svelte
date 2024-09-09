@@ -10,16 +10,14 @@
     formatDuration,
     formatNumber,
   } from '$lib/utils';
-  import type { User } from '$lib/db';
+  import { page } from '$app/stores';
 
   let {
     open = $bindable(),
     flights,
-    user,
   }: {
     open?: boolean;
     flights: FlightData[];
-    user: User;
   } = $props();
 
   let flightCount = flights.length;
@@ -42,7 +40,10 @@
       <StatsCard classes="py-4 px-8">
         <h3 class="text-sm font-medium">Distance</h3>
         <span class="text-2xl font-bold"
-          >{formatDistance(totalDistance, user.unit === 'metric')}</span
+          >{formatDistance(
+            totalDistance,
+            $page.data.user?.unit !== 'imperial',
+          )}</span
         >
       </StatsCard>
       <StatsCard classes="py-4 px-8">

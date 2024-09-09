@@ -7,6 +7,7 @@ import {
 import { db } from '$lib/db';
 import { sql } from 'kysely';
 import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
 
 export const userRouter = router({
   me: authedProcedure.query(({ ctx: { user } }) => {
@@ -20,7 +21,11 @@ export const userRouter = router({
       .execute();
     return users.length > 0;
   }),
-  delete: adminProcedure.input(z.string()).mutation(async ({ ctx, input }) => {
+  delete: authedProcedure.input(z.string()).mutation(async ({ ctx, input }) => {
+    if (ctx.user.id !== input && ctx.user.role === 'user') {
+      throw new TRPCError({ code: 'FORBIDDEN' });
+    }
+
     const user = await db
       .selectFrom('user')
       .selectAll()
@@ -33,7 +38,9 @@ export const userRouter = router({
     // Only allow deleting users if the user is an owner or the user is an admin and the user is not an admin or owner
     if (
       user.role === 'owner' ||
-      (ctx.user.role === 'admin' && user.role !== 'user')
+      (ctx.user.role === 'admin' &&
+        user.role !== 'user' &&
+        ctx.user.id !== user.id)
     ) {
       return false;
     }
@@ -45,6 +52,6 @@ export const userRouter = router({
     return result.numDeletedRows > 0;
   }),
   list: adminProcedure.query(async () => {
-    return db.selectFrom('user').selectAll('user').execute();
+    return db.selectFrom('user').selectAll().execute();
   }),
 });

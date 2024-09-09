@@ -64,3 +64,18 @@ export const flyAndScale = (
     easing: cubicOut,
   };
 };
+
+export const postViaForm = (url: string, data: Record<string, any>) => {
+  const form = document.createElement('form');
+  form.style.visibility = 'hidden';
+  form.method = 'POST';
+  form.action = url;
+  for (const key in Object.keys(data)) {
+    const input = document.createElement('input');
+    input.name = key;
+    input.value = data[key];
+    form.appendChild(input);
+  }
+  document.body.appendChild(form);
+  form.submit();
+};

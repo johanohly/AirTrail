@@ -82,9 +82,9 @@
       </aside>
       <div class="flex-1 lg:max-w-2xl">
         {#if activeTab === 'general'}
-          <GeneralPage {user} />
+          <GeneralPage />
         {:else if activeTab === 'users'}
-          <UsersPage {user} />
+          <UsersPage />
         {:else if activeTab === 'appearance'}
           <AppearancePage />
         {:else if activeTab === 'import'}
