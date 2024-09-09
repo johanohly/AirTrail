@@ -1,17 +1,7 @@
 import { z } from 'zod';
+import { userSchema } from '$lib/zod/user';
 
-export const signUpSchema = z.object({
-  username: z
-    .string()
-    .min(3, { message: 'Username must be at least 3 characters long' })
-    .max(20, { message: 'Username must be at most 20 characters long' })
-    .regex(/^[a-zA-Z0-9_]+$/, {
-      message: 'Username can only contain letters, numbers, and underscores',
-    }),
-  password: z.string().min(8),
-  displayName: z.string().min(3),
-  unit: z.enum(['imperial', 'metric']).default('metric'),
-});
+export const signUpSchema = userSchema.omit({ role: true });
 
 export const signInSchema = z.object({
   username: z.string(),

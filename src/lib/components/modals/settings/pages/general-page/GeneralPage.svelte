@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { PageHeader } from '.';
+  import { PageHeader } from '../index';
   import { toTitleCase } from '$lib/utils';
   import type { User } from 'lucia';
   import { Button } from '$lib/components/ui/form';
+  import EditUserForm from './EditUserForm.svelte';
 
   let { user }: { user: User } = $props();
 </script>
@@ -21,4 +22,5 @@
       <Button variant="destructive">Log out</Button>
     </form>
   </div>
+  <EditUserForm {user} />
 </PageHeader>
