@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Feature Request
+    url: https://github.com/JohanOhly/AirTrail/discussions/new?category=feature-request
+    about: Please use this form to request a new feature or enhancement for AirTrail.

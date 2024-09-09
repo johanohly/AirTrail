@@ -1,0 +1,88 @@
+name: Report an issue with AirTrail
+description: Report an issue with AirTrail
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue form is for reporting bugs only!
+
+        If you have a feature or enhancement request, please use the [feature request][fr] section of our [GitHub Discussions][fr].
+
+        [fr]: https://github.com/JohanOhly/AirTrail/discussions/new?category=feature-request
+
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: The bug
+      description: >-
+        Describe the issue you are experiencing here. Tell us what you were trying to do and what happened.
+
+        Provide a clear and concise description of what the problem is.
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Environment
+
+  - type: input
+    validations:
+      required: true
+    attributes:
+      label: Operating System that is running AirTrail
+      placeholder: Windows, macOS, Linux (Ubuntu, Fedora, etc.)
+
+  - type: input
+    id: version
+    validations:
+      required: true
+    attributes:
+      label: AirTrail Version
+      placeholder: v1.0.0
+
+  - type: textarea
+    validations:
+      required: false
+    attributes:
+      label: Your docker-compose.yml content
+      render: YAML
+
+  - type: textarea
+    validations:
+      required: false
+    attributes:
+      label: Your .env content
+      description: If you have any sensitive information in your .env file, please remove it before pasting here.
+      render: Shell
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction steps
+      description: "How do you trigger this bug? Please walk us through it step by step."
+      value: |
+        1.
+        2.
+        3.
+        ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Please copy and paste any relevant logs below.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Additional information
+      description: >
+        If you have any additional information for us, use the field below.
+
+  - type: markdown
+    attributes:
+      value: Thank you for submitting the form
