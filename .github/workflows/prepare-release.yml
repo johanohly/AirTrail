@@ -1,0 +1,56 @@
+name: Prepare new release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Bump version'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - major
+          - minor
+          - patch
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bump_version:
+    runs-on: ubuntu-latest
+
+    outputs:
+      ref: ${{ steps.push-tag.outputs.commit_long_sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Bump version
+        run: scripts/release/bump-version.sh -v "${{ inputs.version }}"
+
+      - name: Commit and tag
+        id: push-tag
+        uses: EndBug/add-and-commit@v9
+        with:
+          default_author: github_actions
+          message: 'chore: version ${{ env.APP_VERSION }}'
+          tag: ${{ env.APP_VERSION }}
+          push: true
+
+  prepare_release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          tag_name: ${{ env.APP_VERSION }}
+          generate_release_notes: true
