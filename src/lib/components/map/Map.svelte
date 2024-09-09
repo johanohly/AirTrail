@@ -3,6 +3,7 @@
     calculateBounds,
     prepareFlightArcData,
     type FlightData,
+    kmToMiles, pluralize,
   } from '$lib/utils/index.js';
   import {
     AttributionControl,
@@ -21,6 +22,7 @@
   import { mode } from 'mode-watcher';
   import { OnResizeEnd } from '$lib/components/helpers';
   import { Airports } from '.';
+  import { page } from '$app/stores';
 
   const FROM_COLOR = [59, 130, 246]; // Also the primary color
   const TO_COLOR = [139, 92, 246]; // TW violet-500
@@ -31,6 +33,8 @@
   }: {
     flights: FlightData[];
   } = $props();
+
+  const metric = $derived($page.data.user?.unit !== 'imperial');
 
   let map: maplibregl.Map | undefined = $state(undefined);
   const style = $derived(
@@ -140,19 +144,21 @@
       <div class="h-[1px] bg-muted my-3" />
       <div class="grid grid-cols-[repeat(3,_1fr)] px-3">
         <h4 class="font-semibold">
-          {Math.round(data.distance)}
-          <span class="font-thin text-muted-foreground">km</span>
+          {Math.round(metric ? data.distance : kmToMiles(data.distance))}
+          <span class="font-thin text-muted-foreground"
+            >{metric ? 'km' : 'mi'}</span
+          >
         </h4>
         <h4 class="font-semibold">
           {data.flights.length}
           <span class="font-thin text-muted-foreground"
-            >trip{data.flights.length !== 1 ? 's' : ''}</span
+            >{pluralize(data.flights.length, 'trip')}</span
           >
         </h4>
         <h4 class="font-semibold">
           {data.airlines.length}
           <span class="font-thin text-muted-foreground"
-            >airline{data.airlines.length !== 1 ? 's' : ''}</span
+            >{pluralize(data.airlines.length, 'airline')}</span
           >
         </h4>
       </div>
