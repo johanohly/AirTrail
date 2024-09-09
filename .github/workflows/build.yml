@@ -47,7 +47,13 @@ jobs:
         with:
           context: .
           platforms: ${{ matrix.platforms }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=user/app:latest
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache-from: type=registry,ref=johly/airtrail-build-cache:latest
           cache-to: type=inline
+          build-args: |
+            DEVICE=${{ matrix.device }}
+            BUILD_ID=${{ github.run_id }}
+            BUILD_IMAGE=${{ github.event_name == 'release' && github.ref_name || steps.metadata.outputs.tags }}
+            BUILD_SOURCE_REF=${{ github.ref_name }}
+            BUILD_SOURCE_COMMIT=${{ github.sha }}
