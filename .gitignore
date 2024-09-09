@@ -1,7 +1,6 @@
 .env
-*.sqlite
-*.sqlite-shm
-*.sqlite-wal
+
+/build
 
 ### macOS ###
 # General
