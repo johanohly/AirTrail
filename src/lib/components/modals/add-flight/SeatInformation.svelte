@@ -3,19 +3,17 @@
   import * as Form from '$lib/components/ui/form';
   import * as Select from '$lib/components/ui/select';
   import type { SuperForm } from 'sveltekit-superforms';
-  import type { addFlightSchema } from '$lib/zod/flight';
   import { z } from 'zod';
-  import type { Writable } from 'svelte/store';
   import { Input } from '$lib/components/ui/input';
   import { toTitleCase } from '$lib/utils';
+  import type { flightSchema } from '$lib/zod/flight';
 
   let {
     form,
-    formData,
   }: {
-    form: SuperForm<z.infer<typeof addFlightSchema>>;
-    formData: Writable<z.infer<typeof addFlightSchema>>;
+    form: SuperForm<z.infer<typeof flightSchema>>;
   } = $props();
+  const { form: formData } = form;
 </script>
 
 <Accordion.Item value="seat">

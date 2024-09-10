@@ -3,16 +3,16 @@
   import * as Form from '$lib/components/ui/form';
   import * as Select from '$lib/components/ui/select';
   import type { SuperForm } from 'sveltekit-superforms';
-  import type { addFlightSchema } from '$lib/zod/flight';
   import { z } from 'zod';
   import { Input, Textarea } from '$lib/components/ui/input';
   import { toTitleCase } from '$lib/utils';
+  import type { flightSchema } from '$lib/zod/flight';
 
   let {
     form,
     formData,
   }: {
-    form: SuperForm<z.infer<typeof addFlightSchema>>;
+    form: SuperForm<z.infer<typeof flightSchema>>;
     formData: typeof form.form;
   } = $props();
 </script>

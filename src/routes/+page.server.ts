@@ -1,7 +1,6 @@
 import type { Actions, PageServerLoad } from './$types';
 import { trpcServer } from '$lib/server/server';
 import { message, setError, superValidate } from 'sveltekit-superforms';
-import { addFlightSchema } from '$lib/zod/flight';
 import { zod } from 'sveltekit-superforms/adapters';
 import { error, fail } from '@sveltejs/kit';
 import { airportFromICAO, distanceBetween, toISOString } from '$lib/utils';
@@ -9,6 +8,7 @@ import { db } from '$lib/db';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import duration from 'dayjs/plugin/duration';
+import { flightSchema } from '$lib/zod/flight';
 
 dayjs.extend(customParseFormat);
 dayjs.extend(duration);
@@ -23,7 +23,7 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
   'add-flight': async ({ locals, request }) => {
-    const form = await superValidate(request, zod(addFlightSchema));
+    const form = await superValidate(request, zod(flightSchema));
     if (!form.valid) return fail(400, { form });
 
     const user = locals.user;

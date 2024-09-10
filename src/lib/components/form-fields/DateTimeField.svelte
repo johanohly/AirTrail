@@ -13,19 +13,16 @@
   import type { SuperForm } from 'sveltekit-superforms';
   import { TextTooltip } from '$lib/components/ui/tooltip';
   import { z } from 'zod';
-  import type { addFlightSchema } from '$lib/zod/flight';
+  import type { flightSchema } from '$lib/zod/flight';
 
   let {
     field,
     form,
-    formData,
-    validate,
   }: {
     field: 'departure' | 'arrival';
-    form: SuperForm<z.infer<typeof addFlightSchema>>;
-    formData: typeof form.form;
-    validate: typeof form.validate;
+    form: SuperForm<z.infer<typeof flightSchema>>;
   } = $props();
+  const { form: formData, validate } = form;
 
   let dateValue: DateValue | undefined = $state(
     $formData[field] ? parseAbsolute($formData[field], 'UTC') : undefined,
@@ -165,7 +162,9 @@
     <Form.Control let:attrs>
       <Form.Label class="flex gap-1">
         Time
-        <TextTooltip text="Local time. Time can be in 24-hour and 12-hour format.">
+        <TextTooltip
+          text="Local time. Time can be in 24-hour and 12-hour format."
+        >
           <Info size="15" />
         </TextTooltip>
       </Form.Label>

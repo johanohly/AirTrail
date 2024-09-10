@@ -5,9 +5,12 @@ import { FlightReasons, SeatClasses, SeatTypes } from '$lib/db/types';
 const timeRegex24 = /^([01]?[0-9]|2[0-3]):[0-5][0-9](?:\s?(?:am|pm))?$|^$/;
 const timeRegex12 = /^\d{1,2}:\d{2}\s?(?:am|pm)$/;
 
-export const addFlightSchema = z.object({
+export const flightAirportsSchema = z.object({
   from: z.string().min(1, 'Select an origin'),
   to: z.string().min(1, 'Select a destination'),
+});
+
+export const flightDateTimeSchema = z.object({
   departure: z
     .string()
     .datetime('Select a departure date')
@@ -34,7 +37,9 @@ export const addFlightSchema = z.object({
       return true; // If it's not in 12-hour format, just return true (it'll be caught by the previous refine)
     }, 'Invalid 12-hour format')
     .optional(),
+});
 
+export const flightOptionalInformationSchema = z.object({
   seat: z.enum(SeatTypes).optional(),
   seatNumber: z.string().max(5, 'Seat number is too long').optional(), // 12A-1 for example
   seatClass: z.enum(SeatClasses).optional(),
@@ -49,3 +54,7 @@ export const addFlightSchema = z.object({
   flightReason: z.enum(FlightReasons).optional(),
   note: z.string().max(1000, 'Note is too long').optional(),
 });
+
+export const flightSchema = flightAirportsSchema
+  .merge(flightDateTimeSchema)
+  .merge(flightOptionalInformationSchema);

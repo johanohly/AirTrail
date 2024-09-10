@@ -12,18 +12,17 @@
   } from '$lib/utils/data';
   import { toTitleCase } from '$lib/utils';
   import { z } from 'zod';
-  import type { addFlightSchema } from '$lib/zod/flight';
+  import type { flightSchema } from '$lib/zod/flight';
   import { writable } from 'svelte/store';
 
   let {
     field,
     form,
-    formData,
   }: {
     field: 'from' | 'to';
-    form: SuperForm<z.infer<typeof addFlightSchema>>;
-    formData: typeof form.form;
+    form: SuperForm<z.infer<typeof flightSchema>>;
   } = $props();
+  const { form: formData } = form;
 
   const selected = writable(
     $formData[field]
