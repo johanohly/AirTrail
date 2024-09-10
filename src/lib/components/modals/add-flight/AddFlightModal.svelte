@@ -33,8 +33,8 @@
 </script>
 
 <Modal bind:open dialogOnly closeOnOutsideClick={false}>
-  <h1>Add Flight</h1>
-  <form method="POST" action="?/add-flight" class="grid gap-4" use:enhance>
+  <h2>Add Flight</h2>
+  <form method="POST" action="?/save-flight" class="grid gap-4" use:enhance>
     <AirportField field="from" {form} />
     <AirportField field="to" {form} />
     <DateTimeField field="departure" {form} />

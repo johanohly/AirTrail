@@ -1,6 +1,6 @@
 import { authedProcedure, router } from '$lib/server/trpc';
 import { AIRPORTS } from '$lib/data/airports';
-import type { Airport } from '$lib/utils/data';
+import type { Airport } from '$lib/utils/data/data';
 import { z } from 'zod';
 import { AIRLINES } from '$lib/data/airlines';
 

@@ -4,31 +4,24 @@
   import { createCombobox, melt } from '@melt-ui/svelte';
   import { fly } from 'svelte/transition';
   import { ChevronDown, ChevronUp } from '@o7/icon/lucide';
-  import { api } from '$lib/trpc';
-  import {
-    type Airport,
-    airportFromICAO,
-    airportSearchCache,
-  } from '$lib/utils/data/data';
-  import { toTitleCase } from '$lib/utils';
   import { z } from 'zod';
   import type { flightSchema } from '$lib/zod/flight';
   import { writable } from 'svelte/store';
+  import { AIRCRAFT } from '$lib/data/aircraft';
+  import { type Aircraft, aircraftFromICAO, WTC_TO_LABEL } from '$lib/utils/data/aircraft';
 
   let {
-    field,
     form,
   }: {
-    field: 'from' | 'to';
     form: SuperForm<z.infer<typeof flightSchema>>;
   } = $props();
   const { form: formData } = form;
 
   const selected = writable(
-    $formData[field]
+    $formData.aircraft
       ? {
-          label: airportFromICAO($formData[field])?.name,
-          value: $formData[field],
+          label: aircraftFromICAO($formData.aircraft)?.name,
+          value: $formData.aircraft,
         }
       : undefined,
   );
@@ -42,7 +35,7 @@
   });
   selected.subscribe((item) => {
     if (item) {
-      $formData[field] = item.value;
+      $formData.aircraft = item.value;
     }
   });
 
@@ -52,44 +45,26 @@
     }
   });
 
-  let debounceTimer: ReturnType<typeof setTimeout>;
-
-  const debounce = (callback: () => void) => {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(callback, 450);
-  };
-
-  let airports: Airport[] = $state([]);
-  let loading = $state(false);
+  let aircraft: Aircraft[] = $state([]);
   $effect(() => {
-    if ($touchedInput && $inputValue !== '' && !loading) {
-      const cached = airportSearchCache.get($inputValue);
-      if (cached) {
-        airports = cached;
-        return;
-      } else {
-        airports = [];
-      }
-      loading = true;
-      debounce(async () => {
-        airports = await api.autocomplete.airport.query($inputValue);
-        loading = false;
-        airportSearchCache.set($inputValue, airports);
-      });
+    if ($touchedInput && $inputValue !== '') {
+      aircraft = AIRCRAFT.filter((a) =>
+        a.name.toLowerCase().includes($inputValue.toLowerCase()),
+      );
     } else {
-      airports = [];
+      aircraft = [];
     }
   });
 </script>
 
-<Form.Field {form} name={field} class="flex flex-col">
+<Form.Field {form} name="aircraft" class="flex flex-col">
   <Form.Control let:attrs>
-    <Form.Label>{toTitleCase(field)} *</Form.Label>
+    <Form.Label>Aircraft</Form.Label>
     <div class="relative">
       <input
         use:melt={$input}
         class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 pr-12"
-        placeholder="Select an airport"
+        placeholder="Select aircraft"
       />
       <div
         class="absolute right-2 top-1/2 z-10 -translate-y-1/2 text-muted-foreground"
@@ -101,7 +76,7 @@
         {/if}
       </div>
     </div>
-    <input hidden bind:value={$formData[field]} name={attrs.name} />
+    <input hidden bind:value={$formData.aircraft} name={attrs.name} />
   </Form.Control>
   {#if $open}
     <ul
@@ -114,37 +89,26 @@
         class="flex max-h-full flex-col gap-0 overflow-y-auto bg-card px-2 py-2 text-card-foreground dark:bg-dark-1"
         tabindex="0"
       >
-        {#each airports as airport}
+        {#each aircraft as entry}
           <li
             use:melt={$option({
-              value: airport.ICAO,
-              label: airport.name,
+              value: entry.icao,
+              label: entry.name,
             })}
             class="relative cursor-pointer scroll-my-2 rounded-md py-2 pl-4 pr-4
         data-[highlighted]:bg-zinc-300 data-[highlighted]:dark:bg-dark-2"
           >
             <div class="flex flex-col">
-              <div class="flex items-center">
-                <img
-                  src="https://flagcdn.com/{airport.country.toLowerCase()}.svg"
-                  alt={airport.country}
-                  class="w-8 h-5 mr-2"
-                />
-                <span class="text-lg truncate">{airport.name}</span>
-              </div>
+              <span class="text-lg truncate">{entry.name}</span>
               <span class="text-sm opacity-75"
-                >{airport.IATA ?? airport.ICAO}{airport.IATA
-                  ? ` - ${airport.ICAO}`
-                  : ''}</span
+                >{entry.icao} - {WTC_TO_LABEL[entry.wtc]}</span
               >
             </div>
           </li>
         {:else}
           <li class="relative cursor-pointer rounded-md py-1 pl-8 pr-4">
-            {#if loading}
-              Loading...
-            {:else if $inputValue}
-              No airports found.
+            {#if $inputValue}
+              No aircraft found.
             {:else}
               Start typing to search...
             {/if}

@@ -11,10 +11,9 @@
   }: {
     form: SuperForm<z.infer<typeof flightSchema>>;
   } = $props();
-  const { form: formData } = form;
 </script>
 
 <Accordion.Root>
-  <SeatInformation {form} {formData} />
-  <FlightInformation {form} {formData} />
+  <SeatInformation {form} />
+  <FlightInformation {form} />
 </Accordion.Root>

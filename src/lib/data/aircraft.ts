@@ -60,6 +60,11 @@ export const AIRCRAFT = [
     wtc: 'M',
   },
   {
+    name: 'Airbus A320neo',
+    icao: 'A20N',
+    wtc: 'M',
+  },
+  {
     name: 'Airbus A321',
     icao: 'A321',
     wtc: 'M',
@@ -67,6 +72,11 @@ export const AIRCRAFT = [
   {
     name: 'Airbus A330',
     icao: 'A330',
+    wtc: 'H',
+  },
+  {
+    name: 'Airbus A330-300',
+    icao: 'A333',
     wtc: 'H',
   },
   {
@@ -107,6 +117,11 @@ export const AIRCRAFT = [
   {
     name: 'Boeing 737',
     icao: 'B737',
+    wtc: 'M',
+  },
+  {
+    name: 'Boeing 737',
+    icao: 'B738',
     wtc: 'M',
   },
   {
@@ -265,16 +280,6 @@ export const AIRCRAFT = [
     wtc: 'H',
   },
   {
-    name: 'Airbus A300 Freighter',
-    icao: 'A30B',
-    wtc: 'H',
-  },
-  {
-    name: 'Airbus A300 Freighter',
-    icao: 'A306',
-    wtc: 'H',
-  },
-  {
     name: 'Gulfstream/Rockwell (Aero) Commander',
     icao: 'AC68',
     wtc: 'L',
@@ -287,7 +292,7 @@ export const AIRCRAFT = [
   {
     name: 'Agusta A109',
     icao: 'A109',
-    wtc: 'n/a',
+    wtc: 'L',
   },
   {
     name: 'Ayres LM-200 Loadmaster',
@@ -335,21 +340,6 @@ export const AIRCRAFT = [
     wtc: 'M',
   },
   {
-    name: 'BAe 146-100',
-    icao: 'B461',
-    wtc: 'M',
-  },
-  {
-    name: 'BAe 146-200',
-    icao: 'B462',
-    wtc: 'M',
-  },
-  {
-    name: 'BAe 146-300',
-    icao: 'B463',
-    wtc: 'M',
-  },
-  {
     name: 'Embraer EMB-120',
     icao: 'EMB1',
     wtc: 'M',
@@ -365,44 +355,9 @@ export const AIRCRAFT = [
     wtc: 'M',
   },
   {
-    name: 'Embraer EMB-175',
-    icao: 'EMB7',
-    wtc: 'M',
-  },
-  {
     name: 'Embraer EMB-190',
     icao: 'EMB9',
     wtc: 'M',
-  },
-  {
-    name: 'Embraer EMB-195',
-    icao: 'EMB9',
-    wtc: 'M',
-  },
-  {
-    name: 'Airbus A319',
-    icao: 'A319',
-    wtc: 'M',
-  },
-  {
-    name: 'Airbus A320',
-    icao: 'A320',
-    wtc: 'M',
-  },
-  {
-    name: 'Airbus A321',
-    icao: 'A321',
-    wtc: 'M',
-  },
-  {
-    name: 'Airbus A330',
-    icao: 'A330',
-    wtc: 'H',
-  },
-  {
-    name: 'Airbus A340',
-    icao: 'A340',
-    wtc: 'H',
   },
   {
     name: 'Airbus A350',
@@ -413,21 +368,6 @@ export const AIRCRAFT = [
     name: 'Airbus A380',
     icao: 'A380',
     wtc: 'J',
-  },
-  {
-    name: 'Boeing 737',
-    icao: 'B737',
-    wtc: 'M',
-  },
-  {
-    name: 'Boeing 737 MAX 8',
-    icao: 'B38M',
-    wtc: 'M',
-  },
-  {
-    name: 'Boeing 737 MAX 9',
-    icao: 'B39M',
-    wtc: 'M',
   },
   {
     name: 'Boeing 747',
@@ -540,48 +480,13 @@ export const AIRCRAFT = [
     wtc: 'L',
   },
   {
-    name: 'Beechcraft Super King Air 350i',
-    icao: 'BE35',
-    wtc: 'L',
-  },
-  {
     name: 'Beechcraft Super King Air 350',
     icao: 'BE35',
     wtc: 'L',
   },
   {
-    name: 'Beechcraft Super King Air 250',
-    icao: 'BE30',
-    wtc: 'L',
-  },
-  {
-    name: 'Beechcraft Super King Air 350',
-    icao: 'BE30',
-    wtc: 'L',
-  },
-  {
     name: 'Beechcraft 1900',
     icao: 'BE19',
     wtc: 'M',
   },
-  {
-    name: 'Beechcraft 200',
-    icao: 'BE20',
-    wtc: 'L',
-  },
-  {
-    name: 'Beechcraft 1900D',
-    icao: 'BE19',
-    wtc: 'M',
-  },
-  {
-    name: 'Beechcraft 1900',
-    icao: 'BE19',
-    wtc: 'M',
-  },
-  {
-    name: 'Beechcraft 1900',
-    icao: 'BE19',
-    wtc: 'M',
-  },
-];
+] as const;

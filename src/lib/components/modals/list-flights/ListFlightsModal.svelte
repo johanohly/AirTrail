@@ -21,8 +21,9 @@
     isUsingAmPm,
   } from '$lib/utils';
   import * as Tooltip from '$lib/components/ui/tooltip';
-  import { formatSeat } from '$lib/utils/data';
+  import { formatSeat } from '$lib/utils/data/data';
   import { Confirm } from '$lib/components/helpers';
+  import { EditFlightModal } from '$lib/components/modals';
 
   dayjs.extend(duration);
 
@@ -133,11 +134,28 @@
         return { year, flights };
       });
   });
+
+  // Ensure the modal is not scrollable when the edit modal is open
+  let editModalOpen = $state(false);
+  $effect(() => {
+    const observer = new MutationObserver(() => {
+      const headings = document.querySelectorAll('h2');
+      editModalOpen = Array.from(headings).some(
+        (heading) => heading?.textContent?.trim() === 'Edit flight',
+      );
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
+  });
 </script>
 
 <Modal
   bind:open
-  classes="flex flex-col h-full overflow-y-auto !rounded-none"
+  classes={cn('flex flex-col h-full !rounded-none', {
+    'overflow-y-auto': !editModalOpen,
+  })}
   dialogOnly
 >
   <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
@@ -263,9 +281,7 @@
 
 {#snippet actions(flight)}
   <div class="flex items-center gap-2">
-    <Button disabled variant="outline" size="icon">
-      <SquarePen size="20" />
-    </Button>
+    <EditFlightModal {flight} />
     <Confirm
       onConfirm={() => deleteFlight(flight.id)}
       title="Remove Flight"

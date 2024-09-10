@@ -4,6 +4,7 @@ import { AIRLINES } from '$lib/data/airlines';
 import dayjs from 'dayjs';
 import { distanceBetween, toTitleCase } from '$lib/utils';
 import { PersistentLRUCache } from '$lib/utils/lru-cache';
+import { AIRCRAFT } from '$lib/data/aircraft';
 
 const dateFormatter = new Intl.DateTimeFormat('en', {
   year: 'numeric',
@@ -32,6 +33,7 @@ type FlightOverrides = {
   from: Airport;
   to: Airport;
   distance: number;
+  raw: Flight;
 };
 export type FlightData = ExcludedType<Flight, FlightOverrides> &
   FlightOverrides;
@@ -61,6 +63,7 @@ export const prepareFlightData = (data: Flight[]): FlightData[] => {
             [fromAirport.lon, fromAirport.lat],
             [toAirport.lon, toAirport.lat],
           ) / 1000,
+        raw: flight,
       };
     })
     .filter((f) => f !== null);

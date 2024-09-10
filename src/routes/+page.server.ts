@@ -22,7 +22,7 @@ export const load: PageServerLoad = async (event) => {
 };
 
 export const actions: Actions = {
-  'add-flight': async ({ locals, request }) => {
+  'save-flight': async ({ locals, request }) => {
     const form = await superValidate(request, zod(flightSchema));
     if (!form.valid) return fail(400, { form });
 
@@ -108,6 +108,16 @@ export const actions: Actions = {
       duration = Math.round(dayjs.duration(durationHours, 'hours').asSeconds());
     }
 
+    const {
+      seat,
+      seatNumber,
+      seatClass,
+      flightNumber,
+      aircraftReg,
+      flightReason,
+      note,
+    } = form.data;
+
     const resp = await db
       .insertInto('flight')
       .values({
@@ -118,6 +128,13 @@ export const actions: Actions = {
         departure: departure ? toISOString(departure) : null,
         arrival: arrival ? toISOString(arrival) : null,
         date: departureDate.format('YYYY-MM-DD'),
+        seat,
+        seatNumber,
+        seatClass,
+        flightNumber,
+        aircraftReg,
+        flightReason,
+        note,
       })
       .execute();
 

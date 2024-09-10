@@ -71,6 +71,17 @@ const extractAirlineICAO = (airline: string) => {
   return match.groups?.ICAO ?? null;
 };
 
+const AIRCRAFT_REGEX = /(?<Name>.*) \((?<ICAO>[A-Z0-9-]{1,4})\)/;
+const extractAircraftICAO = (aircraft: string) => {
+  const match = aircraft.match(AIRCRAFT_REGEX);
+  if (!match) {
+    console.error(`Failed to extract ICAO code from aircraft: ${aircraft}`);
+    return null;
+  }
+
+  return match.groups?.ICAO ?? null;
+};
+
 export const processFR24File = async (content: string) => {
   const [data, error] = parseCsv(content, FR24Flight);
   if (error) {
@@ -132,6 +143,7 @@ export const processFR24File = async (content: string) => {
       FR24_FLIGHT_REASON_MAP?.[row.flight_reason ?? 'noop'] ?? null;
 
     const airline = row.airline ? extractAirlineICAO(row.airline) : null;
+    const aircraft = row.aircraft ? extractAircraftICAO(row.aircraft) : null;
 
     flights.push({
       date: row.date, // YYYY-MM-DD
@@ -145,7 +157,7 @@ export const processFR24File = async (content: string) => {
       seatClass,
       flightReason,
       note: row.note,
-      aircraft: row.aircraft,
+      aircraft,
       aircraftReg: row.registration,
       airline,
       flightNumber: row.flight_number,
