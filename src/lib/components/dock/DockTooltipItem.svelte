@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { DockItem } from '$lib/components/dock/index.js';
+  import { DockItem } from '$lib/components/dock';
   import * as Tooltip from '$lib/components/ui/tooltip';
 
   export let item: {

@@ -6,7 +6,6 @@
     PlaneTakeoff,
     PlaneLanding,
     CircleFadingPlus,
-    SquarePen,
     X,
   } from '@o7/icon/lucide';
   import dayjs from 'dayjs';
@@ -14,16 +13,12 @@
   import { Separator } from '$lib/components/ui/separator';
   import { Button } from '$lib/components/ui/button';
   import { LabelledSeparator } from '$lib/components/ui/separator/index.js';
-  import {
-    airlineFromICAO,
-    cn,
-    type FlightData,
-    isUsingAmPm,
-  } from '$lib/utils';
+  import { cn, type FlightData, isUsingAmPm } from '$lib/utils';
   import * as Tooltip from '$lib/components/ui/tooltip';
   import { formatSeat } from '$lib/utils/data/data';
   import { Confirm } from '$lib/components/helpers';
   import { EditFlightModal } from '$lib/components/modals';
+  import { airlineFromICAO } from '$lib/utils/data/airlines';
 
   dayjs.extend(duration);
 
@@ -141,7 +136,7 @@
     const observer = new MutationObserver(() => {
       const headings = document.querySelectorAll('h2');
       editModalOpen = Array.from(headings).some(
-        (heading) => heading?.textContent?.trim() === 'Edit flight',
+        (heading) => heading?.textContent?.trim() === 'Edit Flight',
       );
     });
 
@@ -261,15 +256,15 @@
 {/snippet}
 
 {#snippet seatAndAirline(flight)}
-  {#if flight.seat}
-    <Tooltip.AutoTooltip text={flight.seat} classes="text-sm truncate" />
+  {#if flight.seat || flight.airline}
+    <Tooltip.AutoTooltip
+      text={flight.seat ?? flight.airline.name}
+      classes="text-sm truncate"
+    />
   {:else}
-    <Button class="justify-start px-1" variant="ghost" size="sm">
-      <CircleFadingPlus size="16" class="mr-1" />
-      Add seat
-    </Button>
+    <p class="text-sm text-transparent">.</p>
   {/if}
-  {#if flight.airline}
+  {#if flight.airline && flight.seat}
     <Tooltip.AutoTooltip
       text={flight.airline.name}
       classes="text-sm text-muted-foreground truncate"

@@ -2,11 +2,7 @@
   import type { FlightData } from '$lib/utils';
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Form from '$lib/components/ui/form';
-  import SuperDebug, {
-    defaults,
-    type Infer,
-    superForm,
-  } from 'sveltekit-superforms';
+  import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
   import { flightSchema } from '$lib/zod/flight';
   import { buttonVariants } from '$lib/components/ui/button';
@@ -14,7 +10,7 @@
   import { AirportField, DateTimeField } from '$lib/components/form-fields';
   import OptionalFlightInformation from '$lib/components/modals/add-flight/OptionalFlightInformation.svelte';
   import { toast } from 'svelte-sonner';
-  import { page } from '$app/stores';
+  import { trpc } from '$lib/trpc';
 
   const timeFormatter = new Intl.DateTimeFormat(undefined, {
     timeZone: 'UTC',
@@ -43,14 +39,21 @@
       : null,
   };
 
+  let open = $state(false);
+
   const form = superForm(
     defaults<Infer<typeof flightSchema>>(schemaFlight, zod(flightSchema)),
     {
       id: String(flight.id),
       validators: zod(flightSchema),
+      onSubmit({ formData }) {
+        formData.set('id', String(flight.id));
+      },
       onUpdated({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
+            trpc.flight.list.utils.invalidate();
+            open = false;
             return void toast.success(form.message.text);
           }
           toast.error(form.message.text);
@@ -58,10 +61,10 @@
       },
     },
   );
-  const { form: formData, enhance, errors } = form;
+  const { enhance } = form;
 </script>
 
-<Dialog.Root>
+<Dialog.Root bind:open closeOnOutsideClick={false} preventScroll={false}>
   <Dialog.Trigger class={buttonVariants({ variant: 'outline', size: 'icon' })}>
     <SquarePen size="20" />
   </Dialog.Trigger>

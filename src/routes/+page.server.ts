@@ -23,7 +23,8 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
   'save-flight': async ({ locals, request }) => {
-    const form = await superValidate(request, zod(flightSchema));
+    const formData = await request.formData();
+    const form = await superValidate(formData, zod(flightSchema));
     if (!form.valid) return fail(400, { form });
 
     const user = locals.user;
@@ -113,32 +114,59 @@ export const actions: Actions = {
       seatNumber,
       seatClass,
       flightNumber,
+      aircraft,
       aircraftReg,
+      airline,
       flightReason,
       note,
     } = form.data;
 
+    const values = {
+      userId: user.id,
+      from,
+      to,
+      duration,
+      departure: departure ? toISOString(departure) : null,
+      arrival: arrival ? toISOString(arrival) : null,
+      date: departureDate.format('YYYY-MM-DD'),
+      seat,
+      seatNumber,
+      seatClass,
+      flightNumber,
+      aircraft,
+      aircraftReg,
+      airline,
+      flightReason,
+      note,
+    };
+
+    const fId = formData.get('id');
+    if (fId && !isNaN(+fId)) {
+      const resp = await db
+        .updateTable('flight')
+        .set(values)
+        .where('id', '=', +fId)
+        .executeTakeFirst();
+
+      if (!resp) {
+        return message(form, {
+          type: 'error',
+          text: 'Failed to update flight',
+        });
+      }
+
+      return message(form, {
+        type: 'success',
+        text: 'Flight updated successfully',
+      });
+    }
+
     const resp = await db
       .insertInto('flight')
-      .values({
-        userId: user.id,
-        from,
-        to,
-        duration,
-        departure: departure ? toISOString(departure) : null,
-        arrival: arrival ? toISOString(arrival) : null,
-        date: departureDate.format('YYYY-MM-DD'),
-        seat,
-        seatNumber,
-        seatClass,
-        flightNumber,
-        aircraftReg,
-        flightReason,
-        note,
-      })
-      .execute();
+      .values(values)
+      .executeTakeFirst();
 
-    if (resp.length === 0) {
+    if (!resp) {
       return message(form, { type: 'error', text: 'Failed to add flight' });
     }
 

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import * as Accordion from '$lib/components/ui/accordion';
   import SeatInformation from '$lib/components/modals/add-flight/SeatInformation.svelte';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
@@ -13,7 +12,5 @@
   } = $props();
 </script>
 
-<Accordion.Root>
-  <SeatInformation {form} />
-  <FlightInformation {form} />
-</Accordion.Root>
+<SeatInformation {form} />
+<FlightInformation {form} />

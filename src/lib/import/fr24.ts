@@ -2,6 +2,7 @@ import { airportFromICAO, parseCsv, toISOString } from '$lib/utils';
 import { z } from 'zod';
 import dayjs from 'dayjs';
 import type { Flight } from '$lib/db';
+import { airlineFromICAO } from '$lib/utils/data/airlines';
 
 const FR24_AIRPORT_REGEX = /\((?<IATA>[a-zA-Z]{3})\/(?<ICAO>[a-zA-Z]{4})\)/;
 const FR24_SEAT_TYPE_MAP: Record<string, Flight['seat']> = {
@@ -142,7 +143,12 @@ export const processFR24File = async (content: string) => {
     const flightReason =
       FR24_FLIGHT_REASON_MAP?.[row.flight_reason ?? 'noop'] ?? null;
 
-    const airline = row.airline ? extractAirlineICAO(row.airline) : null;
+    let airline = row.airline ? extractAirlineICAO(row.airline) : null;
+    if (airline && !airlineFromICAO(airline)) {
+      console.warn(`Unknown airline ICAO code: ${airline}`);
+      airline = null;
+    }
+
     const aircraft = row.aircraft ? extractAircraftICAO(row.aircraft) : null;
 
     flights.push({

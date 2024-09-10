@@ -37,7 +37,6 @@
   );
 
   const { form: formData, enhance, submitting } = form;
-  $inspect(formData);
 </script>
 
 <Modal bind:open>

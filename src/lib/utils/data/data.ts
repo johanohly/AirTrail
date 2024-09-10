@@ -222,17 +222,15 @@ export const formatSeat = (f: FlightData) => {
       ? `${f.seat} ${f.seatNumber}`
       : f.seat && f.seatClass
         ? `${t(f.seatClass)} (${f.seat})`
-        : f.seat
-          ? f.seat
-          : null;
+        : f.seatClass
+          ? t(f.seatClass)
+          : f.seat
+            ? t(f.seat)
+            : null;
 };
 
 export const airportFromICAO = (icao: string): Airport | undefined => {
   return AIRPORTS.find((airport) => airport.ICAO === icao);
-};
-
-export const airlineFromICAO = (icao: string) => {
-  return AIRLINES.find((airline) => airline.icao === icao) ?? null;
 };
 
 const cacheOptions = {

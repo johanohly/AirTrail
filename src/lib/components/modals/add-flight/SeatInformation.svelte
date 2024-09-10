@@ -1,5 +1,4 @@
 <script lang="ts">
-  import * as Accordion from '$lib/components/ui/accordion';
   import * as Form from '$lib/components/ui/form';
   import * as Select from '$lib/components/ui/select';
   import type { SuperForm } from 'sveltekit-superforms';
@@ -7,6 +6,7 @@
   import { Input } from '$lib/components/ui/input';
   import { toTitleCase } from '$lib/utils';
   import type { flightSchema } from '$lib/zod/flight';
+  import { Separator } from '$lib/components/ui/separator';
 
   let {
     form,
@@ -16,9 +16,10 @@
   const { form: formData } = form;
 </script>
 
-<Accordion.Item value="seat">
-  <Accordion.Trigger>Seat Information</Accordion.Trigger>
-  <Accordion.Content>
+<section>
+  <h3 class="font-medium">Seat Information</h3>
+  <Separator class="my-2" />
+  <div class="grid gap-4">
     <div class="grid grid-cols-[1fr_1fr_1fr] gap-2">
       <Form.Field {form} name="seat">
         <Form.Control let:attrs>
@@ -30,7 +31,11 @@
             }}
             onSelectedChange={(value) => {
               if (value) {
-                $formData.seat = value.value;
+                if (value.value === $formData.seat) {
+                  $formData.seat = null;
+                } else {
+                  $formData.seat = value.value;
+                }
               }
             }}
           >
@@ -44,7 +49,7 @@
               <Select.Item value="other" label="Other" />
             </Select.Content>
           </Select.Root>
-          <input type="hidden" bind:value={$formData.seat} name={attrs.name} />
+          <input type="hidden" value={$formData.seat} name={attrs.name} />
         </Form.Control>
         <Form.FieldErrors />
       </Form.Field>
@@ -67,7 +72,11 @@
             }}
             onSelectedChange={(value) => {
               if (value) {
-                $formData.seatClass = value.value;
+                if (value.value === $formData.seatClass) {
+                  $formData.seatClass = null;
+                } else {
+                  $formData.seatClass = value.value;
+                }
               }
             }}
           >
@@ -82,14 +91,10 @@
               <Select.Item value="private" label="Private" />
             </Select.Content>
           </Select.Root>
-          <input
-            type="hidden"
-            bind:value={$formData.seatClass}
-            name={attrs.name}
-          />
+          <input type="hidden" value={$formData.seatClass} name={attrs.name} />
         </Form.Control>
         <Form.FieldErrors />
       </Form.Field>
     </div>
-  </Accordion.Content>
-</Accordion.Item>
+  </div>
+</section>
