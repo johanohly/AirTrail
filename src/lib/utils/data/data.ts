@@ -2,6 +2,8 @@ import type { Flight } from '$lib/db';
 import dayjs from 'dayjs';
 import { distanceBetween, toTitleCase } from '$lib/utils';
 import { type Airport, airportFromICAO } from '$lib/utils/data/airports';
+import { get } from 'svelte/store';
+import { page } from '$app/stores';
 
 const dateFormatter = new Intl.DateTimeFormat('en', {
   year: 'numeric',
@@ -203,15 +205,21 @@ const formatSimpleFlight = (f: FlightData) => {
 export const formatSeat = (f: FlightData) => {
   const t = (s: string) => toTitleCase(s);
 
-  return f.seat && f.seatNumber && f.seatClass
-    ? `${t(f.seatClass)} (${f.seat} ${f.seatNumber})`
-    : f.seat && f.seatNumber
-      ? `${f.seat} ${f.seatNumber}`
-      : f.seat && f.seatClass
-        ? `${t(f.seatClass)} (${f.seat})`
-        : f.seatClass
-          ? t(f.seatClass)
-          : f.seat
-            ? t(f.seat)
+  const userId = get(page).data.user?.id;
+  if (!userId) return null;
+
+  const s = f.seats.find((seat) => seat.userId === userId);
+  if (!s) return null;
+
+  return s.seat && s.seatNumber && s.seatClass
+    ? `${t(s.seatClass)} (${s.seat} ${s.seatNumber})`
+    : s.seat && s.seatNumber
+      ? `${s.seat} ${s.seatNumber}`
+      : s.seat && s.seatClass
+        ? `${t(s.seatClass)} (${s.seat})`
+        : s.seatClass
+          ? t(s.seatClass)
+          : s.seat
+            ? t(s.seat)
             : null;
 };

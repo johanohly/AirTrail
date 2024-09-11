@@ -5,13 +5,11 @@
     Plane,
     PlaneTakeoff,
     PlaneLanding,
-    CircleFadingPlus,
     X,
   } from '@o7/icon/lucide';
   import dayjs from 'dayjs';
   import duration from 'dayjs/plugin/duration';
   import { Separator } from '$lib/components/ui/separator';
-  import { Button } from '$lib/components/ui/button';
   import { LabelledSeparator } from '$lib/components/ui/separator/index.js';
   import { cn, type FlightData, isUsingAmPm } from '$lib/utils';
   import * as Tooltip from '$lib/components/ui/tooltip';

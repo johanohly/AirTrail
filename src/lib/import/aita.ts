@@ -1,14 +1,21 @@
-import type { Flight } from '$lib/db';
 import dayjs from 'dayjs';
 import { airportFromIATA } from '$lib/utils/data/airports';
 import { toISOString } from '$lib/utils';
+import type { CreateFlight } from '$lib/db/types';
+import { get } from 'svelte/store';
+import { page } from '$app/stores';
 
 export const processAITAFile = (input: string) => {
   const flightPattern =
     /^.*?;(\w{2};\d{3,4});(\w*);(\w{3});(\w{3});([\d\-T:]+);([\d\-T:]+);([\d\-T:]+);([\d\-T:]+);(.*)/gm;
 
-  const flights: Omit<Flight, 'id' | 'userId'>[] = [];
+  const flights: CreateFlight[] = [];
   let match;
+
+  const userId = get(page).data.user?.id;
+  if (!userId) {
+    throw new Error('User not found');
+  }
 
   while ((match = flightPattern.exec(input)) !== null) {
     const [, flightNumber, , rawFrom, rawTo, rawDeparture, rawArrival] = match;
@@ -32,14 +39,20 @@ export const processAITAFile = (input: string) => {
       arrival: toISOString(arrival),
       duration: arrival.diff(departure, 'seconds'),
       flightNumber: flightNumber?.replace(';', ''),
-      seat: null,
-      seatNumber: null,
-      seatClass: null,
       flightReason: null,
       airline: null,
       aircraft: null,
       aircraftReg: null,
       note: null,
+      seats: [
+        {
+          userId,
+          seat: null,
+          seatNumber: null,
+          seatClass: null,
+          guestName: null,
+        },
+      ],
     });
   }
 

@@ -1,11 +1,9 @@
 import { readFile } from '$lib/utils';
 import { processFR24File } from '$lib/import/fr24';
-import type { Flight } from '$lib/db';
 import { processAITAFile } from '$lib/import/aita';
+import type { CreateFlight } from '$lib/db/types';
 
-export const processFile = async (
-  file: File,
-): Promise<Omit<Flight, 'id' | 'userId'>[]> => {
+export const processFile = async (file: File): Promise<CreateFlight[]> => {
   const content = await readFile(file);
 
   if (file.name.endsWith('.csv')) {
