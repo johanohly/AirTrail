@@ -20,6 +20,31 @@ export const AIRCRAFT = [
     wtc: 'M',
   },
   {
+  	name: 'Canadair Regional Jet CRJ-900',
+  	icao: 'CRJ9',
+  	wtc: 'M',
+  },
+  {
+  	name: 'Bombardier DHC-8-100 Dash 8',
+  	icao: 'DH8A',
+  	wtc: 'M',
+  },
+  {
+  	name: 'Bombardier DHC-8-200 Dash 8',
+  	icao: 'DH8B',
+  	wtc: 'M',
+  },
+  {
+  	name: 'Bombardier DHC-8-300 Dash 8',
+  	icao: 'DH8C',
+  	wtc: 'M',
+  },
+  {
+  	name: 'Bombardier DHC-8-400 Dash 8',
+  	icao: 'DH8D',
+  	wtc: 'M',
+  },
+  {
     name: 'Embraer E170',
     icao: 'E170',
     wtc: 'M',
