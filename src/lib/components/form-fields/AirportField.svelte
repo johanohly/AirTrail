@@ -5,15 +5,11 @@
   import { fly } from 'svelte/transition';
   import { ChevronDown, ChevronUp } from '@o7/icon/lucide';
   import { api } from '$lib/trpc';
-  import {
-    type Airport,
-    airportFromICAO,
-    airportSearchCache,
-  } from '$lib/utils/data/data';
   import { toTitleCase } from '$lib/utils';
   import { z } from 'zod';
   import type { flightSchema } from '$lib/zod/flight';
   import { writable } from 'svelte/store';
+  import { airportFromICAO } from '$lib/utils/data/airports';
 
   let {
     field,

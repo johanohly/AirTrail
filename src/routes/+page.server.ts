@@ -3,12 +3,13 @@ import { trpcServer } from '$lib/server/server';
 import { message, setError, superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { error, fail } from '@sveltejs/kit';
-import { airportFromICAO, distanceBetween, toISOString } from '$lib/utils';
+import { distanceBetween, toISOString } from '$lib/utils';
 import { db } from '$lib/db';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import duration from 'dayjs/plugin/duration';
 import { flightSchema } from '$lib/zod/flight';
+import { airportFromICAO } from '$lib/utils/data/airports';
 
 dayjs.extend(customParseFormat);
 dayjs.extend(duration);

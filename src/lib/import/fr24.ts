@@ -1,8 +1,9 @@
-import { airportFromICAO, parseCsv, toISOString } from '$lib/utils';
+import { parseCsv, toISOString } from '$lib/utils';
 import { z } from 'zod';
 import dayjs from 'dayjs';
 import type { Flight } from '$lib/db';
 import { airlineFromICAO } from '$lib/utils/data/airlines';
+import { airportFromICAO } from '$lib/utils/data/airports';
 
 const FR24_AIRPORT_REGEX = /\((?<IATA>[a-zA-Z]{3})\/(?<ICAO>[a-zA-Z]{4})\)/;
 const FR24_SEAT_TYPE_MAP: Record<string, Flight['seat']> = {

@@ -1,10 +1,7 @@
-import { AIRPORTS } from '$lib/data/airports';
 import type { Flight } from '$lib/db';
-import { AIRLINES } from '$lib/data/airlines';
 import dayjs from 'dayjs';
 import { distanceBetween, toTitleCase } from '$lib/utils';
-import { PersistentLRUCache } from '$lib/utils/lru-cache';
-import { AIRCRAFT } from '$lib/data/aircraft';
+import { type Airport, airportFromICAO } from '$lib/utils/data/airports';
 
 const dateFormatter = new Intl.DateTimeFormat('en', {
   year: 'numeric',
@@ -15,17 +12,7 @@ const dateFormatter = new Intl.DateTimeFormat('en', {
 type ExcludedType<T, U> = {
   [P in keyof T as P extends keyof U ? never : P]: T[P];
 };
-export type Airport = {
-  name: string;
-  country: string;
-  continent: string;
-  tz: number;
-  lat: number;
-  lon: number;
-  IATA: string | null;
-  ICAO: string;
-  wiki: string | null;
-};
+
 type FlightOverrides = {
   date: dayjs.Dayjs;
   departure: dayjs.Dayjs | null;
@@ -228,15 +215,3 @@ export const formatSeat = (f: FlightData) => {
             ? t(f.seat)
             : null;
 };
-
-export const airportFromICAO = (icao: string): Airport | undefined => {
-  return AIRPORTS.find((airport) => airport.ICAO === icao);
-};
-
-const cacheOptions = {
-  max: 100,
-};
-export const airportSearchCache = new PersistentLRUCache<string, Airport[]>(
-  cacheOptions,
-  'airport-search',
-);

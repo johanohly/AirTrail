@@ -22,7 +22,7 @@
     if (!file) return;
 
     if (!file.name.endsWith('.csv') && !file.name.endsWith('.txt')) {
-      fileError = 'File must be a CSV or TXT file';
+      fileError = 'File type not supported';
     } else if (file.size > 5 * 1024 * 1024) {
       fileError = 'File must be less than 5MB';
     } else {
@@ -51,7 +51,10 @@
   };
 </script>
 
-<PageHeader title="Import" subtitle="Supported platforms: FlightRadar24">
+<PageHeader
+  title="Import"
+  subtitle="Supported platforms: FlightRadar24, App in the Air"
+>
   <label for="file" class="block">
     <Card
       class={cn(
