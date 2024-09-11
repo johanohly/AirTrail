@@ -9,7 +9,7 @@
   import { z } from 'zod';
   import type { flightSchema } from '$lib/zod/flight';
   import { writable } from 'svelte/store';
-  import { airportFromICAO } from '$lib/utils/data/airports';
+  import { type Airport, airportFromICAO, airportSearchCache } from '$lib/utils/data/airports';
 
   let {
     field,
