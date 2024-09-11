@@ -20,12 +20,27 @@ export const AIRCRAFT = [
     wtc: 'M',
   },
   {
-    name: 'Embraer E190-E2',
+    name: 'Embraer E170',
+    icao: 'E170',
+    wtc: 'M',
+  },
+  {
+    name: 'Embraer E175 (short wing)',
+    icao: 'E75S',
+    wtc: 'M',
+  },
+  {
+    name: 'Embraer E175 (long wing)',
+    icao: 'E75L',
+    wtc: 'M',
+  },
+  {
+    name: 'Embraer E190',
     icao: 'E290',
     wtc: 'M',
   },
   {
-    name: 'Embraer E195-E2',
+    name: 'Embraer E195',
     icao: 'E295',
     wtc: 'M',
   },
