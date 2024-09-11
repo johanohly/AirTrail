@@ -17,3 +17,4 @@ export {
   formatDistance,
   formatDuration,
 } from './number';
+export { sortAndFilterByMatch } from './search';

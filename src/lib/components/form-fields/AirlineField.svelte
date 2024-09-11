@@ -9,6 +9,7 @@
   import { writable } from 'svelte/store';
   import { type Airline, airlineFromICAO } from '$lib/utils/data/airlines';
   import { AIRLINES } from '$lib/data/airlines';
+  import { sortAndFilterByMatch } from '$lib/utils';
 
   let {
     form,
@@ -46,12 +47,16 @@
   let airlines: Airline[] = $state([]);
   $effect(() => {
     if ($touchedInput && $inputValue !== '') {
-      airlines = AIRLINES.filter((a) => {
-        const input = $inputValue.toLowerCase();
-        return (
-          a.icao.toLowerCase() === input || a.name.toLowerCase().includes(input)
-        );
-      }).slice(0, 20);
+      airlines = sortAndFilterByMatch(
+        AIRLINES,
+        $inputValue,
+        [
+          { key: 'icao', exact: true },
+          { key: 'iata', exact: true },
+          { key: 'name', exact: false },
+        ],
+        20,
+      );
     } else {
       airlines = [];
     }
