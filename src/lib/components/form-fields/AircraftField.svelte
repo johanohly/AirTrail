@@ -13,6 +13,7 @@
     aircraftFromICAO,
     WTC_TO_LABEL,
   } from '$lib/utils/data/aircraft';
+  import { sortAndFilterByMatch } from '$lib/utils';
 
   let {
     form,
@@ -50,9 +51,16 @@
   let aircraft: Aircraft[] = $state([]);
   $effect(() => {
     if ($touchedInput && $inputValue !== '') {
-      aircraft = AIRCRAFT.filter((a) =>
-        a.name.toLowerCase().includes($inputValue.toLowerCase()),
-      ).slice(0, 20);
+      aircraft = sortAndFilterByMatch(
+        // @ts-expect-error - This is totally fine
+        AIRCRAFT,
+        $inputValue,
+        [
+          { key: 'icao', exact: true },
+          { key: 'name', exact: false },
+        ],
+        20,
+      );
     } else {
       aircraft = [];
     }
