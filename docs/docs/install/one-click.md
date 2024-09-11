@@ -5,7 +5,8 @@ sidebar_position: 2
 # One-Click Installation
 
 :::warning EXPERIMENTAL
-This method is experimental and may not work on all systems. For a more reliable installation, we recommend using the [Docker Compose](/docs/install/docker-compose) method.
+This method is experimental and may not work on all systems. For a more reliable installation, we recommend using
+the [Docker Compose](/docs/install/docker-compose) method.
 :::
 
 ## Requirements
@@ -21,8 +22,11 @@ bash <(curl -o- https://raw.githubusercontent.com/JohanOhly/AirTrail/main/script
 ```
 
 This will
+
 - create a new directory called `airtrail` in your current working directory
-- inside it, it will download the [docker-compose.yml](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker-compose.yml) and [.env](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/env) files from the repository
+- inside it, it will download
+  the [docker-compose.yml](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker-compose.yml)
+  and [.env](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example) files from the repository
 - start the AirTrail services using Docker Compose
 
 :::tip
