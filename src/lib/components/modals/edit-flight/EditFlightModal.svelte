@@ -8,9 +8,10 @@
   import { buttonVariants } from '$lib/components/ui/button';
   import { SquarePen } from '@o7/icon/lucide';
   import { AirportField, DateTimeField } from '$lib/components/form-fields';
-  import OptionalFlightInformation from '$lib/components/modals/add-flight/OptionalFlightInformation.svelte';
   import { toast } from 'svelte-sonner';
   import { trpc } from '$lib/trpc';
+  import SeatInformation from '$lib/components/modals/add-flight/SeatInformation.svelte';
+  import FlightInformation from '$lib/components/modals/add-flight/FlightInformation.svelte';
 
   const timeFormatter = new Intl.DateTimeFormat(undefined, {
     timeZone: 'UTC',
@@ -75,7 +76,8 @@
       <AirportField field="to" {form} />
       <DateTimeField field="departure" {form} />
       <DateTimeField field="arrival" {form} />
-      <OptionalFlightInformation {form} />
+      <SeatInformation {form} />
+      <FlightInformation {form} />
       <Form.Button>Save</Form.Button>
     </form>
   </Dialog.Content>

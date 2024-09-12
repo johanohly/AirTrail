@@ -1,12 +1,13 @@
 <script lang="ts">
   import { Modal } from '$lib/components/ui/modal';
   import * as Form from '$lib/components/ui/form';
-  import { defaults, type Infer, superForm } from 'sveltekit-superforms';
+  import SuperDebug, { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { flightSchema } from '$lib/zod/flight';
   import { zod } from 'sveltekit-superforms/adapters';
   import { toast } from 'svelte-sonner';
   import { AirportField, DateTimeField } from '$lib/components/form-fields';
-  import OptionalFlightInformation from './OptionalFlightInformation.svelte';
+  import FlightInformation from './FlightInformation.svelte';
+  import SeatInformation from './SeatInformation.svelte';
 
   let {
     open = $bindable(),
@@ -16,6 +17,7 @@
   const form = superForm(
     defaults<Infer<typeof flightSchema>>(zod(flightSchema)),
     {
+      dataType: 'json',
       validators: zod(flightSchema),
       onUpdated({ form }) {
         if (form.message) {
@@ -29,17 +31,19 @@
       },
     },
   );
-  const { enhance } = form;
+  const { form: formData, enhance } = form;
 </script>
 
-<Modal bind:open dialogOnly closeOnOutsideClick={false}>
+<Modal bind:open dialogOnly closeOnOutsideClick={false} classes="max-h-full overflow-y-auto max-w-lg">
   <h2>Add Flight</h2>
+  <SuperDebug data={$formData} />
   <form method="POST" action="?/save-flight" class="grid gap-4" use:enhance>
     <AirportField field="from" {form} />
     <AirportField field="to" {form} />
     <DateTimeField field="departure" {form} />
     <DateTimeField field="arrival" {form} />
-    <OptionalFlightInformation {form} />
+    <SeatInformation {form} />
+    <FlightInformation {form} />
     <Form.Button>Add Flight</Form.Button>
   </form>
 </Modal>
