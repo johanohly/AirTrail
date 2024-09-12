@@ -1,4 +1,5 @@
-import { AIRLINE_TRANSITIONS, AIRLINES } from '$lib/data/airlines';
+import { AIRLINES } from '$lib/data/airlines';
+import { AIRLINE_TRANSITIONS } from '$lib/data/transitions';
 
 export type Airline = (typeof AIRLINES)[number];
 

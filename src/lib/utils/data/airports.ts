@@ -1,5 +1,6 @@
 import { AIRPORTS } from '$lib/data/airports';
 import { PersistentLRUCache } from '$lib/utils/lru-cache';
+import { AIRPORT_TRANSITIONS } from '$lib/data/transitions';
 
 export type Airport = {
   name: string;
@@ -14,6 +15,11 @@ export type Airport = {
 };
 
 export const airportFromICAO = (icao: string): Airport | undefined => {
+  const transition = AIRPORT_TRANSITIONS[icao];
+  if (transition) {
+    return airportFromICAO(transition);
+  }
+
   return AIRPORTS.find((airport) => airport.ICAO === icao);
 };
 

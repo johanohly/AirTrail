@@ -1,8 +1,3 @@
-// List of known airline transitions
-export const AIRLINE_TRANSITIONS: Record<string, string> = {
-  IBK: 'NSZ', // Norwegian Air International transferred all their airplanes to Norwegian Air Sweden
-};
-
 // As of 2024-08-10
 export const AIRLINES = [
   { Name: '21 Air', Code: '2I', ICAO: 'CSB' },
