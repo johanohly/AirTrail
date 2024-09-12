@@ -1,13 +1,18 @@
 <script lang="ts">
   import { Modal } from '$lib/components/ui/modal';
   import * as Form from '$lib/components/ui/form';
-  import SuperDebug, { defaults, type Infer, superForm } from 'sveltekit-superforms';
+  import SuperDebug, {
+    defaults,
+    type Infer,
+    superForm,
+  } from 'sveltekit-superforms';
   import { flightSchema } from '$lib/zod/flight';
   import { zod } from 'sveltekit-superforms/adapters';
   import { toast } from 'svelte-sonner';
   import { AirportField, DateTimeField } from '$lib/components/form-fields';
   import FlightInformation from './FlightInformation.svelte';
   import SeatInformation from './SeatInformation.svelte';
+  import { page } from '$app/stores';
 
   let {
     open = $bindable(),
@@ -32,9 +37,20 @@
     },
   );
   const { form: formData, enhance } = form;
+
+  $effect(() => {
+    if ($formData.seats[0] && $formData.seats[0].userId === '<USER_ID>') {
+      $formData.seats[0].userId = $page.data.user?.id ?? null;
+    }
+  });
 </script>
 
-<Modal bind:open dialogOnly closeOnOutsideClick={false} classes="max-h-full overflow-y-auto max-w-lg">
+<Modal
+  bind:open
+  dialogOnly
+  closeOnOutsideClick={false}
+  classes="max-h-full overflow-y-auto max-w-lg"
+>
   <h2>Add Flight</h2>
   <SuperDebug data={$formData} />
   <form method="POST" action="?/save-flight" class="grid gap-4" use:enhance>

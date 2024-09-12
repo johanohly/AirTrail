@@ -6,7 +6,7 @@ import type { CreateFlight } from '$lib/db/types';
 
 export const flightRouter = router({
   list: authedProcedure.query(async ({ ctx: { user } }) => {
-    return await db
+    const flights = await db
       .selectFrom('flight')
       .selectAll('flight')
       .select((eb) => [
@@ -17,7 +17,18 @@ export const flightRouter = router({
             .whereRef('seat.flightId', '=', 'flight.id'),
         ).as('seats'),
       ])
+      .where((eb) =>
+        eb.exists(
+          eb
+            .selectFrom('seat')
+            .select('seat.id')
+            .whereRef('seat.flightId', '=', 'flight.id')
+            .where('seat.userId', '=', user.id),
+        ),
+      )
       .execute();
+
+    return flights;
   }),
   delete: authedProcedure
     .input(z.number())
@@ -32,10 +43,14 @@ export const flightRouter = router({
         throw new Error('You do not have a seat on this flight');
       }
 
-      return await db
+      const resp = await db
         .deleteFrom('flight')
         .where('id', '=', input)
         .executeTakeFirst();
+
+      if (!resp.numDeletedRows) {
+        throw new Error('Flight not found');
+      }
     }),
   create: authedProcedure
     .input(z.custom<Omit<Flight, 'id' | 'userId'>>())

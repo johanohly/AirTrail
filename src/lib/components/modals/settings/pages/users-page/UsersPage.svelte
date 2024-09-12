@@ -10,31 +10,16 @@
   import AddUserModal from '$lib/components/modals/settings/pages/users-page/AddUserModal.svelte';
   import { Confirm } from '$lib/components/helpers';
   import { page } from '$app/stores';
+  import { invalidateAll } from '$app/navigation';
 
-  let loading = $state(true);
-  let users: User[] = $state([]);
-
-  const updateUsers = () => {
-    api.user.list
-      .query()
-      .then((data) => {
-        users = data;
-      })
-      .catch(() => {
-        toast.error('You do not have permission to view this page.');
-        location.reload();
-      })
-      .finally(() => {
-        loading = false;
-      });
-  };
+  let users = $derived($page.data.users as User[]);
 
   const deleteUser = async (id: string) => {
     const success = await api.user.delete.mutate(id);
     if (!success) {
       return void toast.error('Failed to delete user.');
     }
-    updateUsers();
+    await invalidateAll();
     toast.success('User deleted.');
   };
 
@@ -48,14 +33,10 @@
     return true;
   };
 
-  $effect(() => {
-    updateUsers();
-  });
-
   let addUserModal = $state(false);
 </script>
 
-<AddUserModal bind:open={addUserModal} {updateUsers} />
+<AddUserModal bind:open={addUserModal} />
 
 <PageHeader title="Users" subtitle="Manage who can access AirTrail.">
   {#snippet headerRight()}
@@ -64,9 +45,7 @@
     </Button>
   {/snippet}
 
-  {#if loading}
-    <LoaderCircle class="animate-spin" />
-  {:else if users.length === 0}
+  {#if users.length === 0}
     <p>No users found.</p>
   {:else}
     <div class="space-y-2">

@@ -10,6 +10,7 @@ import customParseFormat from 'dayjs/plugin/customParseFormat';
 import duration from 'dayjs/plugin/duration';
 import { flightSchema } from '$lib/zod/flight';
 import { airportFromICAO } from '$lib/utils/data/airports';
+import type { Seat } from '$lib/db/types';
 
 dayjs.extend(customParseFormat);
 dayjs.extend(duration);
@@ -18,7 +19,9 @@ export const load: PageServerLoad = async (event) => {
   await trpcServer.flight.list.ssr(event);
 
   return {
-    user: event.locals.user,
+    users: (await db.selectFrom('user').selectAll().execute()).map(
+      ({ password, ...rest }) => rest,
+    ),
   };
 };
 
@@ -110,29 +113,16 @@ export const actions: Actions = {
       duration = Math.round(dayjs.duration(durationHours, 'hours').asSeconds());
     }
 
-    const {
-      seat,
-      seatNumber,
-      seatClass,
-      flightNumber,
-      aircraft,
-      aircraftReg,
-      airline,
-      flightReason,
-      note,
-    } = form.data;
+    const { flightNumber, aircraft, aircraftReg, airline, flightReason, note } =
+      form.data;
 
     const values = {
-      userId: user.id,
       from,
       to,
       duration,
       departure: departure ? toISOString(departure) : null,
       arrival: arrival ? toISOString(arrival) : null,
       date: departureDate.format('YYYY-MM-DD'),
-      seat,
-      seatNumber,
-      seatClass,
       flightNumber,
       aircraft,
       aircraftReg,
@@ -141,15 +131,53 @@ export const actions: Actions = {
       note,
     };
 
-    const fId = formData.get('id');
-    if (fId && !isNaN(+fId)) {
-      const resp = await db
-        .updateTable('flight')
-        .set(values)
-        .where('id', '=', +fId)
-        .executeTakeFirst();
+    let updateId = undefined;
+    try {
+      const rawJson = formData.get('__superform_json');
+      const array = JSON.parse(rawJson);
+      const json = array[0];
+      updateId = json.id;
+    } catch {
+      // do nothing
+    }
 
-      if (!resp) {
+    if (updateId && !isNaN(+updateId)) {
+      try {
+        await db.transaction().execute(async (trx) => {
+          const resp = await trx
+            .updateTable('flight')
+            .set(values)
+            .where('id', '=', updateId)
+            .execute();
+
+          if (!resp) {
+            return message(form, {
+              type: 'error',
+              text: 'Failed to update flight',
+            });
+          }
+
+          const seats = form.data.seats;
+          if (seats.length) {
+            await trx
+              .deleteFrom('seat')
+              .where('flightId', '=', updateId)
+              .execute();
+
+            const seatData = seats.map((seat) => ({
+              flightId: updateId,
+              userId: seat.userId,
+              guestName: seat.guestName,
+              seat: seat.seat,
+              seatNumber: seat.seatNumber,
+              seatClass: seat.seatClass,
+            }));
+
+            await trx.insertInto('seat').values(seatData).execute();
+          }
+        });
+      } catch (e) {
+        console.error(e);
         return message(form, {
           type: 'error',
           text: 'Failed to update flight',
@@ -162,12 +190,26 @@ export const actions: Actions = {
       });
     }
 
-    const resp = await db
-      .insertInto('flight')
-      .values(values)
-      .executeTakeFirst();
+    try {
+      await db.transaction().execute(async (trx) => {
+        const resp = await trx
+          .insertInto('flight')
+          .values(values)
+          .returning('id')
+          .executeTakeFirstOrThrow();
 
-    if (!resp) {
+        const seatData = form.data.seats.map((seat) => ({
+          flightId: resp.id,
+          userId: seat.userId,
+          guestName: seat.guestName,
+          seat: seat.seat,
+          seatNumber: seat.seatNumber,
+          seatClass: seat.seatClass,
+        }));
+
+        await trx.insertInto('seat').values(seatData).executeTakeFirstOrThrow();
+      });
+    } catch (e) {
       return message(form, { type: 'error', text: 'Failed to add flight' });
     }
 

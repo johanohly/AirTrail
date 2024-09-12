@@ -48,6 +48,10 @@ export const flightSeatInformationSchema = z.object({
       seatNumber: z.string().max(5, 'Seat number is too long').nullable(), // 12A-1 for example
       seatClass: z.enum(SeatClasses).nullable(),
     })
+    .refine((data) => data.userId || data.guestName, {
+      message: 'Select a user or add a guest name',
+      path: ['userId'],
+    })
     .array()
     .min(1, 'Add at least one seat')
     .default([

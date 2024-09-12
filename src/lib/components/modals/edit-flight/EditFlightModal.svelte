@@ -12,6 +12,7 @@
   import { trpc } from '$lib/trpc';
   import SeatInformation from '$lib/components/modals/add-flight/SeatInformation.svelte';
   import FlightInformation from '$lib/components/modals/add-flight/FlightInformation.svelte';
+  import { toISOString } from '$lib/utils/index.js';
 
   const timeFormatter = new Intl.DateTimeFormat(undefined, {
     timeZone: 'UTC',
@@ -30,8 +31,10 @@
       typeof flight.raw,
       'id' | 'userId' | 'date' | 'duration'
     >),
-    departure: flight.departure?.toISOString() ?? flight.date.toISOString(),
-    arrival: flight.arrival?.toISOString() ?? null,
+    departure: flight.departure
+      ? toISOString(flight.departure)
+      : toISOString(flight.date),
+    arrival: flight.arrival ? toISOString(flight.arrival) : null,
     departureTime: flight.departure
       ? timeFormatter.format(flight.departure.toDate())
       : null,
@@ -45,10 +48,12 @@
   const form = superForm(
     defaults<Infer<typeof flightSchema>>(schemaFlight, zod(flightSchema)),
     {
-      id: String(flight.id),
+      dataType: 'json',
+      id: Math.random().toString(36).substring(7),
       validators: zod(flightSchema),
-      onSubmit({ formData }) {
-        formData.set('id', String(flight.id));
+      onSubmit() {
+        // @ts-expect-error - id is not in the schema, but needed in the API when updating
+        $formData.id = String(flight.id);
       },
       onUpdated({ form }) {
         if (form.message) {
@@ -62,7 +67,7 @@
       },
     },
   );
-  const { enhance } = form;
+  const { form: formData, enhance } = form;
 </script>
 
 <Dialog.Root bind:open closeOnOutsideClick={false} preventScroll={false}>

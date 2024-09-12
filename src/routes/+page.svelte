@@ -51,8 +51,6 @@
     },
   ];
 
-  const { data } = $props();
-  const user = data.user!;
   const rawFlights = trpc.flight.list.query();
 
   const flights = $derived.by(() => {
@@ -75,6 +73,7 @@
       await $deleteFlightMutation.mutateAsync(id);
       toast.success('Flight deleted', { id: toastId });
     } catch (error) {
+      console.error(error);
       toast.error('Failed to delete flight', { id: toastId });
     }
   };
@@ -88,7 +87,7 @@
 <AddFlightModal bind:open={addFlightModalOpen} {invalidator} />
 <ListFlightsModal bind:open={listFlightsModalOpen} {flights} {deleteFlight} />
 <StatisticsModal bind:open={statisticsModalOpen} {flights} />
-<SettingsModal bind:open={settingsModalOpen} {user} {invalidator} />
+<SettingsModal bind:open={settingsModalOpen} {invalidator} />
 
 <div class="relative h-[100dvh]">
   <Map {flights} />
