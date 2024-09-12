@@ -3,7 +3,8 @@
     calculateBounds,
     prepareFlightArcData,
     type FlightData,
-    kmToMiles, pluralize,
+    kmToMiles,
+    pluralize,
   } from '$lib/utils/index.js';
   import {
     AttributionControl,
@@ -54,7 +55,7 @@
     if (!bounds) return;
 
     map.fitBounds(bounds, {
-      padding: 82,
+      padding: 100,
     });
   };
 
