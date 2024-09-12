@@ -32,7 +32,12 @@
   const { enhance } = form;
 </script>
 
-<Modal bind:open dialogOnly closeOnOutsideClick={false}>
+<Modal
+  bind:open
+  dialogOnly
+  closeOnOutsideClick={false}
+  classes="max-h-full overflow-y-auto max-w-lg"
+>
   <h2>Add Flight</h2>
   <form method="POST" action="?/save-flight" class="grid gap-4" use:enhance>
     <AirportField field="from" {form} />
