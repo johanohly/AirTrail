@@ -1,22 +1,43 @@
 <script lang="ts">
   import type { FlightData } from '$lib/utils';
   import PieChart from './PieChart.svelte';
+  import { page } from '$app/stores';
 
   let { flights }: { flights: FlightData[] } = $props();
 
-  const countByProperty = (flights, property, values) => {
-    return values.reduce((acc, value) => {
-      acc[value] = flights.filter((f) => f[property] === value).length;
+  const user = $derived($page.data.user);
+
+  const countByProperty = (
+    flights: FlightData[],
+    property: keyof FlightData,
+    categories: string[],
+  ) => {
+    return categories.reduce<Record<string, number>>((acc, category) => {
+      acc[category] = flights.filter((f) => f[property] === category).length;
       return acc;
     }, {});
   };
 
-  const countByContinent = (flights, continents) => {
-    return continents.reduce((acc, continent) => {
+  const countBySeatProperty = (
+    flights: FlightData[],
+    property: keyof FlightData['seats'][0],
+    categories: string[],
+  ) => {
+    return categories.reduce<Record<string, number>>((acc, category) => {
+      acc[category] = flights.filter((f) =>
+        f.seats.some((v) => v.userId === user?.id && v[property] === category),
+      ).length;
+      return acc;
+    }, {});
+  };
+
+  const countByContinent = (
+    flights: FlightData[],
+    continents: { code: string; name: string }[],
+  ) => {
+    return continents.reduce<Record<string, number>>((acc, continent) => {
       acc[continent.name] = flights.filter(
-        (f) =>
-          f.from.continent === continent.code ||
-          f.to.continent === continent.code,
+        (f) => f.to.continent === continent.code,
       ).length;
       return acc;
     }, {});
@@ -31,26 +52,35 @@
     { code: 'OC', name: 'Oceania' },
   ];
 
-  let seatDistribution = countByProperty(flights, 'seat', [
-    'window',
-    'aisle',
-    'middle',
-    'other',
-  ]);
-  let seatClassDistribution = countByProperty(flights, 'seatClass', [
-    'economy',
-    'economy+',
-    'business',
-    'first',
-    'private',
-  ]);
-  let reasonDistribution = countByProperty(flights, 'flightReason', [
-    'leisure',
-    'business',
-    'crew',
-    'other',
-  ]);
-  let continentDistribution = countByContinent(flights, continents);
+  const seatDistribution = $derived.by(() => {
+    return countBySeatProperty(flights, 'seat', [
+      'window',
+      'aisle',
+      'middle',
+      'other',
+    ]);
+  });
+  const seatClassDistribution = $derived.by(() => {
+    return countBySeatProperty(flights, 'seatClass', [
+      'economy',
+      'economy+',
+      'business',
+      'first',
+      'private',
+    ]);
+  });
+
+  const reasonDistribution = $derived.by(() => {
+    return countByProperty(flights, 'flightReason', [
+      'leisure',
+      'business',
+      'crew',
+      'other',
+    ]);
+  });
+  const continentDistribution = $derived.by(() => {
+    return countByContinent(flights, continents);
+  });
 </script>
 
 <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
