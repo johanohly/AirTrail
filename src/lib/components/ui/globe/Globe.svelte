@@ -16,11 +16,11 @@
     return $mode === 'light'
       ? {
           dark: 0,
-          diffuse: 0.4,
-          mapBrightness: 1.2,
-          baseColor: [0.3, 0.3, 0.3],
+          diffuse: 0,
+          mapBrightness: 10,
+          baseColor: [1, 1, 1],
           markerColor: [60 / 255, 131 / 255, 246 / 255],
-          glowColor: [1, 1, 1],
+          glowColor: [0.4, 0.4, 0.4],
         }
       : {
           dark: 1,
