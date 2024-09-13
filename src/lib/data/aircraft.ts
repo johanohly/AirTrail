@@ -25,6 +25,11 @@ export const AIRCRAFT = [
     wtc: 'M',
   },
   {
+    name: 'Airbus A300-600',
+    icao: 'A306',
+    wtc: 'H',
+  },
+  {
     name: 'Airbus A310',
     icao: 'A310',
     wtc: 'H',
@@ -63,12 +68,6 @@ export const AIRCRAFT = [
     name: 'Airbus A321neo',
     icao: 'A21N',
     wtc: 'M',
-  },
-
-  {
-    name: 'Airbus A330',
-    icao: 'A330',
-    wtc: 'H',
   },
   {
     name: 'Airbus A330-200',
@@ -491,6 +490,11 @@ export const AIRCRAFT = [
     wtc: 'H',
   },
   {
+    name: 'British Aerospace ATP',
+    icao: 'ATP',
+    wtc: 'M',
+  },
+  {
   	name: 'Canadair Regional Jet CRJ-100',
   	icao: 'CRJ1',
   	wtc: 'M',
@@ -514,96 +518,6 @@ export const AIRCRAFT = [
   	name: 'Canadair Regional Jet CRJ-1000',
   	icao: 'CRJX',
   	wtc: 'M',
-  },
-  {
-    name: 'Fokker 100',
-    icao: 'F100',
-    wtc: 'M',
-  },
-  {
-    name: 'Embraer E170',
-    icao: 'E170',
-    wtc: 'M',
-  },
-  {
-    name: 'Embraer E175 (short wing)',
-    icao: 'E75S',
-    wtc: 'M',
-  },
-  {
-    name: 'Embraer E175 (long wing)',
-    icao: 'E75L',
-    wtc: 'M',
-  },
-  {
-    name: 'Embraer E190',
-    icao: 'E290',
-    wtc: 'M',
-  },
-  {
-    name: 'Embraer E195',
-    icao: 'E295',
-    wtc: 'M',
-  },
-  {
-    name: 'Gulfstream/Rockwell (Aero) Commander',
-    icao: 'AC68',
-    wtc: 'L',
-  },
-  {
-    name: 'Gulfstream/Rockwell (Aero) Turbo Commander',
-    icao: 'AC90',
-    wtc: 'L',
-  },
-  {
-    name: 'British Aerospace ATP',
-    icao: 'ATP',
-    wtc: 'M',
-  },
-  {
-    name: 'Embraer EMB-120',
-    icao: 'EMB1',
-    wtc: 'M',
-  },
-  {
-    name: 'Embraer EMB-145',
-    icao: 'EMB4',
-    wtc: 'M',
-  },
-  {
-    name: 'Embraer EMB-170',
-    icao: 'EMB7',
-    wtc: 'M',
-  },
-  {
-    name: 'Embraer EMB-190',
-    icao: 'EMB9',
-    wtc: 'M',
-  },
-  {
-    name: 'Airbus A350',
-    icao: 'A350',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 747',
-    icao: 'B747',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 767',
-    icao: 'B767',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 777',
-    icao: 'B777',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 787',
-    icao: 'B787',
-    wtc: 'H',
   },
   {
     name: 'Cessna 172',
@@ -663,6 +577,61 @@ export const AIRCRAFT = [
   {
     name: 'Cessna 680',
     icao: 'C680',
+    wtc: 'L',
+  },
+  {
+    name: 'Embraer EMB-120 Brasilia',
+    icao: 'E120',
+    wtc: 'M',
+  },
+  {
+    name: 'Embraer ERJ-135',
+    icao: 'E135',
+    wtc: 'M',
+  },
+  {
+    name: 'Embraer ERJ-145',
+    icao: 'E145',
+    wtc: 'M',
+  },
+  {
+    name: 'Embraer ERJ-170',
+    icao: 'E170',
+    wtc: 'M',
+  },
+  {
+    name: 'Embraer ERJ-175',
+    icao: 'E175',
+    wtc: 'M',
+  },
+  {
+    name: 'Embraer ERJ-190',
+    icao: 'EMB9',
+    wtc: 'M',
+  },
+  {
+    name: 'Embraer E190 E2',
+    icao: 'E290',
+    wtc: 'M',
+  },
+  {
+    name: 'Embraer E195 E2',
+    icao: 'E295',
+    wtc: 'M',
+  },
+  {
+    name: 'Fokker 100',
+    icao: 'F100',
+    wtc: 'M',
+  },
+  {
+    name: 'Gulfstream/Rockwell (Aero) Commander',
+    icao: 'AC68',
+    wtc: 'L',
+  },
+  {
+    name: 'Gulfstream/Rockwell (Aero) Turbo Commander',
+    icao: 'AC90',
     wtc: 'L',
   },
 ] as const;
