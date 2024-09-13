@@ -10,6 +10,122 @@ export const AIRCRAFT = [
     wtc: 'M',
   },
   {
+    name: 'Airbus A300-100/200',
+    icao: 'A30B',
+    wtc: 'H',
+  },
+  {
+    name: 'Airbus A300-600',
+    icao: 'A306',
+    wtc: 'H',
+  },
+  {
+    name: 'Airbus A220-100',
+    icao: 'BCS1',
+    wtc: 'M',
+  },
+  {
+    name: 'Airbus A220-300',
+    icao: 'BCS3',
+    wtc: 'M',
+  },
+  {
+    name: 'Airbus A310',
+    icao: 'A310',
+    wtc: 'H',
+  },
+  {
+    name: 'Airbus A318',
+    icao: 'A318',
+    wtc: 'M',
+  },
+  {
+    name: 'Airbus A319',
+    icao: 'A319',
+    wtc: 'M',
+  },
+  {
+    name: 'Airbus A319',
+    icao: 'A19N',
+    wtc: 'M',
+  },
+  {
+    name: 'Airbus A320',
+    icao: 'A320',
+    wtc: 'M',
+  },
+  {
+    name: 'Airbus A320neo',
+    icao: 'A20N',
+    wtc: 'M',
+  },
+  {
+    name: 'Airbus A321',
+    icao: 'A321',
+    wtc: 'M',
+  },
+  {
+    name: 'Airbus A321neo',
+    icao: 'A21N',
+    wtc: 'M',
+  },
+
+  {
+    name: 'Airbus A330',
+    icao: 'A330',
+    wtc: 'H',
+  },
+  {
+    name: 'Airbus A330-200',
+    icao: 'A332',
+    wtc: 'H',
+  },
+  {
+    name: 'Airbus A330-300',
+    icao: 'A333',
+    wtc: 'H',
+  },
+  {
+    name: 'Airbus A340',
+    icao: 'A340',
+    wtc: 'H',
+  },
+  {
+    name: 'Airbus A340-200',
+    icao: 'A342',
+    wtc: 'H',
+  },
+  {
+    name: 'Airbus A340-300',
+    icao: 'A343',
+    wtc: 'H',
+  },
+  {
+    name: 'Airbus A340-500',
+    icao: 'A345',
+    wtc: 'H',
+  },
+  {
+    name: 'Airbus A340-600',
+    icao: 'A346',
+    wtc: 'H',
+  },
+  {
+    name: 'Airbus A350-900',
+    icao: 'A359',
+    wtc: 'H',
+  },
+  {
+    name: 'Airbus A350-1000',
+    icao: 'A359',
+    wtc: 'H',
+  },
+  {
+    name: 'Airbus A380',
+    icao: 'A388',
+    wtc: 'J',
+  },
+  {
     name: 'Fokker 100',
     icao: 'F100',
     wtc: 'M',
@@ -78,71 +194,6 @@ export const AIRCRAFT = [
     name: 'Embraer E195',
     icao: 'E295',
     wtc: 'M',
-  },
-  {
-    name: 'Airbus A220',
-    icao: 'BCS1',
-    wtc: 'M',
-  },
-  {
-    name: 'Airbus A220',
-    icao: 'BCS3',
-    wtc: 'M',
-  },
-  {
-    name: 'Airbus A310',
-    icao: 'A310',
-    wtc: 'H',
-  },
-  {
-    name: 'Airbus A318',
-    icao: 'A318',
-    wtc: 'M',
-  },
-  {
-    name: 'Airbus A319',
-    icao: 'A319',
-    wtc: 'M',
-  },
-  {
-    name: 'Airbus A320',
-    icao: 'A320',
-    wtc: 'M',
-  },
-  {
-    name: 'Airbus A320neo',
-    icao: 'A20N',
-    wtc: 'M',
-  },
-  {
-    name: 'Airbus A321',
-    icao: 'A321',
-    wtc: 'M',
-  },
-  {
-    name: 'Airbus A330',
-    icao: 'A330',
-    wtc: 'H',
-  },
-  {
-    name: 'Airbus A330-300',
-    icao: 'A333',
-    wtc: 'H',
-  },
-  {
-    name: 'Airbus A340',
-    icao: 'A340',
-    wtc: 'H',
-  },
-  {
-    name: 'Airbus A350',
-    icao: 'A359',
-    wtc: 'H',
-  },
-  {
-    name: 'Airbus A380',
-    icao: 'A388',
-    wtc: 'J',
   },
   {
     name: 'Boeing 707',
@@ -320,16 +371,6 @@ export const AIRCRAFT = [
     wtc: 'M',
   },
   {
-    name: 'Airbus A300',
-    icao: 'A30B',
-    wtc: 'H',
-  },
-  {
-    name: 'Airbus A300-600',
-    icao: 'A306',
-    wtc: 'H',
-  },
-  {
     name: 'Gulfstream/Rockwell (Aero) Commander',
     icao: 'AC68',
     wtc: 'L',
@@ -403,11 +444,6 @@ export const AIRCRAFT = [
     name: 'Airbus A350',
     icao: 'A350',
     wtc: 'H',
-  },
-  {
-    name: 'Airbus A380',
-    icao: 'A380',
-    wtc: 'J',
   },
   {
     name: 'Boeing 747',
