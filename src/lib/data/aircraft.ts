@@ -261,6 +261,36 @@ export const AIRCRAFT = [
     wtc: 'M',
   },
   {
+    name: 'Beechcraft Baron',
+    icao: 'BE58',
+    wtc: 'L',
+  },
+  {
+    name: 'Beechcraft King Air 90',
+    icao: 'BE9L',
+    wtc: 'L',
+  },
+  {
+    name: 'Beechcraft King Air 200',
+    icao: 'BE20',
+    wtc: 'L',
+  },
+  {
+    name: 'Beechcraft King Air 350',
+    icao: 'BE30',
+    wtc: 'L',
+  },
+  {
+    name: 'Beechcraft Super King Air 350',
+    icao: 'BE35',
+    wtc: 'L',
+  },
+  {
+    name: 'Beechcraft 1900',
+    icao: 'BE19',
+    wtc: 'M',
+  },
+  {
   	name: 'Bombardier DHC-8-100 Dash 8',
   	icao: 'DH8A',
   	wtc: 'M',
@@ -614,35 +644,5 @@ export const AIRCRAFT = [
     name: 'Cessna 680',
     icao: 'C680',
     wtc: 'L',
-  },
-  {
-    name: 'Beechcraft Baron',
-    icao: 'BE58',
-    wtc: 'L',
-  },
-  {
-    name: 'Beechcraft King Air 90',
-    icao: 'BE9L',
-    wtc: 'L',
-  },
-  {
-    name: 'Beechcraft King Air 200',
-    icao: 'BE20',
-    wtc: 'L',
-  },
-  {
-    name: 'Beechcraft King Air 350',
-    icao: 'BE30',
-    wtc: 'L',
-  },
-  {
-    name: 'Beechcraft Super King Air 350',
-    icao: 'BE35',
-    wtc: 'L',
-  },
-  {
-    name: 'Beechcraft 1900',
-    icao: 'BE19',
-    wtc: 'M',
   },
 ] as const;
