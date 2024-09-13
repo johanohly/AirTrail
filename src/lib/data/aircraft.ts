@@ -226,6 +226,26 @@ export const AIRCRAFT = [
     wtc: 'J',
   },
   {
+    name: 'Avro RJ 70',
+    icao: 'RJ1H',
+    wtc: 'M',
+  },
+  {
+    name: 'Avro RJ 85',
+    icao: 'RJ1H',
+    wtc: 'M',
+  },
+  {
+    name: 'Avro RJ 100',
+    icao: 'RJ1H',
+    wtc: 'M',
+  },
+  {
+    name: 'Ayres LM-200 Loadmaster',
+    icao: 'LOAD',
+    wtc: 'M',
+  },
+  {
     name: 'Fokker 100',
     icao: 'F100',
     wtc: 'M',
@@ -429,16 +449,6 @@ export const AIRCRAFT = [
     name: 'Gulfstream/Rockwell (Aero) Turbo Commander',
     icao: 'AC90',
     wtc: 'L',
-  },
-  {
-    name: 'Ayres LM-200 Loadmaster',
-    icao: 'LOAD',
-    wtc: 'M',
-  },
-  {
-    name: 'Avro RJ',
-    icao: 'RJ1H',
-    wtc: 'M',
   },
   {
     name: 'British Aerospace ATP',
