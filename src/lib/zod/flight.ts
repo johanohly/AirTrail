@@ -54,6 +54,9 @@ export const flightSeatInformationSchema = z.object({
     })
     .array()
     .min(1, 'Add at least one seat')
+    .refine((data) => data.some((seat) => seat.userId), {
+      message: 'At least one seat must be assigned to a user',
+    })
     .default([
       {
         userId: '<USER_ID>',
@@ -66,6 +69,7 @@ export const flightSeatInformationSchema = z.object({
 });
 
 export const flightOptionalInformationSchema = z.object({
+  id: z.number().optional(), // Only for editing an existing flight
   airline: z.string().max(4, 'Airline is too long').nullable(), // ICAO code
   flightNumber: z.string().max(10, 'Flight number is too long').nullable(), // should cover all cases
   aircraft: z.string().max(4, 'Aircraft is too long').nullable(), // ICAO type code

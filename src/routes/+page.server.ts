@@ -10,7 +10,11 @@ import customParseFormat from 'dayjs/plugin/customParseFormat';
 import duration from 'dayjs/plugin/duration';
 import { flightSchema } from '$lib/zod/flight';
 import { airportFromICAO } from '$lib/utils/data/airports';
-import type { Seat } from '$lib/db/types';
+import {
+  createFlight,
+  getFlight,
+  updateFlight,
+} from '$lib/server/utils/flight';
 
 dayjs.extend(customParseFormat);
 dayjs.extend(duration);
@@ -33,7 +37,7 @@ export const actions: Actions = {
 
     const user = locals.user;
     if (!user) {
-      return error(401, 'You must be logged in to add a flight');
+      return error(401, 'You must be logged in');
     }
 
     const from = form.data.from;
@@ -101,7 +105,7 @@ export const actions: Actions = {
       return returnError(form, 'arrival', 'Arrival must be after departure');
     }
 
-    let duration: number | undefined;
+    let duration: number | null = null;
     if (departure && arrival) {
       duration = arrival.diff(departure, 'seconds');
     } else if (fromAirport != toAirport) {
@@ -129,53 +133,18 @@ export const actions: Actions = {
       airline,
       flightReason,
       note,
+      seats: form.data.seats,
     };
 
-    let updateId = undefined;
-    try {
-      const rawJson = formData.get('__superform_json');
-      const array = JSON.parse(rawJson);
-      const json = array[0];
-      updateId = json.id;
-    } catch {
-      // do nothing
-    }
+    const updateId = form.data.id;
+    if (updateId) {
+      const flight = await getFlight(updateId);
+      if (!flight || !flight.seats.some((seat) => seat.userId === user.id)) {
+        throw new Error('You do not have a seat on this flight');
+      }
 
-    if (updateId && !isNaN(+updateId)) {
       try {
-        await db.transaction().execute(async (trx) => {
-          const resp = await trx
-            .updateTable('flight')
-            .set(values)
-            .where('id', '=', updateId)
-            .execute();
-
-          if (!resp) {
-            return message(form, {
-              type: 'error',
-              text: 'Failed to update flight',
-            });
-          }
-
-          const seats = form.data.seats;
-          if (seats.length) {
-            await trx
-              .deleteFrom('seat')
-              .where('flightId', '=', updateId)
-              .execute();
-
-            const seatData = seats.map((seat) => ({
-              flightId: updateId,
-              userId: seat.userId,
-              guestName: seat.guestName,
-              seat: seat.seat,
-              seatNumber: seat.seatNumber,
-              seatClass: seat.seatClass,
-            }));
-
-            await trx.insertInto('seat').values(seatData).execute();
-          }
-        });
+        await updateFlight(updateId, values);
       } catch (e) {
         console.error(e);
         return message(form, {
@@ -191,25 +160,8 @@ export const actions: Actions = {
     }
 
     try {
-      await db.transaction().execute(async (trx) => {
-        const resp = await trx
-          .insertInto('flight')
-          .values(values)
-          .returning('id')
-          .executeTakeFirstOrThrow();
-
-        const seatData = form.data.seats.map((seat) => ({
-          flightId: resp.id,
-          userId: seat.userId,
-          guestName: seat.guestName,
-          seat: seat.seat,
-          seatNumber: seat.seatNumber,
-          seatClass: seat.seatClass,
-        }));
-
-        await trx.insertInto('seat').values(seatData).executeTakeFirstOrThrow();
-      });
-    } catch (e) {
+      await createFlight(values);
+    } catch (_) {
       return message(form, { type: 'error', text: 'Failed to add flight' });
     }
 

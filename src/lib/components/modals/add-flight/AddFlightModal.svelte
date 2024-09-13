@@ -1,11 +1,7 @@
 <script lang="ts">
   import { Modal } from '$lib/components/ui/modal';
   import * as Form from '$lib/components/ui/form';
-  import SuperDebug, {
-    defaults,
-    type Infer,
-    superForm,
-  } from 'sveltekit-superforms';
+  import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { flightSchema } from '$lib/zod/flight';
   import { zod } from 'sveltekit-superforms/adapters';
   import { toast } from 'svelte-sonner';
@@ -52,7 +48,6 @@
   classes="max-h-full overflow-y-auto max-w-lg"
 >
   <h2>Add Flight</h2>
-  <SuperDebug data={$formData} />
   <form method="POST" action="?/save-flight" class="grid gap-4" use:enhance>
     <AirportField field="from" {form} />
     <AirportField field="to" {form} />

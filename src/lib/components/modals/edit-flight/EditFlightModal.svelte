@@ -52,8 +52,7 @@
       id: Math.random().toString(36).substring(7),
       validators: zod(flightSchema),
       onSubmit() {
-        // @ts-expect-error - id is not in the schema, but needed in the API when updating
-        $formData.id = String(flight.id);
+        $formData.id = flight.id;
       },
       onUpdated({ form }) {
         if (form.message) {
