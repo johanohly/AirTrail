@@ -20,13 +20,16 @@
     flights: FlightData[];
   } = $props();
 
-  let flightCount = flights.length;
-  let totalDistance = flights.reduce((acc, curr) => (acc += curr.distance), 0);
-  let totalDuration = flights.reduce(
-    (acc, curr) => (acc += curr.duration ?? 0),
-    0,
+  let flightCount = $derived.by(() => flights.length);
+  let totalDistance = $derived.by(() =>
+    flights.reduce((acc, curr) => (acc += curr.distance ?? 0), 0),
   );
-  let airports = new Set(flights.flatMap((f) => [f.from.name, f.to.name])).size;
+  let totalDuration = $derived.by(() =>
+    flights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
+  );
+  let airports = $derived.by(
+    () => new Set(flights.flatMap((f) => [f.from.name, f.to.name])).size,
+  );
 </script>
 
 <Modal bind:open classes="h-full overflow-y-auto !rounded-none" dialogOnly>
