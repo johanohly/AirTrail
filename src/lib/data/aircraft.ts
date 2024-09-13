@@ -241,6 +241,21 @@ export const AIRCRAFT = [
     wtc: 'M',
   },
   {
+    name: 'BAe-146-100',
+    icao: 'B461',
+    wtc: 'M',
+  },
+  {
+    name: 'BAe-146-200',
+    icao: 'B462',
+    wtc: 'M',
+  },
+  {
+    name: 'BAe-146-300',
+    icao: 'B463',
+    wtc: 'M',
+  },
+  {
     name: 'Ayres LM-200 Loadmaster',
     icao: 'LOAD',
     wtc: 'M',
@@ -248,21 +263,6 @@ export const AIRCRAFT = [
   {
     name: 'Fokker 100',
     icao: 'F100',
-    wtc: 'M',
-  },
-  {
-    name: 'BAe 146',
-    icao: 'B461',
-    wtc: 'M',
-  },
-  {
-    name: 'BAe 146',
-    icao: 'B462',
-    wtc: 'M',
-  },
-  {
-    name: 'BAe 146',
-    icao: 'B463',
     wtc: 'M',
   },
   {
