@@ -511,11 +511,6 @@ export const AIRCRAFT = [
     wtc: 'M',
   },
   {
-    name: 'Avro RJX',
-    icao: 'RX1H',
-    wtc: 'M',
-  },
-  {
     name: 'Embraer EMB-120',
     icao: 'EMB1',
     wtc: 'M',
