@@ -156,6 +156,31 @@ export const AIRCRAFT = [
     wtc: 'J',
   },
   {
+    name: 'Antonov AN-12',
+    icao: 'AN12',
+    wtc: 'M',
+  },
+  {
+    name: 'Antonov AN-22',
+    icao: 'AN22',
+    wtc: 'L',
+  },
+  {
+    name: 'Antonov AN-24',
+    icao: 'AN24',
+    wtc: 'M',
+  },
+  {
+    name: 'Antonov AN-26',
+    icao: 'AN26',
+    wtc: 'L',
+  },
+  {
+    name: 'Antonov AN-28',
+    icao: 'AN28',
+    wtc: 'L',
+  },
+  {
     name: 'Antonov AN-30',
     icao: 'AN30',
     wtc: 'L',
@@ -171,8 +196,8 @@ export const AIRCRAFT = [
     wtc: 'L',
   },
   {
-    name: 'Antonov AN-140',
-    icao: 'A140',
+    name: 'Antonov AN-72',
+    icao: 'AN72',
     wtc: 'M',
   },
   {
@@ -181,14 +206,19 @@ export const AIRCRAFT = [
     wtc: 'H',
   },
   {
-    name: 'Antonov AN-225',
-    icao: 'A225',
-    wtc: 'J',
+    name: 'Antonov AN-140',
+    icao: 'A140',
+    wtc: 'M',
   },
   {
     name: 'Antonov AN-148',
     icao: 'A148',
     wtc: 'M',
+  },
+  {
+    name: 'Antonov AN-225',
+    icao: 'A225',
+    wtc: 'J',
   },
   {
     name: 'Fokker 100',
@@ -386,21 +416,6 @@ export const AIRCRAFT = [
     wtc: 'M',
   },
   {
-    name: 'Antonov AN-22',
-    icao: 'AN22',
-    wtc: 'L',
-  },
-  {
-    name: 'Antonov AN-26',
-    icao: 'AN26',
-    wtc: 'L',
-  },
-  {
-    name: 'Antonov AN-28',
-    icao: 'AN28',
-    wtc: 'L',
-  },
-  {
     name: 'Gulfstream/Rockwell (Aero) Commander',
     icao: 'AC68',
     wtc: 'L',
@@ -418,21 +433,6 @@ export const AIRCRAFT = [
   {
     name: 'Ayres LM-200 Loadmaster',
     icao: 'LOAD',
-    wtc: 'M',
-  },
-  {
-    name: 'Antonov AN-24',
-    icao: 'AN24',
-    wtc: 'M',
-  },
-  {
-    name: 'Antonov AN-72',
-    icao: 'AN72',
-    wtc: 'M',
-  },
-  {
-    name: 'Antonov AN-12',
-    icao: 'AN12',
     wtc: 'M',
   },
   {
