@@ -226,17 +226,17 @@ export const AIRCRAFT = [
     wtc: 'J',
   },
   {
-    name: 'Avro RJ 70',
-    icao: 'RJ1H',
+    name: 'Avro RJ70',
+    icao: 'RJ70',
     wtc: 'M',
   },
   {
-    name: 'Avro RJ 85',
-    icao: 'RJ1H',
+    name: 'Avro RJ85',
+    icao: 'RJ85',
     wtc: 'M',
   },
   {
-    name: 'Avro RJ 100',
+    name: 'Avro RJ100',
     icao: 'RJ1H',
     wtc: 'M',
   },
