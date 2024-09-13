@@ -1,12 +1,42 @@
 export const AIRCRAFT = [
   {
-    name: 'Aerospatiale/Alenia ATR 42',
+    name: 'ATR-42-300',
     icao: 'AT43',
     wtc: 'M',
   },
   {
-    name: 'Aerospatiale/Alenia ATR 72',
+    name: 'ATR-42-400',
+    icao: 'AT44',
+    wtc: 'M',
+  },
+  {
+    name: 'ATR-42-500',
+    icao: 'AT45',
+    wtc: 'M',
+  },
+  {
+    name: 'ATR-42-600',
+    icao: 'AT46',
+    wtc: 'M',
+  },
+  {
+    name: 'ATR-72-200',
     icao: 'AT72',
+    wtc: 'M',
+  },
+  {
+    name: 'ATR-72-210',
+    icao: 'AT73',
+    wtc: 'M',
+  },
+  {
+    name: 'ATR-72-500',
+    icao: 'AT75',
+    wtc: 'M',
+  },
+  {
+    name: 'ATR-72-600',
+    icao: 'AT75',
     wtc: 'M',
   },
   {
