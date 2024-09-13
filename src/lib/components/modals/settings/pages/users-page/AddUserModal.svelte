@@ -10,13 +10,12 @@
   import { Label } from '$lib/components/ui/label';
   import { User, ShieldCheck, Info } from '@o7/icon/lucide';
   import { TextTooltip } from '$lib/components/ui/tooltip/index.js';
+  import { invalidateAll } from '$app/navigation';
 
   let {
     open = $bindable(),
-    updateUsers,
   }: {
     open: boolean;
-    updateUsers: () => void;
   } = $props();
 
   const form = superForm(
@@ -26,7 +25,7 @@
       onUpdated({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
-            updateUsers();
+            invalidateAll();
             open = false;
             return void toast.success(form.message.text);
           }

@@ -1,17 +1,10 @@
 <script lang="ts">
   import { Modal } from '$lib/components/ui/modal';
   import { Card } from '$lib/components/ui/card';
-  import {
-    Plane,
-    PlaneTakeoff,
-    PlaneLanding,
-    CircleFadingPlus,
-    X,
-  } from '@o7/icon/lucide';
+  import { Plane, PlaneTakeoff, PlaneLanding, X } from '@o7/icon/lucide';
   import dayjs from 'dayjs';
   import duration from 'dayjs/plugin/duration';
   import { Separator } from '$lib/components/ui/separator';
-  import { Button } from '$lib/components/ui/button';
   import { LabelledSeparator } from '$lib/components/ui/separator/index.js';
   import { cn, type FlightData, isUsingAmPm } from '$lib/utils';
   import * as Tooltip from '$lib/components/ui/tooltip';
@@ -276,11 +269,13 @@
 
 {#snippet actions(flight)}
   <div class="flex items-center gap-2">
-    <EditFlightModal {flight} />
+    {#key flight}
+      <EditFlightModal {flight} />
+    {/key}
     <Confirm
       onConfirm={() => deleteFlight(flight.id)}
       title="Remove Flight"
-      description="Are you sure you want to remove this flight?"
+      description="Are you sure you want to remove this flight? All seats will be removed as well."
       triggerVariant="outline"
       triggerSize="icon"
     >

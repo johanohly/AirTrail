@@ -10,6 +10,11 @@ import customParseFormat from 'dayjs/plugin/customParseFormat';
 import duration from 'dayjs/plugin/duration';
 import { flightSchema } from '$lib/zod/flight';
 import { airportFromICAO } from '$lib/utils/data/airports';
+import {
+  createFlight,
+  getFlight,
+  updateFlight,
+} from '$lib/server/utils/flight';
 
 dayjs.extend(customParseFormat);
 dayjs.extend(duration);
@@ -18,7 +23,9 @@ export const load: PageServerLoad = async (event) => {
   await trpcServer.flight.list.ssr(event);
 
   return {
-    user: event.locals.user,
+    users: (await db.selectFrom('user').selectAll().execute()).map(
+      ({ password, ...rest }) => rest,
+    ),
   };
 };
 
@@ -30,7 +37,7 @@ export const actions: Actions = {
 
     const user = locals.user;
     if (!user) {
-      return error(401, 'You must be logged in to add a flight');
+      return error(401, 'You must be logged in');
     }
 
     const from = form.data.from;
@@ -98,7 +105,7 @@ export const actions: Actions = {
       return returnError(form, 'arrival', 'Arrival must be after departure');
     }
 
-    let duration: number | undefined;
+    let duration: number | null = null;
     if (departure && arrival) {
       duration = arrival.diff(departure, 'seconds');
     } else if (fromAirport != toAirport) {
@@ -110,46 +117,36 @@ export const actions: Actions = {
       duration = Math.round(dayjs.duration(durationHours, 'hours').asSeconds());
     }
 
-    const {
-      seat,
-      seatNumber,
-      seatClass,
-      flightNumber,
-      aircraft,
-      aircraftReg,
-      airline,
-      flightReason,
-      note,
-    } = form.data;
+    const { flightNumber, aircraft, aircraftReg, airline, flightReason, note } =
+      form.data;
 
     const values = {
-      userId: user.id,
       from,
       to,
       duration,
       departure: departure ? toISOString(departure) : null,
       arrival: arrival ? toISOString(arrival) : null,
       date: departureDate.format('YYYY-MM-DD'),
-      seat,
-      seatNumber,
-      seatClass,
       flightNumber,
       aircraft,
       aircraftReg,
       airline,
       flightReason,
       note,
+      seats: form.data.seats,
     };
 
-    const fId = formData.get('id');
-    if (fId && !isNaN(+fId)) {
-      const resp = await db
-        .updateTable('flight')
-        .set(values)
-        .where('id', '=', +fId)
-        .executeTakeFirst();
+    const updateId = form.data.id;
+    if (updateId) {
+      const flight = await getFlight(updateId);
+      if (!flight || !flight.seats.some((seat) => seat.userId === user.id)) {
+        throw new Error('You do not have a seat on this flight');
+      }
 
-      if (!resp) {
+      try {
+        await updateFlight(updateId, values);
+      } catch (e) {
+        console.error(e);
         return message(form, {
           type: 'error',
           text: 'Failed to update flight',
@@ -162,12 +159,9 @@ export const actions: Actions = {
       });
     }
 
-    const resp = await db
-      .insertInto('flight')
-      .values(values)
-      .executeTakeFirst();
-
-    if (!resp) {
+    try {
+      await createFlight(values);
+    } catch (_) {
       return message(form, { type: 'error', text: 'Failed to add flight' });
     }
 

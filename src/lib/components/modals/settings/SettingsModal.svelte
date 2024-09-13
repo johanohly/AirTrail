@@ -6,7 +6,7 @@
   import { Modal } from '$lib/components/ui/modal';
   import { Button } from '$lib/components/ui/button';
   import { ImportPage, GeneralPage, AppearancePage, UsersPage } from './pages';
-  import type { User } from 'lucia';
+  import { page } from '$app/stores';
 
   const SETTINGS_PAGES = [
     { title: 'General', id: 'general' },
@@ -17,24 +17,24 @@
 
   let {
     open = $bindable(),
-    user,
     invalidator,
     activeTab = 'general',
   }: {
     open: boolean;
-    user: User;
     invalidator?: { onSuccess: () => void };
     activeTab?: (typeof SETTINGS_PAGES)[number]['id'];
   } = $props();
+
+  const user = $derived($page.data.user);
 
   const [send, receive] = crossfade({
     duration: 250,
     easing: cubicInOut,
   });
 
-  const authorized_pages = SETTINGS_PAGES.filter((page) => {
-    if (user.role !== 'user') return true;
-    return page.id !== 'users';
+  const authorized_pages = SETTINGS_PAGES.filter((value) => {
+    if (user?.role !== 'user') return true;
+    return value.id !== 'users';
   });
 </script>
 
@@ -43,10 +43,10 @@
     <div class="space-y-0.5">
       <h2 class="text-2xl font-bold tracking-tight">Settings</h2>
       <p class="text-muted-foreground">
-        {#if user.role !== 'user'}
-          Manage your AirTrail instance.
-        {:else}
+        {#if !user || user.role === 'user'}
           Manage your account settings.
+        {:else}
+          Manage your AirTrail instance.
         {/if}
       </p>
     </div>

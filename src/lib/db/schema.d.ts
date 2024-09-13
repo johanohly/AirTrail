@@ -20,15 +20,6 @@ export type flight = {
     duration: number | null;
     flightNumber: string | null;
     /**
-     * @kyselyType('window' | 'aisle' | 'middle' | 'other')
-     */
-    seat: 'window' | 'aisle' | 'middle' | 'other' | null;
-    seatNumber: string | null;
-    /**
-     * @kyselyType('economy' | 'economy+' | 'business' | 'first' | 'private')
-     */
-    seatClass: 'economy' | 'economy+' | 'business' | 'first' | 'private' | null;
-    /**
      * @kyselyType('leisure' | 'business' | 'crew' | 'other')
      */
     flightReason: 'leisure' | 'business' | 'crew' | 'other' | null;
@@ -42,7 +33,24 @@ export type flight = {
     aircraft: string | null;
     aircraftReg: string | null;
     note: string | null;
-    userId: string;
+};
+export type seat = {
+    id: Generated<number>;
+    flightId: number;
+    userId: string | null;
+    guestName: string | null;
+    /**
+     * @kyselyType('window' | 'aisle' | 'middle' | 'other')
+     */
+    seat: 'window' | 'aisle' | 'middle' | 'other' | null;
+    /**
+     * Seat number (e.g. 12A)
+     */
+    seatNumber: string | null;
+    /**
+     * @kyselyType('economy' | 'economy+' | 'business' | 'first' | 'private')
+     */
+    seatClass: 'economy' | 'economy+' | 'business' | 'first' | 'private' | null;
 };
 export type session = {
     id: string;
@@ -65,6 +73,7 @@ export type user = {
 };
 export type DB = {
     flight: flight;
+    seat: seat;
     session: session;
     user: user;
 };

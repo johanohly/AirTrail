@@ -39,11 +39,37 @@ export const flightDateTimeSchema = z.object({
     .nullable(),
 });
 
-export const flightOptionalInformationSchema = z.object({
-  seat: z.enum(SeatTypes).nullable(),
-  seatNumber: z.string().max(5, 'Seat number is too long').nullable(), // 12A-1 for example
-  seatClass: z.enum(SeatClasses).nullable(),
+export const flightSeatInformationSchema = z.object({
+  seats: z
+    .object({
+      userId: z.string().nullable(),
+      guestName: z.string().max(50, 'Guest name is too long').nullable(),
+      seat: z.enum(SeatTypes).nullable(),
+      seatNumber: z.string().max(5, 'Seat number is too long').nullable(), // 12A-1 for example
+      seatClass: z.enum(SeatClasses).nullable(),
+    })
+    .refine((data) => data.userId || data.guestName, {
+      message: 'Select a user or add a guest name',
+      path: ['userId'],
+    })
+    .array()
+    .min(1, 'Add at least one seat')
+    .refine((data) => data.some((seat) => seat.userId), {
+      message: 'At least one seat must be assigned to a user',
+    })
+    .default([
+      {
+        userId: '<USER_ID>',
+        guestName: null,
+        seat: null,
+        seatNumber: null,
+        seatClass: null,
+      },
+    ]),
+});
 
+export const flightOptionalInformationSchema = z.object({
+  id: z.number().optional(), // Only for editing an existing flight
   airline: z.string().max(4, 'Airline is too long').nullable(), // ICAO code
   flightNumber: z.string().max(10, 'Flight number is too long').nullable(), // should cover all cases
   aircraft: z.string().max(4, 'Aircraft is too long').nullable(), // ICAO type code
@@ -57,4 +83,5 @@ export const flightOptionalInformationSchema = z.object({
 
 export const flightSchema = flightAirportsSchema
   .merge(flightDateTimeSchema)
-  .merge(flightOptionalInformationSchema);
+  .merge(flightOptionalInformationSchema)
+  .merge(flightSeatInformationSchema);

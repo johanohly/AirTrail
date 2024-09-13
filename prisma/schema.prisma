@@ -23,7 +23,7 @@ model user {
   role String
 
   sessions session[]
-  flights  flight[]
+  seats    seat[]
 }
 
 model flight {
@@ -38,11 +38,6 @@ model flight {
   duration  Int?
 
   flight_number String?
-  /// @kyselyType('window' | 'aisle' | 'middle' | 'other')
-  seat          String?
-  seat_number   String?
-  /// @kyselyType('economy' | 'economy+' | 'business' | 'first' | 'private')
-  seat_class    String?
   /// @kyselyType('leisure' | 'business' | 'crew' | 'other')
   flight_reason String?
   /// ICAO airline code
@@ -52,8 +47,27 @@ model flight {
   aircraft_reg  String?
   note          String?
 
-  user_id String
-  user    user   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  seats seat[]
+}
+
+model seat {
+  id         Int     @id @default(autoincrement())
+  flight_id  Int
+  user_id    String?
+  guest_name String?
+
+  /// @kyselyType('window' | 'aisle' | 'middle' | 'other')
+  seat        String?
+  /// Seat number (e.g. 12A)
+  seat_number String?
+  /// @kyselyType('economy' | 'economy+' | 'business' | 'first' | 'private')
+  seat_class  String?
+
+  user   user?  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  flight flight @relation(fields: [flight_id], references: [id], onDelete: Cascade)
+
+  @@unique([flight_id, user_id], map: "seat_user_id_flight_id_key")
+  @@unique([flight_id, guest_name], map: "seat_flight_id_guest_name_key")
 }
 
 model session {

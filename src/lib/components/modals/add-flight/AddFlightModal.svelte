@@ -6,7 +6,9 @@
   import { zod } from 'sveltekit-superforms/adapters';
   import { toast } from 'svelte-sonner';
   import { AirportField, DateTimeField } from '$lib/components/form-fields';
-  import OptionalFlightInformation from './OptionalFlightInformation.svelte';
+  import FlightInformation from './FlightInformation.svelte';
+  import SeatInformation from './SeatInformation.svelte';
+  import { page } from '$app/stores';
 
   let {
     open = $bindable(),
@@ -16,6 +18,7 @@
   const form = superForm(
     defaults<Infer<typeof flightSchema>>(zod(flightSchema)),
     {
+      dataType: 'json',
       validators: zod(flightSchema),
       onUpdated({ form }) {
         if (form.message) {
@@ -29,7 +32,13 @@
       },
     },
   );
-  const { enhance } = form;
+  const { form: formData, enhance } = form;
+
+  $effect(() => {
+    if ($formData.seats[0] && $formData.seats[0].userId === '<USER_ID>') {
+      $formData.seats[0].userId = $page.data.user?.id ?? null;
+    }
+  });
 </script>
 
 <Modal
@@ -44,7 +53,8 @@
     <AirportField field="to" {form} />
     <DateTimeField field="departure" {form} />
     <DateTimeField field="arrival" {form} />
-    <OptionalFlightInformation {form} />
+    <SeatInformation {form} />
+    <FlightInformation {form} />
     <Form.Button>Add Flight</Form.Button>
   </form>
 </Modal>

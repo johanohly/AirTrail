@@ -4,14 +4,17 @@ import dayjs from 'dayjs';
 import type { Flight } from '$lib/db';
 import { airlineFromICAO } from '$lib/utils/data/airlines';
 import { airportFromICAO } from '$lib/utils/data/airports';
+import type { CreateFlight, Seat } from '$lib/db/types';
+import { page } from '$app/stores';
+import { get } from 'svelte/store';
 
 const FR24_AIRPORT_REGEX = /\((?<IATA>[a-zA-Z]{3})\/(?<ICAO>[a-zA-Z]{4})\)/;
-const FR24_SEAT_TYPE_MAP: Record<string, Flight['seat']> = {
+const FR24_SEAT_TYPE_MAP: Record<string, Seat['seat']> = {
   '1': 'window',
   '2': 'middle',
   '3': 'aisle',
 };
-const FR24_FLIGHT_CLASS_MAP: Record<string, Flight['seatClass']> = {
+const FR24_FLIGHT_CLASS_MAP: Record<string, Seat['seatClass']> = {
   '1': 'economy',
   '2': 'business',
   '3': 'first',
@@ -94,7 +97,12 @@ export const processFR24File = async (content: string) => {
     return [];
   }
 
-  const flights: Omit<Flight, 'id' | 'userId'>[] = [];
+  const userId = get(page).data.user?.id;
+  if (!userId) {
+    throw new Error('User not found');
+  }
+
+  const flights: CreateFlight[] = [];
   for (const row of data) {
     const fromCode = extractAirportICAO(row.from);
     const toCode = extractAirportICAO(row.to);
@@ -144,8 +152,11 @@ export const processFR24File = async (content: string) => {
     const flightReason =
       FR24_FLIGHT_REASON_MAP?.[row.flight_reason ?? 'noop'] ?? null;
 
-    let airline = row.airline ? extractAirlineICAO(row.airline) : null;
-    if (airline && !airlineFromICAO(airline)) {
+    const rawAirline = row.airline ? extractAirlineICAO(row.airline) : null;
+    let airline = rawAirline
+      ? (airlineFromICAO(rawAirline)?.icao ?? null)
+      : null;
+    if (!airline && rawAirline) {
       console.warn(`Unknown airline ICAO code: ${airline}`);
       airline = null;
     }
@@ -159,15 +170,21 @@ export const processFR24File = async (content: string) => {
       departure: departure ? toISOString(departure) : null,
       arrival: arrival ? toISOString(arrival) : null,
       duration,
-      seat: seatType,
-      seatNumber: row.seat_number,
-      seatClass,
       flightReason,
       note: row.note,
       aircraft,
       aircraftReg: row.registration,
       airline,
       flightNumber: row.flight_number,
+      seats: [
+        {
+          userId,
+          seat: seatType,
+          seatNumber: row.seat_number,
+          seatClass,
+          guestName: null,
+        },
+      ],
     });
   }
 
