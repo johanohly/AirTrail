@@ -261,16 +261,6 @@ export const AIRCRAFT = [
     wtc: 'M',
   },
   {
-    name: 'Fokker 100',
-    icao: 'F100',
-    wtc: 'M',
-  },
-  {
-  	name: 'Canadair Regional Jet CRJ-900',
-  	icao: 'CRJ9',
-  	wtc: 'M',
-  },
-  {
   	name: 'Bombardier DHC-8-100 Dash 8',
   	icao: 'DH8A',
   	wtc: 'M',
@@ -288,6 +278,196 @@ export const AIRCRAFT = [
   {
   	name: 'Bombardier DHC-8-400 Dash 8',
   	icao: 'DH8D',
+  	wtc: 'M',
+  },
+  {
+    name: 'Boeing 707-100',
+    icao: 'B701',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 707-300',
+    icao: 'B703',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 717-200',
+    icao: 'B712',
+    wtc: 'M',
+  },
+  {
+    name: 'Boeing 727-100',
+    icao: 'B721',
+    wtc: 'M',
+  },
+  {
+    name: 'Boeing 727-200',
+    icao: 'B722',
+    wtc: 'M',
+  },
+  {
+    name: 'Boeing 737-200',
+    icao: 'B732',
+    wtc: 'M',
+  },
+  {
+    name: 'Boeing 737-300',
+    icao: 'B733',
+    wtc: 'M',
+  },
+  {
+    name: 'Boeing 737-400',
+    icao: 'B734',
+    wtc: 'M',
+  },
+  {
+    name: 'Boeing 737-500',
+    icao: 'B735',
+    wtc: 'M',
+  },
+  {
+    name: 'Boeing 737-600',
+    icao: 'B736',
+    wtc: 'M',
+  },
+  {
+    name: 'Boeing 737-700',
+    icao: 'B737',
+    wtc: 'M',
+  },
+  {
+    name: 'Boeing 737-800',
+    icao: 'B738',
+    wtc: 'M',
+  },
+  {
+    name: 'Boeing 737-900',
+    icao: 'B739',
+    wtc: 'M',
+  },
+  {
+    name: 'Boeing 737 MAX 7',
+    icao: 'B37M',
+    wtc: 'M',
+  },
+  {
+    name: 'Boeing 737 MAX 8',
+    icao: 'B38M',
+    wtc: 'M',
+  },
+  {
+    name: 'Boeing 737 MAX 9',
+    icao: 'B39M',
+    wtc: 'M',
+  },
+  {
+    name: 'Boeing 737 MAX 10',
+    icao: 'B3XM',
+    wtc: 'M',
+  },
+  {
+    name: 'Boeing 747-100',
+    icao: 'B741',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 747-200',
+    icao: 'B742',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 747-300',
+    icao: 'B743',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 747-400',
+    icao: 'B744',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 747-8',
+    icao: 'B748',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 747SP',
+    icao: 'N74S',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 747SR',
+    icao: 'B74R',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 757-200',
+    icao: 'B752',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 757-300',
+    icao: 'B753',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 767-200',
+    icao: 'B762',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 767-300',
+    icao: 'B763',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 767-400',
+    icao: 'B763',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 777-200/ER',
+    icao: 'B772',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 777-200LR',
+    icao: 'B77L',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 777-300',
+    icao: 'B773',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 777-300ER',
+    icao: 'B77W',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 787-8',
+    icao: 'B788',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 787-9',
+    icao: 'B789',
+    wtc: 'H',
+  },
+  {
+    name: 'Boeing 787-10',
+    icao: 'B78X',
+    wtc: 'H',
+  },
+  {
+    name: 'Fokker 100',
+    icao: 'F100',
+    wtc: 'M',
+  },
+  {
+  	name: 'Canadair Regional Jet CRJ-900',
+  	icao: 'CRJ9',
   	wtc: 'M',
   },
   {
@@ -313,131 +493,6 @@ export const AIRCRAFT = [
   {
     name: 'Embraer E195',
     icao: 'E295',
-    wtc: 'M',
-  },
-  {
-    name: 'Boeing 707',
-    icao: 'B703',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 717',
-    icao: 'B712',
-    wtc: 'M',
-  },
-  {
-    name: 'Boeing 727',
-    icao: 'B721',
-    wtc: 'M',
-  },
-  {
-    name: 'Boeing 727',
-    icao: 'B722',
-    wtc: 'M',
-  },
-  {
-    name: 'Boeing 737',
-    icao: 'B737',
-    wtc: 'M',
-  },
-  {
-    name: 'Boeing 737',
-    icao: 'B738',
-    wtc: 'M',
-  },
-  {
-    name: 'Boeing 747',
-    icao: 'B741',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 747',
-    icao: 'B742',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 747',
-    icao: 'B743',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 747',
-    icao: 'B744',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 747SP',
-    icao: 'N74S',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 747SR',
-    icao: 'B74R',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 757',
-    icao: 'B752',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 757',
-    icao: 'B753',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 767',
-    icao: 'B762',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 767',
-    icao: 'B763',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 777',
-    icao: 'B772',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 777',
-    icao: 'B773',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 787',
-    icao: 'B78X',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 787',
-    icao: 'B788',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 787',
-    icao: 'B789',
-    wtc: 'H',
-  },
-  {
-    name: 'Boeing 737 MAX',
-    icao: 'B37M',
-    wtc: 'M',
-  },
-  {
-    name: 'Boeing 737 MAX',
-    icao: 'B38M',
-    wtc: 'M',
-  },
-  {
-    name: 'Boeing 737 MAX',
-    icao: 'B39M',
-    wtc: 'M',
-  },
-  {
-    name: 'Boeing 737 MAX',
-    icao: 'B3XM',
     wtc: 'M',
   },
   {
