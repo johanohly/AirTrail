@@ -1,43 +1,8 @@
 export const AIRCRAFT = [
   {
-    name: 'ATR-42-300',
-    icao: 'AT43',
-    wtc: 'M',
-  },
-  {
-    name: 'ATR-42-400',
-    icao: 'AT44',
-    wtc: 'M',
-  },
-  {
-    name: 'ATR-42-500',
-    icao: 'AT45',
-    wtc: 'M',
-  },
-  {
-    name: 'ATR-42-600',
-    icao: 'AT46',
-    wtc: 'M',
-  },
-  {
-    name: 'ATR-72-200',
-    icao: 'AT72',
-    wtc: 'M',
-  },
-  {
-    name: 'ATR-72-210',
-    icao: 'AT73',
-    wtc: 'M',
-  },
-  {
-    name: 'ATR-72-500',
-    icao: 'AT75',
-    wtc: 'M',
-  },
-  {
-    name: 'ATR-72-600',
-    icao: 'AT75',
-    wtc: 'M',
+    name: 'Agusta A109',
+    icao: 'A109',
+    wtc: 'L',
   },
   {
     name: 'Airbus A300-100/200',
@@ -154,6 +119,46 @@ export const AIRCRAFT = [
     name: 'Airbus A380-800',
     icao: 'A388',
     wtc: 'J',
+  },
+  {
+    name: 'ATR-42-300',
+    icao: 'AT43',
+    wtc: 'M',
+  },
+  {
+    name: 'ATR-42-400',
+    icao: 'AT44',
+    wtc: 'M',
+  },
+  {
+    name: 'ATR-42-500',
+    icao: 'AT45',
+    wtc: 'M',
+  },
+  {
+    name: 'ATR-42-600',
+    icao: 'AT46',
+    wtc: 'M',
+  },
+  {
+    name: 'ATR-72-200',
+    icao: 'AT72',
+    wtc: 'M',
+  },
+  {
+    name: 'ATR-72-210',
+    icao: 'AT73',
+    wtc: 'M',
+  },
+  {
+    name: 'ATR-72-500',
+    icao: 'AT75',
+    wtc: 'M',
+  },
+  {
+    name: 'ATR-72-600',
+    icao: 'AT75',
+    wtc: 'M',
   },
   {
     name: 'Antonov AN-12',
@@ -423,11 +428,6 @@ export const AIRCRAFT = [
   {
     name: 'Gulfstream/Rockwell (Aero) Turbo Commander',
     icao: 'AC90',
-    wtc: 'L',
-  },
-  {
-    name: 'Agusta A109',
-    icao: 'A109',
     wtc: 'L',
   },
   {
