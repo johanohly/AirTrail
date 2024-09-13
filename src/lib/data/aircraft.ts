@@ -556,16 +556,6 @@ export const AIRCRAFT = [
     wtc: 'H',
   },
   {
-    name: 'Antonov AN-124',
-    icao: 'AN124',
-    wtc: 'H',
-  },
-  {
-    name: 'Antonov AN-225',
-    icao: 'AN225',
-    wtc: 'H',
-  },
-  {
     name: 'Cessna 172',
     icao: 'C172',
     wtc: 'L',
