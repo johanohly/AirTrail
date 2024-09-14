@@ -3,7 +3,7 @@ import { trpcServer } from '$lib/server/server';
 import { message, setError, superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { error, fail } from '@sveltejs/kit';
-import { distanceBetween, toISOString } from '$lib/utils';
+import { distanceBetween, estimateDuration, toISOString } from '$lib/utils';
 import { db } from '$lib/db';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
@@ -112,9 +112,7 @@ export const actions: Actions = {
       // if the airports are the same, the duration can't be calculated
       const fromLonLat = { lon: fromAirport.lon, lat: fromAirport.lat };
       const toLonLat = { lon: toAirport.lon, lat: toAirport.lat };
-      const distance = distanceBetween(fromLonLat, toLonLat) / 1000;
-      const durationHours = distance / 805 + 0.5; // 805 km/h is the average speed of a commercial jet, add 0.5 hours for takeoff and landing
-      duration = Math.round(dayjs.duration(durationHours, 'hours').asSeconds());
+      duration = estimateDuration(fromLonLat, toLonLat);
     }
 
     const { flightNumber, aircraft, aircraftReg, airline, flightReason, note } =

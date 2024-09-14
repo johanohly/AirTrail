@@ -53,7 +53,7 @@
 
 <PageHeader
   title="Import"
-  subtitle="Supported platforms: FlightRadar24, App in the Air"
+  subtitle="Supported platforms: FlightRadar24, App in the Air, JetLog"
 >
   <label for="file" class="block">
     <Card
