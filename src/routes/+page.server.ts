@@ -75,9 +75,7 @@ export const actions: Actions = {
       departureDate = departure;
     }
 
-    const arrivalDate = form.data.arrival
-      ? dayjs(form.data.arrival)
-      : undefined;
+    let arrivalDate = form.data.arrival ? dayjs(form.data.arrival) : undefined;
     if (arrivalDate && arrivalDate.isBefore(dayjs('1970-01-01'))) {
       return returnError(form, 'arrival', 'Too far in the past');
     }
@@ -87,6 +85,9 @@ export const actions: Actions = {
         'arrival',
         'Cannot have arrival date without time',
       );
+    }
+    if (form.data.arrivalTime && !arrivalDate) {
+      arrivalDate = departureDate;
     }
 
     let arrival: dayjs.Dayjs | undefined;
