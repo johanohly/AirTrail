@@ -101,6 +101,7 @@ export const actions: Actions = {
     } catch (e) {
       return returnError(form, 'arrivalTime', 'Invalid time format');
     }
+
     if (arrival && departure && arrival.isBefore(departure)) {
       return returnError(form, 'arrival', 'Arrival must be after departure');
     }
@@ -186,11 +187,16 @@ const mergeTimeWithDate = (
     throw new Error('Invalid time format');
   }
 
-  if (ampm && ampm.toLowerCase() === 'pm') {
-    return dateOnly
-      .hour(+hours + 12)
-      .minute(+minutes)
-      .second(0);
+  if (ampm) {
+    let h = +hours;
+    if (ampm.toLowerCase() === 'pm' && h < 12) {
+      h += 12; // Add 12 hours between 1 and 11 PM
+    }
+    if (ampm.toLowerCase() === 'am' && h === 12) {
+      h = 0; // 12 AM is 0 hours from midnight
+    }
+
+    return dateOnly.hour(h).minute(+minutes).second(0);
   }
 
   return dateOnly.hour(+hours).minute(+minutes).second(0);
