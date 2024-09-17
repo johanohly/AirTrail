@@ -32,7 +32,7 @@
   const { form: formData, enhance } = form;
 </script>
 
-<form method="POST" action="/edit-user" use:enhance>
+<form method="POST" action="/api/users/edit" use:enhance>
   <Form.Field {form} name="username">
     <Form.Control let:attrs>
       <Form.Label>Username</Form.Label>
