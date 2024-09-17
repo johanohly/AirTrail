@@ -48,7 +48,7 @@
   classes="max-h-full overflow-y-auto max-w-lg"
 >
   <h2>Add Flight</h2>
-  <form method="POST" action="?/save-flight" class="grid gap-4" use:enhance>
+  <form method="POST" action="/api/flight/save" class="grid gap-4" use:enhance>
     <AirportField field="from" {form} />
     <AirportField field="to" {form} />
     <DateTimeField field="departure" {form} />

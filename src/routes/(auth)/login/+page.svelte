@@ -40,7 +40,12 @@
           Welcome back! Enter your username and password to login
         </p>
       </div>
-      <form use:enhance method="POST" class="grid gap-4">
+      <form
+        use:enhance
+        action="/api/users/login"
+        method="POST"
+        class="grid gap-4"
+      >
         <Form.Field {form} name="username">
           <Form.Control let:attrs>
             <Form.Label>Username</Form.Label>

@@ -1,7 +1,6 @@
 var fs = require('fs');
 
 const IGNORED_FIELDS = [
-  'GPS',
   'LOCAL',
   'type',
   'restriction',
@@ -43,7 +42,12 @@ const IGNORED_FIELDS = [
         if (!isNaN(+cell) && cell !== null) {
           cell = +cell;
         }
-        airport[header] = cell;
+
+        if (i === 2 && airport['ICAO'].length !== 4 && cell?.length === 4) {
+          airport['ICAO'] = cell;
+        } else {
+          airport[header] = cell;
+        }
       });
       return airport;
     })
@@ -51,7 +55,7 @@ const IGNORED_FIELDS = [
 
   const airportsDataJson = JSON.stringify(airportsData, null);
   const airportsTs = `export const AIRPORTS = ${airportsDataJson};`;
-  fs.writeFileSync('../src/lib/data/airports.ts', airportsTs);
+  fs.writeFileSync('../../src/lib/data/airports.ts', airportsTs);
 })();
 
 const sanitizeValue = (value) => {

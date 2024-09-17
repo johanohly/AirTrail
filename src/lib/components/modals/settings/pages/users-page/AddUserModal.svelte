@@ -40,7 +40,7 @@
 
 <Modal bind:open>
   <h2 class="leading-4">Add User</h2>
-  <form method="POST" action="/add-user" use:enhance>
+  <form method="POST" action="/api/users/add" use:enhance>
     <Form.Field {form} name="username">
       <Form.Control let:attrs>
         <Form.Label>Username</Form.Label>

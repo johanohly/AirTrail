@@ -34,7 +34,7 @@
 
 <Modal bind:open dialogOnly>
   <h1>Edit Password</h1>
-  <form method="POST" action="/edit-password" use:enhance>
+  <form method="POST" action="/api/users/edit-password" use:enhance>
     <Form.Field {form} name="currentPassword">
       <Form.Control let:attrs>
         <Form.Label>Current Password</Form.Label>
