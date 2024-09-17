@@ -75,7 +75,7 @@
   </Dialog.Trigger>
   <Dialog.Content classes="max-h-full overflow-y-auto max-w-lg">
     <h2>Edit Flight</h2>
-    <form method="POST" action="?/save-flight" use:enhance class="grid gap-4">
+    <form method="POST" action="/api/flight/save" use:enhance class="grid gap-4">
       <AirportField field="from" {form} />
       <AirportField field="to" {form} />
       <DateTimeField field="departure" {form} />
