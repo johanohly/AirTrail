@@ -6,7 +6,7 @@ sidebar_position: 1
 
 The import feature allows you to import flight data from other sources into AirTrail.
 Currently, AirTrail supports importing flights from [MyFlightradar24](https://my.flightradar24.com)
-and [App in the Air](https://appintheair.com).
+, [App in the Air](https://appintheair.com) and [JetLog](https://github.com/pbogre/jetlog).
 
 ## Import flights from MyFlightradar24
 
@@ -42,6 +42,28 @@ Once you have the text file, you can import it into AirTrail by following these 
 2. Go to the settings page.
 3. Click on the "Import" tab.
 4. Click on the "Choose File" button and select the text file you received from App in the Air.
+5. Click on the "Import" button to start the import process.
+
+After the import process is complete, you will see your flights on the map.
+
+## Import flights from JetLog
+
+:::tip
+Make sure the file you are importing is called `jetlog.csv`. If it is not, rename it to `jetlog.csv` before importing.
+:::
+
+While logged in to your JetLog account, follow these steps to export your flights:
+
+1. Go to your JetLog instance.
+2. Go to the "Settings" page in the top right corner.
+3. Click on the "Export to CSV" button to download your flights as a CSV file.
+
+Once you have the CSV file, you can import it into AirTrail by following these steps:
+
+1. Go to the AirTrail application.
+2. Go to the settings page.
+3. Click on the "Import" tab.
+4. Click on the "Choose File" button and select the CSV file you downloaded from JetLog.
 5. Click on the "Import" button to start the import process.
 
 After the import process is complete, you will see your flights on the map.
