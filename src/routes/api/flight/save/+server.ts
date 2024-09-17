@@ -160,7 +160,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   return actionResult('success', { form });
 };
 
-const timePartsRegex = /^(\d{1,2}):(\d{2})(?:\s?(am|pm))?$/i;
+const timePartsRegex = /^(\d{1,2})(?::|\.|)(\d{2})(?:\s?(am|pm))?$/i;
 const mergeTimeWithDate = (
   dateOnly: dayjs.Dayjs,
   timeString: string,
