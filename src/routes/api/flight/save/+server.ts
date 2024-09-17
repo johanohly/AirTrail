@@ -1,15 +1,9 @@
-import {
-  actionResult,
-  message,
-  setError,
-  superValidate,
-} from 'sveltekit-superforms';
+import { actionResult, setError, superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { flightSchema } from '$lib/zod/flight';
-import { error, fail } from '@sveltejs/kit';
 import { airportFromICAO } from '$lib/utils/data/airports';
 import dayjs from 'dayjs';
-import { distanceBetween, toISOString } from '$lib/utils';
+import { estimateDuration, toISOString } from '$lib/utils';
 import {
   createFlight,
   getFlight,
@@ -103,9 +97,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     // if the airports are the same, the duration can't be calculated
     const fromLonLat = { lon: fromAirport.lon, lat: fromAirport.lat };
     const toLonLat = { lon: toAirport.lon, lat: toAirport.lat };
-    const distance = distanceBetween(fromLonLat, toLonLat) / 1000;
-    const durationHours = distance / 805 + 0.5; // 805 km/h is the average speed of a commercial jet, add 0.5 hours for takeoff and landing
-    duration = Math.round(dayjs.duration(durationHours, 'hours').asSeconds());
+    duration = estimateDuration(fromLonLat, toLonLat);
   }
 
   const { flightNumber, aircraft, aircraftReg, airline, flightReason, note } =
