@@ -20,8 +20,28 @@ export const AIRCRAFT = [
     wtc: 'M',
   },
   {
+  	name: 'Canadair Regional Jet CRJ-100',
+  	icao: 'CRJ1',
+  	wtc: 'M',
+  },
+  {
+  	name: 'Canadair Regional Jet CRJ-200',
+  	icao: 'CRJ2',
+  	wtc: 'M',
+  },
+  {
+  	name: 'Canadair Regional Jet CRJ-700',
+  	icao: 'CRJ7',
+  	wtc: 'M',
+  },
+  {
   	name: 'Canadair Regional Jet CRJ-900',
   	icao: 'CRJ9',
+  	wtc: 'M',
+  },
+  {
+  	name: 'Canadair Regional Jet CRJ-1000',
+  	icao: 'CRJX',
   	wtc: 'M',
   },
   {
