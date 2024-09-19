@@ -59,7 +59,6 @@
           { key: 'icao', exact: true },
           { key: 'name', exact: false },
         ],
-        20,
       );
     } else {
       aircraft = [];

@@ -47,16 +47,11 @@
   let airlines: Airline[] = $state([]);
   $effect(() => {
     if ($touchedInput && $inputValue !== '') {
-      airlines = sortAndFilterByMatch(
-        AIRLINES,
-        $inputValue,
-        [
-          { key: 'icao', exact: true },
-          { key: 'iata', exact: true },
-          { key: 'name', exact: false },
-        ],
-        20,
-      );
+      airlines = sortAndFilterByMatch(AIRLINES, $inputValue, [
+        { key: 'icao', exact: true },
+        { key: 'iata', exact: true },
+        { key: 'name', exact: false },
+      ]);
     } else {
       airlines = [];
     }
