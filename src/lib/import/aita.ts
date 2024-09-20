@@ -7,7 +7,7 @@ import { page } from '$app/stores';
 
 export const processAITAFile = (input: string) => {
   const flightPattern =
-    /^.*?;(\w{2};\d{3,4});(\w*);(\w{3});(\w{3});([\d\-T:]+);([\d\-T:]+);([\d\-T:]+);([\d\-T:]+);(.*)/gm;
+    /^.*?;(\w{2,4};\d{2,4});(\w*);(\w{3});(\w{3});([\d\-T:]+);([\d\-T:]+);([\d\-T:]+);([\d\-T:]+);(.*)/gm;
 
   const flights: CreateFlight[] = [];
   let match;
