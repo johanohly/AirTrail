@@ -80,6 +80,7 @@ export const prepareFlightArcData = (data: FlightData[]) => {
       };
       flights: { route: string; date: string; airline: string | null }[];
       airlines: string[];
+      exclusivelyFuture: boolean;
     };
   } = {};
 
@@ -104,10 +105,15 @@ export const prepareFlightArcData = (data: FlightData[]) => {
         },
         flights: [],
         airlines: [],
+        exclusivelyFuture: false,
       };
     }
 
     routeMap[key].flights.push(formatSimpleFlight(flight));
+
+    if (routeMap[key].flights.every((f) => dayjs(f.date) > dayjs())) {
+      routeMap[key].exclusivelyFuture = true;
+    }
 
     if (flight.airline) {
       if (!routeMap[key].airlines.includes(flight.airline)) {

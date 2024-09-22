@@ -28,6 +28,7 @@
   const FROM_COLOR = [59, 130, 246]; // Also the primary color
   const TO_COLOR = [139, 92, 246]; // TW violet-500
   const HOVER_COLOR = [16, 185, 129];
+  const FUTURE_COLOR = [102, 217, 239, 100];
 
   let {
     flights,
@@ -102,9 +103,17 @@
     getSourcePosition={(d) => d.from.position}
     getTargetPosition={(d) => d.to.position}
     getSourceColor={(d) =>
-      hoveredArc && d === hoveredArc ? HOVER_COLOR : FROM_COLOR}
+      hoveredArc && d === hoveredArc
+        ? HOVER_COLOR
+        : d.exclusivelyFuture
+          ? FUTURE_COLOR
+          : FROM_COLOR}
     getTargetColor={(d) =>
-      hoveredArc && d === hoveredArc ? HOVER_COLOR : TO_COLOR}
+      hoveredArc && d === hoveredArc
+        ? HOVER_COLOR
+        : d.exclusivelyFuture
+          ? FUTURE_COLOR
+          : TO_COLOR}
     updateTriggers={{ getSourceColor: hoveredArc, getTargetColor: hoveredArc }}
     getWidth={2}
     getHeight={0}
