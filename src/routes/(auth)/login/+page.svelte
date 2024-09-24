@@ -1,21 +1,41 @@
 <script lang="ts">
-  import { trpc } from '$lib/trpc';
+  import { api, trpc } from '$lib/trpc';
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
   import { goto } from '$app/navigation';
-  import { onMount } from 'svelte';
   import { Globe } from '$lib/components/ui/globe';
   import { superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
   import { signInSchema } from '$lib/zod/auth';
   import { toast } from 'svelte-sonner';
   import { LoaderCircle } from '@o7/icon/lucide';
+  import { appConfig } from '$lib/utils/stores';
+  import { Button } from '$lib/components/ui/button';
+  import { isOAuthCallback } from '$lib/utils';
+  import { onMount } from 'svelte';
 
   const query = trpc.user.isSetup.query();
   const isSetup = $query.data;
-  onMount(() => {
+
+  let oauthLoading = $state(true);
+
+  onMount(async () => {
     if (!isSetup) {
-      goto('/setup');
+      await goto('/setup');
+    }
+
+    if (!$appConfig?.enabled) {
+      oauthLoading = false;
+      return;
+    }
+
+    if (isOAuthCallback(window.location)) {
+      try {
+        const resp = await api.oauth.callback.query(window.location.href);
+      } catch (err) {
+        toast.error(err.message);
+        oauthLoading = false;
+      }
     }
   });
 
@@ -29,6 +49,21 @@
     },
   });
   const { form: formData, enhance, submitting } = form;
+
+  const oauthLogin = async () => {
+    oauthLoading = true;
+    const redirect = window.location.toString().split('?')[0];
+    if (!redirect) return;
+
+    try {
+      const resp = await api.oauth.authorize.query(redirect);
+      window.location.href = resp.url;
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      oauthLoading = false;
+    }
+  };
 </script>
 
 <div class="h-full grid lg:grid-cols-2">
@@ -60,13 +95,16 @@
           </Form.Control>
           <Form.FieldErrors />
         </Form.Field>
-        <Form.Button disabled={$submitting}>
+        <Form.Button disabled={$submitting || oauthLoading}>
           {#if $submitting}
             <LoaderCircle class="animate-spin mr-1" size="18" />
           {/if}
           Log in
         </Form.Button>
       </form>
+      <Button onclick={oauthLogin} disabled={oauthLoading} variant="outline"
+        >OAuth
+      </Button>
     </div>
   </div>
   <div class="items-center justify-center relative hidden lg:flex">

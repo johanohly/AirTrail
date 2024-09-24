@@ -7,7 +7,7 @@ import {
 } from 'kysely';
 import pg from 'pg';
 import { env } from '$env/dynamic/private';
-import type { DB, flight, user } from './schema';
+import type { DB } from './schema';
 
 export const pool = new pg.Pool({ connectionString: env.DB_URL });
 const dialect = new PostgresDialect({ pool });
