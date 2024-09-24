@@ -57,7 +57,8 @@ export const flightRouter = router({
           ) {
             return flightInput.seats.map((seat) => ({
               flightId: flight.id,
-              userId: seat.userId || user.id,
+              userId: seat.userId || (seat.guestName ? null : user.id),
+              guestName: seat.guestName,
               seat: seat.seat,
               seatNumber: seat.seatNumber,
               seatClass: seat.seatClass,
