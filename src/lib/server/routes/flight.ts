@@ -73,15 +73,39 @@ export const flightRouter = router({
         return await trx.insertInto('seat').values(seatData).execute();
       });
     }),
-  export: authedProcedure.query(async ({ ctx: { user } }) => {
+  exportJson: authedProcedure.query(async ({ ctx: { user } }) => {
+    const users = await db
+      .selectFrom('user')
+      .select(['id', 'displayName', 'username'])
+      .execute();
     const res = await listFlights(user.id);
-    const flights = res.map((flight) => ({
+    const flights = res.map(({ id, ...flight }) => ({
       ...flight,
-      seats: flight.seats.map((seat) => ({
+      seats: flight.seats.map(({ id, flightId, ...seat }) => ({
         ...seat,
-        userId: undefined,
       })),
     }));
+    return JSON.stringify(
+      {
+        users,
+        flights,
+      },
+      null,
+      2,
+    );
+  }),
+  exportCsv: authedProcedure.query(async ({ ctx: { user } }) => {
+    const res = await listFlights(user.id);
+    const flights = res.map(({ id, seats, ...flight }) => {
+      const seat = seats.find((seat) => seat.userId === user.id);
+
+      return {
+        ...flight,
+        seat: seat?.seat,
+        seatNumber: seat?.seatNumber,
+        seatClass: seat?.seatClass,
+      };
+    });
 
     return generateCsv(flights);
   }),

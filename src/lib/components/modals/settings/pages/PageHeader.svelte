@@ -1,17 +1,20 @@
 <script lang="ts">
+  /* eslint svelte/no-at-html-tags: 0 */
   import { Separator } from '$lib/components/ui/separator';
   import type { Snippet } from 'svelte';
 
   let {
     title,
     subtitle,
-    children,
+    subtitleHtml,
     headerRight,
+    children,
   }: {
     title: string;
-    subtitle: string;
-    children: Snippet;
+    subtitle?: string;
+    subtitleHtml?: Snippet;
     headerRight?: Snippet;
+    children: Snippet;
   } = $props();
 </script>
 
@@ -19,9 +22,13 @@
   <div class="flex items-center justify-between">
     <div>
       <h3 class="text-lg font-medium">{title}</h3>
-      <p class="text-muted-foreground text-sm">
-        {subtitle}
-      </p>
+      {#if subtitleHtml}
+        {@render subtitleHtml()}
+      {:else if subtitle}
+        <p class="text-muted-foreground text-sm">
+          {@html subtitle}
+        </p>
+      {/if}
     </div>
     {#if headerRight}
       {@render headerRight()}
