@@ -7,6 +7,7 @@ import {
   deleteFlight,
   listFlights,
 } from '$lib/server/utils/flight';
+import { generateCsv } from '$lib/utils/csv';
 
 export const flightRouter = router({
   list: authedProcedure.query(async ({ ctx: { user } }) => {
@@ -72,4 +73,16 @@ export const flightRouter = router({
         return await trx.insertInto('seat').values(seatData).execute();
       });
     }),
+  export: authedProcedure.query(async ({ ctx: { user } }) => {
+    const res = await listFlights(user.id);
+    const flights = res.map((flight) => ({
+      ...flight,
+      seats: flight.seats.map((seat) => ({
+        ...seat,
+        userId: undefined,
+      })),
+    }));
+
+    return generateCsv(flights);
+  }),
 });

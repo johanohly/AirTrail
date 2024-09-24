@@ -5,7 +5,13 @@
   import { cubicInOut } from 'svelte/easing';
   import { Modal } from '$lib/components/ui/modal';
   import { Button } from '$lib/components/ui/button';
-  import { ImportPage, GeneralPage, AppearancePage, UsersPage } from './pages';
+  import {
+    ImportPage,
+    GeneralPage,
+    AppearancePage,
+    UsersPage,
+    ExportPage,
+  } from './pages';
   import { page } from '$app/stores';
 
   const SETTINGS_PAGES = [
@@ -13,6 +19,7 @@
     { title: 'Users', id: 'users' },
     { title: 'Appearance', id: 'appearance' },
     { title: 'Import', id: 'import' },
+    { title: 'Export', id: 'export' },
   ] as const;
 
   let {
@@ -89,6 +96,8 @@
           <AppearancePage />
         {:else if activeTab === 'import'}
           <ImportPage {invalidator} />
+        {:else if activeTab === 'export'}
+          <ExportPage />
         {/if}
       </div>
     </div>
