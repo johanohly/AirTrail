@@ -16,11 +16,11 @@
 
 - **World Map**: View all your flights on an interactive world map.
 - **Flight History**: Keep track of all your flights in one place.
-- **Statistics**: Get insights into your flight history with statistics.
-- **User Authentication**: Allow multiple users and secure your data with user authentication.
+- **Statistics**: Get insights into your flight history with statistics. 
+- **Multiple Users**: Manage multiple users, share flights among them and secure your data with user authentication.
 - **Responsive Design**: Use the application on any device with a responsive design.
 - **Dark Mode**: Switch between light and dark mode.
-- **Import Flights**: Import flights from various sources.
+- **Import Flights**: Import flights from various sources including MyFlightRadar24, App in the Air and JetLog. 
 
 ## 🚀 Getting Started
 
