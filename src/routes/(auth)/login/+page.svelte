@@ -129,6 +129,9 @@
       </form>
       {#if $appConfig?.enabled}
         <Button onclick={oauthLogin} disabled={oauthLoading} variant="outline">
+          {#if oauthLoading}
+            <LoaderCircle class="animate-spin mr-1" size={16} />
+          {/if}
           Log in with SSO
         </Button>
       {/if}
