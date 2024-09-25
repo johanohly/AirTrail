@@ -28,7 +28,10 @@
           await goto('/setup');
         }
 
-        if (!$appConfig) return;
+        if (!$appConfig) {
+          oauthLoading = false;
+          return;
+        }
 
         if (!$appConfig.enabled) {
           oauthLoading = false;
@@ -36,6 +39,7 @@
         }
 
         if (isOAuthCallback(window.location)) {
+          oauthLoading = true;
           const resp = await fetch('/api/oauth/callback', {
             method: 'POST',
             headers: {
@@ -45,10 +49,10 @@
           });
 
           if (!resp.ok) {
-            oauthLoading = false;
             await goto('/login'); // clear potential query params
             const err = await resp.json();
             toast.error(err?.message);
+            oauthLoading = false;
             return;
           }
 
@@ -123,9 +127,11 @@
           Log in
         </Form.Button>
       </form>
-      <Button onclick={oauthLogin} disabled={oauthLoading} variant="outline"
-        >OAuth
-      </Button>
+      {#if $appConfig?.enabled}
+        <Button onclick={oauthLogin} disabled={oauthLoading} variant="outline">
+          Log in with SSO
+        </Button>
+      {/if}
     </div>
   </div>
   <div class="items-center justify-center relative hidden lg:flex">
