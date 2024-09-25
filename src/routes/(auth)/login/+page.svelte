@@ -57,6 +57,16 @@
           }
 
           await goto('/', { invalidateAll: true });
+          return;
+        }
+
+        if (
+          $appConfig.autoLogin &&
+          !window.location.search.includes('autoLogin=false')
+        ) {
+          await goto('/login?autoLogin=false', { replaceState: true });
+          await oauthLogin();
+          return;
         }
 
         oauthLoading = false;
