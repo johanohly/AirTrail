@@ -20,7 +20,7 @@ model app_config {
   issuer_url    String?
   client_id     String?
   client_secret String?
-  scope         String  @default("openid profile email")
+  scope         String  @default("openid profile")
   auto_register Boolean @default(true)
   auto_login    Boolean @default(false)
 }

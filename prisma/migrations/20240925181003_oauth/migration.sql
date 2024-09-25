@@ -11,7 +11,7 @@ CREATE TABLE "app_config"
     "issuer_url"    TEXT,
     "client_id"     TEXT,
     "client_secret" TEXT,
-    "scope"         TEXT    NOT NULL DEFAULT 'openid profile email',
+    "scope"         TEXT    NOT NULL DEFAULT 'openid profile',
     "auto_register" BOOLEAN NOT NULL DEFAULT true,
     "auto_login"    BOOLEAN NOT NULL DEFAULT false,
 
@@ -21,6 +21,6 @@ CREATE TABLE "app_config"
 -- Insert
 INSERT INTO "app_config" ("enabled", "scope", "auto_register",
                           "auto_login")
-VALUES (false, 'openid profile email', true,
+VALUES (false, 'openid profile', true,
         false);
 

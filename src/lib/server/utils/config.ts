@@ -17,7 +17,12 @@ export async function fetchAppConfig() {
 }
 
 export async function updateAppConfig(newConfig: Partial<AppConfig>) {
-  await db.updateTable('appConfig').set(newConfig).execute();
+  const resp = await db
+    .updateTable('appConfig')
+    .set(newConfig)
+    .executeTakeFirst();
 
   appConfigCache = null;
+
+  return resp.numUpdatedRows > 0;
 }
