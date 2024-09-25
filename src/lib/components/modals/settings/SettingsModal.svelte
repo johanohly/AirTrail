@@ -11,6 +11,7 @@
     AppearancePage,
     UsersPage,
     OAuthPage,
+    SecurityPage,
   } from './pages';
   import { page } from '$app/stores';
   import { isLargeScreen } from '$lib/utils/size';
@@ -18,6 +19,7 @@
 
   const ACCOUNT_SETTINGS = [
     { title: 'General', id: 'general' },
+    { title: 'Security', id: 'security' },
     { title: 'Appearance', id: 'appearance' },
     { title: 'Import', id: 'import' },
   ] as const;
@@ -123,6 +125,8 @@
       <div class="flex-1 lg:max-w-2xl">
         {#if activeTab === 'general'}
           <GeneralPage />
+        {:else if activeTab === 'security'}
+          <SecurityPage />
         {:else if activeTab === 'appearance'}
           <AppearancePage />
         {:else if activeTab === 'import'}

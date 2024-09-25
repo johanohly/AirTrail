@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { error, json } from '@sveltejs/kit';
 import { fetchAppConfig } from '$lib/server/utils/config';
 import { getOAuthProfile } from '$lib/server/utils/oauth';
-import { db } from '$lib/db';
+import { db, type User } from '$lib/db';
 import { generateId } from 'lucia';
 import { createSession } from '$lib/server/utils/auth';
 import { lucia } from '$lib/server/auth';
@@ -12,7 +12,7 @@ const CallbackSchema = z.object({
   url: z.string().url(),
 });
 
-export const POST: RequestHandler = async ({ cookies, request }) => {
+export const POST: RequestHandler = async ({ cookies, request, locals }) => {
   const body = await request.json();
   const parsed = CallbackSchema.safeParse(body);
   if (!parsed.success) {
@@ -32,14 +32,44 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
     console.error(e);
     return error(500, 'Invalid state, please try again');
   }
+
   const { autoRegister } = config;
 
-  let user = await db
-    .selectFrom('user')
-    .selectAll()
-    .where('oauthId', '=', profile.sub)
-    .executeTakeFirst();
+  let user: User | undefined = locals.user ?? undefined;
 
+  // Case 1: User is already logged in (user triggered account linking)
+  if (user) {
+    if (user.oauthId) {
+      return error(500, 'User is already linked to an account');
+    }
+
+    const existingUser = await db
+      .selectFrom('user')
+      .selectAll()
+      .where('oauthId', '=', profile.sub)
+      .executeTakeFirst();
+    if (existingUser) {
+      return error(500, 'Account is already linked to another user');
+    }
+
+    user = await db
+      .updateTable('user')
+      .set('oauthId', profile.sub)
+      .where('id', '=', user.id)
+      .returningAll()
+      .executeTakeFirst();
+  }
+
+  // Case 2: User is not logged in (user is logging in via OAuth)
+  if (!user) {
+    user = await db
+      .selectFrom('user')
+      .selectAll()
+      .where('oauthId', '=', profile.sub)
+      .executeTakeFirst();
+  }
+
+  // Case 3: User has not logged in via OAuth before, but has an account (we assume the username is owned by the user)
   if (!user && profile.preferred_username) {
     const usernameUser = await db
       .selectFrom('user')
@@ -61,6 +91,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
     }
   }
 
+  // Case 4: User has not logged in via OAuth before, and does not have an account
   if (!user) {
     if (!autoRegister) {
       return error(500, 'User not found');

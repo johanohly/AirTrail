@@ -1,8 +1,9 @@
-import { publicProcedure, router } from '../trpc';
+import { authedProcedure, publicProcedure, router } from '../trpc';
 import { fetchAppConfig } from '$lib/server/utils/config';
 import { getOAuthClient } from '$lib/server/utils/oauth';
 import { z } from 'zod';
 import { generators } from 'openid-client';
+import { db } from '$lib/db';
 
 export const oauthRouter = router({
   authorize: publicProcedure.input(z.string()).query(async ({ input }) => {
@@ -19,5 +20,13 @@ export const oauthRouter = router({
     });
 
     return { url };
+  }),
+  unlink: authedProcedure.mutation(async ({ ctx }) => {
+    const result = await db
+      .updateTable('user')
+      .set({ oauthId: null })
+      .where('id', '=', ctx.user.id)
+      .executeTakeFirst();
+    return result.numUpdatedRows > 0;
   }),
 });

@@ -1,5 +1,9 @@
 import { fetchAppConfig } from '$lib/server/utils/config';
-import { Issuer } from 'openid-client';
+import { custom, Issuer } from 'openid-client';
+
+custom.setHttpOptionsDefaults({
+  timeout: 10000,
+});
 
 export const getOAuthProfile = async (url: string) => {
   const redirectUrl = url.split('?')[0];
