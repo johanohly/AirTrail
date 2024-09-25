@@ -94,7 +94,7 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
   // Case 4: User has not logged in via OAuth before, and does not have an account
   if (!user) {
     if (!autoRegister) {
-      return error(500, 'User not found');
+      return error(500, 'You do not have an AirTrail account');
     }
 
     if (!profile.preferred_username) {
