@@ -12,31 +12,52 @@
   import { appConfig } from '$lib/utils/stores';
   import { Button } from '$lib/components/ui/button';
   import { isOAuthCallback } from '$lib/utils';
-  import { onMount } from 'svelte';
+  import { untrack } from 'svelte';
 
   const query = trpc.user.isSetup.query();
   const isSetup = $query.data;
 
   let oauthLoading = $state(true);
 
-  onMount(async () => {
-    if (!isSetup) {
-      await goto('/setup');
-    }
+  $effect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- we need this for the effect to rerun
+    [$appConfig];
+    untrack(() => {
+      (async () => {
+        if (!isSetup) {
+          await goto('/setup');
+        }
 
-    if (!$appConfig?.enabled) {
-      oauthLoading = false;
-      return;
-    }
+        if (!$appConfig) return;
 
-    if (isOAuthCallback(window.location)) {
-      try {
-        const resp = await api.oauth.callback.query(window.location.href);
-      } catch (err) {
-        toast.error(err.message);
+        if (!$appConfig.enabled) {
+          oauthLoading = false;
+          return;
+        }
+
+        if (isOAuthCallback(window.location)) {
+          const resp = await fetch('/api/oauth/callback', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url: window.location.toString() }),
+          });
+
+          if (!resp.ok) {
+            oauthLoading = false;
+            await goto('/login'); // clear potential query params
+            const err = await resp.json();
+            toast.error(err?.message);
+            return;
+          }
+
+          await goto('/', { invalidateAll: true });
+        }
+
         oauthLoading = false;
-      }
-    }
+      })();
+    });
   });
 
   const { data } = $props();
