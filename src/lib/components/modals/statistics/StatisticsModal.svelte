@@ -11,14 +11,18 @@
     formatNumber,
   } from '$lib/utils';
   import { page } from '$app/stores';
+  import dayjs from 'dayjs';
 
   let {
     open = $bindable(),
-    flights,
+    allFlights,
   }: {
     open?: boolean;
-    flights: FlightData[];
+    allFlights: FlightData[];
   } = $props();
+
+  // Only show completed flights
+  const flights = $derived.by(() => allFlights.filter((f) => f.date < dayjs()));
 
   let flightCount = $derived.by(() => flights.length);
   let totalDistance = $derived.by(() =>
