@@ -24,6 +24,8 @@ export const lucia = new Lucia(adapter, {
       displayName: db.display_name,
       unit: db.unit,
       role: db.role,
+      // @ts-expect-error - Same as above
+      oauthId: db.oauth_id,
     };
   },
 });

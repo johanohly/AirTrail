@@ -8,7 +8,6 @@
   import { toTitleCase } from '$lib/utils';
   import { toast } from 'svelte-sonner';
   import { page } from '$app/stores';
-  import EditPassword from './EditPassword.svelte';
 
   const form = superForm(
     defaults<Infer<typeof editUserSchema>>(
@@ -71,10 +70,5 @@
     </Form.Control>
     <Form.FieldErrors />
   </Form.Field>
-  <div class="flex items-center justify-between">
-    <Form.Button class="mt-1">Save</Form.Button>
-    <div>
-      <EditPassword />
-    </div>
-  </div>
+  <Form.Button class="mt-1">Save</Form.Button>
 </form>

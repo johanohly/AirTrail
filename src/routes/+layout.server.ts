@@ -1,6 +1,7 @@
 import { trpcServer } from '$lib/server/server';
 import type { LayoutServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
+import type { ClientAppConfig } from '$lib/db/types';
 
 export const load = async (event: Parameters<LayoutServerLoad>[0]) => {
   if (
@@ -17,8 +18,15 @@ export const load = async (event: Parameters<LayoutServerLoad>[0]) => {
     user = rest;
   }
 
+  let appConfig: ClientAppConfig | null = null;
+  if (event.locals.appConfig) {
+    const { clientSecret: _, ...oauthConfig } = event.locals.appConfig;
+    appConfig = oauthConfig;
+  }
+
   return {
     trpc: await trpcServer.hydrateToClient(event),
     user,
+    appConfig,
   };
 };
