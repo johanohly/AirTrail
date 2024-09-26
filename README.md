@@ -3,8 +3,6 @@
 [![GitHub Release](https://img.shields.io/github/v/release/johanohly/AirTrail?style=for-the-badge)]()
 [![Contributors](https://img.shields.io/github/contributors/johanohly/AirTrail?style=for-the-badge)]()
 [![GitHub Stars](https://img.shields.io/github/stars/johanohly/AirTrail?style=for-the-badge)]()
-[![GitHub Issues](https://img.shields.io/github/issues/johanohly/AirTrail?style=for-the-badge)]()
-[![License](https://img.shields.io/github/license/johanohly/AirTrail?style=for-the-badge)]()
 
 <div align="center">
   <a href="https://johanohly.github.io/AirTrail/">
