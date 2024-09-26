@@ -10,6 +10,7 @@
     GeneralPage,
     AppearancePage,
     UsersPage,
+    ExportPage,
     OAuthPage,
     SecurityPage,
   } from './pages';
@@ -22,6 +23,7 @@
     { title: 'Security', id: 'security' },
     { title: 'Appearance', id: 'appearance' },
     { title: 'Import', id: 'import' },
+    { title: 'Export', id: 'export' },
   ] as const;
   const ADMIN_SETTINGS = [
     { title: 'Users', id: 'users' },
@@ -131,6 +133,8 @@
           <AppearancePage />
         {:else if activeTab === 'import'}
           <ImportPage {invalidator} />
+        {:else if activeTab === 'export'}
+          <ExportPage />
         {:else if activeTab === 'users'}
           <UsersPage />
         {:else if activeTab === 'oauth'}

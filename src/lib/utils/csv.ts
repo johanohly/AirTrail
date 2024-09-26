@@ -44,3 +44,31 @@ const sanitizeHeader = (header: string) => {
     .replace(/^_/, '')
     .replace(/_$/, '');
 };
+
+type CsvCell = string | number | object | null | undefined;
+
+export const generateCsv = (data: Record<string, CsvCell>[]) => {
+  if (!data[0]) {
+    return '';
+  }
+
+  const headers = Object.keys(data[0]);
+  const headerRow = headers.map((header) => `"${header}"`).join(',') + '\n';
+
+  const rows = data.map((row) => {
+    return headers
+      .map((header) => {
+        if (typeof row[header] === 'object' && row[header] !== null) {
+          return stringify(row[header]);
+        }
+        return `"${row[header] ?? ''}"`;
+      })
+      .join(',');
+  });
+
+  return headerRow + rows.join('\n');
+};
+
+const stringify = (value: object) => {
+  return `"${JSON.stringify(value).replace(/,/g, '\\,')}"`;
+};
