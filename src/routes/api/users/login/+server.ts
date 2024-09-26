@@ -15,7 +15,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
   const { username, password } = form.data;
 
   const user = await getUser(username);
-  if (!user) {
+  if (!user || !user.password) {
     form.message = { type: 'error', text: 'Invalid username or password' };
     return actionResult('failure', { form });
   }

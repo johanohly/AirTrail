@@ -5,15 +5,28 @@
   import { cubicInOut } from 'svelte/easing';
   import { Modal } from '$lib/components/ui/modal';
   import { Button } from '$lib/components/ui/button';
-  import { ImportPage, GeneralPage, AppearancePage, UsersPage } from './pages';
+  import {
+    ImportPage,
+    GeneralPage,
+    AppearancePage,
+    UsersPage,
+    OAuthPage,
+    SecurityPage,
+  } from './pages';
   import { page } from '$app/stores';
+  import { isLargeScreen } from '$lib/utils/size';
+  import SettingsTabContainer from '$lib/components/modals/settings/SettingsTabContainer.svelte';
 
-  const SETTINGS_PAGES = [
+  const ACCOUNT_SETTINGS = [
     { title: 'General', id: 'general' },
-    { title: 'Users', id: 'users' },
+    { title: 'Security', id: 'security' },
     { title: 'Appearance', id: 'appearance' },
     { title: 'Import', id: 'import' },
   ] as const;
+  const ADMIN_SETTINGS = [
+    { title: 'Users', id: 'users' },
+    { title: 'OAuth', id: 'oauth' },
+  ];
 
   let {
     open = $bindable(),
@@ -22,7 +35,9 @@
   }: {
     open: boolean;
     invalidator?: { onSuccess: () => void };
-    activeTab?: (typeof SETTINGS_PAGES)[number]['id'];
+    activeTab?:
+      | (typeof ACCOUNT_SETTINGS)[number]['id']
+      | (typeof ADMIN_SETTINGS)[number]['id'];
   } = $props();
 
   const user = $derived($page.data.user);
@@ -30,11 +45,6 @@
   const [send, receive] = crossfade({
     duration: 250,
     easing: cubicInOut,
-  });
-
-  const authorized_pages = SETTINGS_PAGES.filter((value) => {
-    if (user?.role !== 'user') return true;
-    return value.id !== 'users';
   });
 </script>
 
@@ -52,13 +62,13 @@
     </div>
     <Separator class="my-6" />
     <div class="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
-      <aside class="md:-mx-4 lg:w-1/5">
-        <nav class="flex space-x-2 lg:flex-col lg:space-x-0 lg:space-y-1">
-          {#each authorized_pages as item}
-            {@const isActive = activeTab === item.id}
+      <aside class="flex lg:flex-col md:-mx-4 lg:w-1/5">
+        <SettingsTabContainer>
+          {#each ACCOUNT_SETTINGS as setting}
+            {@const isActive = activeTab === setting.id}
 
             <Button
-              on:click={() => (activeTab = item.id)}
+              on:click={() => (activeTab = setting.id)}
               variant="ghost"
               class={cn(
                 !isActive && 'hover:underline',
@@ -74,21 +84,57 @@
                 />
               {/if}
               <div class="relative">
-                {item.title}
+                {setting.title}
               </div>
             </Button>
           {/each}
-        </nav>
+        </SettingsTabContainer>
+        {#if user && user.role !== 'user'}
+          <Separator
+            class="my-2"
+            orientation={$isLargeScreen ? 'horizontal' : 'vertical'}
+          />
+          <SettingsTabContainer>
+            {#each ADMIN_SETTINGS as setting}
+              {@const isActive = activeTab === setting.id}
+
+              <Button
+                on:click={() => (activeTab = setting.id)}
+                variant="ghost"
+                class={cn(
+                  !isActive && 'hover:underline',
+                  'relative justify-start hover:bg-transparent',
+                )}
+                data-sveltekit-noscroll
+              >
+                {#if isActive}
+                  <div
+                    class="bg-card-hover absolute inset-0 rounded-md"
+                    in:send={{ key: 'active-sidebar-tab' }}
+                    out:receive={{ key: 'active-sidebar-tab' }}
+                  />
+                {/if}
+                <div class="relative">
+                  {setting.title}
+                </div>
+              </Button>
+            {/each}
+          </SettingsTabContainer>
+        {/if}
       </aside>
       <div class="flex-1 lg:max-w-2xl">
         {#if activeTab === 'general'}
           <GeneralPage />
-        {:else if activeTab === 'users'}
-          <UsersPage />
+        {:else if activeTab === 'security'}
+          <SecurityPage />
         {:else if activeTab === 'appearance'}
           <AppearancePage />
         {:else if activeTab === 'import'}
           <ImportPage {invalidator} />
+        {:else if activeTab === 'users'}
+          <UsersPage />
+        {:else if activeTab === 'oauth'}
+          <OAuthPage />
         {/if}
       </div>
     </div>

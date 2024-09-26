@@ -11,16 +11,32 @@ generator kysely {
   camelCase = true
 }
 
+model app_config {
+  id Int @id @default(autoincrement())
+
+  /// OIDC
+
+  enabled       Boolean @default(false)
+  issuer_url    String?
+  client_id     String?
+  client_secret String?
+  scope         String  @default("openid profile")
+  auto_register Boolean @default(true)
+  auto_login    Boolean @default(false)
+}
+
 model user {
   id           String @id
   username     String @unique
-  password     String
   display_name String
   /// @kyselyType('metric' | 'imperial')
   unit         String
+  password     String?
 
   /// @kyselyType('user' | 'admin' | 'owner')
   role String
+
+  oauth_id String?
 
   sessions session[]
   seats    seat[]

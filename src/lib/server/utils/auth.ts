@@ -26,13 +26,17 @@ export const getUser = async (username: string) => {
     .executeTakeFirst();
 };
 
+export const createSessionCookie = async (lucia: Lucia, userId: string) => {
+  const session = await lucia.createSession(userId, {});
+  return lucia.createSessionCookie(session.id);
+};
+
 export const createSession = async (
   lucia: Lucia,
   userId: string,
   cookies: Cookies,
 ) => {
-  const session = await lucia.createSession(userId, {});
-  const sessionCookie = lucia.createSessionCookie(session.id);
+  const sessionCookie = await createSessionCookie(lucia, userId);
 
   cookies.set(sessionCookie.name, sessionCookie.value, {
     path: '.',
