@@ -49,7 +49,7 @@
           });
 
           if (!resp.ok) {
-            await goto('/login'); // clear potential query params
+            await goto('/login', { replaceState: true }); // clear potential query params
             const err = await resp.json();
             toast.error(err?.message);
             oauthLoading = false;
