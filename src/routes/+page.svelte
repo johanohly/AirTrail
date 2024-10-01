@@ -15,6 +15,7 @@
     ListFlightsModal,
     SettingsModal,
     StatisticsModal,
+    VisitedCountriesModal,
   } from '$lib/components/modals';
   import { Map } from '$lib/components/map';
 
@@ -81,12 +82,14 @@
   let addFlightModalOpen = $state(false);
   let listFlightsModalOpen = $state(false);
   let statisticsModalOpen = $state(false);
+  let visitedCountriesModalOpen = $state(true);
   let settingsModalOpen = $state(false);
 </script>
 
 <AddFlightModal bind:open={addFlightModalOpen} {invalidator} />
 <ListFlightsModal bind:open={listFlightsModalOpen} {flights} {deleteFlight} />
 <StatisticsModal bind:open={statisticsModalOpen} allFlights={flights} />
+<VisitedCountriesModal bind:open={visitedCountriesModalOpen} />
 <SettingsModal bind:open={settingsModalOpen} {invalidator} />
 
 <div class="relative h-[100dvh]">
