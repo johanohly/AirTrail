@@ -85,10 +85,24 @@ export type user = {
     role: 'user' | 'admin' | 'owner';
     oauthId: string | null;
 };
+export type visited_country = {
+    id: Generated<number>;
+    /**
+     * ISO 3166-1 numeric code
+     */
+    code: string;
+    /**
+     * @kyselyType('lived' | 'visited' | 'layover' | 'wishlist')
+     */
+    status: 'lived' | 'visited' | 'layover' | 'wishlist';
+    note: string | null;
+    userId: string;
+};
 export type DB = {
     appConfig: app_config;
     flight: flight;
     seat: seat;
     session: session;
     user: user;
+    visitedCountry: visited_country;
 };
