@@ -9,7 +9,11 @@
   import { z } from 'zod';
   import type { flightSchema } from '$lib/zod/flight';
   import { writable } from 'svelte/store';
-  import { type Airport, airportFromICAO, airportSearchCache } from '$lib/utils/data/airports';
+  import {
+    type Airport,
+    airportFromICAO,
+    airportSearchCache,
+  } from '$lib/utils/data/airports';
 
   let {
     field,
@@ -40,6 +44,19 @@
     if (item) {
       $formData[field] = item.value;
     }
+  });
+
+  // If the field is updated externally, update the selected value
+  formData.subscribe((data) => {
+    if (data[field] === $selected?.value) return;
+    selected.set(
+      data[field]
+        ? {
+            label: airportFromICAO(data[field])?.name,
+            value: data[field],
+          }
+        : undefined,
+    );
   });
 
   $effect(() => {
