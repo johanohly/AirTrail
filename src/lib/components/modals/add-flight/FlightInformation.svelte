@@ -21,55 +21,9 @@
   <h3 class="font-medium">Flight Information</h3>
   <Separator class="mt-2 mb-3" />
   <div class="grid gap-4">
-    <AircraftField {form} />
-    <AirlineField {form} />
-    <div class="grid grid-cols-[1fr_1fr_1fr] gap-2">
-      <Form.Field {form} name="flightReason">
-        <Form.Control let:attrs>
-          <Form.Label>Flight Reason</Form.Label>
-          <Select.Root
-            selected={{
-              label: $formData.flightReason
-                ? toTitleCase($formData.flightReason)
-                : undefined,
-              value: $formData.flightReason,
-            }}
-            onSelectedChange={(value) => {
-              if (value) {
-                if (value.value === $formData.flightReason) {
-                  $formData.flightReason = null;
-                } else {
-                  $formData.flightReason = value.value;
-                }
-              }
-            }}
-          >
-            <Select.Trigger {...attrs}>
-              <Select.Value placeholder="Select reason..." />
-            </Select.Trigger>
-            <Select.Content>
-              <Select.Item value="leisure" label="Leisure" />
-              <Select.Item value="business" label="Business" />
-              <Select.Item value="crew" label="Crew" />
-              <Select.Item value="other" label="Other" />
-            </Select.Content>
-          </Select.Root>
-          <input
-            type="hidden"
-            value={$formData.flightReason}
-            name={attrs.name}
-          />
-        </Form.Control>
-        <Form.FieldErrors />
-      </Form.Field>
-      <Form.Field {form} name="flightNumber">
-        <Form.Control let:attrs>
-          <Form.Label>Flight Number</Form.Label>
-          <Input bind:value={$formData.flightNumber} {...attrs} />
-        </Form.Control>
-        <Form.FieldErrors />
-      </Form.Field>
-      <Form.Field {form} name="aircraftReg">
+    <div class="grid grid-cols-[2fr_1fr] gap-2">
+      <AircraftField {form} />
+      <Form.Field {form} name="aircraftReg" class="flex flex-col">
         <Form.Control let:attrs>
           <Form.Label>Aircraft Registration</Form.Label>
           <Input bind:value={$formData.aircraftReg} {...attrs} />
@@ -77,6 +31,41 @@
         <Form.FieldErrors />
       </Form.Field>
     </div>
+    <AirlineField {form} />
+    <Form.Field {form} name="flightReason">
+      <Form.Control let:attrs>
+        <Form.Label>Flight Reason</Form.Label>
+        <Select.Root
+          selected={{
+            label: $formData.flightReason
+              ? toTitleCase($formData.flightReason)
+              : undefined,
+            value: $formData.flightReason,
+          }}
+          onSelectedChange={(value) => {
+            if (value) {
+              if (value.value === $formData.flightReason) {
+                $formData.flightReason = null;
+              } else {
+                $formData.flightReason = value.value;
+              }
+            }
+          }}
+        >
+          <Select.Trigger {...attrs}>
+            <Select.Value placeholder="Select reason..." />
+          </Select.Trigger>
+          <Select.Content>
+            <Select.Item value="leisure" label="Leisure" />
+            <Select.Item value="business" label="Business" />
+            <Select.Item value="crew" label="Crew" />
+            <Select.Item value="other" label="Other" />
+          </Select.Content>
+        </Select.Root>
+        <input type="hidden" value={$formData.flightReason} name={attrs.name} />
+      </Form.Control>
+      <Form.FieldErrors />
+    </Form.Field>
     <Form.Field {form} name="note">
       <Form.Control let:attrs>
         <Form.Label>Notes</Form.Label>
