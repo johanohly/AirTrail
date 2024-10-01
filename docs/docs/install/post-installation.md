@@ -23,4 +23,4 @@ To create a new user, go to the settings page, and click on the "Users" tab. Ent
 
 ## Add flights
 
-Start adding flights to your account to see the map slowly fill up with your flight paths. You can add flights manually or [import them](/docs/features/import) from various sources.
+Start adding flights to your account to see the map slowly fill up with your flight paths. You can [add flights manually](/docs/features/add-flight) or [import them](/docs/features/import) from various sources.
