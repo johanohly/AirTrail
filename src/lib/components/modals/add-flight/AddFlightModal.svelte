@@ -10,11 +10,9 @@
   import SeatInformation from './SeatInformation.svelte';
   import { page } from '$app/stores';
   import FlightNumber from '$lib/components/modals/add-flight/FlightNumber.svelte';
+  import { trpc } from '$lib/trpc';
 
-  let {
-    open = $bindable(),
-    invalidator,
-  }: { open: boolean; invalidator: { onSuccess: () => void } } = $props();
+  let { open = $bindable() }: { open: boolean } = $props();
 
   const form = superForm(
     defaults<Infer<typeof flightSchema>>(zod(flightSchema)),
@@ -24,7 +22,7 @@
       onUpdated({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
-            invalidator.onSuccess();
+            trpc.flight.list.utils.invalidate();
             open = false;
             return void toast.success(form.message.text);
           }

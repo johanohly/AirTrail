@@ -32,11 +32,9 @@
 
   let {
     open = $bindable(),
-    invalidator,
     activeTab = 'general',
   }: {
     open: boolean;
-    invalidator?: { onSuccess: () => void };
     activeTab?:
       | (typeof ACCOUNT_SETTINGS)[number]['id']
       | (typeof ADMIN_SETTINGS)[number]['id'];
@@ -132,7 +130,7 @@
         {:else if activeTab === 'appearance'}
           <AppearancePage />
         {:else if activeTab === 'import'}
-          <ImportPage {invalidator} />
+          <ImportPage />
         {:else if activeTab === 'export'}
           <ExportPage />
         {:else if activeTab === 'users'}

@@ -39,13 +39,11 @@
   };
 </script>
 
-<AddFlightModal bind:open={openModalsState.addFlight} {invalidator} />
 <ListFlightsModal
   bind:open={openModalsState.listFlights}
   {flights}
   {deleteFlight}
 />
 <StatisticsModal bind:open={openModalsState.statistics} allFlights={flights} />
-<SettingsModal bind:open={openModalsState.settings} {invalidator} />
 
 <Map {flights} />

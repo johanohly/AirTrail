@@ -3,7 +3,7 @@
   import { api } from '$lib/trpc';
   import type { User } from '$lib/db';
   import { toTitleCase } from '$lib/utils';
-  import { LoaderCircle, SquarePen, X } from '@o7/icon/lucide';
+  import { SquarePen, X } from '@o7/icon/lucide';
   import { Card } from '$lib/components/ui/card';
   import { toast } from 'svelte-sonner';
   import { Button } from '$lib/components/ui/button';
@@ -12,7 +12,7 @@
   import { page } from '$app/stores';
   import { invalidateAll } from '$app/navigation';
 
-  let users = $derived($page.data.users as User[]);
+  let users = $derived($page.data.users);
 
   const deleteUser = async (id: string) => {
     const success = await api.user.delete.mutate(id);

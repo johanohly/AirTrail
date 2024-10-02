@@ -7,8 +7,10 @@ declare global {
       session: import('lucia').Session | null;
       appConfig: AppConfig | null;
     }
+
     interface PageData {
       user: import('lucia').User | null;
+      users: Omit<import('lucia').User, 'password'>[];
     }
 
     namespace Superforms {

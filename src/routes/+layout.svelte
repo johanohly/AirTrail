@@ -19,10 +19,12 @@
     LayoutList,
     Settings,
     Map,
+    Grip,
   } from '@o7/icon/lucide';
   import { openModalsState } from '$lib/stores.svelte';
   import { page } from '$app/stores';
   import { flyAndScale } from '$lib/utils/other';
+  import { AddFlightModal, SettingsModal } from '$lib/components/modals';
 
   const { data, children } = $props();
 
@@ -64,13 +66,23 @@
       },
     },
   ];
+  const OTHER = [
+    {
+      label: 'Visited countries',
+      href: '/visited-countries',
+    },
+  ];
 </script>
 
 <ModeWatcher />
 <ScreenSize />
 <Toaster />
 <QueryClientProvider client={queryClient}>
+  <SettingsModal bind:open={openModalsState.settings} />
+  <AddFlightModal bind:open={openModalsState.addFlight} />
+
   {@render children()}
+
   {#if !['/login', '/setup'].includes($page.url.pathname)}
     <div class="absolute bottom-6 left-1/2 translate-x-[-50%]">
       <div class="flex gap-4">
@@ -85,8 +97,8 @@
           {#each PRIMARY as item}
             <DockTooltipItem {item} {mouseX} {distance} {magnification} />
           {/each}
-          <DockDropdownItem items={[{ label: 'Test', href: '/' }]} label="More">
-            <Settings />
+          <DockDropdownItem items={OTHER} label="More">
+            <Grip />
           </DockDropdownItem>
           <Separator orientation="vertical" class="h-full w-[1px]" />
           {#each SECONDARY as item}
