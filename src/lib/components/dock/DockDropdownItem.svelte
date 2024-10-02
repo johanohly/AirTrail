@@ -3,6 +3,7 @@
   import { Motion } from 'svelte-motion';
   import { cn } from '$lib/utils';
   import { ChevronRight } from '@o7/icon/lucide';
+  import * as Tooltip from '$lib/components/ui/tooltip';
 
   let {
     items,
@@ -14,7 +15,7 @@
     children: Snippet;
   } = $props();
 
-  const variants = {
+  const listVariants = {
     visible: {
       clipPath: 'inset(0% 0% 0% 0% round 12px)',
       transition: {
@@ -23,7 +24,7 @@
       },
     },
     hidden: {
-      clipPath: 'inset(10% 50% 90% 50% round 12px)',
+      clipPath: 'inset(90% 50% 10% 50% round 12px)',
       transition: {
         duration: 0.3,
         type: 'spring',
@@ -31,44 +32,73 @@
       },
     },
   };
+  const itemVariants = {
+    visible: (i: number) => ({
+      opacity: 1,
+      scale: 1,
+      filter: 'blur(0px)',
+      transition: {
+        duration: 0.3,
+        delay: (items.length + 1 - i) * 0.15,
+      },
+    }),
+    hidden: {
+      opacity: 0,
+      scale: 0.3,
+      filter: 'blur(20px)',
+    },
+  };
 
-  let hovered = $state(false);
+  let open = $state(false);
 </script>
+
+<svelte:window on:keydown={(e) => e.key === 'Escape' && (open = false)} />
 
 <div
   role="button"
   tabindex="0"
-  onmouseenter={() => (hovered = true)}
-  onmouseleave={() => (hovered = false)}
+  onkeyup={(e) => e.key === 'Enter' && (open = !open)}
+  onclick={() => (open = !open)}
+  class="flex aspect-square cursor-pointer items-center justify-center rounded-full"
 >
-  {@render children()}
+  <Tooltip.Root openDelay={0}>
+    <Tooltip.Trigger
+      class="hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 transition-all duration-200 rounded-full p-3 mx-0"
+    >
+      {@render children()}
+    </Tooltip.Trigger>
+    <Tooltip.Content sideOffset={8}>
+      <p>{label}</p>
+    </Tooltip.Content>
+  </Tooltip.Root>
 </div>
 
 <Motion
-  animate={hovered ? 'visible' : 'hidden'}
-  {variants}
+  animate={open ? 'visible' : 'hidden'}
+  variants={listVariants}
   initial="hidden"
   let:motion
 >
   <ul
     use:motion
     class={cn(
-      'absolute z-[1] max-w-[200px] w-full space-y-3 p-2.5 bg-neutral-900 border border-neutral-800 rounded-xl',
-      hovered ? 'pointer-events-auto' : 'pointer-events-none',
+      'fixed bottom-[60px] left-1/2 translate-x-[-50%] z-[1] max-w-[200px] w-full space-y-1 p-2 bg-background/70 border backdrop-blur-md rounded-xl',
+      open ? 'pointer-events-auto' : 'pointer-events-none',
     )}
   >
     {#each items as item, i}
       <Motion
         custom={i + 1}
-        {variants}
+        variants={itemVariants}
         initial="hidden"
-        animate={hovered ? 'visible' : 'hidden'}
+        animate={open ? 'visible' : 'hidden'}
         let:motion
       >
         <li use:motion>
           <a
             href={item.href}
-            class="group flex items-center gap-2 rounded-md border border-transparent text-neutral-400 hover:text-neutral-300 focus-visible:text-neutral-300 focus-visible:border-neutral-800 focus-visible:outline-none"
+            onclick={() => (open = false)}
+            class="group flex items-center p-2 gap-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 transition-all duration-200 focus-visible:text-foreground focus-visible:border focus-visible:outline-none"
           >
             <span class="flex items-center gap-1 text-sm font-medium">
               {item.label}
