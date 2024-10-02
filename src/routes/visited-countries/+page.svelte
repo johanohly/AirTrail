@@ -1,16 +1,9 @@
 <script lang="ts">
-  import { Modal } from '$lib/components/ui/modal';
   import { geoNaturalEarth1, geoOrthographic } from 'd3-geo';
   import { feature } from 'topojson-client';
   import { Chart, GeoPath, Graticule, Svg, Tooltip } from 'layerchart';
   import { COUNTRIES_GEO } from '$lib/data/countries-geo';
   import { Switch } from '$lib/components/ui/switch';
-
-  let {
-    open = $bindable(),
-  }: {
-    open?: boolean;
-  } = $props();
 
   let globe = $state(true);
   const projection = $derived(globe ? geoOrthographic : geoNaturalEarth1);
@@ -19,11 +12,7 @@
   const features = geojson.features;
 </script>
 
-<Modal
-  bind:open
-  classes={'flex flex-col h-full !rounded-none overflow-y-auto'}
-  dialogOnly
->
+<div class={'flex flex-col h-full'}>
   <div class="flex justify-between">
     <h2 class="text-3xl font-bold tracking-tight">Visited Countries</h2>
     <Switch bind:checked={globe} />
@@ -56,4 +45,4 @@
       {data.properties.name}
     </Tooltip.Root>
   </Chart>
-</Modal>
+</div>

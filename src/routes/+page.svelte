@@ -1,13 +1,5 @@
 <script lang="ts">
   import { trpc } from '$lib/trpc';
-  import { Dock, DockTooltipItem } from '$lib/components/dock';
-  import {
-    ChartColumn,
-    GitBranchPlus,
-    Settings,
-    LayoutList,
-  } from '@o7/icon/lucide';
-  import { Separator } from '$lib/components/ui/separator';
   import { prepareFlightData } from '$lib/utils';
   import { toast } from 'svelte-sonner';
   import {
@@ -15,42 +7,9 @@
     ListFlightsModal,
     SettingsModal,
     StatisticsModal,
-    VisitedCountriesModal,
   } from '$lib/components/modals';
   import { Map } from '$lib/components/map';
-
-  const PRIMARY = [
-    {
-      label: 'Add flight',
-      icon: GitBranchPlus,
-      onClick: () => {
-        addFlightModalOpen = true;
-      },
-    },
-    {
-      label: 'List flights',
-      icon: LayoutList,
-      onClick: () => {
-        listFlightsModalOpen = true;
-      },
-    },
-    {
-      label: 'Statistics',
-      icon: ChartColumn,
-      onClick: () => {
-        statisticsModalOpen = true;
-      },
-    },
-  ];
-  const SECONDARY = [
-    {
-      label: 'Settings',
-      icon: Settings,
-      onClick: () => {
-        settingsModalOpen = true;
-      },
-    },
-  ];
+  import { openModalsState } from '$lib/stores.svelte';
 
   const rawFlights = trpc.flight.list.query();
 
@@ -78,32 +37,15 @@
       toast.error('Failed to delete flight', { id: toastId });
     }
   };
-
-  let addFlightModalOpen = $state(false);
-  let listFlightsModalOpen = $state(false);
-  let statisticsModalOpen = $state(false);
-  let visitedCountriesModalOpen = $state(true);
-  let settingsModalOpen = $state(false);
 </script>
 
-<AddFlightModal bind:open={addFlightModalOpen} {invalidator} />
-<ListFlightsModal bind:open={listFlightsModalOpen} {flights} {deleteFlight} />
-<StatisticsModal bind:open={statisticsModalOpen} allFlights={flights} />
-<VisitedCountriesModal bind:open={visitedCountriesModalOpen} />
-<SettingsModal bind:open={settingsModalOpen} {invalidator} />
+<AddFlightModal bind:open={openModalsState.addFlight} {invalidator} />
+<ListFlightsModal
+  bind:open={openModalsState.listFlights}
+  {flights}
+  {deleteFlight}
+/>
+<StatisticsModal bind:open={openModalsState.statistics} allFlights={flights} />
+<SettingsModal bind:open={openModalsState.settings} {invalidator} />
 
-<div class="relative h-[100dvh]">
-  <Map {flights} />
-
-  <div class="absolute bottom-6 left-1/2 translate-x-[-50%]">
-    <Dock let:mouseX let:distance let:magnification>
-      {#each PRIMARY as item}
-        <DockTooltipItem {item} {mouseX} {distance} {magnification} />
-      {/each}
-      <Separator orientation="vertical" class="h-full w-[0.6px]" />
-      {#each SECONDARY as item}
-        <DockTooltipItem {item} {mouseX} {distance} {magnification} />
-      {/each}
-    </Dock>
-  </div>
-</div>
+<Map {flights} />
