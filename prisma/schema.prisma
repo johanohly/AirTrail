@@ -91,7 +91,7 @@ model visited_country {
   id Int @id @default(autoincrement())
 
   /// ISO 3166-1 numeric code
-  code   String
+  code   Int
   /// @kyselyType('lived' | 'visited' | 'layover' | 'wishlist')
   status String
   note   String?

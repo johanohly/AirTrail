@@ -1,7 +1,7 @@
 -- CreateTable
 CREATE TABLE "visited_country" (
     "id" SERIAL NOT NULL,
-    "code" TEXT NOT NULL,
+    "code" INTEGER NOT NULL,
     "status" TEXT NOT NULL,
     "note" TEXT,
     "user_id" TEXT NOT NULL,

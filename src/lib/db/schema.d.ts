@@ -90,7 +90,7 @@ export type visited_country = {
     /**
      * ISO 3166-1 numeric code
      */
-    code: string;
+    code: number;
     /**
      * @kyselyType('lived' | 'visited' | 'layover' | 'wishlist')
      */
