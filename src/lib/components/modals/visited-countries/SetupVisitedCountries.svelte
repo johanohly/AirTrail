@@ -5,7 +5,10 @@
 
   let { visitedCountries }: { visitedCountries: any[] } = $props();
 
-  let open = $derived.by(() => visitedCountries.length === 0);
+  let manualOverride = $state(false);
+  let open = $derived.by(
+    () => !manualOverride && visitedCountries.length === 0,
+  );
 
   let loading = $state(false);
   const importFlights = async () => {
@@ -29,5 +32,10 @@
   <Button onclick={importFlights} disabled={loading}
     >Fill from your flights
   </Button>
-  <Button variant="outline" disabled={loading}>Fill manually</Button>
+  <Button
+    onclick={() => (manualOverride = true)}
+    variant="outline"
+    disabled={loading}
+    >Start from scratch
+  </Button>
 </Modal>

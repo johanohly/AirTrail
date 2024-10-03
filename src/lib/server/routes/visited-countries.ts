@@ -3,6 +3,14 @@ import { db } from '$lib/db';
 import { listFlights } from '$lib/server/utils/flight';
 import { airportFromICAO } from '$lib/utils/data/airports';
 import { countryFromAlpha } from '$lib/utils/data/countries';
+import { z } from 'zod';
+import { VisitedCountryStatus } from '$lib/db/types';
+
+const VisitedCountrySchema = z.object({
+  code: z.number(),
+  status: z.enum(VisitedCountryStatus).nullable(),
+  note: z.string().nullable(),
+});
 
 export const visitedCountriesRouter = router({
   list: authedProcedure.query(async ({ ctx }) => {
@@ -12,6 +20,35 @@ export const visitedCountriesRouter = router({
       .where('userId', '=', ctx.user.id)
       .execute();
   }),
+  save: authedProcedure
+    .input(VisitedCountrySchema)
+    .mutation(async ({ ctx, input }) => {
+      const status = input.status;
+      if (status) {
+        const result = await db
+          .insertInto('visitedCountry')
+          .values({
+            userId: ctx.user.id,
+            code: input.code,
+            status,
+            note: input.note,
+          })
+          .onConflict((oc) =>
+            oc
+              .columns(['userId', 'code'])
+              .doUpdateSet({ status, note: input.note }),
+          )
+          .execute();
+        return result.length > 0;
+      } else {
+        const result = await db
+          .deleteFrom('visitedCountry')
+          .where('userId', '=', ctx.user.id)
+          .where('code', '=', input.code)
+          .execute();
+        return result.length > 0;
+      }
+    }),
   importFlights: authedProcedure.mutation(async ({ ctx }) => {
     const flights = await listFlights(ctx.user.id);
     const countries: number[] = [];
