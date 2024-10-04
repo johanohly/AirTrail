@@ -63,7 +63,7 @@
     {@render statusRadioItem('wishlist', 'Wishlist')}
     {@render statusRadioItem('layover', 'Layover')}
   </div>
-  <Textarea bind:value={note} placeholder="Note" class="w-full mt-2" />
+  <Textarea bind:value={note} placeholder="Note" class="resize-y h-20 min-h-10 max-h-64 w-full mt-2" />
   <Button
     onclick={save}
     disabled={(editingInfo?.status === status && editingInfo?.note === note) ||
