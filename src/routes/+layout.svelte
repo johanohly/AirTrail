@@ -24,7 +24,11 @@
   import { openModalsState } from '$lib/stores.svelte';
   import { page } from '$app/stores';
   import { flyAndScale } from '$lib/utils/other';
-  import { AddFlightModal, SettingsModal } from '$lib/components/modals';
+  import {
+    AddFlightModal,
+    NewVersionAnnouncement,
+    SettingsModal,
+  } from '$lib/components/modals';
 
   const { data, children } = $props();
 
@@ -77,6 +81,11 @@
 <ModeWatcher />
 <ScreenSize />
 <Toaster />
+
+{#if data.user?.role !== 'user'}
+  <NewVersionAnnouncement />
+{/if}
+
 <QueryClientProvider client={queryClient}>
   <SettingsModal bind:open={openModalsState.settings} />
   <AddFlightModal bind:open={openModalsState.addFlight} />

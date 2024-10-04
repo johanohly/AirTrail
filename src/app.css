@@ -5,96 +5,129 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    :root {
+        --background: 0 0% 100%;
+        --foreground: 240 10% 3.9%;
 
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
+        --muted: 240 4.8% 95.9%;
+        --muted-foreground: 240 3.8% 46.1%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 240 10% 3.9%;
 
-    --card: 0 0% 100%;
-    --card-hover: 0 0% 95%;
-    --card-foreground: 240 10% 3.9%;
+        --card: 0 0% 100%;
+        --card-hover: 0 0% 95%;
+        --card-foreground: 240 10% 3.9%;
 
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
+        --border: 240 5.9% 90%;
+        --input: 240 5.9% 90%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 98%;
+        --primary: 217 91% 60%;
+        --primary-foreground: 0 0% 98%;
 
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
+        --secondary: 240 4.8% 95.9%;
+        --secondary-foreground: 240 5.9% 10%;
 
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+        --accent: 240 4.8% 95.9%;
+        --accent-foreground: 240 5.9% 10%;
 
-    --destructive: 0 72.2% 50.6%;
-    --destructive-foreground: 0 0% 98%;
+        --destructive: 0 72.2% 50.6%;
+        --destructive-foreground: 0 0% 98%;
 
-    --ring: 240 10% 3.9%;
+        --ring: 240 10% 3.9%;
 
-    --radius: 0.5rem;
-  }
+        --radius: 0.5rem;
+    }
 
-  .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
+    .dark {
+        --background: 240 10% 3.9%;
+        --foreground: 0 0% 98%;
 
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+        --muted: 240 3.7% 15.9%;
+        --muted-foreground: 240 5% 64.9%;
 
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
+        --popover: 240 10% 3.9%;
+        --popover-foreground: 0 0% 98%;
 
-    --card: 240 10% 3.9%;
-    --card-hover: 240 10% 12%;
-    --card-foreground: 0 0% 98%;
+        --card: 240 10% 3.9%;
+        --card-hover: 240 10% 12%;
+        --card-foreground: 0 0% 98%;
 
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
+        --border: 240 3.7% 15.9%;
+        --input: 240 3.7% 15.9%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 240 5.9% 10%;
+        --primary: 217 91% 60%;
+        --primary-foreground: 240 5.9% 10%;
 
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
+        --secondary: 240 3.7% 15.9%;
+        --secondary-foreground: 0 0% 98%;
 
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+        --accent: 240 3.7% 15.9%;
+        --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 68% 45%;
-    --destructive-foreground: 0 0% 98%;
+        --destructive: 0 68% 45%;
+        --destructive-foreground: 0 0% 98%;
 
-    --ring: 240 4.9% 83.9%;
-  }
+        --ring: 240 4.9% 83.9%;
+    }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+    * {
+        @apply border-border;
+    }
 
-  body {
-    @apply bg-background text-foreground;
-  }
+    body {
+        @apply bg-background text-foreground;
+    }
 }
 
 html,
 body {
-  @apply h-full;
+    @apply h-full;
 }
 
 .page-container {
-  @apply container mx-auto px-4 md:px-10 py-10 space-y-10;
+    @apply container mx-auto px-4 md:px-10 py-10 space-y-10;
 }
 
 .maplibregl-popup-content {
-  @apply !p-0 !bg-popover dark:!bg-dark-2 !text-popover-foreground !drop-shadow-2xl !rounded-lg;
+    @apply !p-0 !bg-popover dark:!bg-dark-2 !text-popover-foreground !drop-shadow-2xl !rounded-lg;
 }
 
 .maplibregl-popup-tip {
-  @apply !border-none;
+    @apply !border-none;
+}
+
+/* Basic prose styles */
+.prose h1 {
+    @apply text-4xl leading-[1.11] font-bold;
+}
+
+.prose h2 {
+    @apply text-2xl leading-[1.33] font-bold mt-[1em];
+}
+
+.prose h3 {
+    @apply text-xl leading-[1.6] font-semibold mb-2 mt-5;
+}
+
+:where(.prose > :first-child) {
+    @apply !mt-0;
+}
+
+.prose :where(h3 + *) {
+    @apply !mt-0;
+}
+
+.prose ul {
+    @apply list-disc pl-6;
+}
+
+.prose a {
+    @apply font-medium border-b border-b-primary;
+}
+
+.prose a:hover {
+    @apply border-b-2
 }
