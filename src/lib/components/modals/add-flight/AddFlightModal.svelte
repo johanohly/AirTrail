@@ -9,6 +9,7 @@
   import FlightInformation from './FlightInformation.svelte';
   import SeatInformation from './SeatInformation.svelte';
   import { page } from '$app/stores';
+  import FlightNumber from '$lib/components/modals/add-flight/FlightNumber.svelte';
 
   let {
     open = $bindable(),
@@ -49,6 +50,7 @@
 >
   <h2>Add Flight</h2>
   <form method="POST" action="/api/flight/save" class="grid gap-4" use:enhance>
+    <FlightNumber {form} />
     <AirportField field="from" {form} />
     <AirportField field="to" {form} />
     <DateTimeField field="departure" {form} />

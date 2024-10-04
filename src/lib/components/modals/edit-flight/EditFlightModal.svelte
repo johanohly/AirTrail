@@ -13,6 +13,7 @@
   import SeatInformation from '$lib/components/modals/add-flight/SeatInformation.svelte';
   import FlightInformation from '$lib/components/modals/add-flight/FlightInformation.svelte';
   import { toISOString } from '$lib/utils/index.js';
+  import FlightNumber from '$lib/components/modals/add-flight/FlightNumber.svelte';
 
   const timeFormatter = new Intl.DateTimeFormat(undefined, {
     timeZone: 'UTC',
@@ -75,7 +76,13 @@
   </Dialog.Trigger>
   <Dialog.Content classes="max-h-full overflow-y-auto max-w-lg">
     <h2>Edit Flight</h2>
-    <form method="POST" action="/api/flight/save" use:enhance class="grid gap-4">
+    <form
+      method="POST"
+      action="/api/flight/save"
+      use:enhance
+      class="grid gap-4"
+    >
+      <FlightNumber {form} />
       <AirportField field="from" {form} />
       <AirportField field="to" {form} />
       <DateTimeField field="departure" {form} />
