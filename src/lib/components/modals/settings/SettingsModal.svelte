@@ -64,7 +64,7 @@
     </div>
     <Separator class="my-6" />
     <div class="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
-      <aside class="flex lg:flex-col md:-mx-4 lg:w-1/5">
+      <aside class="flex lg:flex-col md:-mx-4 lg:w-1/5 overflow-auto">
         <SettingsTabContainer>
           {#each ACCOUNT_SETTINGS as setting}
             {@const isActive = activeTab === setting.id}
