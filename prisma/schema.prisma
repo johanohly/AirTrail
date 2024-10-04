@@ -26,8 +26,8 @@ model app_config {
 }
 
 model user {
-  id           String @id
-  username     String @unique
+  id           String  @id
+  username     String  @unique
   display_name String
   /// @kyselyType('metric' | 'imperial')
   unit         String
@@ -38,8 +38,9 @@ model user {
 
   oauth_id String?
 
-  sessions session[]
-  seats    seat[]
+  sessions          session[]
+  seats             seat[]
+  visited_countries visited_country[]
 }
 
 model flight {
@@ -84,6 +85,21 @@ model seat {
 
   @@unique([flight_id, user_id], map: "seat_user_id_flight_id_key")
   @@unique([flight_id, guest_name], map: "seat_flight_id_guest_name_key")
+}
+
+model visited_country {
+  id Int @id @default(autoincrement())
+
+  /// ISO 3166-1 numeric code
+  code   Int
+  /// @kyselyType('lived' | 'visited' | 'layover' | 'wishlist')
+  status String
+  note   String?
+
+  user_id String
+  user    user   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([code, user_id], map: "visited_country_code_user_id_key")
 }
 
 model session {

@@ -2,6 +2,7 @@ import { trpcServer } from '$lib/server/server';
 import type { LayoutServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
 import type { ClientAppConfig } from '$lib/db/types';
+import { db } from '$lib/db';
 
 export const load = async (event: Parameters<LayoutServerLoad>[0]) => {
   if (
@@ -27,6 +28,9 @@ export const load = async (event: Parameters<LayoutServerLoad>[0]) => {
   return {
     trpc: await trpcServer.hydrateToClient(event),
     user,
+    users: (await db.selectFrom('user').selectAll().execute()).map(
+      ({ password: _, ...rest }) => rest,
+    ),
     appConfig,
   };
 };
