@@ -2,6 +2,7 @@
   import { Modal } from '$lib/components/ui/modal';
   import { Button } from '$lib/components/ui/button';
   import { api, trpc } from '$lib/trpc';
+  import { toast } from 'svelte-sonner';
 
   let { visitedCountries }: { visitedCountries: any[] } = $props();
 
@@ -16,6 +17,8 @@
     const success = await api.visitedCountries.importFlights.mutate();
     if (success) {
       await trpc.visitedCountries.list.utils.invalidate();
+    } else {
+      toast.error('Failed to import flights (possibly due to no past flights)');
     }
     loading = false;
   };

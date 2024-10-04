@@ -69,6 +69,10 @@ export const visitedCountriesRouter = router({
       countries.push(originCountry.numeric);
     }
 
+    if (countries.length === 0) {
+      return false;
+    }
+
     const result = await db
       .insertInto('visitedCountry')
       .values(
