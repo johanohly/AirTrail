@@ -121,7 +121,7 @@ body {
 }
 
 .prose ul {
-    @apply list-disc pl-6;
+    @apply list-disc pl-6 mb-4;
 }
 
 .prose a {
