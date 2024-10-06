@@ -25,11 +25,6 @@ export const AIRCRAFT = [
     wtc: 'M',
   },
   {
-    name: 'Airbus A300-600',
-    icao: 'A306',
-    wtc: 'H',
-  },
-  {
     name: 'Airbus A310',
     icao: 'A310',
     wtc: 'H',
@@ -151,11 +146,6 @@ export const AIRCRAFT = [
   },
   {
     name: 'ATR-72-500',
-    icao: 'AT75',
-    wtc: 'M',
-  },
-  {
-    name: 'ATR-72-600',
     icao: 'AT75',
     wtc: 'M',
   },
@@ -451,7 +441,7 @@ export const AIRCRAFT = [
   },
   {
     name: 'Boeing 767-400',
-    icao: 'B763',
+    icao: 'B764',
     wtc: 'H',
   },
   {
