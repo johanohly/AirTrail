@@ -32,10 +32,11 @@
       },
     },
   };
+  // scale is not working properly in svelte 5 (https://github.com/micha-lmxt/svelte-motion/blob/master/src/context/ScaleCorrectionProvider.svelte#L1)
   const itemVariants = {
     visible: (i: number) => ({
       opacity: 1,
-      scale: 1,
+      // scale: 1,
       filter: 'blur(0px)',
       transition: {
         duration: 0.3,
@@ -44,7 +45,7 @@
     }),
     hidden: {
       opacity: 0,
-      scale: 0.3,
+      // scale: 0.3,
       filter: 'blur(20px)',
     },
   };
