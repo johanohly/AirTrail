@@ -28,7 +28,7 @@
         <Tooltip.Trigger
           class="hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 transition-all duration-200 rounded-full p-3 mx-0"
         >
-          <svelte:component this={item.icon} size={22} strokeWidth={1.2} />
+          <svelte:component this={item.icon} />
         </Tooltip.Trigger>
         <Tooltip.Content sideOffset={8}>
           <p>{item.label}</p>
@@ -40,12 +40,7 @@
       <Tooltip.Trigger
         class="hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 transition-all duration-200 rounded-full p-3 mx-0"
       >
-        <svelte:component
-          this={item.icon}
-          onclick={onClick}
-          size={22}
-          strokeWidth={1.2}
-        />
+        <svelte:component this={item.icon} onclick={onClick} />
       </Tooltip.Trigger>
       <Tooltip.Content sideOffset={8}>
         <p>{item.label}</p>

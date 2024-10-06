@@ -7,6 +7,7 @@ import {
   deleteFlight,
   listFlights,
 } from '$lib/server/utils/flight';
+import { generateCsv } from '$lib/utils/csv';
 
 export const flightRouter = router({
   list: authedProcedure.query(async ({ ctx: { user } }) => {
@@ -56,7 +57,8 @@ export const flightRouter = router({
           ) {
             return flightInput.seats.map((seat) => ({
               flightId: flight.id,
-              userId: seat.userId || user.id,
+              userId: seat.userId || (seat.guestName ? null : user.id),
+              guestName: seat.guestName,
               seat: seat.seat,
               seatNumber: seat.seatNumber,
               seatClass: seat.seatClass,
@@ -72,4 +74,40 @@ export const flightRouter = router({
         return await trx.insertInto('seat').values(seatData).execute();
       });
     }),
+  exportJson: authedProcedure.query(async ({ ctx: { user } }) => {
+    const users = await db
+      .selectFrom('user')
+      .select(['id', 'displayName', 'username'])
+      .execute();
+    const res = await listFlights(user.id);
+    const flights = res.map(({ id, ...flight }) => ({
+      ...flight,
+      seats: flight.seats.map(({ id, flightId, ...seat }) => ({
+        ...seat,
+      })),
+    }));
+    return JSON.stringify(
+      {
+        users,
+        flights,
+      },
+      null,
+      2,
+    );
+  }),
+  exportCsv: authedProcedure.query(async ({ ctx: { user } }) => {
+    const res = await listFlights(user.id);
+    const flights = res.map(({ id, seats, ...flight }) => {
+      const seat = seats.find((seat) => seat.userId === user.id);
+
+      return {
+        ...flight,
+        seat: seat?.seat,
+        seatNumber: seat?.seatNumber,
+        seatClass: seat?.seatClass,
+      };
+    });
+
+    return generateCsv(flights);
+  }),
 });

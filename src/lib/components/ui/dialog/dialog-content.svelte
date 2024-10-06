@@ -4,7 +4,7 @@
   import * as Dialog from './index.js';
   import { cn, flyAndScale } from '$lib/utils';
 
-  let { classes = 'max-w-lg' } = $props();
+  let { classes = 'max-w-lg', closeButton = true } = $props();
 </script>
 
 <!--
@@ -27,12 +27,14 @@ I never got it animating.
       )}
     >
       <slot />
-      <DialogPrimitive.Close
-        class="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute right-5 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none"
-      >
-        <X class="h-5 w-4" />
-        <span class="sr-only">Close</span>
-      </DialogPrimitive.Close>
+      {#if closeButton}
+        <DialogPrimitive.Close
+          class="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute right-5 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none"
+        >
+          <X class="h-5 w-4" />
+          <span class="sr-only">Close</span>
+        </DialogPrimitive.Close>
+      {/if}
     </div>
   </DialogPrimitive.Content>
 </Dialog.Portal>

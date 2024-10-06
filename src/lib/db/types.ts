@@ -1,4 +1,17 @@
-import type { flight, seat, user } from '$lib/db/schema';
+import type { flight, app_config, seat, user } from '$lib/db/schema';
+
+export type OAuthConfig = Omit<
+  app_config,
+  'id' | 'enabled' | 'autoRegister' | 'autoLogin' | 'scope'
+> & {
+  id: number;
+  enabled: boolean;
+  autoRegister: boolean;
+  autoLogin: boolean;
+  scope: string;
+};
+export type AppConfig = OAuthConfig;
+export type ClientAppConfig = Omit<OAuthConfig, 'clientSecret'>;
 
 export type ServerUser = user;
 export type User = Omit<ServerUser, 'password'>;
@@ -22,3 +35,10 @@ export const SeatClasses = [
   'private',
 ] as const;
 export const FlightReasons = ['leisure', 'business', 'crew', 'other'] as const;
+
+export const VisitedCountryStatus = [
+  'lived',
+  'visited',
+  'layover',
+  'wishlist',
+] as const;

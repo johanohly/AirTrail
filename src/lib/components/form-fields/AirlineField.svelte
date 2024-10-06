@@ -38,6 +38,19 @@
     $formData.airline = item?.value ?? null;
   });
 
+  // If the field is updated externally, update the selected value
+  formData.subscribe((data) => {
+    if (data['airline'] === $selected?.value) return;
+    selected.set(
+      data['airline']
+        ? {
+            label: airlineFromICAO(data['airline'])?.name,
+            value: data['airline'],
+          }
+        : undefined,
+    );
+  });
+
   $effect(() => {
     if (!$open) {
       $inputValue = $selected?.label ?? '';
@@ -47,16 +60,11 @@
   let airlines: Airline[] = $state([]);
   $effect(() => {
     if ($touchedInput && $inputValue !== '') {
-      airlines = sortAndFilterByMatch(
-        AIRLINES,
-        $inputValue,
-        [
-          { key: 'icao', exact: true },
-          { key: 'iata', exact: true },
-          { key: 'name', exact: false },
-        ],
-        20,
-      );
+      airlines = sortAndFilterByMatch(AIRLINES, $inputValue, [
+        { key: 'icao', exact: true },
+        { key: 'iata', exact: true },
+        { key: 'name', exact: false },
+      ]);
     } else {
       airlines = [];
     }

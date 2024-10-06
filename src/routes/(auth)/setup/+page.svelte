@@ -43,7 +43,12 @@
           Welcome to AirTrail! Please set up your owner account to get started.
         </p>
       </div>
-      <form method="POST" use:enhance class="grid gap-4">
+      <form
+        method="POST"
+        action="/api/users/setup"
+        use:enhance
+        class="grid gap-4"
+      >
         <Form.Field {form} name="username">
           <Form.Control let:attrs>
             <Form.Label>Username</Form.Label>

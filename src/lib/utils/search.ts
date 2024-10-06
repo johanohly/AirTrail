@@ -7,6 +7,7 @@ export const sortAndFilterByMatch = <T>(
   items: T[],
   input: string,
   criteria: MatchCriteria<T>[],
+  sortFn: (a: T, b: T) => number = () => 0,
   maxResults: number = 20,
 ): T[] => {
   const lowerInput = input.toLowerCase();
@@ -22,19 +23,13 @@ export const sortAndFilterByMatch = <T>(
       for (const { key, exact } of criteria) {
         const aValue = String(a[key]).toLowerCase();
         const bValue = String(b[key]).toLowerCase();
-
-        const aMatches = exact
-          ? aValue === lowerInput
-          : aValue.includes(lowerInput);
-        const bMatches = exact
-          ? bValue === lowerInput
-          : bValue.includes(lowerInput);
-
-        if (aMatches && !bMatches) return -1;
-        if (!aMatches && bMatches) return 1;
+        if (exact) {
+          if (aValue === lowerInput && bValue !== lowerInput) return -1;
+          if (aValue !== lowerInput && bValue === lowerInput) return 1;
+        }
       }
 
-      return 0; // if all criteria are equal, maintain original order
+      return sortFn(a, b);
     })
     .slice(0, maxResults);
 };

@@ -23,18 +23,20 @@
           value,
         }))}
         x="value"
-        r="label"
-        rScale={scaleOrdinal()}
-        rDomain={Object.entries(data)
+        c="label"
+        cScale={scaleOrdinal()}
+        cDomain={Object.entries(data)
           .sort((a, b) => b[1] - a[1])
           .map(([key]) => key)}
-        rRange={['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef']}
+        cRange={['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef']}
         let:tooltip
       >
-        <Svg>
+        <Svg center>
           <Pie {tooltip} />
         </Svg>
-        <Tooltip header={(d) => d.label} />
+        <Tooltip.Root let:data>
+          <Tooltip.Header>{data.label}</Tooltip.Header>
+        </Tooltip.Root>
       </Chart>
     </div>
     <div>

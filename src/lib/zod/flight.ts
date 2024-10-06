@@ -2,8 +2,10 @@ import { z } from 'zod';
 import { FlightReasons, SeatClasses, SeatTypes } from '$lib/db/types';
 
 // |^$ is for empty string in the case where the user deletes the input
-const timeRegex24 = /^([01]?[0-9]|2[0-3]):[0-5][0-9](?:\s?(?:am|pm))?$|^$/i;
-const timeRegex12 = /^\d{1,2}:\d{2}\s?(?:am|pm)$/i;
+const regex24h =
+  /^([01]?[0-9]|2[0-3])(?::|\.|)[0-5][0-9](?:\s?(?:am|pm))?$|^$/i;
+const regex12hLike = /^\d{1,2}(?::|\.|)\d{2}\s?(?:am|pm)$/i;
+const regex12h = /^([1-9]|1[0-2])(?::|\.|)[0-5][0-9]\s?(?:am|pm)$/i;
 
 export const flightAirportsSchema = z.object({
   from: z.string().min(1, 'Select an origin'),
@@ -18,10 +20,10 @@ export const flightDateTimeSchema = z.object({
     .refine((value) => value !== null, 'Select a departure date'),
   departureTime: z
     .string()
-    .refine((value) => timeRegex24.test(value), 'Invalid 24-hour format')
+    .refine((value) => regex24h.test(value), 'Invalid 24-hour format')
     .refine((value) => {
-      if (timeRegex12.test(value)) {
-        return /^([1-9]|1[0-2]):[0-5][0-9]\s?(?:am|pm)$/i.test(value);
+      if (regex12hLike.test(value)) {
+        return regex12h.test(value);
       }
       return true; // If it's not in 12-hour format, just return true (it'll be caught by the previous refine)
     }, 'Invalid 12-hour format')
@@ -29,10 +31,10 @@ export const flightDateTimeSchema = z.object({
   arrival: z.string().datetime('Select an arrival date').nullable(),
   arrivalTime: z
     .string()
-    .refine((value) => timeRegex24.test(value), 'Invalid 24-hour format')
+    .refine((value) => regex24h.test(value), 'Invalid 24-hour format')
     .refine((value) => {
-      if (timeRegex12.test(value)) {
-        return /^([1-9]|1[0-2]):[0-5][0-9]\s?(?:am|pm)$/i.test(value);
+      if (regex12hLike.test(value)) {
+        return regex12h.test(value);
       }
       return true; // If it's not in 12-hour format, just return true (it'll be caught by the previous refine)
     }, 'Invalid 12-hour format')

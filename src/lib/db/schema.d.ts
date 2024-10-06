@@ -4,6 +4,19 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   : ColumnType<T, T | undefined, T>;
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export type app_config = {
+    id: Generated<number>;
+    /**
+     * OIDC
+     */
+    enabled: Generated<boolean>;
+    issuerUrl: string | null;
+    clientId: string | null;
+    clientSecret: string | null;
+    scope: Generated<string>;
+    autoRegister: Generated<boolean>;
+    autoLogin: Generated<boolean>;
+};
 export type flight = {
     id: Generated<number>;
     date: string;
@@ -60,20 +73,36 @@ export type session = {
 export type user = {
     id: string;
     username: string;
-    password: string;
     displayName: string;
     /**
      * @kyselyType('metric' | 'imperial')
      */
     unit: 'metric' | 'imperial';
+    password: string | null;
     /**
      * @kyselyType('user' | 'admin' | 'owner')
      */
     role: 'user' | 'admin' | 'owner';
+    oauthId: string | null;
+};
+export type visited_country = {
+    id: Generated<number>;
+    /**
+     * ISO 3166-1 numeric code
+     */
+    code: number;
+    /**
+     * @kyselyType('lived' | 'visited' | 'layover' | 'wishlist')
+     */
+    status: 'lived' | 'visited' | 'layover' | 'wishlist';
+    note: string | null;
+    userId: string;
 };
 export type DB = {
+    appConfig: app_config;
     flight: flight;
     seat: seat;
     session: session;
     user: user;
+    visitedCountry: visited_country;
 };

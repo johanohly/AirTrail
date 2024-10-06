@@ -8,12 +8,6 @@
   import { processFile } from '$lib/import';
   import { toast } from 'svelte-sonner';
 
-  let {
-    invalidator,
-  }: {
-    invalidator?: { onSuccess: () => void };
-  } = $props();
-
   let files: FileList | null = $state(null);
   let fileError: string | null = $state(null);
 
@@ -21,7 +15,11 @@
     const file = files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.csv') && !file.name.endsWith('.txt')) {
+    if (
+      !file.name.endsWith('.csv') &&
+      !file.name.endsWith('.txt') &&
+      !file.name.endsWith('.json')
+    ) {
       fileError = 'File type not supported';
     } else if (file.size > 5 * 1024 * 1024) {
       fileError = 'File must be less than 5MB';
@@ -31,6 +29,11 @@
   };
 
   const canImport = $derived(!!files?.[0] && !fileError);
+  const invalidator = {
+    onSuccess: () => {
+      trpc.flight.list.utils.invalidate();
+    },
+  };
   const createMany = trpc.flight.createMany.mutation(invalidator);
 
   const handleImport = async () => {
@@ -53,7 +56,7 @@
 
 <PageHeader
   title="Import"
-  subtitle="Supported platforms: FlightRadar24, App in the Air"
+  subtitle="Supported platforms: FlightRadar24, App in the Air, JetLog and AirTrail backups"
 >
   <label for="file" class="block">
     <Card
@@ -75,7 +78,7 @@
     id="file"
     name="file"
     type="file"
-    accept=".csv,.txt"
+    accept=".csv,.txt,.json"
     bind:files
     class="hidden"
   />

@@ -7,7 +7,6 @@
     Points,
     Svg,
     Tooltip,
-    TooltipItem,
   } from 'layerchart';
   import { scaleBand } from 'd3-scale';
   import type { FlightData } from '$lib/utils';
@@ -90,15 +89,9 @@
         <Points r={5} class="fill-primary" />
       </LinearGradient>
     </Svg>
-    <Tooltip
-      x="data"
-      y="data"
-      header={(data) => {
-        return MONTHS[data.month];
-      }}
-      let:data
-    >
-      <TooltipItem label="Flights" value={data.flights} />
-    </Tooltip>
+    <Tooltip.Root x="data" y="data" let:data>
+      <Tooltip.Header>{MONTHS[data.month]}</Tooltip.Header>
+      <Tooltip.Item label="Flights" value={data.flights} />
+    </Tooltip.Root>
   </Chart>
 </div>

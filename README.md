@@ -1,3 +1,9 @@
+[![Docker Pulls](https://img.shields.io/docker/pulls/johly/airtrail?style=for-the-badge)]()
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/johanohly/AirTrail/build.yml?style=for-the-badge)]()
+[![GitHub Release](https://img.shields.io/github/v/release/johanohly/AirTrail?style=for-the-badge)]()
+[![Contributors](https://img.shields.io/github/contributors/johanohly/AirTrail?style=for-the-badge)]()
+[![GitHub Stars](https://img.shields.io/github/stars/johanohly/AirTrail?style=for-the-badge)]()
+
 <div align="center">
   <a href="https://johanohly.github.io/AirTrail/">
     <img src="static/favicon.png" alt="AirTrail logo" width="80" height="80">
@@ -17,10 +23,11 @@
 - **World Map**: View all your flights on an interactive world map.
 - **Flight History**: Keep track of all your flights in one place.
 - **Statistics**: Get insights into your flight history with statistics.
-- **User Authentication**: Allow multiple users and secure your data with user authentication.
+- **Multiple Users**: Manage multiple users, share flights among them, secure your data with user authentication and
+  integrate with your OAuth provider.
 - **Responsive Design**: Use the application on any device with a responsive design.
 - **Dark Mode**: Switch between light and dark mode.
-- **Import Flights**: Import flights from various sources.
+- **Import Flights**: Import flights from various sources including MyFlightRadar24, App in the Air and JetLog.
 
 ## 🚀 Getting Started
 

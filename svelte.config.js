@@ -7,6 +7,7 @@ const config = {
   preprocess: sequence([vitePreprocess(), preprocessMeltUI()]),
   kit: {
     adapter: adapter(),
+    version: { name: process.env.npm_package_version },
   },
 };
 export default config;
