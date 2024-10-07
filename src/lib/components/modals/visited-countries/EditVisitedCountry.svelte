@@ -2,7 +2,7 @@
   import { Modal } from '$lib/components/ui/modal';
   import type { VisitedCountryStatus } from '$lib/db/types';
   import { Label } from '$lib/components/ui/label';
-  import { House, Gift, Plane } from '@o7/icon/lucide';
+  import { LoaderCircle, House, Gift, Plane } from '@o7/icon/lucide';
   import { Tour } from '@o7/icon/material';
   import { type Country, countryFromNumeric } from '$lib/utils/data/countries';
   import { Button } from '$lib/components/ui/button';
@@ -38,9 +38,11 @@
     note = editingInfo.note ?? '';
   });
 
+  let loading = $state(false);
   const save = async () => {
     if (!countryData) return;
 
+    loading = true;
     const success = await api.visitedCountries.save.mutate({
       code: countryData.numeric,
       status,
@@ -52,6 +54,7 @@
     } else {
       toast.error('Failed to save');
     }
+    loading = false;
   };
 </script>
 
@@ -63,13 +66,21 @@
     {@render statusRadioItem('wishlist', 'Wishlist')}
     {@render statusRadioItem('layover', 'Layover')}
   </div>
-  <Textarea bind:value={note} placeholder="Note" class="resize-y h-20 min-h-10 max-h-64 w-full mt-2" />
+  <Textarea
+    bind:value={note}
+    placeholder="Note"
+    class="resize-y h-20 min-h-10 max-h-64 w-full mt-2"
+  />
   <Button
     onclick={save}
     disabled={(editingInfo?.status === status && editingInfo?.note === note) ||
-      (!status && !editingInfo?.status)}
+      (!status && !editingInfo?.status) ||
+      loading}
   >
-    >Save
+    {#if loading}
+      <LoaderCircle size={16} class="animate-spin mr-2" />
+    {/if}
+    Save
   </Button>
 </Modal>
 
