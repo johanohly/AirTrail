@@ -50,8 +50,6 @@ jobs:
           platforms: ${{ matrix.platforms }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
-          cache-from: type=registry,ref=johly/airtrail-build-cache:latest
-          cache-to: type=inline
           build-args: |
             DEVICE=${{ matrix.device }}
             BUILD_ID=${{ github.run_id }}
