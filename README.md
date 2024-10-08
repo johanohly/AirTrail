@@ -1,8 +1,17 @@
-[![Docker Pulls](https://img.shields.io/docker/pulls/johly/airtrail?style=for-the-badge)]()
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/johanohly/AirTrail/build.yml?style=for-the-badge)]()
-[![GitHub Release](https://img.shields.io/github/v/release/johanohly/AirTrail?style=for-the-badge)]()
-[![Contributors](https://img.shields.io/github/contributors/johanohly/AirTrail?style=for-the-badge)]()
-[![GitHub Stars](https://img.shields.io/github/stars/johanohly/AirTrail?style=for-the-badge)]()
+<div align="center">
+  <br/>
+  <a href="https://hub.docker.com/r/johly/airtrail/">
+    <img src="https://img.shields.io/docker/pulls/johly/airtrail?style=for-the-badge" alt="Docker pulls">
+  </a>
+  <a href="https://github.com/johanohly/AirTrail/releases/latest">
+    <img src="https://img.shields.io/github/v/release/johanohly/AirTrail?style=for-the-badge" alt="Latest version">
+  </a>
+  <a href="https://github.com/johanohly/AirTrail/stargazers">
+    <img src="https://img.shields.io/github/stars/johanohly/AirTrail?style=for-the-badge" alt="Stars">
+  </a>
+  <br/>
+  <br/>
+</div>
 
 <div align="center">
   <a href="https://johanohly.github.io/AirTrail/">
@@ -34,6 +43,16 @@
 - [Documentation](https://johanohly.github.io/AirTrail/docs/)
 - [Installation](https://johanohly.github.io/AirTrail/docs/overview/quick-start/)
 - [About](https://johanohly.github.io/AirTrail/docs/overview/introduction)
+
+## Star History
+
+<a href="https://star-history.com/#johanohly/AirTrail&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=johanohly/AirTrail&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=johanohly/AirTrail&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=johanohly/AirTrail&type=Date" />
+ </picture>
+</a>
 
 ## Acknowledgements
 
