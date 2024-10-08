@@ -33,7 +33,7 @@
   {#snippet subtitleHtml()}
     <p class="text-muted-foreground text-sm">
       Export your data. Learn more about the data formats <a
-        href="https://johanohly.github.io/AirTrail/docs/features/export#export-formats"
+        href="https://airtrail.johan.ohly.dk/docs/features/export#export-formats"
         target="_blank"
         class="text-blue-500 underline">in the documentation</a
       >.

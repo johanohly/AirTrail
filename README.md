@@ -14,7 +14,7 @@
 </div>
 
 <div align="center">
-  <a href="https://johanohly.github.io/AirTrail/">
+  <a href="https://airtrail.johan.ohly.dk/">
     <img src="static/favicon.png" alt="AirTrail logo" width="80" height="80">
   </a>
 
@@ -40,9 +40,9 @@
 
 ## 🚀 Getting Started
 
-- [Documentation](https://johanohly.github.io/AirTrail/docs/)
-- [Installation](https://johanohly.github.io/AirTrail/docs/overview/quick-start/)
-- [About](https://johanohly.github.io/AirTrail/docs/overview/introduction)
+- [Documentation](https://airtrail.johan.ohly.dk/docs/overview/introduction)
+- [Installation](https://airtrail.johan.ohly.dk/docs/overview/quick-start/)
+- [About](https://airtrail.johan.ohly.dk/docs/overview/introduction)
 
 ## Star History
 

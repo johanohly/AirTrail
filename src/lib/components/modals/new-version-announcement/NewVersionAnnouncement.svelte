@@ -59,7 +59,7 @@
       <Dialog.Footer>
         <Button
           variant="outline"
-          href="https://johanohly.github.io/AirTrail/docs/install/updating"
+          href="https://airtrail.johan.ohly.dk/docs/install/updating"
           target="_blank"
         >
           How to update

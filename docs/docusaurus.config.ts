@@ -7,10 +7,10 @@ const config: Config = {
   tagline: 'A modern, open-source personal flight tracking system',
   favicon: 'img/airtrail-logo.png',
 
-  url: 'https://johanohly.github.io',
-  baseUrl: '/AirTrail/',
+  url: 'https://airtrail.johan.ohly.dk',
+  baseUrl: '/',
 
-  organizationName: 'JohanOhly',
+  organizationName: 'johanohly',
   projectName: 'AirTrail',
 
   onBrokenLinks: 'throw',
@@ -48,7 +48,7 @@ const config: Config = {
           showLastUpdateTime: true,
 
           sidebarPath: './sidebars.ts',
-          editUrl: 'https://github.com/JohanOhly/AirTrail/tree/main/docs/',
+          editUrl: 'https://github.com/johanohly/AirTrail/tree/main/docs/',
         },
         theme: {
           customCss: './src/css/custom.css',
@@ -93,7 +93,7 @@ const config: Config = {
           label: 'Roadmap',
         },
         {
-          href: 'https://github.com/JohanOhly/AirTrail',
+          href: 'https://github.com/johanohly/AirTrail',
           label: 'GitHub',
           position: 'right',
         },
@@ -137,7 +137,7 @@ const config: Config = {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/JohanOhly/AirTrail',
+              href: 'https://github.com/johanohly/AirTrail',
             },
           ],
         },
