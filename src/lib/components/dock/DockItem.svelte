@@ -6,15 +6,16 @@
     useSpring,
     useTransform,
   } from 'svelte-motion';
+  import { dockContext } from './context.svelte';
+  import type { Snippet } from 'svelte';
 
-  export let magnification = 60;
-  export let distance = 160;
-  export let mouseX = 0;
-  let mint = useMotionValue(mouseX);
-  $: mint.set(mouseX);
+  let {
+    class: className = undefined,
+    children,
+  }: { class: string | undefined; children: Snippet } = $props();
 
-  let className: string | undefined = '';
-  export { className as class };
+  let mint = useMotionValue(dockContext.mouseX);
+  $effect(() => mint.set(dockContext.mouseX));
 
   let iconElement: HTMLDivElement;
 
@@ -25,8 +26,8 @@
 
   let widthSync = useTransform(
     distanceCalc,
-    [-distance, 0, distance],
-    [38, magnification, 38],
+    [-dockContext.distance, 0, dockContext.distance],
+    [38, dockContext.magnification, 38],
   );
 
   let width = useSpring(widthSync, {
@@ -43,6 +44,6 @@
 
 <Motion style={{ width: width }} let:motion>
   <div use:motion bind:this={iconElement} class={iconClass}>
-    <slot></slot>
+    {@render children()}
   </div>
 </Motion>
