@@ -51,6 +51,7 @@
         fixedWeeks={true}
         weekStartsOn={1}
         minValue={parseDate('1970-01-01')}
+        locale={navigator.language}
       >
         <div class="flex w-full max-w-[232px] flex-col gap-1.5">
           <DatePicker.Input
