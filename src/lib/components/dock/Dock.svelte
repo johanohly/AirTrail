@@ -1,55 +1,46 @@
 <script lang="ts">
   import { Motion } from 'svelte-motion';
-  import { tv, type VariantProps } from 'tailwind-variants';
   import { cn } from '$lib/utils';
+  import { dockContext } from './context.svelte';
+  import type { Snippet } from 'svelte';
 
-  interface DockProps extends VariantProps<typeof dockVariants> {
-    className?: string;
-    magnification?: number;
-    distance?: number;
+  let {
+    class: className = undefined,
+    direction = 'middle',
+    children,
+  }: {
+    class?: string;
     direction?: 'top' | 'middle' | 'bottom';
-  }
-
-  let className: DockProps['className'] = undefined;
-  export { className as class };
-  export let magnification: DockProps['magnification'] = 60;
-  export let distance: DockProps['distance'] = 140;
-  export let direction: DockProps['direction'] = 'middle';
-
-  const dockVariants = tv({
-    base: 'h-[58px] p-2 flex gap-2 rounded-2xl border bg-background/70 backdrop-blur-md',
-  });
-
-  let dockElement: HTMLDivElement;
-  let mouseX = Infinity;
+    children: Snippet;
+  } = $props();
 
   function handleMouseMove(e: MouseEvent) {
-    mouseX = e.pageX;
+    dockContext.mouseX = e.pageX;
   }
 
   function handleMouseLeave() {
-    mouseX = Infinity;
+    dockContext.mouseX = Infinity;
   }
 
-  let dockClass = cn(dockVariants({ className }), {
-    'items-start': direction === 'top',
-    'items-center': direction === 'middle',
-    'items-end': direction === 'bottom',
-  });
+  let dockClass = cn(
+    'h-[58px] p-2 flex gap-2 rounded-2xl border bg-background/70 backdrop-blur-md',
+    className,
+    {
+      'items-start': direction === 'top',
+      'items-center': direction === 'middle',
+      'items-end': direction === 'bottom',
+    },
+  );
 </script>
 
 <Motion let:motion>
-  <!-- svelte-ignore a11y-no-static-element-interactions -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     use:motion
-    bind:this={dockElement}
-    on:mousemove={(e) => handleMouseMove(e)}
-    on:mouseleave={handleMouseLeave}
+    onmousemove={(e) => handleMouseMove(e)}
+    onmouseleave={handleMouseLeave}
     class={dockClass}
   >
-    <slot {mouseX} {magnification} {distance}>
-      <!-- Your Content -->
-      Default
-    </slot>
+    {@render children()}
   </div>
 </Motion>

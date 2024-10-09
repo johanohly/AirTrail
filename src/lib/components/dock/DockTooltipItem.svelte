@@ -11,13 +11,9 @@
   const onClick = () => {
     if (item.onClick) item.onClick();
   };
-
-  export let mouseX: number;
-  export let distance: number | undefined;
-  export let magnification: number | undefined;
 </script>
 
-<DockItem {mouseX} {distance} {magnification}>
+<DockItem>
   {#if item.href}
     <a
       href={item.href}
