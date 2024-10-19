@@ -1497,6 +1497,7 @@ export const COUNTRIES_GEO: Topology<{
         {
           type: 'Polygon',
           arcs: [[-493, -594, -591, -589]],
+          id: '1001', // Non-standard code as this entity is not in the ISO 3166-1 numeric-3 standard.
           properties: {
             name: 'Kosovo',
           },
