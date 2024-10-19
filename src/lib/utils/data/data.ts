@@ -5,7 +5,7 @@ import { type Airport, airportFromICAO } from '$lib/utils/data/airports';
 import { get } from 'svelte/store';
 import { page } from '$app/stores';
 
-const dateFormatter = new Intl.DateTimeFormat('en', {
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
   year: 'numeric',
   month: 'numeric',
   day: 'numeric',
