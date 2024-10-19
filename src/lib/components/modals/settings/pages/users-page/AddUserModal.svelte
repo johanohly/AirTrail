@@ -38,7 +38,7 @@
   const { form: formData, enhance, submitting } = form;
 </script>
 
-<Modal bind:open>
+<Modal bind:open dialogOnly>
   <h2 class="leading-4">Add User</h2>
   <form method="POST" action="/api/users/add" use:enhance>
     <Form.Field {form} name="username">
