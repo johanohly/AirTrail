@@ -18,6 +18,8 @@ ENV NODE_ENV=production
 RUN bun run build
 
 FROM base AS release
+# Required for prisma migrations to work on arm64 (oven-sh/bun#5320)
+COPY --from=node:20 /usr/local/bin/node /usr/local/bin/node
 COPY --from=install /temp/prod/node_modules node_modules
 COPY --from=prerelease /app/build build
 COPY --from=prerelease /app/package.json .
