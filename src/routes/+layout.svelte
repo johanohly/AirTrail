@@ -14,6 +14,7 @@
     SettingsModal,
   } from '$lib/components/modals';
   import { NavigationDock } from '$lib/components';
+  import { dev } from '$app/environment';
 
   const { data, children } = $props();
 
@@ -28,7 +29,7 @@
 <ScreenSize />
 <Toaster />
 
-{#if data.user?.role !== 'user'}
+{#if !dev && data.user?.role !== 'user'}
   <NewVersionAnnouncement />
 {/if}
 
