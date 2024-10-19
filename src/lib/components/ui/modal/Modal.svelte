@@ -38,7 +38,7 @@
 {:else}
   <Drawer.Root bind:open>
     <Drawer.Content>
-      <div class="mx-4 mb-4">
+      <div class="mx-4 mb-4 overflow-y-auto">
         {@render children()}
       </div>
     </Drawer.Content>
