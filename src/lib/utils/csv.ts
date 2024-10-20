@@ -4,7 +4,7 @@ export const parseCsv = <T>(
   csv: string,
   schema: ZodSchema<T>,
 ): [T[], boolean] => {
-  const lines = csv.split('\n').filter((line) => line.trim() !== '');
+  const lines = parseCsvLines(csv);
   if (lines.length < 2) {
     return [[], true];
   }
@@ -24,12 +24,41 @@ export const parseCsv = <T>(
       const validatedRow = schema.parse(row);
       rows.push(validatedRow);
     } catch (e) {
-      console.error(e);
+      console.error('Error parsing row: ', row, e);
       return [[], true];
     }
   }
 
   return [rows, false];
+};
+
+const parseCsvLines = (csv: string) => {
+  const lines: string[] = [];
+  let currentLine = '';
+
+  const rawLines = csv.split('\n').filter((line) => line.trim() !== '');
+  let insideQuotes = false;
+
+  for (const rawLine of rawLines) {
+    if (insideQuotes) {
+      currentLine += '\n' + rawLine;
+    } else {
+      currentLine = rawLine;
+    }
+
+    const quoteCount = (rawLine.match(/"/g) || []).length;
+
+    if (quoteCount % 2 === 1) {
+      insideQuotes = !insideQuotes;
+    }
+
+    if (!insideQuotes) {
+      lines.push(currentLine);
+      currentLine = '';
+    }
+  }
+
+  return lines;
 };
 
 const sanitizeValue = (value: string) => {
