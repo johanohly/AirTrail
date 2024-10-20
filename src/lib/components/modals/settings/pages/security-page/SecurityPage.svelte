@@ -32,12 +32,22 @@
     oauthLoading = true;
     try {
       await api.oauth.unlink.mutate();
-      invalidateAll();
+      await invalidateAll();
       toast.info('OAuth unlinked successfully.');
     } catch (err) {
       toast.error(err.message);
     } finally {
       oauthLoading = false;
+    }
+  };
+
+  const deleteFlights = async () => {
+    const toastId = toast.loading('Deleting all your flights...');
+    try {
+      await api.flight.deleteAll.mutate();
+      toast.info('All your flights have been deleted.', { id: toastId });
+    } catch (err) {
+      toast.error(err.message, { id: toastId });
     }
   };
 </script>
@@ -89,4 +99,20 @@
       </div>
     </div>
   {/if}
+  <div class="flex items-center justify-between p-4 rounded-lg border">
+    <h4 class="font-medium leading-4">Danger zone</h4>
+    <div>
+      <Confirm
+        onConfirm={deleteFlights}
+        title="Delete all flights"
+        description="Are you sure you want to delete all your flights? This does not include flights with more than one seat. This action cannot be undone."
+        triggerVariant="destructiveOutline"
+        confirmText="Delete"
+      >
+        {#snippet triggerContent()}
+          Delete all flights
+        {/snippet}
+      </Confirm>
+    </div>
+  </div>
 </PageHeader>

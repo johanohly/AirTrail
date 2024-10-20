@@ -8,6 +8,7 @@ import {
   listFlights,
 } from '$lib/server/utils/flight';
 import { generateCsv } from '$lib/utils/csv';
+import { sql } from 'kysely';
 
 export const flightRouter = router({
   list: authedProcedure.query(async ({ ctx: { user } }) => {
@@ -32,6 +33,50 @@ export const flightRouter = router({
         throw new Error('Flight not found');
       }
     }),
+  deleteAll: authedProcedure.mutation(async ({ ctx: { user } }) => {
+    const flightIds = await db
+      .selectFrom('flight')
+      .innerJoin('seat', 'seat.flightId', 'flight.id')
+      .select('flight.id')
+      .groupBy('flight.id')
+      .having((eb) =>
+        eb.and([
+          eb(
+            eb.fn.count(
+              eb
+                .case()
+                .when('seat.userId', '=', user.id)
+                .then(1)
+                .else(null)
+                .end(),
+            ),
+            '=',
+            1,
+          ),
+          eb(
+            eb.fn.count(
+              eb
+                .case()
+                .when('seat.userId', 'is', null)
+                .then(1)
+                .else(null)
+                .end(),
+            ),
+            '=',
+            eb.fn.count('seat.id') - 1,
+          ),
+        ]),
+      )
+      .where('seat.userId', '=', user.id)
+      .execute();
+
+    if (flightIds.length === 0) {
+      return;
+    }
+
+    const idsToDelete = flightIds.map((f) => f.id);
+    await db.deleteFrom('flight').where('id', 'in', idsToDelete).execute();
+  }),
   create: authedProcedure
     .input(z.custom<CreateFlight>())
     .mutation(async ({ input }) => {
