@@ -153,12 +153,11 @@ export const processFR24File = async (content: string) => {
       FR24_FLIGHT_REASON_MAP?.[row.flight_reason ?? 'noop'] ?? null;
 
     const rawAirline = row.airline ? extractAirlineICAO(row.airline) : null;
-    let airline = rawAirline
+    const airline = rawAirline
       ? (airlineFromICAO(rawAirline)?.icao ?? null)
       : null;
     if (!airline && rawAirline) {
-      console.warn(`Unknown airline ICAO code: ${airline}`);
-      airline = null;
+      console.warn(`Unknown airline ICAO code: ${rawAirline}`);
     }
 
     const aircraft = row.aircraft ? extractAircraftICAO(row.aircraft) : null;
