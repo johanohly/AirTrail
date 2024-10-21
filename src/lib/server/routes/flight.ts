@@ -8,7 +8,6 @@ import {
   listFlights,
 } from '$lib/server/utils/flight';
 import { generateCsv } from '$lib/utils/csv';
-import { sql } from 'kysely';
 
 export const flightRouter = router({
   list: authedProcedure.query(async ({ ctx: { user } }) => {
@@ -63,11 +62,10 @@ export const flightRouter = router({
                 .end(),
             ),
             '=',
-            eb.fn.count('seat.id') - 1,
+            eb(eb.fn.count('seat.id'), '-', eb.lit(1)),
           ),
         ]),
       )
-      .where('seat.userId', '=', user.id)
       .execute();
 
     if (flightIds.length === 0) {

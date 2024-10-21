@@ -4,7 +4,7 @@
   import { appConfig } from '$lib/utils/stores';
   import { Button } from '$lib/components/ui/button';
   import { page } from '$app/stores';
-  import { api } from '$lib/trpc';
+  import { api, trpc } from '$lib/trpc';
   import { toast } from 'svelte-sonner';
   import { LoaderCircle } from '@o7/icon/lucide';
   import { invalidateAll } from '$app/navigation';
@@ -45,6 +45,7 @@
     const toastId = toast.loading('Deleting all your flights...');
     try {
       await api.flight.deleteAll.mutate();
+      await trpc.flight.list.utils.invalidate();
       toast.info('All your flights have been deleted.', { id: toastId });
     } catch (err) {
       toast.error(err.message, { id: toastId });
@@ -105,7 +106,7 @@
       <Confirm
         onConfirm={deleteFlights}
         title="Delete all flights"
-        description="Are you sure you want to delete all your flights? This does not include flights with more than one seat. This action cannot be undone."
+        description="Are you sure you want to delete all your flights? This does not include flights you share with other users. This action cannot be undone."
         triggerVariant="destructiveOutline"
         confirmText="Delete"
       >
