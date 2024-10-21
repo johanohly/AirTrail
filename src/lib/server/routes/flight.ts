@@ -32,6 +32,49 @@ export const flightRouter = router({
         throw new Error('Flight not found');
       }
     }),
+  deleteAll: authedProcedure.mutation(async ({ ctx: { user } }) => {
+    const flightIds = await db
+      .selectFrom('flight')
+      .innerJoin('seat', 'seat.flightId', 'flight.id')
+      .select('flight.id')
+      .groupBy('flight.id')
+      .having((eb) =>
+        eb.and([
+          eb(
+            eb.fn.count(
+              eb
+                .case()
+                .when('seat.userId', '=', user.id)
+                .then(1)
+                .else(null)
+                .end(),
+            ),
+            '=',
+            1,
+          ),
+          eb(
+            eb.fn.count(
+              eb
+                .case()
+                .when('seat.userId', 'is', null)
+                .then(1)
+                .else(null)
+                .end(),
+            ),
+            '=',
+            eb(eb.fn.count('seat.id'), '-', eb.lit(1)),
+          ),
+        ]),
+      )
+      .execute();
+
+    if (flightIds.length === 0) {
+      return;
+    }
+
+    const idsToDelete = flightIds.map((f) => f.id);
+    await db.deleteFrom('flight').where('id', 'in', idsToDelete).execute();
+  }),
   create: authedProcedure
     .input(z.custom<CreateFlight>())
     .mutation(async ({ input }) => {
