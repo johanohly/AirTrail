@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Chart, Pie, Svg, Tooltip } from 'layerchart';
+  import { Chart, Pie, PieChart, Svg, Tooltip } from 'layerchart';
   import { scaleOrdinal } from 'd3-scale';
   import { cn } from '$lib/utils';
 
@@ -17,27 +17,15 @@
     )}
   >
     <div class="h-[130px]">
-      <Chart
+      <PieChart
         data={Object.entries(data).map(([key, value]) => ({
           label: key,
           value,
         }))}
-        x="value"
         c="label"
-        cScale={scaleOrdinal()}
-        cDomain={Object.entries(data)
-          .sort((a, b) => b[1] - a[1])
-          .map(([key]) => key)}
+        x="value"
         cRange={['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef']}
-        let:tooltip
-      >
-        <Svg center>
-          <Pie {tooltip} />
-        </Svg>
-        <Tooltip.Root let:data>
-          <Tooltip.Header>{data.label}</Tooltip.Header>
-        </Tooltip.Root>
-      </Chart>
+      />
     </div>
     <div>
       {#each Object.entries(data) as [key, value]}

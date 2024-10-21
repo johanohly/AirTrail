@@ -1,24 +1,21 @@
 import type { Flight } from '$lib/db';
 import dayjs from 'dayjs';
-import { distanceBetween, toTitleCase } from '$lib/utils';
+import { parse, parseISO } from 'date-fns';
+import { distanceBetween, formatAsDate, toTitleCase } from '$lib/utils';
 import { type Airport, airportFromICAO } from '$lib/utils/data/airports';
 import { get } from 'svelte/store';
 import { page } from '$app/stores';
-
-const dateFormatter = new Intl.DateTimeFormat(undefined, {
-  year: 'numeric',
-  month: 'numeric',
-  day: 'numeric',
-});
+import { TZDate, TZDateMini } from '@date-fns/tz';
+import { tz } from '@date-fns/tz/tz';
 
 type ExcludedType<T, U> = {
   [P in keyof T as P extends keyof U ? never : P]: T[P];
 };
 
 type FlightOverrides = {
-  date: dayjs.Dayjs;
-  departure: dayjs.Dayjs | null;
-  arrival: dayjs.Dayjs | null;
+  date: TZDate;
+  departure: TZDate | null;
+  arrival: TZDate | null;
   from: Airport;
   to: Airport;
   distance: number;
@@ -38,15 +35,17 @@ export const prepareFlightData = (data: Flight[]): FlightData[] => {
 
       return {
         ...flight,
-        date: dayjs(flight.date, 'YYYY-MM-DD'),
+        date: parse(flight.date, 'yyyy-MM-dd', new Date(), {
+          in: tz(fromAirport.tz),
+        }),
         from: fromAirport,
         to: toAirport,
         departure: flight.departure
-          ? dayjs(flight.departure).add(fromAirport.tz, 'minutes')
-          : null, // convert to local time
+          ? new TZDate(parseISO(flight.departure), fromAirport.tz)
+          : null,
         arrival: flight.arrival
-          ? dayjs(flight.arrival).add(toAirport.tz, 'minutes')
-          : null, // convert to local time
+          ? new TZDate(parseISO(flight.arrival), toAirport.tz)
+          : null,
         distance:
           distanceBetween(
             [fromAirport.lon, fromAirport.lat],
@@ -203,7 +202,7 @@ export const prepareVisitedAirports = (data: FlightData[]) => {
 const formatSimpleFlight = (f: FlightData) => {
   return {
     route: `${f.from.IATA ?? f.from.ICAO} - ${f.to.IATA ?? f.to.ICAO}`,
-    date: dateFormatter.format(f.date.toDate()),
+    date: formatAsDate(f.date, f.from.tz, true),
     airline: f.airline ?? '',
   };
 };

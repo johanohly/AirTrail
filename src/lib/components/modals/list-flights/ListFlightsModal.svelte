@@ -6,36 +6,23 @@
   import duration from 'dayjs/plugin/duration';
   import { Separator } from '$lib/components/ui/separator';
   import { LabelledSeparator } from '$lib/components/ui/separator/index.js';
-  import { cn, type FlightData, isUsingAmPm } from '$lib/utils';
+  import {
+    cn,
+    type FlightData,
+    formatAsDate,
+    formatAsDateTime,
+    formatAsMonth,
+    formatAsTime,
+    isUsingAmPm,
+  } from '$lib/utils';
   import * as Tooltip from '$lib/components/ui/tooltip';
   import { formatSeat } from '$lib/utils/data/data';
   import { Confirm } from '$lib/components/helpers';
   import { EditFlightModal } from '$lib/components/modals';
   import { airlineFromICAO } from '$lib/utils/data/airlines';
+  import { isBefore, isSameDay } from 'date-fns';
 
   dayjs.extend(duration);
-
-  const monthFormatter = new Intl.DateTimeFormat(undefined, {
-    timeZone: 'UTC',
-    month: 'short',
-  });
-  const dateFormatter = new Intl.DateTimeFormat(undefined, {
-    timeZone: 'UTC',
-    day: 'numeric',
-    month: 'short',
-  });
-  const datetimeFormatter = new Intl.DateTimeFormat(undefined, {
-    timeZone: 'UTC',
-    day: 'numeric',
-    month: 'short',
-    hour: 'numeric',
-    minute: 'numeric',
-  });
-  const timeFormatter = new Intl.DateTimeFormat(undefined, {
-    timeZone: 'UTC',
-    hour: 'numeric',
-    minute: 'numeric',
-  });
 
   let {
     open = $bindable(),
@@ -56,12 +43,11 @@
         const depDate = f.departure;
         const arrDate = f.arrival;
 
-        const sameDay =
-          depDate && arrDate && dayjs(depDate).isSame(arrDate, 'day');
+        const sameDay = depDate && arrDate && isSameDay(depDate, arrDate);
         const arrTime = arrDate
           ? sameDay
-            ? timeFormatter.format(arrDate.toDate())
-            : datetimeFormatter.format(arrDate.toDate())
+            ? formatAsTime(arrDate, f.to.tz)
+            : formatAsDateTime(arrDate, f.to.tz)
           : null;
 
         const airline = f.airline ? airlineFromICAO(f.airline) : null;
@@ -81,10 +67,10 @@
           duration: f.duration
             ? dayjs.duration(f.duration, 'seconds').format('H[h] m[m]')
             : '',
-          month: monthFormatter.format(f.date.toDate()),
+          month: formatAsMonth(f.date, f.from.tz),
           depTime: depDate
-            ? datetimeFormatter.format(depDate.toDate())
-            : dateFormatter.format(f.date.toDate()),
+            ? formatAsDateTime(depDate, f.from.tz)
+            : formatAsDate(f.date, f.from.tz),
           arrTime,
           seat: formatSeat(f),
           airline,
@@ -92,9 +78,9 @@
       })
       .sort((a, b) => {
         if (a.departure && b.departure) {
-          return b.departure.unix() - a.departure.unix();
+          return isBefore(a.departure, b.departure) ? 1 : -1;
         } else {
-          return b.date.unix() - a.date.unix();
+          return isBefore(a.date, b.date) ? 1 : -1;
         }
       });
   });
@@ -109,7 +95,7 @@
   const flightsByYear = $derived.by(() => {
     const raw = filteredFlights.reduce(
       (acc, f) => {
-        const year = f.date.year();
+        const year = f.date.getFullYear();
         if (!acc[year]) acc[year] = [];
         acc[year].push(f);
         return acc;
@@ -269,9 +255,11 @@
 
 {#snippet actions(flight)}
   <div class="flex items-center gap-2">
+    <!--
     {#key flight}
       <EditFlightModal {flight} />
     {/key}
+    -->
     <Confirm
       onConfirm={() => deleteFlight(flight.id)}
       title="Remove Flight"

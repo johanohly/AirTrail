@@ -1,6 +1,35 @@
 import dayjs from 'dayjs';
 import { distanceBetween } from '$lib/utils/distance';
 import type { LngLatLike } from 'maplibre-gl';
+import { TZDate } from '@date-fns/tz';
+
+export const nowIn = (tzId: string) => new TZDate(new Date(), tzId);
+
+export const formatAsMonth = (date: Date, tzId: string) =>
+  new Intl.DateTimeFormat(undefined, {
+    timeZone: tzId,
+    month: 'short',
+  }).format(date);
+export const formatAsDate = (date: Date, tzId: string, monthAsNumber = false) =>
+  new Intl.DateTimeFormat(undefined, {
+    timeZone: tzId,
+    day: 'numeric',
+    month: monthAsNumber ? 'numeric' : 'short',
+  }).format(date);
+export const formatAsDateTime = (date: Date, tzId: string) =>
+  new Intl.DateTimeFormat(undefined, {
+    timeZone: tzId,
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: 'numeric',
+  }).format(date);
+export const formatAsTime = (date: Date, tzId: string) =>
+  new Intl.DateTimeFormat(undefined, {
+    timeZone: tzId,
+    hour: 'numeric',
+    minute: 'numeric',
+  }).format(date);
 
 /**
  * Format a Dayjs object to a string in ISO format.

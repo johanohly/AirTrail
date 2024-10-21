@@ -49,7 +49,7 @@
     const months = Array.from({ length: 12 }, (_, i) => i);
     return months.map((month) => {
       const monthFlights = data.filter(
-        (flight) => flight.date.month() === month,
+        (flight) => flight.date.getMonth() === month,
       );
       return {
         month,
