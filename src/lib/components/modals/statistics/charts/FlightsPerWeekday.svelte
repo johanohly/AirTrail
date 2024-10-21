@@ -22,7 +22,7 @@
     const weekdays = Array.from({ length: 7 }, (_, i) => i);
     return weekdays.map((weekday) => {
       const weekdayFlights = data.filter(
-        (flight) => flight.date.day() === weekday,
+        (flight) => flight.date.getDay() === weekday,
       );
       return {
         weekday,

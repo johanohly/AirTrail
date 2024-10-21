@@ -8,7 +8,16 @@ export {
   prepareVisitedAirports,
 } from './data/data';
 export { distanceBetween, linearClamped } from './distance';
-export { toISOString, isUsingAmPm, estimateDuration } from './datetime';
+export {
+  nowIn,
+  formatAsMonth,
+  formatAsDateTime,
+  formatAsDate,
+  formatAsTime,
+  toISOString,
+  isUsingAmPm,
+  estimateDuration,
+} from './datetime';
 export { calculateBounds } from './latlng';
 export { toTitleCase, pluralize } from './string';
 export {

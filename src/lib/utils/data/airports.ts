@@ -6,7 +6,7 @@ export type Airport = {
   name: string;
   country: string;
   continent: string;
-  tz: number;
+  tz: string;
   lat: number;
   lon: number;
   IATA: string | null;
