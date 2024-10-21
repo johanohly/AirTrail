@@ -1,4 +1,5 @@
 var fs = require('fs');
+const { find } = require('geo-tz');
 
 const IGNORED_FIELDS = [
   'LOCAL',
@@ -6,6 +7,7 @@ const IGNORED_FIELDS = [
   'restriction',
   'alt',
   'timezone',
+  'gmt_offset',
   'region',
   'municipality',
   'activation',
@@ -36,7 +38,7 @@ const IGNORED_FIELDS = [
         if (IGNORED_FIELDS.includes(headers[i])) {
           return;
         }
-        const header = headers[i] === 'gmt_offset' ? 'tz' : headers[i];
+        const header = headers[i];
 
         let cell = cell_ === '' || cell_ === 'NULL' ? null : cell_;
         if (!isNaN(+cell) && cell !== null) {
@@ -49,6 +51,9 @@ const IGNORED_FIELDS = [
           airport[header] = cell;
         }
       });
+
+      const timezoneId = find(airport.lat, airport.lon)[0];
+      airport['tz'] = timezoneId;
       return airport;
     })
     .filter((airport) => airport.tier > 3 && airport.ICAO.length === 4);
