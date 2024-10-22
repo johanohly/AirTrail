@@ -1,10 +1,11 @@
 import type { CreateFlight, Seat } from '$lib/db/types';
-import { estimateDuration, parseCsv, toISOString } from '$lib/utils';
+import { parseCsv } from '$lib/utils';
 import { z } from 'zod';
 import { get } from 'svelte/store';
 import { page } from '$app/stores';
 import { airportFromICAO } from '$lib/utils/data/airports';
 import dayjs from 'dayjs';
+import { estimateFlightDuration } from '$lib/utils/datetime';
 
 const JETLOG_FLIGHT_CLASS_MAP: Record<string, Seat['seatClass']> = {
   'ClassType.ECONOMY': 'economy',
@@ -83,7 +84,7 @@ export const processJetLogFile = async (input: string) => {
       ? +row.duration * 60
       : departure && arrival
         ? arrival.diff(departure, 'seconds')
-        : estimateDuration(
+        : estimateFlightDuration(
             { lng: from.lon, lat: from.lat },
             { lng: to.lon, lat: to.lat },
           );

@@ -6,21 +6,20 @@
   import duration from 'dayjs/plugin/duration';
   import { Separator } from '$lib/components/ui/separator';
   import { LabelledSeparator } from '$lib/components/ui/separator/index.js';
-  import {
-    cn,
-    type FlightData,
-    formatAsDate,
-    formatAsDateTime,
-    formatAsMonth,
-    formatAsTime,
-    isUsingAmPm,
-  } from '$lib/utils';
+  import { cn, type FlightData } from '$lib/utils';
   import * as Tooltip from '$lib/components/ui/tooltip';
   import { formatSeat } from '$lib/utils/data/data';
   import { Confirm } from '$lib/components/helpers';
   import { EditFlightModal } from '$lib/components/modals';
   import { airlineFromICAO } from '$lib/utils/data/airlines';
   import { isBefore, isSameDay } from 'date-fns';
+  import {
+    formatAsDate,
+    formatAsDateTime,
+    formatAsMonth,
+    formatAsTime,
+    isUsingAmPm,
+  } from '$lib/utils/datetime';
 
   dayjs.extend(duration);
 

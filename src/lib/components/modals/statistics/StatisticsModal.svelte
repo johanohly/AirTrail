@@ -9,10 +9,10 @@
     formatDistance,
     formatDuration,
     formatNumber,
-    nowIn,
   } from '$lib/utils';
   import { page } from '$app/stores';
   import { isBefore } from 'date-fns';
+  import { nowIn } from '$lib/utils/datetime';
 
   let {
     open = $bindable(),

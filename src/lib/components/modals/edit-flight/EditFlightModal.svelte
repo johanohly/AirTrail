@@ -12,7 +12,6 @@
   import { trpc } from '$lib/trpc';
   import SeatInformation from '$lib/components/modals/add-flight/SeatInformation.svelte';
   import FlightInformation from '$lib/components/modals/add-flight/FlightInformation.svelte';
-  import { toISOString } from '$lib/utils/index.js';
   import FlightNumber from '$lib/components/modals/add-flight/FlightNumber.svelte';
 
   const timeFormatter = new Intl.DateTimeFormat(undefined, {

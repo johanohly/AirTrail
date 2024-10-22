@@ -1,6 +1,5 @@
 import dayjs from 'dayjs';
 import { airportFromIATA } from '$lib/utils/data/airports';
-import { toISOString } from '$lib/utils';
 import type { CreateFlight } from '$lib/db/types';
 import { get } from 'svelte/store';
 import { page } from '$app/stores';

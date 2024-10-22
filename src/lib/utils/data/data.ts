@@ -1,12 +1,19 @@
 import type { Flight } from '$lib/db';
 import dayjs from 'dayjs';
 import { parse, parseISO } from 'date-fns';
-import { distanceBetween, formatAsDate, toTitleCase } from '$lib/utils';
+import { distanceBetween, toTitleCase } from '$lib/utils';
 import { type Airport, airportFromICAO } from '$lib/utils/data/airports';
 import { get } from 'svelte/store';
 import { page } from '$app/stores';
-import { TZDate, TZDateMini } from '@date-fns/tz';
+import { TZDate } from '@date-fns/tz';
 import { tz } from '@date-fns/tz/tz';
+import {
+  formatAsDate,
+  parseLocal,
+  parseLocalISO,
+  parseLocalize,
+  parseLocalizeISO,
+} from '$lib/utils/datetime';
 
 type ExcludedType<T, U> = {
   [P in keyof T as P extends keyof U ? never : P]: T[P];
@@ -33,18 +40,19 @@ export const prepareFlightData = (data: Flight[]): FlightData[] => {
       const toAirport = airportFromICAO(flight.to);
       if (!fromAirport || !toAirport) return null;
 
+      const departure = flight.departure
+        ? parseLocalizeISO(flight.departure, fromAirport.tz)
+        : null;
+
       return {
         ...flight,
-        date: parse(flight.date, 'yyyy-MM-dd', new Date(), {
-          in: tz(fromAirport.tz),
-        }),
+        date:
+          departure ?? parseLocalize(flight.date, 'yyyy-MM-dd', fromAirport.tz),
         from: fromAirport,
         to: toAirport,
-        departure: flight.departure
-          ? new TZDate(parseISO(flight.departure), fromAirport.tz)
-          : null,
+        departure,
         arrival: flight.arrival
-          ? new TZDate(parseISO(flight.arrival), toAirport.tz)
+          ? parseLocalizeISO(flight.arrival, toAirport.tz)
           : null,
         distance:
           distanceBetween(
@@ -202,7 +210,7 @@ export const prepareVisitedAirports = (data: FlightData[]) => {
 const formatSimpleFlight = (f: FlightData) => {
   return {
     route: `${f.from.IATA ?? f.from.ICAO} - ${f.to.IATA ?? f.to.ICAO}`,
-    date: formatAsDate(f.date, f.from.tz, true),
+    date: formatAsDate(f.date, f.from.tz, true, true),
     airline: f.airline ?? '',
   };
 };

@@ -1,6 +1,5 @@
-import { parseCsv, toISOString } from '$lib/utils';
+import { parseCsv } from '$lib/utils';
 import { z } from 'zod';
-import dayjs from 'dayjs';
 import type { Flight } from '$lib/db';
 import { airlineFromICAO } from '$lib/utils/data/airlines';
 import { airportFromICAO } from '$lib/utils/data/airports';
@@ -9,7 +8,8 @@ import { page } from '$app/stores';
 import { get } from 'svelte/store';
 import { tz } from '@date-fns/tz/tz';
 import { addDays, isBefore, parse } from 'date-fns';
-import { TZDate, TZDateMini } from '@date-fns/tz';
+import { TZDate } from '@date-fns/tz';
+import { toUtc } from '$lib/utils/datetime';
 
 const FR24_AIRPORT_REGEX = /\((?<IATA>[a-zA-Z]{3})\/(?<ICAO>[a-zA-Z]{4})\)/;
 const FR24_SEAT_TYPE_MAP: Record<string, Seat['seat']> = {
@@ -126,25 +126,23 @@ export const processFR24File = async (content: string) => {
     }
 
     const departure = row.dep_time
-      ? new TZDate(
+      ? toUtc(
           parse(
             `${row.date} ${row.dep_time}`,
             'yyyy-MM-dd kk:mm:ss',
             new Date(),
             { in: tz(from.tz) },
           ),
-          'UTC',
         )
       : null;
     let arrival = row.arr_time
-      ? new TZDate(
+      ? toUtc(
           parse(
             `${row.date} ${row.arr_time}`,
             'yyyy-MM-dd kk:mm:ss',
             new Date(),
             { in: tz(to.tz) },
           ),
-          'UTC',
         )
       : null;
     if (departure && arrival && isBefore(arrival, departure)) {
