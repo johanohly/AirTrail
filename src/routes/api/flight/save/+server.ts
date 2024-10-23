@@ -9,14 +9,12 @@ import {
 } from '$lib/server/utils/flight';
 import type { RequestHandler } from './$types';
 import {
-  differenceInDays,
   differenceInSeconds,
   format,
   formatISO,
   isBefore,
   parse,
   parseISO,
-  set,
 } from 'date-fns';
 import type { TZDate } from '@date-fns/tz';
 import {
@@ -68,7 +66,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
           fromAirport.tz,
         )
       : undefined;
-  } catch (e) {
+  } catch {
     return returnError(form, 'departureTime', 'Invalid time format');
   }
 
@@ -102,7 +100,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
             toAirport.tz,
           )
         : undefined;
-  } catch (e) {
+  } catch {
     return returnError(form, 'arrivalTime', 'Invalid time format');
   }
 
@@ -152,7 +150,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 
     try {
       await updateFlight(updateId, values);
-    } catch (e) {
+    } catch {
       form.message = { type: 'error', text: 'Failed to update flight' };
       return actionResult('failure', { form });
     }

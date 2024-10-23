@@ -8,7 +8,6 @@ import { page } from '$app/stores';
 import { get } from 'svelte/store';
 import { tz } from '@date-fns/tz/tz';
 import { addDays, isBefore, parse } from 'date-fns';
-import { TZDate } from '@date-fns/tz';
 import { toUtc } from '$lib/utils/datetime';
 
 const FR24_AIRPORT_REGEX = /\((?<IATA>[a-zA-Z]{3})\/(?<ICAO>[a-zA-Z]{4})\)/;

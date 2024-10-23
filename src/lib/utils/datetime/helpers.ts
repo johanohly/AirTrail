@@ -1,6 +1,6 @@
 import { tz, TZDate } from '@date-fns/tz';
 import { isBefore, parse, parseISO } from 'date-fns';
-import { CalendarDateTime, type Mutable } from '@internationalized/date';
+import { CalendarDateTime } from '@internationalized/date';
 
 export const parseLocalISO = (iso: string, tzId: string) =>
   parseISO(iso, { in: tz(tzId) });

@@ -4,8 +4,6 @@
   import { z } from 'zod';
   import { page } from '$app/stores';
   import type { User } from '$lib/db';
-  import { TextTooltip } from '$lib/components/ui/tooltip';
-  import { Info } from '@o7/icon/lucide';
   import * as Form from '$lib/components/ui/form';
   import * as Select from '$lib/components/ui/select';
   import { Input } from '$lib/components/ui/input';
