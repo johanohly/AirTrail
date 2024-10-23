@@ -1,16 +1,12 @@
 import type { Flight } from '$lib/db';
 import dayjs from 'dayjs';
-import { parse, parseISO } from 'date-fns';
 import { distanceBetween, toTitleCase } from '$lib/utils';
 import { type Airport, airportFromICAO } from '$lib/utils/data/airports';
 import { get } from 'svelte/store';
 import { page } from '$app/stores';
 import { TZDate } from '@date-fns/tz';
-import { tz } from '@date-fns/tz/tz';
 import {
   formatAsDate,
-  parseLocal,
-  parseLocalISO,
   parseLocalize,
   parseLocalizeISO,
 } from '$lib/utils/datetime';
@@ -210,7 +206,7 @@ export const prepareVisitedAirports = (data: FlightData[]) => {
 const formatSimpleFlight = (f: FlightData) => {
   return {
     route: `${f.from.IATA ?? f.from.ICAO} - ${f.to.IATA ?? f.to.ICAO}`,
-    date: formatAsDate(f.date, f.from.tz, true, true),
+    date: formatAsDate(f.date, true, true),
     airline: f.airline ?? '',
   };
 };

@@ -30,12 +30,8 @@
       ? flight.departure.toISOString()
       : flight.date.toISOString(),
     arrival: flight.arrival ? flight.arrival.toISOString() : null,
-    departureTime: flight.departure
-      ? formatAsTime(flight.departure, flight.from.tz)
-      : null,
-    arrivalTime: flight.arrival
-      ? formatAsTime(flight.arrival, flight.to.tz)
-      : null,
+    departureTime: flight.departure ? formatAsTime(flight.departure) : null,
+    arrivalTime: flight.arrival ? formatAsTime(flight.arrival) : null,
   };
 
   let open = $state(false);

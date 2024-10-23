@@ -2,8 +2,6 @@
   import { Modal } from '$lib/components/ui/modal';
   import { Card } from '$lib/components/ui/card';
   import { Plane, PlaneTakeoff, PlaneLanding, X } from '@o7/icon/lucide';
-  import dayjs from 'dayjs';
-  import duration from 'dayjs/plugin/duration';
   import { Separator } from '$lib/components/ui/separator';
   import { LabelledSeparator } from '$lib/components/ui/separator/index.js';
   import { cn, type FlightData } from '$lib/utils';
@@ -14,14 +12,13 @@
   import { airlineFromICAO } from '$lib/utils/data/airlines';
   import { isBefore, isSameDay } from 'date-fns';
   import {
+    Duration,
     formatAsDate,
     formatAsDateTime,
     formatAsMonth,
     formatAsTime,
     isUsingAmPm,
   } from '$lib/utils/datetime';
-
-  dayjs.extend(duration);
 
   let {
     open = $bindable(),
@@ -45,8 +42,8 @@
         const sameDay = depDate && arrDate && isSameDay(depDate, arrDate);
         const arrTime = arrDate
           ? sameDay
-            ? formatAsTime(arrDate, f.to.tz)
-            : formatAsDateTime(arrDate, f.to.tz)
+            ? formatAsTime(arrDate)
+            : formatAsDateTime(arrDate)
           : null;
 
         const airline = f.airline ? airlineFromICAO(f.airline) : null;
@@ -64,12 +61,10 @@
             name: f.to.name,
           },
           duration: f.duration
-            ? dayjs.duration(f.duration, 'seconds').format('H[h] m[m]')
+            ? Duration.fromSeconds(f.duration).toString()
             : '',
-          month: formatAsMonth(f.date, f.from.tz),
-          depTime: depDate
-            ? formatAsDateTime(depDate, f.from.tz)
-            : formatAsDate(f.date, f.from.tz),
+          month: formatAsMonth(f.date),
+          depTime: depDate ? formatAsDateTime(depDate) : formatAsDate(f.date),
           arrTime,
           seat: formatSeat(f),
           airline,

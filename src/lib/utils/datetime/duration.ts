@@ -17,7 +17,12 @@ export class Duration {
     return new Duration(hours, minutes);
   }
 
-  toString(): string {
+  toString(includeDays: boolean = false): string {
+    if (includeDays) {
+      const days = Math.floor(this.hours / 24);
+      const remainingHours = this.hours % 24;
+      return `${days}d ${remainingHours}h ${this.minutes}m`;
+    }
     return `${this.hours}h ${this.minutes}m`;
   }
 }

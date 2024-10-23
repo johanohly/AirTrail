@@ -1,11 +1,7 @@
 <script lang="ts">
   import { flyAndScale, toTitleCase } from '$lib/utils';
   import { buttonVariants } from '$lib/components/ui/button';
-  import {
-    type DateValue,
-    parseAbsolute,
-    parseDate,
-  } from '@internationalized/date';
+  import { type DateValue, parseDate } from '@internationalized/date';
   import { CalendarDays, ArrowLeft, ArrowRight, Info } from '@o7/icon/lucide';
   import { Input } from '$lib/components/ui/input';
   import * as Form from '$lib/components/ui/form';
@@ -14,6 +10,7 @@
   import { TextTooltip } from '$lib/components/ui/tooltip';
   import { z } from 'zod';
   import type { flightSchema } from '$lib/zod/flight';
+  import { dateValueFromISO } from '$lib/utils/datetime';
 
   let {
     field,
@@ -25,7 +22,7 @@
   const { form: formData, validate } = form;
 
   let dateValue: DateValue | undefined = $state(
-    $formData[field] ? parseAbsolute($formData[field], 'UTC') : undefined,
+    $formData[field] ? dateValueFromISO($formData[field]) : undefined,
   );
 </script>
 

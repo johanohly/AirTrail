@@ -1,7 +1,4 @@
-import dayjs from 'dayjs';
-import duration from 'dayjs/plugin/duration';
-
-dayjs.extend(duration);
+import { Duration } from '$lib/utils/datetime';
 
 const formatter = new Intl.NumberFormat();
 
@@ -23,5 +20,5 @@ export const formatDistance = (km: number, metric = true) => {
 };
 
 export const formatDuration = (seconds: number) => {
-  return dayjs.duration(seconds, 'seconds').format('D[d] H[h] m[m]');
+  return Duration.fromSeconds(seconds).toString(true);
 };
