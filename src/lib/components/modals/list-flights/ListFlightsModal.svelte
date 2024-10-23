@@ -254,11 +254,9 @@
 
 {#snippet actions(flight)}
   <div class="flex items-center gap-2">
-    <!--
     {#key flight}
       <EditFlightModal {flight} />
     {/key}
-    -->
     <Confirm
       onConfirm={() => deleteFlight(flight.id)}
       title="Remove Flight"

@@ -13,12 +13,7 @@
   import SeatInformation from '$lib/components/modals/add-flight/SeatInformation.svelte';
   import FlightInformation from '$lib/components/modals/add-flight/FlightInformation.svelte';
   import FlightNumber from '$lib/components/modals/add-flight/FlightNumber.svelte';
-
-  const timeFormatter = new Intl.DateTimeFormat(undefined, {
-    timeZone: 'UTC',
-    hour: 'numeric',
-    minute: 'numeric',
-  });
+  import { formatAsTime } from '$lib/utils/datetime';
 
   let {
     flight,
@@ -32,14 +27,14 @@
       'id' | 'userId' | 'date' | 'duration'
     >),
     departure: flight.departure
-      ? toISOString(flight.departure)
-      : toISOString(flight.date),
-    arrival: flight.arrival ? toISOString(flight.arrival) : null,
+      ? flight.departure.toISOString()
+      : flight.date.toISOString(),
+    arrival: flight.arrival ? flight.arrival.toISOString() : null,
     departureTime: flight.departure
-      ? timeFormatter.format(flight.departure.toDate())
+      ? formatAsTime(flight.departure, flight.from.tz)
       : null,
     arrivalTime: flight.arrival
-      ? timeFormatter.format(flight.arrival.toDate())
+      ? formatAsTime(flight.arrival, flight.to.tz)
       : null,
   };
 
