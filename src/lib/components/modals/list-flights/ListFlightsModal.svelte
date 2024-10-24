@@ -2,8 +2,7 @@
   import { Modal } from '$lib/components/ui/modal';
   import { Card } from '$lib/components/ui/card';
   import { Plane, PlaneTakeoff, PlaneLanding, X } from '@o7/icon/lucide';
-  import { Separator } from '$lib/components/ui/separator';
-  import { LabelledSeparator } from '$lib/components/ui/separator/index.js';
+  import { LabelledSeparator, Separator } from '$lib/components/ui/separator';
   import { cn, type FlightData } from '$lib/utils';
   import * as Tooltip from '$lib/components/ui/tooltip';
   import { formatSeat } from '$lib/utils/data/data';
@@ -19,9 +18,10 @@
     formatAsTime,
     isUsingAmPm,
   } from '$lib/utils/datetime';
+  import Toolbar from './Toolbar.svelte';
 
   let {
-    open = $bindable(),
+    open = $bindable<boolean>(),
     flights,
     deleteFlight,
   }: {
@@ -79,6 +79,14 @@
       });
   });
 
+  let filters: {
+    from: string[];
+    to: string[];
+  } = $state({
+    from: [],
+    to: [],
+  });
+  $inspect(filters);
   const filteredFlights = $derived.by(() => {
     return parsedFlights.filter((f) => {
       //return f.to === "CPH";
@@ -117,6 +125,9 @@
 
     return () => observer.disconnect();
   });
+
+  let selecting = $state(false);
+  let selectedFlights = $state<number[]>([]);
 </script>
 
 <Modal
@@ -127,6 +138,7 @@
   dialogOnly
 >
   <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
+  <Toolbar bind:flights bind:filters bind:selecting bind:selectedFlights />
   {#if flightsByYear.length === 0}
     <p class="text-lg text-muted-foreground">No flights found</p>
   {:else}
@@ -140,7 +152,26 @@
       </LabelledSeparator>
       <div class="space-y-2">
         {#each flights as flight (flight.id)}
-          <Card level="2" class="flex items-center p-3">
+          <Card
+            onclick={() => {
+              if (selecting) {
+                if (selectedFlights.includes(flight.id)) {
+                  selectedFlights = selectedFlights.filter(
+                    (id) => id !== flight.id,
+                  );
+                } else {
+                  selectedFlights = [...selectedFlights, flight.id];
+                }
+              }
+            }}
+            level="2"
+            class={cn('flex items-center p-3', {
+              'cursor-pointer border-zinc-600 border-dotted border-2':
+                selecting,
+              'border-destructive border-solid':
+                selecting && selectedFlights.includes(flight.id),
+            })}
+          >
             <div
               class="flex items-stretch md:items-center max-md:flex-col-reverse max-md:content-start flex-1 h-full min-w-0"
             >
@@ -258,6 +289,7 @@
       description="Are you sure you want to remove this flight? All seats will be removed as well."
       triggerVariant="outline"
       triggerSize="icon"
+      triggerDisabled={selecting}
     >
       {#snippet triggerContent()}
         <X size="24" />
