@@ -1,9 +1,19 @@
 <script lang="ts">
-  import { Chart, Pie, PieChart, Svg, Tooltip } from 'layerchart';
-  import { scaleOrdinal } from 'd3-scale';
+  import { PieChart } from 'layerchart';
   import { cn } from '$lib/utils';
 
   let { data }: { data: Record<string, number> } = $props();
+  const noData = $derived.by(
+    () => Object.values(data).reduce((a, b) => a + b, 0) === 0,
+  );
+  const placeholderOrData = $derived.by(() => {
+    if (noData) {
+      return { 'No data': 1 };
+    }
+    return Object.fromEntries(
+      Object.entries(data).sort(([, a], [, b]) => b - a),
+    );
+  });
 </script>
 
 <div
@@ -18,13 +28,15 @@
   >
     <div class="h-[130px]">
       <PieChart
-        data={Object.entries(data).map(([key, value]) => ({
+        data={Object.entries(placeholderOrData).map(([key, value]) => ({
           label: key,
           value,
         }))}
         c="label"
         x="value"
-        cRange={['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef']}
+        cRange={noData
+          ? ['#3b82f650']
+          : ['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef']}
       />
     </div>
     <div>
