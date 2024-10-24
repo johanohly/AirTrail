@@ -37,7 +37,7 @@ export const getOAuthClient = async () => {
       client_id: clientId,
       client_secret: clientSecret,
     });
-  } catch (e) {
+  } catch {
     throw new Error('Failed to discover issuer');
   }
 };

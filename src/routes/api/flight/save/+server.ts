@@ -2,14 +2,28 @@ import { actionResult, setError, superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { flightSchema } from '$lib/zod/flight';
 import { airportFromICAO } from '$lib/utils/data/airports';
-import dayjs from 'dayjs';
-import { estimateDuration, toISOString } from '$lib/utils';
 import {
   createFlight,
   getFlight,
   updateFlight,
 } from '$lib/server/utils/flight';
 import type { RequestHandler } from './$types';
+import {
+  differenceInSeconds,
+  format,
+  formatISO,
+  isBefore,
+  parse,
+  parseISO,
+} from 'date-fns';
+import type { TZDate } from '@date-fns/tz';
+import {
+  estimateFlightDuration,
+  isBeforeEpoch,
+  parseLocalISO,
+  toUtc,
+} from '$lib/utils/datetime';
+import { tz } from '@date-fns/tz/tz';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
   const formData = await request.formData();
@@ -35,31 +49,33 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     return returnError(form, 'to', 'Invalid airport code');
   }
 
-  let departureDate = dayjs(form.data.departure);
-  if (departureDate.isBefore(dayjs('1970-01-01'))) {
+  const departureDate = toUtc(
+    parseLocalISO(form.data.departure, fromAirport.tz),
+  );
+  if (isBeforeEpoch(departureDate)) {
     // Y2K38
     return returnError(form, 'departure', 'Too far in the past');
   }
 
-  let departure: dayjs.Dayjs | undefined;
+  let departure: TZDate | undefined;
   try {
     departure = form.data.departureTime
-      ? mergeTimeWithDate(departureDate, form.data.departureTime).subtract(
+      ? mergeTimeWithDate(
+          form.data.departure,
+          form.data.departureTime,
           fromAirport.tz,
-          'minutes',
-        ) // convert to UTC
+        )
       : undefined;
-  } catch (e) {
+  } catch {
     return returnError(form, 'departureTime', 'Invalid time format');
   }
 
   // adjust departureDate if a departure time is provided and makes it necessary - e.g. 23:00 EDT on the 1st is 03:00 UTC on the 2nd
-  if (departure && departureDate.diff(departure, 'days') !== 0) {
-    departureDate = departure;
-  }
 
-  let arrivalDate = form.data.arrival ? dayjs(form.data.arrival) : undefined;
-  if (arrivalDate && arrivalDate.isBefore(dayjs('1970-01-01'))) {
+  const arrivalDate = form.data.arrival
+    ? parseLocalISO(form.data.arrival, toAirport.tz)
+    : undefined;
+  if (arrivalDate && isBeforeEpoch(arrivalDate)) {
     return returnError(form, 'arrival', 'Too far in the past');
   }
   if (arrivalDate && !form.data.arrivalTime) {
@@ -69,35 +85,37 @@ export const POST: RequestHandler = async ({ locals, request }) => {
       'Cannot have arrival date without time',
     );
   }
-  if (form.data.arrivalTime && !arrivalDate) {
-    arrivalDate = departureDate;
+
+  if (form.data.arrivalTime && !form.data.arrival) {
+    form.data.arrival = formatISO(departureDate);
   }
 
-  let arrival: dayjs.Dayjs | undefined;
+  let arrival: TZDate | undefined;
   try {
     arrival =
-      arrivalDate && form.data.arrivalTime
-        ? mergeTimeWithDate(arrivalDate, form.data.arrivalTime).subtract(
+      form.data.arrival && form.data.arrivalTime
+        ? mergeTimeWithDate(
+            form.data.arrival,
+            form.data.arrivalTime,
             toAirport.tz,
-            'minutes',
-          ) // convert to UTC
+          )
         : undefined;
-  } catch (e) {
+  } catch {
     return returnError(form, 'arrivalTime', 'Invalid time format');
   }
 
-  if (arrival && departure && arrival.isBefore(departure)) {
+  if (arrival && departure && isBefore(arrival, departure)) {
     return returnError(form, 'arrival', 'Arrival must be after departure');
   }
 
   let duration: number | null = null;
   if (departure && arrival) {
-    duration = arrival.diff(departure, 'seconds');
+    duration = differenceInSeconds(arrival, departure);
   } else if (fromAirport != toAirport) {
     // if the airports are the same, the duration can't be calculated
     const fromLonLat = { lon: fromAirport.lon, lat: fromAirport.lat };
     const toLonLat = { lon: toAirport.lon, lat: toAirport.lat };
-    duration = estimateDuration(fromLonLat, toLonLat);
+    duration = estimateFlightDuration(fromLonLat, toLonLat);
   }
 
   const { flightNumber, aircraft, aircraftReg, airline, flightReason, note } =
@@ -107,9 +125,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     from,
     to,
     duration,
-    departure: departure ? toISOString(departure) : null,
-    arrival: arrival ? toISOString(arrival) : null,
-    date: departureDate.format('YYYY-MM-DD'),
+    departure: departure ? toUtc(departure).toISOString() : null,
+    arrival: arrival ? toUtc(arrival).toISOString() : null,
+    date: format(departureDate, 'yyyy-MM-dd'),
     flightNumber,
     aircraft,
     aircraftReg,
@@ -132,7 +150,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 
     try {
       await updateFlight(updateId, values);
-    } catch (e) {
+    } catch {
       form.message = { type: 'error', text: 'Failed to update flight' };
       return actionResult('failure', { form });
     }
@@ -154,31 +172,38 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 
 const timePartsRegex = /^(\d{1,2})(?::|\.|)(\d{2})(?:\s?(am|pm))?$/i;
 const mergeTimeWithDate = (
-  dateOnly: dayjs.Dayjs,
-  timeString: string,
-): dayjs.Dayjs => {
-  const match = timeString.match(timePartsRegex);
+  dateString: string,
+  time: string,
+  tzId: string,
+): TZDate => {
+  const date = parseISO(dateString);
+  const match = time.match(timePartsRegex);
   if (!match) {
     throw new Error('Invalid time format');
   }
-  const [, hours, minutes, ampm] = match;
-  if (!hours || !minutes) {
+  const [, hourPart, minutePart, ampm] = match;
+  if (!hourPart || !minutePart) {
     throw new Error('Invalid time format');
   }
 
-  if (ampm) {
-    let h = +hours;
-    if (ampm.toLowerCase() === 'pm' && h < 12) {
-      h += 12; // Add 12 hours between 1 and 11 PM
-    }
-    if (ampm.toLowerCase() === 'am' && h === 12) {
-      h = 0; // 12 AM is 0 hours from midnight
-    }
+  let hours = +hourPart;
+  const minutes = +minutePart;
 
-    return dateOnly.hour(h).minute(+minutes).second(0);
+  if (ampm) {
+    if (ampm.toLowerCase() === 'pm' && hours < 12) {
+      hours += 12; // Add 12 hours between 1 and 11 PM
+    }
+    if (ampm.toLowerCase() === 'am' && hours === 12) {
+      hours = 0; // 12 AM is 0 hours from midnight
+    }
   }
 
-  return dateOnly.hour(+hours).minute(+minutes).second(0);
+  return parse(
+    `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${hours}:${minutes}`,
+    'yyyy-M-d k:m',
+    new Date(),
+    { in: tz(tzId) },
+  );
 };
 
 const returnError = (

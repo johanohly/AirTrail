@@ -12,14 +12,8 @@
   import { trpc } from '$lib/trpc';
   import SeatInformation from '$lib/components/modals/add-flight/SeatInformation.svelte';
   import FlightInformation from '$lib/components/modals/add-flight/FlightInformation.svelte';
-  import { toISOString } from '$lib/utils/index.js';
   import FlightNumber from '$lib/components/modals/add-flight/FlightNumber.svelte';
-
-  const timeFormatter = new Intl.DateTimeFormat(undefined, {
-    timeZone: 'UTC',
-    hour: 'numeric',
-    minute: 'numeric',
-  });
+  import { formatAsTime } from '$lib/utils/datetime';
 
   let {
     flight,
@@ -33,15 +27,11 @@
       'id' | 'userId' | 'date' | 'duration'
     >),
     departure: flight.departure
-      ? toISOString(flight.departure)
-      : toISOString(flight.date),
-    arrival: flight.arrival ? toISOString(flight.arrival) : null,
-    departureTime: flight.departure
-      ? timeFormatter.format(flight.departure.toDate())
-      : null,
-    arrivalTime: flight.arrival
-      ? timeFormatter.format(flight.arrival.toDate())
-      : null,
+      ? flight.departure.toISOString()
+      : flight.date.toISOString(),
+    arrival: flight.arrival ? flight.arrival.toISOString() : null,
+    departureTime: flight.departure ? formatAsTime(flight.departure) : null,
+    arrivalTime: flight.arrival ? formatAsTime(flight.arrival) : null,
   };
 
   let open = $state(false);

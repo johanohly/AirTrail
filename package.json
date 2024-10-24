@@ -11,6 +11,7 @@
     "lint": "svelte-kit sync && eslint --max-warnings 0 --fix . && svelte-check"
   },
   "dependencies": {
+    "@date-fns/tz": "^1.1.2",
     "@deck.gl/core": "~8.8.0",
     "@deck.gl/layers": "~8.8.0",
     "@deck.gl/mapbox": "~8.8.0",
@@ -28,7 +29,7 @@
     "cobe": "^0.6.3",
     "d3-array": "^3.2.4",
     "d3-scale": "^4.0.2",
-    "dayjs": "^1.11.13",
+    "date-fns": "^4.1.0",
     "devalue": "^5.1.1",
     "formsnap": "^1.0.1",
     "kysely": "^0.27.4",

@@ -15,7 +15,7 @@ export const flightAirportsSchema = z.object({
 export const flightDateTimeSchema = z.object({
   departure: z
     .string()
-    .datetime('Select a departure date')
+    .datetime({ offset: true, message: 'Select a departure date' })
     .nullable()
     .refine((value) => value !== null, 'Select a departure date'),
   departureTime: z
@@ -28,7 +28,10 @@ export const flightDateTimeSchema = z.object({
       return true; // If it's not in 12-hour format, just return true (it'll be caught by the previous refine)
     }, 'Invalid 12-hour format')
     .nullable(),
-  arrival: z.string().datetime('Select an arrival date').nullable(),
+  arrival: z
+    .string()
+    .datetime({ offset: true, message: 'Select an arrival date' })
+    .nullable(),
   arrivalTime: z
     .string()
     .refine((value) => regex24h.test(value), 'Invalid 24-hour format')

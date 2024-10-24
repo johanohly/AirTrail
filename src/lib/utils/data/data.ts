@@ -1,24 +1,20 @@
 import type { Flight } from '$lib/db';
-import dayjs from 'dayjs';
 import { distanceBetween, toTitleCase } from '$lib/utils';
 import { type Airport, airportFromICAO } from '$lib/utils/data/airports';
 import { get } from 'svelte/store';
 import { page } from '$app/stores';
-
-const dateFormatter = new Intl.DateTimeFormat(undefined, {
-  year: 'numeric',
-  month: 'numeric',
-  day: 'numeric',
-});
+import { TZDate } from '@date-fns/tz';
+import { nowIn, parseLocalize, parseLocalizeISO } from '$lib/utils/datetime';
+import { isAfter } from 'date-fns';
 
 type ExcludedType<T, U> = {
   [P in keyof T as P extends keyof U ? never : P]: T[P];
 };
 
 type FlightOverrides = {
-  date: dayjs.Dayjs;
-  departure: dayjs.Dayjs | null;
-  arrival: dayjs.Dayjs | null;
+  date: TZDate;
+  departure: TZDate | null;
+  arrival: TZDate | null;
   from: Airport;
   to: Airport;
   distance: number;
@@ -36,17 +32,20 @@ export const prepareFlightData = (data: Flight[]): FlightData[] => {
       const toAirport = airportFromICAO(flight.to);
       if (!fromAirport || !toAirport) return null;
 
+      const departure = flight.departure
+        ? parseLocalizeISO(flight.departure, fromAirport.tz)
+        : null;
+
       return {
         ...flight,
-        date: dayjs(flight.date, 'YYYY-MM-DD'),
+        date:
+          departure ?? parseLocalize(flight.date, 'yyyy-MM-dd', fromAirport.tz),
         from: fromAirport,
         to: toAirport,
-        departure: flight.departure
-          ? dayjs(flight.departure).add(fromAirport.tz, 'minutes')
-          : null, // convert to local time
+        departure,
         arrival: flight.arrival
-          ? dayjs(flight.arrival).add(toAirport.tz, 'minutes')
-          : null, // convert to local time
+          ? parseLocalizeISO(flight.arrival, toAirport.tz)
+          : null,
         distance:
           distanceBetween(
             [fromAirport.lon, fromAirport.lat],
@@ -78,7 +77,7 @@ export const prepareFlightArcData = (data: FlightData[]) => {
         name: string;
         country: string;
       };
-      flights: { route: string; date: string; airline: string | null }[];
+      flights: { route: string; date: TZDate; airline: string | null }[];
       airlines: string[];
       exclusivelyFuture: boolean;
     };
@@ -111,7 +110,7 @@ export const prepareFlightArcData = (data: FlightData[]) => {
 
     routeMap[key].flights.push(formatSimpleFlight(flight));
 
-    if (routeMap[key].flights.every((f) => dayjs(f.date) > dayjs())) {
+    if (routeMap[key].flights.every((f) => isAfter(f.date, nowIn('UTC')))) {
       routeMap[key].exclusivelyFuture = true;
     }
 
@@ -203,7 +202,7 @@ export const prepareVisitedAirports = (data: FlightData[]) => {
 const formatSimpleFlight = (f: FlightData) => {
   return {
     route: `${f.from.IATA ?? f.from.ICAO} - ${f.to.IATA ?? f.to.ICAO}`,
-    date: dateFormatter.format(f.date.toDate()),
+    date: f.date,
     airline: f.airline ?? '',
   };
 };

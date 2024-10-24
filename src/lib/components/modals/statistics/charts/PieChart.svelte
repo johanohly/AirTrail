@@ -1,9 +1,19 @@
 <script lang="ts">
-  import { Chart, Pie, Svg, Tooltip } from 'layerchart';
-  import { scaleOrdinal } from 'd3-scale';
+  import { PieChart } from 'layerchart';
   import { cn } from '$lib/utils';
 
   let { data }: { data: Record<string, number> } = $props();
+  const noData = $derived.by(
+    () => Object.values(data).reduce((a, b) => a + b, 0) === 0,
+  );
+  const placeholderOrData = $derived.by(() => {
+    if (noData) {
+      return { 'No data': 1 };
+    }
+    return Object.fromEntries(
+      Object.entries(data).sort(([, a], [, b]) => b - a),
+    );
+  });
 </script>
 
 <div
@@ -17,27 +27,17 @@
     )}
   >
     <div class="h-[130px]">
-      <Chart
-        data={Object.entries(data).map(([key, value]) => ({
+      <PieChart
+        data={Object.entries(placeholderOrData).map(([key, value]) => ({
           label: key,
           value,
         }))}
-        x="value"
         c="label"
-        cScale={scaleOrdinal()}
-        cDomain={Object.entries(data)
-          .sort((a, b) => b[1] - a[1])
-          .map(([key]) => key)}
-        cRange={['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef']}
-        let:tooltip
-      >
-        <Svg center>
-          <Pie {tooltip} />
-        </Svg>
-        <Tooltip.Root let:data>
-          <Tooltip.Header>{data.label}</Tooltip.Header>
-        </Tooltip.Root>
-      </Chart>
+        x="value"
+        cRange={noData
+          ? ['#3b82f650']
+          : ['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef']}
+      />
     </div>
     <div>
       {#each Object.entries(data) as [key, value]}

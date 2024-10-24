@@ -79,7 +79,7 @@
                 value: $formData.unit,
               }}
               onSelectedChange={(v) => {
-                v && ($formData.unit = v.value);
+                if (v) $formData.unit = v.value;
               }}
             >
               <Select.Trigger {...attrs}>

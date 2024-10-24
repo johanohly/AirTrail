@@ -24,6 +24,7 @@
   import { OnResizeEnd } from '$lib/components/helpers';
   import { Airports } from '.';
   import { page } from '$app/stores';
+  import { formatAsDate } from '$lib/utils/datetime/index.js';
 
   const FROM_COLOR = [59, 130, 246]; // Also the primary color
   const TO_COLOR = [139, 92, 246]; // TW violet-500
@@ -182,7 +183,7 @@
         {#each data.flights.slice(0, 5) as flight}
           <div class="grid grid-cols-[repeat(3,_1fr)]">
             <h4 class="font-thin">{flight.route}</h4>
-            <h4 class="font-thin">{flight.date}</h4>
+            <h4 class="font-thin">{formatAsDate(flight.date, true, true)}</h4>
             <h4 class="font-thin">{flight.airline}</h4>
           </div>
         {/each}

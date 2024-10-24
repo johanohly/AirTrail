@@ -2,12 +2,7 @@
   import { trpc } from '$lib/trpc';
   import { prepareFlightData } from '$lib/utils';
   import { toast } from 'svelte-sonner';
-  import {
-    AddFlightModal,
-    ListFlightsModal,
-    SettingsModal,
-    StatisticsModal,
-  } from '$lib/components/modals';
+  import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
   import { Map } from '$lib/components/map';
   import { openModalsState } from '$lib/stores.svelte';
 

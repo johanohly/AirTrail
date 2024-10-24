@@ -1,12 +1,14 @@
-import { parseCsv, toISOString } from '$lib/utils';
+import { parseCsv } from '$lib/utils';
 import { z } from 'zod';
-import dayjs from 'dayjs';
 import type { Flight } from '$lib/db';
 import { airlineFromICAO } from '$lib/utils/data/airlines';
 import { airportFromICAO } from '$lib/utils/data/airports';
 import type { CreateFlight, Seat } from '$lib/db/types';
 import { page } from '$app/stores';
 import { get } from 'svelte/store';
+import { tz } from '@date-fns/tz/tz';
+import { addDays, isBefore, parse } from 'date-fns';
+import { toUtc } from '$lib/utils/datetime';
 
 const FR24_AIRPORT_REGEX = /\((?<IATA>[a-zA-Z]{3})\/(?<ICAO>[a-zA-Z]{4})\)/;
 const FR24_SEAT_TYPE_MAP: Record<string, Seat['seat']> = {
@@ -123,20 +125,28 @@ export const processFR24File = async (content: string) => {
     }
 
     const departure = row.dep_time
-      ? dayjs(`${row.date} ${row.dep_time}`, 'YYYY-MM-DD HH:mm:ss').subtract(
-          from.tz,
-          'minutes',
-        ) // convert to UTC
+      ? toUtc(
+          parse(
+            `${row.date} ${row.dep_time}`,
+            'yyyy-MM-dd kk:mm:ss',
+            new Date(),
+            { in: tz(from.tz) },
+          ),
+        )
       : null;
     let arrival = row.arr_time
-      ? dayjs(`${row.date} ${row.arr_time}`, 'YYYY-MM-DD HH:mm:ss').subtract(
-          to.tz,
-          'minutes',
-        ) // convert to UTC
+      ? toUtc(
+          parse(
+            `${row.date} ${row.arr_time}`,
+            'yyyy-MM-dd kk:mm:ss',
+            new Date(),
+            { in: tz(to.tz) },
+          ),
+        )
       : null;
-    if (departure && arrival && arrival < departure) {
+    if (departure && arrival && isBefore(arrival, departure)) {
       // assume arrival is on the next day
-      arrival = dayjs(arrival).add(1, 'day');
+      arrival = addDays(arrival, 1, { in: tz('UTC') });
     }
 
     const duration = row.duration
@@ -166,8 +176,8 @@ export const processFR24File = async (content: string) => {
       date: row.date, // YYYY-MM-DD
       from: from.ICAO,
       to: to.ICAO,
-      departure: departure ? toISOString(departure) : null,
-      arrival: arrival ? toISOString(arrival) : null,
+      departure: departure ? departure.toISOString() : null,
+      arrival: arrival ? arrival.toISOString() : null,
       duration,
       flightReason,
       note: row.note,

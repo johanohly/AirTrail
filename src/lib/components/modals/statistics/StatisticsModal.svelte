@@ -11,7 +11,8 @@
     formatNumber,
   } from '$lib/utils';
   import { page } from '$app/stores';
-  import dayjs from 'dayjs';
+  import { isBefore } from 'date-fns';
+  import { nowIn } from '$lib/utils/datetime';
 
   let {
     open = $bindable(),
@@ -22,7 +23,11 @@
   } = $props();
 
   // Only show completed flights
-  const flights = $derived.by(() => allFlights.filter((f) => f.date < dayjs()));
+  const flights = $derived.by(() =>
+    allFlights.filter((f) =>
+      isBefore(f.arrival ? f.arrival : f.date, nowIn(f.to.tz)),
+    ),
+  );
 
   let flightCount = $derived.by(() => flights.length);
   let totalDistance = $derived.by(() =>
