@@ -1,8 +1,9 @@
-import dayjs from 'dayjs';
 import { airportFromIATA } from '$lib/utils/data/airports';
 import type { CreateFlight } from '$lib/db/types';
 import { get } from 'svelte/store';
 import { page } from '$app/stores';
+import { differenceInSeconds, format } from 'date-fns';
+import { parseLocalISO } from '$lib/utils/datetime';
 
 export const processAITAFile = (input: string) => {
   const flightPattern =
@@ -22,8 +23,10 @@ export const processAITAFile = (input: string) => {
     const from = rawFrom ? airportFromIATA(rawFrom) : undefined;
     const to = rawTo ? airportFromIATA(rawTo) : undefined;
 
-    const departure = dayjs(rawDeparture);
-    const arrival = dayjs(rawArrival);
+    const departure = rawDeparture
+      ? parseLocalISO(rawDeparture, 'UTC')
+      : undefined;
+    const arrival = rawArrival ? parseLocalISO(rawArrival, 'UTC') : undefined;
 
     if (!flightNumber || !from || !to || !departure || !arrival) {
       console.error('Invalid flight details:', match);
@@ -31,12 +34,12 @@ export const processAITAFile = (input: string) => {
     }
 
     flights.push({
-      date: departure.format('YYYY-MM-DD'),
+      date: format(departure, 'yyyy-MM-dd'),
       from: from.ICAO,
       to: to.ICAO,
-      departure: toISOString(departure),
-      arrival: toISOString(arrival),
-      duration: arrival.diff(departure, 'seconds'),
+      departure: departure.toISOString(),
+      arrival: arrival.toISOString(),
+      duration: differenceInSeconds(arrival, departure),
       flightNumber: flightNumber?.replace(';', ''),
       flightReason: null,
       airline: null,

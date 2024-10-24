@@ -4,8 +4,8 @@ import { z } from 'zod';
 import { get } from 'svelte/store';
 import { page } from '$app/stores';
 import { airportFromICAO } from '$lib/utils/data/airports';
-import dayjs from 'dayjs';
-import { estimateFlightDuration } from '$lib/utils/datetime';
+import { estimateFlightDuration, parseLocal, toUtc } from '$lib/utils/datetime';
+import { differenceInSeconds } from 'date-fns';
 
 const JETLOG_FLIGHT_CLASS_MAP: Record<string, Seat['seatClass']> = {
   'ClassType.ECONOMY': 'economy',
@@ -63,27 +63,36 @@ export const processJetLogFile = async (input: string) => {
     }
 
     const departure = row.departure_time
-      ? dayjs(`${row.date} ${row.departure_time}`, 'YYYY-MM-DD HH:mm').subtract(
-          from.tz,
-          'minutes',
-        ) // convert to UTC (assumes local time)
+      ? toUtc(
+          parseLocal(
+            `${row.date} ${row.departure_time}`,
+            'yyyy-MM-dd kk:mm',
+            from.tz,
+          ),
+        )
       : null;
     const arrival =
       row.arrival_time && row.arrival_date
-        ? dayjs(
-            `${row.arrival_date} ${row.arrival_time}`,
-            'YYYY-MM-DD HH:mm',
-          ).subtract(to.tz, 'minutes')
+        ? toUtc(
+            parseLocal(
+              `${row.arrival_date} ${row.arrival_time}`,
+              'yyyy-MM-dd kk:mm',
+              to.tz,
+            ),
+          )
         : row.arrival_time
-          ? dayjs(
-              `${row.date} ${row.arrival_time}`,
-              'YYYY-MM-DD HH:mm',
-            ).subtract(to.tz, 'minutes')
+          ? toUtc(
+              parseLocal(
+                `${row.date} ${row.arrival_time}`,
+                'yyyy-MM-dd kk:mm',
+                to.tz,
+              ),
+            )
           : null;
     const duration = row.duration
       ? +row.duration * 60
       : departure && arrival
-        ? arrival.diff(departure, 'seconds')
+        ? differenceInSeconds(arrival, departure)
         : estimateFlightDuration(
             { lng: from.lon, lat: from.lat },
             { lng: to.lon, lat: to.lat },
@@ -96,8 +105,8 @@ export const processJetLogFile = async (input: string) => {
       date: row.date,
       from: from.ICAO,
       to: to.ICAO,
-      departure: departure ? toISOString(departure) : null,
-      arrival: arrival ? toISOString(arrival) : null,
+      departure: departure ? departure.toISOString() : null,
+      arrival: arrival ? arrival.toISOString() : null,
       duration,
       flightNumber: row.flight_number
         ? row.flight_number.substring(0, 10) // limit to 10 characters
