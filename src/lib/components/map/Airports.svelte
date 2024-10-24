@@ -7,6 +7,7 @@
     prepareVisitedAirports,
   } from '$lib/utils';
   import { isSmallScreen } from '$lib/utils/size';
+  import { formatAsDate } from '$lib/utils/datetime/index.js';
 
   //const AIRPORT_COLOR = [125, 211, 252]; // Tailwind blue-300
   const AIRPORT_COLOR = [16, 185, 129]; // Tailwind emerald-500
@@ -79,7 +80,7 @@
         {#each data.flights.slice(0, 5) as flight}
           <div class="grid grid-cols-[repeat(3,_1fr)]">
             <h4 class="font-thin">{flight.route}</h4>
-            <h4 class="font-thin">{flight.date}</h4>
+            <h4 class="font-thin">{formatAsDate(flight.date, true, true)}</h4>
             <h4 class="font-thin">{flight.airline}</h4>
           </div>
         {/each}

@@ -1,15 +1,11 @@
 import type { Flight } from '$lib/db';
-import dayjs from 'dayjs';
 import { distanceBetween, toTitleCase } from '$lib/utils';
 import { type Airport, airportFromICAO } from '$lib/utils/data/airports';
 import { get } from 'svelte/store';
 import { page } from '$app/stores';
 import { TZDate } from '@date-fns/tz';
-import {
-  formatAsDate,
-  parseLocalize,
-  parseLocalizeISO,
-} from '$lib/utils/datetime';
+import { nowIn, parseLocalize, parseLocalizeISO } from '$lib/utils/datetime';
+import { isAfter } from 'date-fns';
 
 type ExcludedType<T, U> = {
   [P in keyof T as P extends keyof U ? never : P]: T[P];
@@ -81,7 +77,7 @@ export const prepareFlightArcData = (data: FlightData[]) => {
         name: string;
         country: string;
       };
-      flights: { route: string; date: string; airline: string | null }[];
+      flights: { route: string; date: TZDate; airline: string | null }[];
       airlines: string[];
       exclusivelyFuture: boolean;
     };
@@ -114,7 +110,7 @@ export const prepareFlightArcData = (data: FlightData[]) => {
 
     routeMap[key].flights.push(formatSimpleFlight(flight));
 
-    if (routeMap[key].flights.every((f) => dayjs(f.date) > dayjs())) {
+    if (routeMap[key].flights.every((f) => isAfter(f.date, nowIn('UTC')))) {
       routeMap[key].exclusivelyFuture = true;
     }
 
@@ -206,7 +202,7 @@ export const prepareVisitedAirports = (data: FlightData[]) => {
 const formatSimpleFlight = (f: FlightData) => {
   return {
     route: `${f.from.IATA ?? f.from.ICAO} - ${f.to.IATA ?? f.to.ICAO}`,
-    date: formatAsDate(f.date, true, true),
+    date: f.date,
     airline: f.airline ?? '',
   };
 };
