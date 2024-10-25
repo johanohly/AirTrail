@@ -19,6 +19,7 @@
     isUsingAmPm,
   } from '$lib/utils/datetime';
   import Toolbar from './Toolbar.svelte';
+  import type { ToolbarFilters } from './types';
 
   let {
     open = $bindable<boolean>(),
@@ -79,17 +80,26 @@
       });
   });
 
-  let filters: {
-    from: string[];
-    to: string[];
-  } = $state({
-    from: [],
-    to: [],
+  let filters: ToolbarFilters = $state({
+    departureAirports: [],
+    arrivalAirports: [],
+    fromDate: null,
+    toDate: null,
   });
-  $inspect(filters);
   const filteredFlights = $derived.by(() => {
     return parsedFlights.filter((f) => {
-      //return f.to === "CPH";
+      if (
+        filters.departureAirports.length &&
+        !filters.departureAirports.includes(f.from.icao)
+      ) {
+        return false;
+      }
+      if (
+        filters.arrivalAirports.length &&
+        !filters.arrivalAirports.includes(f.to.icao)
+      ) {
+        return false;
+      }
       return true;
     });
   });

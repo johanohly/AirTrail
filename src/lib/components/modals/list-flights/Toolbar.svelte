@@ -3,6 +3,7 @@
   import { SquareDashedMousePointer, X } from '@o7/icon/lucide';
   import Filters from './Filters.svelte';
   import type { FlightData } from '$lib/utils';
+  import type { ToolbarFilters } from './types';
 
   let {
     flights = $bindable(),
@@ -11,10 +12,7 @@
     selectedFlights = $bindable(),
   }: {
     flights: FlightData[];
-    filters: {
-      from: string[];
-      to: string[];
-    };
+    filters: ToolbarFilters;
     selecting: boolean;
     selectedFlights: number[];
   } = $props();
@@ -28,6 +26,7 @@
         disabled={selectedFlights.length === 0}
         class="gap-2"
         variant="destructiveOutline"
+        size="sm"
       >
         <X size={20} />
         Delete
@@ -39,7 +38,8 @@
         selectedFlights = [];
       }}
       class="gap-2"
-      variant={'outline'}
+      variant="outline"
+      size="sm"
     >
       <SquareDashedMousePointer size={20} />
       {#if selecting}

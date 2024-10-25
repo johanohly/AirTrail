@@ -1,19 +1,26 @@
 <script lang="ts">
   import { Button } from '$lib/components/ui/button/index.js';
-  import Filter from './Filter.svelte';
+  import DateFilter from './DateFilter.svelte';
+  import SelectFilter from './SelectFilter.svelte';
   import type { FlightData } from '$lib/utils';
   import type { Airport } from '$lib/utils/data/airports';
+  import type { ToolbarFilters } from './types';
 
   let {
     flights = $bindable(),
     filters = $bindable(),
   }: {
     flights: FlightData[];
-    filters: {
-      from: string[];
-      to: string[];
-    };
+    filters: ToolbarFilters;
   } = $props();
+
+  const showClear = $derived.by(
+    () =>
+      filters.departureAirports.length ||
+      filters.arrivalAirports.length ||
+      filters.fromDate ||
+      filters.toDate,
+  );
 
   const uniqueAirports = (
     flights: FlightData[],
@@ -48,24 +55,31 @@
 </script>
 
 <div class="flex gap-2">
-  <Filter
-    bind:filterValues={filters.from}
-    title="Departure"
+  <SelectFilter
+    bind:filterValues={filters.departureAirports}
+    title="Departure Airport"
     placeholder="Search departure airports"
     options={departureAirports}
   />
-  <Filter
-    bind:filterValues={filters.to}
-    title="Arrival"
+  <SelectFilter
+    bind:filterValues={filters.arrivalAirports}
+    title="Arrival Airport"
     placeholder="Search arrival airports"
     options={arrivalAirports}
   />
-  {#if Object.values(filters).flat().length > 0}
+  <DateFilter bind:date={filters.fromDate} title="From" iconDirection="up" />
+  <DateFilter bind:date={filters.toDate} title="To" iconDirection="down" />
+  {#if showClear}
     <Button
       variant="ghost"
       class="h-8 px-2 lg:px-3"
       onclick={() => {
-        filters = { from: [], to: [] };
+        filters = {
+          departureAirports: [],
+          arrivalAirports: [],
+          fromDate: null,
+          toDate: null,
+        };
       }}
     >
       Clear Filters

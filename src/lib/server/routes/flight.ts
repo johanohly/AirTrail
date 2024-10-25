@@ -32,6 +32,14 @@ export const flightRouter = router({
         throw new Error('Flight not found');
       }
     }),
+  deleteMany: authedProcedure
+    .input(z.array(z.number()))
+    .mutation(async ({ ctx: { user }, input }) => {
+      const flightIds = await db
+        .selectFrom('flight')
+        .innerJoin('seat', 'seat.flightId', 'flight.id')
+        .select('flight.id');
+    }),
   deleteAll: authedProcedure.mutation(async ({ ctx: { user } }) => {
     const flightIds = await db
       .selectFrom('flight')
