@@ -77,8 +77,8 @@
         filters = {
           departureAirports: [],
           arrivalAirports: [],
-          fromDate: null,
-          toDate: null,
+          fromDate: undefined,
+          toDate: undefined,
         };
       }}
     >

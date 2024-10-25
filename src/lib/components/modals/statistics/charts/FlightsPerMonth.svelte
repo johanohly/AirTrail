@@ -10,35 +10,7 @@
   } from 'layerchart';
   import { scaleBand } from 'd3-scale';
   import type { FlightData } from '$lib/utils';
-
-  const SHORT_MONTHS = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  const MONTHS = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
+  import { MONTHS, SHORT_MONTHS } from '$lib/data/datetime';
 
   let { flights }: { flights: FlightData[] } = $props();
 

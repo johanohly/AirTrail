@@ -9,7 +9,7 @@
   import { Confirm } from '$lib/components/helpers';
   import { EditFlightModal } from '$lib/components/modals';
   import { airlineFromICAO } from '$lib/utils/data/airlines';
-  import { isBefore, isSameDay } from 'date-fns';
+  import { isAfter, isBefore, isSameDay } from 'date-fns';
   import {
     Duration,
     formatAsDate,
@@ -83,20 +83,26 @@
   let filters: ToolbarFilters = $state({
     departureAirports: [],
     arrivalAirports: [],
-    fromDate: null,
-    toDate: null,
+    fromDate: undefined,
+    toDate: undefined,
   });
   const filteredFlights = $derived.by(() => {
     return parsedFlights.filter((f) => {
       if (
         filters.departureAirports.length &&
-        !filters.departureAirports.includes(f.from.icao)
-      ) {
-        return false;
-      }
-      if (
+        !filters.departureAirports.includes(f.from.icao) &&
         filters.arrivalAirports.length &&
         !filters.arrivalAirports.includes(f.to.icao)
+      ) {
+        return false;
+      } else if (
+        filters.fromDate &&
+        isBefore(f.date, filters.fromDate.toDate(f.date.timeZone ?? 'UTC'))
+      ) {
+        return false;
+      } else if (
+        filters.toDate &&
+        isAfter(f.date, filters.toDate.toDate(f.date.timeZone ?? 'UTC'))
       ) {
         return false;
       }
