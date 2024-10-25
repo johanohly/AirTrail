@@ -89,10 +89,10 @@
   const filteredFlights = $derived.by(() => {
     return parsedFlights.filter((f) => {
       if (
-        filters.departureAirports.length &&
-        !filters.departureAirports.includes(f.from.icao) &&
-        filters.arrivalAirports.length &&
-        !filters.arrivalAirports.includes(f.to.icao)
+        (filters.departureAirports.length &&
+          !filters.departureAirports.includes(f.from.icao)) ||
+        (filters.arrivalAirports.length &&
+          !filters.arrivalAirports.includes(f.to.icao))
       ) {
         return false;
       } else if (

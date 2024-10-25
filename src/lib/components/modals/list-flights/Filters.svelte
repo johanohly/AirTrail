@@ -54,35 +54,33 @@
   });
 </script>
 
-<div class="flex gap-2">
-  <SelectFilter
-    bind:filterValues={filters.departureAirports}
-    title="Departure Airport"
-    placeholder="Search departure airports"
-    options={departureAirports}
-  />
-  <SelectFilter
-    bind:filterValues={filters.arrivalAirports}
-    title="Arrival Airport"
-    placeholder="Search arrival airports"
-    options={arrivalAirports}
-  />
-  <DateFilter bind:date={filters.fromDate} title="From" iconDirection="up" />
-  <DateFilter bind:date={filters.toDate} title="To" iconDirection="down" />
-  {#if showClear}
-    <Button
-      variant="ghost"
-      class="h-8 px-2 lg:px-3"
-      onclick={() => {
-        filters = {
-          departureAirports: [],
-          arrivalAirports: [],
-          fromDate: undefined,
-          toDate: undefined,
-        };
-      }}
-    >
-      Clear Filters
-    </Button>
-  {/if}
-</div>
+<SelectFilter
+  bind:filterValues={filters.departureAirports}
+  title="Departure Airport"
+  placeholder="Search departure airports"
+  options={departureAirports}
+/>
+<SelectFilter
+  bind:filterValues={filters.arrivalAirports}
+  title="Arrival Airport"
+  placeholder="Search arrival airports"
+  options={arrivalAirports}
+/>
+<DateFilter bind:date={filters.fromDate} title="From" iconDirection="up" />
+<DateFilter bind:date={filters.toDate} title="To" iconDirection="down" />
+{#if showClear}
+  <Button
+    variant="ghost"
+    class="h-8 px-2 lg:px-3"
+    onclick={() => {
+      filters = {
+        departureAirports: [],
+        arrivalAirports: [],
+        fromDate: undefined,
+        toDate: undefined,
+      };
+    }}
+  >
+    Clear Filters
+  </Button>
+{/if}
