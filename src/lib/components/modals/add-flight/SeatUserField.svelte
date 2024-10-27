@@ -28,49 +28,51 @@
 
 <div class="grid grid-cols-[3fr_2fr] gap-2">
   <Form.ElementField {form} name="seats[{index}].userId">
-    <Form.Control let:attrs>
-      <Form.Label>User</Form.Label>
-      <Select.Root
-        selected={{
-          label: users.find((u) => u.id === $formData.seats[index]?.userId)
-            ? users.find((u) => u.id === $formData.seats[index]?.userId)
-                ?.displayName
-            : undefined,
-          value: $formData.seats[index]?.userId,
-        }}
-        onSelectedChange={(value) => {
-          if (value) {
-            if (value.value === $formData.seats[index]?.userId) {
-              $formData.seats[index].userId = null;
+    <Form.Control>
+      {#snippet children({ props })}
+        <Form.Label>User</Form.Label>
+        <Select.Root
+          type="single"
+          value={$formData.seats[index]?.userId ?? undefined}
+          onValueChange={(value) => {
+            if (value) {
+              $formData.seats[index].userId = value;
             } else {
-              $formData.seats[index].userId = value.value;
+              $formData.seats[index].userId = null;
             }
-          }
-        }}
-        {...attrs}
-      >
-        <Select.Trigger {...attrs}>
-          <Select.Value placeholder="Select a user" />
-        </Select.Trigger>
-        <Select.Content>
-          {#each availableUsers as user}
-            <Select.Item value={user.id} label={user.displayName} />
-          {:else}
-            <Select.Item
-              disabled
-              value={undefined}
-              label="No other available users"
-            />
-          {/each}
-        </Select.Content>
-      </Select.Root>
+          }}
+          {...props}
+        >
+          <Select.Trigger {...props}>
+            {#if $formData.seats[index]?.userId}
+              {users.find((u) => u.id === $formData.seats?.[index]?.userId)
+                ?.displayName}
+            {:else}
+              Select a user
+            {/if}
+          </Select.Trigger>
+          <Select.Content>
+            {#each availableUsers as user}
+              <Select.Item value={user.id} label={user.displayName} />
+            {:else}
+              <Select.Item
+                disabled
+                value={undefined}
+                label="No other available users"
+              />
+            {/each}
+          </Select.Content>
+        </Select.Root>
+      {/snippet}
     </Form.Control>
     <Form.FieldErrors />
   </Form.ElementField>
   <Form.ElementField {form} name="seats[{index}].guestName">
-    <Form.Control let:attrs>
-      <Form.Label>Guest Name</Form.Label>
-      <Input bind:value={$formData.seats[index].guestName} {...attrs} />
+    <Form.Control>
+      {#snippet children({ props })}
+        <Form.Label>Guest Name</Form.Label>
+        <Input bind:value={$formData.seats[index].guestName} {...props} />
+      {/snippet}
     </Form.Control>
     <Form.FieldErrors />
   </Form.ElementField>

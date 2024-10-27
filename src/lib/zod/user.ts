@@ -10,7 +10,9 @@ export const userSchema = z.object({
     }),
   password: z.string().min(8),
   displayName: z.string().min(3),
-  unit: z.enum(['imperial', 'metric']).default('metric'),
+  unit: z
+    .enum(['imperial', 'metric'], { message: 'Select a unit' })
+    .default('metric'),
   role: z.enum(['user', 'admin']).default('user'),
 });
 

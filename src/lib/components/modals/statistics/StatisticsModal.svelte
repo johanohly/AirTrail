@@ -15,7 +15,7 @@
   import { nowIn } from '$lib/utils/datetime';
 
   let {
-    open = $bindable(),
+    open = $bindable<boolean>(),
     allFlights,
   }: {
     open?: boolean;
@@ -41,15 +41,15 @@
   );
 </script>
 
-<Modal bind:open classes="h-full overflow-y-auto !rounded-none" dialogOnly>
+<Modal bind:open class="h-full overflow-y-auto !rounded-none" dialogOnly>
   <div class="space-y-4">
     <h2 class="text-3xl font-bold tracking-tight">Statistics</h2>
     <div class="grid gap-4 pb-2 md:grid-cols-2 lg:grid-cols-4">
-      <StatsCard classes="py-4 px-8">
+      <StatsCard class="py-4 px-8">
         <h3 class="text-sm font-medium">Flights</h3>
         <span class="text-2xl font-bold">{formatNumber(flightCount)}</span>
       </StatsCard>
-      <StatsCard classes="py-4 px-8">
+      <StatsCard class="py-4 px-8">
         <h3 class="text-sm font-medium">Distance</h3>
         <span class="text-2xl font-bold"
           >{formatDistance(
@@ -58,11 +58,11 @@
           )}</span
         >
       </StatsCard>
-      <StatsCard classes="py-4 px-8">
+      <StatsCard class="py-4 px-8">
         <h3 class="text-sm font-medium">Duration</h3>
         <span class="text-2xl font-bold">{formatDuration(totalDuration)}</span>
       </StatsCard>
-      <StatsCard classes="py-4 px-8">
+      <StatsCard class="py-4 px-8">
         <h3 class="text-sm font-medium">Airports</h3>
         <span class="text-2xl font-bold">{formatNumber(airports)}</span>
       </StatsCard>

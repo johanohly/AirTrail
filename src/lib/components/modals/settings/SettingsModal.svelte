@@ -48,7 +48,7 @@
   });
 </script>
 
-<Modal bind:open classes="max-w-2xl">
+<Modal bind:open class="max-w-2xl">
   <div class="space-y-6">
     <div class="space-y-0.5">
       <h2 class="text-2xl font-bold tracking-tight">Settings</h2>
@@ -68,7 +68,7 @@
             {@const isActive = activeTab === setting.id}
 
             <Button
-              on:click={() => (activeTab = setting.id)}
+              onclick={() => (activeTab = setting.id)}
               variant="ghost"
               class={cn(
                 !isActive && 'hover:underline',
@@ -99,7 +99,7 @@
               {@const isActive = activeTab === setting.id}
 
               <Button
-                on:click={() => (activeTab = setting.id)}
+                onclick={() => (activeTab = setting.id)}
                 variant="ghost"
                 class={cn(
                   !isActive && 'hover:underline',

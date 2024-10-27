@@ -6,7 +6,7 @@
 
   let {
     open = $bindable(),
-    classes = 'max-w-lg',
+    class: className = 'max-w-lg',
     dialogOnly = false,
     closeOnOutsideClick = true,
     closeOnEscape = true,
@@ -14,7 +14,7 @@
     children,
   }: {
     open: boolean;
-    classes?: string;
+    class?: string;
     dialogOnly?: boolean;
     closeOnOutsideClick?: boolean;
     closeOnEscape?: boolean;
@@ -25,14 +25,15 @@
 </script>
 
 {#if $useDialog || dialogOnly}
-  <Dialog.Root
-    bind:open
-    preventScroll={false}
-    {closeOnOutsideClick}
-    {closeOnEscape}
-  >
-    <Dialog.Content {classes} {closeButton}>
-      {@render children()}
+  <Dialog.Root bind:open>
+    <Dialog.Content
+      class={className}
+      {closeButton}
+      preventScroll={false}
+      escapeKeydownBehavior={closeOnEscape ? 'close' : 'ignore'}
+      interactOutsideBehavior={closeOnOutsideClick ? 'close' : 'ignore'}
+    >
+      {@render children?.()}
     </Dialog.Content>
   </Dialog.Root>
 {:else}

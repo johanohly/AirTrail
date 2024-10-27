@@ -27,7 +27,7 @@
 
   let open = $state(false);
   const monthOptions = MONTHS.map((month, i) => ({
-    value: i + 1,
+    value: String(i + 1),
     label: month,
   }));
 
@@ -36,132 +36,122 @@
   });
   const yearOptions = Array.from({ length: 100 }, (_, i) => ({
     label: String(new Date().getFullYear() - i),
-    value: new Date().getFullYear() - i,
+    value: String(new Date().getFullYear() - i),
   }));
 
   let placeholder = $state(today(getLocalTimeZone()));
   const defaultYear = $derived.by(() => {
-    return placeholder
-      ? {
-          value: placeholder.year,
-          label: String(placeholder.year),
-        }
-      : undefined;
+    return placeholder ? String(placeholder.year) : undefined;
   });
   const defaultMonth = $derived.by(() => {
-    return placeholder
-      ? {
-          value: placeholder.month,
-          label: monthFmt.format(placeholder.toDate(getLocalTimeZone())),
-        }
-      : undefined;
+    return placeholder ? String(placeholder.month) : undefined;
   });
 </script>
 
 <Popover.Root bind:open>
-  <Popover.Trigger asChild let:builder>
-    <Button
-      builders={[builder]}
-      variant="outline"
-      size="sm"
-      class="h-8 border-dashed"
-    >
-      {#if iconDirection === 'up'}
-        <CalendarArrowUp size={20} class="mr-2" />
-      {:else}
-        <CalendarArrowDown size={20} class="mr-2" />
-      {/if}
-      {title}
+  <Popover.Trigger>
+    {#snippet child({ props })}
+      <Button variant="outline" size="sm" class="h-8 border-dashed" {...props}>
+        {#if iconDirection === 'up'}
+          <CalendarArrowUp size={20} class="mr-2" />
+        {:else}
+          <CalendarArrowDown size={20} class="mr-2" />
+        {/if}
+        {title}
 
-      {#if date}
-        <Separator orientation="vertical" class="mx-2 h-4" />
-        <Badge variant="secondary" class="rounded-sm px-1 font-normal">
-          {date.toString()}
-        </Badge>
-      {/if}
-    </Button>
+        {#if date}
+          <Separator orientation="vertical" class="mx-2 h-4" />
+          <Badge variant="secondary" class="rounded-sm px-1 font-normal">
+            {date.toString()}
+          </Badge>
+        {/if}
+      </Button>
+    {/snippet}
   </Popover.Trigger>
   <Popover.Content class="max-w-[400px] p-0" align="start" side="bottom">
     <CalendarPrimitive.Root
+      type="single"
       weekdayFormat="short"
       class="rounded-md border p-3"
-      let:months
-      let:weekdays
       bind:value={date}
       bind:placeholder
     >
-      <Calendar.Header>
-        <Calendar.Heading
-          class="flex w-full items-center justify-between gap-2"
-        >
-          <Select.Root
-            selected={defaultMonth}
-            items={monthOptions}
-            onSelectedChange={(v) => {
-              if (!v || !placeholder) return;
-              if (v.value === placeholder?.month) return;
-              placeholder = placeholder.set({ month: v.value });
-            }}
+      {#snippet children({ months, weekdays })}
+        <Calendar.Header>
+          <Calendar.Heading
+            class="flex w-full items-center justify-between gap-2"
           >
-            <Select.Trigger aria-label="Select month" class="w-[60%]">
-              <Select.Value placeholder="Select month" />
-            </Select.Trigger>
-            <Select.Content class="max-h-[200px] overflow-y-auto">
-              {#each monthOptions as { value, label }}
-                <Select.Item {value} {label}>
-                  {label}
-                </Select.Item>
-              {/each}
-            </Select.Content>
-          </Select.Root>
-          <Select.Root
-            selected={defaultYear}
-            items={yearOptions}
-            onSelectedChange={(v) => {
-              if (!v || !placeholder) return;
-              if (v.value === placeholder?.year) return;
-              placeholder = placeholder.set({ year: v.value });
-            }}
-          >
-            <Select.Trigger aria-label="Select year" class="w-[40%]">
-              <Select.Value placeholder="Select year" />
-            </Select.Trigger>
-            <Select.Content class="max-h-[200px] overflow-y-auto">
-              {#each yearOptions as { value, label }}
-                <Select.Item {value} {label}>
-                  {label}
-                </Select.Item>
-              {/each}
-            </Select.Content>
-          </Select.Root>
-        </Calendar.Heading>
-      </Calendar.Header>
-      <Calendar.Months>
-        {#each months as month}
-          <Calendar.Grid>
-            <Calendar.GridHead>
-              <Calendar.GridRow class="flex">
-                {#each weekdays as weekday}
-                  <Calendar.HeadCell>
-                    {weekday.slice(0, 2)}
-                  </Calendar.HeadCell>
+            <Select.Root
+              type="single"
+              value={defaultMonth}
+              items={monthOptions}
+              onValueChange={(v) => {
+                if (!v || !placeholder) return;
+                if (v === String(placeholder?.month)) return;
+                placeholder = placeholder.set({ month: +v });
+              }}
+            >
+              <Select.Trigger aria-label="Select month" class="w-[60%]">
+                {monthFmt.format(placeholder.toDate('UTC'))}
+              </Select.Trigger>
+              <Select.Content class="max-h-[200px] overflow-y-auto">
+                {#each monthOptions as { value, label }}
+                  <Select.Item {value} {label}>
+                    {label}
+                  </Select.Item>
                 {/each}
-              </Calendar.GridRow>
-            </Calendar.GridHead>
-            <Calendar.GridBody>
-              {#each month.weeks as weekDates}
-                <Calendar.GridRow class="mt-2 w-full">
-                  {#each weekDates as date}
-                    <Calendar.Cell {date}>
-                      <Calendar.Day {date} month={month.value} />
-                    </Calendar.Cell>
+              </Select.Content>
+            </Select.Root>
+            <Select.Root
+              type="single"
+              value={defaultYear}
+              items={yearOptions}
+              onValueChange={(v) => {
+                if (!v || !placeholder) return;
+                if (v === String(placeholder?.year)) return;
+                placeholder = placeholder.set({ year: +v });
+              }}
+            >
+              <Select.Trigger aria-label="Select year" class="w-[40%]">
+                {placeholder.year}
+              </Select.Trigger>
+              <Select.Content class="max-h-[200px] overflow-y-auto">
+                {#each yearOptions as { value, label }}
+                  <Select.Item {value} {label}>
+                    {label}
+                  </Select.Item>
+                {/each}
+              </Select.Content>
+            </Select.Root>
+          </Calendar.Heading>
+        </Calendar.Header>
+        <Calendar.Months>
+          {#each months as month}
+            <Calendar.Grid>
+              <Calendar.GridHead>
+                <Calendar.GridRow class="flex">
+                  {#each weekdays as weekday}
+                    <Calendar.HeadCell>
+                      {weekday.slice(0, 2)}
+                    </Calendar.HeadCell>
                   {/each}
                 </Calendar.GridRow>
-              {/each}
-            </Calendar.GridBody>
-          </Calendar.Grid>
-        {/each}
-      </Calendar.Months>
+              </Calendar.GridHead>
+              <Calendar.GridBody>
+                {#each month.weeks as weekDates}
+                  <Calendar.GridRow class="mt-2 w-full">
+                    {#each weekDates as date}
+                      <Calendar.Cell {date} month={month.value}>
+                        <Calendar.Day />
+                      </Calendar.Cell>
+                    {/each}
+                  </Calendar.GridRow>
+                {/each}
+              </Calendar.GridBody>
+            </Calendar.Grid>
+          {/each}
+        </Calendar.Months>
+      {/snippet}
     </CalendarPrimitive.Root>
   </Popover.Content>
 </Popover.Root>

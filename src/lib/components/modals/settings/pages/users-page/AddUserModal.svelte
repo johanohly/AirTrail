@@ -42,68 +42,76 @@
   <h2 class="leading-4">Add User</h2>
   <form method="POST" action="/api/users/add" use:enhance>
     <Form.Field {form} name="username">
-      <Form.Control let:attrs>
-        <Form.Label>Username</Form.Label>
-        <Input bind:value={$formData.username} {...attrs} />
+      <Form.Control>
+        {#snippet children({ props })}
+          <Form.Label>Username</Form.Label>
+          <Input bind:value={$formData.username} {...props} />
+        {/snippet}
       </Form.Control>
       <Form.FieldErrors />
     </Form.Field>
     <Form.Field {form} name="password">
-      <Form.Control let:attrs>
-        <Form.Label>Password</Form.Label>
-        <Input type="password" bind:value={$formData.password} {...attrs} />
+      <Form.Control>
+        {#snippet children({ props })}
+          <Form.Label>Password</Form.Label>
+          <Input type="password" bind:value={$formData.password} {...props} />
+        {/snippet}
       </Form.Control>
       <Form.FieldErrors />
     </Form.Field>
     <Form.Field {form} name="displayName">
-      <Form.Control let:attrs>
-        <Form.Label>Name</Form.Label>
-        <Input bind:value={$formData.displayName} {...attrs} />
+      <Form.Control>
+        {#snippet children({ props })}
+          <Form.Label>Name</Form.Label>
+          <Input bind:value={$formData.displayName} {...props} />
+        {/snippet}
       </Form.Control>
       <Form.FieldErrors />
     </Form.Field>
     <Form.Field {form} name="role" class="pt-1">
-      <Form.Control let:attrs>
-        <Form.Label class="flex gap-1">
-          Role
-          <TextTooltip
-            text="Admins can do everything except delete other admins or the owner."
-          >
-            <Info size="15" />
-          </TextTooltip>
-        </Form.Label>
-        <RadioGroup.Root
-          bind:value={$formData.role}
-          class="flex flex-col md:flex-row"
-        >
-          <Label
-            class="w-full cursor-pointer [&:has([data-state=checked])>div]:border-primary"
-          >
-            <RadioGroup.Item value="user" class="sr-only" />
-            <div
-              class="border-muted bg-popover hover:bg-accent items-center rounded-md border-2 p-4"
+      <Form.Control>
+        {#snippet children({ props })}
+          <Form.Label class="flex gap-1">
+            Role
+            <TextTooltip
+              text="Admins can do everything except delete other admins or the owner."
             >
-              <div class="flex items-center justify-center gap-1">
-                <User />
-                <span class="text-2xl font-bold">User</span>
-              </div>
-            </div>
-          </Label>
-          <Label
-            class="w-full cursor-pointer [&:has([data-state=checked])>div]:border-primary"
+              <Info size="15" />
+            </TextTooltip>
+          </Form.Label>
+          <RadioGroup.Root
+            bind:value={$formData.role}
+            class="flex flex-col md:flex-row"
           >
-            <RadioGroup.Item value="admin" class="sr-only" />
-            <div
-              class="border-muted bg-popover hover:bg-accent items-center rounded-md border-2 p-4"
+            <Label
+              class="w-full cursor-pointer [&:has([data-state=checked])>div]:border-primary"
             >
-              <div class="flex items-center justify-center gap-1">
-                <ShieldCheck />
-                <span class="text-2xl font-bold">Admin</span>
+              <RadioGroup.Item value="user" class="sr-only" />
+              <div
+                class="border-muted bg-popover hover:bg-accent items-center rounded-md border-2 p-4"
+              >
+                <div class="flex items-center justify-center gap-1">
+                  <User />
+                  <span class="text-2xl font-bold">User</span>
+                </div>
               </div>
-            </div>
-          </Label>
-        </RadioGroup.Root>
-        <input type="hidden" bind:value={$formData.role} {...attrs} />
+            </Label>
+            <Label
+              class="w-full cursor-pointer [&:has([data-state=checked])>div]:border-primary"
+            >
+              <RadioGroup.Item value="admin" class="sr-only" />
+              <div
+                class="border-muted bg-popover hover:bg-accent items-center rounded-md border-2 p-4"
+              >
+                <div class="flex items-center justify-center gap-1">
+                  <ShieldCheck />
+                  <span class="text-2xl font-bold">Admin</span>
+                </div>
+              </div>
+            </Label>
+          </RadioGroup.Root>
+          <input type="hidden" bind:value={$formData.role} {...props} />
+        {/snippet}
       </Form.Control>
       <Form.FieldErrors />
     </Form.Field>

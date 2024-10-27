@@ -82,5 +82,5 @@
     bind:files
     class="hidden"
   />
-  <Button on:click={handleImport} disabled={!canImport}>Import</Button>
+  <Button onclick={handleImport} disabled={!canImport}>Import</Button>
 </PageHeader>

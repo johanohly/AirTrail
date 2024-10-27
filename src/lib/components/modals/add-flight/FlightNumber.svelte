@@ -58,17 +58,19 @@
 </script>
 
 <Form.Field {form} name="flightNumber">
-  <Form.Control let:attrs>
-    <Form.Label>Flight Number</Form.Label>
-    <div class="grid grid-cols-[1fr_auto] gap-2">
-      <Input bind:value={$formData.flightNumber} {...attrs} />
-      <Button
-        onclick={lookupFlight}
-        disabled={!$formData.flightNumber}
-        variant="secondary"
-        class="h-full"
-        >Search
-      </Button>
-    </div>
+  <Form.Control>
+    {#snippet children({ props })}
+      <Form.Label>Flight Number</Form.Label>
+      <div class="grid grid-cols-[1fr_auto] gap-2">
+        <Input bind:value={$formData.flightNumber} {...props} />
+        <Button
+          onclick={lookupFlight}
+          disabled={!$formData.flightNumber}
+          variant="secondary"
+          class="h-full"
+          >Search
+        </Button>
+      </div>
+    {/snippet}
   </Form.Control>
 </Form.Field>

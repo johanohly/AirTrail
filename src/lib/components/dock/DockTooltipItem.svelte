@@ -20,27 +20,31 @@
       target={item.href.startsWith('http') ? '_blank' : '_self'}
       referrerpolicy="no-referrer"
     >
-      <Tooltip.Root openDelay={0}>
+      <Tooltip.Provider>
+        <Tooltip.Root delayDuration={0}>
+          <Tooltip.Trigger
+            class="hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 transition-all duration-200 rounded-full p-3 mx-0"
+          >
+            <svelte:component this={item.icon} />
+          </Tooltip.Trigger>
+          <Tooltip.Content sideOffset={8}>
+            <p>{item.label}</p>
+          </Tooltip.Content>
+        </Tooltip.Root>
+      </Tooltip.Provider>
+    </a>
+  {:else}
+    <Tooltip.Provider>
+      <Tooltip.Root delayDuration={0}>
         <Tooltip.Trigger
           class="hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 transition-all duration-200 rounded-full p-3 mx-0"
         >
-          <svelte:component this={item.icon} />
+          <svelte:component this={item.icon} onclick={onClick} />
         </Tooltip.Trigger>
         <Tooltip.Content sideOffset={8}>
           <p>{item.label}</p>
         </Tooltip.Content>
       </Tooltip.Root>
-    </a>
-  {:else}
-    <Tooltip.Root openDelay={0}>
-      <Tooltip.Trigger
-        class="hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 transition-all duration-200 rounded-full p-3 mx-0"
-      >
-        <svelte:component this={item.icon} onclick={onClick} />
-      </Tooltip.Trigger>
-      <Tooltip.Content sideOffset={8}>
-        <p>{item.label}</p>
-      </Tooltip.Content>
-    </Tooltip.Root>
+    </Tooltip.Provider>
   {/if}
 </DockItem>

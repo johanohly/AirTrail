@@ -4,12 +4,12 @@
 
   let {
     text,
-    classes,
-    openDelay = 0,
+    class: className,
+    delayDuration = 0,
   }: {
     text: string;
-    classes?: string;
-    openDelay?: number;
+    class?: string;
+    delayDuration?: number;
   } = $props();
   let open = $state(false);
 
@@ -23,13 +23,15 @@
   });
 </script>
 
-<Tooltip.Root bind:open {openDelay}>
-  <Tooltip.Trigger
-    class={cn('text-left', { 'select-text cursor-text': !open })}
-  >
-    <p bind:this={trigger} class={classes}>{text}</p>
-  </Tooltip.Trigger>
-  <Tooltip.Content>
-    {text}
-  </Tooltip.Content>
-</Tooltip.Root>
+<Tooltip.Provider>
+  <Tooltip.Root bind:open {delayDuration}>
+    <Tooltip.Trigger
+      class={cn('text-left', { 'select-text cursor-text': !open })}
+    >
+      <p bind:this={trigger} class={className}>{text}</p>
+    </Tooltip.Trigger>
+    <Tooltip.Content>
+      {text}
+    </Tooltip.Content>
+  </Tooltip.Root>
+</Tooltip.Provider>

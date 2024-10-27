@@ -75,12 +75,16 @@
               onConfirm={async () => deleteUser(current_user.id)}
               title="Remove User"
               description="Are you sure you want to remove this user?"
-              triggerVariant="outline"
-              triggerSize="icon"
-              triggerDisabled={!canDeleteUser(current_user)}
             >
-              {#snippet triggerContent()}
-                <X size="24" />
+              {#snippet triggerContent({ props })}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  {...props}
+                  disabled={!canDeleteUser(current_user)}
+                >
+                  <X size="24" />
+                </Button>
               {/snippet}
             </Confirm>
           </div>
