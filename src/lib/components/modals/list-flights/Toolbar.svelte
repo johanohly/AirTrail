@@ -14,6 +14,7 @@
   import { api, trpc } from '$lib/trpc';
   import { toast } from 'svelte-sonner';
   import { Confirm } from '$lib/components/helpers';
+  import NumberFlow from '@number-flow/svelte';
 
   let {
     flights = $bindable(),
@@ -37,7 +38,7 @@
     return Math.ceil(numOfFlights / flightsPerPage);
   });
   let showingFrom = $derived.by(() => {
-    return (page - 1) * flightsPerPage + 1;
+    return numOfFlights === 0 ? 0 : (page - 1) * flightsPerPage + 1;
   });
   let showingTo = $derived.by(() => {
     return Math.min(page * flightsPerPage, numOfFlights);
@@ -58,9 +59,6 @@
     selectedFlights = [];
     selecting = false;
   };
-  $effect(() => {
-    console.log(selectedFlights.length === 0);
-  });
 </script>
 
 <div class="flex justify-between items-center">
@@ -83,12 +81,17 @@
   <div class="flex gap-2">
     <div class="flex items-center gap-2">
       <span class="text-sm">
-        {showingFrom} - {showingTo} of {numOfFlights}
+        <NumberFlow value={showingFrom} />
+        -
+        <NumberFlow value={showingTo} />
+        of
+        <NumberFlow value={numOfFlights} />
       </span>
       <Button
         onclick={() => {
           page = Math.max(1, page - 1);
         }}
+        disabled={page === 1}
         variant="outline"
         size="sm"
       >
@@ -98,6 +101,7 @@
         onclick={() => {
           page = Math.min(pages, page + 1);
         }}
+        disabled={page === pages || pages === 0}
         variant="outline"
         size="sm"
       >
@@ -130,6 +134,7 @@
         selecting = !selecting;
         selectedFlights = [];
       }}
+      disabled={flights.length === 0}
       class="gap-2"
       variant="outline"
       size="sm"

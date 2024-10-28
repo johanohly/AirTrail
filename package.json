@@ -19,6 +19,7 @@
     "@layerstack/utils": "^0.0.5",
     "@lucia-auth/adapter-postgresql": "^3.1.2",
     "@node-rs/argon2": "^1.8.3",
+    "@number-flow/svelte": "^0.1.2",
     "@o7/icon": "^0.3.10",
     "@prisma/client": "^5.20.0",
     "@tanstack/svelte-query": "^5.59.0",

@@ -57,7 +57,7 @@
     if (!bounds) return;
 
     map.fitBounds(bounds, {
-      padding: 100,
+      padding: 120,
     });
   };
 
