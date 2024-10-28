@@ -44,6 +44,13 @@
     return Math.min(page * flightsPerPage, numOfFlights);
   });
 
+  // Ensure page is within bounds even after filtering
+  $effect(() => {
+    if (page > pages && pages !== 0) {
+      page = pages;
+    }
+  });
+
   let open = $state(false);
 
   const deleteSelectedFlights = async () => {
