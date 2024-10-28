@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { PieChart } from 'layerchart';
+  import { Chart, CircleClipPath, Pie, Svg, Tooltip } from 'layerchart';
   import { cn } from '$lib/utils';
 
   let { data }: { data: Record<string, number> } = $props();
@@ -27,7 +27,7 @@
     )}
   >
     <div class="h-[130px]">
-      <PieChart
+      <Chart
         data={Object.entries(placeholderOrData).map(([key, value]) => ({
           label: key,
           value,
@@ -37,7 +37,25 @@
         cRange={noData
           ? ['#3b82f650']
           : ['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef']}
-      />
+        let:c
+        let:cScale
+        let:tooltip
+      >
+        <Svg center>
+          <CircleClipPath initialR={0} r={80} tweened>
+            <Pie {tooltip} />
+          </CircleClipPath>
+        </Svg>
+        <Tooltip.Root let:data>
+          <Tooltip.List>
+            <Tooltip.Item
+              label={data.label}
+              value={data.value}
+              color={cScale?.(c(data))}
+            />
+          </Tooltip.List>
+        </Tooltip.Root>
+      </Chart>
     </div>
     <div>
       {#each Object.entries(data) as [key, value]}
