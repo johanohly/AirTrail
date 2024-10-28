@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Chart, CircleClipPath, Pie, Svg, Tooltip } from 'layerchart';
+  import { Chart, Pie, Svg, Tooltip } from 'layerchart';
+  import { cubicInOut } from 'svelte/easing';
   import { cn } from '$lib/utils';
 
   let { data }: { data: Record<string, number> } = $props();
@@ -42,9 +43,7 @@
         let:tooltip
       >
         <Svg center>
-          <CircleClipPath initialR={0} r={80} tweened>
-            <Pie {tooltip} />
-          </CircleClipPath>
+          <Pie tweened={{ duration: 1000, easing: cubicInOut }} {tooltip} />
         </Svg>
         <Tooltip.Root let:data>
           <Tooltip.List>
