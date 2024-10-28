@@ -19,10 +19,12 @@
     date = $bindable(),
     title,
     iconDirection,
+    disabled,
   }: {
     date: CalendarDate | undefined;
     title: string;
     iconDirection: 'up' | 'down';
+    disabled: boolean;
   } = $props();
 
   let open = $state(false);
@@ -51,7 +53,13 @@
 <Popover.Root bind:open>
   <Popover.Trigger>
     {#snippet child({ props })}
-      <Button variant="outline" size="sm" class="h-8 border-dashed" {...props}>
+      <Button
+        variant="outline"
+        size="sm"
+        class="h-8 border-dashed"
+        {...props}
+        {disabled}
+      >
         {#if iconDirection === 'up'}
           <CalendarArrowUp size={20} class="mr-2" />
         {:else}

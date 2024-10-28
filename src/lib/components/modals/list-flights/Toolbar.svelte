@@ -68,7 +68,13 @@
   <Popover.Root bind:open>
     <Popover.Trigger>
       {#snippet child({ props })}
-        <Button variant="outline" size="sm" class="gap-2 xl:hidden" {...props}>
+        <Button
+          variant="outline"
+          size="sm"
+          class="gap-2 xl:hidden"
+          {...props}
+          disabled={flights.length === 0}
+        >
           <Filter size={16} />
           Filters
         </Button>

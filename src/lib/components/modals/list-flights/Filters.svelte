@@ -58,16 +58,28 @@
   bind:filterValues={filters.departureAirports}
   title="Departure Airport"
   placeholder="Search departure airports"
+  disabled={flights.length === 0}
   options={departureAirports}
 />
 <SelectFilter
   bind:filterValues={filters.arrivalAirports}
   title="Arrival Airport"
   placeholder="Search arrival airports"
+  disabled={flights.length === 0}
   options={arrivalAirports}
 />
-<DateFilter bind:date={filters.fromDate} title="From" iconDirection="up" />
-<DateFilter bind:date={filters.toDate} title="To" iconDirection="down" />
+<DateFilter
+  bind:date={filters.fromDate}
+  title="From"
+  iconDirection="up"
+  disabled={flights.length === 0}
+/>
+<DateFilter
+  bind:date={filters.toDate}
+  title="To"
+  iconDirection="down"
+  disabled={flights.length === 0}
+/>
 {#if showClear}
   <Button
     variant="ghost"

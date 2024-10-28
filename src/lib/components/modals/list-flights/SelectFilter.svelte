@@ -11,11 +11,13 @@
     filterValues = $bindable<string[]>(),
     title,
     placeholder,
+    disabled,
     options,
   }: {
     filterValues: string[];
     title: string;
     placeholder: string;
+    disabled: boolean;
     options: { value: string; label: string }[];
   } = $props();
 
@@ -36,7 +38,13 @@
 <Popover.Root bind:open>
   <Popover.Trigger>
     {#snippet child({ props })}
-      <Button variant="outline" size="sm" class="h-8 border-dashed" {...props}>
+      <Button
+        variant="outline"
+        size="sm"
+        class="h-8 border-dashed"
+        {...props}
+        {disabled}
+      >
         <Filter size={20} class="mr-2" />
         {title}
 
