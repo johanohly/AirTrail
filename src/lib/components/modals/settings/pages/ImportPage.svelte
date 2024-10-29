@@ -8,6 +8,8 @@
   import { processFile } from '$lib/import';
   import { toast } from 'svelte-sonner';
 
+  let { open = $bindable() }: { open: boolean } = $props();
+
   let files: FileList | null = $state(null);
   let fileError: string | null = $state(null);
 
@@ -51,6 +53,7 @@
 
     toast.success(`Imported ${flights.length} flights`);
     files = null;
+    open = false;
   };
 </script>
 
@@ -82,5 +85,5 @@
     bind:files
     class="hidden"
   />
-  <Button on:click={handleImport} disabled={!canImport}>Import</Button>
+  <Button onclick={handleImport} disabled={!canImport}>Import</Button>
 </PageHeader>

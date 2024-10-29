@@ -4,18 +4,14 @@
   import FlightsPerWeekday from './charts/FlightsPerWeekday.svelte';
   import StatsCard from './StatsCard.svelte';
   import PieCharts from './charts/PieCharts.svelte';
-  import {
-    type FlightData,
-    formatDistance,
-    formatDuration,
-    formatNumber,
-  } from '$lib/utils';
+  import { type FlightData, formatDuration, kmToMiles } from '$lib/utils';
   import { page } from '$app/stores';
   import { isBefore } from 'date-fns';
-  import { nowIn } from '$lib/utils/datetime';
+  import { Duration, nowIn } from '$lib/utils/datetime';
+  import NumberFlow from '@number-flow/svelte';
 
   let {
-    open = $bindable(),
+    open = $bindable<boolean>(),
     allFlights,
   }: {
     open?: boolean;
@@ -29,42 +25,89 @@
     ),
   );
 
-  let flightCount = $derived.by(() => flights.length);
-  let totalDistance = $derived.by(() =>
-    flights.reduce((acc, curr) => (acc += curr.distance ?? 0), 0),
-  );
+  let isMetric = $derived.by(() => $page.data.user?.unit === 'metric');
   let totalDuration = $derived.by(() =>
-    flights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
+    Duration.fromSeconds(
+      flights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
+    ),
   );
-  let airports = $derived.by(
-    () => new Set(flights.flatMap((f) => [f.from.name, f.to.name])).size,
-  );
+  let flightCount = $state(0);
+  let totalDistance = $state(0);
+  let totalDurationParts = $state({ days: 0, hours: 0, minutes: 0 });
+  let airports = $state(0);
+  $effect(() => {
+    if (open) {
+      setTimeout(() => {
+        flightCount = flights.length;
+        totalDistance = flights.reduce(
+          (acc, curr) => (acc += curr.distance ?? 0),
+          0,
+        );
+        const duration = Duration.fromSeconds(
+          flights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
+        );
+        totalDurationParts = {
+          days: duration.days,
+          hours: duration.hours,
+          minutes: duration.minutes,
+        };
+        airports = new Set(flights.flatMap((f) => [f.from.name, f.to.name]))
+          .size;
+      }, 200);
+    } else {
+      flightCount = 0;
+      totalDistance = 0;
+      totalDurationParts = { days: 0, hours: 0, minutes: 0 };
+      airports = 0;
+    }
+  });
 </script>
 
-<Modal bind:open classes="h-full overflow-y-auto !rounded-none" dialogOnly>
+<Modal bind:open class="h-full overflow-y-auto !rounded-none" dialogOnly>
   <div class="space-y-4">
     <h2 class="text-3xl font-bold tracking-tight">Statistics</h2>
     <div class="grid gap-4 pb-2 md:grid-cols-2 lg:grid-cols-4">
-      <StatsCard classes="py-4 px-8">
+      <StatsCard class="py-4 px-8">
         <h3 class="text-sm font-medium">Flights</h3>
-        <span class="text-2xl font-bold">{formatNumber(flightCount)}</span>
+        <span class="text-2xl font-bold">
+          <NumberFlow value={flightCount} />
+        </span>
       </StatsCard>
-      <StatsCard classes="py-4 px-8">
+      <StatsCard class="py-4 px-8">
         <h3 class="text-sm font-medium">Distance</h3>
-        <span class="text-2xl font-bold"
-          >{formatDistance(
-            totalDistance,
-            $page.data.user?.unit !== 'imperial',
-          )}</span
-        >
+        <span class="text-2xl font-bold">
+          <NumberFlow
+            value={isMetric ? totalDistance : kmToMiles(totalDistance)}
+            format={{
+              style: 'unit',
+              unit: isMetric ? 'kilometer' : 'mile',
+              unitDisplay: 'short',
+              maximumFractionDigits: 0,
+            }}
+          />
+        </span>
       </StatsCard>
-      <StatsCard classes="py-4 px-8">
+      <StatsCard class="py-4 px-8">
         <h3 class="text-sm font-medium">Duration</h3>
-        <span class="text-2xl font-bold">{formatDuration(totalDuration)}</span>
+        <span class="text-2xl font-bold">
+          {#if totalDuration.days}
+            <NumberFlow value={totalDurationParts.days} />d
+          {/if}
+          {#if totalDuration.hours}
+            <NumberFlow value={totalDurationParts.hours} />h
+          {/if}
+          {#if totalDuration.minutes}
+            <NumberFlow value={totalDurationParts.minutes} />m
+          {:else if !totalDuration.days && !totalDuration.hours}
+            0m
+          {/if}
+        </span>
       </StatsCard>
-      <StatsCard classes="py-4 px-8">
+      <StatsCard class="py-4 px-8">
         <h3 class="text-sm font-medium">Airports</h3>
-        <span class="text-2xl font-bold">{formatNumber(airports)}</span>
+        <span class="text-2xl font-bold">
+          <NumberFlow value={airports} />
+        </span>
       </StatsCard>
     </div>
     <PieCharts {flights} />

@@ -33,40 +33,44 @@
 
 <form method="POST" action="/api/users/edit" use:enhance>
   <Form.Field {form} name="username">
-    <Form.Control let:attrs>
-      <Form.Label>Username</Form.Label>
-      <Input bind:value={$formData.username} {...attrs} />
+    <Form.Control>
+      {#snippet children({ props })}
+        <Form.Label>Username</Form.Label>
+        <Input bind:value={$formData.username} {...props} />
+      {/snippet}
     </Form.Control>
     <Form.FieldErrors />
   </Form.Field>
   <Form.Field {form} name="displayName">
-    <Form.Control let:attrs>
-      <Form.Label>Display Name</Form.Label>
-      <Input bind:value={$formData.displayName} {...attrs} />
+    <Form.Control>
+      {#snippet children({ props })}
+        <Form.Label>Display Name</Form.Label>
+        <Input bind:value={$formData.displayName} {...props} />
+      {/snippet}
     </Form.Control>
     <Form.FieldErrors />
   </Form.Field>
   <Form.Field {form} name="unit">
-    <Form.Control let:attrs>
-      <Form.Label>Unit of measurement</Form.Label>
-      <Select.Root
-        selected={{
-          label: toTitleCase($formData.unit),
-          value: $formData.unit,
-        }}
-        onSelectedChange={(v) => {
-          if (v) $formData.unit = v.value;
-        }}
-      >
-        <Select.Trigger {...attrs}>
-          <Select.Value placeholder="Select a unit" />
-        </Select.Trigger>
-        <Select.Content>
-          <Select.Item value="metric" label="Metric" />
-          <Select.Item value="imperial" label="Imperial" />
-        </Select.Content>
-      </Select.Root>
-      <input type="hidden" value={$formData.unit} name={attrs.name} />
+    <Form.Control>
+      {#snippet children({ props })}
+        <Form.Label>Unit of measurement</Form.Label>
+        <Select.Root
+          type="single"
+          value={$formData.unit}
+          onValueChange={(v) => {
+            if (v) $formData.unit = v;
+          }}
+        >
+          <Select.Trigger {...props}>
+            {$formData.unit ? toTitleCase($formData.unit) : 'Select a unit'}
+          </Select.Trigger>
+          <Select.Content>
+            <Select.Item value="metric" label="Metric" />
+            <Select.Item value="imperial" label="Imperial" />
+          </Select.Content>
+        </Select.Root>
+        <input type="hidden" value={$formData.unit} name={props.name} />
+      {/snippet}
     </Form.Control>
     <Form.FieldErrors />
   </Form.Field>

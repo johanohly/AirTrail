@@ -3,17 +3,17 @@
   import type { Snippet } from 'svelte';
 
   let {
-    classes = '',
+    class: className = '',
     gradient = false,
     children,
   }: {
-    classes: string;
+    class: string;
     gradient?: boolean;
     children: Snippet;
   } = $props();
 </script>
 
-<div class={cn('flex items-center w-full', classes)}>
+<div class={cn('flex items-center w-full', className)}>
   <div
     class={cn(
       'rounded-full w-full h-[1px]',

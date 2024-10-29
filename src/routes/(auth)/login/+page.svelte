@@ -1,7 +1,7 @@
 <script lang="ts">
   import { api, trpc } from '$lib/trpc';
   import * as Form from '$lib/components/ui/form';
-  import { Input } from '$lib/components/ui/input';
+  import { Input, PasswordInput } from '$lib/components/ui/input';
   import { goto } from '$app/navigation';
   import { Globe } from '$lib/components/ui/globe';
   import { superForm } from 'sveltekit-superforms';
@@ -117,16 +117,23 @@
         class="grid gap-4"
       >
         <Form.Field {form} name="username">
-          <Form.Control let:attrs>
-            <Form.Label>Username</Form.Label>
-            <Input {...attrs} bind:value={$formData.username} />
+          <Form.Control>
+            {#snippet children({ props })}
+              <Form.Label>Username</Form.Label>
+              <Input {...props} bind:value={$formData.username} />
+            {/snippet}
           </Form.Control>
           <Form.FieldErrors />
         </Form.Field>
         <Form.Field {form} name="password">
-          <Form.Control let:attrs>
-            <Form.Label>Password</Form.Label>
-            <Input {...attrs} type="password" bind:value={$formData.password} />
+          <Form.Control>
+            {#snippet children({ props })}
+              <Form.Label>Password</Form.Label>
+              <PasswordInput
+                {...props}
+                bind:value={$formData.password}
+              />
+            {/snippet}
           </Form.Control>
           <Form.FieldErrors />
         </Form.Field>

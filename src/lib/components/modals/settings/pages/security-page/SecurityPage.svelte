@@ -48,7 +48,8 @@
       await trpc.flight.list.utils.invalidate();
       toast.info('All your flights have been deleted.', { id: toastId });
     } catch (err) {
-      toast.error(err.message, { id: toastId });
+      console.error(err);
+      toast.error('Failed to delete your flights', { id: toastId });
     }
   };
 </script>
@@ -78,15 +79,15 @@
             onConfirm={unlinkOAuth}
             title="Unlink OAuth"
             description="Are you sure you want to unlink your OAuth account? If you do not have a password set, you will not be able to sign in."
-            triggerVariant="outline"
-            triggerDisabled={oauthLoading}
             confirmText="Unlink"
           >
-            {#snippet triggerContent()}
-              {#if oauthLoading}
-                <LoaderCircle class="animate-spin mr-1" size={16} />
-              {/if}
-              Unlink
+            {#snippet triggerContent({ ...props })}
+              <Button variant="outline" disabled={oauthLoading} {...props}>
+                {#if oauthLoading}
+                  <LoaderCircle class="animate-spin mr-1" size={16} />
+                {/if}
+                Unlink
+              </Button>
             {/snippet}
           </Confirm>
         {:else}
@@ -107,11 +108,12 @@
         onConfirm={deleteFlights}
         title="Delete all flights"
         description="Are you sure you want to delete all your flights? This does not include flights you share with other users. This action cannot be undone."
-        triggerVariant="destructiveOutline"
         confirmText="Delete"
       >
-        {#snippet triggerContent()}
-          Delete all flights
+        {#snippet triggerContent({ props })}
+          <Button variant="destructiveOutline" {...props}>
+            Delete all flights
+          </Button>
         {/snippet}
       </Confirm>
     </div>

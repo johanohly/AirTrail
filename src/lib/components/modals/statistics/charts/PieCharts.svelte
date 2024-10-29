@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { FlightData } from '$lib/utils';
+  import { type FlightData, toTitleCase } from '$lib/utils';
   import PieChart from './PieChart.svelte';
   import { page } from '$app/stores';
 
@@ -13,7 +13,9 @@
     categories: string[],
   ) => {
     return categories.reduce<Record<string, number>>((acc, category) => {
-      acc[category] = flights.filter((f) => f[property] === category).length;
+      acc[toTitleCase(category)] = flights.filter(
+        (f) => f[property] === category,
+      ).length;
       return acc;
     }, {});
   };
@@ -24,7 +26,7 @@
     categories: string[],
   ) => {
     return categories.reduce<Record<string, number>>((acc, category) => {
-      acc[category] = flights.filter((f) =>
+      acc[toTitleCase(category)] = flights.filter((f) =>
         f.seats.some((v) => v.userId === user?.id && v[property] === category),
       ).length;
       return acc;

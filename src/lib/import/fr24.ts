@@ -128,7 +128,7 @@ export const processFR24File = async (content: string) => {
       ? toUtc(
           parse(
             `${row.date} ${row.dep_time}`,
-            'yyyy-MM-dd kk:mm:ss',
+            'yyyy-MM-dd HH:mm:ss',
             new Date(),
             { in: tz(from.tz) },
           ),
@@ -138,7 +138,7 @@ export const processFR24File = async (content: string) => {
       ? toUtc(
           parse(
             `${row.date} ${row.arr_time}`,
-            'yyyy-MM-dd kk:mm:ss',
+            'yyyy-MM-dd HH:mm:ss',
             new Date(),
             { in: tz(to.tz) },
           ),

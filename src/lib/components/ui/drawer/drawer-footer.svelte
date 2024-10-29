@@ -1,20 +1,20 @@
 <script lang="ts">
-  import type { HTMLAttributes } from 'svelte/elements';
   import { cn } from '$lib/utils';
+  import type { WithElementRef } from 'bits-ui';
+  import type { HTMLAttributes } from 'svelte/elements';
 
-  type $$Props = HTMLAttributes<HTMLDivElement> & {
-    el?: HTMLDivElement;
-  };
-
-  export let el: $$Props['el'] = undefined;
-  let className: $$Props['class'] = undefined;
-  export { className as class };
+  let {
+    ref = $bindable(null),
+    class: className,
+    children,
+    ...restProps
+  }: WithElementRef<HTMLAttributes<HTMLDivElement>> = $props();
 </script>
 
 <div
-  bind:this={el}
+  bind:this={ref}
   class={cn('mt-auto flex flex-col gap-2 p-4', className)}
-  {...$$restProps}
+  {...restProps}
 >
-  <slot />
+  {@render children?.()}
 </div>

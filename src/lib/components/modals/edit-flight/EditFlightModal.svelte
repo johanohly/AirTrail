@@ -5,7 +5,7 @@
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
   import { flightSchema } from '$lib/zod/flight';
-  import { buttonVariants } from '$lib/components/ui/button';
+  import { Button } from '$lib/components/ui/button';
   import { SquarePen } from '@o7/icon/lucide';
   import { AirportField, DateTimeField } from '$lib/components/form-fields';
   import { toast } from 'svelte-sonner';
@@ -17,8 +17,10 @@
 
   let {
     flight,
+    triggerDisabled,
   }: {
     flight: FlightData;
+    triggerDisabled: boolean;
   } = $props();
 
   const schemaFlight = {
@@ -60,11 +62,24 @@
   const { form: formData, enhance } = form;
 </script>
 
-<Dialog.Root bind:open closeOnOutsideClick={false} preventScroll={false}>
-  <Dialog.Trigger class={buttonVariants({ variant: 'outline', size: 'icon' })}>
-    <SquarePen size="20" />
+<Dialog.Root bind:open>
+  <Dialog.Trigger>
+    {#snippet child({ props })}
+      <Button
+        variant="outline"
+        size="icon"
+        {...props}
+        disabled={triggerDisabled}
+      >
+        <SquarePen size="20" />
+      </Button>
+    {/snippet}
   </Dialog.Trigger>
-  <Dialog.Content classes="max-h-full overflow-y-auto max-w-lg">
+  <Dialog.Content
+    preventScroll={false}
+    interactOutsideBehavior="ignore"
+    class="max-h-full overflow-y-auto max-w-lg"
+  >
     <h2>Edit Flight</h2>
     <form
       method="POST"

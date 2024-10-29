@@ -1,11 +1,11 @@
 <script lang="ts">
   import { trpc } from '$lib/trpc';
-  import { Input } from '$lib/components/ui/input';
+  import { Input, PasswordInput } from '$lib/components/ui/input';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { toast } from 'svelte-sonner';
   import { LoaderCircle } from '@o7/icon/lucide';
-  import { superForm } from 'sveltekit-superforms';
+  import SuperDebug, { superForm } from 'sveltekit-superforms';
   import * as Form from '$lib/components/ui/form';
   import * as Select from '$lib/components/ui/select';
   import { zod } from 'sveltekit-superforms/adapters';
@@ -50,49 +50,53 @@
         class="grid gap-4"
       >
         <Form.Field {form} name="username">
-          <Form.Control let:attrs>
-            <Form.Label>Username</Form.Label>
-            <Input {...attrs} bind:value={$formData.username} />
+          <Form.Control>
+            {#snippet children({ props })}
+              <Form.Label>Username</Form.Label>
+              <Input {...props} bind:value={$formData.username} />
+            {/snippet}
           </Form.Control>
           <Form.FieldErrors />
         </Form.Field>
         <Form.Field {form} name="password">
-          <Form.Control let:attrs>
-            <Form.Label>Password</Form.Label>
-            <Input {...attrs} type="password" bind:value={$formData.password} />
+          <Form.Control>
+            {#snippet children({ props })}
+              <Form.Label>Password</Form.Label>
+              <PasswordInput {...props} bind:value={$formData.password} />
+            {/snippet}
           </Form.Control>
           <Form.FieldErrors />
         </Form.Field>
         <Form.Field {form} name="displayName">
-          <Form.Control let:attrs>
-            <Form.Label>Name</Form.Label>
-            <Input {...attrs} bind:value={$formData.displayName} />
+          <Form.Control>
+            {#snippet children({ props })}
+              <Form.Label>Name</Form.Label>
+              <Input {...props} bind:value={$formData.displayName} />
+            {/snippet}
           </Form.Control>
           <Form.FieldErrors />
         </Form.Field>
         <Form.Field {form} name="unit">
-          <Form.Control let:attrs>
-            <Form.Label>Unit of measurement</Form.Label>
-            <Select.Root
-              selected={{
-                label: toTitleCase($formData.unit),
-                value: $formData.unit,
-              }}
-              onSelectedChange={(v) => {
-                if (v) $formData.unit = v.value;
-              }}
-            >
-              <Select.Trigger {...attrs}>
-                <Select.Value placeholder="Select a unit" />
-              </Select.Trigger>
-              <Select.Content>
-                <Select.Item value="metric" label="Metric" />
-                <Select.Item value="imperial" label="Imperial" />
-              </Select.Content>
-            </Select.Root>
+          <Form.Control>
+            {#snippet children({ props })}
+              <Form.Label>Unit of measurement</Form.Label>
+              <Select.Root type="single" bind:value={$formData.unit}>
+                <Select.Trigger {...props}>
+                  {$formData.unit
+                    ? toTitleCase($formData.unit)
+                    : 'Select a unit'}
+                </Select.Trigger>
+                <Select.Content>
+                  <Select.Item value="metric" label="Metric" />
+                  <Select.Item value="imperial" label="Imperial" />
+                </Select.Content>
+              </Select.Root>
+              <input name={props.name} type="hidden" value={$formData.unit} />
+            {/snippet}
           </Form.Control>
           <Form.FieldErrors />
         </Form.Field>
+        <SuperDebug data={$formData} />
         <Form.Button disabled={$submitting}>
           {#if $submitting}
             <LoaderCircle class="animate-spin mr-1" size="18" />

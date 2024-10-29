@@ -66,7 +66,7 @@ export const processJetLogFile = async (input: string) => {
       ? toUtc(
           parseLocal(
             `${row.date} ${row.departure_time}`,
-            'yyyy-MM-dd kk:mm',
+            'yyyy-MM-dd HH:mm',
             from.tz,
           ),
         )
@@ -76,7 +76,7 @@ export const processJetLogFile = async (input: string) => {
         ? toUtc(
             parseLocal(
               `${row.arrival_date} ${row.arrival_time}`,
-              'yyyy-MM-dd kk:mm',
+              'yyyy-MM-dd HH:mm',
               to.tz,
             ),
           )
@@ -84,7 +84,7 @@ export const processJetLogFile = async (input: string) => {
           ? toUtc(
               parseLocal(
                 `${row.date} ${row.arrival_time}`,
-                'yyyy-MM-dd kk:mm',
+                'yyyy-MM-dd HH:mm',
                 to.tz,
               ),
             )

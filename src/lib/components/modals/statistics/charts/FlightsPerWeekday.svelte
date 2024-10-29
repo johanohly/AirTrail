@@ -3,13 +3,16 @@
     Area,
     Axis,
     Chart,
+    ChartClipPath,
     LinearGradient,
     Points,
+    Spline,
     Svg,
     Tooltip,
   } from 'layerchart';
   import { scaleBand } from 'd3-scale';
   import type { FlightData } from '$lib/utils';
+  import { cubicInOut } from 'svelte/easing';
 
   let { flights }: { flights: FlightData[] } = $props();
 
@@ -57,9 +60,31 @@
         }}
         rule
       />
+      <Spline
+        draw={{ easing: cubicInOut, delay: 500 }}
+        class="stroke-2 stroke-primary"
+      />
       <LinearGradient class="from-primary/50 to-primary/0" vertical let:url>
-        <Area line={{ class: 'stroke-2 stroke-primary' }} fill={url} />
-        <Points r={5} class="fill-primary" />
+        <ChartClipPath
+          initialY={300}
+          initialHeight={0}
+          tweened={{
+            y: { duration: 1000, easing: cubicInOut, delay: 600 },
+            height: { duration: 1000, easing: cubicInOut, delay: 600 },
+          }}
+        >
+          <Area fill={url} />
+        </ChartClipPath>
+        <ChartClipPath
+          initialX={0}
+          initialWidth={0}
+          tweened={{
+            x: { duration: 1000, easing: cubicInOut },
+            width: { duration: 1000, easing: cubicInOut },
+          }}
+        >
+          <Points r={5} class="fill-primary" />
+        </ChartClipPath>
       </LinearGradient>
     </Svg>
     <Tooltip.Root x="data" y="data" let:data>

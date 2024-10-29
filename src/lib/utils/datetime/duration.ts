@@ -2,28 +2,31 @@ import type { LngLatLike } from 'maplibre-gl';
 import { distanceBetween } from '$lib/utils';
 
 export class Duration {
-  private hours: number;
-  private minutes: number;
+  readonly days: number;
+  readonly hours: number;
+  readonly minutes: number;
 
-  constructor(hours: number, minutes: number) {
+  constructor(days: number, hours: number, minutes: number) {
+    this.days = days;
     this.hours = hours;
     this.minutes = minutes;
   }
 
   static fromSeconds(seconds: number): Duration {
-    const totalMinutes = Math.floor(seconds / 60);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return new Duration(hours, minutes);
+    const days = Math.floor(seconds / 86400);
+    const remainingSeconds = seconds % 86400;
+    const hours = Math.floor(remainingSeconds / 3600);
+    const remainingMinutes = remainingSeconds % 3600;
+    const minutes = Math.floor(remainingMinutes / 60);
+    return new Duration(days, hours, minutes);
   }
 
   toString(includeDays: boolean = false): string {
     if (includeDays) {
-      const days = Math.floor(this.hours / 24);
-      const remainingHours = this.hours % 24;
-      return `${days}d ${remainingHours}h ${this.minutes}m`;
+      return `${this.days}d ${this.hours}h ${this.minutes}m`;
     }
-    return `${this.hours}h ${this.minutes}m`;
+    const hours = this.days * 24 + this.hours;
+    return `${hours}h ${this.minutes}m`;
   }
 }
 

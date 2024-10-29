@@ -9,7 +9,7 @@
   import FlightInformation from './FlightInformation.svelte';
   import SeatInformation from './SeatInformation.svelte';
   import { page } from '$app/stores';
-  import FlightNumber from '$lib/components/modals/add-flight/FlightNumber.svelte';
+  import FlightNumber from './FlightNumber.svelte';
   import { trpc } from '$lib/trpc';
 
   let { open = $bindable() }: { open: boolean } = $props();
@@ -44,7 +44,7 @@
   bind:open
   dialogOnly
   closeOnOutsideClick={false}
-  classes="max-h-full overflow-y-auto max-w-lg"
+  class="max-h-full overflow-y-auto max-w-lg"
 >
   <h2>Add Flight</h2>
   <form method="POST" action="/api/flight/save" class="grid gap-4" use:enhance>

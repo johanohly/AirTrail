@@ -32,6 +32,24 @@ export const flightRouter = router({
         throw new Error('Flight not found');
       }
     }),
+  deleteMany: authedProcedure
+    .input(z.array(z.number()))
+    .mutation(async ({ ctx: { user }, input }) => {
+      const result = await db
+        .selectFrom('seat')
+        .select('flightId')
+        .distinct()
+        .where('userId', '=', user.id)
+        .where('flightId', 'in', input)
+        .execute();
+      const flightIds = result.map((r) => r.flightId);
+
+      if (flightIds.length !== input.length) {
+        throw new Error('You do not have a seat on all flights');
+      }
+
+      await db.deleteFrom('flight').where('id', 'in', input).execute();
+    }),
   deleteAll: authedProcedure.mutation(async ({ ctx: { user } }) => {
     const flightIds = await db
       .selectFrom('flight')

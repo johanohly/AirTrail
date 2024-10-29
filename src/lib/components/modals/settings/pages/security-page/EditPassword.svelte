@@ -30,30 +30,36 @@
   const { form: formData, enhance } = form;
 </script>
 
-<Button variant="outline" on:click={() => (open = true)}>Edit password</Button>
+<Button variant="outline" onclick={() => (open = true)}>Edit password</Button>
 
 <Modal bind:open dialogOnly>
   <h1>Edit Password</h1>
   <form method="POST" action="/api/users/edit-password" use:enhance>
     <Form.Field {form} name="currentPassword">
-      <Form.Control let:attrs>
-        <Form.Label>Current Password</Form.Label>
-        <PasswordInput bind:value={$formData.currentPassword} {...attrs} />
+      <Form.Control>
+        {#snippet children({ props })}
+          <Form.Label>Current Password</Form.Label>
+          <PasswordInput bind:value={$formData.currentPassword} {...props} />
+        {/snippet}
       </Form.Control>
       <Form.FieldErrors />
     </Form.Field>
     <div class="flex justify-between gap-2">
       <Form.Field {form} name="newPassword">
-        <Form.Control let:attrs>
-          <Form.Label>New Password</Form.Label>
-          <PasswordInput bind:value={$formData.newPassword} {...attrs} />
+        <Form.Control>
+          {#snippet children({ props })}
+            <Form.Label>New Password</Form.Label>
+            <PasswordInput bind:value={$formData.newPassword} {...props} />
+          {/snippet}
         </Form.Control>
         <Form.FieldErrors />
       </Form.Field>
       <Form.Field {form} name="confirmPassword">
-        <Form.Control let:attrs>
-          <Form.Label>Confirm Password</Form.Label>
-          <PasswordInput bind:value={$formData.confirmPassword} {...attrs} />
+        <Form.Control>
+          {#snippet children({ props })}
+            <Form.Label>Confirm Password</Form.Label>
+            <PasswordInput bind:value={$formData.confirmPassword} {...props} />
+          {/snippet}
         </Form.Control>
         <Form.FieldErrors />
       </Form.Field>

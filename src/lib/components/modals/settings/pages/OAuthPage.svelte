@@ -62,63 +62,73 @@
       name="enabled"
       class="flex flex-row items-center justify-between"
     >
-      <Form.Control let:attrs>
-        <div class="space-y-0.5">
-          <Form.Label class="text-base">Enable OAuth</Form.Label>
-          <Form.Description>
-            Enable OAuth for your AirTrail instance.
-          </Form.Description>
-        </div>
-        <Switch includeInput bind:checked={$formData.enabled} {...attrs} />
+      <Form.Control>
+        {#snippet children({ props })}
+          <div class="space-y-0.5">
+            <Form.Label class="text-base">Enable OAuth</Form.Label>
+            <Form.Description>
+              Enable OAuth for your AirTrail instance.
+            </Form.Description>
+          </div>
+          <Switch bind:checked={$formData.enabled} {...props} />
+        {/snippet}
       </Form.Control>
     </Form.Field>
     <Form.Field {form} name="issuerUrl">
-      <Form.Control let:attrs>
-        <Form.Label>Issuer URL</Form.Label>
-        <Form.Description>The URL of the OAuth provider.</Form.Description>
-        <Input
-          bind:value={$formData.issuerUrl}
-          {...attrs}
-          placeholder="https://example.com/.well-known/openid-configuration"
-        />
+      <Form.Control>
+        {#snippet children({ props })}
+          <Form.Label>Issuer URL</Form.Label>
+          <Form.Description>The URL of the OAuth provider.</Form.Description>
+          <Input
+            bind:value={$formData.issuerUrl}
+            {...props}
+            placeholder="https://example.com/.well-known/openid-configuration"
+          />
+        {/snippet}
       </Form.Control>
       <Form.FieldErrors />
     </Form.Field>
     <Form.Field {form} name="clientId">
-      <Form.Control let:attrs>
-        <Form.Label>Client ID</Form.Label>
-        <Form.Description>
-          The client ID provided by the OAuth provider.
-        </Form.Description>
-        <Input bind:value={$formData.clientId} {...attrs} />
+      <Form.Control>
+        {#snippet children({ props })}
+          <Form.Label>Client ID</Form.Label>
+          <Form.Description>
+            The client ID provided by the OAuth provider.
+          </Form.Description>
+          <Input bind:value={$formData.clientId} {...props} />
+        {/snippet}
       </Form.Control>
       <Form.FieldErrors />
     </Form.Field>
     <Form.Field {form} name="clientSecret">
-      <Form.Control let:attrs>
-        <Form.Label>Client Secret</Form.Label>
-        <Form.Description>
-          The client secret provided by the OAuth provider.
-        </Form.Description>
-        <Input
-          bind:value={$formData.clientSecret}
-          {...attrs}
-          placeholder="********"
-        />
+      <Form.Control>
+        {#snippet children({ props })}
+          <Form.Label>Client Secret</Form.Label>
+          <Form.Description>
+            The client secret provided by the OAuth provider.
+          </Form.Description>
+          <Input
+            bind:value={$formData.clientSecret}
+            {...props}
+            placeholder="********"
+          />
+        {/snippet}
       </Form.Control>
       <Form.FieldErrors />
     </Form.Field>
     <Form.Field {form} name="scope">
-      <Form.Control let:attrs>
-        <Form.Label>Scope</Form.Label>
-        <Form.Description>
-          The scope of the OAuth provider (space-separated).
-        </Form.Description>
-        <Input
-          bind:value={$formData.scope}
-          {...attrs}
-          placeholder="openid profile"
-        />
+      <Form.Control>
+        {#snippet children({ props })}
+          <Form.Label>Scope</Form.Label>
+          <Form.Description>
+            The scope of the OAuth provider (space-separated).
+          </Form.Description>
+          <Input
+            bind:value={$formData.scope}
+            {...props}
+            placeholder="openid profile"
+          />
+        {/snippet}
       </Form.Control>
       <Form.FieldErrors />
     </Form.Field>
@@ -127,14 +137,16 @@
       name="autoRegister"
       class="flex flex-row items-center justify-between"
     >
-      <Form.Control let:attrs>
-        <div class="space-y-0.5">
-          <Form.Label class="text-base">Auto Register</Form.Label>
-          <Form.Description>
-            Automatically register new users when they sign in with OAuth.
-          </Form.Description>
-        </div>
-        <Switch includeInput bind:checked={$formData.autoRegister} {...attrs} />
+      <Form.Control>
+        {#snippet children({ props })}
+          <div class="space-y-0.5">
+            <Form.Label class="text-base">Auto Register</Form.Label>
+            <Form.Description>
+              Automatically register new users when they sign in with OAuth.
+            </Form.Description>
+          </div>
+          <Switch bind:checked={$formData.autoRegister} {...props} />
+        {/snippet}
       </Form.Control>
     </Form.Field>
     <Form.Field
@@ -142,15 +154,17 @@
       name="autoLogin"
       class="flex flex-row items-center justify-between"
     >
-      <Form.Control let:attrs>
-        <div class="space-y-0.5">
-          <Form.Label class="text-base">Auto Login</Form.Label>
-          <Form.Description>
-            Automatically redirect users to the OAuth provider when they visit
-            the login page.
-          </Form.Description>
-        </div>
-        <Switch includeInput bind:checked={$formData.autoLogin} {...attrs} />
+      <Form.Control>
+        {#snippet children({ props })}
+          <div class="space-y-0.5">
+            <Form.Label class="text-base">Auto Login</Form.Label>
+            <Form.Description>
+              Automatically redirect users to the OAuth provider when they visit
+              the login page.
+            </Form.Description>
+          </div>
+          <Switch bind:checked={$formData.autoLogin} {...props} />
+        {/snippet}
       </Form.Control>
     </Form.Field>
     <Form.Button disabled={!changes}>Save</Form.Button>

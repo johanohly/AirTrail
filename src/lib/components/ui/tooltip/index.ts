@@ -5,10 +5,12 @@ import TextTooltip from './text-tooltip.svelte';
 
 const Root = TooltipPrimitive.Root;
 const Trigger = TooltipPrimitive.Trigger;
+const Provider = TooltipPrimitive.Provider;
 
 export {
   Root,
   Trigger,
+  Provider,
   Content,
   AutoTooltip,
   TextTooltip,

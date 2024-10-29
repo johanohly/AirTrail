@@ -1,37 +1,22 @@
 <script lang="ts">
-  import type { InputEvents } from './index.js';
   import type { HTMLTextareaAttributes } from 'svelte/elements';
+  import type { WithElementRef } from 'bits-ui';
   import { cn } from '$lib/utils';
 
-  type $$Props = HTMLTextareaAttributes;
-  type $$Events = InputEvents;
-
-  let className: $$Props['class'] = undefined;
-  export let value: $$Props['value'] = undefined;
-  export { className as class };
+  let {
+    ref = $bindable(null),
+    value = $bindable(),
+    class: className,
+    ...restProps
+  }: WithElementRef<HTMLTextareaAttributes> = $props();
 </script>
 
 <textarea
+  bind:this={ref}
   class={cn(
     'border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
     className,
   )}
   bind:value
-  on:blur
-  on:change
-  on:click
-  on:focus
-  on:focusin
-  on:focusout
-  on:keydown
-  on:keypress
-  on:keyup
-  on:mouseover
-  on:mouseenter
-  on:mouseleave
-  on:mousemove
-  on:paste
-  on:input
-  on:wheel|passive
-  {...$$restProps}
-></textarea>
+  {...restProps}
+/>

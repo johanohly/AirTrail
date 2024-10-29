@@ -98,7 +98,7 @@
       {#each features as feature}
         {@const country = getCountry(+feature.id)}
         <GeoPath
-          on:click={() => feature.id && editCountry(+feature.id)}
+          onclick={() => feature.id && editCountry(+feature.id)}
           geojson={feature}
           {tooltip}
           class={cn('stroke-surface-content/50 fill-white cursor-pointer', {
