@@ -25,6 +25,7 @@
   import { Airports } from '.';
   import { page } from '$app/stores';
   import { formatAsDate } from '$lib/utils/datetime/index.js';
+  import NumberFlow from '@number-flow/svelte';
 
   const FROM_COLOR = [59, 130, 246]; // Also the primary color
   const TO_COLOR = [139, 92, 246]; // TW violet-500
@@ -155,19 +156,19 @@
       <div class="h-[1px] bg-muted my-3" />
       <div class="grid grid-cols-[repeat(3,_1fr)] px-3">
         <h4 class="font-semibold">
-          {Math.round(metric ? data.distance : kmToMiles(data.distance))}
+          <NumberFlow value={Math.round(metric ? data.distance : kmToMiles(data.distance))} />
           <span class="font-thin text-muted-foreground"
             >{metric ? 'km' : 'mi'}</span
           >
         </h4>
         <h4 class="font-semibold">
-          {data.flights.length}
+          <NumberFlow value={data.flights.length} />
           <span class="font-thin text-muted-foreground"
             >{pluralize(data.flights.length, 'trip')}</span
           >
         </h4>
         <h4 class="font-semibold">
-          {data.airlines.length}
+          <NumberFlow value={data.airlines.length} />
           <span class="font-thin text-muted-foreground"
             >{pluralize(data.airlines.length, 'airline')}</span
           >

@@ -8,6 +8,7 @@
   } from '$lib/utils';
   import { isSmallScreen } from '$lib/utils/size';
   import { formatAsDate } from '$lib/utils/datetime/index.js';
+  import NumberFlow from '@number-flow/svelte';
 
   //const AIRPORT_COLOR = [125, 211, 252]; // Tailwind blue-300
   const AIRPORT_COLOR = [16, 185, 129]; // Tailwind emerald-500
@@ -52,19 +53,19 @@
       <div class="h-[1px] bg-muted my-3" />
       <div class="grid grid-cols-[repeat(3,_1fr)] px-3">
         <h4 class="font-semibold">
-          {data.departures}
+          <NumberFlow value={data.departures} />
           <span class="font-thin text-muted-foreground"
             >{pluralize(data.departures, 'departure')}</span
           >
         </h4>
         <h4 class="font-semibold">
-          {data.arrivals}
+          <NumberFlow value={data.arrivals} />
           <span class="font-thin text-muted-foreground"
             >{pluralize(data.arrivals, 'arrival')}</span
           >
         </h4>
         <h4 class="font-semibold">
-          {data.airlines.length}
+          <NumberFlow value={data.airlines.length} />
           <span class="font-thin text-muted-foreground"
             >{pluralize(data.airlines.length, 'airline')}</span
           >
