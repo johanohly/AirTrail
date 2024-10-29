@@ -33,19 +33,20 @@
   } = createCombobox<string>({
     forceVisible: true,
     selected,
-  });
-  selected.subscribe((item) => {
-    $formData.airline = item?.value ?? null;
+    onSelectedChange: ({ next }) => {
+      if (next?.value) $formData.airline = next.value;
+      return next;
+    },
   });
 
   // If the field is updated externally, update the selected value
-  formData.subscribe((data) => {
-    if (data['airline'] === $selected?.value) return;
+  formData.subscribe(() => {
+    if ($formData.airline === $selected?.value) return;
     selected.set(
-      data['airline']
+      $formData.airline
         ? {
-            label: airlineFromICAO(data['airline'])?.name,
-            value: data['airline'],
+            label: airlineFromICAO($formData.airline)?.name,
+            value: $formData.airline,
           }
         : undefined,
     );
