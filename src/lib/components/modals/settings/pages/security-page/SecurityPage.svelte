@@ -48,7 +48,8 @@
       await trpc.flight.list.utils.invalidate();
       toast.info('All your flights have been deleted.', { id: toastId });
     } catch (err) {
-      toast.error(err.message, { id: toastId });
+      console.error(err);
+      toast.error('Failed to delete your flights', { id: toastId });
     }
   };
 </script>
