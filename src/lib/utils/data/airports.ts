@@ -1,6 +1,6 @@
 import { AIRPORTS } from '$lib/data/airports';
-import { PersistentLRUCache } from '$lib/utils/lru-cache';
 import { AIRPORT_TRANSITIONS } from '$lib/data/transitions';
+import { LRUCache } from 'lru-cache';
 
 export type Airport = {
   name: string;
@@ -30,7 +30,4 @@ export const airportFromIATA = (iata: string): Airport | undefined => {
 const cacheOptions = {
   max: 100,
 };
-export const airportSearchCache = new PersistentLRUCache<string, Airport[]>(
-  cacheOptions,
-  'airport-search',
-);
+export const airportSearchCache = new LRUCache<string, Airport[]>(cacheOptions);
