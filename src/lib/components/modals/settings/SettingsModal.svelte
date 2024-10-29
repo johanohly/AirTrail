@@ -130,7 +130,7 @@
         {:else if activeTab === 'appearance'}
           <AppearancePage />
         {:else if activeTab === 'import'}
-          <ImportPage />
+          <ImportPage bind:open />
         {:else if activeTab === 'export'}
           <ExportPage />
         {:else if activeTab === 'users'}
