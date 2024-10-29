@@ -1,6 +1,5 @@
 <script lang="ts">
   import * as AlertDialog from '$lib/components/ui/alert-dialog';
-  import { Button, type Props as ButtonProps } from '$lib/components/ui/button';
   import type { Snippet } from 'svelte';
 
   let {
@@ -18,13 +17,6 @@
     confirmText?: string;
     cancelText?: string;
   } = $props();
-
-  const callback = async () => {
-    const result = onConfirm();
-    if (result instanceof Promise) {
-      await result;
-    }
-  };
 </script>
 
 <AlertDialog.Root>
@@ -40,7 +32,7 @@
     </AlertDialog.Header>
     <AlertDialog.Footer>
       <AlertDialog.Cancel>{cancelText}</AlertDialog.Cancel>
-      <AlertDialog.Action onclick={callback}>{confirmText}</AlertDialog.Action>
+      <AlertDialog.Action onclick={onConfirm}>{confirmText}</AlertDialog.Action>
     </AlertDialog.Footer>
   </AlertDialog.Content>
 </AlertDialog.Root>
