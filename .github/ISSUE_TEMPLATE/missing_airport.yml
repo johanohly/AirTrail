@@ -1,0 +1,33 @@
+name: Report a missing airport
+description: Report a missing or unrecognized airport
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue form is for reporting missing or unrecognized airports.
+
+        If you have a different issue, please open a [bug report][bug] or [feature request][fr] instead.
+
+        [bug]: https://github.com/johanohly/AirTrail/issues/new?template=bug_report.yml
+        [fr]: https://github.com/JohanOhly/AirTrail/discussions/new?category=feature-request
+
+  - type: textarea
+    id: airports
+    validations:
+      required: true
+    attributes:
+      label: The airport(s)
+      description: >-
+        Provide the IATA or ICAO code(s) of the airport(s) that are missing or unrecognized.
+
+        If you have multiple airports, separate them with a comma.
+
+  - type: textarea
+    attributes:
+      label: Additional information
+      description: >
+        If you have any additional information for us, use the field below.
+
+  - type: markdown
+    attributes:
+      value: Thank you for reporting a missing airport! 🛫
