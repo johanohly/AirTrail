@@ -22,6 +22,7 @@
   const isSetup = $query.data;
 
   let oauthLoading = $state(true);
+  let autoLoggingIn = $state(false);
 
   $effect(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- we need this for the effect to rerun
@@ -68,6 +69,7 @@
           appConfig.autoLogin &&
           !window.location.search.includes('autoLogin=false')
         ) {
+          autoLoggingIn = true;
           await goto('/login?autoLogin=false', { replaceState: true });
           await oauthLogin();
           return;
@@ -104,7 +106,7 @@
 
   let showLoader = $derived.by(() => {
     return (
-      !$page.url.search.includes('autoLogin=false') &&
+      (autoLoggingIn || !$page.url.search.includes('autoLogin=false')) &&
       (!appConfig || appConfig.autoLogin || isOAuthCallback($page.url.search))
     );
   });
