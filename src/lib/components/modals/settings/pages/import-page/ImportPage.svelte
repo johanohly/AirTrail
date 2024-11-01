@@ -68,6 +68,7 @@
     if (!flights.length) {
       toast.error('No flights found in the file');
       files = null;
+      importing = false;
       return;
     }
 
