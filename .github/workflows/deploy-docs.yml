@@ -10,10 +10,28 @@ jobs:
   pre-checks:
     runs-on: ubuntu-latest
     outputs:
+      artifact: ${{ steps.get-artifact.outputs.result }}
       shouldDeploy: ${{ steps.should-deploy.outputs.deploy }}
     steps:
       - if: ${{ github.event.workflow_run.conclusion != 'success' }}
         run: echo 'The triggering workflow did not succeed' && exit 1
+      - name: Get artifact
+        id: get-artifact
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: context.payload.workflow_run.id,
+            });
+            let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
+              return artifact.name == "docs-build-artifact"
+            })[0];
+            if (!matchArtifact) {
+              return { found: false };
+            }
+            return { found: true, id: matchArtifact.id };
       - name: Should deploy
         id: should-deploy
         uses: actions/github-script@v7
@@ -26,7 +44,7 @@ jobs:
   deploy:
     name: Deploy to GitHub Pages
     needs: pre-checks
-    if: ${{ needs.pre-checks.outputs.shouldDeploy }}
+    if: ${{ fromJson(needs.checks.outputs.artifact).found && needs.pre-checks.outputs.shouldDeploy }}
 
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
     permissions:
@@ -39,6 +57,28 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
+      - name: Download Build Artifact
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let artifact = ${{ needs.pre-checks.outputs.artifact }};
+            let download = await github.rest.actions.downloadArtifact({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               artifact_id: artifact.id,
+               archive_format: 'zip',
+            });
+            let fs = require('fs');
+            fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/docs-build-artifact.zip`, Buffer.from(download.data));
+
+      - name: Unzip Build Artifact
+        run: unzip "${{ github.workspace }}/docs-build-artifact.zip" -d "${{ github.workspace }}/docs/build"
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/build/
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
