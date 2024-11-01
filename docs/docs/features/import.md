@@ -23,8 +23,9 @@ Once you have the CSV file, you can import it into AirTrail by following these s
 1. Go to the AirTrail application.
 2. Go to the settings page.
 3. Click on the "Import" tab.
-4. Click on the "Select file" button and select the CSV file you downloaded from MyFlightradar24.
-5. Click on the "Import" button to start the import process.
+4. Click on the "FlightRadar24" tab.
+5. Click on "Select file" and select the CSV file you downloaded from MyFlightradar24.
+6. Click on the "Import" button to start the import process.
 
 After the import process is complete, you will see your flights on the map.
 
@@ -42,16 +43,13 @@ Once you have the text file, you can import it into AirTrail by following these 
 1. Go to the AirTrail application.
 2. Go to the settings page.
 3. Click on the "Import" tab.
-4. Click on the "Select file" button and select the text file you received from App in the Air.
-5. Click on the "Import" button to start the import process.
+4. Click on the "App in the Air" tab.
+5. Click on "Select file" and select the text file you received from App in the Air.
+6. Click on the "Import" button to start the import process.
 
 After the import process is complete, you will see your flights on the map.
 
 ## Import flights from JetLog
-
-:::tip
-Make sure the file you are importing is called `jetlog.csv`. If it is not, rename it to `jetlog.csv` before importing.
-:::
 
 While logged in to your JetLog account, follow these steps to export your flights:
 
@@ -64,24 +62,21 @@ Once you have the CSV file, you can import it into AirTrail by following these s
 1. Go to the AirTrail application.
 2. Go to the settings page.
 3. Click on the "Import" tab.
-4. Click on the "Select file" button and select the CSV file you downloaded from JetLog.
-5. Click on the "Import" button to start the import process.
+4. Click on the "JetLog" tab.
+5. Click on "Select file" and select the CSV file you downloaded from JetLog.
+6. Click on the "Import" button to start the import process.
 
 After the import process is complete, you will see your flights on the map.
 
 ## Import flights from AirTrail JSON files
-
-:::tip
-Make sure the file you are importing is called `airtrail.json`. If it is not, rename it to `airtrail.json` before
-importing.
-:::
 
 Once you have the JSON file, you can import it into AirTrail by following these steps:
 
 1. Go to the AirTrail application.
 2. Go to the settings page.
 3. Click on the "Import" tab.
-4. Click on the "Select file" button and select the JSON file you want to import.
-5. Click on the "Import" button to start the import process.
+4. Click on the "AirTrail" tab.
+5. Click on "Select file" and select the JSON file you want to import.
+6. Click on the "Import" button to start the import process.
 
 After the import process is complete, you will see your flights on the map.
