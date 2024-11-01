@@ -48,13 +48,13 @@ export const processAirTrailFile = async (input: string) => {
   let parsed;
   try {
     parsed = JSON.parse(input);
-  } catch (e) {
-    return [];
+  } catch (_) {
+    throw new Error('Invalid JSON found in AirTrail file');
   }
 
   const result = AirTrailFile.safeParse(parsed);
   if (!result.success) {
-    return [];
+    throw new Error(result.error.message);
   }
 
   const flights: CreateFlight[] = [];
@@ -112,5 +112,8 @@ export const processAirTrailFile = async (input: string) => {
     });
   });
 
-  return flights;
+  return {
+    flights,
+    unknownAirports: [],
+  };
 };

@@ -92,11 +92,7 @@ const extractAircraftICAO = (aircraft: string) => {
 export const processFR24File = async (content: string) => {
   const [data, error] = parseCsv(content, FR24Flight);
   if (error) {
-    return [];
-  }
-
-  if (data.length === 0) {
-    return [];
+    throw error;
   }
 
   const userId = get(page).data.user?.id;
@@ -105,6 +101,7 @@ export const processFR24File = async (content: string) => {
   }
 
   const flights: CreateFlight[] = [];
+  const unknownAirports: string[] = [];
   for (const row of data) {
     const fromCode = extractAirportICAO(row.from);
     const toCode = extractAirportICAO(row.to);
@@ -115,6 +112,12 @@ export const processFR24File = async (content: string) => {
     const from = airportFromICAO(fromCode);
     const to = airportFromICAO(toCode);
     if (!from || !to) {
+      if (!from && !unknownAirports.includes(row.from)) {
+        unknownAirports.push(row.from);
+      }
+      if (!to && !unknownAirports.includes(row.to)) {
+        unknownAirports.push(row.to);
+      }
       continue;
     }
 
@@ -197,5 +200,8 @@ export const processFR24File = async (content: string) => {
     });
   }
 
-  return flights;
+  return {
+    flights,
+    unknownAirports,
+  };
 };

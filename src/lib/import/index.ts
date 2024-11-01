@@ -4,19 +4,29 @@ import { processAITAFile } from '$lib/import/aita';
 import type { CreateFlight } from '$lib/db/types';
 import { processJetLogFile } from '$lib/import/jetlog';
 import { processAirTrailFile } from '$lib/import/airtrail';
+import {
+  platforms,
+  type PlatformOptions,
+} from '$lib/components/modals/settings/pages/import-page';
 
-export const processFile = async (file: File): Promise<CreateFlight[]> => {
+const Platform = platforms.map((platform) => platform.value)[0];
+
+export const processFile = async (
+  file: File,
+  platform: typeof Platform,
+  options: PlatformOptions,
+): Promise<{ flights: CreateFlight[]; unknownAirports: string[] }> => {
   const content = await readFile(file);
 
-  if (file.name.includes('airtrail')) {
+  if (platform === 'airtrail') {
     return processAirTrailFile(content);
-  } else if (file.name.includes('jetlog')) {
-    return processJetLogFile(content);
-  } else if (file.name.endsWith('.csv')) {
+  } else if (platform === 'jetlog') {
+    return processJetLogFile(content, options);
+  } else if (platform === 'fr24') {
     return processFR24File(content);
-  } else if (file.name.endsWith('.txt')) {
-    return processAITAFile(content);
+  } else if (platform === 'aita') {
+    return processAITAFile(content, options);
   }
 
-  return [];
+  throw new Error('Unknown platform');
 };
