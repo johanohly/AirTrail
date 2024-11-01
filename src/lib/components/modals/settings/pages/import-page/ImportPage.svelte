@@ -165,43 +165,6 @@
       <ul class="mt-4 ml-4 list-disc">
         {#each unknownAirports as airport}
           <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
-          <li>{airport}</li>
         {/each}
       </ul>
     </ScrollArea>
