@@ -8,6 +8,7 @@
   import { toast } from 'svelte-sonner';
   import { airportFromICAO } from '$lib/utils/data/airports';
   import { airlineFromICAO } from '$lib/utils/data/airlines';
+  import { type FlightRoute, getFlightRoute } from '$lib/utils/adsbdb';
 
   let {
     form,
@@ -17,21 +18,17 @@
   const { form: formData } = form;
 
   const lookupFlight = async () => {
-    const resp = await fetch(
-      `https://api.adsbdb.com/v0/callsign/${$formData.flightNumber}`,
-    );
-    if (!resp.ok) {
-      toast.error('Flight not found');
+    if (!$formData.flightNumber) {
       return;
     }
 
-    const data = await resp.json();
-    if (!data.response.flightroute) {
+    let route: FlightRoute | undefined = undefined;
+    try {
+      route = await getFlightRoute($formData.flightNumber);
+    } catch (error) {
       toast.error('Flight not found');
       return;
     }
-
-    const route = data.response.flightroute;
     const origin = airportFromICAO(route.origin.icao_code);
     const destination = airportFromICAO(route.destination.icao_code);
     const airline = airlineFromICAO(route.airline.icao);

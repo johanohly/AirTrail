@@ -28,17 +28,23 @@
   const ADMIN_SETTINGS = [
     { title: 'Users', id: 'users' },
     { title: 'OAuth', id: 'oauth' },
-  ];
+  ] as const;
+  type TabId =
+    | (typeof ACCOUNT_SETTINGS)[number]['id']
+    | (typeof ADMIN_SETTINGS)[number]['id'];
 
   let {
     open = $bindable(),
-    activeTab = 'general',
   }: {
     open: boolean;
-    activeTab?:
-      | (typeof ACCOUNT_SETTINGS)[number]['id']
-      | (typeof ADMIN_SETTINGS)[number]['id'];
   } = $props();
+
+  let activeTab: TabId = $state('general');
+  $effect(() => {
+    if (!open) {
+      activeTab = 'general';
+    }
+  });
 
   const user = $derived($page.data.user);
 

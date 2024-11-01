@@ -9,7 +9,7 @@ export {
 } from './data/data';
 export { distanceBetween, linearClamped } from './distance';
 export { calculateBounds } from './latlng';
-export { toTitleCase, pluralize } from './string';
+export { leq, toTitleCase, pluralize } from './string';
 export {
   formatNumber,
   kmToMiles,

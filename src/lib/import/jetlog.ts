@@ -6,6 +6,8 @@ import { page } from '$app/stores';
 import { airportFromICAO } from '$lib/utils/data/airports';
 import { estimateFlightDuration, parseLocal, toUtc } from '$lib/utils/datetime';
 import { differenceInSeconds } from 'date-fns';
+import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
+import { airlineFromIATA } from '$lib/utils/data/airlines';
 
 const JETLOG_FLIGHT_CLASS_MAP: Record<string, Seat['seatClass']> = {
   'ClassType.ECONOMY': 'economy',
@@ -42,7 +44,10 @@ const JetLogFlight = z.object({
   notes: z.string().transform(nullTransformer),
 });
 
-export const processJetLogFile = async (input: string) => {
+export const processJetLogFile = async (
+  input: string,
+  options: PlatformOptions,
+) => {
   const userId = get(page).data.user?.id;
   if (!userId) {
     throw new Error('User not found');
@@ -50,15 +55,25 @@ export const processJetLogFile = async (input: string) => {
 
   const [data, error] = parseCsv(input, JetLogFlight);
   if (data.length === 0 || error) {
-    return [];
+    return {
+      flights: [],
+      unknownAirports: [],
+    };
   }
 
   const flights: CreateFlight[] = [];
+  const unknownAirports: string[] = [];
 
   for (const row of data) {
     const from = airportFromICAO(row.origin);
     const to = airportFromICAO(row.destination);
     if (!from || !to) {
+      if (!from && !unknownAirports.includes(row.origin)) {
+        unknownAirports.push(row.origin);
+      }
+      if (!to && !unknownAirports.includes(row.destination)) {
+        unknownAirports.push(row.destination);
+      }
       continue;
     }
 
@@ -101,6 +116,14 @@ export const processJetLogFile = async (input: string) => {
     const seatClass =
       JETLOG_FLIGHT_CLASS_MAP[row.ticket_class ?? 'noop'] ?? null;
 
+    let airline = null;
+    if (options.airlineFromFlightNumber && row.flight_number) {
+      const airlineIata = row.flight_number.match(/([A-Za-z]{2})\d*/)?.[1];
+      airline = airlineIata
+        ? (airlineFromIATA(airlineIata)?.icao ?? null)
+        : null;
+    }
+
     flights.push({
       date: row.date,
       from: from.ICAO,
@@ -112,7 +135,7 @@ export const processJetLogFile = async (input: string) => {
         ? row.flight_number.substring(0, 10) // limit to 10 characters
         : null,
       note: row.notes,
-      airline: null,
+      airline,
       aircraft: null,
       aircraftReg: null,
       flightReason: null,
@@ -128,5 +151,8 @@ export const processJetLogFile = async (input: string) => {
     });
   }
 
-  return flights;
+  return {
+    flights,
+    unknownAirports,
+  };
 };
