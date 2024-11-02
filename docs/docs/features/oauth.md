@@ -26,12 +26,12 @@ To configure OAuth authentication in AirTrail, go to the `Settings` page and cli
 admin to access this page).
 Here you can enter the following settings:
 
-| Setting       | Default        | Description                                                                                         |
-|---------------|----------------|-----------------------------------------------------------------------------------------------------|
-| Enabled       | `false`        | Whether to enable OAuth authentication.                                                             |
-| Issuer URL    |                | The URL of the OIDC issuer (e.g. `https://accounts.google.com/.well-known/openid-configuration`).   |
-| Client ID     |                | The client ID of the OAuth client you created in your identity provider.                            |
-| Client Secret |                | The client secret of the OAuth client you created in your identity provider.                        |
-| Scope         | openid profile | The scopes to send with the request.                                                                |
-| Auto Register | `true`         | Whether to automatically register new users if no existing AirTrail user is found for the username. |
-| Auto Login    | `false`        | Whether to automatically launch the OAuth login flow when a user visits the login page.             |
+| Setting       | Default        | Description                                                                                                                                                   |
+|---------------|----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Enabled       | `false`        | Whether to enable OAuth authentication.                                                                                                                       |
+| Issuer URL    |                | The URL of the OIDC issuer (e.g. `https://accounts.google.com/.well-known/openid-configuration`).                                                             |
+| Client ID     |                | The client ID of the OAuth client you created in your identity provider.                                                                                      |
+| Client Secret |                | The client secret of the OAuth client you created in your identity provider.                                                                                  |
+| Scope         | openid profile | The scopes to send with the request.                                                                                                                          |
+| Auto Register | `true`         | Whether to automatically register new users if no existing AirTrail user is found for the username.                                                           |
+| Auto Login    | `false`        | Whether to automatically launch the OAuth login flow when a user visits the login page. To prevent redirection, add `?autoLogin=false` to the end of the url. |
