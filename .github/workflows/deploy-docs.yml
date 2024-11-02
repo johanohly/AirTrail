@@ -1,29 +1,16 @@
 name: Deploy Docs
 
 on:
+  workflow_dispatch:
+
   release:
     types: [ published ]
 
 jobs:
-  pre-checks:
-    runs-on: ubuntu-latest
-    outputs:
-      should_run: ${{  github.event.workflow_run.repository.fork == 'false' && steps.found_paths.outputs.docs == 'true' }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - id: found_paths
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            docs:
-              - 'docs/**'
-
   build:
     name: Build Docs
-    needs: pre-checks
     runs-on: ubuntu-latest
-    if: ${{ needs.pre-checks.outputs.should_run == 'true' }}
+    if: ${{ github.event.workflow_run.repository.fork == 'false' }}
     defaults:
       run:
         working-directory: ./docs
