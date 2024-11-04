@@ -13,6 +13,7 @@ import {
   format,
   formatISO,
   isBefore,
+  isValid,
   parse,
   parseISO,
 } from 'date-fns';
@@ -66,11 +67,12 @@ export const POST: RequestHandler = async ({ locals, request }) => {
           fromAirport.tz,
         )
       : undefined;
+    if (departure && !isValid(departure)) {
+      return returnError(form, 'departureTime', 'Invalid time format');
+    }
   } catch {
     return returnError(form, 'departureTime', 'Invalid time format');
   }
-
-  // adjust departureDate if a departure time is provided and makes it necessary - e.g. 23:00 EDT on the 1st is 03:00 UTC on the 2nd
 
   const arrivalDate = form.data.arrival
     ? parseLocalISO(form.data.arrival, toAirport.tz)
@@ -100,6 +102,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
             toAirport.tz,
           )
         : undefined;
+    if (arrival && !isValid(arrival)) {
+      return returnError(form, 'arrivalTime', 'Invalid time format');
+    }
   } catch {
     return returnError(form, 'arrivalTime', 'Invalid time format');
   }
@@ -200,7 +205,7 @@ const mergeTimeWithDate = (
 
   return parse(
     `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${hours}:${minutes}`,
-    'yyyy-M-d k:m',
+    'yyyy-M-d H:m',
     new Date(),
     { in: tz(tzId) },
   );
