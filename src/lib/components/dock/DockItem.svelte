@@ -12,7 +12,7 @@
   let {
     class: className = undefined,
     children,
-  }: { class: string | undefined; children: Snippet } = $props();
+  }: { class?: string; children: Snippet } = $props();
 
   let mint = useMotionValue(dockContext.mouseX);
   $effect(() => mint.set(dockContext.mouseX));

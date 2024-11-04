@@ -5,6 +5,7 @@
   import { Toaster } from 'svelte-sonner';
   import { ModeWatcher } from 'mode-watcher';
   import { ScreenSize } from '$lib/components/helpers';
+  import { Provider as TooltipProvider } from '$lib/components/ui/tooltip';
   import { appConfig } from '$lib/utils/stores';
   import { openModalsState } from '$lib/stores.svelte';
   import { page } from '$app/stores';
@@ -34,12 +35,14 @@
 {/if}
 
 <QueryClientProvider client={queryClient}>
-  <SettingsModal bind:open={openModalsState.settings} />
-  <AddFlightModal bind:open={openModalsState.addFlight} />
+  <TooltipProvider>
+    <SettingsModal bind:open={openModalsState.settings} />
+    <AddFlightModal bind:open={openModalsState.addFlight} />
 
-  {@render children()}
+    {@render children()}
 
-  {#if !$page.error && !['/login', '/setup'].includes($page.url.pathname)}
-    <NavigationDock />
-  {/if}
+    {#if !$page.error && !['/login', '/setup'].includes($page.url.pathname)}
+      <NavigationDock />
+    {/if}
+  </TooltipProvider>
 </QueryClientProvider>
