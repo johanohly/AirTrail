@@ -61,18 +61,16 @@
   onclick={() => (open = !open)}
   class="flex aspect-square cursor-pointer items-center justify-center rounded-full"
 >
-  <Tooltip.Provider>
-    <Tooltip.Root delayDuration={0}>
-      <Tooltip.Trigger
-        class="hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 transition-all duration-200 rounded-full p-3 mx-0"
-      >
-        {@render children()}
-      </Tooltip.Trigger>
-      <Tooltip.Content sideOffset={8}>
-        <p>{label}</p>
-      </Tooltip.Content>
-    </Tooltip.Root>
-  </Tooltip.Provider>
+  <Tooltip.Root delayDuration={0}>
+    <Tooltip.Trigger
+      class="hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 transition-all duration-200 rounded-full p-3 mx-0"
+    >
+      {@render children()}
+    </Tooltip.Trigger>
+    <Tooltip.Content sideOffset={8}>
+      <p>{label}</p>
+    </Tooltip.Content>
+  </Tooltip.Root>
 </div>
 
 <Motion

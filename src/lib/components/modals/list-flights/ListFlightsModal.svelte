@@ -318,7 +318,7 @@
     <span class="text-lg font-bold">{airport.iata || airport.icao}</span>
     <Tooltip.AutoTooltip
       text={airport.name}
-      class="w-32 text-xs text-muted-foreground truncate"
+      class="text-center w-32 text-xs text-muted-foreground truncate"
     />
   </div>
 {/snippet}

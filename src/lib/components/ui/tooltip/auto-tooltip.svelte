@@ -23,15 +23,13 @@
   });
 </script>
 
-<Tooltip.Provider>
-  <Tooltip.Root bind:open {delayDuration}>
-    <Tooltip.Trigger
-      class={cn('text-left', { 'select-text cursor-text': !open })}
-    >
-      <p bind:this={trigger} class={className}>{text}</p>
-    </Tooltip.Trigger>
-    <Tooltip.Content>
-      {text}
-    </Tooltip.Content>
-  </Tooltip.Root>
-</Tooltip.Provider>
+<Tooltip.Root bind:open {delayDuration}>
+  <Tooltip.Trigger
+    class={cn('text-left', { 'select-text cursor-text': !open })}
+  >
+    <p bind:this={trigger} class={className}>{text}</p>
+  </Tooltip.Trigger>
+  <Tooltip.Content>
+    {text}
+  </Tooltip.Content>
+</Tooltip.Root>

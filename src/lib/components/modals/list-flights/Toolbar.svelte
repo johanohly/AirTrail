@@ -9,7 +9,7 @@
     X,
   } from '@o7/icon/lucide';
   import Filters from './Filters.svelte';
-  import type { FlightData } from '$lib/utils';
+  import { cn, type FlightData } from '$lib/utils';
   import type { ToolbarFilters } from './types';
   import { api, trpc } from '$lib/trpc';
   import { toast } from 'svelte-sonner';
@@ -83,7 +83,7 @@
           disabled={flights.length === 0}
         >
           <Filter size={16} />
-          Filters
+          <span class="max-sm:hidden">Filters</span>
         </Button>
       {/snippet}
     </Popover.Trigger>
@@ -93,33 +93,48 @@
   </Popover.Root>
   <div class="flex gap-2">
     <div class="flex items-center gap-2">
-      <span class="text-sm">
+      <span class="hidden sm:block text-sm">
         <NumberFlow value={showingFrom} />
         -
         <NumberFlow value={showingTo} />
         of
         <NumberFlow value={numOfFlights} />
       </span>
-      <Button
-        onclick={() => {
-          page = Math.max(1, page - 1);
-        }}
-        disabled={page === 1}
-        variant="outline"
-        size="sm"
-      >
-        <ChevronLeft size={16} />
-      </Button>
-      <Button
-        onclick={() => {
-          page = Math.min(pages, page + 1);
-        }}
-        disabled={page === pages || pages === 0}
-        variant="outline"
-        size="sm"
-      >
-        <ChevronRight size={16} />
-      </Button>
+      <div class="flex sm:gap-2">
+        <Button
+          onclick={() => {
+            page = Math.max(1, page - 1);
+          }}
+          disabled={page === 1}
+          variant="outline"
+          size="sm"
+          class="max-sm:rounded-r-none max-sm:border-r-0"
+        >
+          <ChevronLeft size={16} />
+        </Button>
+        <div
+          class={cn('sm:hidden py-1 px-2 flex items-center border', {
+            'opacity-50': (page === 1 && page === pages) || pages === 0,
+          })}
+        >
+          <span class="text-sm whitespace-nowrap">
+            <NumberFlow value={page} />
+            of
+            <NumberFlow value={pages} />
+          </span>
+        </div>
+        <Button
+          onclick={() => {
+            page = Math.min(pages, page + 1);
+          }}
+          disabled={page === pages || pages === 0}
+          variant="outline"
+          size="sm"
+          class="max-sm:rounded-l-none max-sm:border-l-0"
+        >
+          <ChevronRight size={16} />
+        </Button>
+      </div>
     </div>
     {#if selecting}
       <Confirm
@@ -137,7 +152,7 @@
             disabled={selectedFlights.length === 0}
           >
             <X size={16} />
-            Delete
+            <span class="max-sm:hidden">Delete</span>
           </Button>
         {/snippet}
       </Confirm>
@@ -153,11 +168,13 @@
       size="sm"
     >
       <SquareDashedMousePointer size={16} />
-      {#if selecting}
-        Cancel
-      {:else}
-        Select
-      {/if}
+      <span class="max-sm:hidden">
+        {#if selecting}
+          Cancel
+        {:else}
+          Select
+        {/if}
+      </span>
     </Button>
   </div>
 </div>
