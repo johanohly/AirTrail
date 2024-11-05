@@ -14,17 +14,15 @@ import {
   formatISO,
   isBefore,
   isValid,
-  parse,
-  parseISO,
 } from 'date-fns';
 import type { TZDate } from '@date-fns/tz';
 import {
   estimateFlightDuration,
   isBeforeEpoch,
+  mergeTimeWithDate,
   parseLocalISO,
   toUtc,
 } from '$lib/utils/datetime';
-import { tz } from '@date-fns/tz/tz';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
   const formData = await request.formData();
@@ -67,9 +65,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
           fromAirport.tz,
         )
       : undefined;
-    if (departure && !isValid(departure)) {
-      return returnError(form, 'departureTime', 'Invalid time format');
-    }
   } catch {
     return returnError(form, 'departureTime', 'Invalid time format');
   }
@@ -102,9 +97,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
             toAirport.tz,
           )
         : undefined;
-    if (arrival && !isValid(arrival)) {
-      return returnError(form, 'arrivalTime', 'Invalid time format');
-    }
   } catch {
     return returnError(form, 'arrivalTime', 'Invalid time format');
   }
@@ -173,42 +165,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 
   form.message = { type: 'success', text: 'Flight added successfully' };
   return actionResult('success', { form });
-};
-
-const timePartsRegex = /^(\d{1,2})(?::|\.|)(\d{2})(?:\s?(am|pm))?$/i;
-const mergeTimeWithDate = (
-  dateString: string,
-  time: string,
-  tzId: string,
-): TZDate => {
-  const date = parseISO(dateString);
-  const match = time.match(timePartsRegex);
-  if (!match) {
-    throw new Error('Invalid time format');
-  }
-  const [, hourPart, minutePart, ampm] = match;
-  if (!hourPart || !minutePart) {
-    throw new Error('Invalid time format');
-  }
-
-  let hours = +hourPart;
-  const minutes = +minutePart;
-
-  if (ampm) {
-    if (ampm.toLowerCase() === 'pm' && hours < 12) {
-      hours += 12; // Add 12 hours between 1 and 11 PM
-    }
-    if (ampm.toLowerCase() === 'am' && hours === 12) {
-      hours = 0; // 12 AM is 0 hours from midnight
-    }
-  }
-
-  return parse(
-    `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${hours}:${minutes}`,
-    'yyyy-M-d H:m',
-    new Date(),
-    { in: tz(tzId) },
-  );
 };
 
 const returnError = (

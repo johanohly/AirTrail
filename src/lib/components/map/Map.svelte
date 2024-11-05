@@ -156,7 +156,11 @@
       <div class="h-[1px] bg-muted my-3" />
       <div class="grid grid-cols-[repeat(3,_1fr)] px-3">
         <h4 class="font-semibold">
-          <NumberFlow value={Math.round(metric ? data.distance : kmToMiles(data.distance))} />
+          <NumberFlow
+            value={Math.round(
+              metric ? data.distance : kmToMiles(data.distance),
+            )}
+          />
           <span class="font-thin text-muted-foreground"
             >{metric ? 'km' : 'mi'}</span
           >
