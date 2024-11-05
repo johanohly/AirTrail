@@ -22,7 +22,7 @@ jobs:
         run: bunx vitest run --coverage
 
       - name: Run tests
-        run: bunx vitest run --reporter=default --reported=junit --outputFile=./junit.xml
+        run: bunx vitest run --reporter=default --reporter=junit --outputFile=./junit.xml
 
       - name: Upload coverage results to Codecov
         uses: codecov/codecov-action@v4
