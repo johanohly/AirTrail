@@ -51,5 +51,5 @@ export default ts.config(
       'prettier/prettier': ['warn', { endOfLine: 'auto' }],
     },
   },
-  { ignores: ['**/.svelte-kit', 'build/', 'dist/'] },
+  { files: ['**/*.js', '**/*.ts', '**/*.svelte'] },
 );
