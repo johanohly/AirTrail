@@ -3,12 +3,18 @@ import { z } from 'zod';
 import { appConfigSchema, clientAppConfigSchema } from '$lib/zod/config';
 import { deepMerge, removeUndefined } from '$lib/utils/other';
 import { env } from '$env/dynamic/private';
+import { type DeepBoolean, deepSetAllValues } from '$lib/utils';
 
 export type FullAppConfig = z.infer<typeof appConfigSchema>;
 export type ClientAppConfig = z.infer<typeof clientAppConfigSchema>;
+type ConfigPath<T> = T extends object
+  ? { [K in keyof T]: [K, ...ConfigPath<T[K]>] }[keyof T]
+  : [];
+type AppConfigPath = ConfigPath<FullAppConfig>;
 
 export class AppConfig {
   #appConfig: FullAppConfig | null = null;
+  envConfigured: DeepBoolean<FullAppConfig, boolean> | null = null;
 
   async get({ withCache = true } = {}) {
     if (this.#appConfig && withCache) {
@@ -140,7 +146,29 @@ export class AppConfig {
     await db.updateTable('appConfig').set('config', validConfig.data).execute();
     this.#appConfig = validConfig.data;
 
+    const allFields = deepSetAllValues(this.#appConfig, false);
+    const envConfiguredFields = deepSetAllValues(envConfig, true);
+    this.envConfigured = deepMerge(allFields, envConfiguredFields);
+
     console.log('Loaded config from .env');
+  }
+
+  isEnvConfigured<Path extends AppConfigPath>(configPath: Path): boolean {
+    if (!this.envConfigured) {
+      return false;
+    }
+
+    let current: any = this.envConfigured;
+
+    for (const key of configPath) {
+      if (current && typeof current === 'object' && key in current) {
+        current = current[key];
+      } else {
+        return false;
+      }
+    }
+
+    return current === true;
   }
 }
 

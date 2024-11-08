@@ -27,6 +27,6 @@ export const load = async (event: Parameters<LayoutServerLoad>[0]) => {
     users: (await db.selectFrom('user').selectAll().execute()).map(
       ({ password: _, ...rest }) => rest,
     ),
-    appConfig: config,
+    appConfig: { config, envConfigured: appConfig.envConfigured },
   };
 };
