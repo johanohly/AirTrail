@@ -38,7 +38,7 @@
           return;
         }
 
-        if (!appConfig.enabled) {
+        if (!appConfig.oauth.enabled) {
           oauthLoading = false;
           return;
         }
@@ -66,7 +66,7 @@
         }
 
         if (
-          appConfig.autoLogin &&
+          appConfig.oauth.autoLogin &&
           !window.location.search.includes('autoLogin=false')
         ) {
           autoLoggingIn = true;
@@ -107,7 +107,9 @@
   let showLoader = $derived.by(() => {
     return (
       (autoLoggingIn || !$page.url.search.includes('autoLogin=false')) &&
-      (!appConfig || appConfig.autoLogin || isOAuthCallback($page.url.search))
+      (!appConfig ||
+        appConfig.oauth.autoLogin ||
+        isOAuthCallback($page.url.search))
     );
   });
 </script>
@@ -153,7 +155,7 @@
             Log in
           </Form.Button>
         </form>
-        {#if appConfig.enabled}
+        {#if appConfig.oauth.enabled}
           <Button
             onclick={oauthLogin}
             disabled={oauthLoading}

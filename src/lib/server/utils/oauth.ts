@@ -1,5 +1,5 @@
-import { fetchAppConfig } from '$lib/server/utils/config';
 import { custom, Issuer } from 'openid-client';
+import { appConfig } from '$lib/server/utils/config';
 
 custom.setHttpOptionsDefaults({
   timeout: 10000,
@@ -21,12 +21,12 @@ export const getOAuthProfile = async (url: string) => {
 };
 
 export const getOAuthClient = async () => {
-  const config = await fetchAppConfig();
+  const config = await appConfig.get();
   if (!config) {
-    throw new Error('OAuth is not enabled');
+    throw new Error('Failed to load config');
   }
 
-  const { enabled, clientId, clientSecret, issuerUrl } = config;
+  const { enabled, clientId, clientSecret, issuerUrl } = config.oauth;
   if (!enabled || !clientId || !clientSecret || !issuerUrl) {
     throw new Error('OAuth is not enabled');
   }

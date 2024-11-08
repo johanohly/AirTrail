@@ -1,12 +1,12 @@
 import type { RequestHandler } from './$types';
 import { z } from 'zod';
 import { error, json } from '@sveltejs/kit';
-import { fetchAppConfig } from '$lib/server/utils/config';
 import { getOAuthProfile } from '$lib/server/utils/oauth';
 import { db, type User } from '$lib/db';
 import { generateId } from 'lucia';
 import { createSession } from '$lib/server/utils/auth';
 import { lucia } from '$lib/server/auth';
+import { appConfig } from '$lib/server/utils/config';
 
 const CallbackSchema = z.object({
   url: z.string().url(),
@@ -20,9 +20,9 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
   }
 
   const { url } = parsed.data;
-  const config = await fetchAppConfig();
+  const config = await appConfig.get();
   if (!config) {
-    return error(500, 'OAuth is not enabled');
+    return error(500, 'Failed to load config');
   }
 
   let profile;
@@ -33,7 +33,7 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
     return error(500, 'Invalid state, please try again');
   }
 
-  const { autoRegister } = config;
+  const { autoRegister } = config.oauth;
 
   let user: User | undefined = locals.user ?? undefined;
 

@@ -12,17 +12,8 @@ generator kysely {
 }
 
 model app_config {
-  id Int @id @default(autoincrement())
-
-  /// OIDC
-
-  enabled       Boolean @default(false)
-  issuer_url    String?
-  client_id     String?
-  client_secret String?
-  scope         String  @default("openid profile")
-  auto_register Boolean @default(true)
-  auto_login    Boolean @default(false)
+  id     Int  @id @default(autoincrement())
+  config Json
 }
 
 model user {

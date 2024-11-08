@@ -3,8 +3,25 @@ import { twMerge } from 'tailwind-merge';
 import { cubicOut } from 'svelte/easing';
 import type { TransitionConfig } from 'svelte/transition';
 
-export const deepCompare = (a: object, b: object): boolean => {
-  return JSON.stringify(a) === JSON.stringify(b);
+export const deepMerge = (target: any, source: any): any => {
+  for (const key in source) {
+    if (source[key] instanceof Object && key in target) {
+      Object.assign(source[key], deepMerge(target[key], source[key]));
+    }
+  }
+
+  return { ...target, ...source };
+};
+
+export const removeUndefined = (obj: any): any => {
+  if (obj && typeof obj === 'object') {
+    return Object.fromEntries(
+      Object.entries(obj)
+        .filter(([, value]) => value !== undefined)
+        .map(([key, value]) => [key, removeUndefined(value)]),
+    );
+  }
+  return obj;
 };
 
 export function cn(...inputs: ClassValue[]) {

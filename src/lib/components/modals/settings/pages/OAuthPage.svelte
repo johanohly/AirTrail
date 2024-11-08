@@ -1,7 +1,6 @@
 <script lang="ts">
   import { PageHeader } from '.';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
-  import { oauthConfigSchema } from '$lib/zod/oauth';
   import { appConfig } from '$lib/utils/stores';
   import { zod } from 'sveltekit-superforms/adapters';
   import * as Form from '$lib/components/ui/form';
@@ -9,10 +8,11 @@
   import { Input } from '$lib/components/ui/input';
   import { toast } from 'svelte-sonner';
   import { invalidateAll } from '$app/navigation';
+  import { oauthConfigSchema } from '$lib/zod/config';
 
   const form = superForm(
     defaults<Infer<typeof oauthConfigSchema>>(
-      $appConfig,
+      $appConfig?.oauth,
       zod(oauthConfigSchema),
     ),
     {
@@ -39,7 +39,7 @@
   const changes = $derived.by(() => {
     return Object.entries($formData).some(([key, value]) => {
       // @ts-expect-error - safe via optional chaining
-      const saved = $appConfig?.[key];
+      const saved = $appConfig?.oauth?.[key];
       if (!saved && !value) return false;
       return value !== saved;
     });
