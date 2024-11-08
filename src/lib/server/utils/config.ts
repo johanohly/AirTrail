@@ -137,7 +137,10 @@ export class AppConfig {
       process.exit(-1);
     }
 
-    console.log('Loaded config from .env:', validConfig.data);
+    await db.updateTable('appConfig').set('config', validConfig.data).execute();
+    this.#appConfig = validConfig.data;
+
+    console.log('Loaded config from .env');
   }
 }
 
