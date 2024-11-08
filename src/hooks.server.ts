@@ -1,7 +1,20 @@
 import { lucia } from '$lib/server/auth';
 import type { Cookie } from 'lucia';
+import { appConfig } from '$lib/server/utils/config';
+
+async function loadConfig() {
+  await appConfig.get();
+  await appConfig.loadFromEnv();
+}
+
+const setup = loadConfig().catch((err) => {
+  console.error('Error loading app config from .env:', err);
+  process.exit(-1);
+});
 
 export async function handle({ event, resolve }) {
+  await setup;
+
   const sessionId = event.cookies.get(lucia.sessionCookieName);
   if (!sessionId) {
     event.locals.user = null;

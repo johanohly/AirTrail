@@ -2,6 +2,7 @@ import { db } from '$lib/db';
 import { z } from 'zod';
 import { appConfigSchema, clientAppConfigSchema } from '$lib/zod/config';
 import { deepMerge, removeUndefined } from '$lib/utils/other';
+import { env } from '$env/dynamic/private';
 
 export type FullAppConfig = z.infer<typeof appConfigSchema>;
 export type ClientAppConfig = z.infer<typeof clientAppConfigSchema>;
@@ -59,6 +60,83 @@ export class AppConfig {
     }
 
     return appConfigSchema.parse(result.config);
+  }
+
+  #extractAllKeys(
+    schema: z.ZodObject<any>,
+    parentPath: string[] = [],
+  ): string[][] {
+    const paths: string[][] = [];
+
+    for (const [key, value] of Object.entries(schema.shape)) {
+      const snakeKey = key.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
+      const fullPath = [...parentPath, snakeKey];
+
+      if (value instanceof z.ZodObject) {
+        paths.push(...this.#extractAllKeys(value, fullPath));
+      } else {
+        paths.push(fullPath);
+      }
+    }
+
+    return paths;
+  }
+
+  #parseEnvValue(value: string) {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    if (value === 'null') return null;
+
+    const numberValue = Number(value);
+    if (!isNaN(numberValue)) return numberValue;
+
+    return value;
+  }
+
+  async loadFromEnv() {
+    const configPaths = this.#extractAllKeys(appConfigSchema);
+    const envEntries = Object.entries(env).reduce<
+      Record<string, string | undefined>
+    >((acc, [key, value]) => {
+      acc[key.toLowerCase()] = value ? this.#parseEnvValue(value) : true;
+      return acc;
+    }, {});
+
+    function setNestedValue(
+      obj: Record<string, any>,
+      keys: string[],
+      value: any,
+    ) {
+      let current = obj;
+      for (let i = 0; i < keys.length - 1; i++) {
+        const key = keys[i];
+        if (!current[key]) current[key] = {};
+        current = current[key];
+      }
+      current[keys[keys.length - 1]] = value;
+    }
+
+    const envConfig: Record<string, any> = {};
+
+    for (const path of configPaths) {
+      const keyPathString = path.join('_').toLowerCase();
+      if (keyPathString in envEntries) {
+        const camelPath = path.map((key) => {
+          return key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+        });
+        setNestedValue(envConfig, camelPath, envEntries[keyPathString]);
+      }
+    }
+
+    const currentConfig = await this.get();
+    const merged = deepMerge(currentConfig, envConfig);
+    const validConfig = appConfigSchema.safeParse(merged);
+    if (!validConfig.success) {
+      console.error('Invalid app config in .env:', validConfig.error.issues);
+      process.exit(-1);
+    }
+
+    console.log('Loaded config from .env:', validConfig.data);
   }
 }
 
