@@ -13,7 +13,7 @@ generator kysely {
 
 model app_config {
   id     Int  @id @default(autoincrement())
-  config Json
+  config Json @default("{}")
 }
 
 model user {

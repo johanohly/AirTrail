@@ -6,7 +6,7 @@ export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export type app_config = {
     id: Generated<number>;
-    config: unknown;
+    config: Generated<unknown>;
 };
 export type flight = {
     id: Generated<number>;
