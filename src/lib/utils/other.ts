@@ -4,13 +4,15 @@ import { cubicOut } from 'svelte/easing';
 import type { TransitionConfig } from 'svelte/transition';
 
 export const deepMerge = (target: any, source: any): any => {
+  const output = { ...target };
   for (const key in source) {
     if (source[key] instanceof Object && key in target) {
-      Object.assign(source[key], deepMerge(target[key], source[key]));
+      output[key] = deepMerge(target[key], source[key]);
+    } else {
+      output[key] = source[key];
     }
   }
-
-  return { ...target, ...source };
+  return output;
 };
 
 export const removeUndefined = (obj: any): any => {
