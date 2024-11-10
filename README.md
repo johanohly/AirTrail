@@ -6,7 +6,6 @@
   <a href="https://github.com/johanohly/AirTrail/releases/latest">
     <img src="https://img.shields.io/github/v/release/johanohly/AirTrail?style=for-the-badge" alt="Latest version">
   </a>
-<a href="https://app.fossa.com/projects/git%2Bgithub.com%2Fjohanohly%2FAirTrail?ref=badge_shield" alt="FOSSA Status"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjohanohly%2FAirTrail.svg?type=shield"/></a>
   <a href="https://github.com/johanohly/AirTrail/stargazers">
     <img src="https://img.shields.io/github/stars/johanohly/AirTrail?style=for-the-badge" alt="Stars">
   </a>
@@ -45,6 +44,25 @@
 - [Installation](https://airtrail.johan.ohly.dk/docs/overview/quick-start/)
 - [About](https://airtrail.johan.ohly.dk/docs/overview/introduction)
 
+## Build Status
+
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/JohanOhly/AirTrail/build.yml?logo=github&style=for-the-badge)](https://github.com/JohanOhly/AirTrail/releases/latest)
+
+#### Sonarcloud Quality metrics
+
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=johanohly_AirTrail&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=johanohly_AirTrail)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=johanohly_AirTrail&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=johanohly_AirTrail)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=johanohly_AirTrail&metric=bugs)](https://sonarcloud.io/summary/new_code?id=johanohly_AirTrail)
+[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=johanohly_AirTrail&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=johanohly_AirTrail)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=johanohly_AirTrail&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=johanohly_AirTrail)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=johanohly_AirTrail&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=johanohly_AirTrail)
+
+#### FOSSA license and security scans
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjohanohly%2FAirTrail.svg?type=shield&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjohanohly%2FAirTrail?ref=badge_shield&issueType=license)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjohanohly%2FAirTrail.svg?type=shield&issueType=security)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjohanohly%2FAirTrail?ref=badge_shield&issueType=security)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjohanohly%2FAirTrail.svg?type=small)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjohanohly%2FAirTrail?ref=badge_small)
+
 ## Star History
 
 <a href="https://star-history.com/#johanohly/AirTrail&Date">
@@ -68,6 +86,3 @@
 The logo is from Lucide, which is a free icon pack that can be found [here](https://www.lucide.dev/).
 > Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (
 > c) for Lucide are held by Lucide Contributors 2022.
-
-## License
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjohanohly%2FAirTrail.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjohanohly%2FAirTrail?ref=badge_large)
