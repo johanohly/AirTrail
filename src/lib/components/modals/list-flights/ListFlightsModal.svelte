@@ -22,6 +22,7 @@
   import type { ToolbarFilters } from './types';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { Button } from '$lib/components/ui/button';
+  import { filteredMapFlightsState } from '$lib/stores.svelte';
 
   let {
     open = $bindable<boolean>(),
@@ -110,6 +111,20 @@
       }
       return true;
     });
+  });
+
+  const filteredMapFlights = $derived.by(() => {
+    const filteredFlightIds = filteredFlights.map((filteredFlight) => {
+      return filteredFlight.id;
+    });
+
+    return flights.filter((flight) => {
+      return filteredFlightIds.includes(flight.id);
+    });
+  });
+
+  $effect(() => {
+    filteredMapFlightsState.flightData = filteredMapFlights;
   });
 
   const flightsPerPage = 20;
