@@ -4,7 +4,7 @@
   import { toast } from 'svelte-sonner';
   import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
   import { Map } from '$lib/components/map';
-  import { openModalsState } from '$lib/stores.svelte';
+  import { filteredMapFlightsState, openModalsState } from '$lib/stores.svelte';
 
   const rawFlights = trpc.flight.list.query();
 
@@ -14,6 +14,10 @@
 
     return prepareFlightData(data);
   });
+
+  $effect(() => {
+    filteredMapFlightsState.flightData = flights;
+  })
 
   const invalidator = {
     onSuccess: () => {
@@ -41,4 +45,4 @@
 />
 <StatisticsModal bind:open={openModalsState.statistics} allFlights={flights} />
 
-<Map {flights} />
+<Map flights={filteredMapFlightsState.flightData} />
