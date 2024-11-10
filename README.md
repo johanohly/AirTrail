@@ -63,6 +63,10 @@
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjohanohly%2FAirTrail.svg?type=shield&issueType=security)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjohanohly%2FAirTrail?ref=badge_shield&issueType=security)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjohanohly%2FAirTrail.svg?type=small)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjohanohly%2FAirTrail?ref=badge_small)
 
+#### OpenSSF best practices
+
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/9689/badge)](https://bestpractices.coreinfrastructure.org/projects/9689)
+
 ## Star History
 
 <a href="https://star-history.com/#johanohly/AirTrail&Date">
