@@ -43,6 +43,6 @@
   {flights}
   {deleteFlight}
 />
-<StatisticsModal bind:open={openModalsState.statistics} allFlights={flights} />
+<StatisticsModal bind:open={openModalsState.statistics} allFlights={filteredMapFlightsState.flightData} />
 
 <Map flights={filteredMapFlightsState.flightData} />
