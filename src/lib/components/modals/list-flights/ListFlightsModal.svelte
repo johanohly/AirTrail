@@ -22,7 +22,7 @@
   import type { ToolbarFilters } from './types';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { Button } from '$lib/components/ui/button';
-  import { filteredMapFlightsState } from '$lib/stores.svelte';
+  import { filteredFlightDataState } from '$lib/stores.svelte';
 
   let {
     open = $bindable<boolean>(),
@@ -124,7 +124,7 @@
   });
 
   $effect(() => {
-    filteredMapFlightsState.flightData = filteredMapFlights;
+    filteredFlightDataState.flightData = filteredMapFlights;
   });
 
   const flightsPerPage = 20;

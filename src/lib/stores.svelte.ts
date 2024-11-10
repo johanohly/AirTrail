@@ -7,4 +7,4 @@ export const openModalsState = $state({
   settings: false,
 });
 
-export const filteredMapFlightsState = $state({flightData: [] as FlightData[]});
+export const filteredFlightDataState = $state({flightData: [] as FlightData[]});
