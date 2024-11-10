@@ -4,14 +4,17 @@
   import SelectFilter from './SelectFilter.svelte';
   import type { FlightData } from '$lib/utils';
   import type { Airport } from '$lib/utils/data/airports';
-  import type { ToolbarFilters } from './types';
+  import {
+    defaultFilters,
+    type FlightFilters,
+  } from '$lib/components/flight-filters/types';
 
   let {
     flights = $bindable(),
     filters = $bindable(),
   }: {
     flights: FlightData[];
-    filters: ToolbarFilters;
+    filters: FlightFilters;
   } = $props();
 
   const showClear = $derived.by(
@@ -85,12 +88,7 @@
     variant="ghost"
     class="h-8 px-2 lg:px-3"
     onclick={() => {
-      filters = {
-        departureAirports: [],
-        arrivalAirports: [],
-        fromDate: undefined,
-        toDate: undefined,
-      };
+      filters = defaultFilters;
     }}
   >
     Clear Filters

@@ -7,7 +7,7 @@
   import { ScreenSize } from '$lib/components/helpers';
   import { Provider as TooltipProvider } from '$lib/components/ui/tooltip';
   import { appConfig } from '$lib/utils/stores';
-  import { openModalsState } from '$lib/stores.svelte';
+  import { openModalsState } from '$lib/state.svelte';
   import { page } from '$app/stores';
   import {
     AddFlightModal,

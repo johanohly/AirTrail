@@ -8,13 +8,13 @@
     SquareDashedMousePointer,
     X,
   } from '@o7/icon/lucide';
-  import Filters from './Filters.svelte';
   import { cn, type FlightData } from '$lib/utils';
-  import type { ToolbarFilters } from './types';
   import { api, trpc } from '$lib/trpc';
   import { toast } from 'svelte-sonner';
   import { Confirm } from '$lib/components/helpers';
   import NumberFlow from '@number-flow/svelte';
+  import type { FlightFilters } from '$lib/components/flight-filters/types';
+  import Filters from '$lib/components/flight-filters/Filters.svelte';
 
   let {
     flights = $bindable(),
@@ -26,7 +26,7 @@
     selectedFlights = $bindable(),
   }: {
     flights: FlightData[];
-    filters: ToolbarFilters;
+    filters: FlightFilters;
     page: number;
     flightsPerPage: number;
     numOfFlights: number;

@@ -9,7 +9,7 @@
   import { Confirm } from '$lib/components/helpers';
   import { EditFlightModal } from '$lib/components/modals';
   import { airlineFromICAO } from '$lib/utils/data/airlines';
-  import { isAfter, isBefore, isSameDay } from 'date-fns';
+  import { isBefore, isSameDay } from 'date-fns';
   import {
     Duration,
     formatAsDate,
@@ -19,23 +19,26 @@
     isUsingAmPm,
   } from '$lib/utils/datetime';
   import Toolbar from './Toolbar.svelte';
-  import type { ToolbarFilters } from './types';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { Button } from '$lib/components/ui/button';
-  import { filteredFlightDataState } from '$lib/stores.svelte';
+  import type { FlightFilters } from '$lib/components/flight-filters/types';
 
   let {
     open = $bindable<boolean>(),
+    filters = $bindable(),
     flights,
+    filteredFlights,
     deleteFlight,
   }: {
     open?: boolean;
+    filters: FlightFilters;
     flights: FlightData[];
+    filteredFlights: FlightData[];
     deleteFlight: (id: number) => Promise<void>;
   } = $props();
 
-  const parsedFlights = $derived.by(() => {
-    const data = flights;
+  const formattedFlights = $derived.by(() => {
+    const data = filteredFlights;
     if (!data) return [];
 
     return data
@@ -83,54 +86,10 @@
       });
   });
 
-  let filters: ToolbarFilters = $state({
-    departureAirports: [],
-    arrivalAirports: [],
-    fromDate: undefined,
-    toDate: undefined,
-  });
-  const filteredFlights = $derived.by(() => {
-    return parsedFlights.filter((f) => {
-      if (
-        (filters.departureAirports.length &&
-          !filters.departureAirports.includes(f.from.icao)) ||
-        (filters.arrivalAirports.length &&
-          !filters.arrivalAirports.includes(f.to.icao))
-      ) {
-        return false;
-      } else if (
-        filters.fromDate &&
-        isBefore(f.date, filters.fromDate.toDate(f.date.timeZone ?? 'UTC'))
-      ) {
-        return false;
-      } else if (
-        filters.toDate &&
-        isAfter(f.date, filters.toDate.toDate(f.date.timeZone ?? 'UTC'))
-      ) {
-        return false;
-      }
-      return true;
-    });
-  });
-
-  const filteredMapFlights = $derived.by(() => {
-    const filteredFlightIds = filteredFlights.map((filteredFlight) => {
-      return filteredFlight.id;
-    });
-
-    return flights.filter((flight) => {
-      return filteredFlightIds.includes(flight.id);
-    });
-  });
-
-  $effect(() => {
-    filteredFlightDataState.flightData = filteredMapFlights;
-  });
-
   const flightsPerPage = 20;
   let page = $state(1);
   const paginatedFlights = $derived.by(() => {
-    return filteredFlights.slice(
+    return formattedFlights.slice(
       (page - 1) * flightsPerPage,
       page * flightsPerPage,
     );
@@ -144,7 +103,7 @@
         acc[year].push(f);
         return acc;
       },
-      {} as Record<number, typeof parsedFlights>,
+      {} as Record<number, typeof formattedFlights>,
     );
     return Object.entries(raw)
       .sort(([yearA], [yearB]) => Number(yearB) - Number(yearA))
@@ -160,8 +119,8 @@
 <Modal bind:open class="flex flex-col h-full !rounded-none" dialogOnly>
   <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
   <Toolbar
-    bind:flights
     bind:filters
+    bind:flights
     bind:selecting
     bind:selectedFlights
     bind:page
