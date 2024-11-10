@@ -6,6 +6,7 @@
   <a href="https://github.com/johanohly/AirTrail/releases/latest">
     <img src="https://img.shields.io/github/v/release/johanohly/AirTrail?style=for-the-badge" alt="Latest version">
   </a>
+<a href="https://app.fossa.com/projects/git%2Bgithub.com%2Fjohanohly%2FAirTrail?ref=badge_shield" alt="FOSSA Status"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjohanohly%2FAirTrail.svg?type=shield"/></a>
   <a href="https://github.com/johanohly/AirTrail/stargazers">
     <img src="https://img.shields.io/github/stars/johanohly/AirTrail?style=for-the-badge" alt="Stars">
   </a>
@@ -67,3 +68,6 @@
 The logo is from Lucide, which is a free icon pack that can be found [here](https://www.lucide.dev/).
 > Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (
 > c) for Lucide are held by Lucide Contributors 2022.
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjohanohly%2FAirTrail.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjohanohly%2FAirTrail?ref=badge_large)
