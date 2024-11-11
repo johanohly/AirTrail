@@ -5,7 +5,7 @@
   import { onMount } from 'svelte';
   import { toast } from 'svelte-sonner';
   import { LoaderCircle } from '@o7/icon/lucide';
-  import SuperDebug, { superForm } from 'sveltekit-superforms';
+  import { superForm } from 'sveltekit-superforms';
   import * as Form from '$lib/components/ui/form';
   import * as Select from '$lib/components/ui/select';
   import { zod } from 'sveltekit-superforms/adapters';
@@ -96,7 +96,6 @@
           </Form.Control>
           <Form.FieldErrors />
         </Form.Field>
-        <SuperDebug data={$formData} />
         <Form.Button disabled={$submitting}>
           {#if $submitting}
             <LoaderCircle class="animate-spin mr-1" size="18" />
