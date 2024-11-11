@@ -6,8 +6,7 @@
   import { ModeWatcher } from 'mode-watcher';
   import { ScreenSize } from '$lib/components/helpers';
   import { Provider as TooltipProvider } from '$lib/components/ui/tooltip';
-  import { appConfig } from '$lib/utils/stores';
-  import { openModalsState } from '$lib/stores.svelte';
+  import { appConfig, openModalsState } from '$lib/stores.svelte';
   import { page } from '$app/stores';
   import {
     AddFlightModal,
@@ -20,7 +19,8 @@
   const { data, children } = $props();
 
   $effect(() => {
-    appConfig.set(data.appConfig);
+    appConfig.config = data.appConfig.config;
+    appConfig.envConfigured = data.appConfig.envConfigured;
   });
 
   const queryClient = trpc.hydrateFromServer(data.trpc);

@@ -1,7 +1,6 @@
 <script lang="ts">
   import { PageHeader } from '../index';
   import EditPassword from './EditPassword.svelte';
-  import { appConfig } from '$lib/utils/stores';
   import { Button } from '$lib/components/ui/button';
   import { page } from '$app/stores';
   import { api, trpc } from '$lib/trpc';
@@ -9,6 +8,7 @@
   import { LoaderCircle } from '@o7/icon/lucide';
   import { invalidateAll } from '$app/navigation';
   import { Confirm } from '$lib/components/helpers';
+  import { appConfig } from '$lib/stores.svelte';
 
   const user = $derived($page.data.user);
 
@@ -61,7 +61,7 @@
       <EditPassword />
     </div>
   </div>
-  {#if user && $appConfig?.enabled}
+  {#if user && appConfig?.config?.oauth?.enabled}
     <div class="flex items-center justify-between p-4 rounded-lg border">
       <div class="space-y-0.5">
         <h4 class="font-medium leading-4">OAuth</h4>

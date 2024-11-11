@@ -6,16 +6,7 @@ export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export type app_config = {
     id: Generated<number>;
-    /**
-     * OIDC
-     */
-    enabled: Generated<boolean>;
-    issuerUrl: string | null;
-    clientId: string | null;
-    clientSecret: string | null;
-    scope: Generated<string>;
-    autoRegister: Generated<boolean>;
-    autoLogin: Generated<boolean>;
+    config: Generated<unknown>;
 };
 export type flight = {
     id: Generated<number>;
