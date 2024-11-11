@@ -66,6 +66,7 @@
 #### OpenSSF best practices
 
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/9689/badge)](https://bestpractices.coreinfrastructure.org/projects/9689)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/johanohly/AirTrail/badge)](https://scorecard.dev/viewer/?uri=github.com/johanohly/AirTrail)
 
 ## Star History
 
