@@ -9,3 +9,11 @@ export const oauthConfigSchema = z.object({
   autoRegister: z.boolean().default(true),
   autoLogin: z.boolean().default(false),
 });
+
+export const appConfigSchema = z.object({
+  oauth: oauthConfigSchema,
+});
+
+export const clientAppConfigSchema = appConfigSchema.extend({
+  oauth: appConfigSchema.shape.oauth.omit({ clientSecret: true }),
+});

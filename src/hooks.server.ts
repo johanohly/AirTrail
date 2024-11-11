@@ -1,13 +1,24 @@
 import { lucia } from '$lib/server/auth';
 import type { Cookie } from 'lucia';
-import { fetchAppConfig } from '$lib/server/utils/config';
+import { appConfig } from '$lib/server/utils/config';
+
+async function loadConfig() {
+  await appConfig.get();
+  await appConfig.loadFromEnv();
+}
+
+const setup = loadConfig().catch((err) => {
+  console.error('Error loading app config from .env:', err);
+  process.exit(-1);
+});
 
 export async function handle({ event, resolve }) {
+  await setup;
+
   const sessionId = event.cookies.get(lucia.sessionCookieName);
   if (!sessionId) {
     event.locals.user = null;
     event.locals.session = null;
-    event.locals.appConfig = await fetchAppConfig();
     return resolve(event);
   }
 
@@ -28,6 +39,5 @@ export async function handle({ event, resolve }) {
 
   event.locals.user = user;
   event.locals.session = session;
-  event.locals.appConfig = await fetchAppConfig();
   return resolve(event);
 }

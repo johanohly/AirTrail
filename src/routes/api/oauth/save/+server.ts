@@ -1,9 +1,9 @@
 import { zod } from 'sveltekit-superforms/adapters';
 import type { RequestHandler } from './$types';
-import { actionResult, superValidate } from 'sveltekit-superforms';
-import { oauthConfigSchema } from '$lib/zod/oauth';
-import { updateAppConfig } from '$lib/server/utils/config';
-import type { AppConfig } from '$lib/db/types';
+import { actionResult, type Infer, superValidate } from 'sveltekit-superforms';
+import { oauthConfigSchema } from '$lib/zod/config';
+import { appConfig } from '$lib/server/utils/config';
+import { error } from '@sveltejs/kit';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
   const form = await superValidate(request, zod(oauthConfigSchema));
@@ -14,13 +14,31 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     return actionResult('error', 'Unauthorized', 401);
   }
 
-  const data: Partial<AppConfig> = form.data;
+  const currentConfig = (await appConfig.get())?.oauth;
+  const data: Partial<Infer<typeof oauthConfigSchema>> = form.data;
 
   // Don't overwrite clientSecret if it's not provided
-  if (!data.clientSecret) {
+  if (!data.clientSecret && currentConfig) {
     data.clientSecret = undefined;
   }
-  const success = await updateAppConfig(form.data);
+
+  for (const key in data) {
+    if (
+      currentConfig &&
+      !(!data.clientSecret && key === 'clientSecret') &&
+      data[key as keyof typeof data] !==
+        currentConfig[key as keyof typeof currentConfig]
+    ) {
+      if (!appConfig.envConfigured?.oauth?.[key as keyof typeof currentConfig])
+        continue;
+      return error(500, {
+        message:
+          'This config field is controlled by the .env file and cannot be changed here.',
+      });
+    }
+  }
+
+  const success = await appConfig.set({ oauth: form.data });
 
   if (!success) {
     form.message = { type: 'error', text: 'Failed to edit oauth config' };

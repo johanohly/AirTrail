@@ -21,7 +21,7 @@ export const mergeTimeWithDate = (
   time: string,
   tzId: string,
 ): TZDate => {
-  const date = parseISO(dateString);
+  const date = parseLocalISO(dateString, tzId);
   const match = time.match(timePartsRegex);
   if (!match) {
     throw new Error('Invalid format');
