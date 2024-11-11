@@ -6,7 +6,7 @@
   import { ModeWatcher } from 'mode-watcher';
   import { ScreenSize } from '$lib/components/helpers';
   import { Provider as TooltipProvider } from '$lib/components/ui/tooltip';
-  import { appConfig, openModalsState } from '$lib/stores.svelte';
+  import { appConfig, openModalsState } from '$lib/state.svelte';
   import { page } from '$app/stores';
   import {
     AddFlightModal,

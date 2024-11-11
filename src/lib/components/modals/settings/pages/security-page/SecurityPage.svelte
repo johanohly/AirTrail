@@ -8,7 +8,7 @@
   import { LoaderCircle } from '@o7/icon/lucide';
   import { invalidateAll } from '$app/navigation';
   import { Confirm } from '$lib/components/helpers';
-  import { appConfig } from '$lib/stores.svelte';
+  import { appConfig } from '$lib/state.svelte';
 
   const user = $derived($page.data.user);
 

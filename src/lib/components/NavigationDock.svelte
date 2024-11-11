@@ -16,7 +16,7 @@
   } from '$lib/components/dock';
   import { page } from '$app/stores';
   import { flyAndScale } from '$lib/utils';
-  import { openModalsState } from '$lib/stores.svelte';
+  import { openModalsState } from '$lib/state.svelte';
 
   const addFlightItem = {
     label: 'Add flight',
