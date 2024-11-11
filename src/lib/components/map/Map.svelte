@@ -93,12 +93,12 @@
           title="Show all flights"
           class="text-black"
         >
-          <Fullscreen class="size-5" />
+          <Fullscreen size={22} />
         </ControlButton>
         <Popover.Root>
           <Popover.Trigger>
             <ControlButton title="Filter flights" class="text-black">
-              <Filter class="size-5" />
+              <Filter size={20} />
             </ControlButton>
           </Popover.Trigger>
           <Popover.Content
@@ -112,14 +112,14 @@
     </Control>
     <Control position="top-left">
       {#if showClear}
-        <ControlGroup class="bg-destructive">
+        <ControlGroup class="!bg-destructive">
           <ControlButton
             on:click={() => {
               filters = defaultFilters;
             }}
             title="Clear filters"
           >
-            <Undo2 class="size-5" />
+            <Undo2 class="text-white" size={20} />
           </ControlButton>
         </ControlGroup>
       {/if}
