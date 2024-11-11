@@ -8,7 +8,7 @@
   import { toast } from 'svelte-sonner';
   import { invalidateAll } from '$app/navigation';
   import { oauthConfigSchema } from '$lib/zod/config';
-  import { appConfig } from '$lib/stores.svelte';
+  import { appConfig } from '$lib/state.svelte';
   import { Locked } from '$lib/components/helpers';
 
   const form = superForm(
