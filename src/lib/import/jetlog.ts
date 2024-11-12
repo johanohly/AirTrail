@@ -104,9 +104,10 @@ export const processJetLogFile = async (
               ),
             )
           : null;
-    const duration = row.duration
-      ? +row.duration * 60
-      : departure && arrival
+
+    // We ignore the duration provided by JetLog and calculate it ourselves, as theirs is at best just as good as our calculation
+    const duration =
+      departure && arrival
         ? differenceInSeconds(arrival, departure)
         : estimateFlightDuration(
             { lng: from.lon, lat: from.lat },
