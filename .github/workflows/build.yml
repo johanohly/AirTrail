@@ -6,6 +6,9 @@ on:
   release:
     types: [ published ]
 
+permissions:
+  contents: read
+
 jobs:
   build_and_push:
     name: Build and Push
@@ -19,6 +22,11 @@ jobs:
             device: cpu
 
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
