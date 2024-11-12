@@ -62,7 +62,7 @@
   "devDependencies": {
     "@eslint/js": "^9.12.0",
     "@melt-ui/pp": "^0.3.2",
-    "@melt-ui/svelte": "^0.83.0",
+    "@melt-ui/svelte": "^0.86.0",
     "@sveltejs/adapter-auto": "^3.2.5",
     "@sveltejs/adapter-node": "^5.2.5",
     "@sveltejs/kit": "^2.7.1",
