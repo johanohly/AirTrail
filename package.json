@@ -70,7 +70,6 @@
     "@types/d3-geo": "^3.1.0",
     "@types/d3-scale": "^4.0.8",
     "@types/d3-shape": "^3.1.6",
-    "@types/lru-cache": "^7.10.10",
     "@types/pg": "^8.11.10",
     "@types/semver": "^7.5.8",
     "@types/topojson-client": "^3.1.5",
