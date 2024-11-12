@@ -52,7 +52,7 @@
     "svelte-sonner": "^0.3.28",
     "sveltekit-superforms": "^2.19.1",
     "tailwind-merge": "^2.5.3",
-    "tailwind-variants": "^0.2.1",
+    "tailwind-variants": "^0.3.0",
     "tailwindcss-animate": "^1.0.7",
     "topojson-client": "^3.1.0",
     "trpc-svelte-query": "^2.1.0",
