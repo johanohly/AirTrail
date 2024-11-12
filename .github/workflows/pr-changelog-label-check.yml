@@ -12,7 +12,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Check for required label(s)
-        uses: mheap/github-action-required-labels@v5
+        uses: mheap/github-action-required-labels@d25134c992b943fb6ad00c25ea00eb5988c0a9dd # v5
         with:
           mode: exactly
           count: 1
