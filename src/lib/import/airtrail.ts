@@ -13,8 +13,14 @@ const AirTrailFile = z.object({
   flights: z
     .object({
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-      departure: z.string().datetime('Invalid datetime').nullable(),
-      arrival: z.string().datetime('Invalid datetime').nullable(),
+      departure: z
+        .string()
+        .datetime({ offset: true, message: 'Invalid datetime' })
+        .nullable(),
+      arrival: z
+        .string()
+        .datetime({ offset: true, message: 'Invalid datetime' })
+        .nullable(),
       duration: z.number().int().positive().nullable(),
     })
     .merge(flightAirportsSchema)
@@ -80,7 +86,18 @@ export const processAirTrailFile = async (input: string) => {
       const user = dataUser
         ? users.find((user) => user.username === dataUser?.username)
         : null;
-      const guestName = user ? null : seat.guestName;
+      /*
+      1. If the user is known, no guest name is needed.
+      2. If the user is unknown, but the guest name is known, use the guest name.
+      3. If the user is unknown and the guest name is unknown, use the provided display name (this could happen if the user is not in the database).
+       */
+      const guestName = user
+        ? null
+        : seat.guestName
+          ? seat.guestName
+          : dataUser
+            ? dataUser.displayName
+            : null;
 
       return {
         ...seat,
