@@ -1,7 +1,6 @@
 import { authedProcedure, publicProcedure, router } from '../trpc';
-import { getOAuthClient } from '$lib/server/utils/oauth';
+import { getAuthorizeUrl } from '$lib/server/utils/oauth';
 import { z } from 'zod';
-import { generators } from 'openid-client';
 import { db } from '$lib/db';
 import { appConfig } from '$lib/server/utils/config';
 
@@ -12,12 +11,7 @@ export const oauthRouter = router({
       throw new Error('OAuth is not enabled');
     }
 
-    const client = await getOAuthClient();
-    const url = client.authorizationUrl({
-      redirect_uri: input,
-      scope: config.oauth.scope,
-      state: generators.state(),
-    });
+    const url = await getAuthorizeUrl(input);
 
     return { url };
   }),

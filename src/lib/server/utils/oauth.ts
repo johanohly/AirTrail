@@ -1,23 +1,48 @@
-import { custom, Issuer } from 'openid-client';
+import {
+  authorizationCodeGrant,
+  buildAuthorizationUrl,
+  discovery,
+  fetchUserInfo,
+  randomState,
+} from 'openid-client';
 import { appConfig } from '$lib/server/utils/config';
 
-custom.setHttpOptionsDefaults({
-  timeout: 10000,
-});
+export const getAuthorizeUrl = async (redirectUrl: string) => {
+  const config = await appConfig.get();
+  if (!config) {
+    throw new Error('Failed to load config');
+  }
+  const scope = config.oauth.scope;
 
-export const getOAuthProfile = async (url: string) => {
-  const redirectUrl = url.split('?')[0];
-  if (!redirectUrl) {
-    throw new Error('Invalid redirect URL');
+  const parameters: Record<string, string> = {
+    redirect_uri: redirectUrl,
+    scope,
+    state: randomState(),
+  };
+
+  const client = await getOAuthClient();
+  const redirectTo: URL = buildAuthorizationUrl(client, parameters);
+  return redirectTo.href;
+};
+
+export const getOAuthProfile = async (currentUrl: string) => {
+  let url: URL;
+  try {
+    url = new URL(currentUrl);
+  } catch {
+    throw new Error('Invalid URL');
   }
 
   const client = await getOAuthClient();
-  const params = client.callbackParams(url);
-
-  const tokens = await client.callback(redirectUrl, params, {
-    state: params.state,
+  const tokens = await authorizationCodeGrant(client, url, {
+    expectedState: url.searchParams.get('state') || undefined,
   });
-  return client.userinfo(tokens.access_token || '');
+  const claims = tokens.claims();
+  if (!claims) {
+    throw new Error('Failed to get user info');
+  }
+
+  return await fetchUserInfo(client, tokens.access_token, claims.sub);
 };
 
 export const getOAuthClient = async () => {
@@ -32,11 +57,7 @@ export const getOAuthClient = async () => {
   }
 
   try {
-    const issuer = await Issuer.discover(issuerUrl);
-    return new issuer.Client({
-      client_id: clientId,
-      client_secret: clientSecret,
-    });
+    return await discovery(new URL(issuerUrl), clientId, clientSecret);
   } catch {
     throw new Error('Failed to discover issuer');
   }
