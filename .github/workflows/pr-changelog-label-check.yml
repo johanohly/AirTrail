@@ -4,6 +4,9 @@ on:
   pull_request_target:
     types: [ opened, labeled, unlabeled, synchronize ]
 
+permissions:
+  contents: read
+
 jobs:
   validate-release-label:
     runs-on: ubuntu-latest
@@ -11,6 +14,11 @@ jobs:
       issues: write
       pull-requests: write
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
       - name: Check for required label(s)
         uses: mheap/github-action-required-labels@d25134c992b943fb6ad00c25ea00eb5988c0a9dd # v5
         with:
