@@ -81,8 +81,8 @@
             description="Are you sure you want to unlink your OAuth account? If you do not have a password set, you will not be able to sign in."
             confirmText="Unlink"
           >
-            {#snippet triggerContent({ ...props })}
-              <Button variant="outline" disabled={oauthLoading} {...props}>
+            {#snippet triggerContent({ props })}
+              <Button variant="outline" {...props} disabled={oauthLoading}>
                 {#if oauthLoading}
                   <LoaderCircle class="animate-spin mr-1" size={16} />
                 {/if}

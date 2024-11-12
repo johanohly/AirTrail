@@ -7,6 +7,7 @@ import { generateId } from 'lucia';
 import { createSession } from '$lib/server/utils/auth';
 import { lucia } from '$lib/server/auth';
 import { appConfig } from '$lib/server/utils/config';
+import type { UserInfoResponse } from 'openid-client';
 
 const CallbackSchema = z.object({
   url: z.string().url(),
@@ -25,7 +26,7 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
     return error(500, 'Failed to load config');
   }
 
-  let profile;
+  let profile: UserInfoResponse;
   try {
     profile = await getOAuthProfile(url);
   } catch (e) {
