@@ -1,15 +1,16 @@
 <script lang="ts">
-  import { trpc } from '$lib/trpc';
-  import { prepareFlightData } from '$lib/utils';
-  import { toast } from 'svelte-sonner';
-  import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
-  import { Map } from '$lib/components/map';
-  import { openModalsState } from '$lib/state.svelte';
   import { isAfter, isBefore } from 'date-fns';
+  import { toast } from 'svelte-sonner';
+
   import {
     defaultFilters,
     type FlightFilters,
   } from '$lib/components/flight-filters/types';
+  import { Map } from '$lib/components/map';
+  import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
+  import { openModalsState } from '$lib/state.svelte';
+  import { trpc } from '$lib/trpc';
+  import { prepareFlightData } from '$lib/utils';
 
   const rawFlights = trpc.flight.list.query();
 

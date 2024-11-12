@@ -1,9 +1,11 @@
-import { zod } from 'sveltekit-superforms/adapters';
-import type { RequestHandler } from './$types';
-import { actionResult, type Infer, superValidate } from 'sveltekit-superforms';
-import { oauthConfigSchema } from '$lib/zod/config';
-import { appConfig } from '$lib/server/utils/config';
 import { error } from '@sveltejs/kit';
+import { actionResult, type Infer, superValidate } from 'sveltekit-superforms';
+import { zod } from 'sveltekit-superforms/adapters';
+
+import type { RequestHandler } from './$types';
+
+import { appConfig } from '$lib/server/utils/config';
+import { oauthConfigSchema } from '$lib/zod/config';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
   const form = await superValidate(request, zod(oauthConfigSchema));

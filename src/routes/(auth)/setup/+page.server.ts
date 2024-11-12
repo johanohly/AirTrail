@@ -1,7 +1,9 @@
-import type { PageServerLoad } from './$types';
-import { trpcServer } from '$lib/server/server';
 import { superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
+
+import type { PageServerLoad } from './$types';
+
+import { trpcServer } from '$lib/server/server';
 import { signUpSchema } from '$lib/zod/auth';
 
 export const load: PageServerLoad = async (event) => {

@@ -1,13 +1,14 @@
+import { differenceInSeconds } from 'date-fns';
+import { get } from 'svelte/store';
+import { z } from 'zod';
+
+import { page } from '$app/stores';
+import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type { CreateFlight, Seat } from '$lib/db/types';
 import { parseCsv } from '$lib/utils';
-import { z } from 'zod';
-import { get } from 'svelte/store';
-import { page } from '$app/stores';
+import { airlineFromIATA } from '$lib/utils/data/airlines';
 import { airportFromICAO } from '$lib/utils/data/airports';
 import { estimateFlightDuration, parseLocal, toUtc } from '$lib/utils/datetime';
-import { differenceInSeconds } from 'date-fns';
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
-import { airlineFromIATA } from '$lib/utils/data/airlines';
 
 const JETLOG_FLIGHT_CLASS_MAP: Record<string, Seat['seatClass']> = {
   'ClassType.ECONOMY': 'economy',

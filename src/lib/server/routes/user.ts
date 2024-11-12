@@ -1,13 +1,15 @@
+import { TRPCError } from '@trpc/server';
+import { sql } from 'kysely';
+import { z } from 'zod';
+
 import {
   adminProcedure,
   authedProcedure,
   publicProcedure,
   router,
 } from '../trpc';
+
 import { db } from '$lib/db';
-import { sql } from 'kysely';
-import { z } from 'zod';
-import { TRPCError } from '@trpc/server';
 
 export const userRouter = router({
   me: authedProcedure.query(({ ctx: { user } }) => {

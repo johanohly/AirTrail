@@ -1,14 +1,16 @@
 <script lang="ts">
-  import { Modal } from '$lib/components/ui/modal';
+  import NumberFlow from '@number-flow/svelte';
+  import { isBefore } from 'date-fns';
+
   import FlightsPerMonth from './charts/FlightsPerMonth.svelte';
   import FlightsPerWeekday from './charts/FlightsPerWeekday.svelte';
-  import StatsCard from './StatsCard.svelte';
   import PieCharts from './charts/PieCharts.svelte';
-  import { type FlightData, formatDuration, kmToMiles } from '$lib/utils';
+  import StatsCard from './StatsCard.svelte';
+
   import { page } from '$app/stores';
-  import { isBefore } from 'date-fns';
+  import { Modal } from '$lib/components/ui/modal';
+  import { type FlightData, formatDuration, kmToMiles } from '$lib/utils';
   import { Duration, nowIn } from '$lib/utils/datetime';
-  import NumberFlow from '@number-flow/svelte';
 
   let {
     open = $bindable<boolean>(),

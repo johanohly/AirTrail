@@ -1,19 +1,20 @@
 <script lang="ts">
-  import * as Form from '$lib/components/ui/form';
-  import type { SuperForm } from 'sveltekit-superforms';
   import { createCombobox, melt } from '@melt-ui/svelte';
-  import { fly } from 'svelte/transition';
   import { ChevronDown, ChevronUp } from '@o7/icon/lucide';
+  import { writable } from 'svelte/store';
+  import { fly } from 'svelte/transition';
+  import type { SuperForm } from 'sveltekit-superforms';
+  import { z } from 'zod';
+
+  import * as Form from '$lib/components/ui/form';
   import { api } from '$lib/trpc';
   import { toTitleCase } from '$lib/utils';
-  import { z } from 'zod';
-  import type { flightSchema } from '$lib/zod/flight';
-  import { writable } from 'svelte/store';
   import {
     type Airport,
     airportFromICAO,
     airportSearchCache,
   } from '$lib/utils/data/airports';
+  import type { flightSchema } from '$lib/zod/flight';
 
   let {
     field,

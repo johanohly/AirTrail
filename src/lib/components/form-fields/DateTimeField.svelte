@@ -1,16 +1,17 @@
 <script lang="ts">
-  import { toTitleCase } from '$lib/utils';
-  import { buttonVariants } from '$lib/components/ui/button';
   import { type DateValue, parseDate } from '@internationalized/date';
   import { CalendarDays, ArrowLeft, ArrowRight, Info } from '@o7/icon/lucide';
-  import { Input } from '$lib/components/ui/input';
-  import * as Form from '$lib/components/ui/form';
   import { DatePicker } from 'bits-ui';
   import type { SuperForm } from 'sveltekit-superforms';
-  import { TextTooltip } from '$lib/components/ui/tooltip';
   import { z } from 'zod';
-  import type { flightSchema } from '$lib/zod/flight';
+
+  import { buttonVariants } from '$lib/components/ui/button';
+  import * as Form from '$lib/components/ui/form';
+  import { Input } from '$lib/components/ui/input';
+  import { TextTooltip } from '$lib/components/ui/tooltip';
+  import { toTitleCase } from '$lib/utils';
   import { dateValueFromISO } from '$lib/utils/datetime';
+  import type { flightSchema } from '$lib/zod/flight';
 
   let {
     field,

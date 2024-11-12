@@ -1,6 +1,7 @@
 <script lang="ts">
-  import * as FormPrimitive from 'formsnap';
   import type { WithoutChild } from 'bits-ui';
+  import * as FormPrimitive from 'formsnap';
+
   import { cn } from '$lib/utils';
 
   let {

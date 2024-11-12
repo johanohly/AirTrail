@@ -1,6 +1,5 @@
 <script lang="ts">
-  import * as Popover from '$lib/components/ui/popover';
-  import { Button } from '$lib/components/ui/button';
+  import NumberFlow from '@number-flow/svelte';
   import {
     ChevronLeft,
     ChevronRight,
@@ -8,13 +7,15 @@
     SquareDashedMousePointer,
     X,
   } from '@o7/icon/lucide';
-  import { cn, type FlightData } from '$lib/utils';
-  import { api, trpc } from '$lib/trpc';
   import { toast } from 'svelte-sonner';
-  import { Confirm } from '$lib/components/helpers';
-  import NumberFlow from '@number-flow/svelte';
-  import type { FlightFilters } from '$lib/components/flight-filters/types';
+
   import Filters from '$lib/components/flight-filters/Filters.svelte';
+  import type { FlightFilters } from '$lib/components/flight-filters/types';
+  import { Confirm } from '$lib/components/helpers';
+  import { Button } from '$lib/components/ui/button';
+  import * as Popover from '$lib/components/ui/popover';
+  import { api, trpc } from '$lib/trpc';
+  import { cn, type FlightData } from '$lib/utils';
 
   let {
     flights = $bindable(),

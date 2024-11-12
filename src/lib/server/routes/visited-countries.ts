@@ -1,10 +1,12 @@
+import { z } from 'zod';
+
 import { authedProcedure, router } from '../trpc';
+
 import { db } from '$lib/db';
+import { VisitedCountryStatus } from '$lib/db/types';
 import { listFlights } from '$lib/server/utils/flight';
 import { airportFromICAO } from '$lib/utils/data/airports';
 import { countryFromAlpha } from '$lib/utils/data/countries';
-import { z } from 'zod';
-import { VisitedCountryStatus } from '$lib/db/types';
 
 const VisitedCountrySchema = z.object({
   code: z.number(),

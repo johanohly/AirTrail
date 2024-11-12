@@ -1,9 +1,7 @@
 <script lang="ts">
-  import {
-    calculateBounds,
-    prepareFlightArcData,
-    type FlightData,
-  } from '$lib/utils';
+  import { Filter, Fullscreen, Undo2 } from '@o7/icon/lucide';
+  import maplibregl from 'maplibre-gl';
+  import { mode } from 'mode-watcher';
   import {
     AttributionControl,
     Control,
@@ -13,17 +11,21 @@
     MapLibre,
     NavigationControl,
   } from 'svelte-maplibre';
-  import { Filter, Fullscreen, Undo2 } from '@o7/icon/lucide';
-  import maplibregl from 'maplibre-gl';
-  import { mode } from 'mode-watcher';
-  import { OnResizeEnd } from '$lib/components/helpers';
-  import * as Popover from '$lib/components/ui/popover';
+
   import { AirportLayer, FlightArcLayer } from '.';
+
   import Filters from '$lib/components/flight-filters/Filters.svelte';
   import {
     defaultFilters,
     type FlightFilters,
   } from '$lib/components/flight-filters/types';
+  import { OnResizeEnd } from '$lib/components/helpers';
+  import * as Popover from '$lib/components/ui/popover';
+  import {
+    calculateBounds,
+    prepareFlightArcData,
+    type FlightData,
+  } from '$lib/utils';
 
   let {
     flights,

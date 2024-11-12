@@ -1,6 +1,7 @@
+import { LRUCache } from 'lru-cache';
+
 import { AIRPORTS } from '$lib/data/airports';
 import { AIRPORT_TRANSITIONS } from '$lib/data/transitions';
-import { LRUCache } from 'lru-cache';
 
 export type Airport = {
   name: string;

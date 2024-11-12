@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Axis, Chart, Group, Points, Spline, Svg } from 'layerchart';
   import { scaleBand } from 'd3-scale';
+  import { Axis, Chart, Group, Points, Spline, Svg } from 'layerchart';
 
   let { data }: { data: Record<string, number> } = $props();
 </script>

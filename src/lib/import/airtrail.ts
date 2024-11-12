@@ -1,13 +1,14 @@
-import { page } from '$app/stores';
 import { get } from 'svelte/store';
+import { z } from 'zod';
+
+import { page } from '$app/stores';
+import type { CreateFlight } from '$lib/db/types';
+import { api } from '$lib/trpc';
 import {
   flightAirportsSchema,
   flightOptionalInformationSchema,
   flightSeatInformationSchema,
 } from '$lib/zod/flight';
-import { z } from 'zod';
-import type { CreateFlight } from '$lib/db/types';
-import { api } from '$lib/trpc';
 
 const AirTrailFile = z.object({
   flights: z

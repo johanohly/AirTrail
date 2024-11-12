@@ -1,13 +1,4 @@
-import { actionResult, setError, superValidate } from 'sveltekit-superforms';
-import { zod } from 'sveltekit-superforms/adapters';
-import { flightSchema } from '$lib/zod/flight';
-import { airportFromICAO } from '$lib/utils/data/airports';
-import {
-  createFlight,
-  getFlight,
-  updateFlight,
-} from '$lib/server/utils/flight';
-import type { RequestHandler } from './$types';
+import type { TZDate } from '@date-fns/tz';
 import {
   differenceInSeconds,
   format,
@@ -15,7 +6,17 @@ import {
   isBefore,
   isValid,
 } from 'date-fns';
-import type { TZDate } from '@date-fns/tz';
+import { actionResult, setError, superValidate } from 'sveltekit-superforms';
+import { zod } from 'sveltekit-superforms/adapters';
+
+import type { RequestHandler } from './$types';
+
+import {
+  createFlight,
+  getFlight,
+  updateFlight,
+} from '$lib/server/utils/flight';
+import { airportFromICAO } from '$lib/utils/data/airports';
 import {
   estimateFlightDuration,
   isBeforeEpoch,
@@ -23,6 +24,7 @@ import {
   parseLocalISO,
   toUtc,
 } from '$lib/utils/datetime';
+import { flightSchema } from '$lib/zod/flight';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
   const formData = await request.formData();

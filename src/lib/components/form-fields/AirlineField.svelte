@@ -1,15 +1,16 @@
 <script lang="ts">
-  import * as Form from '$lib/components/ui/form';
-  import type { SuperForm } from 'sveltekit-superforms';
   import { createCombobox, melt } from '@melt-ui/svelte';
-  import { fly } from 'svelte/transition';
   import { CircleX, ChevronDown, ChevronUp } from '@o7/icon/lucide';
-  import { z } from 'zod';
-  import type { flightSchema } from '$lib/zod/flight';
   import { writable } from 'svelte/store';
-  import { type Airline, airlineFromICAO } from '$lib/utils/data/airlines';
+  import { fly } from 'svelte/transition';
+  import type { SuperForm } from 'sveltekit-superforms';
+  import { z } from 'zod';
+
+  import * as Form from '$lib/components/ui/form';
   import { AIRLINES } from '$lib/data/airlines';
   import { sortAndFilterByMatch } from '$lib/utils';
+  import { type Airline, airlineFromICAO } from '$lib/utils/data/airlines';
+  import type { flightSchema } from '$lib/zod/flight';
 
   let {
     form,

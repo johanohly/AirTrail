@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+
   import * as Tooltip from '$lib/components/ui/tooltip';
 
   let {

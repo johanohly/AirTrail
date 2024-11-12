@@ -1,9 +1,10 @@
-import { db } from '$lib/db';
 import { z } from 'zod';
-import { appConfigSchema, clientAppConfigSchema } from '$lib/zod/config';
-import { deepMerge, removeUndefined } from '$lib/utils/other';
+
 import { env } from '$env/dynamic/private';
+import { db } from '$lib/db';
 import { type DeepBoolean, deepSetAllValues } from '$lib/utils';
+import { deepMerge, removeUndefined } from '$lib/utils/other';
+import { appConfigSchema, clientAppConfigSchema } from '$lib/zod/config';
 
 export type FullAppConfig = z.infer<typeof appConfigSchema>;
 export type ClientAppConfig = z.infer<typeof clientAppConfigSchema>;

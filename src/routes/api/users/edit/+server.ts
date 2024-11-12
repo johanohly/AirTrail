@@ -1,9 +1,11 @@
-import { zod } from 'sveltekit-superforms/adapters';
-import type { RequestHandler } from './$types';
 import { actionResult, setError, superValidate } from 'sveltekit-superforms';
-import { editUserSchema } from '$lib/zod/user';
-import { usernameExists } from '$lib/server/utils/auth';
+import { zod } from 'sveltekit-superforms/adapters';
+
+import type { RequestHandler } from './$types';
+
 import { db } from '$lib/db';
+import { usernameExists } from '$lib/server/utils/auth';
+import { editUserSchema } from '$lib/zod/user';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
   const form = await superValidate(request, zod(editUserSchema));

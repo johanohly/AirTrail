@@ -1,7 +1,9 @@
 import { router } from '../trpc';
+
 import { userRouter } from './user';
-import { flightRouter } from '$lib/server/routes/flight';
+
 import { autocompleteRouter } from '$lib/server/routes/autocomplete';
+import { flightRouter } from '$lib/server/routes/flight';
 import { oauthRouter } from '$lib/server/routes/oauth';
 import { visitedCountriesRouter } from '$lib/server/routes/visited-countries';
 

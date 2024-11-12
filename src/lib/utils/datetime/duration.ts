@@ -1,4 +1,5 @@
 import type { LngLatLike } from 'maplibre-gl';
+
 import { distanceBetween } from '$lib/utils';
 
 export class Duration {

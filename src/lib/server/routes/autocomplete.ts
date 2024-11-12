@@ -1,9 +1,10 @@
-import { authedProcedure, router } from '$lib/server/trpc';
-import { AIRPORTS } from '$lib/data/airports';
-import type { Airport } from '$lib/utils/data/airports';
 import { z } from 'zod';
+
 import { AIRLINES } from '$lib/data/airlines';
+import { AIRPORTS } from '$lib/data/airports';
+import { authedProcedure, router } from '$lib/server/trpc';
 import { sortAndFilterByMatch } from '$lib/utils';
+import type { Airport } from '$lib/utils/data/airports';
 
 const eq = (a: string | number, b: string | number) => {
   a = String(a);

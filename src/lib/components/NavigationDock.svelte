@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { Separator } from '$lib/components/ui/separator';
   import {
     ChartColumn,
     GitBranchPlus,
@@ -8,15 +7,17 @@
     Map,
     Settings,
   } from '@o7/icon/lucide';
+
+  import { page } from '$app/stores';
   import {
     Dock,
     DockDropdownItem,
     DockFloatingItem,
     DockTooltipItem,
   } from '$lib/components/dock';
-  import { page } from '$app/stores';
-  import { flyAndScale } from '$lib/utils';
+  import { Separator } from '$lib/components/ui/separator';
   import { openModalsState } from '$lib/state.svelte';
+  import { flyAndScale } from '$lib/utils';
 
   const addFlightItem = {
     label: 'Add flight',

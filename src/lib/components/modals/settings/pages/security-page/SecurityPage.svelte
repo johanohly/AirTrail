@@ -1,14 +1,17 @@
 <script lang="ts">
-  import { PageHeader } from '../index';
-  import EditPassword from './EditPassword.svelte';
-  import { Button } from '$lib/components/ui/button';
-  import { page } from '$app/stores';
-  import { api, trpc } from '$lib/trpc';
-  import { toast } from 'svelte-sonner';
   import { LoaderCircle } from '@o7/icon/lucide';
+  import { toast } from 'svelte-sonner';
+
+  import { PageHeader } from '../index';
+
+  import EditPassword from './EditPassword.svelte';
+
   import { invalidateAll } from '$app/navigation';
+  import { page } from '$app/stores';
   import { Confirm } from '$lib/components/helpers';
+  import { Button } from '$lib/components/ui/button';
   import { appConfig } from '$lib/state.svelte';
+  import { api, trpc } from '$lib/trpc';
 
   const user = $derived($page.data.user);
 

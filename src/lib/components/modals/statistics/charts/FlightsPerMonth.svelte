@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { scaleBand } from 'd3-scale';
   import {
     Area,
     Axis,
@@ -11,9 +12,9 @@
     Tooltip,
   } from 'layerchart';
   import { cubicInOut } from 'svelte/easing';
-  import { scaleBand } from 'd3-scale';
-  import type { FlightData } from '$lib/utils';
+
   import { MONTHS, SHORT_MONTHS } from '$lib/data/datetime';
+  import type { FlightData } from '$lib/utils';
 
   let { flights }: { flights: FlightData[] } = $props();
 

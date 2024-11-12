@@ -1,9 +1,10 @@
 <script lang="ts">
+  import { Circle } from '@o7/icon/lucide';
   import {
     RadioGroup as RadioGroupPrimitive,
     type WithoutChildrenOrChild,
   } from 'bits-ui';
-  import { Circle } from '@o7/icon/lucide';
+
   import { cn } from '$lib/utils';
 
   let {

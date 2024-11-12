@@ -1,19 +1,20 @@
 <script lang="ts">
-  import type { FlightData } from '$lib/utils';
-  import * as Dialog from '$lib/components/ui/dialog';
-  import * as Form from '$lib/components/ui/form';
+  import { SquarePen } from '@o7/icon/lucide';
+  import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
-  import { flightSchema } from '$lib/zod/flight';
-  import { Button } from '$lib/components/ui/button';
-  import { SquarePen } from '@o7/icon/lucide';
+
   import { AirportField, DateTimeField } from '$lib/components/form-fields';
-  import { toast } from 'svelte-sonner';
-  import { trpc } from '$lib/trpc';
-  import SeatInformation from '$lib/components/modals/add-flight/SeatInformation.svelte';
   import FlightInformation from '$lib/components/modals/add-flight/FlightInformation.svelte';
   import FlightNumber from '$lib/components/modals/add-flight/FlightNumber.svelte';
+  import SeatInformation from '$lib/components/modals/add-flight/SeatInformation.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import * as Dialog from '$lib/components/ui/dialog';
+  import * as Form from '$lib/components/ui/form';
+  import { trpc } from '$lib/trpc';
+  import type { FlightData } from '$lib/utils';
   import { formatAsTime } from '$lib/utils/datetime';
+  import { flightSchema } from '$lib/zod/flight';
 
   let {
     flight,

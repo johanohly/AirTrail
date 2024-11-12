@@ -1,15 +1,17 @@
 <script lang="ts">
-  import { PageHeader } from '.';
+  import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
-  import * as Form from '$lib/components/ui/form';
-  import { Switch } from '$lib/components/ui/switch';
-  import { Input } from '$lib/components/ui/input';
-  import { toast } from 'svelte-sonner';
+
+  import { PageHeader } from '.';
+
   import { invalidateAll } from '$app/navigation';
-  import { oauthConfigSchema } from '$lib/zod/config';
-  import { appConfig } from '$lib/state.svelte';
   import { Locked } from '$lib/components/helpers';
+  import * as Form from '$lib/components/ui/form';
+  import { Input } from '$lib/components/ui/input';
+  import { Switch } from '$lib/components/ui/switch';
+  import { appConfig } from '$lib/state.svelte';
+  import { oauthConfigSchema } from '$lib/zod/config';
 
   const form = superForm(
     defaults<Infer<typeof oauthConfigSchema>>(

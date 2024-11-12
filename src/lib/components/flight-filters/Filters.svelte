@@ -1,13 +1,14 @@
 <script lang="ts">
-  import { Button } from '$lib/components/ui/button/index.js';
   import DateFilter from './DateFilter.svelte';
   import SelectFilter from './SelectFilter.svelte';
-  import type { FlightData } from '$lib/utils';
-  import type { Airport } from '$lib/utils/data/airports';
+
   import {
     defaultFilters,
     type FlightFilters,
   } from '$lib/components/flight-filters/types';
+  import { Button } from '$lib/components/ui/button/index.js';
+  import type { FlightData } from '$lib/utils';
+  import type { Airport } from '$lib/utils/data/airports';
 
   let {
     flights = $bindable(),

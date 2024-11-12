@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { kmToMiles, pluralize, prepareFlightArcData } from '$lib/utils';
-  import { formatAsDate } from '$lib/utils/datetime';
-  import { DeckGlLayer, Popup } from 'svelte-maplibre';
   import { ArcLayer } from '@deck.gl/layers';
   import NumberFlow from '@number-flow/svelte';
+  import { DeckGlLayer, Popup } from 'svelte-maplibre';
+
   import { page } from '$app/stores';
+  import { kmToMiles, pluralize, prepareFlightArcData } from '$lib/utils';
+  import { formatAsDate } from '$lib/utils/datetime';
 
   const FROM_COLOR = [59, 130, 246]; // Also the primary color
   const TO_COLOR = [139, 92, 246]; // TW violet-500

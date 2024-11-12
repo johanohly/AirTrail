@@ -1,16 +1,17 @@
 <script lang="ts">
-  import { Modal } from '$lib/components/ui/modal';
-  import * as Form from '$lib/components/ui/form';
-  import * as RadioGroup from '$lib/components/ui/radio-group';
-  import { defaults, type Infer, superForm } from 'sveltekit-superforms';
-  import { addUserSchema } from '$lib/zod/user';
-  import { zod } from 'sveltekit-superforms/adapters';
+  import { User, ShieldCheck, Info } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
+  import { defaults, type Infer, superForm } from 'sveltekit-superforms';
+  import { zod } from 'sveltekit-superforms/adapters';
+
+  import { invalidateAll } from '$app/navigation';
+  import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
-  import { User, ShieldCheck, Info } from '@o7/icon/lucide';
+  import { Modal } from '$lib/components/ui/modal';
+  import * as RadioGroup from '$lib/components/ui/radio-group';
   import { TextTooltip } from '$lib/components/ui/tooltip/index.js';
-  import { invalidateAll } from '$app/navigation';
+  import { addUserSchema } from '$lib/zod/user';
 
   let {
     open = $bindable(),

@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { ZoomIn, ZoomOut } from '@o7/icon/lucide';
+  import { Language, Map, CenterFocusWeak } from '@o7/icon/material';
   import { geoNaturalEarth1, geoOrthographic } from 'd3-geo';
-  import { feature } from 'topojson-client';
   import {
     Chart,
     geoFitObjectTransform,
@@ -10,17 +11,17 @@
     Tooltip,
     TransformContext,
   } from 'layerchart';
-  import { COUNTRIES_GEO } from '$lib/data/countries-geo';
-  import { trpc } from '$lib/trpc';
+  import { feature } from 'topojson-client';
+
   import {
     EditVisitedCountry,
     SetupVisitedCountries,
   } from '$lib/components/modals';
-  import { cn } from '$lib/utils';
   import { Button } from '$lib/components/ui/button';
-  import { ZoomIn, ZoomOut } from '@o7/icon/lucide';
-  import { Language, Map, CenterFocusWeak } from '@o7/icon/material';
+  import { COUNTRIES_GEO } from '$lib/data/countries-geo';
   import type { VisitedCountryStatus } from '$lib/db/types';
+  import { trpc } from '$lib/trpc';
+  import { cn } from '$lib/utils';
 
   const visitedCountriesResult = trpc.visitedCountries.list.query();
   const visitedCountries = $derived.by(

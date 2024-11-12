@@ -1,9 +1,10 @@
 <script lang="ts">
+  import { ChevronRight } from '@o7/icon/lucide';
   import type { Snippet } from 'svelte';
   import { Motion } from 'svelte-motion';
-  import { cn } from '$lib/utils';
-  import { ChevronRight } from '@o7/icon/lucide';
+
   import * as Tooltip from '$lib/components/ui/tooltip';
+  import { cn } from '$lib/utils';
 
   let {
     items,
