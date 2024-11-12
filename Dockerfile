@@ -1,4 +1,4 @@
-FROM oven/bun:debian AS base
+FROM oven/bun:debian@sha256:e2c0b11e277f0285e089ffb77ad831faeec2833b9c4b04d6d317f054e587ef4e AS base
 WORKDIR /app
 
 FROM base AS install
@@ -19,7 +19,7 @@ RUN bun run build
 
 FROM base AS release
 # Required for prisma migrations to work on arm64 (oven-sh/bun#5320)
-COPY --from=node:20 /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:20@sha256:7eaecf12ba40043be19af57e2c7fba35d61f9b906128e3e4d11eda81b1ecb857 /usr/local/bin/node /usr/local/bin/node
 COPY --from=install /temp/prod/node_modules node_modules
 COPY --from=prerelease /app/build build
 COPY --from=prerelease /app/package.json .
