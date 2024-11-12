@@ -9,7 +9,8 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body {
+html,
+body {
   font-family: 'Public Sans', sans-serif;
 }
 

@@ -14,11 +14,11 @@ The specific steps to do this depend on the identity provider you are using, but
 
 1. Register a new OIDC/OAuth2 client in your identity provider.
 2. Configure the client with the following settings:
-    - Client type: `Confidential`
-    - Application type: `Web application`
-    - Grant type: `Authorization Code`
+   - Client type: `Confidential`
+   - Application type: `Web application`
+   - Grant type: `Authorization Code`
 3. Add the following redirect URI to the client configuration:
-    - `http://DOMAIN:PORT/login`
+   - `http://DOMAIN:PORT/login`
 
 ## Configuration
 
@@ -31,7 +31,7 @@ On startup, AirTrail will check the `.env` file for OAuth settings and use them 
 Settings that are configured in the `.env` file will not be editable in the settings page.
 
 | Setting       | Env. Var. Name        | Default                                                                  | Description                                                                                                                                                   |
-|---------------|-----------------------|--------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------- | --------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Enabled       | `OAUTH_ENABLED`       | `false`                                                                  | Whether to enable OAuth authentication.                                                                                                                       |
 | Issuer URL    | `OAUTH_ISSUER_URL`    |                                                                          | The URL of the OIDC issuer (e.g. `https://accounts.google.com/.well-known/openid-configuration`).                                                             |
 | Client ID     | `OAUTH_CLIENT_ID`     | The client ID of the OAuth client you created in your identity provider. |

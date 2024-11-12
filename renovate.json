@@ -6,9 +6,7 @@
     "docker:pinDigests",
     ":preserveSemverRanges"
   ],
-  "labels": [
-    "changelog:skip"
-  ],
+  "labels": ["changelog:skip"],
   "docker-compose": {
     "enabled": false
   }
