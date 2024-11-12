@@ -16,9 +16,9 @@
   },
   "dependencies": {
     "@date-fns/tz": "^1.1.2",
-    "@deck.gl/core": "~8.8.0",
-    "@deck.gl/layers": "~8.8.0",
-    "@deck.gl/mapbox": "~8.8.0",
+    "@deck.gl/core": "~9.0.0",
+    "@deck.gl/layers": "~9.0.0",
+    "@deck.gl/mapbox": "~9.0.0",
     "@internationalized/date": "^3.5.6",
     "@layerstack/utils": "^0.0.5",
     "@lucia-auth/adapter-postgresql": "^3.1.2",
