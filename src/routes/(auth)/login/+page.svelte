@@ -1,19 +1,20 @@
 <script lang="ts">
-  import { api, trpc } from '$lib/trpc';
-  import * as Form from '$lib/components/ui/form';
-  import { Input, PasswordInput } from '$lib/components/ui/input';
-  import { goto } from '$app/navigation';
-  import { Globe } from '$lib/components/ui/globe';
+  import { LoaderCircle } from '@o7/icon/lucide';
+  import { untrack } from 'svelte';
+  import { toast } from 'svelte-sonner';
   import { superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
-  import { signInSchema } from '$lib/zod/auth';
-  import { toast } from 'svelte-sonner';
-  import { LoaderCircle } from '@o7/icon/lucide';
-  import { Button } from '$lib/components/ui/button';
-  import { isOAuthCallback } from '$lib/utils';
-  import { untrack } from 'svelte';
-  import { AcrobaticLoader } from '$lib/components/ui/loader';
+
+  import { goto } from '$app/navigation';
   import { page } from '$app/stores';
+  import { Button } from '$lib/components/ui/button';
+  import * as Form from '$lib/components/ui/form';
+  import { Globe } from '$lib/components/ui/globe';
+  import { Input, PasswordInput } from '$lib/components/ui/input';
+  import { AcrobaticLoader } from '$lib/components/ui/loader';
+  import { api, trpc } from '$lib/trpc';
+  import { isOAuthCallback } from '$lib/utils';
+  import { signInSchema } from '$lib/zod/auth';
 
   const { data } = $props();
   const appConfig = data.appConfig;

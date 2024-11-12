@@ -9,8 +9,9 @@
   lang="ts"
   generics="T extends Record<string, unknown>, U extends _FormPath<T>"
 >
-  import * as FormPrimitive from 'formsnap';
   import type { WithoutChild } from 'bits-ui';
+  import * as FormPrimitive from 'formsnap';
+
   import { cn } from '$lib/utils';
 
   let {

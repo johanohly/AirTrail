@@ -1,18 +1,19 @@
 <script lang="ts">
-  import * as Popover from '$lib/components/ui/popover';
-  import * as Calendar from '$lib/components/ui/calendar';
-  import * as Select from '$lib/components/ui/select';
-  import { Calendar as CalendarPrimitive } from 'bits-ui';
-  import { Button } from '$lib/components/ui/button';
-  import { CalendarArrowUp, CalendarArrowDown } from '@o7/icon/lucide';
-  import { Separator } from '$lib/components/ui/separator';
-  import { Badge } from '$lib/components/ui/badge';
   import {
     type CalendarDate,
     DateFormatter,
     getLocalTimeZone,
     today,
   } from '@internationalized/date';
+  import { CalendarArrowUp, CalendarArrowDown } from '@o7/icon/lucide';
+  import { Calendar as CalendarPrimitive } from 'bits-ui';
+
+  import { Badge } from '$lib/components/ui/badge';
+  import { Button } from '$lib/components/ui/button';
+  import * as Calendar from '$lib/components/ui/calendar';
+  import * as Popover from '$lib/components/ui/popover';
+  import * as Select from '$lib/components/ui/select';
+  import { Separator } from '$lib/components/ui/separator';
   import { MONTHS } from '$lib/data/datetime';
 
   let {

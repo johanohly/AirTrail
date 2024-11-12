@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { isMediumScreen } from '$lib/utils/size';
+  import type { Snippet } from 'svelte';
+
   import * as Dialog from '$lib/components/ui/dialog/index.js';
   import * as Drawer from '$lib/components/ui/drawer/index.js';
-  import type { Snippet } from 'svelte';
+  import { isMediumScreen } from '$lib/utils/size';
 
   let {
     open = $bindable(),

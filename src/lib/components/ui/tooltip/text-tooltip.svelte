@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { cn, flyAndScale } from '$lib/utils';
   import { createTooltip, melt } from '@melt-ui/svelte';
+
+  import { cn, flyAndScale } from '$lib/utils';
 
   let className = '';
   export { className as class };

@@ -1,11 +1,13 @@
 <script lang="ts">
+  import { X } from '@o7/icon/lucide';
   import {
     Dialog as DialogPrimitive,
     type WithoutChildrenOrChild,
   } from 'bits-ui';
-  import { X } from '@o7/icon/lucide';
   import type { Snippet } from 'svelte';
+
   import * as Dialog from './index.js';
+
   import { cn } from '$lib/utils';
 
   let {

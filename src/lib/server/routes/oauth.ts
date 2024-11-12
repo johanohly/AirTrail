@@ -1,8 +1,10 @@
-import { authedProcedure, publicProcedure, router } from '../trpc';
-import { getAuthorizeUrl } from '$lib/server/utils/oauth';
 import { z } from 'zod';
+
+import { authedProcedure, publicProcedure, router } from '../trpc';
+
 import { db } from '$lib/db';
 import { appConfig } from '$lib/server/utils/config';
+import { getAuthorizeUrl } from '$lib/server/utils/oauth';
 
 export const oauthRouter = router({
   authorize: publicProcedure.input(z.string()).query(async ({ input }) => {

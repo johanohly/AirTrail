@@ -20,12 +20,11 @@ in Greenwich Mean Time.
 The departure date is required, the rest are optional.
 If a arrival time is entered without an arrival date, the date will be assumed to be the same as the departure date.
 
-
 ## Origin and Destination
 
 These fields are required.
 Start typing the name of the airport and select the correct one from the list.
-For the most consistent results, search using the ICAO or IATA code. 
+For the most consistent results, search using the ICAO or IATA code.
 
 ## From flight number
 

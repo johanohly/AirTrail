@@ -1,8 +1,10 @@
 <script lang="ts">
-  import { Motion } from 'svelte-motion';
-  import { cn } from '$lib/utils';
-  import { dockContext } from './context.svelte';
   import type { Snippet } from 'svelte';
+  import { Motion } from 'svelte-motion';
+
+  import { dockContext } from './context.svelte';
+
+  import { cn } from '$lib/utils';
 
   let {
     class: className = undefined,

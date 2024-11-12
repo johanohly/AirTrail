@@ -1,6 +1,7 @@
 <script lang="ts">
-  import * as AlertDialog from '$lib/components/ui/alert-dialog';
   import type { Snippet } from 'svelte';
+
+  import * as AlertDialog from '$lib/components/ui/alert-dialog';
 
   let {
     onConfirm,

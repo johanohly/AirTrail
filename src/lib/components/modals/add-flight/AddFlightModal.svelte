@@ -1,16 +1,18 @@
 <script lang="ts">
-  import { Modal } from '$lib/components/ui/modal';
-  import * as Form from '$lib/components/ui/form';
-  import { defaults, type Infer, superForm } from 'sveltekit-superforms';
-  import { flightSchema } from '$lib/zod/flight';
-  import { zod } from 'sveltekit-superforms/adapters';
   import { toast } from 'svelte-sonner';
-  import { AirportField, DateTimeField } from '$lib/components/form-fields';
+  import { defaults, type Infer, superForm } from 'sveltekit-superforms';
+  import { zod } from 'sveltekit-superforms/adapters';
+
   import FlightInformation from './FlightInformation.svelte';
-  import SeatInformation from './SeatInformation.svelte';
-  import { page } from '$app/stores';
   import FlightNumber from './FlightNumber.svelte';
+  import SeatInformation from './SeatInformation.svelte';
+
+  import { page } from '$app/stores';
+  import { AirportField, DateTimeField } from '$lib/components/form-fields';
+  import * as Form from '$lib/components/ui/form';
+  import { Modal } from '$lib/components/ui/modal';
   import { trpc } from '$lib/trpc';
+  import { flightSchema } from '$lib/zod/flight';
 
   let { open = $bindable() }: { open: boolean } = $props();
 

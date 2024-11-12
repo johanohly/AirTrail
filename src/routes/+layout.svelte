@@ -1,20 +1,21 @@
 <script lang="ts">
   import '../app.css';
   import { QueryClientProvider } from '@tanstack/svelte-query';
-  import { trpc } from '$lib/trpc';
-  import { Toaster } from 'svelte-sonner';
   import { ModeWatcher } from 'mode-watcher';
-  import { ScreenSize } from '$lib/components/helpers';
-  import { Provider as TooltipProvider } from '$lib/components/ui/tooltip';
-  import { appConfig, openModalsState } from '$lib/state.svelte';
+  import { Toaster } from 'svelte-sonner';
+
+  import { dev } from '$app/environment';
   import { page } from '$app/stores';
+  import { NavigationDock } from '$lib/components';
+  import { ScreenSize } from '$lib/components/helpers';
   import {
     AddFlightModal,
     NewVersionAnnouncement,
     SettingsModal,
   } from '$lib/components/modals';
-  import { NavigationDock } from '$lib/components';
-  import { dev } from '$app/environment';
+  import { Provider as TooltipProvider } from '$lib/components/ui/tooltip';
+  import { appConfig, openModalsState } from '$lib/state.svelte';
+  import { trpc } from '$lib/trpc';
 
   const { data, children } = $props();
 

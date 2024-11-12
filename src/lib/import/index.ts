@@ -1,13 +1,13 @@
-import { readFile } from '$lib/utils';
-import { processFR24File } from '$lib/import/fr24';
-import { processAITAFile } from '$lib/import/aita';
-import type { CreateFlight } from '$lib/db/types';
-import { processJetLogFile } from '$lib/import/jetlog';
-import { processAirTrailFile } from '$lib/import/airtrail';
 import {
   platforms,
   type PlatformOptions,
 } from '$lib/components/modals/settings/pages/import-page';
+import type { CreateFlight } from '$lib/db/types';
+import { processAirTrailFile } from '$lib/import/airtrail';
+import { processAITAFile } from '$lib/import/aita';
+import { processFR24File } from '$lib/import/fr24';
+import { processJetLogFile } from '$lib/import/jetlog';
+import { readFile } from '$lib/utils';
 
 const Platform = platforms.map((platform) => platform.value)[0];
 

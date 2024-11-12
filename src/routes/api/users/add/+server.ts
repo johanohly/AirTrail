@@ -1,10 +1,12 @@
-import { zod } from 'sveltekit-superforms/adapters';
-import type { RequestHandler } from './$types';
-import { actionResult, setError, superValidate } from 'sveltekit-superforms';
-import { addUserSchema } from '$lib/zod/user';
 import { generateId } from 'lucia';
-import { hashPassword } from '$lib/server/utils/password';
+import { actionResult, setError, superValidate } from 'sveltekit-superforms';
+import { zod } from 'sveltekit-superforms/adapters';
+
+import type { RequestHandler } from './$types';
+
 import { createUser, usernameExists } from '$lib/server/utils/auth';
+import { hashPassword } from '$lib/server/utils/password';
+import { addUserSchema } from '$lib/zod/user';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
   const form = await superValidate(request, zod(addUserSchema));

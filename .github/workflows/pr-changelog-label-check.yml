@@ -2,7 +2,7 @@ name: PR Label Check
 
 on:
   pull_request_target:
-    types: [ opened, labeled, unlabeled, synchronize ]
+    types: [opened, labeled, unlabeled, synchronize]
 
 permissions:
   contents: read
@@ -25,5 +25,5 @@ jobs:
           mode: exactly
           count: 1
           use_regex: true
-          labels: "changelog:.*"
+          labels: 'changelog:.*'
           add_comment: true

@@ -1,9 +1,11 @@
 <script lang="ts">
   import { PageHeader } from '../index';
-  import { toTitleCase } from '$lib/utils';
-  import { Button } from '$lib/components/ui/form';
+
   import EditUserForm from './EditUserForm.svelte';
+
   import { page } from '$app/stores';
+  import { Button } from '$lib/components/ui/form';
+  import { toTitleCase } from '$lib/utils';
 
   const user = $derived($page.data.user);
 </script>

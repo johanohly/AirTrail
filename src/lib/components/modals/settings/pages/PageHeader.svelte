@@ -1,7 +1,8 @@
 <script lang="ts">
   /* eslint svelte/no-at-html-tags: 0 */
-  import { Separator } from '$lib/components/ui/separator';
   import type { Snippet } from 'svelte';
+
+  import { Separator } from '$lib/components/ui/separator';
 
   let {
     title,

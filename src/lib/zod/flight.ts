@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import { FlightReasons, SeatClasses, SeatTypes } from '$lib/db/types';
 
 // |^$ is for empty string in the case where the user deletes the input

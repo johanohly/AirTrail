@@ -1,13 +1,14 @@
-import { parseCsv } from '$lib/utils';
-import { z } from 'zod';
-import type { Flight } from '$lib/db';
-import { airlineFromICAO } from '$lib/utils/data/airlines';
-import { airportFromICAO } from '$lib/utils/data/airports';
-import type { CreateFlight, Seat } from '$lib/db/types';
-import { page } from '$app/stores';
-import { get } from 'svelte/store';
 import { tz } from '@date-fns/tz/tz';
 import { addDays, isBefore, parse } from 'date-fns';
+import { get } from 'svelte/store';
+import { z } from 'zod';
+
+import { page } from '$app/stores';
+import type { Flight } from '$lib/db';
+import type { CreateFlight, Seat } from '$lib/db/types';
+import { parseCsv } from '$lib/utils';
+import { airlineFromICAO } from '$lib/utils/data/airlines';
+import { airportFromICAO } from '$lib/utils/data/airports';
 import { toUtc } from '$lib/utils/datetime';
 
 const FR24_AIRPORT_REGEX = /\((?<IATA>[a-zA-Z]{3})\/(?<ICAO>[a-zA-Z]{4})\)/;

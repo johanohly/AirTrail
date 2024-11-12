@@ -1,8 +1,10 @@
 <script lang="ts">
-  import { PageHeader } from '.';
-  import * as RadioGroup from '$lib/components/ui/radio-group';
-  import { Label } from '$lib/components/ui/label';
   import { mode, setMode } from 'mode-watcher';
+
+  import { PageHeader } from '.';
+
+  import { Label } from '$lib/components/ui/label';
+  import * as RadioGroup from '$lib/components/ui/radio-group';
 
   let value = $state($mode ?? 'dark'); // default to dark mode (only for type-safety during SSR)
   $effect(() => setMode(value));

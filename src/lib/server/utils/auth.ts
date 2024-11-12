@@ -1,7 +1,8 @@
-import { db, type User } from '$lib/db';
+import type { Cookies } from '@sveltejs/kit';
 import { sql } from 'kysely';
 import type { Lucia } from 'lucia';
-import type { Cookies } from '@sveltejs/kit';
+
+import { db, type User } from '$lib/db';
 
 export const createUser = async (
   id: string,

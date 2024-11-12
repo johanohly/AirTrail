@@ -1,7 +1,7 @@
 import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { cubicOut } from 'svelte/easing';
 import type { TransitionConfig } from 'svelte/transition';
+import { twMerge } from 'tailwind-merge';
 
 export const deepMerge = (target: any, source: any): any => {
   const output = { ...target };

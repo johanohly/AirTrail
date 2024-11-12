@@ -1,5 +1,6 @@
-import { lucia } from '$lib/server/auth';
 import type { Cookie } from 'lucia';
+
+import { lucia } from '$lib/server/auth';
 import { appConfig } from '$lib/server/utils/config';
 
 async function loadConfig() {

@@ -9,7 +9,7 @@ with a few other things, filters out very small airports and airports without pr
 The data has been further modified over time, for example by adding missing airports or fixing errors in the original.
 
 | List of changes             |
-|-----------------------------|
+| --------------------------- |
 | IATA `KIV` changed to `RMO` |
 
 The data is stored in

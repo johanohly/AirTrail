@@ -1,8 +1,9 @@
 <script lang="ts">
-  import type { HTMLInputAttributes } from 'svelte/elements';
-  import type { WithElementRef } from 'bits-ui';
-  import { cn } from '$lib/utils';
   import { Eye, EyeOff } from '@o7/icon/lucide';
+  import type { WithElementRef } from 'bits-ui';
+  import type { HTMLInputAttributes } from 'svelte/elements';
+
+  import { cn } from '$lib/utils';
 
   let {
     ref = $bindable(null),

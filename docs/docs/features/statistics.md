@@ -14,7 +14,7 @@ Statistics only take into account flights that have been completed.
 :::
 
 | Field              | Description                                                          |
-|--------------------|----------------------------------------------------------------------|
+| ------------------ | -------------------------------------------------------------------- |
 | Flights            | The total number of flights you have completed.                      |
 | Distance           | The total distance you have flown.                                   |
 | Duration           | The total time you have spent flying.                                |

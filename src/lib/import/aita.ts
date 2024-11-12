@@ -1,11 +1,12 @@
-import { airportFromIATA } from '$lib/utils/data/airports';
-import type { CreateFlight, SeatClasses } from '$lib/db/types';
-import { get } from 'svelte/store';
-import { page } from '$app/stores';
 import { differenceInSeconds, format } from 'date-fns';
-import { parseLocalISO } from '$lib/utils/datetime';
+import { get } from 'svelte/store';
+
+import { page } from '$app/stores';
 import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
+import type { CreateFlight, SeatClasses } from '$lib/db/types';
 import { airlineFromIATA } from '$lib/utils/data/airlines';
+import { airportFromIATA } from '$lib/utils/data/airports';
+import { parseLocalISO } from '$lib/utils/datetime';
 
 const AITA_SEAT_CLASS_MAP: Record<string, (typeof SeatClasses)[number]> = {
   FIRST: 'first',

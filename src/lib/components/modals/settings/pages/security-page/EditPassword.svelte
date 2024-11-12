@@ -1,13 +1,14 @@
 <script lang="ts">
-  import { Modal } from '$lib/components/ui/modal';
-  import { Button } from '$lib/components/ui/button';
+  import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
-  import { editPasswordSchema } from '$lib/zod/user';
   import { zod } from 'sveltekit-superforms/adapters';
+
+  import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
   import { PasswordInput } from '$lib/components/ui/input';
-  import { toast } from 'svelte-sonner';
+  import { Modal } from '$lib/components/ui/modal';
   import { postViaForm } from '$lib/utils';
+  import { editPasswordSchema } from '$lib/zod/user';
 
   let open = false;
 

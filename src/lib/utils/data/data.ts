@@ -1,11 +1,12 @@
+import { TZDate } from '@date-fns/tz';
+import { isAfter } from 'date-fns';
+import { get } from 'svelte/store';
+
+import { page } from '$app/stores';
 import type { Flight } from '$lib/db';
 import { distanceBetween, toTitleCase } from '$lib/utils';
 import { type Airport, airportFromICAO } from '$lib/utils/data/airports';
-import { get } from 'svelte/store';
-import { page } from '$app/stores';
-import { TZDate } from '@date-fns/tz';
 import { nowIn, parseLocalize, parseLocalizeISO } from '$lib/utils/datetime';
-import { isAfter } from 'date-fns';
 
 type ExcludedType<T, U> = {
   [P in keyof T as P extends keyof U ? never : P]: T[P];

@@ -1,13 +1,15 @@
 <script lang="ts">
-  import { cn } from '$lib/utils';
+  import type { Snippet } from 'svelte';
   import {
     Motion,
     useMotionValue,
     useSpring,
     useTransform,
   } from 'svelte-motion';
+
   import { dockContext } from './context.svelte';
-  import type { Snippet } from 'svelte';
+
+  import { cn } from '$lib/utils';
 
   let {
     class: className = undefined,

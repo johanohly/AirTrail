@@ -1,13 +1,15 @@
-import type { RequestHandler } from './$types';
-import { z } from 'zod';
 import { error, json } from '@sveltejs/kit';
-import { getOAuthProfile } from '$lib/server/utils/oauth';
-import { db, type User } from '$lib/db';
 import { generateId } from 'lucia';
-import { createSession } from '$lib/server/utils/auth';
-import { lucia } from '$lib/server/auth';
-import { appConfig } from '$lib/server/utils/config';
 import type { UserInfoResponse } from 'openid-client';
+import { z } from 'zod';
+
+import type { RequestHandler } from './$types';
+
+import { db, type User } from '$lib/db';
+import { lucia } from '$lib/server/auth';
+import { createSession } from '$lib/server/utils/auth';
+import { appConfig } from '$lib/server/utils/config';
+import { getOAuthProfile } from '$lib/server/utils/oauth';
 
 const CallbackSchema = z.object({
   url: z.string().url(),

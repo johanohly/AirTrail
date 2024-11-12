@@ -1,7 +1,8 @@
 <script lang="ts">
-  import * as RadioGroup from '$lib/components/ui/radio-group';
-  import { Label } from '$lib/components/ui/label';
   import { platforms } from './';
+
+  import { Label } from '$lib/components/ui/label';
+  import * as RadioGroup from '$lib/components/ui/radio-group';
 
   let { platform = $bindable() }: { platform: (typeof platforms)[0] } =
     $props();

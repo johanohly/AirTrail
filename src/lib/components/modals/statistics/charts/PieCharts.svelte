@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { type FlightData, toTitleCase } from '$lib/utils';
   import PieChart from './PieChart.svelte';
+
   import { page } from '$app/stores';
+  import { type FlightData, toTitleCase } from '$lib/utils';
 
   let { flights }: { flights: FlightData[] } = $props();
 

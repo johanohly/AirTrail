@@ -1,14 +1,15 @@
 <script lang="ts">
-  import { DeckGlLayer, Popup } from 'svelte-maplibre';
   import { ScatterplotLayer } from '@deck.gl/layers';
+  import NumberFlow from '@number-flow/svelte';
+  import { DeckGlLayer, Popup } from 'svelte-maplibre';
+
   import {
     type FlightData,
     pluralize,
     prepareVisitedAirports,
   } from '$lib/utils';
-  import { isSmallScreen } from '$lib/utils/size';
   import { formatAsDate } from '$lib/utils/datetime/index.js';
-  import NumberFlow from '@number-flow/svelte';
+  import { isSmallScreen } from '$lib/utils/size';
 
   //const AIRPORT_COLOR = [125, 211, 252]; // Tailwind blue-300
   const AIRPORT_COLOR = [16, 185, 129]; // Tailwind emerald-500

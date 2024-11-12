@@ -1,13 +1,14 @@
 <script lang="ts">
+  import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
-  import { editUserSchema } from '$lib/zod/user';
-  import * as Form from '$lib/components/ui/form';
-  import * as Select from '$lib/components/ui/select';
-  import { Input } from '$lib/components/ui/input';
-  import { toTitleCase } from '$lib/utils';
-  import { toast } from 'svelte-sonner';
+
   import { page } from '$app/stores';
+  import * as Form from '$lib/components/ui/form';
+  import { Input } from '$lib/components/ui/input';
+  import * as Select from '$lib/components/ui/select';
+  import { toTitleCase } from '$lib/utils';
+  import { editUserSchema } from '$lib/zod/user';
 
   const form = superForm(
     defaults<Infer<typeof editUserSchema>>(

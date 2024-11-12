@@ -1,10 +1,7 @@
 <script lang="ts">
-  import { cn } from '$lib/utils';
-  import { Separator } from '$lib/components/ui/separator';
-  import { crossfade } from 'svelte/transition';
   import { cubicInOut } from 'svelte/easing';
-  import { Modal } from '$lib/components/ui/modal';
-  import { Button } from '$lib/components/ui/button';
+  import { crossfade } from 'svelte/transition';
+
   import {
     ImportPage,
     GeneralPage,
@@ -14,9 +11,14 @@
     OAuthPage,
     SecurityPage,
   } from './pages';
+
   import { page } from '$app/stores';
-  import { isLargeScreen } from '$lib/utils/size';
   import SettingsTabContainer from '$lib/components/modals/settings/SettingsTabContainer.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Modal } from '$lib/components/ui/modal';
+  import { Separator } from '$lib/components/ui/separator';
+  import { cn } from '$lib/utils';
+  import { isLargeScreen } from '$lib/utils/size';
 
   const ACCOUNT_SETTINGS = [
     { title: 'General', id: 'general' },

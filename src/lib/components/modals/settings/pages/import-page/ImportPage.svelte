@@ -1,17 +1,21 @@
 <script lang="ts">
+  import { Upload } from '@o7/icon/lucide';
+  import { toast } from 'svelte-sonner';
+
   import { PageHeader } from '../';
+
+  import PlatformTabs from './PlatformTabs.svelte';
+
+  import { platforms } from './';
+
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
-  import { cn } from '$lib/utils';
-  import { Upload } from '@o7/icon/lucide';
-  import { trpc } from '$lib/trpc';
-  import { processFile } from '$lib/import';
-  import { toast } from 'svelte-sonner';
-  import { platforms } from './';
-  import PlatformTabs from './PlatformTabs.svelte';
-  import { Label } from '$lib/components/ui/label';
   import { Checkbox } from '$lib/components/ui/checkbox';
+  import { Label } from '$lib/components/ui/label';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
+  import { processFile } from '$lib/import';
+  import { trpc } from '$lib/trpc';
+  import { cn } from '$lib/utils';
 
   let { open = $bindable() }: { open: boolean } = $props();
 

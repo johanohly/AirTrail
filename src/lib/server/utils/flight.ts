@@ -1,5 +1,6 @@
-import { db } from '$lib/db';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
+
+import { db } from '$lib/db';
 import type { CreateFlight } from '$lib/db/types';
 
 export const listFlights = async (userId: string) => {

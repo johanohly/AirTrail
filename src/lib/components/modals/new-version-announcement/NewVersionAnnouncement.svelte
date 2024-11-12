@@ -1,10 +1,12 @@
 <script lang="ts">
-  import * as Dialog from '$lib/components/ui/alert-dialog';
-  import SvelteMarkdown from 'svelte-markdown';
-  import NewTabLink from './NewTabLink.svelte';
-  import { Badge } from '$lib/components/ui/badge';
-  import { version } from '$app/environment';
   import semver, { SemVer } from 'semver';
+  import SvelteMarkdown from 'svelte-markdown';
+
+  import NewTabLink from './NewTabLink.svelte';
+
+  import { version } from '$app/environment';
+  import * as Dialog from '$lib/components/ui/alert-dialog';
+  import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
 
   let open = $state(false);

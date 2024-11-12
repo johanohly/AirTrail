@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { Modal } from '$lib/components/ui/modal';
-  import { Button } from '$lib/components/ui/button';
-  import { api, trpc } from '$lib/trpc';
   import { toast } from 'svelte-sonner';
+
+  import { Button } from '$lib/components/ui/button';
+  import { Modal } from '$lib/components/ui/modal';
+  import { api, trpc } from '$lib/trpc';
 
   let { visitedCountries }: { visitedCountries: any[] } = $props();
 

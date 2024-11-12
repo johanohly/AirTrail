@@ -5,6 +5,7 @@ import {
   fetchUserInfo,
   randomState,
 } from 'openid-client';
+
 import { appConfig } from '$lib/server/utils/config';
 
 export const getAuthorizeUrl = async (redirectUrl: string) => {

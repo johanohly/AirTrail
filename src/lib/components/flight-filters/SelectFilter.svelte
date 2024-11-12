@@ -1,11 +1,12 @@
 <script lang="ts">
-  import * as Popover from '$lib/components/ui/popover';
-  import * as Command from '$lib/components/ui/command';
-  import { cn } from '$lib/utils';
-  import { Button } from '$lib/components/ui/button';
   import { Check, Filter } from '@o7/icon/lucide';
-  import { Separator } from '$lib/components/ui/separator';
+
   import { Badge } from '$lib/components/ui/badge';
+  import { Button } from '$lib/components/ui/button';
+  import * as Command from '$lib/components/ui/command';
+  import * as Popover from '$lib/components/ui/popover';
+  import { Separator } from '$lib/components/ui/separator';
+  import { cn } from '$lib/utils';
 
   let {
     filterValues = $bindable<string[]>(),

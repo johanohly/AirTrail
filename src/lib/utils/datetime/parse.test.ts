@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { mergeTimeWithDate } from './parse';
 import { TZDate } from '@date-fns/tz';
+import { describe, it, expect } from 'vitest';
+
+import { mergeTimeWithDate } from './parse';
 
 describe('mergeTimeWithDate', () => {
   it('should merge date and time correctly for 24-hour format', () => {

@@ -1,9 +1,10 @@
-import { Lucia } from 'lucia';
-import { dev } from '$app/environment';
-import type { DB } from '$lib/db/schema';
 import { NodePostgresAdapter } from '@lucia-auth/adapter-postgresql';
-import { pool } from '$lib/db';
+import { Lucia } from 'lucia';
+
+import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
+import { pool } from '$lib/db';
+import type { DB } from '$lib/db/schema';
 
 const adapter = new NodePostgresAdapter(pool, {
   user: 'user',

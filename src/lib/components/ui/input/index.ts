@@ -1,6 +1,6 @@
 import Root from './input.svelte';
-import Textarea from './textarea.svelte';
 import PasswordInput from './password-input.svelte';
+import Textarea from './textarea.svelte';
 
 export {
   Root,

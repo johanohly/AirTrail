@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import createGlobe from 'cobe';
-  import { spring } from 'svelte/motion';
-  import { cn } from '$lib/utils';
   import { mode } from 'mode-watcher';
+  import { onMount } from 'svelte';
+  import { spring } from 'svelte/motion';
+
+  import { cn } from '$lib/utils';
 
   const getThemeOptions = (): {
     dark: number;

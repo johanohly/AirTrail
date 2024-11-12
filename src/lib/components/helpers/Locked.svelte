@@ -1,8 +1,9 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte';
-  import { cn } from '$lib/utils';
-  import * as Tooltip from '$lib/components/ui/tooltip';
   import { Lock } from '@o7/icon/lucide';
+  import type { Snippet } from 'svelte';
+
+  import * as Tooltip from '$lib/components/ui/tooltip';
+  import { cn } from '$lib/utils';
 
   let {
     locked,

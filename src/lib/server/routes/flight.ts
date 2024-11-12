@@ -1,6 +1,8 @@
-import { authedProcedure, router } from '../trpc';
-import { db } from '$lib/db';
 import { z } from 'zod';
+
+import { authedProcedure, router } from '../trpc';
+
+import { db } from '$lib/db';
 import type { CreateFlight } from '$lib/db/types';
 import {
   createFlight,

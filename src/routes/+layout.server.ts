@@ -1,7 +1,9 @@
-import { trpcServer } from '$lib/server/server';
-import type { LayoutServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
+
+import type { LayoutServerLoad } from './$types';
+
 import { db } from '$lib/db';
+import { trpcServer } from '$lib/server/server';
 import { appConfig } from '$lib/server/utils/config';
 
 export const load = async (event: Parameters<LayoutServerLoad>[0]) => {

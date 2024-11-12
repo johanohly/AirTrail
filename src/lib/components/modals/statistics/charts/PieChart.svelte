@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Chart, Pie, Svg, Tooltip } from 'layerchart';
   import { cubicInOut } from 'svelte/easing';
+
   import { cn } from '$lib/utils';
 
   let { data }: { data: Record<string, number> } = $props();

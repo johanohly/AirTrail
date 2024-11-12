@@ -1,10 +1,12 @@
 import { actionResult, superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
-import { signInSchema } from '$lib/zod/auth';
+
+import type { RequestHandler } from './$types';
+
+import { lucia } from '$lib/server/auth';
 import { createSession, getUser } from '$lib/server/utils/auth';
 import { verifyPassword } from '$lib/server/utils/password';
-import { lucia } from '$lib/server/auth';
-import type { RequestHandler } from './$types';
+import { signInSchema } from '$lib/zod/auth';
 
 export const POST: RequestHandler = async ({ cookies, request }) => {
   const form = await superValidate(request, zod(signInSchema));

@@ -1,16 +1,18 @@
 <script lang="ts">
-  import { PageHeader } from '../index';
-  import { api } from '$lib/trpc';
-  import type { User } from '$lib/db';
-  import { toTitleCase } from '$lib/utils';
   import { SquarePen, X } from '@o7/icon/lucide';
-  import { Card } from '$lib/components/ui/card';
   import { toast } from 'svelte-sonner';
-  import { Button } from '$lib/components/ui/button';
-  import AddUserModal from '$lib/components/modals/settings/pages/users-page/AddUserModal.svelte';
-  import { Confirm } from '$lib/components/helpers';
-  import { page } from '$app/stores';
+
+  import { PageHeader } from '../index';
+
   import { invalidateAll } from '$app/navigation';
+  import { page } from '$app/stores';
+  import { Confirm } from '$lib/components/helpers';
+  import AddUserModal from '$lib/components/modals/settings/pages/users-page/AddUserModal.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Card } from '$lib/components/ui/card';
+  import type { User } from '$lib/db';
+  import { api } from '$lib/trpc';
+  import { toTitleCase } from '$lib/utils';
 
   let users = $derived($page.data.users);
 

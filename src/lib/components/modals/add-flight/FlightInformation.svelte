@@ -1,14 +1,15 @@
 <script lang="ts">
-  import * as Form from '$lib/components/ui/form';
-  import * as Select from '$lib/components/ui/select';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
-  import { Input, Textarea } from '$lib/components/ui/input';
-  import { toTitleCase } from '$lib/utils';
-  import type { flightSchema } from '$lib/zod/flight';
+
   import { AircraftField, AirlineField } from '$lib/components/form-fields';
+  import * as Form from '$lib/components/ui/form';
+  import { Input, Textarea } from '$lib/components/ui/input';
+  import * as Select from '$lib/components/ui/select';
   import { Separator } from '$lib/components/ui/separator';
   import { FlightReasons } from '$lib/db/types';
+  import { toTitleCase } from '$lib/utils';
+  import type { flightSchema } from '$lib/zod/flight';
 
   let {
     form,

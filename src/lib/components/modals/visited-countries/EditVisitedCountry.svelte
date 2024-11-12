@@ -1,15 +1,16 @@
 <script lang="ts">
-  import { Modal } from '$lib/components/ui/modal';
-  import type { VisitedCountryStatus } from '$lib/db/types';
-  import { Label } from '$lib/components/ui/label';
   import { LoaderCircle, House, Gift, Plane } from '@o7/icon/lucide';
   import { Tour } from '@o7/icon/material';
-  import { type Country, countryFromNumeric } from '$lib/utils/data/countries';
-  import { Button } from '$lib/components/ui/button';
-  import { api, trpc } from '$lib/trpc';
   import { toast } from 'svelte-sonner';
+
+  import { Button } from '$lib/components/ui/button';
   import { Textarea } from '$lib/components/ui/input/index.js';
+  import { Label } from '$lib/components/ui/label';
+  import { Modal } from '$lib/components/ui/modal';
+  import type { VisitedCountryStatus } from '$lib/db/types';
+  import { api, trpc } from '$lib/trpc';
   import { cn } from '$lib/utils';
+  import { type Country, countryFromNumeric } from '$lib/utils/data/countries';
 
   let {
     open = $bindable(),

@@ -1,17 +1,18 @@
 <script lang="ts">
-  import * as Form from '$lib/components/ui/form';
-  import * as Select from '$lib/components/ui/select';
+  import { Plus } from '@o7/icon/lucide';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
+
+  import SeatUserField from '$lib/components/modals/add-flight/SeatUserField.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Card } from '$lib/components/ui/card';
+  import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
+  import * as Select from '$lib/components/ui/select';
+  import { Separator } from '$lib/components/ui/separator';
+  import { SeatClasses, SeatTypes } from '$lib/db/types';
   import { toTitleCase } from '$lib/utils';
   import type { flightSchema } from '$lib/zod/flight';
-  import { Separator } from '$lib/components/ui/separator';
-  import { Button } from '$lib/components/ui/button';
-  import { Plus } from '@o7/icon/lucide';
-  import { Card } from '$lib/components/ui/card';
-  import SeatUserField from '$lib/components/modals/add-flight/SeatUserField.svelte';
-  import { SeatClasses, SeatTypes } from '$lib/db/types';
 
   let {
     form,

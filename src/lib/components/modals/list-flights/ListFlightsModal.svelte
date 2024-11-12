@@ -1,15 +1,21 @@
 <script lang="ts">
-  import { Modal } from '$lib/components/ui/modal';
-  import { Card } from '$lib/components/ui/card';
   import { Plane, PlaneTakeoff, PlaneLanding, X } from '@o7/icon/lucide';
-  import { LabelledSeparator, Separator } from '$lib/components/ui/separator';
-  import { cn, type FlightData } from '$lib/utils';
-  import * as Tooltip from '$lib/components/ui/tooltip';
-  import { formatSeat } from '$lib/utils/data/data';
+  import { isBefore, isSameDay } from 'date-fns';
+
+  import Toolbar from './Toolbar.svelte';
+
+  import type { FlightFilters } from '$lib/components/flight-filters/types';
   import { Confirm } from '$lib/components/helpers';
   import { EditFlightModal } from '$lib/components/modals';
+  import { Button } from '$lib/components/ui/button';
+  import { Card } from '$lib/components/ui/card';
+  import { Modal } from '$lib/components/ui/modal';
+  import { ScrollArea } from '$lib/components/ui/scroll-area';
+  import { LabelledSeparator, Separator } from '$lib/components/ui/separator';
+  import * as Tooltip from '$lib/components/ui/tooltip';
+  import { cn, type FlightData } from '$lib/utils';
   import { airlineFromICAO } from '$lib/utils/data/airlines';
-  import { isBefore, isSameDay } from 'date-fns';
+  import { formatSeat } from '$lib/utils/data/data';
   import {
     Duration,
     formatAsDate,
@@ -18,10 +24,6 @@
     formatAsTime,
     isUsingAmPm,
   } from '$lib/utils/datetime';
-  import Toolbar from './Toolbar.svelte';
-  import { ScrollArea } from '$lib/components/ui/scroll-area';
-  import { Button } from '$lib/components/ui/button';
-  import type { FlightFilters } from '$lib/components/flight-filters/types';
 
   let {
     open = $bindable<boolean>(),

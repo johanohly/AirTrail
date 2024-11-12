@@ -1,17 +1,18 @@
 <script lang="ts">
-  import { trpc } from '$lib/trpc';
-  import { Input, PasswordInput } from '$lib/components/ui/input';
-  import { goto } from '$app/navigation';
+  import { LoaderCircle } from '@o7/icon/lucide';
   import { onMount } from 'svelte';
   import { toast } from 'svelte-sonner';
-  import { LoaderCircle } from '@o7/icon/lucide';
   import { superForm } from 'sveltekit-superforms';
-  import * as Form from '$lib/components/ui/form';
-  import * as Select from '$lib/components/ui/select';
   import { zod } from 'sveltekit-superforms/adapters';
-  import { signUpSchema } from '$lib/zod/auth';
+
+  import { goto } from '$app/navigation';
+  import * as Form from '$lib/components/ui/form';
   import { Globe } from '$lib/components/ui/globe';
+  import { Input, PasswordInput } from '$lib/components/ui/input';
+  import * as Select from '$lib/components/ui/select';
+  import { trpc } from '$lib/trpc';
   import { toTitleCase } from '$lib/utils';
+  import { signUpSchema } from '$lib/zod/auth';
 
   const query = trpc.user.isSetup.query();
   const isSetup = $query.data;

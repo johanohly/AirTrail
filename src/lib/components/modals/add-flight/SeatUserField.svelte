@@ -1,12 +1,13 @@
 <script lang="ts">
   import type { SuperForm } from 'sveltekit-superforms';
-  import type { flightSchema } from '$lib/zod/flight';
   import { z } from 'zod';
+
   import { page } from '$app/stores';
-  import type { User } from '$lib/db';
   import * as Form from '$lib/components/ui/form';
-  import * as Select from '$lib/components/ui/select';
   import { Input } from '$lib/components/ui/input';
+  import * as Select from '$lib/components/ui/select';
+  import type { User } from '$lib/db';
+  import type { flightSchema } from '$lib/zod/flight';
 
   let {
     form,
