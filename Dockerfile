@@ -19,7 +19,7 @@ RUN bun run build
 
 FROM base AS release
 # Required for prisma migrations to work on arm64 (oven-sh/bun#5320)
-COPY --from=node:20@sha256:7eaecf12ba40043be19af57e2c7fba35d61f9b906128e3e4d11eda81b1ecb857 /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:20@sha256:73b92bcf143ce9a5b1d869b4fb93928ca0d0118d98e3fd2e0a5d641e6fd30f72 /usr/local/bin/node /usr/local/bin/node
 COPY --from=install /temp/prod/node_modules node_modules
 COPY --from=prerelease /app/build build
 COPY --from=prerelease /app/package.json .
