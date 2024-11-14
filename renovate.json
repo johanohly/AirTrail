@@ -7,7 +7,16 @@
     ":preserveSemverRanges"
   ],
   "labels": ["changelog:skip"],
-  "docker-compose": {
-    "enabled": false
-  }
+  "packageRules": [
+    {
+      "enabled": false,
+      "matchPackageNames": [
+        "*"
+      ]
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true
+  },
+  "osvVulnerabilityAlerts": true
 }
