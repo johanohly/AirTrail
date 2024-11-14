@@ -18,7 +18,7 @@ const AITA_SEAT_CLASS_MAP: Record<string, (typeof SeatClasses)[number]> = {
 
 export const processAITAFile = (input: string, options: PlatformOptions) => {
   const tripPattern =
-    /^Ownership\.([\w]+);[^\r\n]*\sflights:\s([\s\S]+?)\shotels:/gm;
+    /^Ownership\.(\w+);[^\r\n]*\sflights:\s([\s\S]+?)\shotels:/gm;
   const flightPattern =
     /^([^;\n\r]*);(\w*);.*?;(\w{2,4};\d{2,4});(\w*);(\w{3});(\w{3});([\d\-T:]+);([\d\-T:]+);([\d\-T:]+);([\d\-T:]+);(.*)/gm;
 

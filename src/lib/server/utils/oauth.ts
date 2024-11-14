@@ -54,7 +54,7 @@ export const getOAuthClient = async () => {
 
   const { enabled, clientId, clientSecret, issuerUrl } = config.oauth;
   if (!enabled || !clientId || !clientSecret || !issuerUrl) {
-    throw new Error('OAuth is not enabled');
+    throw new Error('OAuth is not enabled or configured properly');
   }
 
   try {
