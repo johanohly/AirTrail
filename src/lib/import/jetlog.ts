@@ -19,23 +19,27 @@ const JETLOG_FLIGHT_CLASS_MAP: Record<string, Seat['seatClass']> = {
 };
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+const optionalTimePrimitive = z
+  .string()
+  .refine((v) => v === '' || v.match(/^\d{2}:\d{2}$/), {
+    message: 'Invalid time format',
+  })
+  .transform(nullTransformer);
+const optionalDatePrimitive = z
+  .string()
+  .refine((v) => v === '' || v.match(dateRegex), {
+    message: 'Invalid date format',
+  })
+  .transform(nullTransformer);
 
 const JetLogFlight = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: z.string().regex(dateRegex),
   origin: z.string(),
   destination: z.string(),
-  departure_time: z
-    .string()
-    .regex(/^\d{2}:\d{2}$|/)
-    .transform(nullTransformer),
-  arrival_time: z
-    .string()
-    .regex(/^\d{2}:\d{2}$|/)
-    .transform(nullTransformer),
-  arrival_date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$|/)
-    .transform(nullTransformer),
+  departure_time: optionalTimePrimitive,
+  arrival_time: optionalTimePrimitive,
+  arrival_date: optionalDatePrimitive,
   seat: z.enum(['window', 'middle', 'aisle', '']).transform(nullTransformer),
   ticket_class: z.string().transform(nullTransformer),
   duration: z.string().transform(nullTransformer),
