@@ -49,7 +49,6 @@
           granularity="day"
           weekdayFormat="short"
           fixedWeeks={true}
-          weekStartsOn={1}
           minValue={parseDate('1970-01-01')}
           locale={navigator.language}
         >
