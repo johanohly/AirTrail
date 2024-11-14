@@ -217,15 +217,20 @@ export const formatSeat = (f: FlightData) => {
   const s = f.seats.find((seat) => seat.userId === userId);
   if (!s) return null;
 
-  return s.seat && s.seatNumber && s.seatClass
-    ? `${t(s.seatClass)} (${s.seat} ${s.seatNumber})`
-    : s.seat && s.seatNumber
-      ? `${s.seat} ${s.seatNumber}`
-      : s.seat && s.seatClass
-        ? `${t(s.seatClass)} (${s.seat})`
-        : s.seatClass
-          ? t(s.seatClass)
-          : s.seat
-            ? t(s.seat)
-            : null;
+  if (s.seat && s.seatNumber && s.seatClass) {
+    return `${t(s.seatClass)} (${s.seat} ${s.seatNumber})`;
+  }
+  if (s.seat && s.seatNumber) {
+    return `${s.seat} ${s.seatNumber}`;
+  }
+  if (s.seat && s.seatClass) {
+    return `${t(s.seatClass)} (${s.seat})`;
+  }
+  if (s.seatClass) {
+    return t(s.seatClass);
+  }
+  if (s.seat) {
+    return t(s.seat);
+  }
+  return null;
 };
