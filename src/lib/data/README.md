@@ -8,9 +8,10 @@ with a few other things, filters out very small airports and airports without pr
 
 The data has been further modified over time, for example by adding missing airports or fixing errors in the original.
 
-| List of changes             |
-| --------------------------- |
-| IATA `KIV` changed to `RMO` |
+| List of changes               |
+|-------------------------------|
+| IATA `KIV` changed to `RMO`   |
+| ICAO `FLLS` changed to `FLKK` |
 
 The data is stored in
 the [src/lib/data/airports.ts](https://github.com/johanohly/AirTrail/blob/main/src/lib/data/airports.ts) file.
