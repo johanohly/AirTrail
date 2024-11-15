@@ -13,6 +13,7 @@ const IGNORED_FIELDS = [
   'activation',
   'service',
   'home',
+  'wiki',
 ];
 
 (async () => {
@@ -47,7 +48,7 @@ const IGNORED_FIELDS = [
 
         if (i === 2 && airport['ICAO'].length !== 4 && cell?.length === 4) {
           airport['ICAO'] = cell;
-        } else {
+        } else if (i !== 2) {
           airport[header] = cell;
         }
       });
