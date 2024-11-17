@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Plane, PlaneTakeoff, PlaneLanding, X } from '@o7/icon/lucide';
+  import { AirplanemodeInactive } from '@o7/icon/material';
   import { isBefore, isSameDay } from 'date-fns';
 
   import Toolbar from './Toolbar.svelte';
@@ -130,7 +131,9 @@
     numOfFlights={filteredFlights.length}
   />
   {#if flightsByYear.length === 0}
-    <p class="text-lg text-muted-foreground">No flights found</p>
+    <div class="h-full flex items-center justify-center">
+      <AirplanemodeInactive class="text-muted-foreground size-[20dvw]" />
+    </div>
   {:else}
     <ScrollArea type="hover">
       {#each flightsByYear as { year, flights } (year)}
