@@ -21,7 +21,7 @@ export const mergeTimeWithDate = (
   time: string,
   tzId: string,
 ): TZDate => {
-  const date = parseLocalISO(dateString, tzId);
+  const { year, month, day } = extractDateFromISO(dateString);
   const match = time.match(timePartsRegex);
   if (!match) {
     throw new Error('Invalid format');
@@ -44,7 +44,7 @@ export const mergeTimeWithDate = (
   }
 
   const result = parse(
-    `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${hours}:${minutes}`,
+    `${year}-${month}-${day} ${hours}:${minutes}`,
     'yyyy-M-d H:m',
     new Date(),
     { in: tz(tzId) },
@@ -81,6 +81,25 @@ export const dateValueFromISO = (iso: string) => {
     second ? parseNumber(second, 0, 59) : 0,
     ms ? parseNumber(ms, 0, Infinity) * 1000 : 0,
   );
+};
+
+const ISO_DATE_REGEX = /(\d{4})-(\d{2})-(\d{2})/;
+const extractDateFromISO = (iso: string) => {
+  const match = iso.match(ISO_DATE_REGEX);
+  if (!match) {
+    throw new Error('Invalid ISO 8601 date time string: ' + iso);
+  }
+
+  const [, year, month, day] = match;
+  if (!year || !month || !day) {
+    throw new Error('Invalid ISO 8601 date time string: ' + iso);
+  }
+
+  return {
+    year: parseNumber(year, 1, 9999),
+    month: parseNumber(month, 1, 12),
+    day: parseNumber(day, 1, 31),
+  };
 };
 
 function parseNumber(value: string, min: number, max: number) {
