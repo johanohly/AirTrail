@@ -1,10 +1,10 @@
 **
+!/docker/**
 !/static/**
 /static/showcase/**
 !/src/**
 !/prisma/**
 !/temp/**
-!/docker-entrypoint.sh
 !/package.json
 !/bun.lockb
 !/svelte.config.js

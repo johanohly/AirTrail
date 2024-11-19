@@ -39,11 +39,11 @@ cp .env.example .env
 
 Fill in the required environment variables in the `.env` file.
 
-4. Build and setup the database:
+4. Build and set up the database:
 
 ```bash
 bun run build
-bun run db:migrate
+bun run db:migrate-deploy
 ```
 
 5. Start the server:

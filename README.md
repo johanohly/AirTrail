@@ -44,6 +44,12 @@
 - [Installation](https://airtrail.johan.ohly.dk/docs/overview/quick-start/)
 - [About](https://airtrail.johan.ohly.dk/docs/overview/introduction)
 
+## 🤝 Contributing
+
+Want to contribute to AirTrail? Awesome! Check out the [contributing documentation](CONTRIBUTING.md) to get started.
+
+If you find an issue, please report it on the [issue tracker](https://github.com/johanohly/AirTrail/issues/new/choose).
+
 ## Build Status
 
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/JohanOhly/AirTrail/build.yml?logo=github&style=for-the-badge)](https://github.com/JohanOhly/AirTrail/releases/latest)

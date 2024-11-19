@@ -19,7 +19,7 @@ download_files() {
   fi
 
   echo "Downloading docker-compose.yml..."
-  curl -fsSL https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker-compose.yml -o ./docker-compose.yml
+  curl -fsSL https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker/production/compose.yml -o ./docker-compose.yml
 
   echo "Downloading .env file..."
   curl -fsSL https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example -o ./.env
