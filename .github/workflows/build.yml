@@ -55,6 +55,7 @@ jobs:
         with:
           push: true
           context: .
+          file: ./docker/Dockerfile
           platforms: ${{ matrix.platforms }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
