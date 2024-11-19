@@ -25,9 +25,9 @@ COPY --from=prerelease /app/build build
 COPY --from=prerelease /app/package.json .
 COPY --from=prerelease /app/prisma ./prisma
 
-COPY docker-entrypoint.sh /app/bin/
-RUN chmod +x /app/bin/docker-entrypoint.sh
+COPY ./docker/entrypoint.sh /app/bin/
+RUN chmod +x /app/bin/entrypoint.sh
 
 USER bun
 EXPOSE 3000/tcp
-ENTRYPOINT [ "/app/bin/docker-entrypoint.sh" ]
+ENTRYPOINT [ "/app/bin/entrypoint.sh" ]

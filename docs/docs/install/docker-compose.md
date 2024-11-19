@@ -17,10 +17,10 @@ mkdir airtrail
 cd airtrail
 ```
 
-Download the [docker-compose.yml](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker-compose.yml) and [.env](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example) files.
+Download the [docker-compose.yml](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker/production/compose.yml) and [.env](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example) files.
 
 ```bash
-wget -O docker-compose.yml https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker-compose.yml
+wget -O docker-compose.yml https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker/production/compose.yml
 wget -O .env https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example
 ```
 
@@ -32,7 +32,7 @@ Note: If you download the files manually, the `.env.example` file should be rena
 
 - Set the `ORIGIN` variable to the domain name or IP address that the application will be accessed from.
 - Populate custom database information if necessary.
-- Consider changing DB_PASSWORD to a custom value. Postgres is not publically exposed, so this password is only used for
+- Consider changing DB_PASSWORD to a custom value. Postgres is not publicly exposed, so this password is only used for
   local authentication. To avoid issues with Docker parsing this value, it is best to use only the characters A-Za-z0-9.
 
 ### Step 3: Start the application

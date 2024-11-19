@@ -25,7 +25,7 @@ This will
 
 - create a new directory called `airtrail` in your current working directory
 - inside it, it will download
-  the [docker-compose.yml](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker-compose.yml)
+  the [docker-compose.yml](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker/production/compose.yml)
   and [.env](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example) files from the repository
 - start the AirTrail services using Docker Compose
 
