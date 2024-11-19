@@ -2,10 +2,30 @@
 
 We would love your help! We want to make contributing to this project as easy and transparent as possible.
 
-## Contribution recogniton
+## Topics
 
-We plan to use [All Contributors](https://allcontributors.org/docs/en/specification) specification to handle
-recognitions.
+- [Contributing to AirTrail](#contributing-to-airtrail)
+  - [Topics](#topics)
+  - [Running the project](#running-the-project)
+  - [Summary of the contribution flow](#summary-of-the-contribution-flow)
+  - [Code of Conduct](#code-of-conduct)
+  - [Our Development Process](#our-development-process)
+  - [Code Style](#code-style)
+  - [Issues](#issues)
+  - [Bug Reports and Feature Requests](#bug-reports-and-feature-requests)
+  - [Pull Requests](#pull-requests)
+  - [Conventional commits](#conventional-commits)
+  - [License](#license)
+  - [References](#references)
+
+## Running the project
+
+1. Clone the repository.
+2. Copy the `.env.example` file to `.env`.
+   - Change the `ORIGIN` variable to `http://localhost:5173`.
+   - Change `db` to `localhost` in the `DB_URL`.
+3. Run `bun d` to install dependencies, start the database, run the migrations and run the application.
+4. From now on, you can run `bun d` to run the application.
 
 ## Summary of the contribution flow
 
@@ -57,7 +77,7 @@ We use GitHub to host code, to track issues and feature requests, as well as acc
 
 ## Issues
 
-[Open an issue](https://github.com/JohanOhly/AirTrail/issues/new) **only** if you want to report a bug or a feature.
+[Open an issue](https://github.com/JohanOhly/AirTrail/issues/new/choose) **only** if you want to report a bug or a feature.
 Don't open issues for questions or support, instead join
 our [GitHub discussions](https://github.com/JohanOhly/AirTrail/discussions) and ask there.
 
@@ -67,8 +87,8 @@ Please use our issues templates that provide you with hints on what information 
 
 ## Pull Requests
 
-**Please, make sure you open an issue before starting with a Pull Request, unless it's a typo or a really obvious error.
-** Pull requests are the best way to propose changes to the specification. Take time to check the current working branch
+**Please, make sure you open an issue before starting with a Pull Request, unless it's a typo or a really obvious error.**
+Pull requests are the best way to propose changes to the specification. Take time to check the current working branch
 for the repository you want to contribute on before working :wink:
 
 ## Conventional commits
@@ -81,7 +101,7 @@ with the specification simply ask maintainers to modify. You can also use this c
 - `fix: ` prefix in the title indicates that PR is a bug fix.
 - `feat: ` prefix in the title indicates that PR is a feature.
 - `docs: ` prefix in the title indicates that PR is only related to the documentation.
-- `chore: ` prefix in the title indicates that PR is only related to cleanup in the project.
+- `chore: ` prefix in the title indicates that PR is only related to clean up in the project.
 - `test: ` prefix in the title indicates that PR is only related to tests.
 - `refactor: ` prefix in the title indicates that PR is only related to refactoring.
 
