@@ -2,6 +2,10 @@
 
 /build
 
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
 ### macOS ###
 # General
 .DS_Store

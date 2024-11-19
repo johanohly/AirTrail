@@ -11,13 +11,19 @@
     "dx": "bun i && bun run dx:up && bun run db:migrate-dev",
     "dx:up": "docker compose -f docker/development/compose.yml up -d --wait",
     "dx:down": "docker compose -f docker/development/compose.yml down",
+    "setup": "bun run dx && bun run db:seed && bun run dev",
     "lint": "prettier --check \"src/**/*.{js,ts,html,svelte,css}\" --ignore-path ./.prettierignore && eslint ./src",
     "format": "prettier --write \"src/**/*.{js,ts,html,svelte,css}\" --ignore-path ./.prettierignore && eslint ./src --fix",
-    "test": "vitest --run --passWithNoTests",
-    "test:watch": "vitest --watch --passWithNoTests",
+    "test:unit": "vitest --run --passWithNoTests",
+    "test:unit:watch": "vitest --watch --passWithNoTests",
+    "pretest:e2e": "bun scripts/other/confirm.js \"Are you sure you want to run e2e tests? This will reset your database (yes/no)\"",
+    "test:e2e": "bun run db:reset && bunx playwright test",
+    "test:e2e:results": "bunx playwright show-report",
     "coverage": "vitest --run --coverage --passWithNoTests",
-    "db:migrate-dev": "prisma migrate dev",
+    "db:migrate-dev": "prisma migrate dev --skip-seed",
     "db:migrate-deploy": "prisma migrate deploy",
+    "db:reset": "prisma migrate reset --force",
+    "db:seed": "prisma db seed",
     "db:push": "prisma db push"
   },
   "dependencies": {
@@ -69,6 +75,7 @@
     "@eslint/js": "^9.12.0",
     "@melt-ui/pp": "^0.3.2",
     "@melt-ui/svelte": "^0.86.0",
+    "@playwright/test": "^1.49.0",
     "@sveltejs/adapter-auto": "^3.2.5",
     "@sveltejs/adapter-node": "^5.2.5",
     "@sveltejs/kit": "^2.7.1",
@@ -104,5 +111,8 @@
     "typescript-eslint": "^8.8.0",
     "vite": "^5.4.8",
     "vitest": "^2.1.4"
+  },
+  "prisma": {
+    "seed": "bun ./prisma/seed"
   }
 }

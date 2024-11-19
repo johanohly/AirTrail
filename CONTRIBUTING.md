@@ -24,7 +24,7 @@ We would love your help! We want to make contributing to this project as easy an
 2. Copy the `.env.example` file to `.env`.
    - Change the `ORIGIN` variable to `http://localhost:5173`.
    - Change `db` to `localhost` in the `DB_URL`.
-3. Run `bun d` to install dependencies, start the database, run the migrations and run the application.
+3. Run `bun setup` to install dependencies, start the database, run the migrations and run the application.
 4. From now on, you can run `bun d` to run the application.
 
 ## Summary of the contribution flow

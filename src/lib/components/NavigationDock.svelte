@@ -43,6 +43,7 @@
   const settingsItem = {
     label: 'Settings',
     icon: Settings,
+    id: 'settings-button',
     onClick: () => {
       openModalsState.settings = true;
     },

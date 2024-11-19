@@ -5,6 +5,7 @@
   export let item: {
     label: string;
     icon: any;
+    id?: string;
     href?: string;
     onClick?: () => void;
   };
@@ -34,9 +35,11 @@
   {:else}
     <Tooltip.Root delayDuration={0}>
       <Tooltip.Trigger
+        id={item.id}
+        onclick={onClick}
         class="hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 transition-all duration-200 rounded-full p-3 mx-0"
       >
-        <svelte:component this={item.icon} onclick={onClick} />
+        <svelte:component this={item.icon} />
       </Tooltip.Trigger>
       <Tooltip.Content sideOffset={8}>
         <p>{item.label}</p>
