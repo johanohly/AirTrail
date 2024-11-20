@@ -1,8 +1,8 @@
 import { format } from 'date-fns';
 import { Kysely } from 'kysely';
 
+import { createFlightPrimitive } from '../../src/lib/db/queries';
 import type { DB } from '../../src/lib/db/schema';
-import { createFlightPrimitive } from '../../src/lib/server/utils/flight';
 
 export const seedFlight = async (db: Kysely<DB>, userId: string) => {
   await createFlightPrimitive(db, {
