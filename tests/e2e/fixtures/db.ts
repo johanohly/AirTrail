@@ -13,7 +13,7 @@ const db = new Kysely<DB>({
 });
 
 export const test = base.extend<{ db: Kysely<DB> }>({
-  db: async ({}, use) => {
+  db: async (_, use) => {
     await use(db);
   },
 });
