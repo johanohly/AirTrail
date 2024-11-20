@@ -1,4 +1,4 @@
-const readline = require('readline');
+import readline from 'readline';
 
 const args = process.argv.slice(2);
 const message = args[0] || 'Are you sure you want to proceed? (yes/no)';
