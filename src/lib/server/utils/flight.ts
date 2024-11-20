@@ -1,6 +1,8 @@
+import type { Kysely } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 
 import { db } from '$lib/db';
+import type { DB } from '$lib/db/schema';
 import type { CreateFlight } from '$lib/db/types';
 
 export const listFlights = async (userId: string) => {
@@ -44,6 +46,13 @@ export const getFlight = async (id: number) => {
 };
 
 export const createFlight = async (data: CreateFlight) => {
+  await createFlightPrimitive(db, data);
+};
+
+export const createFlightPrimitive = async (
+  db: Kysely<DB>,
+  data: CreateFlight,
+) => {
   await db.transaction().execute(async (trx) => {
     const { seats, ...flightData } = data;
     const resp = await trx
