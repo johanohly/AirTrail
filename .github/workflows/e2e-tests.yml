@@ -52,10 +52,10 @@ jobs:
         run: bunx playwright install --with-deps
 
       - name: Create the database
-        run: bun run prisma:migrate-dev
+        run: bun run db:migrate-dev
 
       - name: Seed the database
-        run: bun run prisma:seed
+        run: bun run db:seed
 
       - name: Run Playwright tests
         run: bun run test:e2e
