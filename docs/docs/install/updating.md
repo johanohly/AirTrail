@@ -58,5 +58,5 @@ Make sure you ran the database migrations after the initial installation as well
 :::
 
 ```bash title="Run the database migrations"
-bun run db:migrate
+bun run db:migrate-deploy
 ```
