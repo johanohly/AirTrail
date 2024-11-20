@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 
 import { signin } from '../fixtures/authentication';
+import { isPathname } from '../fixtures/url';
 
 test('no unauthorized access', async ({ page }) => {
   await page.goto('/');
-  const url = new URL(page.url());
-  expect(url.pathname).toBe('/login');
+  await page.waitForURL(isPathname('/login'));
 });
 
 test('can sign in', async ({ page }) => {

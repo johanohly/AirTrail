@@ -1,5 +1,6 @@
 import { SEED_USER } from '../../../prisma/seed/user';
 import { test } from '../fixtures/db';
+import { isPathname } from '../fixtures/url';
 
 test('can complete set up', async ({ page, db }) => {
   await db.deleteFrom('user').execute();
@@ -12,5 +13,10 @@ test('can complete set up', async ({ page, db }) => {
   await page.fill('input[name="displayName"]', SEED_USER.displayName);
   await page.click('button[type="submit"]');
 
-  await page.waitForURL((url) => url.pathname === '/');
+  await page.waitForURL(isPathname('/'));
+});
+
+test('cannot complete set up if user already exists', async ({ page }) => {
+  await page.goto('/setup');
+  await page.waitForURL(isPathname('/login'));
 });

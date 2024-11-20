@@ -4,7 +4,7 @@ import path from 'node:path';
 import { CamelCasePlugin, Kysely, PostgresDialect } from 'kysely';
 import pg from 'pg';
 
-import type { DB } from '../src/lib/db/schema';
+import type { DB } from '$lib/db/schema';
 
 const pool = new pg.Pool({ connectionString: process.env.DB_URL });
 const dialect = new PostgresDialect({ pool });

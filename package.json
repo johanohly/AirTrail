@@ -17,7 +17,7 @@
     "test:unit": "vitest --run --passWithNoTests",
     "test:unit:watch": "vitest --watch --passWithNoTests",
     "pretest:e2e": "bun scripts/other/confirm.js \"Are you sure you want to run e2e tests? This will reset your database (yes/no)\"",
-    "test:e2e": "bun run db:reset && bunx playwright test",
+    "test:e2e": "bun run db:reset && bunx playwright test && bun run db:reset",
     "test:e2e:results": "bunx playwright show-report",
     "coverage": "vitest --run --coverage --passWithNoTests",
     "db:migrate-dev": "prisma migrate dev --skip-seed",

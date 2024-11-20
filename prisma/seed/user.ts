@@ -13,12 +13,13 @@ export const SEED_USER = {
 } as const;
 
 export const seedUser = async (db: Kysely<DB>) => {
-  await db
+  return await db
     .insertInto('user')
     .values({
       ...SEED_USER,
       id: generateId(15),
       password: await hashPassword(SEED_USER.password),
     })
-    .execute();
+    .returning('id')
+    .executeTakeFirstOrThrow();
 };
