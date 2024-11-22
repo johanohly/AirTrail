@@ -7,6 +7,9 @@ on:
     branches: ['main']
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   e2e_tests:
     name: 'E2E Tests'
@@ -14,6 +17,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2
 
@@ -21,7 +29,7 @@ jobs:
         run: cp .env.example .env && sed -i 's/password@db/password@localhost/' .env
 
       - name: Cache dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@e12d46a63a90f2fae62d114769bbf2a179198b5c # v3.3.3
         id: cache-dependencies
         with:
           path: node_modules
@@ -39,7 +47,7 @@ jobs:
 
       - name: Cache playwright
         id: cache-playwright
-        uses: actions/cache@v3
+        uses: actions/cache@e12d46a63a90f2fae62d114769bbf2a179198b5c # v3.3.3
         with:
           path: |
             ~/.cache/ms-playwright
@@ -60,7 +68,7 @@ jobs:
       - name: Run Playwright tests
         run: bun run test:e2e
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         if: always()
         with:
           name: test-results
