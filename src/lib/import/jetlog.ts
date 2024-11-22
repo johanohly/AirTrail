@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { page } from '$app/stores';
 import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type { CreateFlight, Seat } from '$lib/db/types';
-import { parseCsv } from '$lib/utils';
+import { distanceBetween, parseCsv } from '$lib/utils';
 import { airlineFromIATA } from '$lib/utils/data/airlines';
 import { airportFromICAO } from '$lib/utils/data/airports';
 import { estimateFlightDuration, parseLocal, toUtc } from '$lib/utils/datetime';
@@ -115,8 +115,7 @@ export const processJetLogFile = async (
       departure && arrival
         ? differenceInSeconds(arrival, departure)
         : estimateFlightDuration(
-            { lng: from.lon, lat: from.lat },
-            { lng: to.lon, lat: to.lat },
+            distanceBetween([from.lat, from.lon], [to.lat, to.lon]) / 1000,
           );
 
     const seatClass =

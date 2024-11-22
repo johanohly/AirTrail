@@ -6,6 +6,7 @@ import { db } from '$lib/db';
 import type { CreateFlight } from '$lib/db/types';
 import {
   createFlight,
+  createManyFlights,
   deleteFlight,
   listFlights,
 } from '$lib/server/utils/flight';
@@ -102,40 +103,8 @@ export const flightRouter = router({
     }),
   createMany: authedProcedure
     .input(z.custom<CreateFlight[]>())
-    .mutation(async ({ ctx: { user }, input }) => {
-      await db.transaction().execute(async (trx) => {
-        const flights = await trx
-          .insertInto('flight')
-          .values(input.map(({ seats, ...rest }) => rest))
-          .returning('id')
-          .execute();
-
-        const seatData = flights.flatMap((flight, index) => {
-          const flightInput = input[index];
-
-          if (
-            flightInput &&
-            flightInput.seats &&
-            flightInput.seats.length > 0
-          ) {
-            return flightInput.seats.map((seat) => ({
-              flightId: flight.id,
-              userId: seat.userId || (seat.guestName ? null : user.id),
-              guestName: seat.guestName,
-              seat: seat.seat,
-              seatNumber: seat.seatNumber,
-              seatClass: seat.seatClass,
-            }));
-          } else {
-            return [];
-          }
-        });
-        if (seatData.length === 0) {
-          throw new Error('No seats provided');
-        }
-
-        return await trx.insertInto('seat').values(seatData).execute();
-      });
+    .mutation(async ({ input }) => {
+      await createManyFlights(input);
     }),
   exportJson: authedProcedure.query(async ({ ctx: { user } }) => {
     const users = await db
@@ -143,9 +112,9 @@ export const flightRouter = router({
       .select(['id', 'displayName', 'username'])
       .execute();
     const res = await listFlights(user.id);
-    const flights = res.map(({ id, ...flight }) => ({
+    const flights = res.map(({ id: _, ...flight }) => ({
       ...flight,
-      seats: flight.seats.map(({ id, flightId, ...seat }) => ({
+      seats: flight.seats.map(({ id: _, flightId: __, ...seat }) => ({
         ...seat,
       })),
     }));
@@ -160,7 +129,7 @@ export const flightRouter = router({
   }),
   exportCsv: authedProcedure.query(async ({ ctx: { user } }) => {
     const res = await listFlights(user.id);
-    const flights = res.map(({ id, seats, ...flight }) => {
+    const flights = res.map(({ id: _, seats, ...flight }) => {
       const seat = seats.find((seat) => seat.userId === user.id);
 
       return {

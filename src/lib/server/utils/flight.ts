@@ -1,6 +1,7 @@
 import { db } from '$lib/db';
 import {
   createFlightPrimitive,
+  createManyFlightsPrimitive,
   getFlightPrimitive,
   listFlightPrimitive,
   updateFlightPrimitive,
@@ -25,4 +26,8 @@ export const deleteFlight = async (id: number) => {
 
 export const updateFlight = async (id: number, data: CreateFlight) => {
   return await updateFlightPrimitive(db, id, data);
+};
+
+export const createManyFlights = async (data: CreateFlight[]) => {
+  await createManyFlightsPrimitive(db, data);
 };

@@ -4,6 +4,8 @@ import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import type { DB } from './schema';
 import type { CreateFlight } from './types';
 
+import { db } from '$lib/db/index';
+
 export const listFlightPrimitive = async (db: Kysely<DB>, userId: string) => {
   return await db
     .selectFrom('flight')
@@ -96,5 +98,37 @@ export const updateFlightPrimitive = async (
 
       await trx.insertInto('seat').values(seatData).executeTakeFirstOrThrow();
     }
+  });
+};
+
+export const createManyFlightsPrimitive = async (
+  db: Kysely<DB>,
+  data: CreateFlight[],
+) => {
+  await db.transaction().execute(async (trx) => {
+    const flights = await trx
+      .insertInto('flight')
+      .values(data.map(({ seats: _, ...rest }) => rest))
+      .returning('id')
+      .execute();
+
+    const seatData = flights.flatMap((flight, index) => {
+      const flightInput = data[index];
+
+      if (flightInput && flightInput.seats.length > 0) {
+        return flightInput.seats.map((seat) => ({
+          flightId: flight.id,
+          userId: seat.userId,
+          guestName: seat.guestName,
+          seat: seat.seat,
+          seatNumber: seat.seatNumber,
+          seatClass: seat.seatClass,
+        }));
+      }
+
+      return [];
+    });
+
+    await trx.insertInto('seat').values(seatData).execute();
   });
 };

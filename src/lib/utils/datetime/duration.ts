@@ -1,7 +1,3 @@
-import type { LngLatLike } from 'maplibre-gl';
-
-import { distanceBetween } from '$lib/utils';
-
 export class Duration {
   readonly days: number;
   readonly hours: number;
@@ -31,8 +27,7 @@ export class Duration {
   }
 }
 
-export const estimateFlightDuration = (from: LngLatLike, to: LngLatLike) => {
-  const distance = distanceBetween(from, to) / 1000;
+export const estimateFlightDuration = (distance: number) => {
   const durationHours = distance / 805 + 0.5; // 805 km/h is the average speed of a commercial jet, add 0.5 hours for takeoff and landing
   return Math.round(durationHours * 3600);
 };

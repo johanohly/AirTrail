@@ -10,6 +10,7 @@ import {
   getFlight,
   updateFlight,
 } from '$lib/server/utils/flight';
+import { distanceBetween } from '$lib/utils';
 import { airportFromICAO } from '$lib/utils/data/airports';
 import {
   estimateFlightDuration,
@@ -108,7 +109,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     // if the airports are the same, the duration can't be calculated
     const fromLonLat = { lon: fromAirport.lon, lat: fromAirport.lat };
     const toLonLat = { lon: toAirport.lon, lat: toAirport.lat };
-    duration = estimateFlightDuration(fromLonLat, toLonLat);
+    duration = estimateFlightDuration(
+      distanceBetween(fromLonLat, toLonLat) / 1000,
+    );
   }
 
   const { flightNumber, aircraft, aircraftReg, airline, flightReason, note } =
