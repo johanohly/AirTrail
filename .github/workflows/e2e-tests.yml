@@ -1,0 +1,68 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
+  workflow_dispatch:
+
+jobs:
+  e2e_tests:
+    name: 'E2E Tests'
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2
+
+      - name: Set up env
+        run: cp .env.example .env && sed -i 's/password@db/password@localhost/' .env
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        id: cache-dependencies
+        with:
+          path: node_modules
+          key: packages-${{ hashFiles('bun.lockb') }}
+
+      - name: Install dependencies
+        if: steps.cache-dependencies.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Build the app
+        run: bun run build
+
+      - name: Start Services
+        run: bun run dx:up
+
+      - name: Cache playwright
+        id: cache-playwright
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ${{ github.workspace }}/node_modules/playwright
+          key: playwright-${{ hashFiles('bun.lockb') }}
+          restore-keys: playwright-
+
+      - name: Install playwright
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
+        run: bunx playwright install --with-deps
+
+      - name: Create the database
+        run: bun run db:migrate-dev
+
+      - name: Seed the database
+        run: bun run db:seed
+
+      - name: Run Playwright tests
+        run: bun run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: '${{github.workspace}}/test-results/*'
+          retention-days: 30

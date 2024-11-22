@@ -24,7 +24,7 @@ We would love your help! We want to make contributing to this project as easy an
 2. Copy the `.env.example` file to `.env`.
    - Change the `ORIGIN` variable to `http://localhost:5173`.
    - Change `db` to `localhost` in the `DB_URL`.
-3. Run `bun d` to install dependencies, start the database, run the migrations and run the application.
+3. Run `bun setup` to install dependencies, start the database, run the migrations and run the application.
 4. From now on, you can run `bun d` to run the application.
 
 ## Summary of the contribution flow
@@ -88,12 +88,14 @@ Please use our issues templates that provide you with hints on what information 
 ## Pull Requests
 
 **Please, make sure you open an issue before starting with a Pull Request, unless it's a typo or a really obvious error.**
-Pull requests are the best way to propose changes to the specification. Take time to check the current working branch
-for the repository you want to contribute on before working :wink:
+Pull requests are the best way to propose changes to the specification. Take time to check the current working branch before working :wink:
+
+Ensure that your code follows the code style and that you have run the tests before submitting a pull request. If you
+are adding a new feature, make sure to add tests for it.
 
 ## Conventional commits
 
-Our repositories follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#summary) specification.
+Our repository follows [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#summary) specification.
 
 Pull requests should have a title that follows the specification, otherwise, merging is blocked. If you are not familiar
 with the specification simply ask maintainers to modify. You can also use this cheatsheet if you want:

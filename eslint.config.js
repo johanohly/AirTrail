@@ -18,6 +18,7 @@ export default ts.config(
       globals: {
         ...globals.browser,
         ...globals.es2017,
+        process: true,
       },
     },
   },
