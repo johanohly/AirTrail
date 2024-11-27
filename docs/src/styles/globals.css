@@ -37,7 +37,7 @@ header {
 }
 
 @layer base {
-  :root {
+  :root[data-theme='light'] {
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
@@ -64,7 +64,7 @@ header {
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
   }
-  :root[data-theme='dark'] {
+  :root {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
     --card: 240 10% 3.9%;
@@ -89,35 +89,5 @@ header {
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-  }
-
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
-  }
-
-  blockquote,
-  dl,
-  dd,
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6,
-  hr,
-  figure,
-  p,
-  pre {
-    margin: 0;
-  }
-
-  *,
-  ::before,
-  ::after {
-    border-width: 0;
-    border-style: solid;
-    border-color: theme('borderColor.DEFAULT', currentColor);
   }
 }

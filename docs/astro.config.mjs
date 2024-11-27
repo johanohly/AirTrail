@@ -14,7 +14,8 @@ export default defineConfig({
       title: 'AirTrail',
       description: 'A modern, open-source personal flight tracking system',
       logo: {
-        src: '@/assets/airtrail-logo.png',
+        dark: '@/assets/airtrail-logo-light.png',
+        light: '@/assets/airtrail-logo.png',
       },
       customCss: ['@/styles/globals.css'],
       social: {
@@ -66,6 +67,10 @@ export default defineConfig({
         starlightLinksValidator({ errorOnRelativeLinks: false }),
         starlightImageZoom(),
       ],
+      components: {
+        SocialIcons: '@/components/overrides/SocialIcons.astro',
+        Banner: '@/components/overrides/Banner.astro',
+      },
       disable404Route: true,
     }),
     react(),
