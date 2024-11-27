@@ -1,0 +1,69 @@
+---
+title: Docker Compose
+prev:
+  label: Requirements
+  link: /docs/install/requirements
+next:
+  label: Post Installation
+  link: /docs/install/post-installation
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+import Link from '@/components/Link.jsx';
+
+The easiest way to install AirTrail is to use Docker Compose.
+Below are the steps to get started.
+AirTrail requires Docker Compose version 2.x or higher.
+
+<Steps>
+  1. **Download the required files**
+
+      Create a new directory to hold the `docker-compose.yml` and `.env` files.
+
+      ```bash
+      mkdir airtrail
+      cd airtrail
+      ```
+
+      Download the <Link href={'https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker/production/compose.yml'}>docker-compose.yml</Link> and <Link href={'https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example'}>.env</Link> files.
+
+      ```bash
+      wget -O docker-compose.yml https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker/production/compose.yml
+      wget -O .env https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example
+      ```
+
+      or download the files manually from the repository.
+
+      Note: If you download the files manually, the `.env.example` file should be renamed to `.env`.
+
+2. **Configure the environment variables**
+
+   - Set the `ORIGIN` variable to the domain name or IP address that the application will be accessed from.
+   - Populate custom database information if necessary.
+   - Consider changing DB_PASSWORD to a custom value. Postgres is not publicly exposed, so this password is only used for
+     local authentication. To avoid issues with Docker parsing this value, it is best to use only the characters A-Za-z0-9.
+
+3. **Start the application**
+
+   From the directory where the `docker-compose.yml` amd `.env` files are located, run the following command:
+
+   ```bash
+   docker compose up -d
+   ```
+
+   :::note[Docker version]
+   If you get an error `unknown shorthand flag: 'd' in -d`, you are probably running the wrong Docker version. (This
+   happens, for example, with the docker.io package in Ubuntu 22.04.3 LTS.) You can correct the problem by `apt remove`
+   ing
+   Ubuntu's docker.io package and installing docker and docker-compose
+   via <Link href={'https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository'}>Docker's official repository</Link>.
+
+   Note that the correct command really is `docker compose`, not `docker-compose`.
+   :::
+
+</Steps>
+
+### Updating
+
+See the [Updating](/docs/install/updating) guide for instructions on how to upgrade to a new version of AirTrail.

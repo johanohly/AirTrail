@@ -1,0 +1,134 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import {
+  CardGrid,
+  Card,
+  Code,
+  LinkCard,
+  Steps,
+} from '@astrojs/starlight/components';
+
+import HeroImageLight from '@/assets/light.png';
+import HeroImageDark from '@/assets/dark.png';
+
+import ThemedImage from '@/components/ThemedImage.astro';
+import Aurora from '@/components/Aurora.astro';
+import Link from '@/components/Link.jsx';
+---
+
+<StarlightPage
+  frontmatter={{
+    title: 'Welcome to AirTrail',
+    description: 'A modern, open-source personal flight tracking system',
+    template: 'splash',
+    hero: {
+      title: 'Welcome to AirTrail',
+      tagline: 'A modern, open-source personal flight tracking system',
+      actions: [
+        {
+          text: 'Get Started',
+          link: '/docs/overview/quick-start',
+        },
+        {
+          text: 'GitHub',
+          link: 'https://github.com/johanohly/AirTrail',
+          variant: 'secondary',
+        },
+      ],
+    },
+  }}
+>
+  <Aurora bands={40} />
+  <ThemedImage
+    light={HeroImageLight}
+    dark={HeroImageDark}
+    alt="Welcome to AirTrail"
+  />
+  <div class="!mt-16">
+    <CardGrid stagger>
+      <Card title="World Map" icon="star">
+        View all your flights on an interactive world map.
+      </Card>
+      <Card title="Flight History" icon="seti:clock">
+        Keep track of all your flights in one place.
+      </Card>
+      <Card title="Statistics" icon="seti:plan">
+        Get insights into your flight history with statistics.
+      </Card>
+      <Card title="Dark Mode" icon="moon">
+        Switch between light and dark mode.
+      </Card>
+      <Card title="Multiple Users" icon="heart">
+        Manage multiple users, share flights among them, secure your data with
+        user authentication and integrate with your OAuth provider.
+      </Card>
+      <Card title="Import Flights" icon="rocket">
+        Import flights from various sources including MyFlightRadar24, App in
+        the Air and JetLog
+      </Card>
+      <Card title="Responsive Design" icon="laptop">
+        Use the application on any device with a responsive design.
+      </Card>
+    </CardGrid>
+  </div>
+
+  <h2>Install and get started now</h2>
+  <Steps>
+    <ol>
+      <li>
+        <b>Run the installation script</b>
+        <p class="text-sm text-muted-foreground">
+          The installation script only works on Linux systems with Docker
+          preinstalled.
+        </p>
+        <br />
+        <Code
+          code="bash <(curl -o- https://raw.githubusercontent.com/JohanOhly/AirTrail/main/scripts/install.sh)"
+          lang="bash"
+        />
+      </li>
+      <li>
+        <b>Visit your new AirTrail instance!</b>
+        <p>
+          AirTrail will be available at <Link href="http://localhost:3000"
+            >localhost:3000</Link
+          > locally, or at the address you specified during installation.
+        </p>
+      </li>
+      <li>
+        <b>Follow the post-installation guide</b>
+        <LinkCard
+          title="Post-installation guide"
+          href="/docs/install/post-installation"
+        />
+      </li>
+    </ol>
+  </Steps>
+
+  <div class="!mt-4 !space-y-2">
+    <p>
+      If you are on an unsupported platform, or you prefer to do things
+      yourself, you can follow the Docker Compose guide, which goes through the
+      same steps as the installation script, but manually.
+    </p>
+
+    <CardGrid>
+      <LinkCard
+        title="Docker Compose"
+        description="Get started in minutes using Docker Compose"
+        href="/docs/install/docker-compose"
+      />
+      <LinkCard
+        title="Other"
+        description="See all installation guides"
+        href="/docs/overview/quick-start"
+      />
+    </CardGrid>
+  </div>
+</StarlightPage>
+
+<style>
+  html:not([data-has-sidebar]) {
+    --sl-content-width: 80rem;
+  }
+</style>
