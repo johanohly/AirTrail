@@ -23,13 +23,25 @@ const releases = z
   .parse(body);
 ---
 
-<StarlightPage frontmatter={{ title: 'Changelog', description: 'Stay up to date with the latest changes to AirTrail!', template: 'splash' }}>
+<StarlightPage
+  frontmatter={{
+    title: 'Changelog',
+    description: 'Stay up to date with the latest changes to AirTrail!',
+    template: 'splash',
+  }}
+>
   {
     releases.map((release) => (
-      <section class={`relative flex flex-col ${release.name !== releases[0].name && 'border-t pt-28 !mt-28'}`}>
-        <p class="text-muted-foreground">{formatter.format(release.published_at)}</p>
-          <h1 class="text-3xl font-bold !m-0">{release.name}</h1>
-          <Fragment set:html={marked(release.body.replaceAll("What's Changed", ""))} />
+      <section
+        class={`relative flex flex-col ${release.name !== releases[0].name && 'border-t pt-28 !mt-28'}`}
+      >
+        <p class="text-muted-foreground">
+          {formatter.format(release.published_at)}
+        </p>
+        <h1 class="text-3xl font-bold !m-0">{release.name}</h1>
+        <Fragment
+          set:html={marked(release.body.replaceAll("What's Changed", ''))}
+        />
       </section>
     ))
   }

@@ -1,0 +1,25 @@
+---
+import { z } from 'astro:schema';
+import { ExternalLink } from 'lucide-react';
+
+const props = z.object({
+  href: z.string(),
+  target: z.string().default('_blank'),
+});
+
+const { href, target } = props.parse(Astro.props);
+---
+
+<a
+  {href}
+  {target}
+  rel={target === '_blank' ? 'noopener noreferrer' : undefined}
+  class="inline-flex align-middle gap-1"
+>
+  {
+    target === '_blank' && (
+      <ExternalLink size={12} style={{ verticalAlign: 'middle' }} />
+    )
+  }
+  <slot />
+</a>
