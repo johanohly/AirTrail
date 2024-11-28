@@ -26,9 +26,6 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2
 
-      - name: Remove broken postcss.config.mjs
-        run: rm -f /home/runner/work/AirTrail/AirTrail/postcss.config.mjs
-
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Build website
@@ -37,13 +34,12 @@ jobs:
       - name: Upload Build Artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
-          path: docs/build/
+          path: docs/dist/
 
   deploy:
     name: Deploy to GitHub Pages
     needs: build
 
-    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
     permissions:
       pages: write # to deploy to Pages
       id-token: write # to verify the deployment originates from an appropriate source
