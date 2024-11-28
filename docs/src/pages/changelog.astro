@@ -1,0 +1,48 @@
+---
+import { z } from 'astro:schema';
+import { marked } from 'marked';
+
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+
+const formatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'long',
+});
+
+const resp = await fetch(
+  'https://api.github.com/repos/johanohly/AirTrail/releases',
+);
+const body = await resp.json();
+const releases = z
+  .object({
+    name: z.string(),
+    body: z.string(),
+    html_url: z.string(),
+    published_at: z.coerce.date(),
+  })
+  .array()
+  .parse(body);
+---
+
+<StarlightPage
+  frontmatter={{
+    title: 'Changelog',
+    description: 'Stay up to date with the latest changes to AirTrail!',
+    template: 'splash',
+  }}
+>
+  {
+    releases.map((release) => (
+      <section
+        class={`relative flex flex-col ${release.name !== releases[0].name && 'border-t pt-28 !mt-28'}`}
+      >
+        <p class="text-muted-foreground">
+          {formatter.format(release.published_at)}
+        </p>
+        <h1 class="text-3xl font-bold !m-0">{release.name}</h1>
+        <Fragment
+          set:html={marked(release.body.replaceAll("What's Changed", ''))}
+        />
+      </section>
+    ))
+  }
+</StarlightPage>

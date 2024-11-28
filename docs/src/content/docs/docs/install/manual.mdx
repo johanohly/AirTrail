@@ -1,0 +1,55 @@
+---
+title: Manual Installation
+---
+
+import Link from '@/components/Link.astro';
+
+:::note
+This guide is for advanced users who want to install the app manually. If you are not comfortable with the command line,
+we recommend using the <Link href={'/docs/install/one-click'}>one-click installer</Link>.
+:::
+
+## Requirements
+
+- <Link href={'https://git-scm.com/'}>Git</Link>
+- <Link href={'https://nodejs.org/'}>Node.js</Link>
+- <Link href={'https://bun.sh/'}>Bun</Link>
+- <Link href={'https://www.postgresql.org/'}>PostgreSQL</Link>
+
+## Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/JohanOhly/AirTrail.git
+cd AirTrail
+```
+
+2. Install the dependencies:
+
+```bash
+bun install
+```
+
+3. Configure the environment variables:
+
+```bash
+cp .env.example .env
+```
+
+Fill in the required environment variables in the `.env` file.
+
+4. Build and set up the database:
+
+```bash
+bun run build
+bun run db:migrate-deploy
+```
+
+5. Start the server:
+
+```bash
+bun ./build
+```
+
+The app should now be running on <Link href={'http://localhost:3000'}>localhost:3000</Link>.

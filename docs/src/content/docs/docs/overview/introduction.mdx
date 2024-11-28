@@ -1,0 +1,20 @@
+---
+title: Introduction
+---
+
+import { Image } from 'astro:assets';
+
+import DarkImage from '@/assets/dark.png';
+import LightImage from '@/assets/light.png';
+
+<Image src={LightImage} alt="AirTrail screenshot" class="dark:sl-hidden" />
+<Image src={DarkImage} alt="AirTrail screenshot" class="light:sl-hidden" />
+
+## Welcome
+
+Welcome to the AirTrail documentation!
+
+AirTrail is a self-hosted, open-source personal flight tracking system.
+The objective is to provide a simple and easy-to-use interface to track your flights, list them all and provide a way to analyze them.
+
+To get started, you can follow the [Quick Start](/docs/overview/quick-start) guide.

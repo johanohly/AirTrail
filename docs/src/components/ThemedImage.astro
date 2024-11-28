@@ -1,0 +1,15 @@
+---
+import { Image } from 'astro:assets';
+import { z } from 'astro:schema';
+
+const props = z.object({
+  light: z.any(),
+  dark: z.any(),
+  alt: z.string(),
+});
+
+const { light, dark, alt } = props.parse(Astro.props);
+---
+
+<Image src={light} {alt} class="dark:sl-hidden" />
+<Image src={dark} {alt} class="light:sl-hidden" />
