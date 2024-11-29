@@ -5,7 +5,7 @@ import { zod } from 'sveltekit-superforms/adapters';
 import type { RequestHandler } from './$types';
 
 import { createUser, usernameExists } from '$lib/server/utils/auth';
-import { generateHash } from '$lib/server/utils/hash';
+import { hashArgon2 } from '$lib/server/utils/hash';
 import { addUserSchema } from '$lib/zod/user';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
@@ -29,7 +29,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   }
 
   const userId = generateId(15);
-  const passwordHash = await generateHash(password);
+  const passwordHash = await hashArgon2(password);
 
   const success = await createUser(
     userId,

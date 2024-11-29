@@ -4,7 +4,7 @@ import { zod } from 'sveltekit-superforms/adapters';
 import type { RequestHandler } from './$types';
 
 import { db } from '$lib/db';
-import { generateHash, verifyHash } from '$lib/server/utils/hash';
+import { hashArgon2, verifyArgon2} from '$lib/server/utils/hash';
 import { editPasswordSchema } from '$lib/zod/user';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
@@ -21,13 +21,13 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   }
 
   const { currentPassword, newPassword } = form.data;
-  const valid = await verifyHash(user.password, currentPassword);
+  const valid = await verifyArgon2(user.password, currentPassword);
   if (!valid) {
     setError(form, 'currentPassword', 'Invalid password');
     return actionResult('failure', { form });
   }
 
-  const passwordHash = await generateHash(newPassword);
+  const passwordHash = await hashArgon2(newPassword);
 
   const resp = await db
     .updateTable('user')

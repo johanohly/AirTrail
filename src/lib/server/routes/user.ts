@@ -69,4 +69,14 @@ export const userRouter = router({
     .mutation(async ({ ctx, input }) => {
       return await createApiKey(ctx.user.id, input);
     }),
+  deleteApiKey: authedProcedure
+    .input(z.number())
+    .mutation(async ({ ctx, input }) => {
+      const result = await db
+        .deleteFrom('apiKey')
+        .where('id', '=', input)
+        .where('userId', '=', ctx.user.id)
+        .executeTakeFirst();
+      return result.numDeletedRows > 0;
+    }),
 });

@@ -3,7 +3,7 @@
   import { toast } from 'svelte-sonner';
 
   import { Button } from '$lib/components/ui/button';
-  import { Input } from '$lib/components/ui/input';
+  import { CopyInput, Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import { Modal } from '$lib/components/ui/modal';
   import type { ApiKey } from '$lib/db/types';
@@ -33,24 +33,42 @@
 
     toast.success('API key created');
   };
+
+  $effect(() => {
+    if (!open) {
+      name = '';
+      key = '';
+    }
+  });
 </script>
 
 <Button variant="outline" onclick={() => (open = true)}>Create</Button>
 
 <Modal bind:open dialogOnly>
-  <h1>Create API Key</h1>
   {#if !key}
+    <h1>Create API Key</h1>
     <Label>Name</Label>
     <Input bind:value={name} />
-    <Button onclick={create} disabled={loading} class="mt-1">
+    <Button onclick={create} disabled={loading} class="mt-1 gap-2">
       {#if loading}
-        <LoaderCircle />
+        <LoaderCircle size={16} />
       {/if}
       Create
     </Button>
   {:else}
-    <Label>API Key</Label>
-    <Input value={key} readonly />
-    <Button onclick={() => (open = false)} class="mt-1">Got it</Button>
+    <div>
+      <h1 class="font-medium">Your API Key</h1>
+      <p class="text-sm text-muted-foreground">
+        Your API key has been created. Please copy it and store it in a safe
+        place, as you won't be able to see it again.
+      </p>
+    </div>
+    <CopyInput value={key} />
+    <Button
+      onclick={() => {
+        open = false;
+      }}
+      class="mt-1">Got it</Button
+    >
   {/if}
 </Modal>
