@@ -10,7 +10,7 @@ import {
   createUser,
   usernameExists,
 } from '$lib/server/utils/auth';
-import { hashPassword } from '$lib/server/utils/password';
+import { generateHash } from '$lib/server/utils/hash';
 import { signUpSchema } from '$lib/zod/auth';
 
 export const POST: RequestHandler = async ({ cookies, request }) => {
@@ -26,7 +26,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
   }
 
   const userId = generateId(15);
-  const hashedPassword = await hashPassword(password);
+  const hashedPassword = await generateHash(password);
 
   // Always create the first user as the owner
   const success = await createUser(

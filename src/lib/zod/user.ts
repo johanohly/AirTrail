@@ -41,3 +41,7 @@ export const editPasswordSchema = z
   });
 
 export const addUserSchema = userSchema;
+
+export const createApiKeySchema = z.object({
+  name: z.string(),
+});

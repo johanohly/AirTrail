@@ -32,6 +32,7 @@ model user {
   sessions          session[]
   seats             seat[]
   visited_countries visited_country[]
+  api_keys          api_key[]
 }
 
 model flight {
@@ -98,4 +99,15 @@ model session {
   expires_at DateTime @db.Timestamptz
   user_id    String
   user       user     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model api_key {
+  id         Int       @id @default(autoincrement())
+  name       String
+  user_id    String
+  key        String
+  created_at DateTime  @default(now()) @db.Timestamptz
+  last_used  DateTime? @db.Timestamptz
+
+  user user @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
