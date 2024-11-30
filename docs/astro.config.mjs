@@ -10,6 +10,7 @@ import starlightOpenAPI, { openAPISidebarGroups } from 'starlight-openapi';
 // https://astro.build/config
 export default defineConfig({
   site: 'https://airtrail.johan.ohly.dk',
+  prefetch: true,
   integrations: [
     starlight({
       title: 'AirTrail',
@@ -18,7 +19,11 @@ export default defineConfig({
         dark: '@/assets/airtrail-logo-light.png',
         light: '@/assets/airtrail-logo.png',
       },
-      customCss: ['@/styles/globals.css'],
+      customCss: [
+        '@/styles/globals.css',
+        '@fontsource/jetbrains-mono',
+        '@fontsource-variable/inter',
+      ],
       social: {
         github: 'https://github.com/johanohly/AirTrail',
       },
@@ -54,7 +59,16 @@ export default defineConfig({
             'docs/features/oauth',
           ],
         },
-        ...openAPISidebarGroups,
+        {
+          label: 'API',
+          collapsed: true,
+          items: [
+            {
+              label: '[POST] Create or update flight',
+              link: '/api/operations/save-flight',
+            },
+          ],
+        },
         {
           label: 'Development',
           collapsed: true,
@@ -79,6 +93,10 @@ export default defineConfig({
         ]),
       ],
       components: {
+        Sidebar: '@/components/overrides/Sidebar.astro',
+        TwoColumnContent: '@/components/overrides/TwoColumnContent.astro',
+        ContentPanel: '@/components/overrides/ContentPanel.astro',
+        Footer: '@/components/overrides/Footer.astro',
         SocialIcons: '@/components/overrides/SocialIcons.astro',
         Banner: '@/components/overrides/Banner.astro',
       },

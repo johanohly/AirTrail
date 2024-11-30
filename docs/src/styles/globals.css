@@ -3,6 +3,8 @@
 @tailwind utilities;
 
 :root {
+  --astro-code-color-background: #1e293b;
+  --sl-color-gray-6: #1e293b;
   --sl-color-bg-sidebar: transparent;
   --top-gradient-bg: hsla(220, 90%, 15%, 0.4);
   --hero-gradient-bg: hsla(200, 85%, 50%, 0.3);
@@ -31,9 +33,137 @@ header {
     backdrop-filter: blur(2rem) !important;
   }
 
-  .right-sidebar {
-    border-inline-start-color: transparent;
+@media (min-width: 50rem) {
+  .right-sidebar nav {
+    background-color: transparent !important;
   }
+}}
+
+[aria-current] .trace {
+  @apply bg-white text-gray-600 !important;
+}
+.trace {
+  @apply bg-gray-500 dark:bg-gray-500/40 text-white;
+}
+
+[aria-current] .head {
+  @apply bg-purple-500 text-white !important;
+}
+.head {
+  @apply bg-purple-400/20 text-purple-500 dark:text-purple-400;
+}
+
+[aria-current] .options {
+  @apply bg-blue-500 text-white !important;
+}
+.options {
+  @apply bg-blue-400/20 text-blue-500 dark:text-blue-400;
+}
+
+[aria-current] .post {
+  @apply bg-green-600 text-white !important;
+}
+.post {
+  @apply bg-green-400/20 text-green-600 dark:text-green-400;
+}
+
+[aria-current] .delete {
+  @apply bg-red-500 text-white !important;
+}
+.delete {
+  @apply bg-red-400/20 text-red-500 dark:text-red-400;
+}
+
+[aria-current] .patch {
+  @apply bg-teal-600 text-white !important;
+}
+.patch {
+  @apply bg-teal-400/20 text-teal-600 dark:text-teal-400;
+}
+
+[aria-current] .put {
+  @apply bg-orange-500 text-white !important;
+}
+.put {
+  @apply bg-orange-400/20 text-orange-500 dark:text-orange-400;
+}
+
+[aria-current] .get {
+  @apply bg-blue-500 text-white !important;
+}
+.get {
+  @apply bg-blue-400/20 text-blue-500 dark:text-blue-400;
+}
+
+.method {
+  @apply rounded-md border-0 font-sans font-bold !important;
+}
+
+.operation-description-urls {
+  @apply rounded-lg;
+}
+
+details[open].operation-description-urls summary {
+  border-color: var(--sl-color-gray-5);
+  @apply border-b;
+}
+
+.expressive-code pre {
+  @apply bg-slate-700/50 rounded-b-lg px-1 text-foreground !important;
+}
+
+.expressive-code figcaption {
+  @apply rounded-t-lg !important;
+}
+
+.operation-description-urls input {
+  @apply bg-slate-700/50 rounded-lg px-3 py-1.5 text-foreground;
+}
+
+.panel {
+  @apply rounded-lg text-sm leading-7 font-mono font-light;
+}
+
+.panel select {
+  @apply bg-slate-700/50 rounded-lg px-3 py-1.5 text-foreground;
+}
+
+.required {
+  @apply text-red-600 dark:text-red-400 pl-1 !important;
+}
+
+.starlight-aside__title {
+  @apply text-sm;
+}
+
+.starlight-aside {
+  @apply rounded-lg border-l-0 pl-5;
+}
+
+.starlight-aside__title + .starlight-aside__content {
+  @apply mt-1;
+}
+
+section:has(> .panel) {
+  @apply mb-16 mt-8 !important;
+}
+
+#request-body,
+#parameters,
+#responses {
+  @apply text-2xl;
+}
+
+#path-parameters,
+#query-parameters,
+[id='200'],
+[id='302'],
+[id='401'] {
+  @apply text-lg !important;
+}
+
+#headers {
+  @apply text-base !important;
 }
 
 @layer base {
@@ -44,7 +174,7 @@ header {
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
+    --primary: 221.21 83.19% 53.33%;
     --primary-foreground: 0 0% 98%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
@@ -71,7 +201,7 @@ header {
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
+    --primary: 211.7 96.36% 78.43%;
     --primary-foreground: 240 5.9% 10%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
@@ -84,6 +214,7 @@ header {
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 240 4.9% 83.9%;
+    --radius: 0.5rem;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;

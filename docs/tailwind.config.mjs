@@ -5,6 +5,10 @@ import animate from 'tailwindcss-animate';
 export default {
   content: ['./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}'],
   theme: {
+    fontFamily: {
+      mono: ['JetBrains Mono', 'monospace'],
+      sans: ['Inter Variable', 'sans-serif'],
+    },
     extend: {
       colors: {
         accent: {

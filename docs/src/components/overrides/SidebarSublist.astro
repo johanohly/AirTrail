@@ -1,0 +1,212 @@
+---
+import { Icon } from '@astrojs/starlight/components';
+import { flattenSidebar, type SidebarEntry } from '@/lib/navigation';
+import Badge from './Badge.astro';
+
+interface Props {
+  sublist: SidebarEntry[];
+  nested?: number;
+}
+
+const { sublist: rawSublist, nested = 0 } = Astro.props;
+const validMethods = [
+  'GET',
+  'POST',
+  'PUT',
+  'PATCH',
+  'DELETE',
+  'OPTIONS',
+  'HEAD',
+  'TRACE',
+];
+
+function isExternal(href: string) {
+  return href.startsWith('http') || href.startsWith('//');
+}
+
+const sublist = rawSublist.map((entry) => {
+  if (entry.type === 'group') return entry;
+
+  const method = validMethods.find((m) => entry.label.startsWith(`[${m}]`));
+  const shortMethod = method === 'OPTIONS' ? 'OPTNS' : method;
+  const external = isExternal(entry.href);
+
+  const icon = method
+    ? undefined
+    : entry.label.match(/^\[.*?\]/)?.[0].replace(/[\[\]]/g, '');
+  const iconSize = icon?.match(/\((.*?)\)/)?.[1] || '1rem';
+  const iconName = icon?.replace(/\(.*?\)/, '');
+
+  return {
+    ...entry,
+    method,
+    shortMethod: shortMethod,
+    label: entry.label.replace(/^\[.*?\]\s*/, ''),
+    external,
+    iconName,
+    iconSize,
+  };
+});
+---
+
+<ul>
+  {
+    sublist.map((entry) => (
+      <li>
+        {entry.type === 'link' ? (
+          entry.iconName ? (
+            <a
+              href={entry.href}
+              data-astro-prefetch
+              class:list={[
+                'flex items-center gap-2 px-4 text-sm py-2 rounded-lg no-underline group hover:text-foreground',
+                entry.isCurrent ? 'text-white' : 'text-foreground/70',
+                entry.attrs.class,
+              ]}
+              {...entry.attrs}
+            >
+              <div
+                class:list={[
+                  'size-7 rounded-lg grid place-items-center',
+                  'group-hover:from-blue-700 group-hover:to-blue-500 group-hover:bg-gradient-to-br group-hover:text-white group-hover:border-0',
+                  entry.isCurrent
+                    ? 'from-blue-700 to-blue-500 bg-gradient-to-br text-white'
+                    : 'bg-muted/50 border text-muted-foreground',
+                ]}
+              >
+                <Icon name={entry.iconName as any} size={entry.iconSize} />
+              </div>
+              <span>{entry.label}</span>
+              {entry.badge && (
+                <>
+                  <Badge
+                    text={entry.badge.text}
+                    variant={entry.isCurrent ? 'outline' : entry.badge.variant}
+                  />
+                </>
+              )}
+            </a>
+          ) : (
+            <a
+              href={entry.href}
+              data-astro-prefetch
+              aria-current={entry.isCurrent && 'page'}
+              class:list={[
+                'flex gap-1 px-4 text-sm py-2 rounded-lg no-underline',
+                entry.isCurrent
+                  ? 'font-semibold text-primary bg-primary/15'
+                  : 'hover:bg-muted-foreground/10 text-foreground/70',
+                entry.attrs.class,
+              ]}
+              style={{
+                paddingLeft: nested ? `${nested * 1}rem` : '',
+              }}
+              {...entry.attrs}
+            >
+              {entry.method && (
+                <div class="w-11 flex-shrink-0 -mt-px">
+                  <span
+                    class:list={[
+                      'px-1 py-0.5 rounded-[0.3rem] text-[0.55rem] leading-tight font-bold text-white whitespace-nowrap',
+                      entry.method.toLowerCase(),
+                    ]}
+                  >
+                    {entry.shortMethod}
+                  </span>
+                </div>
+              )}
+              <span>{entry.label}</span>
+              {entry.badge && (
+                <>
+                  <Badge
+                    text={entry.badge.text}
+                    variant={entry.isCurrent ? 'outline' : entry.badge.variant}
+                  />
+                </>
+              )}
+            </a>
+          )
+        ) : (
+          <details
+            open={
+              flattenSidebar(entry.entries).some((i) => i.isCurrent) ||
+              !entry.collapsed
+            }
+            class:list={[!nested && 'my-6']}
+          >
+            {nested ? (
+              <summary
+                class:list={[
+                  'flex px-4 gap-1 text-sm py-2 items-center rounded-lg no-underline hover:bg-muted/50 text-foreground/70 cursor-pointer',
+                ]}
+              >
+                <div>
+                  <span>{entry.label}</span>
+                  {entry.badge && (
+                    <>
+                      {' '}
+                      <Badge
+                        text={entry.badge.text}
+                        variant={entry.badge.variant}
+                      />
+                    </>
+                  )}
+                </div>
+                <Icon name="right-caret" class="caret" size="1.125rem" />
+              </summary>
+            ) : (
+              <summary class="flex items-center justify-between px-4 py-1 rounded-lg cursor-pointer font-bold text-sm pb-2 text-foreground">
+                <div>
+                  <span>{entry.label}</span>
+                  {entry.badge && (
+                    <>
+                      {' '}
+                      <Badge
+                        text={entry.badge.text}
+                        variant={entry.badge.variant}
+                      />
+                    </>
+                  )}
+                </div>
+                <Icon name="right-caret" class="caret" size="1.125rem" />
+              </summary>
+            )}
+
+            <Astro.self sublist={entry.entries} nested={nested + 1} />
+          </details>
+        )}
+      </li>
+    ))
+  }
+</ul>
+
+<style>
+  ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  li {
+    overflow-wrap: anywhere;
+  }
+
+  summary::marker,
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .caret {
+    @apply opacity-50 flex-shrink-0 transition duration-100;
+  }
+  :global([dir='rtl']) .caret {
+    transform: rotateZ(180deg);
+  }
+  [open] > summary .caret {
+    transform: rotateZ(90deg);
+  }
+
+  a > *:not(:last-child),
+  .group-label > *:not(:last-child) {
+    margin-inline-end: 0.25em;
+  }
+</style>
