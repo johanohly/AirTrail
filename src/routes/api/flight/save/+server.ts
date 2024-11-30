@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 
 import type { RequestHandler } from './$types';
 
-import { validateApiKey } from '$lib/server/utils/auth';
+import { apiError, unauthorized, validateApiKey } from '$lib/server/utils/api';
 import { validateAndCreateFlight } from '$lib/server/utils/flight';
 import { flightSchema } from '$lib/zod/flight';
 
@@ -32,7 +32,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
   const user = await validateApiKey(request);
   if (!user) {
-    return json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    return unauthorized();
   }
 
   const data = result.data;
@@ -43,10 +43,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
   const success = await validateAndCreateFlight(user, data);
   if (!success) {
-    return json(
-      { success: false, message: 'Failed to save flight' },
-      { status: 500 },
-    );
+    return apiError('Failed to save flight');
   }
   return json({ success: true });
 };

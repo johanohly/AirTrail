@@ -5,6 +5,7 @@ import tailwind from '@astrojs/tailwind';
 import { defineConfig } from 'astro/config';
 import starlightImageZoom from 'starlight-image-zoom';
 import starlightLinksValidator from 'starlight-links-validator';
+import starlightOpenAPI, { openAPISidebarGroups } from 'starlight-openapi';
 
 // https://astro.build/config
 export default defineConfig({
@@ -53,8 +54,10 @@ export default defineConfig({
             'docs/features/oauth',
           ],
         },
+        ...openAPISidebarGroups,
         {
           label: 'Development',
+          collapsed: true,
           items: ['docs/development/contributing-guidelines'],
         },
       ],
@@ -66,6 +69,14 @@ export default defineConfig({
       plugins: [
         starlightLinksValidator({ errorOnRelativeLinks: false }),
         starlightImageZoom(),
+        starlightOpenAPI([
+          {
+            base: 'api',
+            label: 'API',
+            collapsed: true,
+            schema: './openapi.yaml',
+          },
+        ]),
       ],
       components: {
         SocialIcons: '@/components/overrides/SocialIcons.astro',
