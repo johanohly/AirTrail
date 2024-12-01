@@ -5,7 +5,11 @@ import { baseOptions } from '@/app/layout.config';
 import Squares from '@/components/Squares';
 import { source } from '@/lib/source';
 
-export default function Layout({ children }: { children: ReactNode }) {
+interface Props {
+  children: ReactNode;
+}
+
+export default function Layout({ children }: Readonly<Props>) {
   return (
     <DocsLayout tree={source.pageTree} {...baseOptions}>
       <Squares />

@@ -203,7 +203,7 @@ interface StaggerCardProps {
   children: React.ReactNode;
 }
 
-function StaggerCard({ title, description, children }: StaggerCardProps) {
+function StaggerCard({ title, description, children }: Readonly<StaggerCardProps>) {
   return (
     <div
       className="block rounded-lg border bg-fd-card text-fd-card-foreground shadow-md transition-colors"

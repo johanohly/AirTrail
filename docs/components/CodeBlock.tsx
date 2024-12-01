@@ -11,7 +11,7 @@ export async function CodeBlock({
   code,
   lang,
   wrapper,
-}: CodeBlockProps): Promise<React.ReactElement> {
+}: Readonly<CodeBlockProps>): Promise<React.ReactElement> {
   const rendered = await highlight(code, {
     lang,
     components: {

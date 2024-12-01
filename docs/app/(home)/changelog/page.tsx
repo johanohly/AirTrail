@@ -60,7 +60,7 @@ export default async function Changelog() {
       {releases.map((release, i) => (
         <section
           className={`relative flex flex-col ${release.name !== releases[0].name && 'border-t pt-20 !mt-20'}`}
-          key={i}
+          key={release.html_url}
         >
           <p className="text-muted-foreground">
             {formatter.format(release.published_at)}

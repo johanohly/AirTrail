@@ -39,16 +39,18 @@ const customFooters: Record<
   'install/synology.mdx': installFooter,
 };
 
-export default async function Page(props: {
+interface Props {
   params: Promise<{ slug?: string[] }>;
-}) {
+}
+
+export default async function Page(props: Readonly<Props>) {
   const params = await props.params;
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
   const path = page.file.path;
   const fullPath = `docs/content/docs/${path}`;
-  const { body: MDX, lastModified } = page.data;
+  const { body: Mdx, lastModified } = page.data;
 
   const footerOverride = customFooters?.[path] ?? undefined;
 
@@ -72,7 +74,7 @@ export default async function Page(props: {
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
       <DocsBody>
-        <MDX
+        <Mdx
           components={{
             ...defaultMdxComponents,
             APIPage: openapi.APIPage,

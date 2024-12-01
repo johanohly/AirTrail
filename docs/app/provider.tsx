@@ -5,7 +5,11 @@ import type { ReactNode } from 'react';
 
 const SearchDialog = dynamic(() => import('@/components/Search'));
 
-export function Provider({ children }: { children: ReactNode }) {
+interface Props {
+  children: ReactNode;
+}
+
+export function Provider({ children }: Readonly<Props>) {
   return (
     <RootProvider
       search={{

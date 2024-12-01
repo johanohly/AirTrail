@@ -1,4 +1,4 @@
-import { error, json } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 
 import { db, type User } from '$lib/db';
 import { hashSha256 } from '$lib/server/utils/hash';
