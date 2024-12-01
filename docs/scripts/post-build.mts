@@ -9,7 +9,7 @@ import type { Manifest } from 'fumadocs-mdx';
 
 env.loadEnvConfig(process.cwd());
 
-const getUrl = createGetUrl('/');
+const getUrl = createGetUrl('/docs');
 
 async function main(): Promise<void> {
   const manifest = JSON.parse(
