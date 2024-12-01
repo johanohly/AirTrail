@@ -4,7 +4,7 @@ import { zod } from 'sveltekit-superforms/adapters';
 import type { RequestHandler } from './$types';
 
 import { db } from '$lib/db';
-import { hashArgon2, verifyArgon2} from '$lib/server/utils/hash';
+import { hashArgon2, verifyArgon2 } from '$lib/server/utils/hash';
 import { editPasswordSchema } from '$lib/zod/user';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
