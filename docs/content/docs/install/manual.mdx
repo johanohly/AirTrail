@@ -1,0 +1,54 @@
+---
+title: Manual Installation
+---
+
+<Callout>
+  This guide is for advanced users who want to install the app manually. If you
+  are not comfortable with the command line, we recommend using the [one-click
+  installer](/docs/install/one-click).
+</Callout>
+
+## Requirements
+
+- [Git](https://git-scm.com/)
+- [Node.js](https://nodejs.org/)
+- [Bun](https://bun.sh/)
+- [PostgreSQL](https://www.postgresql.org/)
+
+## Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/JohanOhly/AirTrail.git
+cd AirTrail
+```
+
+2. Install the dependencies:
+
+```bash
+bun install
+```
+
+3. Configure the environment variables:
+
+```bash
+cp .env.example .env
+```
+
+Fill in the required environment variables in the `.env` file.
+
+4. Build and set up the database:
+
+```bash
+bun run build
+bun run db:migrate-deploy
+```
+
+5. Start the server:
+
+```bash
+bun ./build
+```
+
+The app should now be running on [localhost:3000](http://localhost:3000).

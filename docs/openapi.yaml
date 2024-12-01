@@ -3,9 +3,6 @@ info:
   title: 'AirTrail'
   description: 'The AirTrail API allows you to access your flights using external tools.'
   version: '0.1'
-servers:
-  - url: '<YOUR_AIRTRAIL_INSTANCE>/api'
-    description: 'The API is running at `/api` of your AirTrail instance.'
 paths:
   /flight/save:
     post:
@@ -42,7 +39,9 @@ paths:
                     type: boolean
                     example: false
                   errors:
-                    type: string
+                    type: array
+                    items:
+                      type: string
                     description: 'The list of validation errors.'
         '401':
           '$ref': '#/components/responses/401'
