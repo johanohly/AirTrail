@@ -41,6 +41,11 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Build website
+        env:
+          NEXT_PUBLIC_ALGOLIA_APP_ID: ${{ secrets.NEXT_PUBLIC_ALGOLIA_APP_ID }}
+          NEXT_PUBLIC_ALGOLIA_INDEX: ${{ secrets.NEXT_PUBLIC_ALGOLIA_INDEX }}
+          NEXT_PUBLIC_ALGOLIA_API_KEY: ${{ secrets.NEXT_PUBLIC_ALGOLIA_API_KEY }}
+          ALGOLIA_API_KEY: ${{ secrets.ALGOLIA_API_KEY }}
         run: bun run build
 
       - name: Upload Build Artifact
