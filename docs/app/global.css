@@ -9,6 +9,12 @@
   --accent: 0 0% 94.1%;
 }
 
+@media (min-width: 768px) {
+  .md\:\[--fd-sidebar-width\:260px\] {
+    --fd-sidebar-width: 375px !important;
+  }
+}
+
 .dark {
   --secondary: 240 12% 15%;
   --border: 0 0% 15%;
