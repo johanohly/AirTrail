@@ -84,7 +84,7 @@
     <h2>Edit Flight</h2>
     <form
       method="POST"
-      action="/api/flight/save"
+      action="/api/flight/save/form"
       use:enhance
       class="grid gap-4"
     >

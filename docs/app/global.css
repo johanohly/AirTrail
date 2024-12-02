@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: 221.21 83.19% 53.33%;
+  --secondary: 0 0% 99.7%;
+  --card: 0 0% 99.7%;
+  --accent: 0 0% 94.1%;
+}
+
+@media (min-width: 768px) {
+  .md\:\[--fd-sidebar-width\:260px\] {
+    --fd-sidebar-width: 375px !important;
+  }
+}
+
+.dark {
+  --secondary: 240 12% 15%;
+  --border: 0 0% 15%;
+  --card: 240 20% 5%;
+  --accent: 0 0 12.9%;
+}
+
+:root.light #nd-nav {
+  background-color: white;
+}
+
+#nd-subnav a[data-active='true'] {
+  color: hsl(var(--primary));
+}
+
+:root.light .fd-codeblock {
+  background-color: hsl(var(--secondary));
+}

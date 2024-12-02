@@ -5,7 +5,7 @@ import type { RequestHandler } from './$types';
 
 import { lucia } from '$lib/server/auth';
 import { createSession, getUser } from '$lib/server/utils/auth';
-import { verifyPassword } from '$lib/server/utils/password';
+import { verifyArgon2 } from '$lib/server/utils/hash';
 import { signInSchema } from '$lib/zod/auth';
 
 export const POST: RequestHandler = async ({ cookies, request }) => {
@@ -22,7 +22,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
     return actionResult('failure', { form });
   }
 
-  const validPassword = await verifyPassword(user.password, password);
+  const validPassword = await verifyArgon2(user.password, password);
   if (!validPassword) {
     form.message = { type: 'error', text: 'Invalid username or password' };
     return actionResult('failure', { form });

@@ -4,6 +4,14 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   : ColumnType<T, T | undefined, T>;
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export type api_key = {
+    id: Generated<number>;
+    name: string;
+    userId: string;
+    key: string;
+    createdAt: Generated<Timestamp>;
+    lastUsed: Timestamp | null;
+};
 export type app_config = {
     id: Generated<number>;
     config: Generated<unknown>;
@@ -90,6 +98,7 @@ export type visited_country = {
     userId: string;
 };
 export type DB = {
+    apiKey: api_key;
     appConfig: app_config;
     flight: flight;
     seat: seat;

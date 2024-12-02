@@ -70,5 +70,5 @@ export default ts.config(
       'import/no-unresolved': 'off',
     },
   },
-  { files: ['**/*.js', '**/*.ts', '**/*.svelte', '**/*.astro'] },
+  { files: ['**/*.js', '**/*.ts', '**/*.svelte', '**/*.tsx'] },
 );

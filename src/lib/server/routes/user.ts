@@ -10,6 +10,7 @@ import {
 } from '../trpc';
 
 import { db } from '$lib/db';
+import { createApiKey } from '$lib/server/utils/auth';
 
 export const userRouter = router({
   me: authedProcedure.query(({ ctx: { user } }) => {
@@ -56,4 +57,26 @@ export const userRouter = router({
   list: adminProcedure.query(async () => {
     return db.selectFrom('user').selectAll().execute();
   }),
+  listApiKeys: authedProcedure.query(async ({ ctx }) => {
+    return db
+      .selectFrom('apiKey')
+      .select(['id', 'name', 'createdAt', 'lastUsed'])
+      .where('userId', '=', ctx.user.id)
+      .execute();
+  }),
+  createApiKey: authedProcedure
+    .input(z.string())
+    .mutation(async ({ ctx, input }) => {
+      return await createApiKey(ctx.user.id, input);
+    }),
+  deleteApiKey: authedProcedure
+    .input(z.number())
+    .mutation(async ({ ctx, input }) => {
+      const result = await db
+        .deleteFrom('apiKey')
+        .where('id', '=', input)
+        .where('userId', '=', ctx.user.id)
+        .executeTakeFirst();
+      return result.numDeletedRows > 0;
+    }),
 });

@@ -3,6 +3,8 @@ import { sql } from 'kysely';
 import type { Lucia } from 'lucia';
 
 import { db, type User } from '$lib/db';
+import { hashSha256 } from '$lib/server/utils/hash';
+import { generateString } from '$lib/server/utils/random';
 
 export const createUser = async (
   id: string,
@@ -61,4 +63,16 @@ export const usernameExists = async (username: string) => {
     .select(sql`1`.as('exists'))
     .execute();
   return users.length > 0;
+};
+
+export const createApiKey = async (userId: string, name: string) => {
+  const key = generateString();
+  const hash = hashSha256(key);
+  const result = await db
+    .insertInto('apiKey')
+    .values({ name, key: hash, userId })
+    .executeTakeFirst();
+  return result.numInsertedOrUpdatedRows && result.numInsertedOrUpdatedRows > 0
+    ? key
+    : null;
 };
