@@ -137,7 +137,7 @@ export const validateAndCreateFlight = async (
         success: false,
         type: 'httpError',
         status: 403,
-        message: 'You do not have a seat on this flight',
+        message: 'Flight not found or you do not have a seat on this flight',
       };
     }
 

@@ -1,0 +1,3 @@
+{
+  "pages": ["list-flights", "save-flight", "delete-flight"]
+}
