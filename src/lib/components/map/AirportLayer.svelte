@@ -3,6 +3,8 @@
   import NumberFlow from '@number-flow/svelte';
   import { DeckGlLayer, Popup } from 'svelte-maplibre';
 
+  import { INACTIVE_COLOR } from '$lib/components/map/index';
+  import { hoverInfo } from '$lib/components/map/state.svelte';
   import {
     type FlightData,
     pluralize,
@@ -21,9 +23,63 @@
 
     return prepareVisitedAirports(data);
   });
+
+  const getFillColor = () => {
+    return (d: (typeof visitedAirports)[number]) => {
+      if (hoverInfo.hoveredAirport && hoverInfo.hoveredAirport === d) {
+        return [...AIRPORT_COLOR, 80];
+      } else if (
+        hoverInfo.hoveredAirport &&
+        hoverInfo.hoveredAirport.flights.some((f) =>
+          f.airports.includes(d.meta.icao),
+        )
+      ) {
+        return [...AIRPORT_COLOR, 50];
+      } else if (
+        hoverInfo.hoveredArc &&
+        (hoverInfo.hoveredArc.from.icao === d.meta.icao ||
+          hoverInfo.hoveredArc.to.icao === d.meta.icao)
+      ) {
+        return [...AIRPORT_COLOR, 50];
+      } else if (hoverInfo.hoveredArc) {
+        return [...INACTIVE_COLOR, 50];
+      } else if (hoverInfo.hoveredAirport) {
+        return [...INACTIVE_COLOR, 50];
+      } else {
+        return [...AIRPORT_COLOR, 50];
+      }
+    };
+  };
+
+  const getLineColor = () => {
+    return (d: (typeof visitedAirports)[number]) => {
+      if (
+        hoverInfo.hoveredAirport &&
+        (hoverInfo.hoveredAirport === d ||
+          hoverInfo.hoveredAirport.flights.some((f) =>
+            f.airports.includes(d.meta.icao),
+          ))
+      ) {
+        return [...AIRPORT_COLOR, 255];
+      } else if (hoverInfo.hoveredAirport) {
+        return INACTIVE_COLOR;
+      } else if (
+        hoverInfo.hoveredArc &&
+        (hoverInfo.hoveredArc.from.icao === d.meta.icao ||
+          hoverInfo.hoveredArc.to.icao === d.meta.icao)
+      ) {
+        return [...AIRPORT_COLOR, 255];
+      } else if (hoverInfo.hoveredArc) {
+        return INACTIVE_COLOR;
+      } else {
+        return [...AIRPORT_COLOR, 255];
+      }
+    };
+  };
 </script>
 
 <DeckGlLayer
+  bind:hovered={hoverInfo.hoveredAirport}
   type={ScatterplotLayer}
   data={visitedAirports}
   getPosition={(d) => d.position}
@@ -32,10 +88,12 @@
   radiusMaxPixels={100}
   lineWidthUnits="pixels"
   getLineWidth={1}
-  getFillColor={[...AIRPORT_COLOR, 50]}
-  getLineColor={[...AIRPORT_COLOR, 255]}
-  highlightColor={[...AIRPORT_COLOR, 80]}
-  autoHighlight
+  getFillColor={getFillColor()}
+  getLineColor={getLineColor()}
+  updateTriggers={{
+    getFillColor: [hoverInfo.hoveredAirport, hoverInfo.hoveredArc],
+    getLineColor: [hoverInfo.hoveredAirport, hoverInfo.hoveredArc],
+  }}
   stroked
 >
   <Popup openOn="hover" anchor="top-left" offset={12} let:data>

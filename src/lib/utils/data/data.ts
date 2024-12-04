@@ -78,14 +78,16 @@ export const prepareFlightArcData = (data: FlightData[]) => {
         name: string;
         country: string;
       };
-      flights: { route: string; date: TZDate; airline: string | null }[];
+      flights: ReturnType<typeof formatSimpleFlight>[];
       airlines: string[];
       exclusivelyFuture: boolean;
     };
   } = {};
 
   data.forEach((flight) => {
-    const key = [flight.from.name, flight.to.name].sort().join('-');
+    const key = [flight.from.name, flight.to.name]
+      .sort((a, b) => a.localeCompare(b))
+      .join('-');
     if (!routeMap[key]) {
       routeMap[key] = {
         distance: flight.distance,
@@ -202,6 +204,7 @@ export const prepareVisitedAirports = (data: FlightData[]) => {
 
 const formatSimpleFlight = (f: FlightData) => {
   return {
+    airports: [f.from.ICAO, f.to.ICAO],
     route: `${f.from.IATA ?? f.from.ICAO} - ${f.to.IATA ?? f.to.ICAO}`,
     date: f.date,
     airline: f.airline ?? '',

@@ -4,6 +4,8 @@
   import { DeckGlLayer, Popup } from 'svelte-maplibre';
 
   import { page } from '$app/stores';
+  import { INACTIVE_COLOR } from '$lib/components/map/index';
+  import { hoverInfo } from '$lib/components/map/state.svelte';
   import { kmToMiles, pluralize, prepareFlightArcData } from '$lib/utils';
   import { formatAsDate } from '$lib/utils/datetime';
 
@@ -20,7 +22,27 @@
 
   const metric = $derived($page.data.user?.unit !== 'imperial');
 
-  let hoveredArc = $state.raw(null); // required so that we can compare against non-proxies object
+  const getColor = (point: 'source' | 'target') => {
+    return (d: (typeof flightArcs)[number]) => {
+      if (hoverInfo.hoveredArc && d === hoverInfo.hoveredArc) {
+        return HOVER_COLOR;
+      } else if (hoverInfo.hoveredArc) {
+        return [...INACTIVE_COLOR, 200];
+      } else if (
+        hoverInfo.hoveredAirport &&
+        (hoverInfo.hoveredAirport.meta.icao === d.from.icao ||
+          hoverInfo.hoveredAirport.meta.icao === d.to.icao)
+      ) {
+        return point === 'source' ? FROM_COLOR : TO_COLOR;
+      } else if (hoverInfo.hoveredAirport) {
+        return [...INACTIVE_COLOR, 200];
+      } else if (d.exclusivelyFuture) {
+        return FUTURE_COLOR;
+      } else {
+        return point === 'source' ? FROM_COLOR : TO_COLOR;
+      }
+    };
+  };
 </script>
 
 <DeckGlLayer
@@ -28,25 +50,18 @@
   data={flightArcs}
   getSourcePosition={(d) => d.from.position}
   getTargetPosition={(d) => d.to.position}
-  getSourceColor={(d) =>
-    hoveredArc && d === hoveredArc
-      ? HOVER_COLOR
-      : d.exclusivelyFuture
-        ? FUTURE_COLOR
-        : FROM_COLOR}
-  getTargetColor={(d) =>
-    hoveredArc && d === hoveredArc
-      ? HOVER_COLOR
-      : d.exclusivelyFuture
-        ? FUTURE_COLOR
-        : TO_COLOR}
-  updateTriggers={{ getSourceColor: hoveredArc, getTargetColor: hoveredArc }}
+  getSourceColor={getColor('source')}
+  getTargetColor={getColor('target')}
+  updateTriggers={{
+    getSourceColor: [hoverInfo.hoveredArc, hoverInfo.hoveredAirport],
+    getTargetColor: [hoverInfo.hoveredArc, hoverInfo.hoveredAirport],
+  }}
   getWidth={2}
   getHeight={0}
   greatCircle={true}
 />
 <DeckGlLayer
-  bind:hovered={hoveredArc}
+  bind:hovered={hoverInfo.hoveredArc}
   type={ArcLayer}
   data={flightArcs}
   getSourcePosition={(d) => d.from.position}
