@@ -204,13 +204,18 @@ body {
   transform: translate(-50%, -50%) !important;
 }
 
-a.maplibregl-ctrl-logo::before,
+a.maplibregl-ctrl-logo::before {
+  font-family: maplibregl-icons-core, sans-serif;
+}
+
 .maplibregl-ctrl .maplibregl-ctrl-attrib-button::before,
 .maplibregl-ctrl button .maplibregl-ctrl-icon::before,
 .maplibregl-ctrl
   button.maplibregl-ctrl-geolocate:disabled
   .maplibregl-ctrl-icon::after,
 .maplibregl-ctrl button.maplibregl-ctrl-compass .maplibregl-ctrl-icon::after {
+  font-family: maplibre-icons, sans-serif;
+
   -webkit-font-smoothing: antialiased !important;
   -moz-osx-font-smoothing: grayscale !important;
 
@@ -218,27 +223,7 @@ a.maplibregl-ctrl-logo::before,
   text-transform: none !important;
 
   text-decoration: inherit !important;
-}
 
-.maplibregl-ctrl .maplibregl-ctrl-attrib-button::before,
-.maplibregl-ctrl button .maplibregl-ctrl-icon::before,
-.maplibregl-ctrl
-  button.maplibregl-ctrl-geolocate:disabled
-  .maplibregl-ctrl-icon::after,
-.maplibregl-ctrl button.maplibregl-ctrl-compass .maplibregl-ctrl-icon::after {
-  font-family: maplibre-icons sans-serif;
-}
-
-a.maplibregl-ctrl-logo::before {
-  font-family: maplibregl-icons-core sans-serif;
-}
-
-.maplibregl-ctrl .maplibregl-ctrl-attrib-button::before,
-.maplibregl-ctrl button .maplibregl-ctrl-icon::before,
-.maplibregl-ctrl
-  button.maplibregl-ctrl-geolocate:disabled
-  .maplibregl-ctrl-icon::after,
-.maplibregl-ctrl button.maplibregl-ctrl-compass .maplibregl-ctrl-icon::after {
   font-style: normal !important;
   font-weight: normal !important;
 
