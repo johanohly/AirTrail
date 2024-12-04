@@ -90,17 +90,13 @@
   {#if flights.length}
     <Control position="top-left">
       <ControlGroup>
-        <ControlButton
-          on:click={() => fitFlights()}
-          title="Show all flights"
-          class="text-black"
-        >
-          <Fullscreen size={22} />
+        <ControlButton on:click={() => fitFlights()} title="Show all flights">
+          <Fullscreen size={20} />
         </ControlButton>
         <Popover.Root>
           <Popover.Trigger>
-            <ControlButton title="Filter flights" class="text-black">
-              <Filter size={20} />
+            <ControlButton title="Filter flights">
+              <Filter size={18} />
             </ControlButton>
           </Popover.Trigger>
           <Popover.Content
@@ -114,16 +110,19 @@
     </Control>
     <Control position="top-left">
       {#if showClear}
-        <ControlGroup class="!bg-destructive">
+        <div
+          class="maplibregl-ctrl-group !bg-destructive hover:!bg-destructive/80"
+          data-clear-ctrl
+        >
           <ControlButton
             on:click={() => {
               filters = defaultFilters;
             }}
             title="Clear filters"
           >
-            <Undo2 class="text-white" size={20} />
+            <Undo2 size={20} />
           </ControlButton>
-        </ControlGroup>
+        </div>
       {/if}
     </Control>
   {/if}
