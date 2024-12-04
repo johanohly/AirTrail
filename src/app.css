@@ -226,11 +226,11 @@ a.maplibregl-ctrl-logo::before,
   button.maplibregl-ctrl-geolocate:disabled
   .maplibregl-ctrl-icon::after,
 .maplibregl-ctrl button.maplibregl-ctrl-compass .maplibregl-ctrl-icon::after {
-  font-family: maplibre-icons;
+  font-family: maplibre-icons sans-serif;
 }
 
 a.maplibregl-ctrl-logo::before {
-  font-family: maplibregl-icons-core;
+  font-family: maplibregl-icons-core sans-serif;
 }
 
 .maplibregl-ctrl .maplibregl-ctrl-attrib-button::before,
@@ -244,14 +244,7 @@ a.maplibregl-ctrl-logo::before {
 
   display: inline-block !important;
   text-align: center !important;
-}
 
-.maplibregl-ctrl .maplibregl-ctrl-attrib-button::before,
-.maplibregl-ctrl button .maplibregl-ctrl-icon::before,
-.maplibregl-ctrl
-  button.maplibregl-ctrl-geolocate:disabled
-  .maplibregl-ctrl-icon::after,
-.maplibregl-ctrl button.maplibregl-ctrl-compass .maplibregl-ctrl-icon::after {
   width: 1rem !important;
   height: 1rem !important;
 
