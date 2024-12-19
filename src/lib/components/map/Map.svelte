@@ -77,7 +77,7 @@
 <OnResizeEnd callback={fitFlights} />
 
 <MapLibre
-  on:load={() => fitFlights()}
+  onload={() => fitFlights()}
   bind:map
   {style}
   diffStyleUpdates
@@ -90,7 +90,7 @@
   {#if flights.length}
     <Control position="top-left">
       <ControlGroup>
-        <ControlButton on:click={() => fitFlights()} title="Show all flights">
+        <ControlButton onclick={() => fitFlights()} title="Show all flights">
           <Fullscreen size={20} />
         </ControlButton>
         <Popover.Root>
@@ -115,7 +115,7 @@
           data-clear-ctrl
         >
           <ControlButton
-            on:click={() => {
+            onclick={() => {
               filters = defaultFilters;
             }}
             title="Clear filters"
