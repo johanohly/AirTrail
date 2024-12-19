@@ -1,9 +1,11 @@
 import { prepareFlightArcData, prepareVisitedAirports } from '$lib/utils';
 
 class HoverInfo {
-  hoveredArc: ReturnType<typeof prepareFlightArcData>[number] | null =
-    $state.raw(null);
-  hoveredAirport: ReturnType<typeof prepareVisitedAirports>[number] | null =
-    $state.raw(null);
+  hoveredArc = $state.raw<
+    ReturnType<typeof prepareFlightArcData>[number] | null
+  >(null);
+  hoveredAirport = $state.raw<
+    ReturnType<typeof prepareVisitedAirports>[number] | null
+  >(null);
 }
 export const hoverInfo = new HoverInfo();
