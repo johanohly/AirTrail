@@ -21,6 +21,17 @@ export type CreateFlight = Omit<Flight, 'id' | 'seats'> & {
   seats: Omit<Seat, 'flightId' | 'id'>[];
 };
 
+export const AirportTypes = [
+  'heliport',
+  'small_airport',
+  'closed',
+  'seaplane_base',
+  'balloonport',
+  'medium_airport',
+  'large_airport',
+] as const;
+export const Continents = ['AF', 'AS', 'EU', 'NA', 'OC', 'SA', 'AN'] as const;
+
 export const SeatTypes = ['window', 'aisle', 'middle', 'other'] as const;
 export const SeatClasses = [
   'economy',
