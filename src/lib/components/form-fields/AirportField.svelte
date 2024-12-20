@@ -13,7 +13,7 @@
     type Airport,
     airportFromICAO,
     airportSearchCache,
-  } from '$lib/utils/data/airports';
+  } from '$lib/utils/data/legacy_airports';
   import type { flightSchema } from '$lib/zod/flight';
 
   let {

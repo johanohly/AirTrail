@@ -98,6 +98,7 @@
     "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-svelte": "^2.46.1",
     "factory.ts": "^1.4.2",
+    "geo-tz": "^8.1.2",
     "globals": "^15.14.0",
     "lucia": "^3.2.2",
     "postcss": "^8.4.49",

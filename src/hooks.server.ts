@@ -5,6 +5,7 @@ import type { Cookie } from 'lucia';
 import { env } from '$env/dynamic/private';
 import { lucia } from '$lib/server/auth';
 import { appConfig } from '$lib/server/utils/config';
+import { fetchAirports } from '$lib/utils/data/airports';
 
 async function loadConfig() {
   await appConfig.get();
@@ -18,6 +19,8 @@ export const init: ServerInit = async () => {
     console.error('Error loading app config from .env:', err);
     process.exit(-1);
   }
+
+  await fetchAirports();
 };
 
 const authHandle: Handle = async ({ event, resolve }) => {

@@ -8,7 +8,7 @@ import type { Flight } from '$lib/db';
 import type { CreateFlight, Seat } from '$lib/db/types';
 import { parseCsv } from '$lib/utils';
 import { airlineFromICAO } from '$lib/utils/data/airlines';
-import { airportFromICAO } from '$lib/utils/data/airports';
+import { airportFromICAO } from '$lib/utils/data/legacy_airports';
 import { toUtc } from '$lib/utils/datetime';
 
 const FR24_AIRPORT_REGEX = /\((?<IATA>[a-zA-Z]{3})\/(?<ICAO>[a-zA-Z]{4})\)/;

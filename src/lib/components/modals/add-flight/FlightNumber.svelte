@@ -8,7 +8,7 @@
   import { Input } from '$lib/components/ui/input';
   import { type FlightRoute, getFlightRoute } from '$lib/utils/adsbdb';
   import { airlineFromICAO } from '$lib/utils/data/airlines';
-  import { airportFromICAO } from '$lib/utils/data/airports';
+  import { airportFromICAO } from '$lib/utils/data/legacy_airports';
   import type { flightSchema } from '$lib/zod/flight';
 
   let {

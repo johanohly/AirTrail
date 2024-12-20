@@ -10,10 +10,10 @@ export const parseCsv = <T>(
   }
 
   // @ts-expect-error - clearly checking for length above
-  const headers = lines[0].split(',').map(sanitizeHeader);
+  const headers = parseCsvLine(lines[0]).map(sanitizeHeader);
   const rows: T[] = [];
   for (const line of lines.slice(1)) {
-    const values = line.split(',').map(sanitizeValue);
+    const values = parseCsvLine(line);
 
     const row = headers.reduce<Record<string, string>>((acc, header, i) => {
       acc[header] = values[i] ?? '';
@@ -61,8 +61,20 @@ const parseCsvLines = (csv: string) => {
   return lines;
 };
 
-const sanitizeValue = (value: string) => {
-  return value.replace(/^["']/g, '').replace(/["']$/g, '');
+const parseCsvLine = (line: string): string[] => {
+  const regex = /(?:,|\r?\n|^)(?:"([^"]*(?:""[^"]*)*)"|([^",\r\n]*))/g;
+  const fields: string[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(line)) !== null) {
+    const value =
+      match[1] !== undefined
+        ? match[1].replace(/""/g, '"') // Unescape double quotes inside quoted fields
+        : match[2];
+    fields.push(value || '');
+  }
+
+  return fields;
 };
 
 const sanitizeHeader = (header: string) => {

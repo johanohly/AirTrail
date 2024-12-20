@@ -5,8 +5,8 @@ import { authedProcedure, router } from '../trpc';
 import { db } from '$lib/db';
 import { VisitedCountryStatus } from '$lib/db/types';
 import { listFlights } from '$lib/server/utils/flight';
-import { airportFromICAO } from '$lib/utils/data/airports';
 import { countryFromAlpha } from '$lib/utils/data/countries';
+import { airportFromICAO } from '$lib/utils/data/legacy_airports';
 
 const VisitedCountrySchema = z.object({
   code: z.number(),

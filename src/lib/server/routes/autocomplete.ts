@@ -4,7 +4,7 @@ import { AIRLINES } from '$lib/data/airlines';
 import { AIRPORTS } from '$lib/data/airports';
 import { authedProcedure, router } from '$lib/server/trpc';
 import { sortAndFilterByMatch } from '$lib/utils';
-import type { Airport } from '$lib/utils/data/airports';
+import type { Airport } from '$lib/utils/data/legacy_airports';
 
 const eq = (a: string | number, b: string | number) => {
   a = String(a);

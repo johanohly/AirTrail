@@ -5,7 +5,7 @@ import { get } from 'svelte/store';
 import { page } from '$app/stores';
 import type { Flight } from '$lib/db';
 import { distanceBetween, toTitleCase } from '$lib/utils';
-import { type Airport, airportFromICAO } from '$lib/utils/data/airports';
+import { type Airport, airportFromICAO } from '$lib/utils/data/legacy_airports';
 import { nowIn, parseLocalize, parseLocalizeISO } from '$lib/utils/datetime';
 
 type ExcludedType<T, U> = {

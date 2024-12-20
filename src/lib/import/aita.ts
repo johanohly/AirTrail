@@ -5,7 +5,7 @@ import { page } from '$app/stores';
 import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type { CreateFlight, SeatClasses } from '$lib/db/types';
 import { airlineFromIATA } from '$lib/utils/data/airlines';
-import { airportFromIATA } from '$lib/utils/data/airports';
+import { airportFromIATA } from '$lib/utils/data/legacy_airports';
 import { parseLocalISO } from '$lib/utils/datetime';
 
 const AITA_SEAT_CLASS_MAP: Record<string, (typeof SeatClasses)[number]> = {

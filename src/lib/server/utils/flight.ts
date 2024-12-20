@@ -12,7 +12,7 @@ import {
 } from '$lib/db/queries';
 import type { CreateFlight, User } from '$lib/db/types';
 import { distanceBetween } from '$lib/utils';
-import { airportFromICAO } from '$lib/utils/data/airports';
+import { airportFromICAO } from '$lib/utils/data/legacy_airports';
 import {
   estimateFlightDuration,
   isBeforeEpoch,

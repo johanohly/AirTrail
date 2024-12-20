@@ -35,6 +35,21 @@ model user {
   api_keys          api_key[]
 }
 
+model airport {
+  /// ICAO code (could also be a regional code like "DE-0456")
+  code      String  @id
+  iata      String?
+  lat       Float
+  lon       Float
+  tz        String
+  name      String
+  /// @kyselyType('large_airport' | 'medium_airport' | 'small_airport' | 'heliport' | 'seaplane_base' | 'balloonport' | 'closed')
+  type      String
+  /// @kyselyType('EU' | 'NA' | 'SA' | 'AS' | 'AF' | 'OC' | 'AN')
+  continent String
+  country   String
+}
+
 model flight {
   id        Int     @id @default(autoincrement())
   date      String

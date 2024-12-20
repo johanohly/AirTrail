@@ -8,7 +8,7 @@
   } from '$lib/components/flight-filters/types';
   import { Button } from '$lib/components/ui/button/index.js';
   import type { FlightData } from '$lib/utils';
-  import type { Airport } from '$lib/utils/data/airports';
+  import type { Airport } from '$lib/utils/data/legacy_airports';
 
   let {
     flights = $bindable(),
