@@ -1,13 +1,12 @@
 import { differenceInSeconds } from 'date-fns';
-import { get } from 'svelte/store';
 import { z } from 'zod';
 
-import { page } from '$app/stores';
+import { page } from '$app/state';
 import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type { CreateFlight, Seat } from '$lib/db/types';
+import { api } from '$lib/trpc';
 import { distanceBetween, parseCsv } from '$lib/utils';
 import { airlineFromIATA } from '$lib/utils/data/airlines';
-import { airportFromICAO } from '$lib/utils/data/legacy_airports';
 import { estimateFlightDuration, parseLocal, toUtc } from '$lib/utils/datetime';
 
 const JETLOG_FLIGHT_CLASS_MAP: Record<string, Seat['seatClass']> = {
@@ -22,13 +21,13 @@ const nullTransformer = (v: string) => (v === '' ? null : v);
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 const optionalTimePrimitive = z
   .string()
-  .refine((v) => v === '' || v.match(/^\d{2}:\d{2}$/), {
+  .refine((v) => v === '' || /^\d{2}:\d{2}$/.exec(v), {
     message: 'Invalid time format',
   })
   .transform(nullTransformer);
 const optionalDatePrimitive = z
   .string()
-  .refine((v) => v === '' || v.match(dateRegex), {
+  .refine((v) => v === '' || dateRegex.exec(v), {
     message: 'Invalid date format',
   })
   .transform(nullTransformer);
@@ -53,7 +52,7 @@ export const processJetLogFile = async (
   input: string,
   options: PlatformOptions,
 ) => {
-  const userId = get(page).data.user?.id;
+  const userId = page.data.user?.id;
   if (!userId) {
     throw new Error('User not found');
   }
@@ -70,8 +69,8 @@ export const processJetLogFile = async (
   const unknownAirports: string[] = [];
 
   for (const row of data) {
-    const from = airportFromICAO(row.origin);
-    const to = airportFromICAO(row.destination);
+    const from = await api.airport.get.query(row.origin);
+    const to = await api.airport.get.query(row.destination);
     if (!from || !to) {
       if (!from && !unknownAirports.includes(row.origin)) {
         unknownAirports.push(row.origin);
@@ -123,7 +122,7 @@ export const processJetLogFile = async (
 
     let airline = null;
     if (options.airlineFromFlightNumber && row.flight_number) {
-      const airlineIata = row.flight_number.match(/([A-Za-z]{2})\d*/)?.[1];
+      const airlineIata = /([A-Za-z]{2})\d*/.exec(row.flight_number)?.[1];
       airline = airlineIata
         ? (airlineFromIATA(airlineIata)?.icao ?? null)
         : null;
@@ -131,8 +130,8 @@ export const processJetLogFile = async (
 
     flights.push({
       date: row.date,
-      from: from.ICAO,
-      to: to.ICAO,
+      from,
+      to,
       departure: departure ? departure.toISOString() : null,
       arrival: arrival ? arrival.toISOString() : null,
       duration,

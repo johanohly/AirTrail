@@ -19,13 +19,13 @@ export const processFile = async (
   const content = await readFile(file);
 
   if (platform === 'airtrail') {
-    return processAirTrailFile(content);
+    return await processAirTrailFile(content);
   } else if (platform === 'jetlog') {
-    return processJetLogFile(content, options);
+    return await processJetLogFile(content, options);
   } else if (platform === 'fr24') {
-    return processFR24File(content);
+    return await processFR24File(content);
   } else if (platform === 'aita') {
-    return processAITAFile(content, options);
+    return await processAITAFile(content, options);
   }
 
   throw new Error('Unknown platform');

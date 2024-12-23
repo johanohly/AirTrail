@@ -134,6 +134,8 @@ export const flightRouter = router({
 
       return {
         ...flight,
+        from: flight.from.code,
+        to: flight.to.code,
         seat: seat?.seat,
         seatNumber: seat?.seatNumber,
         seatClass: seat?.seatClass,

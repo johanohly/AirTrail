@@ -1,7 +1,6 @@
-import { get } from 'svelte/store';
 import { z } from 'zod';
 
-import { page } from '$app/stores';
+import { page } from '$app/state';
 import type { CreateFlight } from '$lib/db/types';
 import { api } from '$lib/trpc';
 import {
@@ -47,7 +46,7 @@ const AirTrailFile = z.object({
 });
 
 export const processAirTrailFile = async (input: string) => {
-  const user = get(page).data.user;
+  const user = page.data.user;
   if (!user) {
     throw new Error('User not found');
   }
