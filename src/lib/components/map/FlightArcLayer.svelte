@@ -3,7 +3,7 @@
   import NumberFlow from '@number-flow/svelte';
   import { DeckGlLayer, Popup } from 'svelte-maplibre';
 
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { INACTIVE_COLOR } from '$lib/components/map/index';
   import { hoverInfo } from '$lib/components/map/state.svelte';
   import { kmToMiles, pluralize, prepareFlightArcData } from '$lib/utils';
@@ -20,18 +20,22 @@
     flightArcs: ReturnType<typeof prepareFlightArcData>;
   } = $props();
 
-  const metric = $derived($page.data.user?.unit !== 'imperial');
+  const metric = $derived(page.data.user?.unit !== 'imperial');
 
   const getColor = (point: 'source' | 'target') => {
     return (d: (typeof flightArcs)[number]) => {
-      if (hoverInfo.hoveredArc && d === hoverInfo.hoveredArc) {
+      if (
+        hoverInfo.hoveredArc &&
+        d.from.code === hoverInfo.hoveredArc.from.code &&
+        d.to.code === hoverInfo.hoveredArc.to.code
+      ) {
         return HOVER_COLOR;
       } else if (hoverInfo.hoveredArc) {
         return [...INACTIVE_COLOR, 200];
       } else if (
         hoverInfo.hoveredAirport &&
-        (hoverInfo.hoveredAirport.meta.icao === d.from.icao ||
-          hoverInfo.hoveredAirport.meta.icao === d.to.icao)
+        (hoverInfo.hoveredAirport.code === d.from.code ||
+          hoverInfo.hoveredAirport.code === d.to.code)
       ) {
         return point === 'source' ? FROM_COLOR : TO_COLOR;
       } else if (hoverInfo.hoveredAirport) {
@@ -48,8 +52,8 @@
 <DeckGlLayer
   type={ArcLayer}
   data={flightArcs}
-  getSourcePosition={(d) => d.from.position}
-  getTargetPosition={(d) => d.to.position}
+  getSourcePosition={(data) => [data.from.lon, data.from.lat]}
+  getTargetPosition={(data) => [data.to.lon, data.to.lat]}
   getSourceColor={getColor('source')}
   getTargetColor={getColor('target')}
   updateTriggers={{
@@ -64,8 +68,8 @@
   bind:hovered={hoverInfo.hoveredArc}
   type={ArcLayer}
   data={flightArcs}
-  getSourcePosition={(d) => d.from.position}
-  getTargetPosition={(d) => d.to.position}
+  getSourcePosition={(data) => [data.from.lon, data.from.lat]}
+  getTargetPosition={(data) => [data.to.lon, data.to.lat]}
   getSourceColor={[0, 0, 0, 0]}
   getTargetColor={[0, 0, 0, 0]}
   getWidth={3 * 6}
@@ -73,7 +77,7 @@
   greatCircle
 >
   <Popup openOn="hover" anchor="top-left" offset={20}>
-    {#snippet children({data})}
+    {#snippet children({ data })}
       <div class="flex flex-col px-3 pt-3">
         <h3 class="font-thin text-muted-foreground">Route</h3>
         <h4 class="flex items-center text-lg">
@@ -82,7 +86,7 @@
             alt={data.from.country}
             class="w-8 h-5 mr-2"
           />
-          {data.from.iata} - {data.from.name}
+          {data.from.iata ?? data.from.code} - {data.from.name}
         </h4>
         <h4 class="flex items-center text-lg">
           <img
@@ -90,14 +94,16 @@
             alt={data.to.country}
             class="w-8 h-5 mr-2"
           />
-          {data.to.iata} - {data.to.name}
+          {data.to.iata ?? data.to.code} - {data.to.name}
         </h4>
       </div>
       <div class="h-[1px] bg-muted my-3" />
       <div class="grid grid-cols-[repeat(3,_1fr)] px-3">
         <h4 class="font-semibold">
           <NumberFlow
-            value={Math.round(metric ? data.distance : kmToMiles(data.distance))}
+            value={Math.round(
+              metric ? data.distance : kmToMiles(data.distance),
+            )}
           />
           <span class="font-thin text-muted-foreground"
             >{metric ? 'km' : 'mi'}</span

@@ -12,7 +12,6 @@ import {
 } from '$lib/db/queries';
 import type { CreateFlight, User } from '$lib/db/types';
 import { distanceBetween } from '$lib/utils';
-import { airportFromICAO } from '$lib/utils/data/legacy_airports';
 import {
   estimateFlightDuration,
   isBeforeEpoch,
@@ -46,16 +45,7 @@ export const validateAndCreateFlight = async (
   const from = data.from;
   const to = data.to;
 
-  const fromAirport = airportFromICAO(from);
-  if (!fromAirport) {
-    return pathError('from', 'Invalid airport code');
-  }
-  const toAirport = airportFromICAO(to);
-  if (!toAirport) {
-    return pathError('to', 'Invalid airport code');
-  }
-
-  const departureDate = toUtc(parseLocalISO(data.departure, fromAirport.tz));
+  const departureDate = toUtc(parseLocalISO(data.departure, from.tz));
   if (isBeforeEpoch(departureDate)) {
     // Y2K38
     return pathError('departure', 'Too far in the past');
@@ -64,14 +54,14 @@ export const validateAndCreateFlight = async (
   let departure: TZDate | undefined;
   try {
     departure = data.departureTime
-      ? mergeTimeWithDate(data.departure, data.departureTime, fromAirport.tz)
+      ? mergeTimeWithDate(data.departure, data.departureTime, from.tz)
       : undefined;
   } catch {
     return pathError('departureTime', 'Invalid time format');
   }
 
   const arrivalDate = data.arrival
-    ? parseLocalISO(data.arrival, toAirport.tz)
+    ? parseLocalISO(data.arrival, to.tz)
     : undefined;
   if (arrivalDate && isBeforeEpoch(arrivalDate)) {
     return pathError('arrival', 'Too far in the past');
@@ -88,7 +78,7 @@ export const validateAndCreateFlight = async (
   try {
     arrival =
       data.arrival && data.arrivalTime
-        ? mergeTimeWithDate(data.arrival, data.arrivalTime, toAirport.tz)
+        ? mergeTimeWithDate(data.arrival, data.arrivalTime, to.tz)
         : undefined;
   } catch {
     return pathError('arrivalTime', 'Invalid time format');
@@ -101,10 +91,10 @@ export const validateAndCreateFlight = async (
   let duration: number | null = null;
   if (departure && arrival) {
     duration = differenceInSeconds(arrival, departure);
-  } else if (fromAirport != toAirport) {
+  } else if (from.code !== to.code) {
     // if the airports are the same, the duration can't be calculated
-    const fromLonLat = { lon: fromAirport.lon, lat: fromAirport.lat };
-    const toLonLat = { lon: toAirport.lon, lat: toAirport.lat };
+    const fromLonLat = { lon: from.lon, lat: from.lat };
+    const toLonLat = { lon: to.lon, lat: to.lat };
     duration = estimateFlightDuration(
       distanceBetween(fromLonLat, toLonLat) / 1000,
     );
@@ -132,7 +122,7 @@ export const validateAndCreateFlight = async (
   const updateId = data.id;
   if (updateId) {
     const flight = await getFlight(updateId);
-    if (!flight || !flight.seats.some((seat) => seat.userId === user.id)) {
+    if (!flight?.seats.some((seat) => seat.userId === user.id)) {
       return {
         success: false,
         type: 'httpError',

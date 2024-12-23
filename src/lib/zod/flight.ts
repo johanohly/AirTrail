@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { FlightReasons, SeatClasses, SeatTypes } from '$lib/db/types';
+import { airportSchema } from '$lib/zod/airport';
 
 const regex24h = /^([01]?\d|2[0-3])(?::|\.|)[0-5]\d(?:\s?(?:am|pm))?$/i;
 const regex12hLike = /^\d{1,2}(?::|\.|)\d{2}\s?(?:am|pm)$/i;
@@ -23,8 +24,8 @@ const timePrimitive = z
   .nullable();
 
 export const flightAirportsSchema = z.object({
-  from: z.string().min(1, 'Select an origin'),
-  to: z.string().min(1, 'Select a destination'),
+  from: airportSchema,
+  to: airportSchema,
 });
 
 export const flightDateTimeSchema = z.object({
@@ -50,7 +51,7 @@ export const flightSeatInformationSchema = z.object({
       seatNumber: z.string().max(5, 'Seat number is too long').nullable(), // 12A-1 for example
       seatClass: z.enum(SeatClasses).nullable(),
     })
-    .refine((data) => data.userId || data.guestName, {
+    .refine((data) => data.userId ?? data.guestName, {
       message: 'Select a user or add a guest name',
       path: ['userId'],
     })

@@ -61,13 +61,13 @@
         return {
           ...f,
           from: {
-            iata: f.from.IATA,
-            icao: f.from.ICAO,
+            iata: f.from.iata,
+            icao: f.from.code,
             name: f.from.name,
           },
           to: {
-            iata: f.to.IATA,
-            icao: f.to.ICAO,
+            iata: f.to.iata,
+            icao: f.to.code,
             name: f.to.name,
           },
           duration: f.duration

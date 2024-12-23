@@ -23,22 +23,23 @@
 
     return prepareVisitedAirports(data);
   });
+  type VisitedAirport = (typeof visitedAirports)[0];
 
   const getFillColor = () => {
-    return (d: (typeof visitedAirports)[number]) => {
-      if (hoverInfo.hoveredAirport && hoverInfo.hoveredAirport === d) {
+    return (airport: (typeof visitedAirports)[number]) => {
+      if (hoverInfo.hoveredAirport && hoverInfo.hoveredAirport.code === airport.code) {
         return [...AIRPORT_COLOR, 80];
       } else if (
         hoverInfo.hoveredAirport &&
         hoverInfo.hoveredAirport.flights.some((f) =>
-          f.airports.includes(d.meta.icao),
+          f.airports.includes(airport.code),
         )
       ) {
         return [...AIRPORT_COLOR, 50];
       } else if (
         hoverInfo.hoveredArc &&
-        (hoverInfo.hoveredArc.from.icao === d.meta.icao ||
-          hoverInfo.hoveredArc.to.icao === d.meta.icao)
+        (hoverInfo.hoveredArc.from.code === airport.code ||
+          hoverInfo.hoveredArc.to.code === airport.code)
       ) {
         return [...AIRPORT_COLOR, 50];
       } else if (hoverInfo.hoveredArc) {
@@ -52,12 +53,12 @@
   };
 
   const getLineColor = () => {
-    return (d: (typeof visitedAirports)[number]) => {
+    return (airport: (typeof visitedAirports)[number]) => {
       if (
         hoverInfo.hoveredAirport &&
-        (hoverInfo.hoveredAirport === d ||
+        (hoverInfo.hoveredAirport.code === airport.code ||
           hoverInfo.hoveredAirport.flights.some((f) =>
-            f.airports.includes(d.meta.icao),
+            f.airports.includes(airport.code),
           ))
       ) {
         return [...AIRPORT_COLOR, 255];
@@ -65,8 +66,8 @@
         return INACTIVE_COLOR;
       } else if (
         hoverInfo.hoveredArc &&
-        (hoverInfo.hoveredArc.from.icao === d.meta.icao ||
-          hoverInfo.hoveredArc.to.icao === d.meta.icao)
+        (hoverInfo.hoveredArc.from.code === airport.code ||
+          hoverInfo.hoveredArc.to.code === airport.code)
       ) {
         return [...AIRPORT_COLOR, 255];
       } else if (hoverInfo.hoveredArc) {
@@ -82,8 +83,8 @@
   bind:hovered={hoverInfo.hoveredAirport}
   type={ScatterplotLayer}
   data={visitedAirports}
-  getPosition={(d) => d.position}
-  getRadius={(d) => d.frequency * 50_000}
+  getPosition={(airport: VisitedAirport) => [airport.lon, airport.lat]}
+  getRadius={(airport: VisitedAirport) => airport.frequency * 50_000}
   radiusMinPixels={$isSmallScreen ? 20 : 10}
   radiusMaxPixels={100}
   lineWidthUnits="pixels"
@@ -97,17 +98,17 @@
   stroked
 >
   <Popup openOn="hover" anchor="top-left" offset={20}>
-    {#snippet children({data})}
+    {#snippet children({ data }: { data: VisitedAirport })}
       <div class="min-w-[18rem]">
         <div class="flex flex-col px-3 pt-3">
           <h3 class="font-thin text-muted-foreground">Airport</h3>
           <h4 class="flex items-center text-lg">
             <img
-              src="https://flagcdn.com/{data.meta.country.toLowerCase()}.svg"
-              alt={data.meta.country}
+              src="https://flagcdn.com/{data.country.toLowerCase()}.svg"
+              alt={data.country}
               class="w-8 h-5 mr-2"
             />
-            {data.meta.iata} - {data.meta.name}
+            {data.iata ?? data.code} - {data.name}
           </h4>
         </div>
         <div class="h-[1px] bg-muted my-3" />

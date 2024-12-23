@@ -1,21 +1,9 @@
 import { find } from 'geo-tz';
 
 import { db } from '$lib/db';
-import { AirportTypes, Continents } from '$lib/db/types';
+import type { Airport } from '$lib/db/types';
 import { parseCsv } from '$lib/utils';
-import { airportSchema } from '$lib/zod/airport';
-
-export type Airport = {
-  code: string;
-  type: (typeof AirportTypes)[number];
-  name: string;
-  lat: number;
-  lon: number;
-  continent: (typeof Continents)[number];
-  country: string;
-  iata: string | null;
-  tz: string;
-};
+import { airportSourceSchema } from '$lib/zod/airport';
 
 export const ensureAirports = async () => {
   const airports = await db.selectFrom('airport').execute();
@@ -41,7 +29,7 @@ export const fetchAirports = async () => {
     'https://davidmegginson.github.io/ourairports-data/airports.csv',
   );
   const text = await resp.text();
-  const [data, error] = parseCsv(text, airportSchema);
+  const [data, error] = parseCsv(text, airportSourceSchema);
   if (error) {
     return [];
   }
@@ -78,7 +66,7 @@ export const fetchAirports = async () => {
 
       return {
         code: createAirportCode(airport, dataMap),
-        iata: airport.iata_code,
+        iata: airport.iata_code === '' ? null : airport.iata_code,
         type: airport.type,
         name: airport.name,
         lat: airport.latitude_deg,

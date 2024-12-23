@@ -1,11 +1,9 @@
 import { TZDate } from '@date-fns/tz';
 import { isAfter } from 'date-fns';
-import { get } from 'svelte/store';
 
-import { page } from '$app/stores';
-import type { Flight } from '$lib/db';
+import { page } from '$app/state';
+import type { Airport, Flight } from '$lib/db/types';
 import { distanceBetween, toTitleCase } from '$lib/utils';
-import { type Airport, airportFromICAO } from '$lib/utils/data/legacy_airports';
 import { nowIn, parseLocalize, parseLocalizeISO } from '$lib/utils/datetime';
 
 type ExcludedType<T, U> = {
@@ -16,8 +14,6 @@ type FlightOverrides = {
   date: TZDate;
   departure: TZDate | null;
   arrival: TZDate | null;
-  from: Airport;
-  to: Airport;
   distance: number;
   raw: Flight;
 };
@@ -29,28 +25,22 @@ export const prepareFlightData = (data: Flight[]): FlightData[] => {
 
   return data
     .map((flight) => {
-      const fromAirport = airportFromICAO(flight.from);
-      const toAirport = airportFromICAO(flight.to);
-      if (!fromAirport || !toAirport) return null;
-
       const departure = flight.departure
-        ? parseLocalizeISO(flight.departure, fromAirport.tz)
+        ? parseLocalizeISO(flight.departure, flight.from.tz)
         : null;
 
       return {
         ...flight,
         date:
-          departure ?? parseLocalize(flight.date, 'yyyy-MM-dd', fromAirport.tz),
-        from: fromAirport,
-        to: toAirport,
+          departure ?? parseLocalize(flight.date, 'yyyy-MM-dd', flight.from.tz),
         departure,
         arrival: flight.arrival
-          ? parseLocalizeISO(flight.arrival, toAirport.tz)
+          ? parseLocalizeISO(flight.arrival, flight.to.tz)
           : null,
         distance:
           distanceBetween(
-            [fromAirport.lon, fromAirport.lat],
-            [toAirport.lon, toAirport.lat],
+            [flight.from.lon, flight.from.lat],
+            [flight.to.lon, flight.to.lat],
           ) / 1000,
         raw: flight,
       };
@@ -64,20 +54,8 @@ export const prepareFlightArcData = (data: FlightData[]) => {
   const routeMap: {
     [key: string]: {
       distance: number;
-      from: {
-        position: [number, number];
-        iata: string | null;
-        icao: string;
-        name: string;
-        country: string;
-      };
-      to: {
-        position: [number, number];
-        iata: string | null;
-        icao: string;
-        name: string;
-        country: string;
-      };
+      from: Airport;
+      to: Airport;
       flights: ReturnType<typeof formatSimpleFlight>[];
       airlines: string[];
       exclusivelyFuture: boolean;
@@ -91,20 +69,8 @@ export const prepareFlightArcData = (data: FlightData[]) => {
     if (!routeMap[key]) {
       routeMap[key] = {
         distance: flight.distance,
-        from: {
-          position: [flight.from.lon, flight.from.lat],
-          iata: flight.from.IATA,
-          icao: flight.from.ICAO,
-          name: flight.from.name,
-          country: flight.from.country,
-        },
-        to: {
-          position: [flight.to.lon, flight.to.lat],
-          iata: flight.to.IATA,
-          icao: flight.to.ICAO,
-          name: flight.to.name,
-          country: flight.to.country,
-        },
+        from: flight.from,
+        to: flight.to,
         flights: [],
         airlines: [],
         exclusivelyFuture: false,
@@ -128,27 +94,19 @@ export const prepareFlightArcData = (data: FlightData[]) => {
 };
 
 export const prepareVisitedAirports = (data: FlightData[]) => {
-  const visited: {
-    position: number[];
-    meta: { name: string; country: string; iata: string | null; icao: string };
+  const visited: (Airport & {
     arrivals: number;
     departures: number;
     airlines: string[];
     flights: ReturnType<typeof formatSimpleFlight>[];
     frequency: number;
-  }[] = [];
+  })[] = [];
   const formatAirport = (flight: FlightData, direction: 'from' | 'to') => {
     const airport = flight[direction];
-    let visit = visited.find((v) => v.meta.name === airport.name);
+    let visit = visited.find((v) => v.name === airport.name);
     if (!visit) {
       visit = {
-        position: [airport.lon, airport.lat],
-        meta: {
-          name: airport.name,
-          country: airport.country,
-          iata: airport.IATA,
-          icao: airport.ICAO,
-        },
+        ...airport,
         arrivals: 0,
         departures: 0,
         airlines: [],
@@ -204,8 +162,8 @@ export const prepareVisitedAirports = (data: FlightData[]) => {
 
 const formatSimpleFlight = (f: FlightData) => {
   return {
-    airports: [f.from.ICAO, f.to.ICAO],
-    route: `${f.from.IATA ?? f.from.ICAO} - ${f.to.IATA ?? f.to.ICAO}`,
+    airports: [f.from.code, f.to.code],
+    route: `${f.from.iata ?? f.from.code} - ${f.to.iata ?? f.to.code}`,
     date: f.date,
     airline: f.airline ?? '',
   };
@@ -214,7 +172,7 @@ const formatSimpleFlight = (f: FlightData) => {
 export const formatSeat = (f: FlightData) => {
   const t = (s: string) => toTitleCase(s);
 
-  const userId = get(page).data.user?.id;
+  const userId = page.data.user?.id;
   if (!userId) return null;
 
   const s = f.seats.find((seat) => seat.userId === userId);

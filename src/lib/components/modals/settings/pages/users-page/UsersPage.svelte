@@ -5,16 +5,16 @@
   import { PageHeader } from '../index';
 
   import { invalidateAll } from '$app/navigation';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { Confirm } from '$lib/components/helpers';
   import AddUserModal from '$lib/components/modals/settings/pages/users-page/AddUserModal.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
-  import type { User } from '$lib/db';
+  import type { User } from '$lib/db/types';
   import { api } from '$lib/trpc';
   import { toTitleCase } from '$lib/utils';
 
-  let users = $derived($page.data.users);
+  const users = page.data.users;
 
   const deleteUser = async (id: string) => {
     const success = await api.user.delete.mutate(id);
@@ -29,7 +29,7 @@
     if (current_user.role === 'owner') {
       return false;
     }
-    if (current_user.role === 'admin' && $page.data.user?.role === 'admin') {
+    if (current_user.role === 'admin' && page.data.user?.role === 'admin') {
       return false;
     }
     return true;

@@ -5,7 +5,7 @@ import type { Cookie } from 'lucia';
 import { env } from '$env/dynamic/private';
 import { lucia } from '$lib/server/auth';
 import { appConfig } from '$lib/server/utils/config';
-import { ensureAirports } from '$lib/utils/data/airports';
+import { ensureAirports } from '$lib/utils/data/airports/source';
 
 async function loadConfig() {
   await appConfig.get();

@@ -22,5 +22,3 @@ export const db = new Kysely<DB>({
 export function json<T>(obj: T): RawBuilder<T> {
   return sql`${JSON.stringify(obj)}`;
 }
-
-export type { User, ServerUser, Flight } from './types';

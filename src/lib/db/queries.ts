@@ -1,15 +1,29 @@
-import type { Kysely } from 'kysely';
-import { jsonArrayFrom } from 'kysely/helpers/postgres';
+import { type Expression, type Kysely, sql } from 'kysely';
+import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 
 import type { DB } from './schema';
 import type { CreateFlight } from './types';
 
-import { db } from '$lib/db/index';
+const airports = (
+  db: Kysely<DB>,
+  from: Expression<string>,
+  to: Expression<string>,
+) => {
+  return [
+    jsonObjectFrom(
+      db.selectFrom('airport').where('airport.code', '=', from).selectAll(),
+    ).as('from'),
+    jsonObjectFrom(
+      db.selectFrom('airport').where('airport.code', '=', to).selectAll(),
+    ).as('to'),
+  ];
+};
 
 export const listFlightPrimitive = async (db: Kysely<DB>, userId: string) => {
   return await db
     .selectFrom('flight')
     .selectAll('flight')
+    .select((eb) => airports(db, eb.ref('flight.from'), eb.ref('flight.to')))
     .select((eb) => [
       jsonArrayFrom(
         eb
@@ -34,6 +48,7 @@ export const getFlightPrimitive = async (db: Kysely<DB>, id: number) => {
   return await db
     .selectFrom('flight')
     .selectAll()
+    .select(({ ref }) => airports(db, ref('flight.from'), ref('flight.to')))
     .select((eb) =>
       jsonArrayFrom(
         eb
@@ -54,7 +69,11 @@ export const createFlightPrimitive = async (
     const { seats, ...flightData } = data;
     const resp = await trx
       .insertInto('flight')
-      .values(flightData)
+      .values({
+        ...flightData,
+        from: flightData.from.code,
+        to: flightData.to.code,
+      })
       .returning('id')
       .executeTakeFirstOrThrow();
 
@@ -80,7 +99,11 @@ export const updateFlightPrimitive = async (
     const { seats, ...flightData } = data;
     await trx
       .updateTable('flight')
-      .set(flightData)
+      .set({
+        ...flightData,
+        from: flightData.from.code,
+        to: flightData.to.code,
+      })
       .where('id', '=', id)
       .executeTakeFirstOrThrow();
 
@@ -108,7 +131,13 @@ export const createManyFlightsPrimitive = async (
   await db.transaction().execute(async (trx) => {
     const flights = await trx
       .insertInto('flight')
-      .values(data.map(({ seats: _, ...rest }) => rest))
+      .values(
+        data.map(({ seats: _, ...rest }) => ({
+          ...rest,
+          from: rest.from.code,
+          to: rest.to.code,
+        })),
+      )
       .returning('id')
       .execute();
 
@@ -131,4 +160,39 @@ export const createManyFlightsPrimitive = async (
 
     await trx.insertInto('seat').values(seatData).execute();
   });
+};
+
+export const findAirportsPrimitive = async (db: Kysely<DB>, input: string) => {
+  return await db
+    .selectFrom('airport')
+    .selectAll()
+    .where((qb) =>
+      qb.or([
+        qb('iata', 'ilike', input),
+        qb('code', 'ilike', input),
+        qb('name', 'ilike', `%${input}%`),
+      ]),
+    )
+    .select([
+      sql`CASE
+            WHEN "iata" ILIKE ${input} THEN 1
+            WHEN "code" ILIKE ${input} THEN 1
+            WHEN "name" ILIKE ${'%' + input + '%'} THEN 2
+            ELSE 3
+          END`.as('match_rank'),
+      sql`CASE
+          WHEN "type" = 'closed' THEN 7
+          WHEN "type" = 'heliport' THEN 6
+          WHEN "type" = 'balloonport' THEN 5
+          WHEN "type" = 'seaplane_base' THEN 4
+          WHEN "type" = 'small_airport' THEN 3
+          WHEN "type" = 'medium_airport' THEN 2
+          WHEN "type" = 'large_airport' THEN 1
+          ELSE 8
+        END`.as('type_rank'),
+    ])
+    .orderBy('match_rank asc')
+    .orderBy('type_rank asc')
+    .limit(10)
+    .execute();
 };
