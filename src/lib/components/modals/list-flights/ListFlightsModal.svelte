@@ -1,4 +1,5 @@
 <script lang="ts">
+  import autoAnimate from '@formkit/auto-animate';
   import { Plane, PlaneTakeoff, PlaneLanding, X } from '@o7/icon/lucide';
   import { AirplanemodeInactive } from '@o7/icon/material';
   import { isBefore, isSameDay } from 'date-fns';
@@ -144,7 +145,7 @@
             {year}
           </h3>
         </LabelledSeparator>
-        <div class="space-y-2">
+        <div class="space-y-2" use:autoAnimate>
           {#each flights as flight (flight.id)}
             <Card
               onclick={() => {

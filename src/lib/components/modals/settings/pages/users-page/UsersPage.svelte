@@ -1,4 +1,5 @@
 <script lang="ts">
+  import autoAnimate from '@formkit/auto-animate';
   import { SquarePen, X } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
 
@@ -14,7 +15,7 @@
   import { api } from '$lib/trpc';
   import { toTitleCase } from '$lib/utils';
 
-  const users = page.data.users;
+  const users = $derived(page.data.users);
 
   const deleteUser = async (id: string) => {
     const success = await api.user.delete.mutate(id);
@@ -50,7 +51,7 @@
   {#if users.length === 0}
     <p>No users found.</p>
   {:else}
-    <div class="space-y-2">
+    <div use:autoAnimate class="space-y-2">
       {#each users as current_user}
         <Card level="2" class="flex items-center p-3">
           <div class="flex items-center flex-1 gap-4 h-full min-w-0">

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import autoAnimate from '@formkit/auto-animate';
   import { ChevronRight, X } from '@o7/icon/lucide';
   import { Collapsible } from 'bits-ui';
   import { formatRelative } from 'date-fns';
@@ -20,7 +21,6 @@
 
   const fetchKeys = async () => {
     keys = await api.user.listApiKeys.query();
-    console.log(keys);
     loaded = true;
   };
 
@@ -52,7 +52,7 @@
   <Collapsible.Content forceMount>
     {#snippet child({ props, open })}
       {#if open}
-        <div {...props} transition:slide class="mt-4 flex flex-col space-y-2">
+        <div {...props} use:autoAnimate transition:slide class="mt-4 flex flex-col space-y-2">
           {#each keys as key}
             <Card class="p-2 flex justify-between">
               <div>

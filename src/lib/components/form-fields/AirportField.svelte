@@ -1,4 +1,5 @@
 <script lang="ts">
+  import autoAnimate from '@formkit/auto-animate';
   import { createCombobox, melt } from '@melt-ui/svelte';
   import { ChevronsUpDown } from '@o7/icon/lucide';
   import { writable } from 'svelte/store';
@@ -9,7 +10,7 @@
   import * as Form from '$lib/components/ui/form';
   import type { Airport } from '$lib/db/types';
   import { api } from '$lib/trpc';
-  import { toTitleCase } from '$lib/utils';
+  import { cn, toTitleCase } from '$lib/utils';
   import { airportSearchCache } from '$lib/utils/data/airports/cache';
   import type { flightSchema } from '$lib/zod/flight';
 
@@ -81,8 +82,6 @@
       if (cached) {
         airports = cached;
         return;
-      } else {
-        airports = [];
       }
       loading = true;
       debounce(async () => {
@@ -90,7 +89,7 @@
         loading = false;
         airportSearchCache.set($inputValue.toLowerCase(), airports);
       });
-    } else {
+    } else if (!loading) {
       airports = [];
     }
   });
@@ -125,15 +124,22 @@
       <div
         class="flex max-h-full flex-col gap-1 overflow-y-auto bg-popover text-card-foreground"
         tabindex="0"
+        use:autoAnimate
       >
         {#each airports as airport}
           <li
             use:melt={$option({
               value: airport,
               label: airport.name,
+              disabled: loading,
             })}
-            class="relative cursor-pointer scroll-my-2 rounded-md p-2
-        dark:bg-dark-1 border data-[highlighted]:bg-zinc-300 data-[highlighted]:dark:bg-dark-2"
+            class={cn(
+              'relative cursor-pointer scroll-my-2 rounded-md p-2 dark:bg-dark-1 border data-[highlighted]:bg-zinc-300 data-[highlighted]:dark:bg-dark-2',
+              'transition-[filter]',
+              {
+                'pointer-events-none blur-sm': loading,
+              },
+            )}
           >
             <div class="flex flex-row gap-2 justify-between">
               <div class="flex flex-col overflow-hidden">

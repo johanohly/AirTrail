@@ -33,6 +33,7 @@
     "@deck.gl/core": "~9.0.38",
     "@deck.gl/layers": "~9.0.38",
     "@deck.gl/mapbox": "~9.0.38",
+    "@formkit/auto-animate": "^0.8.2",
     "@internationalized/date": "^3.6.0",
     "@layerstack/utils": "^0.0.7",
     "@lucia-auth/adapter-postgresql": "^3.1.2",
