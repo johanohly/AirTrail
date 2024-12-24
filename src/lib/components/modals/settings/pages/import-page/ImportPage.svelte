@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Upload } from '@o7/icon/lucide';
+  import { LoaderCircle, Upload } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
 
   import { PageHeader } from '../';
@@ -155,18 +155,30 @@
       bind:files
       class="hidden"
     />
-    <Button onclick={handleImport} disabled={!canImport || importing}
-      >Import
+    <Button onclick={handleImport} disabled={!canImport || importing}>
+      {#if importing}
+        <LoaderCircle class="animate-spin mr-1" size={16} />
+      {/if}
+      Import
     </Button>
   {:else}
     <h3 class="text-lg font-semibold">Unknown airports</h3>
     <p class="text-muted-foreground">
       The following airports are not in the database and flights with these
-      airports have therefore not been imported. Please report them directly to
-      our source, <a href="https://ourairports.com/">OurAirports</a>, or add
-      them as custom airports.
+      airports have therefore not been imported.
     </p>
-    <ScrollArea class="h-[50dvh]">
+    <p class="text-muted-foreground">
+      Chances are the airport codes have been officially changed, but that the
+      change hasn't reflected in your export file. The easiest solution is to
+      investigate the codes, and manually change the occurrences in the file
+      before trying to import again.
+    </p>
+    <p class="text-muted-foreground">
+      If the airports are truly missing, please report them directly to our
+      source, <a href="https://ourairports.com/">OurAirports</a>, or add them as
+      custom airports.
+    </p>
+    <ScrollArea class="h-[30dvh]">
       <ul class="mt-4 ml-4 list-disc">
         {#each unknownAirports as airport}
           <li>{airport}</li>
