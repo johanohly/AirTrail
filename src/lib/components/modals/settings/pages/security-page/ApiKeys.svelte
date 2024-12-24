@@ -3,6 +3,7 @@
   import { Collapsible } from 'bits-ui';
   import { formatRelative } from 'date-fns';
   import { slide } from 'svelte/transition';
+  import { toast } from 'svelte-sonner';
 
   import { Confirm } from '$lib/components/helpers';
   import CreateKey from '$lib/components/modals/settings/pages/security-page/CreateKey.svelte';
@@ -25,6 +26,12 @@
       loaded = true;
     });
   });
+
+  const deleteKey = async (key: ApiKey) => {
+    await api.user.deleteApiKey.mutate(key.id);
+    keys = keys.filter((k) => k.id !== key.id);
+    toast.success('API key deleted');
+  };
 </script>
 
 <Collapsible.Root
@@ -62,10 +69,7 @@
                 <Confirm
                   title="Delete API Key"
                   description="Are you sure you want to delete this API key? This action cannot be undone."
-                  onConfirm={async () => {
-                    await api.user.deleteApiKey.mutate(key.id);
-                    keys = keys.filter((k) => k.id !== key.id);
-                  }}
+                  onConfirm={deleteKey(key)}
                 >
                   {#snippet triggerContent({ props })}
                     <Button variant="outline" size="icon" {...props}>

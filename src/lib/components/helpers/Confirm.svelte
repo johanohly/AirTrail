@@ -18,9 +18,11 @@
     confirmText?: string;
     cancelText?: string;
   } = $props();
+
+  let open = $state(false);
 </script>
 
-<AlertDialog.Root>
+<AlertDialog.Root bind:open>
   <AlertDialog.Trigger>
     {#snippet child({ props })}
       {@render triggerContent({ props })}
@@ -33,7 +35,12 @@
     </AlertDialog.Header>
     <AlertDialog.Footer>
       <AlertDialog.Cancel>{cancelText}</AlertDialog.Cancel>
-      <AlertDialog.Action onclick={onConfirm}>{confirmText}</AlertDialog.Action>
+      <AlertDialog.Action
+        onclick={async () => {
+          await onConfirm();
+          open = false;
+        }}>{confirmText}</AlertDialog.Action
+      >
     </AlertDialog.Footer>
   </AlertDialog.Content>
 </AlertDialog.Root>
