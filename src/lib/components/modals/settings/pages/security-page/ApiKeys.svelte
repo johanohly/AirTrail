@@ -18,18 +18,19 @@
   let loaded = $state(false);
   let keys: ApiKey[] = $state([]);
 
-  $effect(() => {
-    keys.length;
+  const fetchKeys = async () => {
+    keys = await api.user.listApiKeys.query();
+    console.log(keys);
+    loaded = true;
+  };
 
-    api.user.listApiKeys.query().then((res) => {
-      keys = res;
-      loaded = true;
-    });
+  $effect(() => {
+    fetchKeys();
   });
 
   const deleteKey = async (key: ApiKey) => {
     await api.user.deleteApiKey.mutate(key.id);
-    keys = keys.filter((k) => k.id !== key.id);
+    await fetchKeys();
     toast.success('API key deleted');
   };
 </script>
@@ -69,7 +70,7 @@
                 <Confirm
                   title="Delete API Key"
                   description="Are you sure you want to delete this API key? This action cannot be undone."
-                  onConfirm={deleteKey(key)}
+                  onConfirm={async () => deleteKey(key)}
                 >
                   {#snippet triggerContent({ props })}
                     <Button variant="outline" size="icon" {...props}>
