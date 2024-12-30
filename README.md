@@ -41,7 +41,7 @@
 ## 🚀 Getting Started
 
 - [Documentation](https://airtrail.johan.ohly.dk/docs/overview/introduction)
-- [Installation](https://airtrail.johan.ohly.dk/docs/overview/quick-start/)
+- [Installation](https://airtrail.johan.ohly.dk/docs/overview/quick-start)
 - [About](https://airtrail.johan.ohly.dk/docs/overview/introduction)
 
 ## 🤝 Contributing
