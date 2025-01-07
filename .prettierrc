@@ -3,18 +3,12 @@
   "singleQuote": true,
   "useTabs": false,
   "trailingComma": "all",
-  "plugins": ["prettier-plugin-svelte", "prettier-plugin-astro"],
+  "plugins": ["prettier-plugin-svelte"],
   "overrides": [
     {
       "files": "*.svelte",
       "options": {
         "parser": "svelte"
-      }
-    },
-    {
-      "files": "*.astro",
-      "options": {
-        "parser": "astro"
       }
     }
   ]
