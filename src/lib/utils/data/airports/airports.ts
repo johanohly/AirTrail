@@ -15,6 +15,7 @@ export type Airport = {
   country: string;
   iata: string | null;
   tz: string;
+  custom: boolean;
 };
 
 export const ensureAirports = async () => {

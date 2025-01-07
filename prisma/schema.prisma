@@ -48,6 +48,7 @@ model airport {
   /// @kyselyType('EU' | 'NA' | 'SA' | 'AS' | 'AF' | 'OC' | 'AN')
   continent String
   country   String
+  custom    Boolean @default(false)
 }
 
 model flight {
