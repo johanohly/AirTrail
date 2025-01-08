@@ -17,6 +17,7 @@
   const AIRPORT_COLOR = [16, 185, 129]; // Tailwind emerald-500
 
   let { flights }: { flights: FlightData[] } = $props();
+
   const visitedAirports = $derived.by(() => {
     const data = flights;
     if (!data || !data.length) return [];
@@ -26,24 +27,23 @@
 
   const getFillColor = () => {
     return (d: (typeof visitedAirports)[number]) => {
-      if (hoverInfo.hoveredAirport && hoverInfo.hoveredAirport === d) {
+      const airport = hoverInfo.hoveredAirport;
+      const arc = hoverInfo.hoveredArc;
+      if (airport && airport.meta.icao === d.meta.icao) {
         return [...AIRPORT_COLOR, 80];
       } else if (
-        hoverInfo.hoveredAirport &&
-        hoverInfo.hoveredAirport.flights.some((f) =>
-          f.airports.includes(d.meta.icao),
-        )
+        airport &&
+        airport.flights.some((f) => f.airports.includes(d.meta.icao))
       ) {
         return [...AIRPORT_COLOR, 50];
       } else if (
-        hoverInfo.hoveredArc &&
-        (hoverInfo.hoveredArc.from.icao === d.meta.icao ||
-          hoverInfo.hoveredArc.to.icao === d.meta.icao)
+        arc &&
+        (arc.from.icao === d.meta.icao || arc.to.icao === d.meta.icao)
       ) {
         return [...AIRPORT_COLOR, 50];
-      } else if (hoverInfo.hoveredArc) {
+      } else if (arc) {
         return [...INACTIVE_COLOR, 50];
-      } else if (hoverInfo.hoveredAirport) {
+      } else if (airport) {
         return [...INACTIVE_COLOR, 50];
       } else {
         return [...AIRPORT_COLOR, 50];
@@ -53,23 +53,22 @@
 
   const getLineColor = () => {
     return (d: (typeof visitedAirports)[number]) => {
+      const airport = hoverInfo.hoveredAirport;
+      const arc = hoverInfo.hoveredArc;
       if (
-        hoverInfo.hoveredAirport &&
-        (hoverInfo.hoveredAirport === d ||
-          hoverInfo.hoveredAirport.flights.some((f) =>
-            f.airports.includes(d.meta.icao),
-          ))
+        airport &&
+        (airport.meta.icao === d.meta.icao ||
+          airport.flights.some((f) => f.airports.includes(d.meta.icao)))
       ) {
         return [...AIRPORT_COLOR, 255];
-      } else if (hoverInfo.hoveredAirport) {
+      } else if (airport) {
         return INACTIVE_COLOR;
       } else if (
-        hoverInfo.hoveredArc &&
-        (hoverInfo.hoveredArc.from.icao === d.meta.icao ||
-          hoverInfo.hoveredArc.to.icao === d.meta.icao)
+        arc &&
+        (arc.from.icao === d.meta.icao || arc.to.icao === d.meta.icao)
       ) {
         return [...AIRPORT_COLOR, 255];
-      } else if (hoverInfo.hoveredArc) {
+      } else if (arc) {
         return INACTIVE_COLOR;
       } else {
         return [...AIRPORT_COLOR, 255];
@@ -97,7 +96,7 @@
   stroked
 >
   <Popup openOn="hover" anchor="top-left" offset={20}>
-    {#snippet children({data})}
+    {#snippet children({ data })}
       <div class="min-w-[18rem]">
         <div class="flex flex-col px-3 pt-3">
           <h3 class="font-thin text-muted-foreground">Airport</h3>

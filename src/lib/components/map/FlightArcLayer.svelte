@@ -24,17 +24,18 @@
 
   const getColor = (point: 'source' | 'target') => {
     return (d: (typeof flightArcs)[number]) => {
-      if (hoverInfo.hoveredArc && d === hoverInfo.hoveredArc) {
+      const arc = hoverInfo.hoveredArc;
+      const airport = hoverInfo.hoveredAirport;
+      if (arc && d.from.icao === arc.from.icao && d.to.icao === arc.to.icao) {
         return HOVER_COLOR;
-      } else if (hoverInfo.hoveredArc) {
+      } else if (arc) {
         return [...INACTIVE_COLOR, 200];
       } else if (
-        hoverInfo.hoveredAirport &&
-        (hoverInfo.hoveredAirport.meta.icao === d.from.icao ||
-          hoverInfo.hoveredAirport.meta.icao === d.to.icao)
+        airport &&
+        (airport.meta.icao === d.from.icao || airport.meta.icao === d.to.icao)
       ) {
         return point === 'source' ? FROM_COLOR : TO_COLOR;
-      } else if (hoverInfo.hoveredAirport) {
+      } else if (airport) {
         return [...INACTIVE_COLOR, 200];
       } else if (d.exclusivelyFuture) {
         return FUTURE_COLOR;
@@ -73,7 +74,7 @@
   greatCircle
 >
   <Popup openOn="hover" anchor="top-left" offset={20}>
-    {#snippet children({data})}
+    {#snippet children({ data })}
       <div class="flex flex-col px-3 pt-3">
         <h3 class="font-thin text-muted-foreground">Route</h3>
         <h4 class="flex items-center text-lg">
@@ -97,7 +98,9 @@
       <div class="grid grid-cols-[repeat(3,_1fr)] px-3">
         <h4 class="font-semibold">
           <NumberFlow
-            value={Math.round(metric ? data.distance : kmToMiles(data.distance))}
+            value={Math.round(
+              metric ? data.distance : kmToMiles(data.distance),
+            )}
           />
           <span class="font-thin text-muted-foreground"
             >{metric ? 'km' : 'mi'}</span
