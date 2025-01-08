@@ -1,3 +1,4 @@
+-- CreateTable
 CREATE TABLE "airport" (
     "code" TEXT NOT NULL,
     "iata" TEXT,
@@ -8,6 +9,7 @@ CREATE TABLE "airport" (
     "type" TEXT NOT NULL,
     "continent" TEXT NOT NULL,
     "country" TEXT NOT NULL,
+    "custom" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "airport_pkey" PRIMARY KEY ("code")
 );

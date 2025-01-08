@@ -23,6 +23,7 @@ export type airport = {
      */
     continent: 'EU' | 'NA' | 'SA' | 'AS' | 'AF' | 'OC' | 'AN';
     country: string;
+    custom: Generated<boolean>;
 };
 export type api_key = {
     id: Generated<number>;

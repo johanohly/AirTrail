@@ -17,6 +17,7 @@
   const AIRPORT_COLOR = [16, 185, 129]; // Tailwind emerald-500
 
   let { flights }: { flights: FlightData[] } = $props();
+
   const visitedAirports = $derived.by(() => {
     const data = flights;
     if (!data || !data.length) return [];

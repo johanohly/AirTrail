@@ -105,7 +105,6 @@
     "postcss": "^8.4.49",
     "postcss-load-config": "^6.0.1",
     "prettier": "^3.4.2",
-    "prettier-plugin-astro": "^0.14.1",
     "prettier-plugin-svelte": "^3.3.2",
     "prettier-plugin-tailwindcss": "^0.6.9",
     "prisma": "^6.1.0",

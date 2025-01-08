@@ -10,9 +10,10 @@
     ExportPage,
     OAuthPage,
     SecurityPage,
+    DataPage,
   } from './pages';
 
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import SettingsTabContainer from '$lib/components/modals/settings/SettingsTabContainer.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Modal } from '$lib/components/ui/modal';
@@ -28,6 +29,7 @@
     { title: 'Export', id: 'export' },
   ] as const;
   const ADMIN_SETTINGS = [
+    { title: 'Data', id: 'data' },
     { title: 'Users', id: 'users' },
     { title: 'OAuth', id: 'oauth' },
   ] as const;
@@ -48,7 +50,7 @@
     }
   });
 
-  const user = $derived($page.data.user);
+  const user = $derived(page.data.user);
 
   const [send, receive] = crossfade({
     duration: 250,
@@ -141,6 +143,8 @@
           <ImportPage bind:open />
         {:else if activeTab === 'export'}
           <ExportPage />
+        {:else if activeTab === 'data'}
+          <DataPage />
         {:else if activeTab === 'users'}
           <UsersPage />
         {:else if activeTab === 'oauth'}
