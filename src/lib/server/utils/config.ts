@@ -62,7 +62,7 @@ export class AppConfig {
       .selectFrom('appConfig')
       .select('config')
       .executeTakeFirst();
-    if (!result || !result.config) {
+    if (!result?.config) {
       return null;
     }
 
@@ -90,10 +90,10 @@ export class AppConfig {
   }
 
   #parseEnvValue(value: string) {
-    value = value.trim().toLowerCase();
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    if (value === 'null') return null;
+    const lowerValue = value.trim().toLowerCase();
+    if (lowerValue === 'true') return true;
+    if (lowerValue === 'false') return false;
+    if (lowerValue === 'null') return null;
 
     const numberValue = Number(value);
     if (!isNaN(numberValue)) return numberValue;
