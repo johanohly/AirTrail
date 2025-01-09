@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { FlightReasons, SeatClasses, SeatTypes } from '$lib/db/types';
-import { airportSchema } from '$lib/zod/airport';
+import { flightAirportSchema } from '$lib/zod/airport';
 
 const regex24h = /^([01]?\d|2[0-3])(?::|\.|)[0-5]\d(?:\s?(?:am|pm))?$/i;
 const regex12hLike = /^\d{1,2}(?::|\.|)\d{2}\s?(?:am|pm)$/i;
@@ -24,8 +24,8 @@ const timePrimitive = z
   .nullable();
 
 export const flightAirportsSchema = z.object({
-  from: airportSchema,
-  to: airportSchema,
+  from: flightAirportSchema,
+  to: flightAirportSchema,
 });
 
 export const flightDateTimeSchema = z.object({

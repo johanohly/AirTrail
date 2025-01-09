@@ -10,7 +10,9 @@ export type ApiKey = Omit<
   createdAt: Date;
   lastUsed: Date | null;
 };
-export type Airport = airport;
+export type Airport = Omit<airport, 'custom'> & {
+  custom: boolean;
+};
 export type Seat = Omit<seat, 'id'> & {
   id: number;
 };
@@ -39,6 +41,15 @@ export const AirportTypes = [
   'large_airport',
 ] as const;
 export const Continents = ['AF', 'AS', 'EU', 'NA', 'OC', 'SA', 'AN'] as const;
+export const ContinentMap = {
+  EU: 'Europe',
+  NA: 'North America',
+  SA: 'South America',
+  AS: 'Asia',
+  AF: 'Africa',
+  OC: 'Oceania',
+  AN: 'Antarctica',
+};
 
 export const SeatTypes = ['window', 'aisle', 'middle', 'other'] as const;
 export const SeatClasses = [

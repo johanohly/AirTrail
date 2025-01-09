@@ -45,7 +45,7 @@
     "@tanstack/svelte-query": "^5.62.12",
     "@trpc/client": "^10.45.2",
     "@trpc/server": "^10.45.2",
-    "bits-ui": "^1.0.0-next.74",
+    "bits-ui": "^1.0.0-next.77",
     "clsx": "^2.1.1",
     "cobe": "^0.6.3",
     "d3-array": "^3.2.4",

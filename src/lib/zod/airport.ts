@@ -3,7 +3,36 @@ import { z } from 'zod';
 import { AirportTypes, Continents } from '$lib/db/types';
 
 export const airportSchema = z.object({
-  code: z.string().refine((val) => val !== '', { message: 'Select an airport' }),
+  code: z
+    .string({ message: 'Set a code' })
+    .regex(/^[A-Z]{4}$/, 'Code must be 4 uppercase letters'),
+  type: z
+    .enum(AirportTypes, { message: 'Select an airport type' })
+    // @ts-expect-error - z.enum always defaults to the first enum value, but we dont want a default
+    .default(''),
+  name: z.string().min(1, 'Set a name'),
+  // @ts-expect-error - z.number always defaults to 0, but we dont want a default
+  lat: z.number({ message: 'Set the latitude' }).default(null),
+  // @ts-expect-error - z.number always defaults to 0, but we dont want a default
+  lon: z.number({ message: 'Set the longitude' }).default(null),
+  continent: z
+    .enum(Continents, { message: 'Select a continent' })
+    // @ts-expect-error - z.enum always defaults to the first enum value, but we dont want a default
+    .default(''),
+  country: z.string().min(1, 'Select a country'),
+  iata: z.string(),
+  tz: z
+    .string({ message: 'Select a timezone' })
+    .regex(/^[a-zA-Z]+\/[a-zA-Z_]+$/, 'Must be a valid timezone ID'),
+});
+
+/*
+ * Only used inside the flight schema.
+ */
+export const flightAirportSchema = z.object({
+  code: z
+    .string()
+    .refine((val) => val !== '', { message: 'Select an airport' }),
   type: z.enum(AirportTypes),
   name: z.string(),
   lat: z.number(),

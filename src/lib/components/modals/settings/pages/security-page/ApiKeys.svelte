@@ -1,4 +1,5 @@
 <script lang="ts">
+  import autoAnimate from '@formkit/auto-animate';
   import { X } from '@o7/icon/lucide';
   import { formatRelative } from 'date-fns';
   import { toast } from 'svelte-sonner';
@@ -36,35 +37,37 @@
   disabled={!loaded}
   class={{ 'opacity-80': !loaded }}
 >
-  {#each keys as key}
-    <Card class="p-2 flex justify-between">
-      <div>
-        <h4 class="font-medium text-lg">
-          {key.name}
-        </h4>
-        <p class="text-muted-foreground text-sm">
-          Created {formatRelative(key.createdAt, new Date())}
-          {#if key.lastUsed}
-            ∙ Last used {formatRelative(key.lastUsed, new Date())}
-          {/if}
-        </p>
-      </div>
-      <div class="flex items-center pr-1">
-        <Confirm
-          title="Delete API Key"
-          description="Are you sure you want to delete this API key? This action cannot be undone."
-          onConfirm={async () => deleteKey(key)}
-        >
-          {#snippet triggerContent({ props })}
-            <Button variant="outline" size="icon" {...props}>
-              <X />
-            </Button>
-          {/snippet}
-        </Confirm>
-      </div>
-    </Card>
-  {:else}
-    <p class="pb-2 text-center text-muted-foreground">No API keys found</p>
-  {/each}
+  <div use:autoAnimate>
+    {#each keys as key}
+      <Card class="p-2 flex justify-between">
+        <div>
+          <h4 class="font-medium text-lg">
+            {key.name}
+          </h4>
+          <p class="text-muted-foreground text-sm">
+            Created {formatRelative(key.createdAt, new Date())}
+            {#if key.lastUsed}
+              ∙ Last used {formatRelative(key.lastUsed, new Date())}
+            {/if}
+          </p>
+        </div>
+        <div class="flex items-center pr-1">
+          <Confirm
+            title="Delete API Key"
+            description="Are you sure you want to delete this API key? This action cannot be undone."
+            onConfirm={async () => deleteKey(key)}
+          >
+            {#snippet triggerContent({ props })}
+              <Button variant="outline" size="icon" {...props}>
+                <X />
+              </Button>
+            {/snippet}
+          </Confirm>
+        </div>
+      </Card>
+    {:else}
+      <p class="pb-2 text-center text-muted-foreground">No API keys found</p>
+    {/each}
+  </div>
   <CreateKey bind:keys />
 </Collapsible>

@@ -3,7 +3,10 @@ import { find } from 'geo-tz';
 import { db } from '$lib/db';
 import type { Airport } from '$lib/db/types';
 import { parseCsv } from '$lib/utils';
+import { deepEqual } from '$lib/utils/other';
 import { airportSourceSchema } from '$lib/zod/airport';
+
+export const BATCH_SIZE = 1000;
 
 export const ensureAirports = async () => {
   const airports = await db.selectFrom('airport').execute();
@@ -14,17 +17,84 @@ export const ensureAirports = async () => {
   console.time('Populate initial airport database');
 
   const data = await fetchAirports();
-  for (let i = 0; i < data.length; i += 1000) {
+  for (let i = 0; i < data.length; i += BATCH_SIZE) {
     await db
       .insertInto('airport')
-      .values(data.slice(i, i + 1000))
+      .values(data.slice(i, i + BATCH_SIZE))
       .execute();
   }
 
   console.timeEnd('Populate initial airport database');
 };
 
-export const fetchAirports = async () => {
+export const updateAirports = async () => {
+  const start = Date.now();
+
+  const existingAirports = await db.selectFrom('airport').selectAll().execute();
+  const existingMap = new Map(existingAirports.map((a) => [a.code, a]));
+  const data = await fetchAirports();
+  const newMap = new Map(data.map((a) => [a.code, a]));
+
+  const newAirports: Airport[] = [];
+  const updatedAirports: Airport[] = [];
+  const removedAirports: Airport[] = [];
+
+  for (const airport of data) {
+    const existing = existingMap.get(airport.code);
+
+    // Means the airport was manually added by the user
+    if (existing?.custom) {
+      continue;
+    }
+
+    if (!existing) {
+      newAirports.push(airport);
+    } else if (!deepEqual(airport, existing)) {
+      updatedAirports.push(airport);
+    }
+  }
+
+  for (const airport of existingAirports) {
+    if (!newMap.has(airport.code) && !airport.custom) {
+      removedAirports.push(airport);
+    }
+  }
+
+  for (let i = 0; i < newAirports.length; i += BATCH_SIZE) {
+    await db
+      .insertInto('airport')
+      .values(newAirports.slice(i, i + BATCH_SIZE))
+      .execute();
+  }
+
+  for (const airport of updatedAirports) {
+    await db
+      .updateTable('airport')
+      .set(airport)
+      .where('code', '=', airport.code)
+      .execute();
+  }
+
+  for (let i = 0; i < removedAirports.length; i += BATCH_SIZE) {
+    await db
+      .deleteFrom('airport')
+      .where(
+        'code',
+        'in',
+        removedAirports.slice(i, i + BATCH_SIZE).map((a) => a.code),
+      )
+      .execute();
+  }
+
+  return {
+    created: newAirports.length,
+    updated: updatedAirports.length,
+    removed: removedAirports.length,
+    time: Date.now() - start,
+  };
+};
+
+export const fetchAirports = async (): Promise<Airport[]> => {
   const resp = await fetch(
     'https://davidmegginson.github.io/ourairports-data/airports.csv',
   );
@@ -74,6 +144,7 @@ export const fetchAirports = async () => {
         continent: airport.continent,
         country: airport.iso_country,
         tz,
+        custom: false,
       };
     })
     .filter((airport) => airport !== null) as Airport[];
