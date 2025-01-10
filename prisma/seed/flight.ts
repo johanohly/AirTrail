@@ -2,20 +2,17 @@ import { format } from 'date-fns';
 import { Sync as Factory } from 'factory.ts';
 import { Kysely } from 'kysely';
 
-import { AIRPORTS } from '../../src/lib/data/airports';
 import { createManyFlightsPrimitive } from '../../src/lib/db/queries';
 import type { DB } from '../../src/lib/db/schema';
 import type { CreateFlight } from '../../src/lib/db/types';
-import { estimateFlightDuration } from '../../src/lib/utils/datetime';
-import { distanceBetween } from '../../src/lib/utils/distance';
 
 const routes = [
-  { from: 'EGLL', to: 'KJFK' }, // London-Heathrow to New York-JFK
-  { from: 'KMIA', to: 'OMDB' }, // Miami to Dubai
-  { from: 'HECA', to: 'OEJN' }, // Cairo to Jeddah
-  { from: 'VHHH', to: 'RCTP' }, // Hong Kong to Taipei-Taoyuan
-  { from: 'OMDB', to: 'OERK' }, // Dubai to Riyadh
-  { from: 'VTBS', to: 'RKSI' }, // Bangkok-Suvarnabhumi to Seoul-Incheon
+  { from: 'EGLL', to: 'KJFK', duration: 26637 }, // London-Heathrow to New York-JFK
+  { from: 'KMIA', to: 'OMDB', duration: 36883 }, // Miami to Dubai
+  { from: 'HECA', to: 'OEJN', duration: 7305 }, // Cairo to Jeddah
+  { from: 'VHHH', to: 'RCTP', duration: 5489 }, // Hong Kong to Taipei-Taoyuan
+  { from: 'OMDB', to: 'OERK', duration: 4214 }, // Dubai to Riyadh
+  { from: 'VTBS', to: 'RKSI', duration: 18386 }, // Bangkok-Suvarnabhumi to Seoul-Incheon
 ];
 
 const baseFlightFactory = Factory.makeFactory<CreateFlight>({
@@ -30,14 +27,6 @@ const baseFlightFactory = Factory.makeFactory<CreateFlight>({
       'yyyy-MM-dd',
     ),
   ),
-}).withDerivation2(['from', 'to'], 'duration', (fromIcao, toIcao) => {
-  const from = AIRPORTS.find((a) => a.ICAO === fromIcao);
-  const to = AIRPORTS.find((a) => a.ICAO === toIcao);
-  return from && to
-    ? estimateFlightDuration(
-        distanceBetween([from.lon, from.lat], [to.lon, to.lat]) / 1000,
-      )
-    : 0;
 });
 
 export const seedFlight = async (db: Kysely<DB>, userId: string) => {

@@ -6,7 +6,6 @@ import { db } from '$lib/db';
 import { VisitedCountryStatus } from '$lib/db/types';
 import { listFlights } from '$lib/server/utils/flight';
 import { countryFromAlpha } from '$lib/utils/data/countries';
-import { airportFromICAO } from '$lib/utils/data/legacy_airports';
 
 const VisitedCountrySchema = z.object({
   code: z.number(),
@@ -56,14 +55,8 @@ export const visitedCountriesRouter = router({
     const countries: number[] = [];
 
     for (const flight of flights) {
-      const origin = airportFromICAO(flight.from);
-      const destination = airportFromICAO(flight.to);
-      if (!origin || !destination) {
-        continue;
-      }
-
-      const originCountry = countryFromAlpha(origin.country);
-      const destinationCountry = countryFromAlpha(destination.country);
+      const originCountry = countryFromAlpha(flight.from.country);
+      const destinationCountry = countryFromAlpha(flight.to.country);
       if (!originCountry || !destinationCountry) {
         continue;
       }
