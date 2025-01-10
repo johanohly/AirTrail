@@ -1,9 +1,10 @@
 <script lang="ts">
   import autoAnimate from '@formkit/auto-animate';
-  import { SquarePen, X } from '@o7/icon/lucide';
+  import { X } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
 
   import CreateAirport from './CreateAirport.svelte';
+  import EditAirport from './EditAirport.svelte';
 
   import { Confirm } from '$lib/components/helpers';
   import { Button } from '$lib/components/ui/button';
@@ -52,9 +53,7 @@
           </p>
         </div>
         <div class="flex items-center gap-2">
-          <Button variant="outline" size="icon">
-            <SquarePen size="20" />
-          </Button>
+          <EditAirport {airport} />
           <Confirm
             onConfirm={async () => deleteAirport(airport.code)}
             title="Remove Airport"

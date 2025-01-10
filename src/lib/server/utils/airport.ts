@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { db } from '$lib/db';
 import { findAirportsPrimitive } from '$lib/db/queries';
-import type { Airport, CreateAirport, User } from '$lib/db/types';
+import type { Airport, CreateAirport } from '$lib/db/types';
 import type { ErrorActionResult } from '$lib/utils/forms';
 import type { airportSchema } from '$lib/zod/airport';
 
@@ -41,7 +41,11 @@ export const validateAndSaveAirport = async (
     return { success: false, type: 'path', path, message } as const;
   };
 
-  const airport = { ...data, custom: true };
+  const airport = {
+    ...data,
+    iata: data.iata !== '' ? data.iata : null,
+    custom: true,
+  };
 
   const code = airport.code;
   const existingAirport = await getAirport(code);
