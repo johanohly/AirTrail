@@ -17,6 +17,7 @@
   import * as Select from '$lib/components/ui/select';
   import { COUNTRIES } from '$lib/data/countries';
   import { Continents, ContinentMap } from '$lib/db/types';
+  import { cn } from '$lib/utils';
   import { countryFromAlpha } from '$lib/utils/data/countries';
   import type { airportSchema } from '$lib/zod/airport';
 
@@ -32,7 +33,7 @@
   );
 
   let marker: LngLatLike | null = $state(
-    $formData.lon === 0 && $formData.lat === 0
+    !$formData.lon && !$formData.lat
       ? null
       : {
           lng: $formData.lon,
@@ -54,12 +55,17 @@
   };
 </script>
 
-<span class="text-sm font-medium leading-none">Location *</span>
+<span
+  class={cn('text-sm font-medium leading-none', {
+    'text-destructive': $errors.lat || $errors.lon,
+  })}>Location *</span
+>
 <MapLibre
   bind:map
   onclick={markLocation}
   {style}
   diffStyleUpdates
+  cooperativeGestures
   class="relative aspect-[9/16] max-h-[70vh] w-full sm:aspect-video sm:max-h-full"
   attributionControl={false}
 >

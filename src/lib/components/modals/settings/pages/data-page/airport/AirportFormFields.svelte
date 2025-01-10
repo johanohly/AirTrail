@@ -11,6 +11,7 @@
   import * as Select from '$lib/components/ui/select';
   import { HelpTooltip } from '$lib/components/ui/tooltip';
   import { AirportTypes } from '$lib/db/types';
+  import { snakeToTitleCase } from '$lib/utils/string.js';
   import type { airportSchema } from '$lib/zod/airport';
 
   const { form }: { form: SuperForm<Infer<typeof airportSchema>> } = $props();
@@ -31,17 +32,22 @@
 <Form.Field {form} name="type">
   <Form.Control>
     {#snippet children({ props })}
-      <Form.Label>Type</Form.Label>
+      <Form.Label>Type *</Form.Label>
       <Select.Root bind:value={$formData.type} name={props.name} type="single">
         <Select.Trigger {...props}>
-          {$formData.type ? $formData.type : 'Select a type'}
+          {$formData.type ? snakeToTitleCase($formData.type) : 'Select a type'}
         </Select.Trigger>
         <Select.Content>
           {#each AirportTypes as type}
-            <Select.Item value={type} label={type} />
+            <Select.Item value={type} label={snakeToTitleCase(type)} />
           {/each}
         </Select.Content>
       </Select.Root>
+      <Form.Description
+        >Purely for sorting purposes. <HelpTooltip
+          text={'For reference, Dubai International Airport is a "large airport", while Nuuk Airport is a "medium airport".'}
+        /></Form.Description
+      >
     {/snippet}
   </Form.Control>
   <Form.FieldErrors />
@@ -63,7 +69,7 @@
           {#snippet children({ cells })}
             <InputOTP.Group>
               {#each cells as cell}
-                <InputOTP.Slot {cell} />
+                <InputOTP.Slot {cell} class="font-bold text-base" />
               {/each}
             </InputOTP.Group>
           {/snippet}
@@ -93,7 +99,7 @@
           {#snippet children({ cells })}
             <InputOTP.Group>
               {#each cells as cell}
-                <InputOTP.Slot {cell} />
+                <InputOTP.Slot {cell} class="font-bold text-base" />
               {/each}
             </InputOTP.Group>
           {/snippet}

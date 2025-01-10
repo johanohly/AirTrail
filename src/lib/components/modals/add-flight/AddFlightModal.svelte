@@ -42,12 +42,7 @@
   });
 </script>
 
-<Modal
-  bind:open
-  dialogOnly
-  closeOnOutsideClick={false}
-  class="max-h-full overflow-y-auto max-w-lg"
->
+<Modal bind:open dialogOnly closeOnOutsideClick={false}>
   <h2>Add Flight</h2>
   <form
     method="POST"

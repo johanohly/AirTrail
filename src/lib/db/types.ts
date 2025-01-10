@@ -13,6 +13,9 @@ export type ApiKey = Omit<
 export type Airport = Omit<airport, 'custom'> & {
   custom: boolean;
 };
+export type CreateAirport = Partial<Omit<Airport, 'code'>> & {
+  code: string;
+};
 export type Seat = Omit<seat, 'id'> & {
   id: number;
 };
@@ -32,13 +35,13 @@ export type CreateFlight = Omit<Flight, 'id' | 'from' | 'to' | 'seats'> & {
 };
 
 export const AirportTypes = [
-  'heliport',
   'small_airport',
-  'closed',
-  'seaplane_base',
-  'balloonport',
   'medium_airport',
   'large_airport',
+  'heliport',
+  'balloonport',
+  'seaplane_base',
+  'closed',
 ] as const;
 export const Continents = ['AF', 'AS', 'EU', 'NA', 'OC', 'SA', 'AN'] as const;
 export const ContinentMap = {

@@ -4,6 +4,10 @@ export const toTitleCase = (str: string) => {
   });
 };
 
+export const snakeToTitleCase = (str: string) => {
+  return toTitleCase(str.replace(/_/g, ' '));
+};
+
 export const pluralize = (count: number, singular: string, plural?: string) => {
   return count === 1 ? singular : (plural ?? `${singular}s`);
 };

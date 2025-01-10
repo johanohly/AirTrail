@@ -36,6 +36,13 @@ export const airportRouter = router({
       customAirports,
     };
   }),
+  delete: adminProcedure.input(z.string()).mutation(async ({ input }) => {
+    const result = await db
+      .deleteFrom('airport')
+      .where('code', '=', input)
+      .execute();
+    return result.length > 0;
+  }),
   updateFromSource: adminProcedure.mutation(async () => {
     return await updateAirports();
   }),

@@ -1,10 +1,6 @@
 <script lang="ts">
   import { toast } from 'svelte-sonner';
-  import SuperDebug, {
-    defaults,
-    type Infer,
-    superForm,
-  } from 'sveltekit-superforms';
+  import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
 
   import AirportFormFields from './AirportFormFields.svelte';
@@ -32,22 +28,21 @@
         if (form.message) {
           if (form.message.type === 'success') {
             open = false;
-            toast.success(form.message.text);
             onAirportCreate({ ...form.data, custom: true });
+            return void toast.success(form.message.text);
           }
           toast.error(form.message.text);
         }
       },
     },
   );
-  const { form: data, enhance } = form;
+  const { enhance } = form;
 </script>
 
 <Button variant="outline" onclick={() => (open = true)}>Create</Button>
 
 <Modal bind:open dialogOnly>
   <h2>Add Airport</h2>
-  <SuperDebug data={$data} />
   <form
     method="POST"
     action="/api/airport/save/form"
