@@ -21,6 +21,8 @@ const baseFlightFactory = Factory.makeFactory<CreateFlight>({
   from: Factory.each((i) => routes[i % routes.length].from),
   // @ts-expect-error - TS doesn't understand the modulo operation
   to: Factory.each((i) => routes[i % routes.length].to),
+  // @ts-expect-error - TS doesn't understand the modulo operation
+  duration: Factory.each((i) => routes[i % routes.length].duration),
   date: Factory.each(() =>
     format(
       new Date(Date.now() - Math.random() * 10 * 365 * 24 * 60 * 60 * 1000), // Random date within the last 10 years
