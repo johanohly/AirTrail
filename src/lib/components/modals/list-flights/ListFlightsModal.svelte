@@ -120,7 +120,11 @@
   let selectedFlights = $state<number[]>([]);
 </script>
 
-<Modal bind:open class="flex flex-col h-full !rounded-none" dialogOnly>
+<Modal
+  bind:open
+  class="max-w-full flex flex-col h-full !rounded-none"
+  dialogOnly
+>
   <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
   <Toolbar
     bind:filters

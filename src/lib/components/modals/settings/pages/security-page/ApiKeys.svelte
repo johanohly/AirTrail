@@ -37,7 +37,7 @@
   disabled={!loaded}
   class={{ 'opacity-80': !loaded }}
 >
-  <div use:autoAnimate>
+  <div use:autoAnimate class="space-y-2">
     {#each keys as key}
       <Card class="p-2 flex justify-between">
         <div>
