@@ -12,7 +12,7 @@
     NavigationControl,
   } from 'svelte-maplibre';
 
-  import { AirportLayer, FlightArcLayer } from '.';
+  import { AirportsArcsLayer } from '.';
 
   import Filters from '$lib/components/flight-filters/Filters.svelte';
   import {
@@ -127,6 +127,5 @@
     </Control>
   {/if}
 
-  <AirportLayer flights={filteredFlights} />
-  <FlightArcLayer {flightArcs} />
+  <AirportsArcsLayer flights={filteredFlights} {flightArcs} />
 </MapLibre>
