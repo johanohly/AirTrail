@@ -3,7 +3,7 @@
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
 
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
   import * as Select from '$lib/components/ui/select';
@@ -11,10 +11,7 @@
   import { editUserSchema } from '$lib/zod/user';
 
   const form = superForm(
-    defaults<Infer<typeof editUserSchema>>(
-      $page.data.user,
-      zod(editUserSchema),
-    ),
+    defaults<Infer<typeof editUserSchema>>(page.data.user, zod(editUserSchema)),
     {
       resetForm: false,
       validators: zod(editUserSchema),

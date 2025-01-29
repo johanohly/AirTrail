@@ -4,6 +4,7 @@ import { zod } from 'sveltekit-superforms/adapters';
 
 import type { RequestHandler } from './$types';
 
+import { db } from '$lib/db';
 import { lucia } from '$lib/server/auth';
 import {
   createSession,
@@ -12,7 +13,6 @@ import {
 } from '$lib/server/utils/auth';
 import { hashArgon2 } from '$lib/server/utils/hash';
 import { signUpSchema } from '$lib/zod/auth';
-import { db } from '$lib/db';
 
 export const POST: RequestHandler = async ({ cookies, request }) => {
   const form = await superValidate(request, zod(signUpSchema));
