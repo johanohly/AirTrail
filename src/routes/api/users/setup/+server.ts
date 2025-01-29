@@ -12,6 +12,7 @@ import {
 } from '$lib/server/utils/auth';
 import { hashArgon2 } from '$lib/server/utils/hash';
 import { signUpSchema } from '$lib/zod/auth';
+import { db } from '$lib/db';
 
 export const POST: RequestHandler = async ({ cookies, request }) => {
   const form = await superValidate(request, zod(signUpSchema));
@@ -19,10 +20,21 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
     return actionResult('failure', { form });
   }
 
+  const owners = await db
+    .selectFrom('user')
+    .where('role', '=', 'owner')
+    .selectAll()
+    .execute();
+  if (owners.length > 0) {
+    form.message = { type: 'error', text: 'Owner already exists' };
+    return actionResult('failure', { form });
+  }
+
   const { username, password, displayName, unit } = form.data;
   const exists = await usernameExists(username);
   if (exists) {
     setError(form, 'username', 'Username already exists');
+    return actionResult('failure', { form });
   }
 
   const userId = generateId(15);
