@@ -27,9 +27,9 @@
     return flights.filter((f) => {
       if (
         (filters.departureAirports.length &&
-          !filters.departureAirports.includes(f.from.ICAO)) ||
+          !filters.departureAirports.includes(f.from.code)) ||
         (filters.arrivalAirports.length &&
-          !filters.arrivalAirports.includes(f.to.ICAO))
+          !filters.arrivalAirports.includes(f.to.code))
       ) {
         return false;
       } else if (

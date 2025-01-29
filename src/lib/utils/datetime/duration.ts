@@ -1,21 +1,27 @@
+import { pluralize } from '$lib/utils';
+import { quantify } from '$lib/utils/string';
+
 export class Duration {
   readonly days: number;
   readonly hours: number;
   readonly minutes: number;
+  readonly seconds: number;
 
-  constructor(days: number, hours: number, minutes: number) {
+  constructor(days: number, hours: number, minutes: number, seconds: number) {
     this.days = days;
     this.hours = hours;
     this.minutes = minutes;
+    this.seconds = seconds;
   }
 
   static fromSeconds(seconds: number): Duration {
     const days = Math.floor(seconds / 86400);
-    const remainingSeconds = seconds % 86400;
-    const hours = Math.floor(remainingSeconds / 3600);
-    const remainingMinutes = remainingSeconds % 3600;
-    const minutes = Math.floor(remainingMinutes / 60);
-    return new Duration(days, hours, minutes);
+    seconds -= days * 86400;
+    const hours = Math.floor(seconds / 3600);
+    seconds -= hours * 3600;
+    const minutes = Math.floor(seconds / 60);
+    seconds -= minutes * 60;
+    return new Duration(days, hours, minutes, seconds);
   }
 
   toString(includeDays: boolean = false): string {
@@ -24,6 +30,20 @@ export class Duration {
     }
     const hours = this.days * 24 + this.hours;
     return `${hours}h ${this.minutes}m`;
+  }
+
+  toHuman(): string {
+    if (this.days > 0) {
+      return quantify(this.days, 'day');
+    } else if (this.hours > 0) {
+      return quantify(this.hours, 'hour');
+    } else if (this.minutes > 0) {
+      return quantify(this.minutes, 'minute');
+    } else if (this.seconds > 0) {
+      return quantify(this.seconds, 'second');
+    } else {
+      return 'no time';
+    }
   }
 }
 

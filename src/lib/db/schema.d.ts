@@ -4,6 +4,27 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   : ColumnType<T, T | undefined, T>;
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export type airport = {
+    /**
+     * ICAO code (could also be a regional code like "DE-0456")
+     */
+    code: string;
+    iata: string | null;
+    lat: number;
+    lon: number;
+    tz: string;
+    name: string;
+    /**
+     * @kyselyType('large_airport' | 'medium_airport' | 'small_airport' | 'heliport' | 'seaplane_base' | 'balloonport' | 'closed')
+     */
+    type: 'large_airport' | 'medium_airport' | 'small_airport' | 'heliport' | 'seaplane_base' | 'balloonport' | 'closed';
+    /**
+     * @kyselyType('EU' | 'NA' | 'SA' | 'AS' | 'AF' | 'OC' | 'AN')
+     */
+    continent: 'EU' | 'NA' | 'SA' | 'AS' | 'AF' | 'OC' | 'AN';
+    country: string;
+    custom: Generated<boolean>;
+};
 export type api_key = {
     id: Generated<number>;
     name: string;
@@ -98,6 +119,7 @@ export type visited_country = {
     userId: string;
 };
 export type DB = {
+    airport: airport;
     apiKey: api_key;
     appConfig: app_config;
     flight: flight;

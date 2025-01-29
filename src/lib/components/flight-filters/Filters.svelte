@@ -6,9 +6,9 @@
     defaultFilters,
     type FlightFilters,
   } from '$lib/components/flight-filters/types';
-  import { Button } from '$lib/components/ui/button/index.js';
+  import { Button } from '$lib/components/ui/button';
+  import type { Airport } from '$lib/db/types';
   import type { FlightData } from '$lib/utils';
-  import type { Airport } from '$lib/utils/data/airports';
 
   let {
     flights = $bindable(),
@@ -34,16 +34,16 @@
     return flights
       .map(airportSelector)
       .filter((airport) => {
-        if (seenICAO.has(airport.ICAO)) {
+        if (seenICAO.has(airport.code)) {
           return false;
         } else {
-          seenICAO.add(airport.ICAO);
+          seenICAO.add(airport.code);
           return true;
         }
       })
       .map((airport) => ({
-        value: airport.ICAO,
-        label: `${airport.IATA ?? airport.ICAO} | ${airport.name}`,
+        value: airport.code,
+        label: `${airport.iata ?? airport.code} | ${airport.name}`,
       }));
   };
 

@@ -137,6 +137,66 @@ components:
         success:
           type: boolean
           example: true
+    Airport:
+      type: object
+      required:
+        - code
+        - iata
+        - name
+        - lat
+        - lon
+        - type
+        - continent
+        - country
+        - tz
+      properties:
+        code:
+          type: string
+          description: 'The ICAO code of the airport.'
+          example: 'KJFK'
+        iata:
+          type: string
+          nullable: true
+          description: 'The IATA code of the airport.'
+          example: 'JFK'
+        name:
+          type: string
+          description: 'The name of the airport.'
+          example: 'John F Kennedy International Airport'
+        lat:
+          type: number
+          format: float
+          description: 'The latitude of the airport.'
+          example: 40.639447
+        lon:
+          type: number
+          format: float
+          description: 'The longitude of the airport.'
+          example: -73.779317
+        type:
+          type: string
+          description: 'The type of the airport.'
+          example: 'large_airport'
+          enum:
+            - 'large_airport'
+            - 'medium_airport'
+            - 'small_airport'
+            - 'seaplane_base'
+            - 'balloonport'
+            - 'heliport'
+            - 'closed'
+        continent:
+          type: string
+          description: 'The continent code where the airport is located.'
+          example: 'NA'
+        country:
+          type: string
+          description: 'The country code where the airport is located.'
+          example: 'US'
+        tz:
+          type: string
+          description: 'The timezone of the airport.'
+          example: 'America/New_York'
     Flight:
       type: object
       required:
@@ -158,13 +218,13 @@ components:
           description: 'The ID of the flight.'
           example: 1
         from:
-          type: string
-          description: 'The ICAO code of the departure airport.'
-          example: 'EKCH'
+          type: object
+          description: 'The departure airport.'
+          $ref: '#/components/schemas/Airport'
         to:
-          type: string
-          description: 'The ICAO code of the arrival airport.'
-          example: 'KJFK'
+          type: object
+          description: 'The arrival airport.'
+          $ref: '#/components/schemas/Airport'
         departure:
           type: string
           description: 'The departure time in UTC, in ISO 8601 format.'

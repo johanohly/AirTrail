@@ -1,19 +1,17 @@
 <script lang="ts">
+  import autoAnimate from '@formkit/auto-animate';
   import { createCombobox, melt } from '@melt-ui/svelte';
-  import { ChevronDown, ChevronUp } from '@o7/icon/lucide';
+  import { ChevronsUpDown } from '@o7/icon/lucide';
   import { writable } from 'svelte/store';
   import { fly } from 'svelte/transition';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
 
   import * as Form from '$lib/components/ui/form';
+  import type { Airport } from '$lib/db/types';
   import { api } from '$lib/trpc';
-  import { toTitleCase } from '$lib/utils';
-  import {
-    type Airport,
-    airportFromICAO,
-    airportSearchCache,
-  } from '$lib/utils/data/airports';
+  import { cn, toTitleCase } from '$lib/utils';
+  import { airportSearchCache } from '$lib/utils/data/airports/cache';
   import type { flightSchema } from '$lib/zod/flight';
 
   let {
@@ -28,7 +26,7 @@
   const selected = writable(
     $formData[field]
       ? {
-          label: airportFromICAO($formData[field])?.name,
+          label: $formData[field].name,
           value: $formData[field],
         }
       : undefined,
@@ -37,7 +35,7 @@
   const {
     elements: { menu, input, option },
     states: { open, inputValue, touchedInput },
-  } = createCombobox<string>({
+  } = createCombobox<Airport>({
     forceVisible: true,
     selected,
     onSelectedChange: ({ next }) => {
@@ -56,7 +54,7 @@
     selected.set(
       $formData[field]
         ? {
-            label: airportFromICAO($formData[field])?.name,
+            label: $formData[field].name,
             value: $formData[field],
           }
         : undefined,
@@ -80,26 +78,24 @@
   let loading = $state(false);
   $effect(() => {
     if ($touchedInput && $inputValue !== '' && !loading) {
-      const cached = airportSearchCache.get($inputValue);
+      const cached = airportSearchCache.get($inputValue.toLowerCase());
       if (cached) {
         airports = cached;
         return;
-      } else {
-        airports = [];
       }
       loading = true;
       debounce(async () => {
         airports = await api.autocomplete.airport.query($inputValue);
         loading = false;
-        airportSearchCache.set($inputValue, airports);
+        airportSearchCache.set($inputValue.toLowerCase(), airports);
       });
-    } else {
+    } else if (!loading) {
       airports = [];
     }
   });
 </script>
 
-<Form.Field {form} name={field} class="flex flex-col">
+<Form.Field {form} name={`${field}.code`} class="flex flex-col">
   <Form.Control>
     {#snippet children({ props })}
       <Form.Label>{toTitleCase(field)} *</Form.Label>
@@ -112,11 +108,7 @@
         <div
           class="absolute right-2 top-1/2 z-10 -translate-y-1/2 text-muted-foreground"
         >
-          {#if $open}
-            <ChevronUp class="size-4" />
-          {:else}
-            <ChevronDown class="size-4" />
-          {/if}
+          <ChevronsUpDown class="size-4" />
         </div>
       </div>
       <input hidden bind:value={$formData[field]} name={props.name} />
@@ -124,42 +116,57 @@
   </Form.Control>
   {#if $open}
     <ul
-      class="z-[5000] flex max-h-[300px] flex-col overflow-hidden rounded-lg border"
+      class="z-[5000] flex max-h-[300px] flex-col overflow-hidden rounded-lg"
       use:melt={$menu}
       transition:fly={{ duration: 150, y: -5 }}
     >
-      <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
       <div
-        class="flex max-h-full flex-col gap-0 overflow-y-auto bg-card px-2 py-2 text-card-foreground dark:bg-dark-1"
+        class="flex max-h-full flex-col gap-1 overflow-y-auto bg-popover text-card-foreground"
         tabindex="0"
+        use:autoAnimate
       >
         {#each airports as airport}
           <li
             use:melt={$option({
-              value: airport.ICAO,
+              value: airport,
               label: airport.name,
+              disabled: loading,
             })}
-            class="relative cursor-pointer scroll-my-2 rounded-md py-2 pl-4 pr-4
-        data-[highlighted]:bg-zinc-300 data-[highlighted]:dark:bg-dark-2"
+            class={cn(
+              'relative cursor-pointer scroll-my-2 rounded-md p-2 dark:bg-dark-1 border data-[highlighted]:bg-zinc-300 data-[highlighted]:dark:bg-dark-2',
+              'transition-[filter]',
+              {
+                'pointer-events-none blur-sm': loading,
+              },
+            )}
           >
-            <div class="flex flex-col">
-              <div class="flex items-center">
+            <div class="flex flex-row gap-2 justify-between">
+              <div class="flex flex-col overflow-hidden">
+                <span class="truncate">{airport.name}</span>
+                <p class="text-sm">
+                  {#if airport.iata}
+                    <span class="text-muted-foreground">IATA</span>
+                    <b class="mr-2">{airport.iata}</b>
+                  {/if}
+                  <span class="text-muted-foreground">ICAO</span>
+                  <b>{airport.code}</b>
+                </p>
+              </div>
+              <div class="w-12 shrink-0">
                 <img
                   src="https://flagcdn.com/{airport.country.toLowerCase()}.svg"
                   alt={airport.country}
-                  class="w-8 h-5 mr-2"
+                  class="aspect-video h-full"
                 />
-                <span class="text-lg truncate">{airport.name}</span>
               </div>
-              <span class="text-sm opacity-75"
-                >{airport.IATA ?? airport.ICAO}{airport.IATA
-                  ? ` - ${airport.ICAO}`
-                  : ''}</span
-              >
             </div>
           </li>
         {:else}
-          <li class="relative cursor-pointer rounded-md py-1 pl-8 pr-4">
+          <li
+            class="relative cursor-pointer scroll-my-2 rounded-md p-2
+        bg-popover dark:bg-dark-1 border"
+          >
             {#if loading}
               Loading...
             {:else if $inputValue}

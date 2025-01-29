@@ -7,7 +7,7 @@
   import FlightNumber from './FlightNumber.svelte';
   import SeatInformation from './SeatInformation.svelte';
 
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { AirportField, DateTimeField } from '$lib/components/form-fields';
   import * as Form from '$lib/components/ui/form';
   import { Modal } from '$lib/components/ui/modal';
@@ -37,17 +37,12 @@
 
   $effect(() => {
     if ($formData.seats[0] && $formData.seats[0].userId === '<USER_ID>') {
-      $formData.seats[0].userId = $page.data.user?.id ?? null;
+      $formData.seats[0].userId = page.data.user?.id ?? null;
     }
   });
 </script>
 
-<Modal
-  bind:open
-  dialogOnly
-  closeOnOutsideClick={false}
-  class="max-h-full overflow-y-auto max-w-lg"
->
+<Modal bind:open dialogOnly closeOnOutsideClick={false}>
   <h2>Add Flight</h2>
   <form
     method="POST"

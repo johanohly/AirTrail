@@ -65,7 +65,11 @@
   });
 </script>
 
-<Modal bind:open class="h-full overflow-y-auto !rounded-none" dialogOnly>
+<Modal
+  bind:open
+  class="max-w-full h-full overflow-y-auto !rounded-none"
+  dialogOnly
+>
   <div class="space-y-4">
     <h2 class="text-3xl font-bold tracking-tight">Statistics</h2>
     <div class="grid gap-4 pb-2 md:grid-cols-2 lg:grid-cols-4">

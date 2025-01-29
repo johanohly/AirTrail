@@ -1,6 +1,6 @@
 <script lang="ts">
   import { type DateValue, parseDate } from '@internationalized/date';
-  import { CalendarDays, ArrowLeft, ArrowRight, Info } from '@o7/icon/lucide';
+  import { CalendarDays, ArrowLeft, ArrowRight } from '@o7/icon/lucide';
   import { DatePicker } from 'bits-ui';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
@@ -8,7 +8,7 @@
   import { buttonVariants } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
-  import { TextTooltip } from '$lib/components/ui/tooltip';
+  import { HelpTooltip } from '$lib/components/ui/tooltip';
   import { toTitleCase } from '$lib/utils';
   import { dateValueFromISO } from '$lib/utils/datetime';
   import type { flightSchema } from '$lib/zod/flight';
@@ -168,11 +168,9 @@
       {#snippet children({ props })}
         <Form.Label class="flex gap-1">
           Time
-          <TextTooltip
+          <HelpTooltip
             text="Local time. Time can be in 24-hour and 12-hour format."
-          >
-            <Info size="15" />
-          </TextTooltip>
+          />
         </Form.Label>
         <Input {...props} bind:value={$formData[`${field}Time`]} />
       {/snippet}

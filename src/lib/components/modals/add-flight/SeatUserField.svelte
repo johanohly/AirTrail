@@ -2,11 +2,11 @@
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
 
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
   import * as Select from '$lib/components/ui/select';
-  import type { User } from '$lib/db';
+  import type { User } from '$lib/db/types';
   import type { flightSchema } from '$lib/zod/flight';
 
   let {
@@ -16,7 +16,7 @@
     $props();
   const { form: formData } = form;
 
-  const users = $derived($page.data.users as User[]);
+  const users = $derived(page.data.users as User[]);
   const availableUsers = $derived(
     users.filter(
       (u) =>

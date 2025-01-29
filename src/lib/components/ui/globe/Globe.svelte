@@ -98,23 +98,23 @@
   });
 </script>
 
-<main class={cn('mx-auto aspect-[1/1] w-full max-w-[80%]', className)}>
+<main class={cn('aspect-square h-full max-h-[50%] 2xl:max-h-[80%]', className)}>
   <canvas
     class="h-full w-full [contain:layout_paint_size]"
     bind:this={canvas}
-    on:pointerdown={(e) => {
+    onpointerdown={(e) => {
       pointerInteracting = e.clientX - pointerInteractionMovement;
       canvas.style.cursor = 'grabbing';
     }}
-    on:pointerup={() => {
+    onpointerup={() => {
       pointerInteracting = null;
       canvas.style.cursor = 'grab';
     }}
-    on:pointerout={() => {
+    onpointerout={() => {
       pointerInteracting = null;
       canvas.style.cursor = 'grab';
     }}
-    on:mousemove={(e) => {
+    onmousemove={(e) => {
       if (pointerInteracting !== null) {
         const delta = e.clientX - pointerInteracting;
         pointerInteractionMovement = delta;

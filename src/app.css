@@ -184,6 +184,16 @@ body {
   width: 2rem !important;
 }
 
+.maplibregl-ctrl
+  button.maplibregl-ctrl-fullscreen
+  .maplibregl-ctrl-icon::before {
+  content: '\e80b';
+}
+
+.maplibregl-ctrl button.maplibregl-ctrl-shrink .maplibregl-ctrl-icon::before {
+  content: '\e80f';
+}
+
 .maplibregl-ctrl button.maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon::before {
   content: '-' !important;
 }

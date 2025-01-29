@@ -1,20 +1,21 @@
 <script lang="ts">
+  import autoAnimate from '@formkit/auto-animate';
   import { SquarePen, X } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
 
   import { PageHeader } from '../index';
 
   import { invalidateAll } from '$app/navigation';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { Confirm } from '$lib/components/helpers';
   import AddUserModal from '$lib/components/modals/settings/pages/users-page/AddUserModal.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
-  import type { User } from '$lib/db';
+  import type { User } from '$lib/db/types';
   import { api } from '$lib/trpc';
   import { toTitleCase } from '$lib/utils';
 
-  let users = $derived($page.data.users);
+  const users = $derived(page.data.users);
 
   const deleteUser = async (id: string) => {
     const success = await api.user.delete.mutate(id);
@@ -29,7 +30,7 @@
     if (current_user.role === 'owner') {
       return false;
     }
-    if (current_user.role === 'admin' && $page.data.user?.role === 'admin') {
+    if (current_user.role === 'admin' && page.data.user?.role === 'admin') {
       return false;
     }
     return true;
@@ -50,7 +51,7 @@
   {#if users.length === 0}
     <p>No users found.</p>
   {:else}
-    <div class="space-y-2">
+    <div use:autoAnimate class="space-y-2">
       {#each users as current_user}
         <Card level="2" class="flex items-center p-3">
           <div class="flex items-center flex-1 gap-4 h-full min-w-0">

@@ -6,9 +6,9 @@
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
+  import { api } from '$lib/trpc';
   import { type FlightRoute, getFlightRoute } from '$lib/utils/adsbdb';
   import { airlineFromICAO } from '$lib/utils/data/airlines';
-  import { airportFromICAO } from '$lib/utils/data/airports';
   import type { flightSchema } from '$lib/zod/flight';
 
   let {
@@ -26,12 +26,14 @@
     let route: FlightRoute | undefined = undefined;
     try {
       route = await getFlightRoute($formData.flightNumber);
-    } catch (error) {
+    } catch (_) {
       toast.error('Flight not found');
       return;
     }
-    const origin = airportFromICAO(route.origin.icao_code);
-    const destination = airportFromICAO(route.destination.icao_code);
+    const origin = await api.airport.get.query(route.origin.icao_code);
+    const destination = await api.airport.get.query(
+      route.destination.icao_code,
+    );
     const airline = airlineFromICAO(route.airline.icao);
 
     if (!origin || !destination || !airline) {

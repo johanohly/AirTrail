@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { User, ShieldCheck, Info } from '@o7/icon/lucide';
+  import { User, ShieldCheck } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
@@ -10,7 +10,7 @@
   import { Label } from '$lib/components/ui/label';
   import { Modal } from '$lib/components/ui/modal';
   import * as RadioGroup from '$lib/components/ui/radio-group';
-  import { TextTooltip } from '$lib/components/ui/tooltip/index.js';
+  import { HelpTooltip } from '$lib/components/ui/tooltip/index.js';
   import { addUserSchema } from '$lib/zod/user';
 
   let {
@@ -74,11 +74,9 @@
         {#snippet children({ props })}
           <Form.Label class="flex gap-1">
             Role
-            <TextTooltip
+            <HelpTooltip
               text="Admins can do everything except delete other admins or the owner."
-            >
-              <Info size="15" />
-            </TextTooltip>
+            />
           </Form.Label>
           <RadioGroup.Root
             bind:value={$formData.role}

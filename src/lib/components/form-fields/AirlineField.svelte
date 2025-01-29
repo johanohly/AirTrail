@@ -1,6 +1,7 @@
 <script lang="ts">
+  import autoAnimate from '@formkit/auto-animate';
   import { createCombobox, melt } from '@melt-ui/svelte';
-  import { CircleX, ChevronDown, ChevronUp } from '@o7/icon/lucide';
+  import { CircleX, ChevronsUpDown } from '@o7/icon/lucide';
   import { writable } from 'svelte/store';
   import { fly } from 'svelte/transition';
   import type { SuperForm } from 'sveltekit-superforms';
@@ -30,7 +31,7 @@
 
   const {
     elements: { menu, input, option },
-    states: { open, inputValue, touchedInput },
+    states: { open, inputValue },
   } = createCombobox<string>({
     forceVisible: true,
     selected,
@@ -61,7 +62,7 @@
 
   let airlines: Airline[] = $state([]);
   $effect(() => {
-    if ($touchedInput && $inputValue !== '') {
+    if ($open && $inputValue !== '') {
       airlines = sortAndFilterByMatch(AIRLINES, $inputValue, [
         { key: 'icao', exact: true },
         { key: 'iata', exact: true },
@@ -85,6 +86,7 @@
         />
         {#if $open && $selected}
           <button
+            transition:fly={{ duration: 200, x: 20 }}
             type="button"
             onclick={() => {
               // @ts-expect-error - This is totally fine
@@ -99,11 +101,7 @@
         <div
           class="absolute right-2 top-1/2 z-10 -translate-y-1/2 text-muted-foreground"
         >
-          {#if $open}
-            <ChevronUp class="size-4" />
-          {:else}
-            <ChevronDown class="size-4" />
-          {/if}
+          <ChevronsUpDown class="size-4" />
         </div>
       </div>
       <input hidden bind:value={$formData.airline} name={props.name} />
@@ -117,7 +115,8 @@
     >
       <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
       <div
-        class="flex max-h-full flex-col gap-0 overflow-y-auto bg-card px-2 py-2 text-card-foreground dark:bg-dark-1"
+        use:autoAnimate
+        class="flex max-h-full flex-col gap-1 overflow-y-auto bg-popover text-card-foreground"
         tabindex="0"
       >
         {#each airlines as airline}
@@ -126,18 +125,25 @@
               value: airline.icao,
               label: airline.name,
             })}
-            class="relative cursor-pointer scroll-my-2 rounded-md py-2 pl-4 pr-4
-        data-[highlighted]:bg-zinc-300 data-[highlighted]:dark:bg-dark-2"
+            class="relative cursor-pointer scroll-my-2 rounded-md p-2 dark:bg-dark-1 border data-[highlighted]:bg-zinc-300 data-[highlighted]:dark:bg-dark-2"
           >
-            <div class="flex flex-col">
-              <span class="text-lg truncate">{airline.name}</span>
-              <span class="text-sm opacity-75"
-                >{airline.icao}{airline.iata ? ` - ${airline.iata}` : ''}</span
-              >
+            <div class="flex flex-col overflow-hidden">
+              <span class="truncate">{airline.name}</span>
+              <p class="text-sm">
+                {#if airline.iata}
+                  <span class="text-muted-foreground">IATA</span>
+                  <b class="mr-2">{airline.iata}</b>
+                {/if}
+                <span class="text-muted-foreground">ICAO</span>
+                <b>{airline.icao}</b>
+              </p>
             </div>
           </li>
         {:else}
-          <li class="relative cursor-pointer rounded-md py-1 pl-8 pr-4">
+          <li
+            class="relative cursor-pointer scroll-my-2 rounded-md p-2
+        bg-popover dark:bg-dark-1 border"
+          >
             {#if $inputValue}
               No airlines found.
             {:else}

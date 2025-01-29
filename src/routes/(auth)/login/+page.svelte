@@ -6,7 +6,7 @@
   import { zod } from 'sveltekit-superforms/adapters';
 
   import { goto } from '$app/navigation';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
   import { Globe } from '$lib/components/ui/globe';
@@ -44,7 +44,7 @@
           return;
         }
 
-        if (isOAuthCallback($page.url.search)) {
+        if (isOAuthCallback(page.url.search)) {
           oauthLoading = true;
           const resp = await fetch('/api/oauth/callback', {
             method: 'POST',
@@ -107,10 +107,10 @@
 
   let showLoader = $derived.by(() => {
     return (
-      (autoLoggingIn || !$page.url.search.includes('autoLogin=false')) &&
+      (autoLoggingIn || !page.url.search.includes('autoLogin=false')) &&
       (!appConfig ||
         appConfig.oauth.autoLogin ||
-        isOAuthCallback($page.url.search))
+        isOAuthCallback(page.url.search))
     );
   });
 </script>

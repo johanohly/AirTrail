@@ -1,4 +1,5 @@
 <script lang="ts">
+  import autoAnimate from '@formkit/auto-animate';
   import { Plane, PlaneTakeoff, PlaneLanding, X } from '@o7/icon/lucide';
   import { AirplanemodeInactive } from '@o7/icon/material';
   import { isBefore, isSameDay } from 'date-fns';
@@ -61,13 +62,13 @@
         return {
           ...f,
           from: {
-            iata: f.from.IATA,
-            icao: f.from.ICAO,
+            iata: f.from.iata,
+            icao: f.from.code,
             name: f.from.name,
           },
           to: {
-            iata: f.to.IATA,
-            icao: f.to.ICAO,
+            iata: f.to.iata,
+            icao: f.to.code,
             name: f.to.name,
           },
           duration: f.duration
@@ -119,7 +120,11 @@
   let selectedFlights = $state<number[]>([]);
 </script>
 
-<Modal bind:open class="flex flex-col h-full !rounded-none" dialogOnly>
+<Modal
+  bind:open
+  class="max-w-full flex flex-col h-full !rounded-none"
+  dialogOnly
+>
   <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
   <Toolbar
     bind:filters
@@ -144,7 +149,7 @@
             {year}
           </h3>
         </LabelledSeparator>
-        <div class="space-y-2">
+        <div class="space-y-2" use:autoAnimate>
           {#each flights as flight (flight.id)}
             <Card
               onclick={() => {

@@ -1,11 +1,10 @@
 import { differenceInSeconds, format } from 'date-fns';
-import { get } from 'svelte/store';
 
-import { page } from '$app/stores';
+import { page } from '$app/state';
 import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type { CreateFlight, SeatClasses } from '$lib/db/types';
+import { api } from '$lib/trpc';
 import { airlineFromIATA } from '$lib/utils/data/airlines';
-import { airportFromIATA } from '$lib/utils/data/airports';
 import { parseLocalISO } from '$lib/utils/datetime';
 
 const AITA_SEAT_CLASS_MAP: Record<string, (typeof SeatClasses)[number]> = {
@@ -16,7 +15,10 @@ const AITA_SEAT_CLASS_MAP: Record<string, (typeof SeatClasses)[number]> = {
   ECOLIGHT: 'economy',
 };
 
-export const processAITAFile = (input: string, options: PlatformOptions) => {
+export const processAITAFile = async (
+  input: string,
+  options: PlatformOptions,
+) => {
   const tripPattern =
     /^Ownership\.(\w+);[^\r\n]*\sflights:\s([\s\S]+?)\shotels:/gm;
   const flightPattern =
@@ -25,7 +27,7 @@ export const processAITAFile = (input: string, options: PlatformOptions) => {
   const flights: CreateFlight[] = [];
   const unknownAirports: string[] = [];
 
-  const userId = get(page).data.user?.id;
+  const userId = page.data.user?.id;
   if (!userId) {
     throw new Error('User not found');
   }
@@ -53,8 +55,10 @@ export const processAITAFile = (input: string, options: PlatformOptions) => {
         rawArrival,
       ] = match;
 
-      const from = rawFrom ? airportFromIATA(rawFrom) : undefined;
-      const to = rawTo ? airportFromIATA(rawTo) : undefined;
+      const from = rawFrom
+        ? await api.airport.getFromIATA.query(rawFrom)
+        : null;
+      const to = rawTo ? await api.airport.getFromIATA.query(rawTo) : undefined;
 
       const departure = rawDeparture
         ? parseLocalISO(rawDeparture, 'UTC')
@@ -91,8 +95,8 @@ export const processAITAFile = (input: string, options: PlatformOptions) => {
 
       flights.push({
         date: format(departure, 'yyyy-MM-dd'),
-        from: from.ICAO,
-        to: to.ICAO,
+        from,
+        to,
         departure: departure.toISOString(),
         arrival: arrival.toISOString(),
         duration: differenceInSeconds(arrival, departure),

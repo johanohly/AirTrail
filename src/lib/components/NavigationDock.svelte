@@ -8,7 +8,7 @@
     Settings,
   } from '@o7/icon/lucide';
 
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import {
     Dock,
     DockDropdownItem,
@@ -57,9 +57,9 @@
   ];
 </script>
 
-<div class="absolute bottom-6 left-1/2 translate-x-[-50%]">
+<div class="z-10 absolute bottom-6 left-1/2 translate-x-[-50%]">
   <div class="flex gap-4">
-    {#if $page.url.pathname !== '/'}
+    {#if page.url.pathname !== '/'}
       <div transition:flyAndScale>
         <DockFloatingItem href="/" label="Home">
           <Map />
@@ -68,7 +68,7 @@
     {/if}
     <Dock>
       <DockTooltipItem item={addFlightItem} />
-      {#if $page.url.pathname === '/'}
+      {#if page.url.pathname === '/'}
         <DockTooltipItem item={listFlightsItem} />
         <DockTooltipItem item={flightsStatisticsItem} />
       {/if}

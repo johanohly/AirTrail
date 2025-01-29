@@ -1,17 +1,15 @@
 import { tz } from '@date-fns/tz/tz';
 import { addDays, isBefore, parse } from 'date-fns';
-import { get } from 'svelte/store';
 import { z } from 'zod';
 
-import { page } from '$app/stores';
-import type { Flight } from '$lib/db';
-import type { CreateFlight, Seat } from '$lib/db/types';
+import { page } from '$app/state';
+import type { Flight, CreateFlight, Seat } from '$lib/db/types';
+import { api } from '$lib/trpc';
 import { parseCsv } from '$lib/utils';
 import { airlineFromICAO } from '$lib/utils/data/airlines';
-import { airportFromICAO } from '$lib/utils/data/airports';
 import { toUtc } from '$lib/utils/datetime';
 
-const FR24_AIRPORT_REGEX = /\((?<IATA>[a-zA-Z]{3})\/(?<ICAO>[a-zA-Z]{4})\)/;
+const FR24_AIRPORT_REGEX = /\(([a-zA-Z]{3})\/(?<ICAO>[a-zA-Z]{4})\)/;
 const FR24_SEAT_TYPE_MAP: Record<string, Seat['seat']> = {
   '1': 'window',
   '2': 'middle',
@@ -58,7 +56,7 @@ const FR24Flight = z.object({
 });
 
 const extractAirportICAO = (airport: string) => {
-  const match = airport.match(FR24_AIRPORT_REGEX);
+  const match = FR24_AIRPORT_REGEX.exec(airport);
   if (!match) {
     console.error(`Failed to extract ICAO code from airport: ${airport}`);
     return null;
@@ -67,10 +65,9 @@ const extractAirportICAO = (airport: string) => {
   return match.groups?.ICAO;
 };
 
-const AIRLINE_REGEX =
-  /(?<Name>.*) \((?<IATA>[0-9A-Z]{2})\/(?<ICAO>[a-zA-Z]{3})\)/;
+const AIRLINE_REGEX = /(.*) \(([0-9A-Z]{2})\/(?<ICAO>[a-zA-Z]{3})\)/;
 const extractAirlineICAO = (airline: string) => {
-  const match = airline.match(AIRLINE_REGEX);
+  const match = AIRLINE_REGEX.exec(airline);
   if (!match) {
     console.error(`Failed to extract ICAO code from airline: ${airline}`);
     return null;
@@ -79,9 +76,9 @@ const extractAirlineICAO = (airline: string) => {
   return match.groups?.ICAO ?? null;
 };
 
-const AIRCRAFT_REGEX = /(?<Name>.*) \((?<ICAO>[A-Z0-9-]{1,4})\)/;
+const AIRCRAFT_REGEX = /(.*) \((?<ICAO>[A-Z0-9-]{1,4})\)/;
 const extractAircraftICAO = (aircraft: string) => {
-  const match = aircraft.match(AIRCRAFT_REGEX);
+  const match = AIRCRAFT_REGEX.exec(aircraft);
   if (!match) {
     console.error(`Failed to extract ICAO code from aircraft: ${aircraft}`);
     return null;
@@ -96,7 +93,7 @@ export const processFR24File = async (content: string) => {
     throw error;
   }
 
-  const userId = get(page).data.user?.id;
+  const userId = page.data.user?.id;
   if (!userId) {
     throw new Error('User not found');
   }
@@ -110,8 +107,8 @@ export const processFR24File = async (content: string) => {
       continue;
     }
 
-    const from = airportFromICAO(fromCode);
-    const to = airportFromICAO(toCode);
+    const from = await api.airport.get.query(fromCode);
+    const to = await api.airport.get.query(toCode);
     if (!from || !to) {
       if (!from && !unknownAirports.includes(row.from)) {
         unknownAirports.push(row.from);
@@ -123,7 +120,6 @@ export const processFR24File = async (content: string) => {
     }
 
     if (row.dep_time === '00:00:00' && row.arr_time === '00:00:00') {
-      // set both to null
       row.dep_time = null;
       row.arr_time = null;
     }
@@ -178,8 +174,8 @@ export const processFR24File = async (content: string) => {
 
     flights.push({
       date: row.date, // YYYY-MM-DD
-      from: from.ICAO,
-      to: to.ICAO,
+      from,
+      to,
       departure: departure ? departure.toISOString() : null,
       arrival: arrival ? arrival.toISOString() : null,
       duration,

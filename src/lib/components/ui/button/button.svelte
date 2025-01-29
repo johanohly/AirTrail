@@ -7,7 +7,7 @@
   import { type VariantProps, tv } from 'tailwind-variants';
 
   export const buttonVariants = tv({
-    base: 'focus-visible:ring-ring inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50',
+    base: 'relative overflow-hidden focus-visible:ring-ring inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50',
     variants: {
       variant: {
         default:
@@ -57,6 +57,30 @@
     children,
     ...restProps
   }: ButtonProps = $props();
+
+  let ripples: { id: number; diameter: number; left: string; top: string }[] =
+    $state([]);
+  const createRipple = (e) => {
+    if (!ref) return;
+    if (ripples.length > 0) {
+      const prev = ripples.length;
+      setTimeout(() => {
+        document.getElementById(`ripple-${prev}`)?.remove();
+      }, 600);
+    }
+    const diameter = Math.max(ref.clientWidth, ref.clientHeight);
+    const radius = diameter / 2;
+    const left = `${e.offsetX - radius}px`;
+    const top = `${e.offsetY - radius}px`;
+    const id = ripples.length + 1;
+    const newRipple = {
+      id,
+      diameter,
+      left,
+      top,
+    };
+    ripples = [...ripples, newRipple];
+  };
 </script>
 
 {#if href}
@@ -71,10 +95,39 @@
 {:else}
   <button
     bind:this={ref}
+    onclick={createRipple}
     class={cn(buttonVariants({ variant, size, className }))}
     {type}
     {...restProps}
   >
     {@render children?.()}
+    {#each ripples as { diameter, left, top, id }}
+      <span
+        id={`ripple-${id}`}
+        style="width: {diameter}px;height: {diameter}px;left: {left}; top: {top};animation-duration: 600ms"
+      ></span>
+    {/each}
   </button>
 {/if}
+
+<style>
+  span {
+    position: absolute;
+    border-radius: 50%;
+    transform: scale(0.7);
+    animation-name: ripple;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+    background-color: rgba(255, 255, 255, 0.7);
+    opacity: 0.5;
+    filter: blur(2px);
+    pointer-events: none;
+  }
+  @keyframes ripple {
+    to {
+      transform: scale(4);
+      opacity: 0;
+      filter: blur(5px);
+    }
+  }
+</style>

@@ -7,12 +7,12 @@
   import EditPassword from './EditPassword.svelte';
   import OAuth from './OAuth.svelte';
 
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { Confirm } from '$lib/components/helpers';
   import { Button } from '$lib/components/ui/button';
   import { api, trpc } from '$lib/trpc';
 
-  const user = $derived($page.data.user);
+  const user = $derived(page.data.user);
 
   const deleteFlights = async () => {
     const toastId = toast.loading('Deleting all your flights...');
@@ -35,7 +35,7 @@
     </div>
   </div>
   <OAuth {user} />
-  <ApiKeys {user} />
+  <ApiKeys />
   <div class="flex items-center justify-between p-4 rounded-lg border">
     <h4 class="font-medium leading-4">Danger zone</h4>
     <div>

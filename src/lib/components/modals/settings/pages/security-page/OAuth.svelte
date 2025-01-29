@@ -5,7 +5,7 @@
   import { invalidateAll } from '$app/navigation';
   import { Confirm } from '$lib/components/helpers';
   import { Button } from '$lib/components/ui/button';
-  import type { User } from '$lib/db';
+  import type { User } from '$lib/db/types';
   import { appConfig } from '$lib/state.svelte';
   import { api } from '$lib/trpc';
 

@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 
-import { db, type User } from '$lib/db';
+import { db } from '$lib/db';
+import type { User } from '$lib/db/types';
 import { hashSha256 } from '$lib/server/utils/hash';
 
 export const validateApiKey = async (

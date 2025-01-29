@@ -1,12 +1,18 @@
 <script lang="ts">
   import PieChart from './PieChart.svelte';
 
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
+  import { ContinentMap } from '$lib/db/types';
   import { type FlightData, toTitleCase } from '$lib/utils';
 
   let { flights }: { flights: FlightData[] } = $props();
 
-  const user = $derived($page.data.user);
+  const continents = Object.entries(ContinentMap).map(([code, name]) => ({
+    code,
+    name,
+  }));
+
+  const user = $derived(page.data.user);
 
   const countByProperty = (
     flights: FlightData[],
@@ -45,15 +51,6 @@
       return acc;
     }, {});
   };
-
-  const continents = [
-    { code: 'EU', name: 'Europe' },
-    { code: 'NA', name: 'North America' },
-    { code: 'SA', name: 'South America' },
-    { code: 'AS', name: 'Asia' },
-    { code: 'AF', name: 'Africa' },
-    { code: 'OC', name: 'Oceania' },
-  ];
 
   const seatDistribution = $derived.by(() => {
     return countBySeatProperty(flights, 'seat', [
