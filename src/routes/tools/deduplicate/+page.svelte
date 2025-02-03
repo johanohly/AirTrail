@@ -4,10 +4,12 @@
     type RowSelectionState,
   } from '@tanstack/table-core';
   import { createRawSnippet } from 'svelte';
+  import { toast } from 'svelte-sonner';
 
   import type { PageProps } from './$types';
 
   import { invalidateAll } from '$app/navigation';
+  import { Button } from '$lib/components/ui/button';
   import { Checkbox } from '$lib/components/ui/checkbox';
   import {
     createSvelteTable,
@@ -19,8 +21,6 @@
   import { api } from '$lib/trpc';
   import { prepareFlightData } from '$lib/utils';
   import { formatAsDate, formatAsDateTime } from '$lib/utils/datetime';
-  import { Button } from '$lib/components/ui/button';
-  import { toast } from 'svelte-sonner';
 
   let { data }: PageProps = $props();
   const flights = $derived.by(() => prepareFlightData(data.flights));
@@ -163,6 +163,6 @@
   <Button
     onclick={deleteFlights}
     disabled={!table.getRowModel().rows.some((row) => row.getIsSelected())}
-  >Delete Flights
+    >Delete Flights
   </Button>
 </div>

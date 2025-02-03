@@ -3,6 +3,7 @@
   import { page } from '$app/state';
   import { Button } from '$lib/components/ui/button';
   import { Textarea } from '$lib/components/ui/input';
+  import * as Table from '$lib/components/ui/table';
   import { api } from '$lib/trpc';
 
   $effect(() => {
@@ -27,31 +28,33 @@
     {#if 'error' in result}
       <div class="text-red-500">{result.error}</div>
     {:else}
-      <div class="w-full relative overflow-x-auto">
-        <table class="w-full text-sm text-left text-muted-foreground">
-          <thead class="text-xs uppercase bg-card-hover">
-            <tr>
+      <div class="max-h-[80dvh] overflow-y-auto w-full rounded-md border">
+        <Table.Root>
+          <Table.Header>
+            <Table.Row>
               {#each result.cols as col}
-                <th scope="col" class="px-6 py-3">{col}</th>
+                <Table.Head>
+                  {col}
+                </Table.Head>
               {/each}
-            </tr>
-          </thead>
-          <tbody>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
             {#each result.rows as row}
-              <tr class="border-b border">
+              <Table.Row>
                 {#each result.cols as col}
-                  <td class="px-6 py-4">{row[col]}</td>
+                  <Table.Cell>
+                    {row[col]}
+                  </Table.Cell>
                 {/each}
-              </tr>
+              </Table.Row>
             {:else}
-              <tr>
-                <td class="text-center px-6 py-4" colspan={result.cols.length}
-                  >No data</td
-                >
-              </tr>
+              <Table.Row>
+                <Table.Cell colspan={result.rows.length}>No data</Table.Cell>
+              </Table.Row>
             {/each}
-          </tbody>
-        </table>
+          </Table.Body>
+        </Table.Root>
       </div>
     {/if}
   {/if}
