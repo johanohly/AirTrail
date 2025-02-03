@@ -42,7 +42,7 @@
     }
 
     if (
-      ($formData.from !== '' || $formData.to !== '') &&
+      ($formData.from.code !== '' || $formData.to.code !== '') &&
       !confirm(
         'Are you sure you want to overwrite the current flight information?',
       )
@@ -50,8 +50,8 @@
       return;
     }
 
-    $formData.from = origin.ICAO;
-    $formData.to = destination.ICAO;
+    $formData.from = origin;
+    $formData.to = destination;
     $formData.airline = airline.icao;
     toast.success('Flight found');
   };
