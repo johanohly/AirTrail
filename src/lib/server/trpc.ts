@@ -30,3 +30,10 @@ export const adminProcedure = authedProcedure.use(({ ctx, next }) => {
   }
   return next();
 });
+
+export const ownerProcedure = authedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.role !== 'owner') {
+    throw new TRPCError({ code: 'FORBIDDEN' });
+  }
+  return next();
+});
