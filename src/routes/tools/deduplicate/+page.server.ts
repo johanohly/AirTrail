@@ -13,23 +13,20 @@ export const load: PageServerLoad = async ({ locals }) => {
 
   const flights = await listFlights(user.id);
   const duplicates: Flight[] = [];
+  const uniqueFlights: Flight[] = [];
 
-  for (let i = 0; i < flights.length; i++) {
-    const flight = flights[i];
-    if (!flight) continue;
+  for (const flight of flights) {
+    const hasDuplicate = uniqueFlights.some(
+      (f) =>
+        f.date === flight.date &&
+        f.from.code === flight.from.code &&
+        f.to.code === flight.to.code,
+    );
 
-    if (
-      flights.some(
-        (f, index) =>
-          index !== i &&
-          f.date === flight.date &&
-          f.from.code === flight.from.code &&
-          f.to.code === flight.to.code,
-      )
-    ) {
+    if (hasDuplicate) {
       duplicates.push(flight);
-      flights.splice(i, 1);
-      i--;
+    } else {
+      uniqueFlights.push(flight);
     }
   }
 

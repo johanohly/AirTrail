@@ -94,8 +94,8 @@ function mergeObjects<T, U, V, W>(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mergeObjects(...sources: any): any {
   const target = {};
-  for (let i = 0; i < sources.length; i++) {
-    let source = sources[i];
+  for (const element of sources) {
+    let source = element;
     if (typeof source === 'function') source = source();
     if (source) {
       const descriptors = Object.getOwnPropertyDescriptors(source);
@@ -107,9 +107,10 @@ function mergeObjects(...sources: any): any {
             for (let i = sources.length - 1; i >= 0; i--) {
               let s = sources[i];
               if (typeof s === 'function') s = s();
-              const v = (s || {})[key];
+              const v = s?.[key];
               if (v !== undefined) return v;
             }
+            return null;
           },
         });
       }
