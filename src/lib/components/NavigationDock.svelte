@@ -51,6 +51,10 @@
 
   const OTHER = [
     {
+      label: 'Tools',
+      href: '/tools',
+    },
+    {
       label: 'Visited countries',
       href: '/visited-countries',
     },
