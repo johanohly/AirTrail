@@ -4,7 +4,7 @@ import { isAfter } from 'date-fns';
 import { page } from '$app/state';
 import type { Airport, Flight } from '$lib/db/types';
 import { distanceBetween, toTitleCase } from '$lib/utils';
-import { nowIn, parseLocalize, parseLocalizeISO } from '$lib/utils/datetime';
+import { nowIn, parseLocal, parseLocalizeISO } from '$lib/utils/datetime';
 
 type ExcludedType<T, U> = {
   [P in keyof T as P extends keyof U ? never : P]: T[P];
@@ -32,7 +32,7 @@ export const prepareFlightData = (data: Flight[]): FlightData[] => {
       return {
         ...flight,
         date:
-          departure ?? parseLocalize(flight.date, 'yyyy-MM-dd', flight.from.tz),
+          departure ?? parseLocal(flight.date, 'yyyy-MM-dd', flight.from.tz),
         departure,
         arrival: flight.arrival
           ? parseLocalizeISO(flight.arrival, flight.to.tz)

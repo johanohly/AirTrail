@@ -1,5 +1,5 @@
 import type { TZDate } from '@date-fns/tz';
-import { differenceInSeconds, format, formatISO, isBefore } from 'date-fns';
+import { differenceInSeconds, format, formatISO, isBefore, parseISO } from 'date-fns';
 import { z } from 'zod';
 
 import { db } from '$lib/db';
@@ -45,7 +45,7 @@ export const validateAndCreateFlight = async (
   const from = data.from;
   const to = data.to;
 
-  const departureDate = toUtc(parseLocalISO(data.departure, from.tz));
+  const departureDate = parseISO(data.departure);
   if (isBeforeEpoch(departureDate)) {
     // Y2K38
     return pathError('departure', 'Too far in the past');
@@ -71,7 +71,7 @@ export const validateAndCreateFlight = async (
   }
 
   if (data.arrivalTime && !data.arrival) {
-    data.arrival = formatISO(departureDate);
+    data.arrival = data.departure;
   }
 
   let arrival: TZDate | undefined;
