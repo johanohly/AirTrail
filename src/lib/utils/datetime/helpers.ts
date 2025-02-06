@@ -1,5 +1,5 @@
 import { tz, TZDate } from '@date-fns/tz';
-import { type DateArg, isBefore, parse } from 'date-fns';
+import { isBefore, parse } from 'date-fns';
 
 export const nowIn = (tzId: string) => new TZDate(new Date(), tzId);
 export const toUtc = (date: TZDate) => new TZDate(date, 'UTC');
