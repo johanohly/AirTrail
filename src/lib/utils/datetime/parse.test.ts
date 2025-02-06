@@ -3,8 +3,6 @@ import { describe, it, expect } from 'vitest';
 
 import { mergeTimeWithDate } from './parse';
 
-import { toUtc } from '$lib/utils/datetime/helpers';
-
 describe('mergeTimeWithDate', () => {
   it('should merge date and time correctly for 24-hour format', () => {
     const result = mergeTimeWithDate('2023-10-10', '9:30', 'America/New_York');

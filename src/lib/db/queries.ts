@@ -2,7 +2,7 @@ import { type Expression, type Kysely, sql } from 'kysely';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 
 import type { DB } from './schema';
-import type { Airport, CreateFlight } from './types';
+import type { CreateFlight } from './types';
 
 const airports = (
   db: Kysely<DB>,

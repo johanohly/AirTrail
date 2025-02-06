@@ -1,4 +1,3 @@
-import { pluralize } from '$lib/utils';
 import { quantify } from '$lib/utils/string';
 
 export class Duration {
