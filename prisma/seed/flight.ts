@@ -18,9 +18,9 @@ const routes = [
 const baseFlightFactory = Factory.makeFactory<CreateFlight>({
   seats: [{ userId: 'PLACEHOLDER' }],
   // @ts-expect-error - TS doesn't understand the modulo operation
-  from: Factory.each((i) => routes[i % routes.length].from),
+  from: Factory.each((i) => ({ code: routes[i % routes.length].from })),
   // @ts-expect-error - TS doesn't understand the modulo operation
-  to: Factory.each((i) => routes[i % routes.length].to),
+  to: Factory.each((i) => ({ code: routes[i % routes.length].to })),
   // @ts-expect-error - TS doesn't understand the modulo operation
   duration: Factory.each((i) => routes[i % routes.length].duration),
   date: Factory.each(() =>
