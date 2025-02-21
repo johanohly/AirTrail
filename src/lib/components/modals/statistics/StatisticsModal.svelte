@@ -37,6 +37,8 @@
   let totalDistance = $state(0);
   let totalDurationParts = $state({ days: 0, hours: 0, minutes: 0 });
   let airports = $state(0);
+  let earthCircumnavigations = $state(0);
+
   $effect(() => {
     if (open) {
       setTimeout(() => {
@@ -45,6 +47,7 @@
           (acc, curr) => (acc += curr.distance ?? 0),
           0,
         );
+        earthCircumnavigations = totalDistance / 40075;
         const duration = Duration.fromSeconds(
           flights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
         );
@@ -61,6 +64,7 @@
       totalDistance = 0;
       totalDurationParts = { days: 0, hours: 0, minutes: 0 };
       airports = 0;
+      earthCircumnavigations = 0;
     }
   });
 </script>
@@ -91,6 +95,7 @@
               maximumFractionDigits: 0,
             }}
           />
+          (<NumberFlow value={earthCircumnavigations.toFixed(2)} />x around Earth)
         </span>
       </StatsCard>
       <StatsCard class="py-4 px-8">
