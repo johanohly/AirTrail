@@ -9,8 +9,9 @@
 
   import { page } from '$app/stores';
   import { Modal } from '$lib/components/ui/modal';
-  import { type FlightData, formatDuration, kmToMiles } from '$lib/utils';
+  import { type FlightData, kmToMiles } from '$lib/utils';
   import { Duration, nowIn } from '$lib/utils/datetime';
+  import { round } from '$lib/utils/number';
 
   let {
     open = $bindable<boolean>(),
@@ -95,7 +96,7 @@
               maximumFractionDigits: 0,
             }}
           />
-          (<NumberFlow value={earthCircumnavigations.toFixed(2)} />x around Earth)
+          (<NumberFlow value={round(earthCircumnavigations, 2)} />x 🌎)
         </span>
       </StatsCard>
       <StatsCard class="py-4 px-8">
