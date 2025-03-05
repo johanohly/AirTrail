@@ -160,6 +160,7 @@
   };
 
   const airportOptions = $derived({
+    id: 'scatterplot-layer',
     data: visitedAirports,
     getPosition: (airport: VisitedAirport) => [airport.lon, airport.lat],
     getRadius: (airport: VisitedAirport) => airport.frequency * 50_000,
@@ -179,6 +180,7 @@
   });
 
   const arcOptions = $derived({
+    id: 'arc-layer',
     data: flightArcs,
     getSourcePosition: (data: FlightArc) => [data.from.lon, data.from.lat],
     getTargetPosition: (data: FlightArc) => [data.to.lon, data.to.lat],
@@ -196,6 +198,7 @@
   // Actual interactivity is recorded from this (invisible) arc, while the visible arc is for display
   // This allows for a larger hover area while keeping the visual arc thin
   const ghostArcOptions = $derived({
+    id: 'ghost-arc',
     data: flightArcs,
     getSourcePosition: (data: FlightArc) => [data.from.lon, data.from.lat],
     getTargetPosition: (data: FlightArc) => [data.to.lon, data.to.lat],

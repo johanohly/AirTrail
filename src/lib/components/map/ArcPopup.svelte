@@ -58,7 +58,9 @@
     <h3 class="font-semibold">Date</h3>
     <h3 class="font-semibold">Airline</h3>
   </div>
-  {#each data.flights.slice(0, 5) as flight}
+  {#each data.flights
+    .slice(0, 5)
+    .sort((a, b) => b.date.getTime() - a.date.getTime()) as flight}
     <div class="grid grid-cols-[repeat(3,_1fr)]">
       <h4 class="font-thin">{flight.route}</h4>
       <h4 class="font-thin">{formatAsDate(flight.date, true, true)}</h4>
