@@ -9,8 +9,9 @@
 
   import { page } from '$app/stores';
   import { Modal } from '$lib/components/ui/modal';
-  import { type FlightData, formatDuration, kmToMiles } from '$lib/utils';
+  import { type FlightData, kmToMiles } from '$lib/utils';
   import { Duration, nowIn } from '$lib/utils/datetime';
+  import { round } from '$lib/utils/number';
 
   let {
     open = $bindable<boolean>(),
@@ -37,6 +38,8 @@
   let totalDistance = $state(0);
   let totalDurationParts = $state({ days: 0, hours: 0, minutes: 0 });
   let airports = $state(0);
+  let earthCircumnavigations = $state(0);
+
   $effect(() => {
     if (open) {
       setTimeout(() => {
@@ -45,6 +48,7 @@
           (acc, curr) => (acc += curr.distance ?? 0),
           0,
         );
+        earthCircumnavigations = totalDistance / 40075;
         const duration = Duration.fromSeconds(
           flights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
         );
@@ -61,6 +65,7 @@
       totalDistance = 0;
       totalDurationParts = { days: 0, hours: 0, minutes: 0 };
       airports = 0;
+      earthCircumnavigations = 0;
     }
   });
 </script>
@@ -91,6 +96,7 @@
               maximumFractionDigits: 0,
             }}
           />
+          (<NumberFlow value={round(earthCircumnavigations, 2)} />x 🌎)
         </span>
       </StatsCard>
       <StatsCard class="py-4 px-8">
