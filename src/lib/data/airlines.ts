@@ -277,7 +277,7 @@ export const AIRLINES = [
     Name: 'Adam Air',
   },
   {
-    Code: 'Z7*',
+    Code: 'Z7',
     ICAO: 'ADK',
     Name: 'ADC Airlines',
   },
@@ -342,7 +342,7 @@ export const AIRLINES = [
     Name: 'Advance Aviation Services',
   },
   {
-    Code: '4G*',
+    Code: '4G',
     ICAO: null,
     Name: 'Advance Leasing Company',
   },
@@ -567,7 +567,7 @@ export const AIRLINES = [
     Name: 'Aero Barloz',
   },
   {
-    Code: 'EM*',
+    Code: 'EM',
     ICAO: 'AEB',
     Name: 'Aero Benin',
   },
@@ -1617,7 +1617,7 @@ export const AIRLINES = [
     Name: 'Aerolaguna',
   },
   {
-    Code: '3S*',
+    Code: '3S',
     ICAO: 'AEN',
     Name: 'Aeroland Airways',
   },
@@ -2742,7 +2742,7 @@ export const AIRLINES = [
     Name: 'African West Air',
   },
   {
-    Code: 'RV*',
+    Code: 'RV',
     ICAO: 'AFI',
     Name: 'Africaone',
   },
@@ -6052,12 +6052,12 @@ export const AIRLINES = [
     Name: 'AMS Group',
   },
   {
-    Code: 'WD*',
+    Code: 'WD',
     ICAO: 'AAN',
     Name: 'Amsterdam Airlines',
   },
   {
-    Code: '2V*',
+    Code: '2V',
     ICAO: null,
     Name: 'Amtrak',
   },
@@ -6572,7 +6572,7 @@ export const AIRLINES = [
     Name: 'Asiana Airlines',
   },
   {
-    Code: '4K*',
+    Code: '4K',
     ICAO: 'AAS',
     Name: 'Askari Aviation',
   },
@@ -6622,7 +6622,7 @@ export const AIRLINES = [
     Name: 'AST Pakistan Airways',
   },
   {
-    Code: '8D*',
+    Code: '8D',
     ICAO: 'SUW',
     Name: 'Astair',
   },
@@ -7742,7 +7742,7 @@ export const AIRLINES = [
     Name: 'Baja Air',
   },
   {
-    Code: '8Q*',
+    Code: '8Q',
     ICAO: 'BAJ',
     Name: 'Baker Aviation',
   },
@@ -9877,7 +9877,7 @@ export const AIRLINES = [
     Name: 'Chartright Air',
   },
   {
-    Code: 'RP*',
+    Code: 'RP',
     ICAO: 'CHQ',
     Name: 'Chautauqua Airlines',
   },
@@ -17857,7 +17857,7 @@ export const AIRLINES = [
     Name: 'Kalitta Charters',
   },
   {
-    Code: 'CB*',
+    Code: 'CB',
     ICAO: 'KII',
     Name: 'Kalitta Charters II',
   },
@@ -20807,7 +20807,7 @@ export const AIRLINES = [
     Name: 'National Grid plc',
   },
   {
-    Code: 'NC*',
+    Code: 'NC',
     ICAO: 'JTE',
     Name: 'National Jet Express',
   },
@@ -20817,7 +20817,7 @@ export const AIRLINES = [
     Name: 'National Jet Service',
   },
   {
-    Code: 'NC*',
+    Code: 'NC',
     ICAO: 'NJS',
     Name: 'National Jet Systems',
   },
@@ -21447,7 +21447,7 @@ export const AIRLINES = [
     Name: 'Northeastern Aviation',
   },
   {
-    Code: 'NC*',
+    Code: 'NC',
     ICAO: 'NAC',
     Name: 'Northern Air Cargo',
   },
@@ -21562,7 +21562,7 @@ export const AIRLINES = [
     Name: 'Norwegian Air Argentina',
   },
   {
-    Code: 'D8*',
+    Code: 'D8',
     ICAO: 'IBK',
     Name: 'Norwegian Air International',
   },
@@ -24992,7 +24992,7 @@ export const AIRLINES = [
     Name: 'San Carlos Flight Center',
   },
   {
-    Code: '2G*',
+    Code: '2G',
     ICAO: 'MRR',
     Name: 'San Juan Airlines',
   },
@@ -25002,7 +25002,7 @@ export const AIRLINES = [
     Name: 'Sanborn Map Company',
   },
   {
-    Code: 'RZ*',
+    Code: 'RZ',
     ICAO: 'LRS',
     Name: 'Sansa',
   },
@@ -30832,7 +30832,7 @@ export const AIRLINES = [
     Name: 'WaltAir',
   },
   {
-    Code: '3W*',
+    Code: '3W',
     ICAO: 'VNR',
     Name: 'Wan Air',
   },
@@ -31022,7 +31022,7 @@ export const AIRLINES = [
     Name: 'Western Air Express',
   },
   {
-    Code: 'ST*',
+    Code: 'ST',
     ICAO: 'STT',
     Name: 'Western Aircraft, Inc',
   },
