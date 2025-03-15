@@ -30,7 +30,7 @@ jobs:
         run: rm -f /home/runner/work/AirTrail/AirTrail/postcss.config.mjs
 
       - name: Restore cache
-        uses: actions/cache@e12d46a63a90f2fae62d114769bbf2a179198b5c # v3.3.3
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         with:
           path: |
             .next/cache
