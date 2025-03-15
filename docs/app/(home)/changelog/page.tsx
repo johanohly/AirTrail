@@ -1,5 +1,6 @@
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { Jsx, toJsxRuntime } from 'hast-util-to-jsx-runtime';
+import { JSX } from 'react';
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 import { remark } from 'remark';
 import remarkRehype from 'remark-rehype';
@@ -43,7 +44,6 @@ export default async function Changelog() {
       jsx: jsx as Jsx,
       jsxs: jsxs as Jsx,
       Fragment,
-      // @ts-expect-error -- safe to use
       components: comps,
     });
   }

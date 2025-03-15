@@ -1,25 +1,22 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/dusk.css';
+@import 'fumadocs-ui/css/preset.css';
+
+@source '../node_modules/fumadocs-ui/dist/**/*.js';
+@source '../node_modules/fumadocs-openapi/dist/**/*.js';
 
 :root {
-  --primary: 221.21 83.19% 53.33%;
-  --secondary: 0 0% 99.7%;
-  --card: 0 0% 99.7%;
-  --accent: 0 0% 94.1%;
-}
-
-@media (min-width: 768px) {
-  .md\:\[--fd-sidebar-width\:260px\] {
-    --fd-sidebar-width: 375px !important;
-  }
+  --color-fd-primary: hsl(221.21 83.19% 53.33%);
+  --color-fd-secondary: hsl(0 0% 99.7%);
+  --color-fd-card: hsl(0 0% 99.7%);
+  --color-fd-accent: hsl(0 0% 94.1%);
 }
 
 .dark {
-  --secondary: 240 12% 15%;
-  --border: 0 0% 15%;
-  --card: 240 20% 5%;
-  --accent: 0 0 12.9%;
+  --color-fd-secondary: hsl(240 12% 15%);
+  --color-fd-border: hsl(0 0% 15%);
+  --color-fd-card: hsl(240 20% 5%);
+  --color-fd-accent: hsl(0 0 12.9%);
 }
 
 :root.light #nd-nav {
@@ -27,9 +24,9 @@
 }
 
 #nd-subnav a[data-active='true'] {
-  color: hsl(var(--primary));
+  color: var(--color-fd-primary);
 }
 
 :root.light .fd-codeblock {
-  background-color: hsl(var(--secondary));
+  background-color: var(--color-fd-secondary);
 }

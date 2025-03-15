@@ -15,7 +15,6 @@ export async function CodeBlock({
   const rendered = await highlight(code, {
     lang,
     components: {
-      // @ts-expect-error -- JSX component
       pre: Base.Pre,
     },
   });

@@ -4,8 +4,18 @@ info:
   description: 'The AirTrail API allows you to access your flights using external tools.'
   version: '0.1'
 servers:
-  - url: 'https://example.com/api'
-    description: 'Example server'
+  - url: '{protocol}://{domain}/api'
+    description: "Your AirTrail instance's API endpoint."
+    variables:
+      protocol:
+        enum:
+          - 'http'
+          - 'https'
+        default: 'https'
+      domain:
+        default: 'your-instance.com'
+  - url: 'https://example-instance.com/api'
+    description: 'Example URL for the AirTrail API.'
 paths:
   /flight/list:
     get:
