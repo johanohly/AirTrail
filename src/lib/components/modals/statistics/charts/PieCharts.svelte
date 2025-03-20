@@ -4,6 +4,8 @@
   import { page } from '$app/state';
   import { ContinentMap } from '$lib/db/types';
   import { type FlightData, toTitleCase } from '$lib/utils';
+  import { getAircraftLabel } from '$lib/utils/data/aircraft';
+  import { airlineFromICAO } from '$lib/utils/data/airlines';
 
   let { flights }: { flights: FlightData[] } = $props();
 
@@ -11,6 +13,8 @@
     code,
     name,
   }));
+  
+  const airlineLabelCache = new Map<string, string | null>();
 
   const user = $derived(page.data.user);
 
@@ -81,11 +85,46 @@
   const continentDistribution = $derived.by(() => {
     return countByContinent(flights, continents);
   });
+
+  const topAirlineDistribution = $derived.by(() => {
+  const counts = flights.reduce<Record<string, number>>((acc, flight) => {
+    if (!flight.airline) return acc; 
+    const label = airlineFromICAO(flight.airline)?.name;
+    if (label) {
+      acc[label] = (acc[label] || 0) + 1;
+    }
+    return acc;
+  }, {});
+  return Object.fromEntries(
+    Object.entries(counts)
+      .sort(([, countA], [, countB]) => countB - countA)
+      .slice(0, 5)
+  );
+});
+
+const topAircraftDistribution = $derived.by(() => {
+  const counts = flights.reduce<Record<string, number>>((acc, flight) => {
+    if (!flight.aircraft) return acc; 
+    const label = getAircraftLabel(flight.aircraft);
+    if (label) {
+      acc[label] = (acc[label] || 0) + 1;
+    }
+    return acc;
+  }, {});  
+  return Object.fromEntries(
+    Object.entries(counts)
+      .sort(([, countA], [, countB]) => countB - countA)
+      .slice(0, 5)
+  );
+});
+
 </script>
 
-<div class="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+<div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
   <PieChart data={seatClassDistribution} />
   <PieChart data={seatDistribution} />
   <PieChart data={reasonDistribution} />
   <PieChart data={continentDistribution} />
+  <PieChart data={topAirlineDistribution} />
+  <PieChart data={topAircraftDistribution} />
 </div>
