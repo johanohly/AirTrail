@@ -13,8 +13,6 @@
     code,
     name,
   }));
-  
-  const airlineLabelCache = new Map<string, string | null>();
 
   const user = $derived(page.data.user);
 
