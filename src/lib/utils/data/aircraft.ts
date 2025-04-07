@@ -1,5 +1,6 @@
-import { AIRCRAFT } from '$lib/data/aircraft';
 import { toTitleCase } from '../string';
+
+import { AIRCRAFT } from '$lib/data/aircraft';
 
 const labelCache = new Map<string, string | null>();
 
