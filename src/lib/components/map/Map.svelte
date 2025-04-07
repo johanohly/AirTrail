@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Filter, Fullscreen, Undo2 } from '@o7/icon/lucide';
+  import { Funnel, Fullscreen, Undo2 } from '@o7/icon/lucide';
   import maplibregl from 'maplibre-gl';
   import { mode } from 'mode-watcher';
   import {
@@ -96,7 +96,7 @@
         <Popover.Root>
           <Popover.Trigger>
             <ControlButton title="Filter flights">
-              <Filter size={18} />
+              <Funnel size={18} />
             </ControlButton>
           </Popover.Trigger>
           <Popover.Content

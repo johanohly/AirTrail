@@ -3,7 +3,7 @@
   import {
     ChevronLeft,
     ChevronRight,
-    Filter,
+    Funnel,
     SquareDashedMousePointer,
     X,
   } from '@o7/icon/lucide';
@@ -83,7 +83,7 @@
           {...props}
           disabled={flights.length === 0}
         >
-          <Filter size={16} />
+          <Funnel size={16} />
           <span class="max-sm:hidden">Filters</span>
         </Button>
       {/snippet}
