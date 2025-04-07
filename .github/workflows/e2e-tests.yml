@@ -33,7 +33,7 @@ jobs:
         id: cache-dependencies
         with:
           path: node_modules
-          key: packages-${{ hashFiles('bun.lockb') }}
+          key: packages-${{ hashFiles('bun.lock') }}
 
       - name: Install dependencies
         if: steps.cache-dependencies.outputs.cache-hit != 'true'
@@ -52,7 +52,7 @@ jobs:
           path: |
             ~/.cache/ms-playwright
             ${{ github.workspace }}/node_modules/playwright
-          key: playwright-${{ hashFiles('bun.lockb') }}
+          key: playwright-${{ hashFiles('bun.lock') }}
           restore-keys: playwright-
 
       - name: Install playwright

@@ -6,7 +6,7 @@
 !/prisma/**
 !/temp/**
 !/package.json
-!/bun.lockb
+!/bun.lock
 !/svelte.config.js
 !/vite.config.ts
 !/tailwind.config.js
