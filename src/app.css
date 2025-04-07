@@ -178,8 +178,9 @@ body {
   outline: none !important;
   padding: 0 !important;
   transition-duration: 0.3s !important;
-  transition-property: color, background-color, border-color,
-    text-decoration-color, fill, stroke, box-shadow !important;
+  transition-property:
+    color, background-color, border-color, text-decoration-color, fill, stroke,
+    box-shadow !important;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
   width: 2rem !important;
 }

@@ -7,7 +7,7 @@
   import PieCharts from './charts/PieCharts.svelte';
   import StatsCard from './StatsCard.svelte';
 
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { Modal } from '$lib/components/ui/modal';
   import { type FlightData, kmToMiles } from '$lib/utils';
   import { Duration, nowIn } from '$lib/utils/datetime';
@@ -28,7 +28,7 @@
     ),
   );
 
-  let isMetric = $derived.by(() => $page.data.user?.unit === 'metric');
+  let isMetric = $derived.by(() => page.data.user?.unit === 'metric');
   let totalDuration = $derived.by(() =>
     Duration.fromSeconds(
       flights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
