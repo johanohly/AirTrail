@@ -93,6 +93,7 @@
     }
     return acc;
   }, {});
+
   return Object.keys(counts).length ? Object.fromEntries(
     Object.entries(counts)
       .sort(([, countA], [, countB]) => countB - countA)
@@ -110,7 +111,8 @@ const topAircraftDistribution = $derived.by(() => {
       acc[label] = (acc[label] || 0) + 1;
     }
     return acc;
-  }, {});  
+  }, {});
+
   return Object.keys(counts).length ? Object.fromEntries(
     Object.entries(counts)
       .sort(([, countA], [, countB]) => countB - countA)
