@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Check, Filter } from '@o7/icon/lucide';
+  import { Check, Funnel } from '@o7/icon/lucide';
 
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
@@ -46,7 +46,7 @@
         {...props}
         {disabled}
       >
-        <Filter size={20} class="mr-2" />
+        <Funnel size={20} class="mr-2" />
         {title}
 
         {#if filterValues.length > 0}
