@@ -93,11 +93,13 @@
     }
     return acc;
   }, {});
-  return Object.fromEntries(
+  return Object.keys(counts).length ? Object.fromEntries(
     Object.entries(counts)
       .sort(([, countA], [, countB]) => countB - countA)
       .slice(0, 5)
-  );
+  ) : {
+    'No flights with airline set': 0,
+  };
 });
 
 const topAircraftDistribution = $derived.by(() => {
@@ -109,11 +111,13 @@ const topAircraftDistribution = $derived.by(() => {
     }
     return acc;
   }, {});  
-  return Object.fromEntries(
+  return Object.keys(counts).length ? Object.fromEntries(
     Object.entries(counts)
       .sort(([, countA], [, countB]) => countB - countA)
       .slice(0, 5)
-  );
+  ) : {
+    'No flights with aircraft set': 0,
+  };
 });
 
 </script>
