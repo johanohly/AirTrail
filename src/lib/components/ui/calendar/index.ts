@@ -13,18 +13,18 @@ import PrevButton from './calendar-prev-button.svelte';
 import Root from './calendar.svelte';
 
 export {
-  Day,
-  Cell,
-  Grid,
-  Header,
-  Months,
-  GridRow,
-  Heading,
-  GridBody,
-  GridHead,
-  HeadCell,
-  NextButton,
-  PrevButton,
   //
   Root as Calendar,
+  Cell,
+  Day,
+  Grid,
+  GridBody,
+  GridHead,
+  GridRow,
+  HeadCell,
+  Header,
+  Heading,
+  Months,
+  NextButton,
+  PrevButton,
 };

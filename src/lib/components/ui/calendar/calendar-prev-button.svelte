@@ -2,7 +2,7 @@
   import { ChevronLeft } from '@o7/icon/lucide';
   import { Calendar as CalendarPrimitive } from 'bits-ui';
 
-  import { buttonVariants } from '$lib/components/ui/button/index';
+  import { buttonVariants } from '$lib/components/ui/button';
   import { cn } from '$lib/utils';
 
   let {
@@ -14,7 +14,7 @@
 </script>
 
 {#snippet Fallback()}
-  <ChevronLeft class="size-4" />
+  <ChevronLeft />
 {/snippet}
 
 <CalendarPrimitive.PrevButton
@@ -24,6 +24,6 @@
     'size-7 bg-transparent p-0 opacity-50 hover:opacity-100',
     className,
   )}
-  children={children || Fallback}
   {...restProps}
+  children={children || Fallback}
 />
