@@ -42,7 +42,7 @@
 <Button variant="outline" onclick={() => (open = true)}>Create</Button>
 
 <Modal bind:open dialogOnly>
-  <h2>Add Airport</h2>
+  <h2 class="text-lg font-medium">Add Airport</h2>
   <form
     method="POST"
     action="/api/airport/save/form"

@@ -46,7 +46,7 @@
 
 <Modal bind:open dialogOnly>
   {#if !key}
-    <h1>Create API Key</h1>
+    <h1 class="text-lg font-medium">Create API Key</h1>
     <Label>Name</Label>
     <Input bind:value={name} />
     <Button onclick={create} disabled={loading} class="mt-1 gap-2">
@@ -57,7 +57,7 @@
     </Button>
   {:else}
     <div>
-      <h1 class="font-medium">Your API Key</h1>
+      <h1 class="text-lg font-medium">Your API Key</h1>
       <p class="text-sm text-muted-foreground">
         Your API key has been created. Please copy it and store it in a safe
         place, as you won't be able to see it again.

@@ -40,7 +40,7 @@
 </script>
 
 <Modal bind:open dialogOnly>
-  <h2 class="leading-4">Add User</h2>
+  <h2 class="text-lg font-medium">Add User</h2>
   <form method="POST" action="/api/users/add" use:enhance>
     <Form.Field {form} name="username">
       <Form.Control>

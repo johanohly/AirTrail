@@ -13,7 +13,7 @@
 <AlertDialogPrimitive.Overlay
   bind:ref
   class={cn(
-    'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0  fixed inset-0 z-50 bg-black/80',
+    'animate-in fade-in fixed inset-0 z-50 bg-neutral-100/50 backdrop-blur-md dark:bg-neutral-900/40',
     className,
   )}
   {...restProps}
