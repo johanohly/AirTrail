@@ -37,14 +37,15 @@
         </Form.Label>
         <DateField.Root
           value={dateValue}
-          onValueChange={(value) => {
-            if (value === undefined) {
+          onValueChange={(v) => {
+            if (v === undefined) {
               dateValue = undefined;
               $formData[field] = null;
               validate(field);
               return;
             }
-            $formData[field] = value.toDate('UTC').toISOString();
+            dateValue = v;
+            $formData[field] = dateValue.toDate('UTC').toISOString();
             validate(field);
           }}
           granularity="day"
@@ -80,7 +81,23 @@
                     <CalendarDays size="20" />
                   </Popover.Trigger>
                   <Popover.Content class="p-0">
-                    <Calendar type="single" bind:value={dateValue} />
+                    <Calendar
+                      type="single"
+                      value={dateValue}
+                      onValueChange={(v) => {
+                        if (v === undefined) {
+                          dateValue = undefined;
+                          $formData[field] = null;
+                          validate(field);
+                          return;
+                        }
+                        dateValue = v;
+                        $formData[field] = dateValue
+                          ?.toDate('UTC')
+                          .toISOString();
+                        validate(field);
+                      }}
+                    />
                   </Popover.Content>
                 </Popover.Root>
               {/snippet}
