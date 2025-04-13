@@ -1,6 +1,0 @@
-pre-commit:
-  commands:
-    format:
-      only:
-        - run: [ -n "$(git status --porcelain /src)" ]
-      run: bun run format
