@@ -5,7 +5,7 @@
   import { Toaster } from 'svelte-sonner';
 
   import { dev } from '$app/environment';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { NavigationDock } from '$lib/components';
   import { ScreenSize } from '$lib/components/helpers';
   import {
@@ -42,7 +42,7 @@
 
     {@render children()}
 
-    {#if !$page.error && !['/login', '/setup'].includes($page.url.pathname)}
+    {#if !page.error && !['/login', '/setup'].includes(page.url.pathname)}
       <NavigationDock />
     {/if}
   </TooltipProvider>

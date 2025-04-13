@@ -10,20 +10,19 @@
   import { Globe } from '$lib/components/ui/globe';
   import { Input, PasswordInput } from '$lib/components/ui/input';
   import * as Select from '$lib/components/ui/select';
-  import { trpc } from '$lib/trpc';
   import { toTitleCase } from '$lib/utils';
   import { signUpSchema } from '$lib/zod/auth';
 
-  const query = trpc.user.isSetup.query();
-  const isSetup = $query.data;
-  onMount(() => {
+  const { data } = $props();
+  const { isSetup } = data;
+
+  onMount(async () => {
     if (isSetup) {
       toast.info('AirTrail is already setup');
-      goto('/');
+      await goto('/');
     }
   });
 
-  const { data } = $props();
   const form = superForm(data.form, {
     validators: zod(signUpSchema),
     onUpdated({ form }) {

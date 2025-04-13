@@ -2,7 +2,8 @@ import type { Cookies } from '@sveltejs/kit';
 import { sql } from 'kysely';
 import type { Lucia } from 'lucia';
 
-import { db, type User } from '$lib/db';
+import { db } from '$lib/db';
+import type { User } from '$lib/db/types';
 import { hashSha256 } from '$lib/server/utils/hash';
 import { generateString } from '$lib/server/utils/random';
 
@@ -75,4 +76,13 @@ export const createApiKey = async (userId: string, name: string) => {
   return result.numInsertedOrUpdatedRows && result.numInsertedOrUpdatedRows > 0
     ? key
     : null;
+};
+
+export const isSetup = async () => {
+  const users = await db
+    .selectFrom('user')
+    .select(sql`1`.as('exists'))
+    .limit(1)
+    .execute();
+  return users.length > 0;
 };

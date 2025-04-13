@@ -1,9 +1,11 @@
 <script lang="ts">
   import { LoaderCircle } from '@o7/icon/lucide';
-  import { untrack } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { toast } from 'svelte-sonner';
   import { superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
+
+  import type { PageProps } from './$types';
 
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
@@ -12,73 +14,67 @@
   import { Globe } from '$lib/components/ui/globe';
   import { Input, PasswordInput } from '$lib/components/ui/input';
   import { AcrobaticLoader } from '$lib/components/ui/loader';
-  import { api, trpc } from '$lib/trpc';
+  import { api } from '$lib/trpc';
   import { isOAuthCallback } from '$lib/utils';
   import { signInSchema } from '$lib/zod/auth';
 
-  const { data } = $props();
-  const appConfig = data.appConfig;
-
-  const query = trpc.user.isSetup.query();
-  const isSetup = $query.data;
+  const { data }: PageProps = $props();
+  const isSetup = data.isSetup;
+  let appConfig = $state(data.appConfig);
 
   let oauthLoading = $state(true);
   let autoLoggingIn = $state(false);
 
-  $effect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- we need this for the effect to rerun
-    [appConfig];
-    untrack(() => {
-      (async () => {
-        if (!isSetup) {
-          await goto('/setup');
-        }
+  onMount(async () => {
+    if (!isSetup) {
+      await goto('/setup');
+      return;
+    }
 
-        if (!appConfig) {
-          oauthLoading = false;
-          return;
-        }
+    if (!appConfig) {
+      oauthLoading = false;
+      return;
+    }
 
-        if (!appConfig.oauth.enabled) {
-          oauthLoading = false;
-          return;
-        }
+    if (!appConfig.oauth.enabled) {
+      oauthLoading = false;
+      appConfig.oauth.autoLogin = false;
+      return;
+    }
 
-        if (isOAuthCallback(page.url.search)) {
-          oauthLoading = true;
-          const resp = await fetch('/api/oauth/callback', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ url: window.location.toString() }),
-          });
+    if (isOAuthCallback(page.url.search)) {
+      oauthLoading = true;
+      const resp = await fetch('/api/oauth/callback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: window.location.toString() }),
+      });
 
-          if (!resp.ok) {
-            await goto('/login', { replaceState: true }); // clear potential query params
-            const err = await resp.json();
-            toast.error(err?.message);
-            oauthLoading = false;
-            return;
-          }
-
-          await goto('/', { invalidateAll: true });
-          return;
-        }
-
-        if (
-          appConfig.oauth.autoLogin &&
-          !window.location.search.includes('autoLogin=false')
-        ) {
-          autoLoggingIn = true;
-          await goto('/login?autoLogin=false', { replaceState: true });
-          await oauthLogin();
-          return;
-        }
-
+      if (!resp.ok) {
+        await goto('/login', { replaceState: true }); // clear potential query params
+        const err = await resp.json();
+        toast.error(err?.message);
         oauthLoading = false;
-      })();
-    });
+        return;
+      }
+
+      await goto('/', { invalidateAll: true });
+      return;
+    }
+
+    if (
+      appConfig.oauth.autoLogin &&
+      !window.location.search.includes('autoLogin=false')
+    ) {
+      autoLoggingIn = true;
+      await goto('/login?autoLogin=false', { replaceState: true });
+      await oauthLogin();
+      return;
+    }
+
+    oauthLoading = false;
   });
 
   const form = superForm(data.form, {

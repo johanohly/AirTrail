@@ -3,12 +3,12 @@ import { zod } from 'sveltekit-superforms/adapters';
 
 import type { PageServerLoad } from './$types';
 
-import { trpcServer } from '$lib/server/server';
+import { isSetup } from '$lib/server/utils/auth';
 import { signUpSchema } from '$lib/zod/auth';
 
-export const load: PageServerLoad = async (event) => {
-  await trpcServer.user.isSetup.ssr(event);
+export const load: PageServerLoad = async () => {
+  const setup = await isSetup();
 
   const form = await superValidate(zod(signUpSchema));
-  return { form };
+  return { isSetup: setup, form };
 };
