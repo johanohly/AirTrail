@@ -81,6 +81,7 @@ export default async function Page(props: Readonly<Props>) {
             Callout,
             Card,
             Cards,
+            // @ts-ignore
             img: (props) => <ImageZoom {...(props as any)} />,
           }}
         />

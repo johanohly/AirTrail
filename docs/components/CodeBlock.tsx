@@ -1,4 +1,4 @@
-import { highlight } from 'fumadocs-core/server';
+import { highlight } from 'fumadocs-core/highlight';
 import * as Base from 'fumadocs-ui/components/codeblock';
 
 export interface CodeBlockProps {
