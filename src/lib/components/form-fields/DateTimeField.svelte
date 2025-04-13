@@ -79,7 +79,7 @@
                   >
                     <CalendarDays size="20" />
                   </Popover.Trigger>
-                  <Popover.Content>
+                  <Popover.Content class="p-0">
                     <Calendar type="single" bind:value={dateValue} />
                   </Popover.Content>
                 </Popover.Root>

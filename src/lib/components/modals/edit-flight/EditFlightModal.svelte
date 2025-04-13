@@ -81,7 +81,7 @@
     interactOutsideBehavior="ignore"
     class="max-h-full overflow-y-auto max-w-lg"
   >
-    <h2>Edit Flight</h2>
+    <h2 class="text-lg font-medium">Edit Flight</h2>
     <form
       method="POST"
       action="/api/flight/save/form"

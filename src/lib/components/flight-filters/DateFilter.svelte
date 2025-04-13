@@ -49,7 +49,7 @@
       </Button>
     {/snippet}
   </Popover.Trigger>
-  <Popover.Content align="start">
+  <Popover.Content class="p-0" align="start">
     <Calendar type="single" bind:value={date} />
   </Popover.Content>
 </Popover.Root>

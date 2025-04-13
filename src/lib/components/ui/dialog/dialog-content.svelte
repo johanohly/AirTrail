@@ -42,9 +42,9 @@ I never got it animating.
     {@render children?.()}
     {#if closeButton}
       <DialogPrimitive.Close
-        class="ring-offset-background focus:ring-ring absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none"
+        class="absolute right-4 top-4 text-muted-foreground hover:bg-hover rounded-full p-2 transition-all duration-75 focus:outline-none"
       >
-        <X class="size-4" />
+        <X size="20" />
         <span class="sr-only">Close</span>
       </DialogPrimitive.Close>
     {/if}

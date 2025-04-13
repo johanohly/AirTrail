@@ -43,7 +43,7 @@
 </script>
 
 <Modal bind:open dialogOnly closeOnOutsideClick={false}>
-  <h2>Add Flight</h2>
+  <h2 class="text-lg font-medium">Add Flight</h2>
   <form
     method="POST"
     action="/api/flight/save/form"

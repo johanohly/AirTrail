@@ -22,6 +22,7 @@
   :root {
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
+    --hover: 0 0% 96%;
 
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
@@ -56,6 +57,7 @@
   .dark {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
+    --hover: 0 0% 15%;
 
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;

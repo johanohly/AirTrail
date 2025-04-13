@@ -34,7 +34,7 @@
 <Button variant="outline" onclick={() => (open = true)}>Edit password</Button>
 
 <Modal bind:open dialogOnly>
-  <h1>Edit Password</h1>
+  <h1 class="text-lg font-medium">Edit Password</h1>
   <form method="POST" action="/api/users/edit-password" use:enhance>
     <Form.Field {form} name="currentPassword">
       <Form.Control>

@@ -32,7 +32,7 @@
   closeOnEscape={false}
   closeButton={false}
 >
-  <h1>Welcome to your globe</h1>
+  <h1 class="text-lg font-medium">Welcome to your globe</h1>
   <Button onclick={importFlights} disabled={loading}
     >Fill from your flights
   </Button>
