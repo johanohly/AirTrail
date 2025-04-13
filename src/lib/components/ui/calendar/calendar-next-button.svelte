@@ -10,11 +10,11 @@
     class: className,
     children,
     ...restProps
-  }: CalendarPrimitive.PrevButtonProps = $props();
+  }: CalendarPrimitive.NextButtonProps = $props();
 </script>
 
 {#snippet Fallback()}
-  <ChevronRight class="size-4" />
+  <ChevronRight />
 {/snippet}
 
 <CalendarPrimitive.NextButton
@@ -24,6 +24,6 @@
     'size-7 bg-transparent p-0 opacity-50 hover:opacity-100',
     className,
   )}
-  children={children || Fallback}
   {...restProps}
+  children={children || Fallback}
 />
