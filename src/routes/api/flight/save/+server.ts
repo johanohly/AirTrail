@@ -66,8 +66,8 @@ export const POST: RequestHandler = async ({ request }) => {
 
   const result = await validateAndSaveFlight(user, data);
   if (!result.success) {
-    // @ts-expect-error - status may be defined
-    return apiError(result.message, result?.status || 500);
+    // @ts-expect-error - this should be valid
+    return apiError(result.message, result.status || 500);
   }
 
   return json({ success: true, ...(result.id && { id: result.id }) });

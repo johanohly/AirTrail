@@ -105,7 +105,7 @@ export const postViaForm = (url: string, data: Record<string, any>) => {
   form.style.visibility = 'hidden';
   form.method = 'POST';
   form.action = url;
-  for (const key in Object.keys(data)) {
+  for (const key of Object.keys(data)) {
     const input = document.createElement('input');
     input.name = key;
     input.value = data[key];

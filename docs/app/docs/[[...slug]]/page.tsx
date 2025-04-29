@@ -47,7 +47,7 @@ interface Props {
 export default async function Page(props: Readonly<Props>) {
   const params = await props.params;
   const page = source.getPage(params.slug);
-  if (!page) notFound();
+  if (!page) return notFound();
 
   const path = page.file.path;
   const fullPath = `docs/content/docs/${path}`;
@@ -100,7 +100,7 @@ export async function generateMetadata(props: {
 }) {
   const params = await props.params;
   const page = source.getPage(params.slug);
-  if (!page) notFound();
+  if (!page) return notFound();
 
   return {
     title: page.data.title,
