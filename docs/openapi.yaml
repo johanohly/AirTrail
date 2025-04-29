@@ -42,6 +42,54 @@ paths:
           '$ref': '#/components/responses/500'
       security:
         - bearerAuth: []
+  /flight/get/{id}:
+    get:
+      tags:
+        - 'Flight'
+      summary: 'Get flight details'
+      description: 'Get details of a specific flight by ID.'
+      operationId: 'get-flight'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 'The ID of the flight to retrieve.'
+          schema:
+            type: number
+      responses:
+        '200':
+          description: 'Flight details'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  flight:
+                    $ref: '#/components/schemas/Flight'
+        '400':
+          description: 'Invalid request'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 'Flight id is not a number'
+        '401':
+          '$ref': '#/components/responses/401'
+        '403':
+          '$ref': '#/components/responses/403'
+        '500':
+          '$ref': '#/components/responses/500'
+      security:
+        - bearerAuth: []
   /flight/save:
     post:
       tags:
@@ -61,11 +109,25 @@ paths:
                   title: 'Update'
       responses:
         '200':
-          description: 'Flight saved successfully'
+          description: 'Flight updated successfully'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Success'
+        '201':
+          description: 'Flight created successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  id:
+                    type: number
+                    description: 'The ID of the created flight.'
+                    example: 1
         '400':
           description: 'Invalid request body'
           content:
@@ -83,6 +145,8 @@ paths:
                     description: 'The list of validation errors.'
         '401':
           '$ref': '#/components/responses/401'
+        '403':
+          '$ref': '#/components/responses/403'
         '500':
           '$ref': '#/components/responses/500'
       security:
@@ -541,6 +605,19 @@ components:
               message:
                 type: string
                 example: 'Unauthorized'
+    403:
+      description: 'Forbidden'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: 'false'
+              message:
+                type: string
+                example: 'Forbidden'
     500:
       description: 'Other errors'
       content:

@@ -2,6 +2,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { ImageZoom } from 'fumadocs-ui/components/image-zoom';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
+import { APIPage } from 'fumadocs-openapi/ui';
 import {
   DocsPage,
   DocsBody,
@@ -77,7 +78,7 @@ export default async function Page(props: Readonly<Props>) {
         <Mdx
           components={{
             ...defaultMdxComponents,
-            APIPage: openapi.APIPage,
+            APIPage: (props) => <APIPage {...openapi.getAPIPageProps(props)} />,
             Callout,
             Card,
             Cards,

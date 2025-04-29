@@ -3,7 +3,7 @@ import { zod } from 'sveltekit-superforms/adapters';
 
 import type { RequestHandler } from './$types';
 
-import { validateAndCreateFlight } from '$lib/server/utils/flight';
+import { validateAndSaveFlight } from '$lib/server/utils/flight';
 import { handleErrorActionResult } from '$lib/utils/forms';
 import { flightSchema } from '$lib/zod/flight';
 
@@ -19,6 +19,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     return actionResult('error', 'Not logged in', 401);
   }
 
-  const result = await validateAndCreateFlight(user, form.data);
+  const result = await validateAndSaveFlight(user, form.data);
   return handleErrorActionResult(form, result);
 };
