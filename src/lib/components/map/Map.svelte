@@ -27,6 +27,8 @@
     type FlightData,
   } from '$lib/utils';
 
+  const { GlobeControl } = maplibregl;
+
   let {
     flights,
     filteredFlights,
@@ -77,7 +79,10 @@
 <OnResizeEnd callback={fitFlights} />
 
 <MapLibre
-  onload={() => fitFlights()}
+  onload={(event) => {
+    // event.addControl(new GlobeControl(), 'top-left');
+    fitFlights();
+  }}
   bind:map
   {style}
   diffStyleUpdates

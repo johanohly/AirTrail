@@ -19,6 +19,7 @@
     prepareVisitedAirports,
   } from '$lib/utils';
   import { isSmallScreen } from '$lib/utils/size';
+  import { MapboxOverlay } from '@deck.gl/mapbox';
 
   const AIRPORT_COLOR = (alpha: number): Color => [16, 185, 129, alpha]; // Tailwind emerald-500
   const INACTIVE_COLOR = (alpha: number): Color => [113, 113, 122, alpha];
@@ -52,11 +53,6 @@
   const context = getMapContext();
   const { map, loaded } = $derived(context);
 
-  let deckgl: typeof import('@deck.gl/mapbox') | undefined = $state();
-  onMount(async () => {
-    deckgl = await import('@deck.gl/mapbox');
-  });
-
   const { layer: layerId, layerEvent } = updatedDeckGlContext();
   layerId.value = id;
   setPopupTarget(new Box(undefined));
@@ -81,7 +77,7 @@
     };
   };
 
-  let layer: import('@deck.gl/mapbox').MapboxOverlay | undefined = $state();
+  let layer: MapboxOverlay | undefined = $state();
 
   onDestroy(() => {
     if (loaded && layer) {
@@ -212,8 +208,8 @@
   });
 
   $effect(() => {
-    if (loaded && map && deckgl && !layer) {
-      layer = new deckgl.MapboxOverlay({
+    if (loaded && map && !layer) {
+      layer = new MapboxOverlay({
         id,
         layers: [
           new ScatterplotLayer<VisitedAirport>(airportOptions),

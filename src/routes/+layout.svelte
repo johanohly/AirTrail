@@ -1,5 +1,7 @@
 <script lang="ts">
   import '../app.css';
+  // import "maplibre-theme/icons.lucide.css";
+  // import "maplibre-theme/modern.css";
   import { QueryClientProvider } from '@tanstack/svelte-query';
   import { ModeWatcher } from 'mode-watcher';
   import { Toaster } from 'svelte-sonner';
