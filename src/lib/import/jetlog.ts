@@ -6,9 +6,9 @@ import type { PlatformOptions } from '$lib/components/modals/settings/pages/impo
 import type { CreateFlight, Seat } from '$lib/db/types';
 import { api } from '$lib/trpc';
 import { distanceBetween, parseCsv } from '$lib/utils';
+import { aircraftFromICAO } from '$lib/utils/data/aircraft';
 import { airlineFromIATA, airlineFromICAO } from '$lib/utils/data/airlines';
 import { estimateFlightDuration, parseLocal, toUtc } from '$lib/utils/datetime';
-import { aircraftFromICAO } from '$lib/utils/data/aircraft';
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
