@@ -160,7 +160,7 @@
     data: visitedAirports,
     getPosition: (airport: VisitedAirport) => [airport.lon, airport.lat],
     getRadius: (airport: VisitedAirport) =>
-      airport.frequency * ($isMediumScreen ? 100_000 : 50_000),
+      airport.frequency * ($isMediumScreen ? 50_000 : 100_000),
     radiusMaxPixels: 100,
     lineWidthUnits: 'pixels',
     getLineWidth: 1,
