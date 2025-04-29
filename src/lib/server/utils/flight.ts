@@ -31,13 +31,13 @@ export const getFlight = async (id: number) => {
 };
 
 export const createFlight = async (data: CreateFlight) => {
-  await createFlightPrimitive(db, data);
+  return await createFlightPrimitive(db, data);
 };
 
-export const validateAndCreateFlight = async (
+export const validateAndSaveFlight = async (
   user: User,
   data: z.infer<typeof flightSchema>,
-): Promise<ErrorActionResult> => {
+): Promise<ErrorActionResult & { id?: number }> => {
   const pathError = (path: string, message: string) => {
     return { success: false, type: 'path', path, message } as const;
   };
@@ -144,8 +144,9 @@ export const validateAndCreateFlight = async (
     return { success: true, message: 'Flight updated successfully' };
   }
 
+  let flightId: number;
   try {
-    await createFlight(values);
+    flightId = await createFlight(values);
   } catch (_) {
     return {
       success: false,
@@ -157,6 +158,7 @@ export const validateAndCreateFlight = async (
   return {
     success: true,
     message: 'Flight added successfully',
+    id: flightId,
   };
 };
 

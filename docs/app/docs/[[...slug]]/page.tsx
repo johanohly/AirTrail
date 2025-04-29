@@ -2,6 +2,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { ImageZoom } from 'fumadocs-ui/components/image-zoom';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
+import { APIPage } from 'fumadocs-openapi/ui';
 import {
   DocsPage,
   DocsBody,
@@ -46,7 +47,7 @@ interface Props {
 export default async function Page(props: Readonly<Props>) {
   const params = await props.params;
   const page = source.getPage(params.slug);
-  if (!page) notFound();
+  if (!page) return notFound();
 
   const path = page.file.path;
   const fullPath = `docs/content/docs/${path}`;
@@ -77,7 +78,7 @@ export default async function Page(props: Readonly<Props>) {
         <Mdx
           components={{
             ...defaultMdxComponents,
-            APIPage: openapi.APIPage,
+            APIPage: (props) => <APIPage {...openapi.getAPIPageProps(props)} />,
             Callout,
             Card,
             Cards,
@@ -99,7 +100,7 @@ export async function generateMetadata(props: {
 }) {
   const params = await props.params;
   const page = source.getPage(params.slug);
-  if (!page) notFound();
+  if (!page) return notFound();
 
   return {
     title: page.data.title,

@@ -65,7 +65,7 @@ export const createFlightPrimitive = async (
   db: Kysely<DB>,
   data: CreateFlight,
 ) => {
-  await db.transaction().execute(async (trx) => {
+  return await db.transaction().execute(async (trx) => {
     const { seats, ...flightData } = data;
     const resp = await trx
       .insertInto('flight')
@@ -87,6 +87,7 @@ export const createFlightPrimitive = async (
     }));
 
     await trx.insertInto('seat').values(seatData).executeTakeFirstOrThrow();
+    return resp.id;
   });
 };
 

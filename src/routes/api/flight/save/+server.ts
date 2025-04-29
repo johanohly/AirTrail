@@ -5,7 +5,7 @@ import type { RequestHandler } from './$types';
 
 import { getAirport } from '$lib/server/utils/airport';
 import { apiError, unauthorized, validateApiKey } from '$lib/server/utils/api';
-import { validateAndCreateFlight } from '$lib/server/utils/flight';
+import { validateAndSaveFlight } from '$lib/server/utils/flight';
 import { flightSchema } from '$lib/zod/flight';
 
 const defaultFlight = {
@@ -31,10 +31,10 @@ const saveApiFlightSchema = flightSchema.merge(
 export const POST: RequestHandler = async ({ request }) => {
   const body = await request.json();
   const filled = { ...defaultFlight, ...body };
-  const result = saveApiFlightSchema.safeParse(filled);
-  if (!result.success) {
+  const parsed = saveApiFlightSchema.safeParse(filled);
+  if (!parsed.success) {
     return json(
-      { success: false, errors: result.error.errors },
+      { success: false, errors: parsed.error.errors },
       { status: 400 },
     );
   }
@@ -44,18 +44,18 @@ export const POST: RequestHandler = async ({ request }) => {
     return unauthorized();
   }
 
-  const from = await getAirport(result.data.from);
+  const from = await getAirport(parsed.data.from);
   if (!from) {
     return apiError('Invalid departure airport');
   }
 
-  const to = await getAirport(result.data.to);
+  const to = await getAirport(parsed.data.to);
   if (!to) {
     return apiError('Invalid arrival airport');
   }
 
   const data = {
-    ...result.data,
+    ...parsed.data,
     from,
     to,
   };
@@ -64,9 +64,11 @@ export const POST: RequestHandler = async ({ request }) => {
     data.seats[0].userId = user.id;
   }
 
-  const success = await validateAndCreateFlight(user, data);
-  if (!success) {
-    return apiError('Failed to save flight');
+  const result = await validateAndSaveFlight(user, data);
+  if (!result.success) {
+    // @ts-expect-error - this should be valid
+    return apiError(result.message, result.status || 500);
   }
-  return json({ success: true });
+
+  return json({ success: true, ...(result.id && { id: result.id }) });
 };
