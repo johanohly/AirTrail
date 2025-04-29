@@ -134,27 +134,22 @@ export const prepareVisitedAirports = (data: FlightData[]) => {
     formatAirport(flight, 'to');
   });
 
-  const MIN_FREQUENCY = 0.5;
+  const MIN_FREQUENCY = 1;
   const MAX_FREQUENCY = 3;
+
   const combinedFrequencies = visited.map((v) => v.arrivals + v.departures);
 
-  // Find the maximum combined frequency
-  const maxFrequency = Math.max(...combinedFrequencies, 0); // Ensure it's not zero
+  const rawMin = Math.min(...combinedFrequencies);
+  const rawMax = Math.max(...combinedFrequencies);
+
+  const span = rawMax - rawMin || 1;
 
   visited.forEach((v) => {
-    // Calculate the combined frequency for the airport
-    const combinedFrequency = v.arrivals + v.departures;
+    const combined = v.arrivals + v.departures;
 
-    // Normalize and scale the frequency
-    const normalizedFrequency =
-      maxFrequency === 0 ? 0 : combinedFrequency / maxFrequency;
-    v.frequency = Math.min(
-      MAX_FREQUENCY,
-      Math.max(
-        MIN_FREQUENCY,
-        normalizedFrequency * (MAX_FREQUENCY - MIN_FREQUENCY) + MIN_FREQUENCY,
-      ),
-    );
+    const normalised = (combined - rawMin) / span;
+
+    v.frequency = normalised * (MAX_FREQUENCY - MIN_FREQUENCY) + MIN_FREQUENCY;
   });
 
   return visited;

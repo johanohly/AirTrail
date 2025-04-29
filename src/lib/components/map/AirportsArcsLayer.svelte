@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PickingInfo, Color } from '@deck.gl/core';
   import { ArcLayer, ScatterplotLayer } from '@deck.gl/layers';
+  import { MapboxOverlay } from '@deck.gl/mapbox';
   import { onMount, onDestroy } from 'svelte';
   import {
     Box,
@@ -18,8 +19,7 @@
     prepareFlightArcData,
     prepareVisitedAirports,
   } from '$lib/utils';
-  import { isSmallScreen } from '$lib/utils/size';
-  import { MapboxOverlay } from '@deck.gl/mapbox';
+  import { isMediumScreen, isSmallScreen } from '$lib/utils/size';
 
   const AIRPORT_COLOR = (alpha: number): Color => [16, 185, 129, alpha]; // Tailwind emerald-500
   const INACTIVE_COLOR = (alpha: number): Color => [113, 113, 122, alpha];
@@ -159,8 +159,8 @@
     id: 'scatterplot-layer',
     data: visitedAirports,
     getPosition: (airport: VisitedAirport) => [airport.lon, airport.lat],
-    getRadius: (airport: VisitedAirport) => airport.frequency * 50_000,
-    radiusMinPixels: $isSmallScreen ? 20 : 10,
+    getRadius: (airport: VisitedAirport) =>
+      airport.frequency * ($isMediumScreen ? 100_000 : 50_000),
     radiusMaxPixels: 100,
     lineWidthUnits: 'pixels',
     getLineWidth: 1,
