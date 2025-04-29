@@ -6,16 +6,9 @@ import type { PlatformOptions } from '$lib/components/modals/settings/pages/impo
 import type { CreateFlight, Seat } from '$lib/db/types';
 import { api } from '$lib/trpc';
 import { distanceBetween, parseCsv } from '$lib/utils';
-import { airlineFromIATA } from '$lib/utils/data/airlines';
+import { airlineFromIATA, airlineFromICAO } from '$lib/utils/data/airlines';
 import { estimateFlightDuration, parseLocal, toUtc } from '$lib/utils/datetime';
-
-const JETLOG_FLIGHT_CLASS_MAP: Record<string, Seat['seatClass']> = {
-  'ClassType.ECONOMY': 'economy',
-  'ClassType.ECONOMYPLUS': 'economy+',
-  'ClassType.BUSINESS': 'business',
-  'ClassType.FIRST': 'first',
-  'ClassType.PRIVATE': 'private',
-};
+import { aircraftFromICAO } from '$lib/utils/data/aircraft';
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -40,10 +33,17 @@ const JetLogFlight = z.object({
   arrival_time: optionalTimePrimitive,
   arrival_date: optionalDatePrimitive,
   seat: z.enum(['window', 'middle', 'aisle', '']).transform(nullTransformer),
-  ticket_class: z.string().transform(nullTransformer),
+  ticket_class: z
+    .enum(['economy', 'economy+', 'business', 'first', 'private', ''])
+    .transform(nullTransformer),
+  purpose: z
+    .enum(['leisure', 'business', 'crew', 'other', ''])
+    .transform(nullTransformer),
   duration: z.string().transform(nullTransformer),
   distance: z.string().transform(nullTransformer),
   airplane: z.string().transform(nullTransformer),
+  airline: z.string().transform(nullTransformer),
+  tail_number: z.string().transform(nullTransformer),
   flight_number: z.string().transform(nullTransformer),
   notes: z.string().transform(nullTransformer),
 });
@@ -114,18 +114,29 @@ export const processJetLogFile = async (
       departure && arrival
         ? differenceInSeconds(arrival, departure)
         : estimateFlightDuration(
-            distanceBetween([from.lat, from.lon], [to.lat, to.lon]) / 1000,
+            distanceBetween([from.lon, from.lat], [to.lon, to.lat]) / 1000,
           );
 
-    const seatClass =
-      JETLOG_FLIGHT_CLASS_MAP[row.ticket_class ?? 'noop'] ?? null;
+    const seatClass = row.ticket_class ?? null;
 
     let airline = null;
-    if (options.airlineFromFlightNumber && row.flight_number) {
+    if (row.airline) {
+      const airlineIcao = row.airline.trim().toUpperCase();
+      airline = airlineFromICAO(airlineIcao)?.icao ?? null;
+    }
+
+    if (!airline && options.airlineFromFlightNumber && row.flight_number) {
       const airlineIata = /([A-Za-z]{2})\d*/.exec(row.flight_number)?.[1];
       airline = airlineIata
         ? (airlineFromIATA(airlineIata)?.icao ?? null)
         : null;
+    }
+
+    let aircraft = null;
+    if (row.airplane) {
+      const aircraftIcao =
+        row.airplane.match(/\((.{4})\)/)?.[1] ?? row.airplane;
+      aircraft = aircraftFromICAO(aircraftIcao)?.icao ?? null;
     }
 
     flights.push({
@@ -140,14 +151,14 @@ export const processJetLogFile = async (
         : null,
       note: row.notes,
       airline,
-      aircraft: null,
-      aircraftReg: null,
-      flightReason: null,
+      aircraft,
+      aircraftReg: row.tail_number ? row.tail_number.substring(0, 10) : null,
+      flightReason: row.purpose as CreateFlight['flightReason'],
       seats: [
         {
           userId,
           seat: row.seat as Seat['seat'],
-          seatClass,
+          seatClass: seatClass as Seat['seatClass'],
           seatNumber: null,
           guestName: null,
         },
