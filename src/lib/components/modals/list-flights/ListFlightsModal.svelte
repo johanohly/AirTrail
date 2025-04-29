@@ -2,7 +2,7 @@
   import autoAnimate from '@formkit/auto-animate';
   import { Plane, PlaneTakeoff, PlaneLanding, X } from '@o7/icon/lucide';
   import { AirplanemodeInactive } from '@o7/icon/material';
-  import { isBefore, isSameDay } from 'date-fns';
+  import { isBefore } from 'date-fns';
 
   import Toolbar from './Toolbar.svelte';
 
@@ -24,6 +24,7 @@
     formatAsDateTime,
     formatAsMonth,
     formatAsTime,
+    isSameLocalDay,
     isUsingAmPm,
   } from '$lib/utils/datetime';
 
@@ -50,7 +51,7 @@
         const depDate = f.departure;
         const arrDate = f.arrival;
 
-        const sameDay = depDate && arrDate && isSameDay(depDate, arrDate);
+        const sameDay = depDate && arrDate && isSameLocalDay(depDate, arrDate);
         const arrTime = arrDate
           ? sameDay
             ? formatAsTime(arrDate)
