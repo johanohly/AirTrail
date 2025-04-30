@@ -4,8 +4,8 @@
   import { page } from '$app/state';
   import { ContinentMap } from '$lib/db/types';
   import { type FlightData, toTitleCase } from '$lib/utils';
-  import { getAircraftLabel } from '$lib/utils/data/aircraft';
   import { airlineFromICAO } from '$lib/utils/data/airlines';
+  import { aircraftFromICAO } from '$lib/utils/data/aircraft';
 
   let { flights }: { flights: FlightData[] } = $props();
 
@@ -87,10 +87,12 @@
   const topAirlineDistribution = $derived.by(() => {
     const counts = flights.reduce<Record<string, number>>((acc, flight) => {
       if (!flight.airline) return acc;
+
       const label = airlineFromICAO(flight.airline)?.name;
       if (label) {
         acc[label] = (acc[label] || 0) + 1;
       }
+
       return acc;
     }, {});
 
@@ -108,10 +110,12 @@
   const topAircraftDistribution = $derived.by(() => {
     const counts = flights.reduce<Record<string, number>>((acc, flight) => {
       if (!flight.aircraft) return acc;
-      const label = getAircraftLabel(flight.aircraft);
+
+      const label = aircraftFromICAO(flight.aircraft)?.name;
       if (label) {
         acc[label] = (acc[label] || 0) + 1;
       }
+
       return acc;
     }, {});
 
