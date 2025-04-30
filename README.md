@@ -88,7 +88,9 @@ If you find an issue, please report it on the [issue tracker](https://github.com
 
 ### Data Sources
 
-> [Airport Data](https://github.com/komed3/airportmap-database)
+> [Airport Data](https://ourairports.com)
+
+> [Country Borders](https://gisco-services.ec.europa.eu/distribution/v2/countries/geojson/CNTR_RG_10M_2024_4326.geojson)
 
 > [Country Flags](https://flagpedia.net)
 

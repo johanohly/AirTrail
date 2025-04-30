@@ -4,8 +4,8 @@
   import { page } from '$app/state';
   import { ContinentMap } from '$lib/db/types';
   import { type FlightData, toTitleCase } from '$lib/utils';
-  import { airlineFromICAO } from '$lib/utils/data/airlines';
   import { aircraftFromICAO } from '$lib/utils/data/aircraft';
+  import { airlineFromICAO } from '$lib/utils/data/airlines';
 
   let { flights }: { flights: FlightData[] } = $props();
 

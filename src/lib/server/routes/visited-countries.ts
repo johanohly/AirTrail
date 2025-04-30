@@ -5,7 +5,10 @@ import { authedProcedure, router } from '../trpc';
 import { db } from '$lib/db';
 import { VisitedCountryStatus } from '$lib/db/types';
 import { listFlights } from '$lib/server/utils/flight';
-import { countryFromAlpha } from '$lib/utils/data/countries';
+import {
+  countryFromAlpha,
+  countryFromNumeric,
+} from '$lib/utils/data/countries';
 
 const VisitedCountrySchema = z.object({
   code: z.number(),
@@ -15,11 +18,17 @@ const VisitedCountrySchema = z.object({
 
 export const visitedCountriesRouter = router({
   list: authedProcedure.query(async ({ ctx }) => {
-    return await db
+    const list = await db
       .selectFrom('visitedCountry')
       .select(['note', 'code', 'status'])
       .where('userId', '=', ctx.user.id)
       .execute();
+
+    return list.map((country) => ({
+      ...country,
+      numeric: country.code,
+      code: countryFromNumeric(country.code)?.alpha || country.code,
+    }));
   }),
   save: authedProcedure
     .input(VisitedCountrySchema)

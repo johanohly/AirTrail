@@ -59,7 +59,7 @@ for (const line of lines.slice(1)) {
   }
   rows.push({
     name: rawRow['name'],
-    alpha: alpha2,
+    alpha: alpha3,
     numeric: +numeric,
   });
 }
