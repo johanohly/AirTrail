@@ -193,6 +193,7 @@
     const result = await api.visitedCountries.importFlights.mutate();
     if (result) {
       await trpc.visitedCountries.list.utils.invalidate();
+      await fitCountries();
       toast.success(
         `Marked ${result} ${pluralize(result, 'country', 'countries')} as visited`,
       );
@@ -203,7 +204,7 @@
 </script>
 
 <OnResizeEnd callback={fitCountries} />
-<SetupVisitedCountries {countries} />
+<SetupVisitedCountries {countries} {fitCountries} />
 <EditVisitedCountry bind:open={editing} {editingInfo} />
 
 <MapLibre

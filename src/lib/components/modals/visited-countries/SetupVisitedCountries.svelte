@@ -5,7 +5,10 @@
   import { Modal } from '$lib/components/ui/modal';
   import { api, trpc } from '$lib/trpc';
 
-  let { countries }: { countries: any[] } = $props();
+  let {
+    countries,
+    fitCountries,
+  }: { countries: any[]; fitCountries: () => Promise<void> } = $props();
 
   let manualOverride = $state(false);
   let open = $derived.by(() => !manualOverride && countries.length === 0);
@@ -16,6 +19,9 @@
     const success = await api.visitedCountries.importFlights.mutate();
     if (success) {
       await trpc.visitedCountries.list.utils.invalidate();
+      // Wait for the updated countries to propagate to parent before fitting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await fitCountries();
     } else {
       toast.error('Failed to import flights (possibly due to no past flights)');
     }
