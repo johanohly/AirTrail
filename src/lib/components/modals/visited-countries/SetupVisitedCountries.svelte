@@ -20,7 +20,7 @@
     if (success) {
       await trpc.visitedCountries.list.utils.invalidate();
       // Wait for the updated countries to propagate to parent before fitting
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       await fitCountries();
     } else {
       toast.error('Failed to import flights (possibly due to no past flights)');
