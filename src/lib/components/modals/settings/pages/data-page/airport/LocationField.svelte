@@ -18,7 +18,7 @@
   import { COUNTRIES } from '$lib/data/countries';
   import { Continents, ContinentMap } from '$lib/db/types';
   import { cn } from '$lib/utils';
-  import { countryFromAlpha } from '$lib/utils/data/countries';
+  import { countryFromAlpha2 } from '$lib/utils/data/countries';
   import type { airportSchema } from '$lib/zod/airport';
 
   const { form }: { form: SuperForm<Infer<typeof airportSchema>> } = $props();
@@ -102,12 +102,12 @@
         >
           <Select.Trigger {...props}>
             {$formData.country
-              ? countryFromAlpha($formData.country)?.name
+              ? countryFromAlpha2($formData.country)?.name
               : 'Select a country'}
           </Select.Trigger>
           <Select.Content>
             {#each COUNTRIES as country}
-              <Select.Item value={country.alpha} label={country.name} />
+              <Select.Item value={country.alpha2} label={country.name} />
             {/each}
           </Select.Content>
         </Select.Root>

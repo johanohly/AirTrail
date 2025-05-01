@@ -54,12 +54,10 @@ for (const line of lines.slice(1)) {
   }
   const [alpha2, alpha3, numeric] = rawRow['iso_3166'].split('|');
 
-  if (alpha2 === 'COD') {
-    console.log(numeric, alpha2);
-  }
   rows.push({
     name: rawRow['name'],
-    alpha: alpha3,
+    alpha2,
+    alpha3,
     numeric: +numeric,
   });
 }
