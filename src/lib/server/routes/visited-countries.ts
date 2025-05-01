@@ -6,7 +6,7 @@ import { db } from '$lib/db';
 import { VisitedCountryStatus } from '$lib/db/types';
 import { listFlights } from '$lib/server/utils/flight';
 import {
-  countryFromAlpha,
+  countryFromAlpha2,
   countryFromNumeric,
 } from '$lib/utils/data/countries';
 
@@ -27,7 +27,7 @@ export const visitedCountriesRouter = router({
     return list.map((country) => ({
       ...country,
       numeric: country.code,
-      code: countryFromNumeric(country.code)?.alpha || country.code,
+      alpha3: countryFromNumeric(country.code)?.alpha3 || 'DNK',
     }));
   }),
   save: authedProcedure
@@ -61,33 +61,37 @@ export const visitedCountriesRouter = router({
     }),
   importFlights: authedProcedure.mutation(async ({ ctx }) => {
     const flights = await listFlights(ctx.user.id);
-    const countries: number[] = [];
+    const countries: Set<number> = new Set();
 
     for (const flight of flights) {
-      const originCountry = countryFromAlpha(flight.from.country);
-      const destinationCountry = countryFromAlpha(flight.to.country);
+      const originCountry = countryFromAlpha2(flight.from.country);
+      const destinationCountry = countryFromAlpha2(flight.to.country);
       if (!originCountry || !destinationCountry) {
         continue;
       }
 
-      countries.push(originCountry.numeric);
+      countries.add(originCountry.numeric);
+      countries.add(destinationCountry.numeric);
     }
 
-    if (countries.length === 0) {
-      return false;
+    if (countries.size === 0) {
+      return 0;
     }
 
     const result = await db
       .insertInto('visitedCountry')
       .values(
-        countries.map((country) => ({
-          userId: ctx.user.id,
-          code: country,
-          status: 'visited',
-        })),
+        countries
+          .values()
+          .toArray()
+          .map((country) => ({
+            userId: ctx.user.id,
+            code: country,
+            status: 'visited',
+          })),
       )
-      .onConflict((oc) => oc.doNothing())
+      .onConflict((oc) => oc.columns(['userId', 'code']).doNothing())
       .execute();
-    return result.length > 0;
+    return Number(result?.[0]?.numInsertedOrUpdatedRows || 0);
   }),
 });

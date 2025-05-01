@@ -5,12 +5,10 @@
   import { Modal } from '$lib/components/ui/modal';
   import { api, trpc } from '$lib/trpc';
 
-  let { visitedCountries }: { visitedCountries: any[] } = $props();
+  let { countries }: { countries: any[] } = $props();
 
   let manualOverride = $state(false);
-  let open = $derived.by(
-    () => !manualOverride && visitedCountries.length === 0,
-  );
+  let open = $derived.by(() => !manualOverride && countries.length === 0);
 
   let loading = $state(false);
   const importFlights = async () => {
