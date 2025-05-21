@@ -6,7 +6,7 @@ import adapter from 'svelte-adapter-bun';
 const config = {
   preprocess: sequence([vitePreprocess(), preprocessMeltUI()]),
   kit: {
-    adapter: adapter(),
+    adapter: adapter({ dynamic_origin: true }),
     version: { name: process.env.npm_package_version },
     csrf: {
       checkOrigin: false,
