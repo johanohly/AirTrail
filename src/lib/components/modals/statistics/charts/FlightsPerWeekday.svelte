@@ -14,16 +14,20 @@
   import { cubicInOut } from 'svelte/easing';
 
   import type { FlightData } from '$lib/utils';
+  import { getStartOfWeekDay } from '$lib/utils/datetime';
 
   let { flights }: { flights: FlightData[] } = $props();
 
-  const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   const flightsPerWeekday = $derived.by(() => {
     const data = flights;
     if (!data) return;
 
-    const weekdays = Array.from({ length: 7 }, (_, i) => i);
+    const firstDay = getStartOfWeekDay() === 'Monday' ? 1 : 0;
+
+    const weekdays = Array.from({ length: 7 }, (_, i) => (i + firstDay) % 7);
+
     return weekdays.map((weekday) => {
       const weekdayFlights = data.filter(
         (flight) => flight.date.getDay() === weekday,
