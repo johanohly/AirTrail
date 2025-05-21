@@ -25,7 +25,10 @@ export const isUsingAmPm = () => {
 export const getStartOfWeekDay = () => {
   const locale = navigator.language || 'en-US';
 
-  const formatter = new Intl.DateTimeFormat(locale, { weekday: 'long', timeZone: 'UTC' });
+  const formatter = new Intl.DateTimeFormat(locale, {
+    weekday: 'long',
+    timeZone: 'UTC',
+  });
 
   const weekDays = Array.from({ length: 7 }, (_, i) => {
     const date = new Date(Date.UTC(2021, 7, 1 + i)); // Aug 1, 2021 is a Sunday
@@ -38,4 +41,4 @@ export const getStartOfWeekDay = () => {
   if (/sun/i.test(firstDay)) return 'Sunday';
 
   return 'Monday';
-}
+};
