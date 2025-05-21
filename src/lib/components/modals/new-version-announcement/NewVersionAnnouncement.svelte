@@ -40,6 +40,7 @@
   const dismissVersion = () => {
     if (!changelog) return;
     localStorage.setItem('dismissedVersion', changelog?.name);
+    open = false;
   };
 </script>
 
