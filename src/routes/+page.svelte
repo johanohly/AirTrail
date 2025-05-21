@@ -42,6 +42,11 @@
         isAfter(f.date, filters.toDate.toDate(f.date.timeZone ?? 'UTC'))
       ) {
         return false;
+      } else if (
+        filters.aircraftRegs.length &&
+        !filters.aircraftRegs.includes(f.aircraftReg || '')
+      ) {
+        return false;
       }
       return true;
     });

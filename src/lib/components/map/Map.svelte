@@ -71,7 +71,8 @@
       filters.departureAirports.length ||
       filters.arrivalAirports.length ||
       filters.fromDate ||
-      filters.toDate
+      filters.toDate ||
+      filters.aircraftRegs.length
     );
   });
 </script>
