@@ -5,6 +5,7 @@ export type FlightFilters = {
   arrivalAirports: string[];
   fromDate: CalendarDate | undefined;
   toDate: CalendarDate | undefined;
+  aircraftRegs: string[];
 };
 
 export const defaultFilters: FlightFilters = {
@@ -12,4 +13,5 @@ export const defaultFilters: FlightFilters = {
   arrivalAirports: [],
   fromDate: undefined,
   toDate: undefined,
+  aircraftRegs: [],
 };

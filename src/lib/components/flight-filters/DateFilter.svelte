@@ -34,9 +34,9 @@
         {disabled}
       >
         {#if iconDirection === 'up'}
-          <CalendarArrowUp size={20} class="mr-2" />
+          <CalendarArrowUp size={16} class="mr-2" />
         {:else}
-          <CalendarArrowDown size={20} class="mr-2" />
+          <CalendarArrowDown size={16} class="mr-2" />
         {/if}
         {title}
 

@@ -27,6 +27,7 @@
     isSameLocalDay,
     isUsingAmPm,
   } from '$lib/utils/datetime';
+  import { formatAircraft } from '$lib/utils/data/aircraft';
 
   let {
     open = $bindable<boolean>(),
@@ -210,6 +211,9 @@
                 <div class="max-lg:hidden flex flex-col w-48 shrink-0">
                   {@render seatAndAirline(flight)}
                 </div>
+                <div class="max-xl:hidden flex flex-col w-48 shrink-0">
+                  {@render flightAndTailNumber(flight)}
+                </div>
                 <div class="flex flex-1 px-12 md:px-16">
                   <div class="w-full grid grid-cols-[auto_1fr_auto] gap-3">
                     {@render airport(flight.from)}
@@ -272,6 +276,25 @@
   {#if flight.airline && flight.seat}
     <Tooltip.AutoTooltip
       text={flight.airline.name}
+      class="text-sm text-muted-foreground truncate"
+    />
+  {:else}
+    <p class="text-sm text-transparent">.</p>
+  {/if}
+{/snippet}
+
+{#snippet flightAndTailNumber(flight)}
+  {#if flight.flightNumber || flight.aircraftReg}
+    <Tooltip.AutoTooltip
+      text={flight.flightNumber ?? formatAircraft(flight)}
+      class="text-sm truncate"
+    />
+  {:else}
+    <p class="text-sm text-transparent">.</p>
+  {/if}
+  {#if flight.flightNumber && flight.aircraftReg}
+    <Tooltip.AutoTooltip
+      text={formatAircraft(flight)}
       class="text-sm text-muted-foreground truncate"
     />
   {:else}

@@ -46,7 +46,7 @@
         {...props}
         {disabled}
       >
-        <Funnel size={20} class="mr-2" />
+        <Funnel size={16} class="mr-2" />
         {title}
 
         {#if filterValues.length > 0}
