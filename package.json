@@ -1,6 +1,6 @@
 {
   "name": "airtrail",
-  "version": "2.4.1",
+  "version": "2.5.0",
   "type": "module",
   "scripts": {
     "build": "vite build",
