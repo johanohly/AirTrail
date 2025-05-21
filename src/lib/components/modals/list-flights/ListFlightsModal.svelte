@@ -16,6 +16,7 @@
   import { LabelledSeparator, Separator } from '$lib/components/ui/separator';
   import * as Tooltip from '$lib/components/ui/tooltip';
   import { cn, type FlightData } from '$lib/utils';
+  import { formatAircraft } from '$lib/utils/data/aircraft';
   import { airlineFromICAO } from '$lib/utils/data/airlines';
   import { formatSeat } from '$lib/utils/data/data';
   import {
@@ -27,7 +28,6 @@
     isSameLocalDay,
     isUsingAmPm,
   } from '$lib/utils/datetime';
-  import { formatAircraft } from '$lib/utils/data/aircraft';
 
   let {
     open = $bindable<boolean>(),
