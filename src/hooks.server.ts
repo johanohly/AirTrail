@@ -57,11 +57,14 @@ const authHandle: Handle = async ({ event, resolve }) => {
  */
 const csrfHandle: Handle = async ({ event, resolve }) => {
   const ORIGIN = env.ORIGIN;
-  if (!ORIGIN) {
+  const ORIGINS = env.ORIGINS;
+  if (!ORIGIN && !ORIGINS) {
     return resolve(event);
   }
 
-  const allowedOrigins = ORIGIN.split(',').map((origin) => origin.trim());
+  const allowedOrigins = ORIGIN
+    ? [ORIGIN]
+    : ORIGINS!.split(',').map((origin) => origin.trim());
 
   const { request, url } = event;
   const forbidden =
