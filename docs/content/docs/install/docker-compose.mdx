@@ -32,7 +32,7 @@ AirTrail requires Docker Compose version 2.x or higher.
   <div className="step">
     **Configure the environment variables**
 
-    - Set the `ORIGIN` variable to the domain name or IP address that the application will be accessed from.
+    - Set the `ORIGIN` variable to the domain name or IP address that the application will be accessed from. For multiple domain names or IP addresses, use the `ORIGINS` variable instead and pass a comma-separated list.
     - Populate custom database information if necessary.
     - Consider changing DB_PASSWORD to a custom value. Postgres is not publicly exposed, so this password is only used for
       local authentication. To avoid issues with Docker parsing this value, it is best to use only the characters A-Za-z0-9.
