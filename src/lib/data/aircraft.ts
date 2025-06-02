@@ -114,6 +114,56 @@ export const AIRCRAFT = [
     icao: 'A388',
     wtc: 'J',
   },
+    {
+    name: 'Aibus Helicopter H-160',
+    icao: 'H160',
+    wtc: 'L',
+  },
+  {
+    name: 'Aibus Helicopter H-215',
+    icao: 'AS32',
+    wtc: 'M',
+  },
+  {
+    name: 'Aibus Helicopter H-120 Colibri',
+    icao: 'EC20',
+    wtc: 'L',
+  },
+  {
+    name: 'Aibus Helicopter H-125 Ecureuil',
+    icao: 'AS50',
+    wtc: 'L',
+  },
+  {
+    name: 'Aibus Helicopter H-125 SuperStar',
+    icao: 'AS50',
+    wtc: 'L',
+  },
+  {
+    name: 'Aibus Helicopter H-125 Fennec',
+    icao: 'AS50',
+    wtc: 'L',
+  },
+  {
+    name: 'Aibus Helicopter H-130',
+    icao: 'EC30',
+    wtc: 'L',
+  },
+  {
+    name: 'Aibus Helicopter H-135',
+    icao: 'EC35',
+    wtc: 'L',
+  },
+  {
+    name: 'Aibus Helicopter H-155',
+    icao: 'EC55',
+    wtc: 'L',
+  },
+  {
+    name: 'Aibus Helicopter H-225',
+    icao: 'EC25',
+    wtc: 'M',
+  },
   {
     name: 'ATR-42-300',
     icao: 'AT43',
@@ -569,6 +619,56 @@ export const AIRCRAFT = [
     icao: 'C680',
     wtc: 'L',
   },
+    {
+    name: 'Dassault Falcon 7X',
+    icao: 'FA7X',
+    wtc: 'M',
+  },
+  {
+    name: 'Dassault Falcon 10',
+    icao: 'FA10',
+    wtc: 'M',
+  },
+  {
+    name: 'Dassault Falcon 20',
+    icao: 'FA20',
+    wtc: 'M',
+  },
+  {
+    name: 'Dassault Falcon 50',
+    icao: 'FA50',
+    wtc: 'M',
+  },
+  {
+    name: 'Dassault Falcon 100',
+    icao: 'FA10',
+    wtc: 'M',
+  },
+  {
+    name: 'Dassault Falcon 200',
+    icao: 'FA20',
+    wtc: 'M',
+  },
+  {
+    name: 'Dassault Falcon 900',
+    icao: 'F900',
+    wtc: 'M',
+  },
+  {
+    name: 'Dassault Falcon 2000',
+    icao: 'F2TH',
+    wtc: 'M',
+  },
+  {
+    name: 'Dassault Falcon 8X',
+    icao: 'FA8X',
+    wtc: 'M',
+  },
+  {
+    name: 'Dassault Falcon 6X',
+    icao: 'FA6X',
+    wtc: 'M',
+  },
   {
     name: 'Embraer EMB-120 Brasilia',
     icao: 'E120',
@@ -601,7 +701,7 @@ export const AIRCRAFT = [
   },
   {
     name: 'Embraer ERJ-190',
-    icao: 'EMB9',
+    icao: 'E190',
     wtc: 'M',
   },
   {
