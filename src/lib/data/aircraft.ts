@@ -130,17 +130,7 @@ export const AIRCRAFT = [
     wtc: 'L',
   },
   {
-    name: 'Aibus Helicopter H-125 Ecureuil',
-    icao: 'AS50',
-    wtc: 'L',
-  },
-  {
-    name: 'Aibus Helicopter H-125 SuperStar',
-    icao: 'AS50',
-    wtc: 'L',
-  },
-  {
-    name: 'Aibus Helicopter H-125 Fennec',
+    name: 'Aibus Helicopter H-125',
     icao: 'AS50',
     wtc: 'L',
   },
