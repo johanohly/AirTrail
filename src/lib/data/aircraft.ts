@@ -114,16 +114,6 @@ export const AIRCRAFT = [
     icao: 'A388',
     wtc: 'J',
   },
-    {
-    name: 'Aibus Helicopter H-160',
-    icao: 'H160',
-    wtc: 'L',
-  },
-  {
-    name: 'Aibus Helicopter H-215',
-    icao: 'AS32',
-    wtc: 'M',
-  },
   {
     name: 'Aibus Helicopter H-120 Colibri',
     icao: 'EC20',
@@ -148,6 +138,16 @@ export const AIRCRAFT = [
     name: 'Aibus Helicopter H-155',
     icao: 'EC55',
     wtc: 'L',
+  },
+  {
+    name: 'Aibus Helicopter H-160',
+    icao: 'H160',
+    wtc: 'L',
+  },
+  {
+    name: 'Aibus Helicopter H-215',
+    icao: 'AS32',
+    wtc: 'M',
   },
   {
     name: 'Aibus Helicopter H-225',
@@ -609,13 +609,23 @@ export const AIRCRAFT = [
     icao: 'C680',
     wtc: 'L',
   },
-    {
-    name: 'Dassault Falcon 7X',
-    icao: 'FA7X',
-    wtc: 'M',
+  {
+    name: 'Daher-Socata TBM-700',
+    icao: 'TBM7',
+    wtc: 'L',
   },
   {
-    name: 'Dassault Falcon 10',
+    name: 'Daher-Socata TBM-850',
+    icao: 'TBM8',
+    wtc: 'L',
+  },
+  {
+    name: 'Daher-Socata TBM-900',
+    icao: 'TBM9',
+    wtc: 'L',
+  },
+  {
+    name: 'Dassault Falcon 100',
     icao: 'FA10',
     wtc: 'M',
   },
@@ -625,28 +635,23 @@ export const AIRCRAFT = [
     wtc: 'M',
   },
   {
+    name: 'Dassault Falcon 2000',
+    icao: 'F2TH',
+    wtc: 'M',
+  },
+  {
     name: 'Dassault Falcon 50',
     icao: 'FA50',
     wtc: 'M',
   },
   {
-    name: 'Dassault Falcon 100',
-    icao: 'FA10',
+    name: 'Dassault Falcon 6X',
+    icao: 'FA6X',
     wtc: 'M',
   },
   {
-    name: 'Dassault Falcon 200',
-    icao: 'FA20',
-    wtc: 'M',
-  },
-  {
-    name: 'Dassault Falcon 900',
-    icao: 'F900',
-    wtc: 'M',
-  },
-  {
-    name: 'Dassault Falcon 2000',
-    icao: 'F2TH',
+    name: 'Dassault Falcon 7X',
+    icao: 'FA7X',
     wtc: 'M',
   },
   {
@@ -655,8 +660,8 @@ export const AIRCRAFT = [
     wtc: 'M',
   },
   {
-    name: 'Dassault Falcon 6X',
-    icao: 'FA6X',
+    name: 'Dassault Falcon 900',
+    icao: 'F900',
     wtc: 'M',
   },
   {
