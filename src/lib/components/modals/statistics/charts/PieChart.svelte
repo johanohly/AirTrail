@@ -4,7 +4,13 @@
 
   import { cn } from '$lib/utils';
 
-  let { title, data }: { title: string; data: Record<string, number> } = $props();
+  let { 
+      title,
+      data
+  }: {
+      title: string;
+      data: Record<string, number>
+  } = $props();
   const noData = $derived.by(
     () => Object.values(data).reduce((a, b) => a + b, 0) === 0,
   );
