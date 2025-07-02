@@ -26,6 +26,7 @@ We would love your help! We want to make contributing to this project as easy an
    - Change `db` to `localhost` in the `DB_URL`.
 3. Run `bun setup` to install dependencies, start the database, run the migrations and run the application.
 4. From now on, you can run `bun d` to run the application.
+5. Access the application at `http://localhost:5173`, the default user is `test` and password `password`
 
 ## Summary of the contribution flow
 
