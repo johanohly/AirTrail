@@ -14,7 +14,7 @@
     markerColor: [number, number, number];
     glowColor: [number, number, number];
   } => {
-    return $mode === 'light'
+    return mode.current === 'light'
       ? {
           dark: 0,
           diffuse: 0,

@@ -5,9 +5,6 @@
 
   import { Label } from '$lib/components/ui/label';
   import * as RadioGroup from '$lib/components/ui/radio-group';
-
-  let value = $state($mode ?? 'dark'); // default to dark mode (only for type-safety during SSR)
-  $effect(() => setMode(value));
 </script>
 
 <PageHeader
@@ -19,7 +16,11 @@
     <p class="text-muted-foreground text-[0.8rem]">
       By default, the application will use the system's theme.
     </p>
-    <RadioGroup.Root bind:value class="flex flex-col md:flex-row">
+    <RadioGroup.Root
+      value={mode.current}
+      onValueChange={(v) => setMode(v)}
+      class="flex flex-col md:flex-row"
+    >
       <Label
         class="w-full cursor-pointer [&:has([data-state=checked])>div]:border-primary"
       >

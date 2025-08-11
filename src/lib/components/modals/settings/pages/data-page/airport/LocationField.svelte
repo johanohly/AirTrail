@@ -27,7 +27,7 @@
 
   let map: maplibregl.Map | undefined = $state(undefined);
   const style = $derived(
-    $mode === 'light'
+    mode.current === 'light'
       ? 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
       : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
   );
