@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Chart, Pie, Svg, Tooltip } from 'layerchart';
+  import { Pie, PieChart, Svg } from 'layerchart';
   import { cubicInOut } from 'svelte/easing';
 
   import { cn } from '$lib/utils';
@@ -35,33 +35,17 @@
     )}
   >
     <div class="h-[130px]">
-      <Chart
+      <PieChart
         data={Object.entries(placeholderOrData).map(([key, value]) => ({
           label: key,
           value,
         }))}
-        c="label"
-        x="value"
+        key="label"
+        value="value"
         cRange={noData
           ? ['#3b82f650']
           : ['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef']}
-        let:c
-        let:cScale
-        let:tooltip
-      >
-        <Svg center>
-          <Pie tweened={{ duration: 1000, easing: cubicInOut }} {tooltip} />
-        </Svg>
-        <Tooltip.Root let:data>
-          <Tooltip.List>
-            <Tooltip.Item
-              label={data.label}
-              value={data.value}
-              color={cScale?.(c(data))}
-            />
-          </Tooltip.List>
-        </Tooltip.Root>
-      </Chart>
+      />
     </div>
     <div>
       {#if title}

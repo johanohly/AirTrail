@@ -45,7 +45,7 @@
       </Select.Root>
       <Form.Description
         >Purely for sorting purposes. <HelpTooltip
-          text={'For reference, Dubai International Airport is a "large airport", while Nuuk Airport is a "medium airport".'}
+          text="For reference, Dubai International Airport is a &quot;large airport&quot;, while Nuuk Airport is a &quot;medium airport&quot;."
         /></Form.Description
       >
     {/snippet}
