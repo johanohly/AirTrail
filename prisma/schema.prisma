@@ -1,10 +1,12 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DB_URL")
+  provider   = "postgresql"
+  url        = env("DB_URL")
+  extensions = [unaccent]
 }
 
 generator kysely {
   provider = "prisma-kysely"
+  previewFeatures = ["postgresqlExtensions"]
 
   output    = "../src/lib/db"
   fileName  = "schema.d.ts"
