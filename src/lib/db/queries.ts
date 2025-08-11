@@ -171,26 +171,26 @@ export const findAirportsPrimitive = async (db: Kysely<DB>, input: string) => {
       qb.or([
         qb('iata', 'ilike', input),
         qb('code', 'ilike', input),
-        qb('name', 'ilike', `%${input}%`),
+        sql<boolean>`unaccent("name") ILIKE unaccent(${`%${input}%`})` as any,
       ]),
     )
     .select([
       sql`CASE
-            WHEN "iata" ILIKE ${input} THEN 1
-            WHEN "code" ILIKE ${input} THEN 1
-            WHEN "name" ILIKE ${'%' + input + '%'} THEN 2
-            ELSE 3
-          END`.as('match_rank'),
+              WHEN "iata" ILIKE ${input} THEN 1
+              WHEN "code" ILIKE ${input} THEN 1
+              WHEN unaccent("name") ILIKE unaccent(${'%' + input + '%'}) THEN 2
+              ELSE 3
+            END`.as('match_rank'),
       sql`CASE
-          WHEN "type" = 'closed' THEN 7
-          WHEN "type" = 'heliport' THEN 6
-          WHEN "type" = 'balloonport' THEN 5
-          WHEN "type" = 'seaplane_base' THEN 4
-          WHEN "type" = 'small_airport' THEN 3
-          WHEN "type" = 'medium_airport' THEN 2
-          WHEN "type" = 'large_airport' THEN 1
-          ELSE 8
-        END`.as('type_rank'),
+            WHEN "type" = 'closed' THEN 7
+            WHEN "type" = 'heliport' THEN 6
+            WHEN "type" = 'balloonport' THEN 5
+            WHEN "type" = 'seaplane_base' THEN 4
+            WHEN "type" = 'small_airport' THEN 3
+            WHEN "type" = 'medium_airport' THEN 2
+            WHEN "type" = 'large_airport' THEN 1
+            ELSE 8
+          END`.as('type_rank'),
     ])
     .orderBy('match_rank asc')
     .orderBy('type_rank asc')
