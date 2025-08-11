@@ -60,32 +60,11 @@
         }}
         rule
       />
-      <Spline
-        draw={{ easing: cubicInOut, delay: 500 }}
-        class="stroke-2 stroke-primary"
-      />
-      <LinearGradient class="from-primary/50 to-primary/0" vertical>
+      <Spline class="stroke-2 stroke-primary" />
+      <LinearGradient class="from-primary/70 to-primary/0" vertical>
         {#snippet children({ gradient })}
-          <ChartClipPath
-            initialY={300}
-            initialHeight={0}
-            tweened={{
-              y: { duration: 1000, easing: cubicInOut, delay: 600 },
-              height: { duration: 1000, easing: cubicInOut, delay: 600 },
-            }}
-          >
-            <Area fill={gradient} />
-          </ChartClipPath>
-          <ChartClipPath
-            initialX={0}
-            initialWidth={0}
-            tweened={{
-              x: { duration: 1000, easing: cubicInOut },
-              width: { duration: 1000, easing: cubicInOut },
-            }}
-          >
-            <Points r={5} class="fill-primary" />
-          </ChartClipPath>
+          <Area fill={gradient} />
+          <Points r={5} class="fill-primary" />
         {/snippet}
       </LinearGradient>
     </Svg>
