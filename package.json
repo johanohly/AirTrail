@@ -68,8 +68,8 @@
     "svelte-motion": "^0.12.2",
     "svelte-sonner": "^1.0.5",
     "sveltekit-superforms": "^2.27.1",
-    "tailwind-merge": "^2.6.0",
-    "tailwind-variants": "^0.3.1",
+    "tailwind-merge": "^3.3.1",
+    "tailwind-variants": "^2.1.0",
     "trpc-svelte-query": "^2.1.0",
     "vaul-svelte": "^1.0.0-next.7",
     "zod": "^3.25.16"
