@@ -79,7 +79,7 @@
       <DockDropdownItem items={OTHER} label="More">
         <Grip />
       </DockDropdownItem>
-      <Separator orientation="vertical" class="h-full w-[1px]" />
+      <Separator orientation="vertical" class="h-full w-px" />
       <DockTooltipItem item={settingsItem} />
     </Dock>
   </div>

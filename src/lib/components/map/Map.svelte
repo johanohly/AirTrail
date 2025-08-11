@@ -41,7 +41,7 @@
 
   let map: maplibregl.Map | undefined = $state(undefined);
   const style = $derived(
-    $mode === 'light'
+    mode.current === 'light'
       ? 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
       : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
   );
@@ -107,7 +107,7 @@
           </Popover.Trigger>
           <Popover.Content
             side="right"
-            class="flex flex-col flex-grow-0 gap-2 w-fit"
+            class="flex flex-col grow-0 gap-2 w-fit"
           >
             <Filters bind:flights bind:filters />
           </Popover.Content>
@@ -117,7 +117,7 @@
     <Control position="top-left">
       {#if showClear}
         <div
-          class="maplibregl-ctrl-group !bg-destructive hover:!bg-destructive/80"
+          class="maplibregl-ctrl-group bg-destructive! hover:bg-destructive/80!"
           data-clear-ctrl
         >
           <ControlButton

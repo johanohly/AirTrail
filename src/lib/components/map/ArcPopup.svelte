@@ -30,8 +30,8 @@
     {data.to.iata ?? data.to.code} - {data.to.name}
   </h4>
 </div>
-<div class="h-[1px] bg-muted my-3" />
-<div class="grid grid-cols-[repeat(3,_1fr)] px-3">
+<div class="h-px bg-muted my-3" />
+<div class="grid grid-cols-[repeat(3,1fr)] px-3">
   <h4 class="font-semibold">
     <NumberFlow
       value={Math.round(metric ? data.distance : kmToMiles(data.distance))}
@@ -51,9 +51,9 @@
     >
   </h4>
 </div>
-<div class="h-[1px] bg-muted my-3" />
+<div class="h-px bg-muted my-3" />
 <div class="px-3 pb-3">
-  <div class="grid grid-cols-[repeat(3,_1fr)]">
+  <div class="grid grid-cols-[repeat(3,1fr)]">
     <h3 class="font-semibold">Route</h3>
     <h3 class="font-semibold">Date</h3>
     <h3 class="font-semibold">Airline</h3>
@@ -61,7 +61,7 @@
   {#each data.flights
     .slice(0, 5)
     .sort((a, b) => b.date.getTime() - a.date.getTime()) as flight}
-    <div class="grid grid-cols-[repeat(3,_1fr)]">
+    <div class="grid grid-cols-[repeat(3,1fr)]">
       <h4 class="font-thin">{flight.route}</h4>
       <h4 class="font-thin">{formatAsDate(flight.date, true, true)}</h4>
       <h4 class="font-thin">{flight.airline}</h4>

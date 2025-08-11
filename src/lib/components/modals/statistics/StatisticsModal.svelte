@@ -72,7 +72,7 @@
 
 <Modal
   bind:open
-  class="max-w-full h-full overflow-y-auto !rounded-none"
+  class="max-w-full h-full overflow-y-auto rounded-none!"
   dialogOnly
 >
   <div class="space-y-4">

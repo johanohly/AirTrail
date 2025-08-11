@@ -65,36 +65,19 @@
         }}
         rule
       />
-      <Spline
-        draw={{ easing: cubicInOut, delay: 500 }}
-        class="stroke-2 stroke-primary"
-      />
-      <LinearGradient class="from-primary/50 to-primary/0" vertical let:url>
-        <ChartClipPath
-          initialY={300}
-          initialHeight={0}
-          tweened={{
-            y: { duration: 1000, easing: cubicInOut, delay: 600 },
-            height: { duration: 1000, easing: cubicInOut, delay: 600 },
-          }}
-        >
-          <Area fill={url} />
-        </ChartClipPath>
-        <ChartClipPath
-          initialX={0}
-          initialWidth={0}
-          tweened={{
-            x: { duration: 1000, easing: cubicInOut },
-            width: { duration: 1000, easing: cubicInOut },
-          }}
-        >
+      <Spline class="stroke-2 stroke-primary" />
+      <LinearGradient class="from-primary/70 to-primary/0" vertical>
+        {#snippet children({ gradient })}
+          <Area fill={gradient} />
           <Points r={5} class="fill-primary" />
-        </ChartClipPath>
+        {/snippet}
       </LinearGradient>
     </Svg>
-    <Tooltip.Root x="data" y="data" let:data>
-      <Tooltip.Header>{WEEKDAYS[data.weekday]}</Tooltip.Header>
-      <Tooltip.Item label="Flights" value={data.flights} />
+    <Tooltip.Root x="data" y="data">
+      {#snippet children({ data })}
+        <Tooltip.Header>{WEEKDAYS[data.weekday]}</Tooltip.Header>
+        <Tooltip.Item label="Flights" value={data.flights} />
+      {/snippet}
     </Tooltip.Root>
   </Chart>
 </div>

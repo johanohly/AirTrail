@@ -27,7 +27,7 @@
 
   let map: maplibregl.Map | undefined = $state(undefined);
   const style = $derived(
-    $mode === 'light'
+    mode.current === 'light'
       ? 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
       : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
   );
@@ -66,7 +66,7 @@
   {style}
   diffStyleUpdates
   cooperativeGestures
-  class="relative aspect-[9/16] max-h-[70vh] w-full sm:aspect-video sm:max-h-full"
+  class="relative aspect-9/16 max-h-[70vh] w-full sm:aspect-video sm:max-h-full"
   attributionControl={false}
 >
   {#if marker}

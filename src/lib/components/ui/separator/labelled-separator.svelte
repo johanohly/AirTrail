@@ -17,9 +17,9 @@
 <div class={cn('flex items-center w-full', className)}>
   <div
     class={cn(
-      'rounded-full w-full h-[1px]',
+      'rounded-full w-full h-px',
       gradient
-        ? 'bg-gradient-to-r from-transparent dark:from-zinc-800 dark:to-zinc-400 to-zinc-500'
+        ? 'bg-linear-to-r from-transparent dark:from-zinc-800 dark:to-zinc-400 to-zinc-500'
         : 'bg-zinc-300 dark:bg-zinc-800',
     )}
   ></div>
@@ -28,9 +28,9 @@
   </div>
   <div
     class={cn(
-      'rounded-full w-full h-[1px]',
+      'rounded-full w-full h-px',
       gradient
-        ? 'bg-gradient-to-r from-zinc-500 dark:from-zinc-200 to-transparent dark:to-zinc-700'
+        ? 'bg-linear-to-r from-zinc-500 dark:from-zinc-200 to-transparent dark:to-zinc-700'
         : 'bg-zinc-300 dark:bg-zinc-800',
     )}
   ></div>

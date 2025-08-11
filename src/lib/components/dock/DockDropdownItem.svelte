@@ -83,7 +83,7 @@
   <ul
     use:motion
     class={cn(
-      'fixed bottom-[60px] left-1/2 translate-x-[-50%] z-[1] max-w-[200px] w-full space-y-1 p-2 bg-background/70 border backdrop-blur-md rounded-xl',
+      'fixed bottom-[60px] left-1/2 translate-x-[-50%] z-1 max-w-[200px] w-full space-y-1 p-2 bg-background/70 border backdrop-blur-md rounded-xl',
       open ? 'pointer-events-auto' : 'pointer-events-none',
     )}
   >
@@ -99,7 +99,7 @@
           <a
             href={item.href}
             onclick={() => (open = false)}
-            class="group flex items-center p-2 gap-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 transition-all duration-200 focus-visible:text-foreground focus-visible:border focus-visible:outline-none"
+            class="group flex items-center p-2 gap-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 transition-all duration-200 focus-visible:text-foreground focus-visible:border focus-visible:outline-hidden"
           >
             <span class="flex items-center gap-1 text-sm font-medium">
               {item.label}

@@ -72,7 +72,7 @@
   let loaded = $state(false);
   let layerLoaded = $state(false);
   const style = $derived(
-    $mode === 'light'
+    mode.current === 'light'
       ? 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
       : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
   );
