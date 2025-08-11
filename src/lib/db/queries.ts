@@ -164,6 +164,7 @@ export const createManyFlightsPrimitive = async (
 };
 
 export const findAirportsPrimitive = async (db: Kysely<DB>, input: string) => {
+  const namePattern = `%${input}%`;
   return await db
     .selectFrom('airport')
     .selectAll()
@@ -171,14 +172,14 @@ export const findAirportsPrimitive = async (db: Kysely<DB>, input: string) => {
       qb.or([
         qb('iata', 'ilike', input),
         qb('code', 'ilike', input),
-        sql<boolean>`unaccent("name") ILIKE unaccent(${`%${input}%`})` as any,
+        sql<boolean>`unaccent("name") ILIKE unaccent(${namePattern})` as any,
       ]),
     )
     .select([
       sql`CASE
               WHEN "iata" ILIKE ${input} THEN 1
               WHEN "code" ILIKE ${input} THEN 1
-              WHEN unaccent("name") ILIKE unaccent(${'%' + input + '%'}) THEN 2
+              WHEN unaccent("name") ILIKE unaccent(${namePattern}) THEN 2
               ELSE 3
             END`.as('match_rank'),
       sql`CASE
