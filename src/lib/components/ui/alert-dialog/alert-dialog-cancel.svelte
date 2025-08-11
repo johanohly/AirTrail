@@ -14,7 +14,7 @@
 <AlertDialogPrimitive.Cancel
   bind:ref
   class={cn(
-    buttonVariants({ variant: 'outline-solid' }),
+    buttonVariants({ variant: 'outline' }),
     'mt-2 sm:mt-0',
     className,
   )}
