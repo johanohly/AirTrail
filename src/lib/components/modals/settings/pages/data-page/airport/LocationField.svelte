@@ -66,7 +66,7 @@
   {style}
   diffStyleUpdates
   cooperativeGestures
-  class="relative aspect-[9/16] max-h-[70vh] w-full sm:aspect-video sm:max-h-full"
+  class="relative aspect-9/16 max-h-[70vh] w-full sm:aspect-video sm:max-h-full"
   attributionControl={false}
 >
   {#if marker}

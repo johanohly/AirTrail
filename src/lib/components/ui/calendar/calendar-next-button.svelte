@@ -20,7 +20,7 @@
 <CalendarPrimitive.NextButton
   bind:ref
   class={cn(
-    buttonVariants({ variant: 'outline' }),
+    buttonVariants({ variant: 'outline-solid' }),
     'size-7 bg-transparent p-0 opacity-50 hover:opacity-100',
     className,
   )}

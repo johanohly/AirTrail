@@ -30,8 +30,8 @@
   <div
     class={cn(
       'h-full grid grid-cols-2 items-center border rounded-sm ',
-      ' from-white bg-gradient-to-br to-zinc-200/60 border-zinc-300 shadow-[2px_0_8px_rgba(0,_0,_0,_0.1)]',
-      'dark:from-zinc-950 dark:to-zinc-900/60 bg-gradient-to-br  dark:border-zinc-900/50 dark:shadow-inner',
+      ' from-white bg-linear-to-br to-zinc-200/60 border-zinc-300 shadow-[2px_0_8px_rgba(0,0,0,0.1)]',
+      'dark:from-zinc-950 dark:to-zinc-900/60 bg-linear-to-br  dark:border-zinc-900/50 dark:shadow-inner',
     )}
   >
     <div class="h-[130px]">

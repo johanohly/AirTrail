@@ -100,7 +100,7 @@
 
 <main class={cn('aspect-square h-full max-h-[50%] 2xl:max-h-[80%]', className)}>
   <canvas
-    class="h-full w-full [contain:layout_paint_size]"
+    class="h-full w-full contain-[layout_paint_size]"
     bind:this={canvas}
     onpointerdown={(e) => {
       pointerInteracting = e.clientX - pointerInteractionMovement;
