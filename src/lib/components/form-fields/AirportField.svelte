@@ -106,9 +106,9 @@
           placeholder="Select an airport"
         />
         <div
-          class="absolute right-2 top-1/2 z-10 -translate-y-1/2 text-muted-foreground"
+          class="absolute right-3 top-1/2 z-10 -translate-y-1/2 text-muted-foreground"
         >
-          <ChevronsUpDown class="size-4" />
+          <ChevronsUpDown class="size-4 opacity-50" />
         </div>
       </div>
       <input hidden bind:value={$formData[field]} name={props.name} />
