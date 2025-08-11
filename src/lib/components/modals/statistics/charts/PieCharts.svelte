@@ -159,7 +159,7 @@
   <PieChart data={seatDistribution} />
   <PieChart data={reasonDistribution} />
   <PieChart data={continentDistribution} />
-  <PieChart data={topAirlineDistribution} title="Top Airlines"/>
-  <PieChart data={topAircraftDistribution} title="Top Aircraft Models"/>
-  <PieChart data={topAircraftRegDistribution} title="Top Specific Aircrafts"/>
+  <PieChart data={topAirlineDistribution} title="Top Airlines" />
+  <PieChart data={topAircraftDistribution} title="Top Aircraft Models" />
+  <PieChart data={topAircraftRegDistribution} title="Top Specific Aircrafts" />
 </div>
