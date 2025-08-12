@@ -52,13 +52,6 @@
         const depDate = f.departure;
         const arrDate = f.arrival;
 
-        const sameDay = depDate && arrDate && isSameLocalDay(depDate, arrDate);
-        const arrTime = arrDate
-          ? sameDay
-            ? formatAsTime(arrDate)
-            : formatAsDateTime(arrDate)
-          : null;
-
         const airline = f.airline ? airlineFromICAO(f.airline) : null;
 
         return {
@@ -78,7 +71,7 @@
             : '',
           month: formatAsMonth(f.date),
           depTime: depDate ? formatAsDateTime(depDate) : formatAsDate(f.date),
-          arrTime,
+          arrTime: arrDate ? formatAsDateTime(arrDate) : null,
           seat: formatSeat(f),
           airline,
         };
