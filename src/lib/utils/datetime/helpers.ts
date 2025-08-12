@@ -19,7 +19,15 @@ export const isSameLocalDay = (date1: TZDate, date2: TZDate) => {
 };
 
 export const isUsingAmPm = () => {
-  return new Date().toLocaleTimeString().match(/am|pm/i) !== null;
+  const test = new Date(Date.UTC(2025, 0, 1, 13, 0, 0)); // 13:00 UTC
+  const formatted = test.toLocaleTimeString(undefined, { hour: 'numeric' });
+
+  // Extract the first number from the string
+  const match = formatted.match(/\d+/);
+  const hour = match ? parseInt(match[0], 10) : NaN;
+
+  // If the hour is <= 12, user is on 12h clock; if > 12, user is on 24h clock
+  return hour <= 12;
 };
 
 export const getStartOfWeekDay = () => {
