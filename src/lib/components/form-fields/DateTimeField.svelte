@@ -26,6 +26,14 @@
   let dateValue: DateValue | undefined = $state(
     $formData[field] ? dateValueFromISO($formData[field]) : undefined,
   );
+
+  $effect(() => {
+    if ($formData[field]) {
+      dateValue = dateValueFromISO($formData[field]);
+    } else {
+      dateValue = undefined;
+    }
+  });
 </script>
 
 <div class="grid gap-2 grid-cols-[3fr_2fr]">
