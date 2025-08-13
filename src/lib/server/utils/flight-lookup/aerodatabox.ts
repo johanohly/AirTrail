@@ -6,7 +6,6 @@ import {
   parse,
   subDays,
   addDays,
-  isToday,
 } from 'date-fns';
 
 import type { FlightLookupOptions, FlightLookupResult } from './flight-lookup';
