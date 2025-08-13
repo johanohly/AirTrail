@@ -118,13 +118,6 @@ export async function getFlightRoute(
       { in: tz(item.arrival.airport.timeZone) },
     );
 
-    if (isToday(departureTime)) {
-      console.log(
-        format(arrivalTime, 'HH:mm'),
-        item.arrival.revisedTime?.local ?? item.arrival.scheduledTime.local,
-      );
-    }
-
     const flightInfo = {
       from: fromAirport,
       to: toAirport,

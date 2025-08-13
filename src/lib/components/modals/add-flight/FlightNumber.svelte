@@ -96,7 +96,6 @@
           ? parseJSON(r.arrival, { in: tz(r.arrivalTz) })
           : null,
       }));
-      console.log('Flight lookup results:', results);
     } catch (e) {
       toast.error(e.message ?? 'Error looking up flight');
       isSearching = false;
