@@ -5,6 +5,7 @@ import { db } from '$lib/db';
 import { type DeepBoolean, deepSetAllValues } from '$lib/utils';
 import { deepMerge, removeUndefined } from '$lib/utils/other';
 import { appConfigSchema, clientAppConfigSchema } from '$lib/zod/config';
+import { sql } from 'kysely';
 
 export type FullAppConfig = z.infer<typeof appConfigSchema>;
 export type ClientAppConfig = z.infer<typeof clientAppConfigSchema>;
@@ -58,15 +59,44 @@ export class AppConfig {
   }
 
   async load() {
-    const result = await db
-      .selectFrom('appConfig')
-      .select('config')
-      .executeTakeFirst();
-    if (!result?.config) {
+    const parseResult = async () => {
+      const result = await db
+        .selectFrom('appConfig')
+        .select('config')
+        .executeTakeFirst();
+      if (!result?.config) {
+        return null;
+      }
+
+      return appConfigSchema.safeParse(result.config);
+    };
+    let parsed = await parseResult();
+    if (!parsed) {
       return null;
     }
 
-    return appConfigSchema.parse(result.config);
+    if (!parsed.success) {
+      // insert missing fields
+      const keys = this.#extractAllKeys(appConfigSchema);
+      await db
+        .updateTable('appConfig')
+        .set({
+          config: buildFillMissingNullsExpr('config', keys),
+        })
+        .execute();
+
+      parsed = await parseResult();
+      if (!parsed) {
+        return null;
+      }
+
+      if (!parsed.success) {
+        console.error('Invalid app config in database:', parsed.error.issues);
+        process.exit(-1);
+      }
+    }
+
+    return parsed.data;
   }
 
   #extractAllKeys(
@@ -174,3 +204,41 @@ export class AppConfig {
 }
 
 export const appConfig = new AppConfig();
+
+function buildFillMissingNullsExpr(colName: string, paths: string[][]) {
+  let expr: any = sql.ref(colName);
+
+  // Ensure all unique parent objects exist, without overwriting
+  const parents = Array.from(
+    new Set(paths.map((p) => JSON.stringify(p.slice(0, -1)))),
+  )
+    .map((p) => JSON.parse(p) as string[])
+    .filter((p) => p.length > 0);
+
+  for (const parentPath of parents) {
+    const pp = sql.val(parentPath);
+    expr = sql`
+      CASE
+        WHEN (${expr} #> ${pp}::text[]) IS NULL
+          THEN jsonb_set(${expr}, ${pp}::text[], '{}'::jsonb, true)
+        ELSE ${expr}
+      END
+    `;
+  }
+
+  // For each full path, set to null iff missing
+  for (const path of paths) {
+    const p = sql.val(path);
+    expr = sql`jsonb_set(
+      ${expr},
+      ${p}::text[],
+      COALESCE(
+        ${expr} #> ${p}::text[],
+        'null'::jsonb
+      ),
+      true
+    )`;
+  }
+
+  return expr;
+}
