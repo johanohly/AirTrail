@@ -8,8 +8,7 @@ import { appConfig } from '$lib/server/utils/config';
 import type { Airline } from '$lib/utils/data/airlines';
 
 export type FlightLookupOptions = {
-  // YYYY-MM-DD (local date of flight if known)
-  date?: string;
+  date?: Date;
 };
 
 export type FlightLookupResultItem = {

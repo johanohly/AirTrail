@@ -1,3 +1,4 @@
+import { parseISO } from 'date-fns';
 import { z } from 'zod';
 
 import { authedProcedure, router } from '../trpc';
@@ -15,11 +16,16 @@ import { generateCsv } from '$lib/utils/csv';
 
 export const flightRouter = router({
   lookup: authedProcedure
-    .input(z.object({ flightNumber: z.string(), date: z.string().optional() }))
+    .input(
+      z.object({
+        flightNumber: z.string(),
+        date: z.string().datetime().optional(),
+      }),
+    )
     .query(async ({ input }) => {
       return await getFlightRoute(
         input.flightNumber,
-        input.date ? { date: input.date } : undefined,
+        input.date ? { date: parseISO(input.date) } : undefined,
       );
     }),
   list: authedProcedure.query(async ({ ctx: { user } }) => {
