@@ -23,10 +23,19 @@ export const flightRouter = router({
       }),
     )
     .query(async ({ input }) => {
-      return await getFlightRoute(
+      const results = await getFlightRoute(
         input.flightNumber,
         input.date ? { date: parseISO(input.date) } : undefined,
       );
+
+      // The below mess is required to maintain timezone through serialization
+      return results.map((r) => ({
+        ...r,
+        departure: r.departure ? r.departure.toISOString() : null,
+        departureTz: r.departure ? r.departure.timeZone : null,
+        arrival: r.arrival ? r.arrival.toISOString() : null,
+        arrivalTz: r.arrival ? r.arrival.timeZone : null,
+      }));
     }),
   list: authedProcedure.query(async ({ ctx: { user } }) => {
     return await listFlights(user.id);

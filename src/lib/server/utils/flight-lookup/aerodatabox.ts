@@ -6,6 +6,7 @@ import {
   parse,
   subDays,
   addDays,
+  isToday,
 } from 'date-fns';
 
 import type { FlightLookupOptions, FlightLookupResult } from './flight-lookup';
@@ -44,7 +45,6 @@ export async function getFlightRoute(
   const cleaned = sanitizeFlightNumber(flightNumber);
 
   const date = opts?.date;
-  console.log(date);
   if (date && !isValidDateWithin365(date)) {
     throw new Error('Date must be within 365 days of today');
   }
@@ -117,6 +117,13 @@ export async function getFlightRoute(
       new Date(),
       { in: tz(item.arrival.airport.timeZone) },
     );
+
+    if (isToday(departureTime)) {
+      console.log(
+        format(arrivalTime, 'HH:mm'),
+        item.arrival.revisedTime?.local ?? item.arrival.scheduledTime.local,
+      );
+    }
 
     const flightInfo = {
       from: fromAirport,
