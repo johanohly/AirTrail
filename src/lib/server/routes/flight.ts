@@ -4,15 +4,32 @@ import { authedProcedure, router } from '../trpc';
 
 import { db } from '$lib/db';
 import type { CreateFlight } from '$lib/db/types';
+import { getAirport } from '$lib/server/utils/airport';
 import {
   createFlight,
   createManyFlights,
   deleteFlight,
   listFlights,
 } from '$lib/server/utils/flight';
+import { getFlightRoute } from '$lib/server/utils/flight-lookup/flight-lookup';
 import { generateCsv } from '$lib/utils/csv';
+import { airlineFromICAO } from '$lib/utils/data/airlines';
 
 export const flightRouter = router({
+  lookup: authedProcedure
+    .input(z.object({ flightNumber: z.string(), date: z.string().optional() }))
+    .query(async ({ input }) => {
+      const route = await getFlightRoute(
+        input.flightNumber,
+        input.date ? { date: input.date } : undefined,
+      );
+
+      return {
+        from: await getAirport(route.origin.icao_code),
+        to: await getAirport(route.destination.icao_code),
+        airline: airlineFromICAO(route.airline.icao),
+      };
+    }),
   list: authedProcedure.query(async ({ ctx: { user } }) => {
     return await listFlights(user.id);
   }),

@@ -11,9 +11,6 @@ const flightRouteSchema = z.object({
     }),
   }),
 });
-export type FlightRoute = z.infer<
-  typeof flightRouteSchema
->['response']['flightroute'];
 
 const ratelimiter = new RequestRateLimiter();
 

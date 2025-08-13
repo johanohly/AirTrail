@@ -7,8 +7,6 @@
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
   import { api } from '$lib/trpc';
-  import { type FlightRoute, getFlightRoute } from '$lib/utils/adsbdb';
-  import { airlineFromICAO } from '$lib/utils/data/airlines';
   import type { flightSchema } from '$lib/zod/flight';
 
   let {
@@ -23,20 +21,18 @@
       return;
     }
 
-    let route: FlightRoute | undefined = undefined;
+    let route;
     try {
-      route = await getFlightRoute($formData.flightNumber);
+      route = await api.flight.lookup.query({
+        flightNumber: $formData.flightNumber,
+      });
     } catch (_) {
       toast.error('Flight not found');
       return;
     }
-    const origin = await api.airport.get.query(route.origin.icao_code);
-    const destination = await api.airport.get.query(
-      route.destination.icao_code,
-    );
-    const airline = airlineFromICAO(route.airline.icao);
+    const { from, to, airline } = route;
 
-    if (!origin || !destination || !airline) {
+    if (!from || !to || !airline) {
       toast.error('Flight not found');
       return;
     }
@@ -50,8 +46,8 @@
       return;
     }
 
-    $formData.from = origin;
-    $formData.to = destination;
+    $formData.from = from;
+    $formData.to = to;
     $formData.airline = airline.icao;
     toast.success('Flight found');
   };

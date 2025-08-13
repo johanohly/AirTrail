@@ -10,8 +10,16 @@ export const oauthConfigSchema = z.object({
   autoLogin: z.boolean().default(false),
 });
 
+export const flightConfigSchema = z
+  .object({
+    // API Market (AeroDataBox) key. Keep server-only.
+    apiMarketKey: z.string().nullable(),
+  })
+  .default({ apiMarketKey: null });
+
 export const appConfigSchema = z.object({
   oauth: oauthConfigSchema,
+  flight: flightConfigSchema,
 });
 
 export const clientAppConfigSchema = appConfigSchema.extend({
