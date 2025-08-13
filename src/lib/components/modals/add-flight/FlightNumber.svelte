@@ -21,21 +21,19 @@
       return;
     }
 
-    let route;
+    let results;
     try {
-      route = await api.flight.lookup.query({
+      results = await api.flight.lookup.query({
         flightNumber: $formData.flightNumber,
       });
     } catch (_) {
       toast.error('Flight not found');
       return;
     }
-    const { from, to, airline } = route;
 
-    if (!from || !to || !airline) {
-      toast.error('Flight not found');
-      return;
-    }
+    const result = Array.isArray(results) ? results[0] : results;
+    if (!result) return;
+    const { from, to, airline } = result;
 
     if (
       ($formData.from.code !== '' || $formData.to.code !== '') &&
@@ -48,7 +46,7 @@
 
     $formData.from = from;
     $formData.to = to;
-    $formData.airline = airline.icao;
+    $formData.airline = airline?.icao ?? null;
     toast.success('Flight found');
   };
 </script>
