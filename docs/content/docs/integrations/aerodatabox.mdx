@@ -1,19 +1,15 @@
 ---
-title: Integrations
+title: AeroDataBox
 ---
 
-Use the Integrations page to configure optional third‑party services that enhance AirTrail. Currently, AirTrail supports flight lookups via AeroDataBox (through API Market).
-
-## AeroDataBox (API Market)
-
+AeroDataBox allows AirTrail to look up flight numbers and get additional information about flights filled-in automatically when adding a flight.
 AeroDataBox provides a free tier that should be enough for most users.
-It allows you to look up flight numbers and get additional information about flights filled-in automatically.
-The free tier is only available via API Market ([https://api.market/store/aedbx/aerodatabox](https://api.market/store/aedbx/aerodatabox)).
+Get an API key here: [https://rapidapi.com/aedbx-aedbx/api/aerodatabox](https://rapidapi.com/aedbx-aedbx/api/aerodatabox).
 
 - Optional by default: The integration is disabled unless you provide an API key.
 - Where to set the key:
-  - In the app (admins only): Settings → Integrations → "AeroDataBox API Market Key".
-  - Or via environment variable: set `FLIGHT_API_MARKET_KEY` and restart the server.
+  - In the app (admins only): Settings → Integrations → "AeroDataBox API Key".
+  - Or via environment variable: set `INTEGRATIONS_AERO_DATA_BOX_KEY` and restart the server.
 - Server‑side only usage: The API key is kept on the server and never exposed to regular users. For non‑admin users the client never receives the key.
 - Admin visibility only: The key is only ever sent to the frontend when requested by an authenticated admin (used to prefill the field in Settings). Requests by non‑admins are rejected.
 - Proxied lookups: All flight number lookups are performed by the server, which adds the API key in the request to AeroDataBox. The browser never talks to AeroDataBox directly.

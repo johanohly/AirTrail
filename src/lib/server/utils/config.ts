@@ -1,11 +1,11 @@
+import { sql } from 'kysely';
 import { z } from 'zod';
 
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/db';
 import { type DeepBoolean, deepSetAllValues } from '$lib/utils';
-import { deepMerge, removeUndefined } from '$lib/utils/other';
+import { deepMerge, removeUndefined, mapSetValues } from '$lib/utils/other';
 import { appConfigSchema, clientAppConfigSchema } from '$lib/zod/config';
-import { sql } from 'kysely';
 
 export type FullAppConfig = z.infer<typeof appConfigSchema>;
 export type ClientAppConfig = z.infer<typeof clientAppConfigSchema>;
@@ -16,6 +16,9 @@ type AppConfigPath = ConfigPath<FullAppConfig>;
 
 export class AppConfig {
   #appConfig: FullAppConfig | null = null;
+
+  // Whether a field has a value set. Useful in the frontend to know if a value is set even if the value itself is server-only.
+  configured: DeepBoolean<FullAppConfig, boolean> | null = null;
   envConfigured: DeepBoolean<FullAppConfig, boolean> | null = null;
 
   async get({ withCache = true } = {}) {
@@ -180,6 +183,8 @@ export class AppConfig {
     const allFields = deepSetAllValues(this.#appConfig, false);
     const envConfiguredFields = deepSetAllValues(envConfig, true);
     this.envConfigured = deepMerge(allFields, envConfiguredFields);
+
+    this.configured = mapSetValues(this.#appConfig);
 
     console.log('Loaded config from .env');
   }

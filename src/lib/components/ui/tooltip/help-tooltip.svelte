@@ -6,9 +6,11 @@
 
   const {
     text,
+    content,
     children,
   }: {
-    text: string;
+    text?: string;
+    content?: Snippet;
     children?: Snippet;
   } = $props();
 </script>
@@ -22,6 +24,10 @@
     {/if}
   </Popover.Trigger>
   <Popover.Content side="top">
-    {text}
+    {#if content}
+      {@render content()}
+    {:else}
+      {text}
+    {/if}
   </Popover.Content>
 </Popover.Root>

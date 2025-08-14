@@ -17,6 +17,8 @@
     isUsingAmPm,
   } from '$lib/utils/datetime';
   import type { flightSchema } from '$lib/zod/flight';
+  import { appConfig } from '$lib/state.svelte';
+  import { HelpTooltip } from '$lib/components/ui/tooltip';
 
   const displayLocale = isUsingAmPm() ? 'en-US' : 'fr-FR';
 
@@ -36,7 +38,7 @@
 
   function applyLookupResult(result: FlightLookupResultItem) {
     if (!result) return;
-    const { from, to, airline } = result;
+    const { from, to, airline, aircraft, aircraftReg } = result;
 
     if (
       ($formData.from.code !== '' || $formData.to.code !== '') &&
@@ -50,6 +52,8 @@
     $formData.from = from;
     $formData.to = to;
     $formData.airline = airline?.icao ?? null;
+    $formData.aircraft = aircraft?.icao ?? null;
+    $formData.aircraftReg = aircraftReg ?? null;
 
     if (result.arrival && result.departure) {
       $formData.departure = format(
@@ -138,7 +142,14 @@
 <Form.Field {form} name="flightNumber">
   <Form.Control>
     {#snippet children({ props })}
-      <Form.Label>Flight Number</Form.Label>
+      <Form.Label class="flex gap-1">
+        Flight Number
+        {#if appConfig.configured?.integrations.aeroDataBoxKey}
+          <HelpTooltip
+            text="If you set the departure date before searching, it will be considered when searching for flights."
+          />
+        {/if}
+      </Form.Label>
       <div class="grid grid-cols-[1fr_auto] gap-2">
         <Input
           bind:value={$formData.flightNumber}

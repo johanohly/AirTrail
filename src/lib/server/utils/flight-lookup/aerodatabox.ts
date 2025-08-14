@@ -12,10 +12,11 @@ import type { FlightLookupOptions, FlightLookupResult } from './flight-lookup';
 
 import { getAirport } from '$lib/server/utils/airport';
 import { appConfig } from '$lib/server/utils/config';
+import { type Aircraft, aircraftFromICAO } from '$lib/utils/data/aircraft';
 import { airlineFromICAO } from '$lib/utils/data/airlines';
 import { RequestRateLimiter } from '$lib/utils/ratelimiter';
 
-const BASE_URL = 'https://prod.api.market/api/v1/aedbx/aerodatabox';
+const BASE_URL = 'https://aerodatabox.p.rapidapi.com';
 const rateLimiter = new RequestRateLimiter();
 
 function sanitizeFlightNumber(fn: string): string {
@@ -36,7 +37,7 @@ export async function getFlightRoute(
   await rateLimiter.checkRequest();
 
   const config = await appConfig.get();
-  const apiKey = config?.flight?.apiMarketKey ?? null;
+  const apiKey = config?.integrations?.aeroDataBoxKey ?? null;
   if (!apiKey) {
     throw new Error('AeroDataBox API key not configured');
   }
@@ -50,21 +51,21 @@ export async function getFlightRoute(
 
   let url: string;
   if (date) {
-    url = `${BASE_URL}/flights/Number/${encodeURIComponent(
+    url = `${BASE_URL}/flights/number/${encodeURIComponent(
       cleaned,
     )}/${format(date, 'yyyy-MM-dd')}?dateLocalRole=Both&withAircraftImage=false&withLocation=false`;
   } else {
     const now = new Date();
     const fromDate = format(subDays(now, 2), 'yyyy-MM-dd');
     const toDate = format(addDays(now, 2), 'yyyy-MM-dd');
-    url = `${BASE_URL}/flights/Number/${encodeURIComponent(
+    url = `${BASE_URL}/flights/number/${encodeURIComponent(
       cleaned,
     )}/${fromDate}/${toDate}?dateLocalRole=Both&withAircraftImage=false&withLocation=false`;
   }
 
   const resp = await fetch(url, {
     headers: {
-      'x-api-market-key': apiKey,
+      'x-rapidapi-key': apiKey,
     },
   });
 
@@ -88,6 +89,7 @@ export async function getFlightRoute(
       revisedTime?: { local: string };
     };
     airline?: { icao?: string };
+    aircraft?: { reg?: string };
   };
 
   const data = (await resp.json()) as AedbxFlight[];
@@ -123,10 +125,41 @@ export async function getFlightRoute(
       departure: departureTime,
       arrival: arrivalTime,
       airline: item.airline?.icao ? airlineFromICAO(item.airline.icao) : null,
+      aircraft: item.aircraft?.reg
+        ? await getAircraftFromReg(item.aircraft.reg)
+        : null,
+      aircraftReg: item.aircraft?.reg ?? null,
     };
 
     result.push(flightInfo);
   }
 
   return result;
+}
+
+async function getAircraftFromReg(reg: string): Promise<Aircraft | null> {
+  const config = await appConfig.get();
+  const apiKey = config?.integrations?.aeroDataBoxKey ?? null;
+  if (!apiKey) {
+    throw new Error('AeroDataBox API key not configured');
+  }
+
+  const url = `${BASE_URL}/aircrafts/reg/${encodeURIComponent(reg)}`;
+  const resp = await fetch(url, {
+    headers: {
+      'x-rapidapi-key': apiKey,
+    },
+  });
+
+  if (!resp.ok) {
+    console.error('Failed to fetch aircraft data:', resp.statusText);
+    return null;
+  }
+
+  const data = await resp.json();
+  if (!data || !data?.icaoCode) {
+    return null;
+  }
+
+  return aircraftFromICAO(data.icaoCode);
 }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Info } from '@o7/icon/lucide';
   import { onMount } from 'svelte';
   import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
@@ -11,16 +12,16 @@
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
   import { appConfig } from '$lib/state.svelte';
-  import { flightConfigSchema } from '$lib/zod/config';
+  import { integrationsConfigSchema } from '$lib/zod/config';
 
   const form = superForm(
-    defaults<Infer<typeof flightConfigSchema>>(
-      { apiMarketKey: null },
-      zod(flightConfigSchema),
+    defaults<Infer<typeof integrationsConfigSchema>>(
+      { aeroDataBoxKey: null },
+      zod(integrationsConfigSchema),
     ),
     {
       resetForm: false,
-      validators: zod(flightConfigSchema),
+      validators: zod(integrationsConfigSchema),
       onUpdated({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
@@ -39,11 +40,11 @@
 
   onMount(async () => {
     try {
-      const res = await fetch('/api/integrations/flight/get');
+      const res = await fetch('/api/integrations/config/get');
       if (res.ok) {
         const data = await res.json();
-        savedKey = data.apiMarketKey ?? null;
-        $formData.apiMarketKey = savedKey ?? '';
+        savedKey = data.aeroDataBoxKey ?? null;
+        $formData.aeroDataBoxKey = savedKey ?? '';
       }
     } catch (e) {
       // ignore
@@ -51,7 +52,7 @@
   });
 
   const changes = $derived.by(() => {
-    const current = $formData.apiMarketKey ?? '';
+    const current = $formData.aeroDataBoxKey ?? '';
     const base = savedKey ?? '';
     return current !== base;
   });
@@ -63,26 +64,38 @@
 >
   <form
     method="POST"
-    action="/api/integrations/flight/save"
+    action="/api/integrations/config/save"
     autocomplete="off"
     class="space-y-4"
     use:enhance
   >
     <Locked
-      locked={appConfig.envConfigured?.flight?.apiMarketKey ?? false}
+      locked={appConfig.envConfigured?.integrations?.aeroDataBoxKey ?? false}
       tooltip={lockedTooltip}
     >
-      <Form.Field {form} name="apiMarketKey">
+      <Form.Field {form} name="aeroDataBoxKey">
         <Form.Control>
           {#snippet children({ props })}
-            <Form.Label>AeroDataBox API Market Key</Form.Label>
+            <Form.Label>
+              AeroDataBox API Key
+              <a
+                href="https://airtrail.johan.ohly.dk/docs/integrations/aerodatabox"
+                target="_blank"
+                title="More info"
+              >
+                <Info class="text-primary inline-block" size={15} />
+              </a>
+            </Form.Label>
             <Form.Description>
-              API key for AeroDataBox via API Market used for flight lookup.
+              API key for AeroDataBox (via RapidAPI) used for advanced flight
+              lookup, allowing AirTrail to prefill airports, departure and
+              arrival times, airline & aircraft information from just a flight
+              number.
             </Form.Description>
             <Input
-              bind:value={$formData.apiMarketKey}
+              bind:value={$formData.aeroDataBoxKey}
               {...props}
-              placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+              placeholder="Enter your AeroDataBox API key"
             />
           {/snippet}
         </Form.Control>

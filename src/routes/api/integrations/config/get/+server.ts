@@ -11,7 +11,7 @@ export const GET: RequestHandler = async ({ locals }) => {
   }
 
   const config = await appConfig.get();
-  const apiMarketKey = config?.flight?.apiMarketKey ?? null;
+  const aeroDataBoxKey = config?.integrations?.aeroDataBoxKey ?? null;
 
-  return json({ apiMarketKey });
+  return json({ aeroDataBoxKey });
 };

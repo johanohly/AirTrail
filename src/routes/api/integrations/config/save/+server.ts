@@ -5,10 +5,10 @@ import { zod } from 'sveltekit-superforms/adapters';
 import type { RequestHandler } from './$types';
 
 import { appConfig } from '$lib/server/utils/config';
-import { flightConfigSchema } from '$lib/zod/config';
+import { integrationsConfigSchema } from '$lib/zod/config';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
-  const form = await superValidate(request, zod(flightConfigSchema));
+  const form = await superValidate(request, zod(integrationsConfigSchema));
   if (!form.valid) return actionResult('failure', { form });
 
   const user = locals.user;
@@ -16,16 +16,16 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     return actionResult('error', 'Unauthorized', 401);
   }
 
-  const currentConfig = (await appConfig.get())?.flight;
-  let { apiMarketKey } = form.data;
-  if (typeof apiMarketKey === 'string' && apiMarketKey.trim() === '') {
-    apiMarketKey = null;
+  const currentConfig = (await appConfig.get())?.integrations;
+  let { aeroDataBoxKey } = form.data;
+  if (typeof aeroDataBoxKey === 'string' && aeroDataBoxKey.trim() === '') {
+    aeroDataBoxKey = null;
   }
 
   if (
     currentConfig &&
-    apiMarketKey !== currentConfig.apiMarketKey &&
-    appConfig.envConfigured?.flight?.apiMarketKey
+    aeroDataBoxKey !== currentConfig.aeroDataBoxKey &&
+    appConfig.envConfigured?.integrations?.aeroDataBoxKey
   ) {
     return error(500, {
       message:
@@ -33,10 +33,13 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     });
   }
 
-  const success = await appConfig.set({ flight: { apiMarketKey } });
+  const success = await appConfig.set({ integrations: { aeroDataBoxKey } });
 
   if (!success) {
-    form.message = { type: 'error', text: 'Failed to update integrations config' };
+    form.message = {
+      type: 'error',
+      text: 'Failed to update integrations config',
+    };
     return actionResult('failure', { form });
   }
 

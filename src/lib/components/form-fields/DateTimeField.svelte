@@ -29,7 +29,10 @@
 
   $effect(() => {
     if ($formData[field]) {
-      dateValue = dateValueFromISO($formData[field]);
+      const date = dateValueFromISO($formData[field]);
+      if (!dateValue || date.compare(dateValue) !== 0) {
+        dateValue = date;
+      }
     } else {
       dateValue = undefined;
     }

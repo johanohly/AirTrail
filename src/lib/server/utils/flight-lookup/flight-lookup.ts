@@ -5,6 +5,7 @@ import { getFlightRoute as getAerodataboxFlightRoute } from './aerodatabox';
 
 import type { Airport } from '$lib/db/types';
 import { appConfig } from '$lib/server/utils/config';
+import type { Aircraft } from '$lib/utils/data/aircraft';
 import type { Airline } from '$lib/utils/data/airlines';
 
 export type FlightLookupOptions = {
@@ -14,9 +15,11 @@ export type FlightLookupOptions = {
 export type FlightLookupResultItem = {
   from: Airport;
   to: Airport;
-  departure: TZDate | null;
-  arrival: TZDate | null;
-  airline: Airline | null;
+  departure?: TZDate | null;
+  arrival?: TZDate | null;
+  airline?: Airline | null;
+  aircraft?: Aircraft | null;
+  aircraftReg?: string | null;
 };
 
 export type FlightLookupResult = FlightLookupResultItem[];
@@ -38,7 +41,7 @@ const adsbdbProvider: FlightLookupProvider = {
 
 async function getProvider(): Promise<FlightLookupProvider> {
   const config = await appConfig.get();
-  const apiKey = config?.flight?.apiMarketKey;
+  const apiKey = config?.integrations?.aeroDataBoxKey;
   if (apiKey && apiKey.trim().length > 0) return aerodataboxProvider;
   return adsbdbProvider;
 }

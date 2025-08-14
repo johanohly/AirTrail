@@ -10,8 +10,10 @@ export const openModalsState = $state({
 
 export const appConfig = $state<{
   config: ClientAppConfig | null;
+  configured: DeepBoolean<FullAppConfig, boolean> | null;
   envConfigured: DeepBoolean<FullAppConfig, boolean> | null;
 }>({
   config: null,
+  configured: null,
   envConfigured: null,
 });
