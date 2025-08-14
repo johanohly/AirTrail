@@ -629,4 +629,9 @@ export const AIRCRAFT = [
     icao: 'AC90',
     wtc: 'L',
   },
+  {
+    name: 'Sukhoi Superjet 100',
+    icao: 'SU95',
+    wtc: 'M',
+  },
 ] as const;
