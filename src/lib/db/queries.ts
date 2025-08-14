@@ -193,8 +193,8 @@ export const findAirportsPrimitive = async (db: Kysely<DB>, input: string) => {
             ELSE 8
           END`.as('type_rank'),
     ])
-    .orderBy('match_rank asc')
-    .orderBy('type_rank asc')
+    .orderBy('match_rank', 'asc')
+    .orderBy('type_rank', 'asc')
     .limit(10)
     .execute();
 };
