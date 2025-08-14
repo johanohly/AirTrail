@@ -22,4 +22,5 @@ export const appConfigSchema = z.object({
 
 export const clientAppConfigSchema = appConfigSchema.extend({
   oauth: appConfigSchema.shape.oauth.omit({ clientSecret: true }),
+  flight: appConfigSchema.shape.flight.omit({ apiMarketKey: true }),
 });
