@@ -7,3 +7,4 @@ export { default as ImportPage } from './import-page/ImportPage.svelte';
 export { default as ExportPage } from './ExportPage.svelte';
 export { default as OAuthPage } from './OAuthPage.svelte';
 export { default as DataPage } from './data-page/DataPage.svelte';
+export { default as IntegrationsPage } from './IntegrationsPage.svelte';

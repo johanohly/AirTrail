@@ -45,6 +45,15 @@
   });
 
   $effect(() => {
+    if ($formData.aircraft && $selected?.value !== $formData.aircraft) {
+      $selected = {
+        label: aircraftFromICAO($formData.aircraft)?.name,
+        value: $formData.aircraft,
+      };
+    }
+  });
+
+  $effect(() => {
     if (!$open) {
       $inputValue = $selected?.label ?? '';
     }

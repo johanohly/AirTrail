@@ -11,6 +11,7 @@
     OAuthPage,
     SecurityPage,
     DataPage,
+    IntegrationsPage,
   } from './pages';
 
   import { page } from '$app/state';
@@ -30,6 +31,7 @@
   ] as const;
   const ADMIN_SETTINGS = [
     { title: 'Data', id: 'data' },
+    { title: 'Integrations', id: 'integrations' },
     { title: 'Users', id: 'users' },
     { title: 'OAuth', id: 'oauth' },
   ] as const;
@@ -145,6 +147,8 @@
           <ExportPage />
         {:else if activeTab === 'data'}
           <DataPage />
+        {:else if activeTab === 'integrations'}
+          <IntegrationsPage />
         {:else if activeTab === 'users'}
           <UsersPage />
         {:else if activeTab === 'oauth'}

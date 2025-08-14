@@ -21,6 +21,7 @@
 
   $effect(() => {
     appConfig.config = data.appConfig.config;
+    appConfig.configured = data.appConfig.configured;
     appConfig.envConfigured = data.appConfig.envConfigured;
   });
 

@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 import { RequestRateLimiter } from '$lib/utils/ratelimiter';
+import { getAirport } from '$lib/server/utils/airport';
+import { airlineFromICAO } from '$lib/utils/data/airlines';
 
 const flightRouteSchema = z.object({
   response: z.object({
@@ -11,9 +13,6 @@ const flightRouteSchema = z.object({
     }),
   }),
 });
-export type FlightRoute = z.infer<
-  typeof flightRouteSchema
->['response']['flightroute'];
 
 const ratelimiter = new RequestRateLimiter();
 
@@ -33,5 +32,20 @@ export async function getFlightRoute(flightNumber: string) {
     throw new Error('Flight not found');
   }
 
-  return parseResult.data.response.flightroute;
+  const result = parseResult.data.response.flightroute;
+  const from = await getAirport(result.origin.icao_code);
+  const to = await getAirport(result.destination.icao_code);
+  if (!from || !to) {
+    throw new Error('Flight not found');
+  }
+
+  return [
+    {
+      from,
+      to,
+      airline: airlineFromICAO(result.airline.icao),
+      departure: null,
+      arrival: null,
+    },
+  ];
 }
