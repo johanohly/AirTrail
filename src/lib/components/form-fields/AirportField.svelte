@@ -89,8 +89,32 @@
         loading = false;
         airportSearchCache.set($inputValue.toLowerCase(), airports);
       });
-    } else if (!loading) {
+    } else if (!loading && ($inputValue === '' || !$open)) {
       airports = [];
+    }
+  });
+
+  // Ensure results are repopulated when the input is focused/opened with a prefilled value
+  $effect(() => {
+    // When opening with a prefilled value (e.g., after selection or initial value),
+    // repopulate suggestions from cache or fetch. Skip if the user is actively typing.
+    if ($open && !$touchedInput && $inputValue !== '' && !loading) {
+      const key = $inputValue.toLowerCase();
+      const cached = airportSearchCache.get(key);
+      if (cached) {
+        airports = cached;
+        return;
+      }
+      loading = true;
+      (async () => {
+        try {
+          const res = await api.autocomplete.airport.query($inputValue);
+          airports = res;
+          airportSearchCache.set(key, res);
+        } finally {
+          loading = false;
+        }
+      })();
     }
   });
 </script>
@@ -126,7 +150,7 @@
         tabindex="0"
         use:autoAnimate
       >
-        {#each airports as airport}
+        {#each airports as airport (airport.code)}
           <li
             use:melt={$option({
               value: airport,
