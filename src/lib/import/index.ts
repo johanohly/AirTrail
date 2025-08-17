@@ -9,24 +9,29 @@ import { processFR24File } from '$lib/import/fr24';
 import { processJetLogFile } from '$lib/import/jetlog';
 import { readFile } from '$lib/utils';
 
-const Platform = platforms.map((platform) => platform.value)[0];
+export type PlatformValue = (typeof platforms)[number]['value'];
+
+type ProcessResult = { flights: CreateFlight[]; unknownAirports: string[] };
+
+type Processor = (
+  content: string,
+  options: PlatformOptions,
+) => Promise<ProcessResult>;
+
+const processors: Record<PlatformValue, Processor> = {
+  airtrail: async (content) => processAirTrailFile(content),
+  jetlog: async (content, options) => processJetLogFile(content, options),
+  fr24: async (content) => processFR24File(content),
+  aita: async (content, options) => processAITAFile(content, options),
+};
 
 export const processFile = async (
   file: File,
-  platform: typeof Platform,
+  platform: PlatformValue,
   options: PlatformOptions,
-): Promise<{ flights: CreateFlight[]; unknownAirports: string[] }> => {
+): Promise<ProcessResult> => {
   const content = await readFile(file);
-
-  if (platform === 'airtrail') {
-    return await processAirTrailFile(content);
-  } else if (platform === 'jetlog') {
-    return await processJetLogFile(content, options);
-  } else if (platform === 'fr24') {
-    return await processFR24File(content);
-  } else if (platform === 'aita') {
-    return await processAITAFile(content, options);
-  }
-
-  throw new Error('Unknown platform');
+  const handler = processors[platform];
+  if (!handler) throw new Error('Unknown platform');
+  return handler(content, options);
 };
