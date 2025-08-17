@@ -35,6 +35,7 @@
   let platform = $state<(typeof platforms)[0]>(platforms[0]);
   let ownerOnly = $state(false);
   let matchAirlineFromFlightNumber = $state(true);
+  let dedupeImportedFlights = $state(true);
 
   const validateFile = () => {
     const file = files?.[0];
@@ -88,11 +89,15 @@
       return;
     }
 
-    await $createMany.mutateAsync(flights);
+    const stats = await $createMany.mutateAsync({ flights, dedupe: dedupeImportedFlights });
 
-    toast.success(`Imported ${flights.length} flights`);
     unknownAirports = result.unknownAirports;
-    importedCount = flights.length;
+    importedCount = stats?.insertedFlights ?? 0;
+    if (importedCount > 0) {
+      toast.success(`Imported ${importedCount} flights`);
+    } else {
+      toast.info('No new flights to import');
+    }
     files = null;
     importing = false;
     step = 4; // Show status screen
@@ -106,6 +111,7 @@
     importing = false;
     ownerOnly = false;
     matchAirlineFromFlightNumber = true;
+    dedupeImportedFlights = true;
     platform = platforms[0];
     step = 1;
     open = false;
@@ -188,9 +194,16 @@
         </Label>
       </div>
     {/if}
-    {#if !platform.options.airlineFromFlightNumber && !platform.options.filterOwner}
-      <p class="text-muted-foreground">No additional options for this source.</p>
-    {/if}
+    <div class="flex items-center gap-2 mt-2">
+      <Checkbox
+        id="dedupe-imported-flights"
+        bind:checked={dedupeImportedFlights}
+        aria-labelledby="dedupe-imported-flights-label"
+      />
+      <Label id="dedupe-imported-flights-label" for="dedupe-imported-flights">
+        Deduplicate imported flights
+      </Label>
+    </div>
     <div class="mt-4 flex justify-between">
       <Button variant="secondary" onclick={() => (step = 2)}>Back</Button>
       <Button onclick={handleImport} disabled={!canImport || importing}>
