@@ -19,8 +19,22 @@
 
   let { open = $bindable() }: { open: boolean } = $props();
 
+  // Wizard state
+  let step = $state<1 | 2 | 3 | 4>(1);
+
+  // File state
   let files: FileList | null = $state(null);
   let fileError: string | null = $state(null);
+
+  // Import state
+  let importing = $state(false);
+  let importedCount = $state(0);
+  let unknownAirports = $state<string[]>([]);
+
+  // Platform/options state
+  let platform = $state<(typeof platforms)[0]>(platforms[0]);
+  let ownerOnly = $state(false);
+  let matchAirlineFromFlightNumber = $state(true);
 
   const validateFile = () => {
     const file = files?.[0];
@@ -47,8 +61,6 @@
   };
   const createMany = trpc.flight.createMany.mutation(invalidator);
 
-  let importing = $state(false);
-  let unknownAirports = $state<string[]>([]);
   const handleImport = async () => {
     const file = files?.[0];
     if (!file || fileError) return;
@@ -80,16 +92,24 @@
 
     toast.success(`Imported ${flights.length} flights`);
     unknownAirports = result.unknownAirports;
+    importedCount = flights.length;
     files = null;
     importing = false;
-    if (!unknownAirports.length) {
-      open = false;
-    }
+    step = 4; // Show status screen
   };
 
-  let platform = $state<(typeof platforms)[0]>(platforms[0]);
-  let ownerOnly = $state(false);
-  let matchAirlineFromFlightNumber = $state(true);
+  const closeAndReset = () => {
+    unknownAirports = [];
+    importedCount = 0;
+    files = null;
+    fileError = null;
+    importing = false;
+    ownerOnly = false;
+    matchAirlineFromFlightNumber = true;
+    platform = platforms[0];
+    step = 1;
+    open = false;
+  };
 </script>
 
 <PageHeader title="Import">
@@ -102,8 +122,45 @@
       >.
     </p>
   {/snippet}
-  {#if !unknownAirports.length}
+
+  {#if step === 1}
+    <!-- Step 1: Choose source/platform -->
     <PlatformTabs bind:platform />
+    <div class="mt-4 flex justify-end">
+      <Button onclick={() => (step = 2)}>Next</Button>
+    </div>
+  {:else if step === 2}
+    <!-- Step 2: Choose file -->
+    <label for="file" class="block">
+      <Card
+        class={cn(
+          'cursor-pointer py-12 border-2 border-dashed flex flex-col items-center hover:bg-card-hover dark:hover:bg-dark-2',
+          { 'border-destructive': fileError },
+        )}
+      >
+        <Upload />
+        {#if fileError}
+          {fileError}
+        {:else}
+          {files?.[0]?.name ?? 'Upload file'}
+        {/if}
+      </Card>
+    </label>
+    <input
+      onchange={validateFile}
+      id="file"
+      name="file"
+      type="file"
+      accept=".csv,.txt,.json"
+      bind:files
+      class="hidden"
+    />
+    <div class="mt-4 flex justify-between">
+      <Button variant="secondary" onclick={() => (step = 1)}>Back</Button>
+      <Button onclick={() => (step = 3)} disabled={!canImport}>Next</Button>
+    </div>
+  {:else if step === 3}
+    <!-- Step 3: Options (if any) -->
     {#if platform.options.airlineFromFlightNumber}
       <div class="flex items-center gap-2">
         <Checkbox
@@ -131,63 +188,55 @@
         </Label>
       </div>
     {/if}
-    <label for="file" class="block">
-      <Card
-        class={cn(
-          'cursor-pointer py-12 border-2 border-dashed flex flex-col items-center hover:bg-card-hover dark:hover:bg-dark-2',
-          { 'border-destructive': fileError },
-        )}
-      >
-        <Upload />
-        {#if fileError}
-          {fileError}
-        {:else}
-          {files?.[0]?.name ?? 'Upload file'}
+    {#if !platform.options.airlineFromFlightNumber && !platform.options.filterOwner}
+      <p class="text-muted-foreground">No additional options for this source.</p>
+    {/if}
+    <div class="mt-4 flex justify-between">
+      <Button variant="secondary" onclick={() => (step = 2)}>Back</Button>
+      <Button onclick={handleImport} disabled={!canImport || importing}>
+        {#if importing}
+          <LoaderCircle class="animate-spin mr-1" size={16} />
         {/if}
-      </Card>
-    </label>
-    <input
-      onchange={validateFile}
-      id="file"
-      name="file"
-      type="file"
-      accept=".csv,.txt,.json"
-      bind:files
-      class="hidden"
-    />
-    <Button onclick={handleImport} disabled={!canImport || importing}>
-      {#if importing}
-        <LoaderCircle class="animate-spin mr-1" size={16} />
-      {/if}
-      Import
-    </Button>
+        Import
+      </Button>
+    </div>
   {:else}
-    <h3 class="text-lg font-semibold">Unknown airports</h3>
-    <p class="text-muted-foreground">
-      The following airports are not in the database and flights with these
-      airports have therefore not been imported.
-    </p>
-    <p class="text-muted-foreground">
-      Chances are the airport codes have been officially changed, but that the
-      change hasn't reflected in your export file. The easiest solution is to
-      investigate the codes, and manually change the occurrences in the file
-      before trying to import again.
-    </p>
-    <p class="text-muted-foreground">
-      If the airports are truly missing, please report them directly to our
-      source, <a href="https://ourairports.com/">OurAirports</a>, or add them as
-      custom airports.
-    </p>
-    <ScrollArea class="h-[30dvh]">
-      <ul class="mt-4 ml-4 list-disc">
-        {#each unknownAirports as airport}
-          <li>{airport}</li>
-        {/each}
-      </ul>
-    </ScrollArea>
-    <Button href="https://ourairports.com/" target="_blank">OurAirports</Button>
-    <Button onclick={() => (unknownAirports = [])} variant="secondary">
-      Close
-    </Button>
+    <!-- Step 4: Status/result -->
+    <h3 class="text-lg font-semibold">Import status</h3>
+    <p class="text-muted-foreground">Imported {importedCount} flights.</p>
+
+    {#if unknownAirports.length}
+      <h4 class="mt-4 text-md font-semibold">Unknown airports</h4>
+      <p class="text-muted-foreground">
+        The following airports are not in the database and flights with these
+        airports have therefore not been imported.
+      </p>
+      <p class="text-muted-foreground">
+        Chances are the airport codes have been officially changed, but that the
+        change hasn't reflected in your export file. The easiest solution is to
+        investigate the codes, and manually change the occurrences in the file
+        before trying to import again.
+      </p>
+      <p class="text-muted-foreground">
+        If the airports are truly missing, please report them directly to our
+        source, <a href="https://ourairports.com/">OurAirports</a>, or add them as
+        custom airports.
+      </p>
+      <ScrollArea class="h-[30dvh]">
+        <ul class="mt-4 ml-4 list-disc">
+          {#each unknownAirports as airport (airport)}
+            <li>{airport}</li>
+          {/each}
+        </ul>
+      </ScrollArea>
+      <div class="mt-4 flex gap-2">
+        <Button href="https://ourairports.com/" target="_blank">OurAirports</Button>
+        <Button variant="secondary" onclick={closeAndReset}>Close</Button>
+      </div>
+    {:else}
+      <div class="mt-4 flex justify-end">
+        <Button onclick={closeAndReset}>Close</Button>
+      </div>
+    {/if}
   {/if}
 </PageHeader>
