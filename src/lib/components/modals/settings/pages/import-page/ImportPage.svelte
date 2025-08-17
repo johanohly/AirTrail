@@ -47,7 +47,8 @@
     if (
       !file.name.endsWith('.csv') &&
       !file.name.endsWith('.txt') &&
-      !file.name.endsWith('.json')
+      !file.name.endsWith('.json') &&
+      !file.name.endsWith('.ics')
     ) {
       fileError = 'File type not supported';
     } else if (file.size > 5 * 1024 * 1024) {
@@ -196,7 +197,7 @@
         </Card>
       </label>
       <p class="text-xs text-muted-foreground">
-        Supported: CSV, TXT, JSON. Max 5MB.
+        Supported: CSV, TXT, JSON, ICS. Max 5MB.
       </p>
     </div>
     <input
@@ -204,7 +205,7 @@
       id="file"
       name="file"
       type="file"
-      accept=".csv,.txt,.json"
+      accept=".csv,.txt,.json,.ics"
       bind:files
       class="hidden"
     />

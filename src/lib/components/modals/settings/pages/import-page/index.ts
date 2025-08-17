@@ -36,4 +36,12 @@ export const platforms = [
       airlineFromFlightNumber: false,
     },
   },
+  {
+    name: 'TripIt (ICS)',
+    value: 'tripit',
+    options: {
+      filterOwner: false,
+      airlineFromFlightNumber: true,
+    },
+  },
 ] as const;

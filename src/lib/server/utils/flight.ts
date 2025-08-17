@@ -201,7 +201,10 @@ export const createManyFlights = async (
 ): Promise<{ insertedFlights: number; attachedSeats: number }> => {
   if (!dedupe) {
     const insertedFlights = data.length;
-    const attachedSeats = data.reduce((acc, f) => acc + (f.seats?.length ?? 0), 0);
+    const attachedSeats = data.reduce(
+      (acc, f) => acc + (f.seats?.length ?? 0),
+      0,
+    );
     await createManyFlightsPrimitive(db, data);
     return { insertedFlights, attachedSeats };
   }
@@ -214,7 +217,8 @@ export const createManyFlights = async (
   }
   const uniqueFlights = Array.from(uniqueMap.values());
 
-  if (uniqueFlights.length === 0) return { insertedFlights: 0, attachedSeats: 0 };
+  if (uniqueFlights.length === 0)
+    return { insertedFlights: 0, attachedSeats: 0 };
 
   // Gather candidate filters
   const dates = new Set(uniqueFlights.map((f) => f.date));

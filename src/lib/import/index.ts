@@ -7,6 +7,7 @@ import { processAirTrailFile } from '$lib/import/airtrail';
 import { processAITAFile } from '$lib/import/aita';
 import { processFR24File } from '$lib/import/fr24';
 import { processJetLogFile } from '$lib/import/jetlog';
+import { processTripItFile } from '$lib/import/tripit';
 import { readFile } from '$lib/utils';
 
 export type PlatformValue = (typeof platforms)[number]['value'];
@@ -23,6 +24,7 @@ const processors: Record<PlatformValue, Processor> = {
   jetlog: async (content, options) => processJetLogFile(content, options),
   fr24: async (content) => processFR24File(content),
   aita: async (content, options) => processAITAFile(content, options),
+  tripit: async (content, options) => processTripItFile(content, options),
 };
 
 export const processFile = async (
