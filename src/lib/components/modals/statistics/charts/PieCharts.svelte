@@ -84,6 +84,29 @@
     return countByContinent(flights, continents);
   });
 
+  const topRouteDistribution = $derived.by(() => {
+    const counts = flights.reduce<Record<string, number>>((acc, flight) => {
+      if (!flight.from.iata || !flight.to.iata) return acc;
+
+      const label = flight.from.iata + "-" + flight.to.iata;
+      if (label) {
+        acc[label] = (acc[label] || 0) + 1;
+      }
+
+      return acc;
+    }, {});
+
+    return Object.keys(counts).length
+      ? Object.fromEntries(
+          Object.entries(counts)
+            .sort(([, countA], [, countB]) => countB - countA)
+            .slice(0, 5),
+        )
+      : {
+          'No flights with route set': 0,
+        };
+  });
+
   const topAirlineDistribution = $derived.by(() => {
     const counts = flights.reduce<Record<string, number>>((acc, flight) => {
       if (!flight.airline) return acc;
@@ -162,4 +185,5 @@
   <PieChart data={topAirlineDistribution} title="Top Airlines" />
   <PieChart data={topAircraftDistribution} title="Top Aircraft Models" />
   <PieChart data={topAircraftRegDistribution} title="Top Specific Aircrafts" />
+  <PieChart data={topRouteDistribution} title="Top Routes" />
 </div>
