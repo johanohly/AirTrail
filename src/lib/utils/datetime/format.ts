@@ -24,8 +24,8 @@ export const formatAsDateTime = (date: TZDate) =>
     hour: 'numeric',
     minute: 'numeric',
   }).format(date);
-export const formatAsTime = (date: TZDate) =>
-  new Intl.DateTimeFormat(undefined, {
+export const formatAsTime = (date: TZDate, overrideLocale?: string) =>
+  new Intl.DateTimeFormat(overrideLocale, {
     timeZone: date.timeZone,
     hour: 'numeric',
     minute: 'numeric',

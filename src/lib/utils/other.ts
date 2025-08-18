@@ -42,6 +42,21 @@ export const removeUndefined = (obj: any): any => {
   return obj;
 };
 
+type BooleanMap<T> = T extends object
+  ? { [K in keyof T]: BooleanMap<T[K]> }
+  : boolean;
+
+export const mapSetValues = <T>(obj: T): BooleanMap<T> => {
+  if (obj !== null && typeof obj === 'object' && !Array.isArray(obj)) {
+    const result: any = {};
+    for (const key in obj) {
+      result[key] = mapSetValues(obj[key]);
+    }
+    return result;
+  }
+  return obj !== null && obj !== (undefined as any);
+};
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }

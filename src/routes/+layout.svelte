@@ -1,7 +1,5 @@
 <script lang="ts">
   import '../app.css';
-  // import "maplibre-theme/icons.lucide.css";
-  // import "maplibre-theme/modern.css";
   import { QueryClientProvider } from '@tanstack/svelte-query';
   import { ModeWatcher } from 'mode-watcher';
   import { Toaster } from 'svelte-sonner';
@@ -23,6 +21,7 @@
 
   $effect(() => {
     appConfig.config = data.appConfig.config;
+    appConfig.configured = data.appConfig.configured;
     appConfig.envConfigured = data.appConfig.envConfigured;
   });
 

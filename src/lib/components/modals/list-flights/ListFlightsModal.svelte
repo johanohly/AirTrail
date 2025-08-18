@@ -52,13 +52,6 @@
         const depDate = f.departure;
         const arrDate = f.arrival;
 
-        const sameDay = depDate && arrDate && isSameLocalDay(depDate, arrDate);
-        const arrTime = arrDate
-          ? sameDay
-            ? formatAsTime(arrDate)
-            : formatAsDateTime(arrDate)
-          : null;
-
         const airline = f.airline ? airlineFromICAO(f.airline) : null;
 
         return {
@@ -78,7 +71,7 @@
             : '',
           month: formatAsMonth(f.date),
           depTime: depDate ? formatAsDateTime(depDate) : formatAsDate(f.date),
-          arrTime,
+          arrTime: arrDate ? formatAsDateTime(arrDate) : null,
           seat: formatSeat(f),
           airline,
         };
@@ -124,7 +117,7 @@
 
 <Modal
   bind:open
-  class="max-w-full flex flex-col h-full !rounded-none"
+  class="max-w-full flex flex-col h-full rounded-none!"
   dialogOnly
 >
   <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
@@ -220,7 +213,7 @@
                     <div class="h-full flex flex-col justify-center">
                       <div class="relative">
                         <div
-                          class="relative w-full h-[1px] border-b border-dashed border-dark-2 dark:border-zinc-500"
+                          class="relative w-full h-px border-b border-dashed border-dark-2 dark:border-zinc-500"
                         >
                           <div
                             class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-1 bg-card dark:bg-dark-2 text-dark-2 dark:text-zinc-500"
@@ -256,7 +249,7 @@
   <div class="flex items-center">
     {#if flight.arrTime}
       <PlaneLanding size="16" class="mr-1" />
-      <p class="text-sm overflow-hidden overflow-ellipsis whitespace-nowrap">
+      <p class="text-sm overflow-hidden text-ellipsis whitespace-nowrap">
         {flight.arrTime}
       </p>
     {/if}

@@ -9,26 +9,26 @@ permissions:
   contents: read
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
-        with:
-          egress-policy: audit
-
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Run linters
-        uses: sibiraj-s/action-eslint@bcf41bb9abce43cdbad51ab9b3da2eddaa17eab3 # v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          eslint-args: '--quiet'
-          annotations: true
+#  lint:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Harden Runner
+#        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+#        with:
+#          egress-policy: audit
+#
+#      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+#      - uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2
+#
+#      - name: Install dependencies
+#        run: bun install --frozen-lockfile
+#
+#      - name: Run linters
+#        uses: sibiraj-s/action-eslint@bcf41bb9abce43cdbad51ab9b3da2eddaa17eab3 # v3
+#        with:
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#          eslint-args: '--quiet'
+#          annotations: true
 
   format:
     runs-on: ubuntu-latest

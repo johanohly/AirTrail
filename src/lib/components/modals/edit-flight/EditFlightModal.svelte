@@ -13,7 +13,7 @@
   import * as Form from '$lib/components/ui/form';
   import { trpc } from '$lib/trpc';
   import type { FlightData } from '$lib/utils';
-  import { formatAsTime } from '$lib/utils/datetime';
+  import { formatAsTime, isUsingAmPm } from '$lib/utils/datetime';
   import { flightSchema } from '$lib/zod/flight';
 
   let {
@@ -24,6 +24,9 @@
     triggerDisabled: boolean;
   } = $props();
 
+  // If their language uses 12-hour time format, we display the time in *a* 12-hour format
+  // (not necessarily the user's locale, because our time validator doesn't support all languages).
+  const displayLocale = isUsingAmPm() ? 'en-US' : 'fr-FR';
   const schemaFlight = {
     ...(flight.raw as unknown as Omit<
       typeof flight.raw,
@@ -33,8 +36,12 @@
       ? flight.departure.toISOString()
       : flight.date.toISOString(),
     arrival: flight.arrival ? flight.arrival.toISOString() : null,
-    departureTime: flight.departure ? formatAsTime(flight.departure) : null,
-    arrivalTime: flight.arrival ? formatAsTime(flight.arrival) : null,
+    departureTime: flight.departure
+      ? formatAsTime(flight.departure, displayLocale)
+      : null,
+    arrivalTime: flight.arrival
+      ? formatAsTime(flight.arrival, displayLocale)
+      : null,
   };
 
   let open = $state(false);

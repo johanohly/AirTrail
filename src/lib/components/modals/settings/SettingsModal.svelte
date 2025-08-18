@@ -11,6 +11,7 @@
     OAuthPage,
     SecurityPage,
     DataPage,
+    IntegrationsPage,
   } from './pages';
 
   import { page } from '$app/state';
@@ -30,6 +31,7 @@
   ] as const;
   const ADMIN_SETTINGS = [
     { title: 'Data', id: 'data' },
+    { title: 'Integrations', id: 'integrations' },
     { title: 'Users', id: 'users' },
     { title: 'OAuth', id: 'oauth' },
   ] as const;
@@ -71,7 +73,7 @@
       </p>
     </div>
     <Separator class="my-6" />
-    <div class="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
+    <div class="flex flex-col gap-8 lg:flex-row lg:gap-12">
       <aside class="flex lg:flex-col md:-mx-4 lg:w-1/5 overflow-auto">
         <SettingsTabContainer>
           {#each ACCOUNT_SETTINGS as setting}
@@ -145,6 +147,8 @@
           <ExportPage />
         {:else if activeTab === 'data'}
           <DataPage />
+        {:else if activeTab === 'integrations'}
+          <IntegrationsPage />
         {:else if activeTab === 'users'}
           <UsersPage />
         {:else if activeTab === 'oauth'}

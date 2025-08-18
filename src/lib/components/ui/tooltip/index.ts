@@ -5,11 +5,13 @@ import HelpTooltip from './help-tooltip.svelte';
 import Content from './tooltip-content.svelte';
 
 const Root = TooltipPrimitive.Root;
+const Portal = TooltipPrimitive.Portal;
 const Trigger = TooltipPrimitive.Trigger;
 const Provider = TooltipPrimitive.Provider;
 
 export {
   Root,
+  Portal,
   Trigger,
   Provider,
   Content,

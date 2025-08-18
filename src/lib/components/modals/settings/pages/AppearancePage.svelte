@@ -5,9 +5,6 @@
 
   import { Label } from '$lib/components/ui/label';
   import * as RadioGroup from '$lib/components/ui/radio-group';
-
-  let value = $state($mode ?? 'dark'); // default to dark mode (only for type-safety during SSR)
-  $effect(() => setMode(value));
 </script>
 
 <PageHeader
@@ -19,7 +16,11 @@
     <p class="text-muted-foreground text-[0.8rem]">
       By default, the application will use the system's theme.
     </p>
-    <RadioGroup.Root bind:value class="flex flex-col md:flex-row">
+    <RadioGroup.Root
+      value={mode.current}
+      onValueChange={(v) => setMode(v)}
+      class="flex flex-col md:flex-row"
+    >
       <Label
         class="w-full cursor-pointer [&:has([data-state=checked])>div]:border-primary"
       >
@@ -28,18 +29,18 @@
           class="border-muted bg-popover hover:bg-accent hover:text-accent-foreground items-center rounded-md border-2 p-1"
         >
           <div class="space-y-2 rounded-sm bg-slate-950 p-2">
-            <div class="space-y-2 rounded-md bg-slate-800 p-2 shadow-sm">
+            <div class="space-y-2 rounded-md bg-slate-800 p-2 shadow-xs">
               <div class="h-2 w-[80px] rounded-lg bg-slate-400" />
               <div class="h-2 w-[100px] rounded-lg bg-slate-400" />
             </div>
             <div
-              class="flex items-center space-x-2 rounded-md bg-slate-800 p-2 shadow-sm"
+              class="flex items-center space-x-2 rounded-md bg-slate-800 p-2 shadow-xs"
             >
               <div class="h-4 w-4 rounded-full bg-slate-400" />
               <div class="h-2 w-[100px] rounded-lg bg-slate-400" />
             </div>
             <div
-              class="flex items-center space-x-2 rounded-md bg-slate-800 p-2 shadow-sm"
+              class="flex items-center space-x-2 rounded-md bg-slate-800 p-2 shadow-xs"
             >
               <div class="h-4 w-4 rounded-full bg-slate-400" />
               <div class="h-2 w-[100px] rounded-lg bg-slate-400" />
@@ -56,18 +57,18 @@
           class="border-muted hover:border-accent items-center rounded-md border-2 p-1"
         >
           <div class="space-y-2 rounded-sm bg-[#ecedef] p-2">
-            <div class="space-y-2 rounded-md bg-white p-2 shadow-sm">
+            <div class="space-y-2 rounded-md bg-white p-2 shadow-xs">
               <div class="h-2 w-[80px] rounded-lg bg-[#ecedef]" />
               <div class="h-2 w-[100px] rounded-lg bg-[#ecedef]" />
             </div>
             <div
-              class="flex items-center space-x-2 rounded-md bg-white p-2 shadow-sm"
+              class="flex items-center space-x-2 rounded-md bg-white p-2 shadow-xs"
             >
               <div class="h-4 w-4 rounded-full bg-[#ecedef]" />
               <div class="h-2 w-[100px] rounded-lg bg-[#ecedef]" />
             </div>
             <div
-              class="flex items-center space-x-2 rounded-md bg-white p-2 shadow-sm"
+              class="flex items-center space-x-2 rounded-md bg-white p-2 shadow-xs"
             >
               <div class="h-4 w-4 rounded-full bg-[#ecedef]" />
               <div class="h-2 w-[100px] rounded-lg bg-[#ecedef]" />

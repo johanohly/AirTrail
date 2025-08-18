@@ -1,3 +1,4 @@
+import { parseISO } from 'date-fns';
 import { z } from 'zod';
 
 import { authedProcedure, router } from '../trpc';
@@ -10,9 +11,32 @@ import {
   deleteFlight,
   listFlights,
 } from '$lib/server/utils/flight';
+import { getFlightRoute } from '$lib/server/utils/flight-lookup/flight-lookup';
 import { generateCsv } from '$lib/utils/csv';
 
 export const flightRouter = router({
+  lookup: authedProcedure
+    .input(
+      z.object({
+        flightNumber: z.string(),
+        date: z.string().datetime().optional(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const results = await getFlightRoute(
+        input.flightNumber,
+        input.date ? { date: parseISO(input.date) } : undefined,
+      );
+
+      // The below mess is required to maintain timezone through serialization
+      return results.map((r) => ({
+        ...r,
+        departure: r.departure ? r.departure.toISOString() : null,
+        departureTz: r.departure ? r.departure.timeZone : null,
+        arrival: r.arrival ? r.arrival.toISOString() : null,
+        arrivalTz: r.arrival ? r.arrival.timeZone : null,
+      }));
+    }),
   list: authedProcedure.query(async ({ ctx: { user } }) => {
     return await listFlights(user.id);
   }),

@@ -39,7 +39,7 @@
     {...restProps}
     type="text"
     class={cn(
-      '!pr-12 border-input bg-background focus:outline-none flex h-10 w-full rounded-md border px-3 py-2 text-sm appearance-none cursor-default',
+      'pr-12! border-input bg-background focus:outline-hidden flex h-10 w-full rounded-md border px-3 py-2 text-sm appearance-none cursor-default',
       className,
     )}
     {value}

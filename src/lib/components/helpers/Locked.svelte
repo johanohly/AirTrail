@@ -38,7 +38,9 @@
       </div>
     {/snippet}
   </Tooltip.Trigger>
-  <Tooltip.Content sideOffset={20}>
-    {@render tooltip()}
-  </Tooltip.Content>
+  <Tooltip.Portal>
+    <Tooltip.Content sideOffset={20}>
+      {@render tooltip()}
+    </Tooltip.Content>
+  </Tooltip.Portal>
 </Tooltip.Root>

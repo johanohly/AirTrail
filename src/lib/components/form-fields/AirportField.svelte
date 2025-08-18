@@ -89,8 +89,32 @@
         loading = false;
         airportSearchCache.set($inputValue.toLowerCase(), airports);
       });
-    } else if (!loading) {
+    } else if (!loading && ($inputValue === '' || !$open)) {
       airports = [];
+    }
+  });
+
+  // Ensure results are repopulated when the input is focused/opened with a prefilled value
+  $effect(() => {
+    // When opening with a prefilled value (e.g., after selection or initial value),
+    // repopulate suggestions from cache or fetch. Skip if the user is actively typing.
+    if ($open && !$touchedInput && $inputValue !== '' && !loading) {
+      const key = $inputValue.toLowerCase();
+      const cached = airportSearchCache.get(key);
+      if (cached) {
+        airports = cached;
+        return;
+      }
+      loading = true;
+      (async () => {
+        try {
+          const res = await api.autocomplete.airport.query($inputValue);
+          airports = res;
+          airportSearchCache.set(key, res);
+        } finally {
+          loading = false;
+        }
+      })();
     }
   });
 </script>
@@ -102,13 +126,13 @@
       <div class="relative">
         <input
           use:melt={$input}
-          class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 pr-12"
+          class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 pr-12"
           placeholder="Select an airport"
         />
         <div
-          class="absolute right-2 top-1/2 z-10 -translate-y-1/2 text-muted-foreground"
+          class="absolute right-3 top-1/2 z-10 -translate-y-1/2 text-muted-foreground"
         >
-          <ChevronsUpDown class="size-4" />
+          <ChevronsUpDown class="size-4 opacity-50" />
         </div>
       </div>
       <input hidden bind:value={$formData[field]} name={props.name} />
@@ -116,7 +140,7 @@
   </Form.Control>
   {#if $open}
     <ul
-      class="z-[5000] flex max-h-[300px] flex-col overflow-hidden rounded-lg"
+      class="z-5000 flex max-h-[300px] flex-col overflow-hidden rounded-lg"
       use:melt={$menu}
       transition:fly={{ duration: 150, y: -5 }}
     >
@@ -126,7 +150,7 @@
         tabindex="0"
         use:autoAnimate
       >
-        {#each airports as airport}
+        {#each airports as airport (airport.code)}
           <li
             use:melt={$option({
               value: airport,
@@ -134,10 +158,10 @@
               disabled: loading,
             })}
             class={cn(
-              'relative cursor-pointer scroll-my-2 rounded-md p-2 dark:bg-dark-1 border data-[highlighted]:bg-zinc-300 data-[highlighted]:dark:bg-dark-2',
+              'relative cursor-pointer scroll-my-2 rounded-md p-2 dark:bg-dark-1 border data-highlighted:bg-zinc-300 dark:data-highlighted:bg-dark-2',
               'transition-[filter]',
               {
-                'pointer-events-none blur-sm': loading,
+                'pointer-events-none blur-xs': loading,
               },
             )}
           >

@@ -1,4 +1,4 @@
-import { differenceInSeconds } from 'date-fns';
+import { addDays, differenceInSeconds, isBefore } from 'date-fns';
 import { z } from 'zod';
 
 import { page } from '$app/state';
@@ -9,6 +9,7 @@ import { distanceBetween, parseCsv } from '$lib/utils';
 import { aircraftFromICAO } from '$lib/utils/data/aircraft';
 import { airlineFromIATA, airlineFromICAO } from '$lib/utils/data/airlines';
 import { estimateFlightDuration, parseLocal, toUtc } from '$lib/utils/datetime';
+import { tz } from '@date-fns/tz';
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -90,7 +91,7 @@ export const processJetLogFile = async (
           ),
         )
       : null;
-    const arrival =
+    let arrival =
       row.arrival_time && row.arrival_date
         ? toUtc(
             parseLocal(
@@ -108,6 +109,12 @@ export const processJetLogFile = async (
               ),
             )
           : null;
+
+    // If arrival time appears to be before departure time (e.g., overnight flight with no explicit arrival_date),
+    // assume arrival is on the next day.
+    if (departure && arrival && isBefore(arrival, departure)) {
+      arrival = addDays(arrival, 1, { in: tz('UTC') });
+    }
 
     // We ignore the duration provided by JetLog and calculate it ourselves, as theirs is at best just as good as our calculation
     const duration =

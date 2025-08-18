@@ -88,7 +88,7 @@
         </Button>
       {/snippet}
     </Popover.Trigger>
-    <Popover.Content class="flex flex-col flex-grow-0 gap-2 w-fit">
+    <Popover.Content class="flex flex-col grow-0 gap-2 w-fit">
       <Filters bind:flights bind:filters />
     </Popover.Content>
   </Popover.Root>
