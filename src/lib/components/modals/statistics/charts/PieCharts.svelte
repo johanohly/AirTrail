@@ -88,7 +88,7 @@
     const counts = flights.reduce<Record<string, number>>((acc, flight) => {
       if (!flight.from.iata || !flight.to.iata) return acc;
 
-      const label = flight.from.iata + "-" + flight.to.iata;
+      const label = flight.from.iata + '-' + flight.to.iata;
       if (label) {
         acc[label] = (acc[label] || 0) + 1;
       }
