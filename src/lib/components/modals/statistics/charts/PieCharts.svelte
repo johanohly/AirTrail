@@ -155,22 +155,16 @@
   });
 
   const topAirportDistribution = $derived.by(() => {
-    const counts = flights.reduce<Record<string, number>>((acc, flight) => {
-      const label_from = flight.from.iata;
-      const label_to = flight.to.iata;
-      if (label_from) {
-        acc[label_from] = (acc[label_from] || 0) + 1;
+    const counts: Record<string, number> = {};
+    for (const { from, to } of flights) {
+      for (const code of [from.iata || from.code, to.iata || to.code]) {
+        counts[code] = (counts[code] ?? 0) + 1;
       }
-      if (label_to) {
-        acc[label_to] = (acc[label_to] || 0) + 1;
-      }
-
-      return acc;
-    }, {});
+    }
 
     return Object.fromEntries(
       Object.entries(counts)
-        .sort(([, countA], [, countB]) => countB - countA)
+        .sort(([, a], [, b]) => b - a)
         .slice(0, 5),
     );
   });
