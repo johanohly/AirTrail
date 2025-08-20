@@ -94,7 +94,7 @@ export async function getFlightRoute(
 
   const data = (await resp.json()) as AedbxFlight[];
   if (!Array.isArray(data) || data.length === 0) {
-    throw new Error('No matching flights found (2)');
+    throw new Error('No matching flights found');
   }
 
   const result: FlightLookupResult = [];
@@ -153,6 +153,10 @@ async function getAircraftFromReg(reg: string): Promise<Aircraft | null> {
 
   if (!resp.ok) {
     console.error('Failed to fetch aircraft data:', resp.statusText);
+    return null;
+  }
+
+  if (resp.status === 204) {
     return null;
   }
 

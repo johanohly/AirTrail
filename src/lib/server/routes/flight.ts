@@ -19,13 +19,14 @@ export const flightRouter = router({
     .input(
       z.object({
         flightNumber: z.string(),
-        date: z.string().datetime().optional(),
+        date: z.string().datetime({ offset: true }).optional(),
       }),
     )
     .query(async ({ input }) => {
       const results = await getFlightRoute(
         input.flightNumber,
-        input.date ? { date: parseISO(input.date) } : undefined,
+        // @ts-expect-error - We know the date string is a full ISO datetime string
+        input.date ? { date: parseISO(input.date.split('T')[0]) } : undefined,
       );
 
       // The below mess is required to maintain timezone through serialization
