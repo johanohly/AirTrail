@@ -175,7 +175,6 @@
     );
   });
 
-
   const topAircraftRegDistribution = $derived.by(() => {
     const counts = flights.reduce<Record<string, number>>((acc, flight) => {
       if (!flight.aircraftReg) return acc;
