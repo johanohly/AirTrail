@@ -154,6 +154,21 @@
         };
   });
 
+  const topAirportDistribution = $derived.by(() => {
+    const counts: Record<string, number> = {};
+    for (const { from, to } of flights) {
+      for (const code of [from.iata || from.code, to.iata || to.code]) {
+        counts[code] = (counts[code] ?? 0) + 1;
+      }
+    }
+
+    return Object.fromEntries(
+      Object.entries(counts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5),
+    );
+  });
+
   const topAircraftRegDistribution = $derived.by(() => {
     const counts = flights.reduce<Record<string, number>>((acc, flight) => {
       if (!flight.aircraftReg) return acc;
@@ -186,5 +201,6 @@
   <PieChart data={topAirlineDistribution} title="Top Airlines" />
   <PieChart data={topAircraftDistribution} title="Top Aircraft Models" />
   <PieChart data={topAircraftRegDistribution} title="Top Specific Aircrafts" />
+  <PieChart data={topAirportDistribution} title="Top Visited Airports" />
   <PieChart data={topRouteDistribution} title="Top Routes" />
 </div>
