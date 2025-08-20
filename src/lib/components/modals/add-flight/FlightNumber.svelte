@@ -169,7 +169,9 @@
 </Form.Field>
 
 {#if lookupResults && lookupResults.length > 1}
-  <div class="mt-3 rounded-md border bg-card text-card-foreground">
+  <div
+    class="mt-3 rounded-md border bg-card text-card-foreground overflow-hidden"
+  >
     <div class="flex items-center justify-between p-3 border-b">
       <div class="font-medium">Select a flight</div>
       <Button variant="ghost" onclick={clearResults}>Clear</Button>
