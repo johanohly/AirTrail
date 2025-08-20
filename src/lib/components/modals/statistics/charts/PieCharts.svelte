@@ -154,6 +154,29 @@
         };
   });
 
+  const topAirportDistribution = $derived.by(() => {
+    const counts = flights.reduce<Record<string, number>>((acc, flight) => {
+
+      const label_from = flight.from.iata;
+      const label_to = flight.to.iata;
+      if (label_from) {
+        acc[label_from] = (acc[label_from] || 0) + 1;
+      }
+      if (label_to) {
+        acc[label_to] = (acc[label_to] || 0) + 1;
+      }
+
+      return acc;
+    }, {});
+
+    return Object.fromEntries(
+          Object.entries(counts)
+            .sort(([, countA], [, countB]) => countB - countA)
+            .slice(0, 5),
+        );
+  });
+
+
   const topAircraftRegDistribution = $derived.by(() => {
     const counts = flights.reduce<Record<string, number>>((acc, flight) => {
       if (!flight.aircraftReg) return acc;
@@ -186,5 +209,6 @@
   <PieChart data={topAirlineDistribution} title="Top Airlines" />
   <PieChart data={topAircraftDistribution} title="Top Aircraft Models" />
   <PieChart data={topAircraftRegDistribution} title="Top Specific Aircrafts" />
+  <PieChart data={topAirportDistribution} title="Top Visited Airports" />
   <PieChart data={topRouteDistribution} title="Top Routes" />
 </div>
