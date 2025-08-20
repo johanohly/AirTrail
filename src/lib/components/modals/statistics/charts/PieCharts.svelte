@@ -156,7 +156,6 @@
 
   const topAirportDistribution = $derived.by(() => {
     const counts = flights.reduce<Record<string, number>>((acc, flight) => {
-
       const label_from = flight.from.iata;
       const label_to = flight.to.iata;
       if (label_from) {
@@ -170,10 +169,10 @@
     }, {});
 
     return Object.fromEntries(
-          Object.entries(counts)
-            .sort(([, countA], [, countB]) => countB - countA)
-            .slice(0, 5),
-        );
+      Object.entries(counts)
+        .sort(([, countA], [, countB]) => countB - countA)
+        .slice(0, 5),
+    );
   });
 
 
