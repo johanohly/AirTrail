@@ -4,7 +4,7 @@ title: Import
 
 The import feature allows you to import flight data from other sources into AirTrail.
 Currently, AirTrail supports importing flights from [MyFlightRadar24](https://my.flightradar24.com)
-, [App in the Air](https://appintheair.com), [JetLog](https://github.com/pbogre/jetlog)
+, [App in the Air](https://appintheair.com), [JetLog](https://github.com/pbogre/jetlog), [TripIt (ICS)](https://www.tripit.com)
 and [AirTrail JSON files](/docs/features/export).
 
 ## Import flights from MyFlightradar24
@@ -65,6 +65,29 @@ Once you have the CSV file, you can import it into AirTrail by following these s
 6. Click on the "Import" button to start the import process.
 
 After the import process is complete, you will see your flights on the map.
+
+## Import flights from TripIt (ICS)
+
+TripIt allows exporting trip details to an ICS calendar file. You can import flight events from that file into AirTrail.
+
+Export from TripIt:
+
+1. Open TripIt on the web and navigate to your trip.
+2. Use the Export/Calendar option to download the trip as an .ics file (Trip export).
+
+Import the ICS file into AirTrail:
+
+1. Open the AirTrail application.
+2. Go to the settings page and open the Import tab.
+3. Choose the source "TripIt (ICS)".
+4. Select your .ics file.
+5. Click Import.
+
+Notes and limitations:
+
+- All-day trip header events (VALUE=DATE) are ignored; only flight events are imported.
+- Flight events are detected when the SUMMARY looks like "SK2535 CPH to BHX" (airline + flight number, origin IATA, destination IATA).
+- Times are parsed from DTSTART/DTEND; Zulu (Z) and TZID times are supported.
 
 ## Import flights from AirTrail JSON files
 

@@ -126,9 +126,18 @@ export const flightRouter = router({
       await createFlight(input);
     }),
   createMany: authedProcedure
-    .input(z.custom<CreateFlight[]>())
-    .mutation(async ({ input }) => {
-      await createManyFlights(input);
+    .input(
+      z.object({
+        flights: z.custom<CreateFlight[]>(),
+        dedupe: z.boolean().optional(),
+      }),
+    )
+    .mutation(async ({ ctx: { user }, input }) => {
+      return await createManyFlights(
+        input.flights,
+        user.id,
+        input.dedupe ?? true,
+      );
     }),
   exportJson: authedProcedure.query(async ({ ctx: { user } }) => {
     const users = await db
