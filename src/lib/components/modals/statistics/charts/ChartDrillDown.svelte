@@ -45,24 +45,21 @@
   <div
     class="border-b border-zinc-200 dark:border-zinc-700 backdrop-blur-sm sticky top-0 z-10"
   >
-    <div class="p-6">
-      <div class="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          onclick={onBack}
-          class="hover:bg-zinc-100 dark:hover:bg-zinc-800"
-        >
-          ← Back to Overview
-        </Button>
-        <div class="flex-1">
-          <h1 class="text-4xl font-bold text-zinc-900 dark:text-zinc-100">
-            {chartDef.title}
-          </h1>
-          <p class="text-lg text-zinc-600 dark:text-zinc-400 mt-1">
-            {totalCount} total entries across {flights.length} flights
-          </p>
-        </div>
-      </div>
+    <div class="flex flex-col justify-center p-6">
+      <Button
+        variant="link"
+        size="sm"
+        onclick={onBack}
+        class="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 px-0 h-auto w-fit text-left font-normal underline-offset-2"
+      >
+        ← Back to Overview
+      </Button>
+        <h1 class="text-4xl font-bold text-zinc-900 dark:text-zinc-100">
+          {chartDef.title}
+        </h1>
+        <p class="text-lg text-zinc-600 dark:text-zinc-400 mt-1">
+          {totalCount} total entries across {flights.length} flights
+        </p>
     </div>
   </div>
 
