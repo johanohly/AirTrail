@@ -40,12 +40,10 @@
   };
 </script>
 
-<div
-  class="min-h-[80vh] bg-gradient-to-br from-zinc-50 to-white dark:from-zinc-900 dark:to-zinc-800"
->
+<div class="min-h-[80vh]">
   <!-- Header -->
   <div
-    class="border-b border-zinc-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm sticky top-0 z-10"
+    class="border-b border-zinc-200 dark:border-zinc-700 backdrop-blur-sm sticky top-0 z-10"
   >
     <div class="p-6">
       <div class="flex items-center gap-4">
@@ -75,7 +73,7 @@
         <!-- Chart Section -->
         <div class="space-y-6">
           <div
-            class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden"
+            class="rounded-xl shadow-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden"
           >
             <div class="p-6 border-b border-zinc-200 dark:border-zinc-700">
               <h2
@@ -112,7 +110,7 @@
           <!-- Summary Stats -->
           <div class="grid grid-cols-2 gap-4">
             <div
-              class="bg-white dark:bg-zinc-800 rounded-lg shadow border border-zinc-200 dark:border-zinc-700 p-4"
+              class="rounded-lg shadow border border-zinc-200 dark:border-zinc-700 p-4"
             >
               <div class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
                 {sortedEntries.length}
@@ -122,7 +120,7 @@
               </div>
             </div>
             <div
-              class="bg-white dark:bg-zinc-800 rounded-lg shadow border border-zinc-200 dark:border-zinc-700 p-4"
+              class="rounded-lg shadow border border-zinc-200 dark:border-zinc-700 p-4"
             >
               <div class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
                 {totalCount}
@@ -136,7 +134,7 @@
 
         <!-- Data List Section -->
         <div
-          class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden"
+          class="rounded-xl shadow-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden"
         >
           <div class="p-6 border-b border-zinc-200 dark:border-zinc-700">
             <h2 class="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
