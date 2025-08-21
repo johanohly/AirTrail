@@ -5,7 +5,7 @@
   import FlightsPerMonth from './charts/FlightsPerMonth.svelte';
   import FlightsPerWeekday from './charts/FlightsPerWeekday.svelte';
   import PieCharts from './charts/PieCharts.svelte';
-  import PieChart from './charts/PieChart.svelte';
+  import ChartDrillDown from './charts/ChartDrillDown.svelte';
   import StatsCard from './StatsCard.svelte';
 
   import { page } from '$app/state';
@@ -13,7 +13,6 @@
   import { type FlightData, kmToMiles } from '$lib/utils';
   import { Duration, nowIn } from '$lib/utils/datetime';
   import { round } from '$lib/utils/number';
-  import { Button } from '$lib/components/ui/button';
   import { CHARTS, type ChartKey } from '$lib/stats/aggregations';
 
   let {
@@ -91,25 +90,12 @@
   dialogOnly
 >
   {#if activeChart}
-    <div class="space-y-4">
-      <div class="flex items-center gap-2">
-        <Button variant="outline" onclick={() => (activeChart = null)}
-          >← Back</Button
-        >
-        <h2 class="text-3xl font-bold tracking-tight">
-          {activeChartDef?.title}
-        </h2>
-      </div>
-      <div
-        class="rounded-md border bg-zinc-50 dark:bg-zinc-900/40 p-3 shadow-sm"
-      >
-        <PieChart
-          data={activeChartData}
-          title={activeChartDef?.title || ''}
-          expanded
-        />
-      </div>
-    </div>
+    <ChartDrillDown
+      chartKey={activeChart}
+      data={activeChartData}
+      {flights}
+      onBack={() => (activeChart = null)}
+    />
   {:else}
     <div class="space-y-4">
       <h2 class="text-3xl font-bold tracking-tight">Statistics</h2>
