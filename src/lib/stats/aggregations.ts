@@ -146,7 +146,7 @@ export function aircraftRegDistribution(
   const counts = flights.reduce<Record<string, number>>((acc, flight) => {
     if (!flight.aircraftReg) return acc;
     const label = flight.aircraftReg;
-    if (label) acc[label] = (acc[label] || 0) + 1;
+    acc[label] = (acc[label] || 0) + 1;
     return acc;
   }, {});
   return sortAndLimit(counts, options);
