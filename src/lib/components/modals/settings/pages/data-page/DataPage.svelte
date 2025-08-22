@@ -4,14 +4,17 @@
   import { PageHeader } from '../';
 
   import CustomAirports from './airport/CustomAirports.svelte';
+  import Aircraft from './aircraft/Aircraft.svelte';
   import UpdateFromSource from './UpdateFromSource.svelte';
 
   import StatCard from '$lib/components/modals/settings/pages/data-page/StatCard.svelte';
-  import type { Airport } from '$lib/db/types';
+  import type { Aircraft as AircraftType, Airport } from '$lib/db/types';
   import { api } from '$lib/trpc';
 
   let numAirports: number | null = $state(null);
   let customAirports: Airport[] = $state([]);
+  let numAircraft: number | null = $state(null);
+  let aircraft: AircraftType[] = $state([]);
 
   const fetchAirports = async () => {
     const airportData = await api.airport.getData.query();
@@ -19,8 +22,15 @@
     customAirports = airportData.customAirports;
   };
 
+  const fetchAircraft = async () => {
+    const aircraftData = await api.aircraft.getData.query();
+    numAircraft = aircraftData.numAircraft;
+    aircraft = aircraftData.aircraft;
+  };
+
   $effect(() => {
     fetchAirports();
+    fetchAircraft();
   });
 </script>
 
@@ -43,8 +53,14 @@
           <LocationOn class="text-primary" />
         {/snippet}
       </StatCard>
+      <StatCard title="Aircraft" value={numAircraft}>
+        {#snippet icon()}
+          <FlightTakeoff class="text-primary" />
+        {/snippet}
+      </StatCard>
     </div>
     <UpdateFromSource {fetchAirports} />
     <CustomAirports bind:airports={customAirports} {fetchAirports} />
+    <Aircraft bind:aircraft {fetchAircraft} />
   </div>
 </PageHeader>

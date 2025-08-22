@@ -4,6 +4,14 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   : ColumnType<T, T | undefined, T>;
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export type aircraft = {
+    id: Generated<number>;
+    /**
+     * ICAO aircraft type code
+     */
+    icao: string;
+    name: string;
+};
 export type airport = {
     /**
      * ICAO code (could also be a regional code like "DE-0456")
@@ -60,12 +68,9 @@ export type flight = {
      * ICAO airline code
      */
     airline: string | null;
-    /**
-     * ICAO type code
-     */
-    aircraft: string | null;
     aircraftReg: string | null;
     note: string | null;
+    aircraftId: number | null;
 };
 export type seat = {
     id: Generated<number>;
@@ -119,6 +124,7 @@ export type visited_country = {
     userId: string;
 };
 export type DB = {
+    aircraft: aircraft;
     airport: airport;
     apiKey: api_key;
     appConfig: app_config;

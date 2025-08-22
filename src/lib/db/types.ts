@@ -1,4 +1,4 @@
-import type { airport, api_key, flight, seat, user } from '$lib/db/schema';
+import type { aircraft, airport, api_key, flight, seat, user } from '$lib/db/schema';
 
 export type ServerUser = user;
 export type User = Omit<ServerUser, 'password'>;
@@ -9,6 +9,10 @@ export type ApiKey = Omit<
   id: number;
   createdAt: Date;
   lastUsed: Date | null;
+};
+export type Aircraft = aircraft;
+export type CreateAircraft = Partial<Omit<Aircraft, 'icao'>> & {
+  icao: string;
 };
 export type Airport = Omit<airport, 'custom'> & {
   custom: boolean;

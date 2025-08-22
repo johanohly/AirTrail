@@ -13,7 +13,6 @@
   import {
     type Aircraft,
     aircraftFromICAO,
-    WTC_TO_LABEL,
   } from '$lib/utils/data/aircraft';
   import type { flightSchema } from '$lib/zod/flight';
 
@@ -133,7 +132,7 @@
             <div class="flex flex-col">
               <span class="truncate">{entry.name}</span>
               <span class="text-sm opacity-75"
-                >{entry.icao} - {WTC_TO_LABEL[entry.wtc]}</span
+                >{entry.icao}</span
               >
             </div>
           </li>

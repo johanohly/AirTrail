@@ -53,6 +53,15 @@ model airport {
   custom    Boolean @default(false)
 }
 
+model aircraft {
+  id   Int  @id @default(autoincrement())
+  /// ICAO aircraft type code
+  icao String
+  name String
+
+  flights flight[]
+}
+
 model flight {
   id        Int     @id @default(autoincrement())
   date      String
@@ -69,12 +78,12 @@ model flight {
   flight_reason String?
   /// ICAO airline code
   airline       String?
-  /// ICAO type code
-  aircraft      String?
   aircraft_reg  String?
   note          String?
 
-  seats seat[]
+  aircraft_id Int?
+  aircraft aircraft? @relation(fields: [aircraft_id], references: [id])
+  seats    seat[]
 }
 
 model seat {
