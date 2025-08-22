@@ -54,12 +54,12 @@
       >
         ← Back to Overview
       </Button>
-        <h1 class="text-4xl font-bold text-zinc-900 dark:text-zinc-100">
-          {chartDef.title}
-        </h1>
-        <p class="text-lg text-zinc-600 dark:text-zinc-400 mt-1">
-          {totalCount} total entries across {flights.length} flights
-        </p>
+      <h1 class="text-4xl font-bold text-zinc-900 dark:text-zinc-100">
+        {chartDef.title}
+      </h1>
+      <p class="text-lg text-zinc-600 dark:text-zinc-400 mt-1">
+        {totalCount} total entries across {flights.length} flights
+      </p>
     </div>
   </div>
 
