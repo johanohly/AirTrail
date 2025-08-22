@@ -2,8 +2,8 @@
   import PieChart from './PieChart.svelte';
 
   import { page } from '$app/state';
-  import { type FlightData } from '$lib/utils';
   import { CHARTS, type ChartKey } from '$lib/stats/aggregations';
+  import { type FlightData } from '$lib/utils';
 
   let {
     flights,

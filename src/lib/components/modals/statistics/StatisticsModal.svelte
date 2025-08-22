@@ -2,18 +2,18 @@
   import NumberFlow from '@number-flow/svelte';
   import { isBefore } from 'date-fns';
 
+  import ChartDrillDown from './charts/ChartDrillDown.svelte';
   import FlightsPerMonth from './charts/FlightsPerMonth.svelte';
   import FlightsPerWeekday from './charts/FlightsPerWeekday.svelte';
   import PieCharts from './charts/PieCharts.svelte';
-  import ChartDrillDown from './charts/ChartDrillDown.svelte';
   import StatsCard from './StatsCard.svelte';
 
   import { page } from '$app/state';
   import { Modal } from '$lib/components/ui/modal';
+  import { CHARTS, type ChartKey } from '$lib/stats/aggregations';
   import { type FlightData, kmToMiles } from '$lib/utils';
   import { Duration, nowIn } from '$lib/utils/datetime';
   import { round } from '$lib/utils/number';
-  import { CHARTS, type ChartKey } from '$lib/stats/aggregations';
 
   let {
     open = $bindable<boolean>(),
@@ -46,9 +46,7 @@
   let activeChart: ChartKey | null = $state(null);
   const user = $derived(page.data.user);
   const ctx = $derived.by(() => ({ userId: user?.id }));
-  const activeChartDef = $derived.by(() =>
-    activeChart ? CHARTS[activeChart] : null,
-  );
+
   const activeChartData = $derived.by(() => {
     if (!activeChart) return {} as Record<string, number>;
     return CHARTS[activeChart].aggregate(flights, ctx);
@@ -84,10 +82,22 @@
   });
 </script>
 
+<svelte:window
+  onkeydown={(e) => {
+    if (e.key !== 'Escape') return;
+    if (activeChart) {
+      activeChart = null;
+    } else if (open) {
+      open = false;
+    }
+  }}
+/>
+
 <Modal
   bind:open
   class="max-w-full h-full overflow-y-auto rounded-none!"
   dialogOnly
+  closeOnEscape={false}
 >
   {#if activeChart}
     <ChartDrillDown
