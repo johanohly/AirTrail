@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Pie, PieChart, Svg } from 'layerchart';
-  import { cubicInOut } from 'svelte/easing';
+  import { Expand } from '@o7/icon/lucide';
+  import { PieChart } from 'layerchart';
 
   import { cn } from '$lib/utils';
 
@@ -26,9 +26,12 @@
 
 <div
   class={cn(
-    'w-full border-[0.5px] border-zinc-300 rounded-sm p-2 dark:border-zinc-800 h-[250px]',
+    'relative w-full border-[0.5px] border-zinc-300 rounded-sm p-2 dark:border-zinc-800 h-[250px]',
   )}
 >
+  <div class="absolute top-4 right-4">
+    <Expand size={14} />
+  </div>
   <div
     class={cn(
       'grid grid-cols-2 items-center border rounded-sm h-full',
