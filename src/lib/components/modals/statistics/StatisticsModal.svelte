@@ -2,6 +2,7 @@
   import NumberFlow from '@number-flow/svelte';
   import { isBefore } from 'date-fns';
 
+  import ChartDrillDown from './charts/ChartDrillDown.svelte';
   import FlightsPerMonth from './charts/FlightsPerMonth.svelte';
   import FlightsPerWeekday from './charts/FlightsPerWeekday.svelte';
   import PieCharts from './charts/PieCharts.svelte';
@@ -9,6 +10,7 @@
 
   import { page } from '$app/state';
   import { Modal } from '$lib/components/ui/modal';
+  import { CHARTS, type ChartKey } from '$lib/stats/aggregations';
   import { type FlightData, kmToMiles } from '$lib/utils';
   import { Duration, nowIn } from '$lib/utils/datetime';
   import { round } from '$lib/utils/number';
@@ -40,6 +42,16 @@
   let airports = $state(0);
   let earthCircumnavigations = $state(0);
 
+  // Expanded chart state
+  let activeChart: ChartKey | null = $state(null);
+  const user = $derived(page.data.user);
+  const ctx = $derived.by(() => ({ userId: user?.id }));
+
+  const activeChartData = $derived.by(() => {
+    if (!activeChart) return {} as Record<string, number>;
+    return CHARTS[activeChart].aggregate(flights, ctx);
+  });
+
   $effect(() => {
     if (open) {
       setTimeout(() => {
@@ -70,62 +82,83 @@
   });
 </script>
 
+<svelte:window
+  onkeydown={(e) => {
+    if (e.key !== 'Escape') return;
+    if (activeChart) {
+      activeChart = null;
+    } else if (open) {
+      open = false;
+    }
+  }}
+/>
+
 <Modal
   bind:open
   class="max-w-full h-full overflow-y-auto rounded-none!"
   dialogOnly
+  closeOnEscape={false}
 >
-  <div class="space-y-4">
-    <h2 class="text-3xl font-bold tracking-tight">Statistics</h2>
-    <div class="grid gap-4 pb-2 md:grid-cols-2 lg:grid-cols-4">
-      <StatsCard class="py-4 px-8">
-        <h3 class="text-sm font-medium">Flights</h3>
-        <span class="text-2xl font-bold">
-          <NumberFlow value={flightCount} />
-        </span>
-      </StatsCard>
-      <StatsCard class="py-4 px-8">
-        <h3 class="text-sm font-medium">Distance</h3>
-        <span class="text-2xl font-bold">
-          <NumberFlow
-            value={isMetric ? totalDistance : kmToMiles(totalDistance)}
-            format={{
-              style: 'unit',
-              unit: isMetric ? 'kilometer' : 'mile',
-              unitDisplay: 'short',
-              maximumFractionDigits: 0,
-            }}
-          />
-          (<NumberFlow value={round(earthCircumnavigations, 2)} />x 🌎)
-        </span>
-      </StatsCard>
-      <StatsCard class="py-4 px-8">
-        <h3 class="text-sm font-medium">Duration</h3>
-        <span class="text-2xl font-bold">
-          {#if totalDuration.days}
-            <NumberFlow value={totalDurationParts.days} />d
-          {/if}
-          {#if totalDuration.hours}
-            <NumberFlow value={totalDurationParts.hours} />h
-          {/if}
-          {#if totalDuration.minutes}
-            <NumberFlow value={totalDurationParts.minutes} />m
-          {:else if !totalDuration.days && !totalDuration.hours}
-            0m
-          {/if}
-        </span>
-      </StatsCard>
-      <StatsCard class="py-4 px-8">
-        <h3 class="text-sm font-medium">Airports</h3>
-        <span class="text-2xl font-bold">
-          <NumberFlow value={airports} />
-        </span>
-      </StatsCard>
+  {#if activeChart}
+    <ChartDrillDown
+      chartKey={activeChart}
+      data={activeChartData}
+      {flights}
+      onBack={() => (activeChart = null)}
+    />
+  {:else}
+    <div class="space-y-4">
+      <h2 class="text-3xl font-bold tracking-tight">Statistics</h2>
+      <div class="grid gap-4 pb-2 md:grid-cols-2 lg:grid-cols-4">
+        <StatsCard class="py-4 px-8">
+          <h3 class="text-sm font-medium">Flights</h3>
+          <span class="text-2xl font-bold">
+            <NumberFlow value={flightCount} />
+          </span>
+        </StatsCard>
+        <StatsCard class="py-4 px-8">
+          <h3 class="text-sm font-medium">Distance</h3>
+          <span class="text-2xl font-bold">
+            <NumberFlow
+              value={isMetric ? totalDistance : kmToMiles(totalDistance)}
+              format={{
+                style: 'unit',
+                unit: isMetric ? 'kilometer' : 'mile',
+                unitDisplay: 'short',
+                maximumFractionDigits: 0,
+              }}
+            />
+            (<NumberFlow value={round(earthCircumnavigations, 2)} />x 🌎)
+          </span>
+        </StatsCard>
+        <StatsCard class="py-4 px-8">
+          <h3 class="text-sm font-medium">Duration</h3>
+          <span class="text-2xl font-bold">
+            {#if totalDuration.days}
+              <NumberFlow value={totalDurationParts.days} />d
+            {/if}
+            {#if totalDuration.hours}
+              <NumberFlow value={totalDurationParts.hours} />h
+            {/if}
+            {#if totalDuration.minutes}
+              <NumberFlow value={totalDurationParts.minutes} />m
+            {:else if !totalDuration.days && !totalDuration.hours}
+              0m
+            {/if}
+          </span>
+        </StatsCard>
+        <StatsCard class="py-4 px-8">
+          <h3 class="text-sm font-medium">Airports</h3>
+          <span class="text-2xl font-bold">
+            <NumberFlow value={airports} />
+          </span>
+        </StatsCard>
+      </div>
+      <PieCharts {flights} onOpenChart={(key) => (activeChart = key)} />
+      <div class="flex flex-col md:flex-row gap-4">
+        <FlightsPerMonth {flights} />
+        <FlightsPerWeekday {flights} />
+      </div>
     </div>
-    <PieCharts {flights} />
-    <div class="flex flex-col md:flex-row gap-4">
-      <FlightsPerMonth {flights} />
-      <FlightsPerWeekday {flights} />
-    </div>
-  </div>
+  {/if}
 </Modal>

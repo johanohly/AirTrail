@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Pie, PieChart, Svg } from 'layerchart';
-  import { cubicInOut } from 'svelte/easing';
+  import { Expand } from '@o7/icon/lucide';
+  import { PieChart } from 'layerchart';
 
   import { cn } from '$lib/utils';
 
@@ -25,16 +25,21 @@
 </script>
 
 <div
-  class="w-full h-[200px] border-[0.5px] border-zinc-300 rounded-sm p-2 dark:border-zinc-800"
+  class={cn(
+    'relative w-full border-[0.5px] border-zinc-300 rounded-sm p-2 dark:border-zinc-800 h-[250px]',
+  )}
 >
+  <div class="absolute top-4 right-4">
+    <Expand size={14} />
+  </div>
   <div
     class={cn(
-      'h-full grid grid-cols-2 items-center border rounded-sm ',
+      'grid grid-cols-2 items-center border rounded-sm h-full',
       ' from-white bg-linear-to-br to-zinc-200/60 border-zinc-300 shadow-[2px_0_8px_rgba(0,0,0,0.1)]',
       'dark:from-zinc-950 dark:to-zinc-900/60 bg-linear-to-br  dark:border-zinc-900/50 dark:shadow-inner',
     )}
   >
-    <div class="h-[130px]">
+    <div class={cn('h-[160px]')}>
       <PieChart
         data={Object.entries(placeholderOrData).map(([key, value]) => ({
           label: key,
@@ -49,9 +54,11 @@
     </div>
     <div>
       {#if title}
-        <p><span class="font-bold">{title}</span></p>
+        <div class="flex items-center justify-between pr-2">
+          <p><span class="font-bold">{title}</span></p>
+        </div>
       {/if}
-      {#each Object.entries(data) as [key, value]}
+      {#each Object.entries(data) as [key, value] (key)}
         <p><span class="font-bold">{value}</span> {key}</p>
       {/each}
     </div>
