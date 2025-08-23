@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { db } from '$lib/db';
-import type { Aircraft, CreateAircraft } from '$lib/db/types';
+import type { Aircraft } from '$lib/db/types';
 import type { ErrorActionResult } from '$lib/utils/forms';
 import type { aircraftSchema } from '$lib/zod/aircraft';
 
