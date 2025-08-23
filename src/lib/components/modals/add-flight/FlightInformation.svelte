@@ -49,6 +49,7 @@
                 ? value
                 : null;
             }}
+            allowDeselect
           >
             <Select.Trigger {...props}>
               {$formData.flightReason

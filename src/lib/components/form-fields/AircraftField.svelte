@@ -8,13 +8,8 @@
   import { z } from 'zod';
 
   import * as Form from '$lib/components/ui/form';
-  import { AIRCRAFT } from '$lib/data/aircraft';
-  import { sortAndFilterByMatch } from '$lib/utils';
-  import {
-    type Aircraft,
-    aircraftFromICAO,
-    WTC_TO_LABEL,
-  } from '$lib/utils/data/aircraft';
+  import type { Aircraft } from '$lib/db/types';
+  import { api } from '$lib/trpc';
   import type { flightSchema } from '$lib/zod/flight';
 
   let {
@@ -27,30 +22,45 @@
   const selected = writable(
     $formData.aircraft
       ? {
-          label: aircraftFromICAO($formData.aircraft)?.name,
-          value: $formData.aircraft,
+          label: $formData.aircraft?.name || 'Unknown Aircraft',
+          value: $formData.aircraft.id,
         }
       : undefined,
   );
 
   const {
     elements: { menu, input, option },
-    states: { open, inputValue },
-  } = createCombobox<string>({
+    states: { open, inputValue, touchedInput },
+  } = createCombobox<Aircraft>({
     forceVisible: true,
     selected,
-  });
-  selected.subscribe((item) => {
-    $formData.aircraft = item?.value ?? null;
+    onSelectedChange: ({ next }) => {
+      if (next?.value) {
+        $formData.aircraft = next.value;
+      } else {
+        $formData.aircraft = null;
+      }
+      return next;
+    },
   });
 
-  $effect(() => {
-    if ($formData.aircraft && $selected?.value !== $formData.aircraft) {
-      $selected = {
-        label: aircraftFromICAO($formData.aircraft)?.name,
-        value: $formData.aircraft,
-      };
+  // If the field is updated externally, update the selected value
+  formData.subscribe(() => {
+    if (
+      $formData.aircraft === $selected?.value ||
+      (!$formData.aircraft && !$selected?.value)
+    ) {
+      return;
     }
+
+    selected.set(
+      $formData.aircraft
+        ? {
+            label: $formData.aircraft?.name || 'Unknown Aircraft',
+            value: $formData.aircraft.id,
+          }
+        : undefined,
+    );
   });
 
   $effect(() => {
@@ -59,20 +69,43 @@
     }
   });
 
+  let debounceTimer: ReturnType<typeof setTimeout>;
+
+  const debounce = (callback: () => void) => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(callback, 450);
+  };
+
   let aircraft: Aircraft[] = $state([]);
+  let loading = $state(false);
+
   $effect(() => {
-    if ($open && $inputValue !== '') {
-      aircraft = sortAndFilterByMatch(
-        // @ts-expect-error - This is totally fine
-        AIRCRAFT,
-        $inputValue,
-        [
-          { key: 'icao', exact: true },
-          { key: 'name', exact: false },
-        ],
-      );
-    } else {
+    if ($touchedInput && $inputValue !== '' && !loading) {
+      loading = true;
+      debounce(async () => {
+        aircraft = await api.autocomplete.aircraft.query($inputValue);
+        loading = false;
+      });
+    } else if (!loading && ($inputValue === '' || !$open)) {
       aircraft = [];
+    }
+  });
+
+  // Ensure results are repopulated when the input is focused/opened with a prefilled value
+  $effect(() => {
+    if ($open && !$touchedInput && $inputValue !== '' && !loading) {
+      loading = true;
+      (async () => {
+        try {
+          const res = await api.autocomplete.aircraft.query($inputValue);
+          aircraft = res;
+        } catch (error) {
+          console.error('Error fetching aircraft:', error);
+          aircraft = [];
+        } finally {
+          loading = false;
+        }
+      })();
     }
   });
 </script>
@@ -84,7 +117,7 @@
       <div class="relative">
         <input
           use:melt={$input}
-          class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 pr-16"
+          class="pr-16 border-input bg-background selection:bg-primary dark:bg-input/30 selection:text-primary-foreground ring-offset-background placeholder:text-muted-foreground shadow-xs flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base outline-none transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
           placeholder="Select aircraft"
         />
         {#if $open && $selected}
@@ -98,13 +131,13 @@
             }}
             class="cursor-pointer absolute right-10 top-1/2 z-10 -translate-y-1/2 text-muted-foreground hover:text-foreground"
           >
-            <CircleX size="20" />
+            <CircleX size={16} />
           </button>
         {/if}
         <div
           class="absolute right-3 top-1/2 z-10 -translate-y-1/2 text-muted-foreground"
         >
-          <ChevronsUpDown class="size-4 opacity-50" />
+          <ChevronsUpDown size={16} class="opacity-50" />
         </div>
       </div>
       <input hidden bind:value={$formData.aircraft} name={props.name} />
@@ -122,19 +155,17 @@
         class="flex max-h-full flex-col gap-1 overflow-y-auto bg-popover text-card-foreground"
         tabindex="0"
       >
-        {#each aircraft as entry}
+        {#each aircraft as entry (entry.id)}
           <li
             use:melt={$option({
-              value: entry.icao,
+              value: entry,
               label: entry.name,
             })}
             class="relative cursor-pointer scroll-my-2 rounded-md p-2 dark:bg-dark-1 border data-highlighted:bg-zinc-300 dark:data-highlighted:bg-dark-2"
           >
             <div class="flex flex-col">
               <span class="truncate">{entry.name}</span>
-              <span class="text-sm opacity-75"
-                >{entry.icao} - {WTC_TO_LABEL[entry.wtc]}</span
-              >
+              <span class="text-sm opacity-75">{entry.icao || 'No ICAO'}</span>
             </div>
           </li>
         {:else}
@@ -142,7 +173,9 @@
             class="relative cursor-pointer scroll-my-2 rounded-md p-2
         bg-popover dark:bg-dark-1 border"
           >
-            {#if $inputValue}
+            {#if loading}
+              Loading aircraft...
+            {:else if $inputValue}
               No aircraft found.
             {:else}
               Start typing to search...

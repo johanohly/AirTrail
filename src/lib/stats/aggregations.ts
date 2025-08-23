@@ -1,5 +1,4 @@
 import { ContinentMap } from '$lib/db/types';
-import { aircraftFromICAO } from '$lib/utils/data/aircraft';
 import { airlineFromICAO } from '$lib/utils/data/airlines';
 import { type FlightData, toTitleCase } from '$lib/utils';
 
@@ -131,7 +130,7 @@ export function aircraftModelDistribution(
 ): Record<string, number> {
   const counts = flights.reduce<Record<string, number>>((acc, flight) => {
     if (!flight.aircraft) return acc;
-    const label = aircraftFromICAO(flight.aircraft)?.name;
+    const label = flight.aircraft?.name;
     if (label) acc[label] = (acc[label] || 0) + 1;
     return acc;
   }, {});

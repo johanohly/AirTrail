@@ -20,7 +20,7 @@
   import { Modal } from '$lib/components/ui/modal';
   import { Separator } from '$lib/components/ui/separator';
   import { cn } from '$lib/utils';
-  import { isLargeScreen } from '$lib/utils/size';
+  import { isMediumScreen } from '$lib/utils/size';
 
   const ACCOUNT_SETTINGS = [
     { title: 'General', id: 'general' },
@@ -66,15 +66,15 @@
       <h2 class="text-2xl font-bold tracking-tight">Settings</h2>
       <p class="text-muted-foreground">
         {#if !user || user.role === 'user'}
-          Manage your account settings.
+          Manage your account settings and preferences.
         {:else}
-          Manage your AirTrail instance.
+          Manage your AirTrail instance and system configuration.
         {/if}
       </p>
     </div>
-    <Separator class="my-6" />
-    <div class="flex flex-col gap-8 lg:flex-row lg:gap-12">
-      <aside class="flex lg:flex-col md:-mx-4 lg:w-1/5 overflow-auto">
+    <Separator />
+    <div class="flex flex-col gap-8 md:flex-row md:gap-16">
+      <aside class="flex md:flex-col md:-mx-4 md:w-1/5 overflow-auto">
         <SettingsTabContainer>
           {#each ACCOUNT_SETTINGS as setting}
             {@const isActive = activeTab === setting.id}
@@ -83,16 +83,18 @@
               onclick={() => (activeTab = setting.id)}
               variant="ghost"
               class={cn(
-                !isActive && 'hover:underline',
-                'relative justify-start hover:bg-transparent',
+                'relative justify-start transition-all duration-200 font-medium',
+                isActive
+                  ? 'text-primary bg-primary/10 hover:bg-primary/15'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-card-hover',
               )}
               data-sveltekit-noscroll
             >
               {#if isActive}
                 <div
-                  class="bg-card-hover absolute inset-0 rounded-md"
-                  in:send={{ key: 'active-sidebar-tab' }}
-                  out:receive={{ key: 'active-sidebar-tab' }}
+                  class="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full"
+                  in:send={{ key: 'active-sidebar-indicator' }}
+                  out:receive={{ key: 'active-sidebar-indicator' }}
                 />
               {/if}
               <div class="relative">
@@ -104,7 +106,7 @@
         {#if user && user.role !== 'user'}
           <Separator
             class="my-2"
-            orientation={$isLargeScreen ? 'horizontal' : 'vertical'}
+            orientation={$isMediumScreen ? 'horizontal' : 'vertical'}
           />
           <SettingsTabContainer>
             {#each ADMIN_SETTINGS as setting}
@@ -114,16 +116,18 @@
                 onclick={() => (activeTab = setting.id)}
                 variant="ghost"
                 class={cn(
-                  !isActive && 'hover:underline',
-                  'relative justify-start hover:bg-transparent',
+                  'relative justify-start transition-all duration-200 font-medium',
+                  isActive
+                    ? 'text-primary bg-primary/10 hover:bg-primary/15'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-card-hover',
                 )}
                 data-sveltekit-noscroll
               >
                 {#if isActive}
                   <div
-                    class="bg-card-hover absolute inset-0 rounded-md"
-                    in:send={{ key: 'active-sidebar-tab' }}
-                    out:receive={{ key: 'active-sidebar-tab' }}
+                    class="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full"
+                    in:send={{ key: 'active-sidebar-indicator' }}
+                    out:receive={{ key: 'active-sidebar-indicator' }}
                   />
                 {/if}
                 <div class="relative">
@@ -134,7 +138,7 @@
           </SettingsTabContainer>
         {/if}
       </aside>
-      <div class="flex-1 lg:max-w-2xl">
+      <div class="flex-1 md:max-w-2xl">
         {#if activeTab === 'general'}
           <GeneralPage />
         {:else if activeTab === 'security'}

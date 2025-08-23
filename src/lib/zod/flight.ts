@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { FlightReasons, SeatClasses, SeatTypes } from '$lib/db/types';
 import { flightAirportSchema } from '$lib/zod/airport';
+import { aircraftSchema } from '$lib/zod/aircraft';
 
 const regex24h = /^([01]?\d|2[0-3])(?::|\.|)[0-5]\d(?:\s?(?:am|pm))?$/i;
 const regex12hLike = /^\d{1,2}(?::|\.|)\d{2}\s?(?:am|pm)$/i;
@@ -75,7 +76,7 @@ export const flightOptionalInformationSchema = z.object({
   id: z.number().optional(), // Only for editing an existing flight
   airline: z.string().max(4, 'Airline is too long').nullable(), // ICAO code
   flightNumber: z.string().max(10, 'Flight number is too long').nullable(), // should cover all cases
-  aircraft: z.string().max(4, 'Aircraft is too long').nullable(), // ICAO type code
+  aircraft: aircraftSchema.nullable(),
   aircraftReg: z
     .string()
     .max(10, 'Aircraft registration is too long')

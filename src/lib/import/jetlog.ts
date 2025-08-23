@@ -1,3 +1,4 @@
+import { tz } from '@date-fns/tz';
 import { addDays, differenceInSeconds, isBefore } from 'date-fns';
 import { z } from 'zod';
 
@@ -6,10 +7,8 @@ import type { PlatformOptions } from '$lib/components/modals/settings/pages/impo
 import type { CreateFlight, Seat } from '$lib/db/types';
 import { api } from '$lib/trpc';
 import { distanceBetween, parseCsv } from '$lib/utils';
-import { aircraftFromICAO } from '$lib/utils/data/aircraft';
 import { airlineFromIATA, airlineFromICAO } from '$lib/utils/data/airlines';
 import { estimateFlightDuration, parseLocal, toUtc } from '$lib/utils/datetime';
-import { tz } from '@date-fns/tz';
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -143,7 +142,7 @@ export const processJetLogFile = async (
     if (row.airplane) {
       const aircraftIcao =
         row.airplane.match(/\((.{4})\)/)?.[1] ?? row.airplane;
-      aircraft = aircraftFromICAO(aircraftIcao)?.icao ?? null;
+      aircraft = (await api.aircraft.getByIcao.query(aircraftIcao)) ?? null;
     }
 
     flights.push({

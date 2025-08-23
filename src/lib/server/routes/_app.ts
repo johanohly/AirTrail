@@ -2,6 +2,7 @@ import { router } from '../trpc';
 
 import { userRouter } from './user';
 
+import { aircraftRouter } from '$lib/server/routes/aircraft';
 import { airportRouter } from '$lib/server/routes/airport';
 import { autocompleteRouter } from '$lib/server/routes/autocomplete';
 import { flightRouter } from '$lib/server/routes/flight';
@@ -11,6 +12,7 @@ import { visitedCountriesRouter } from '$lib/server/routes/visited-countries';
 
 export const appRouter = router({
   user: userRouter,
+  aircraft: aircraftRouter,
   airport: airportRouter,
   flight: flightRouter,
   oauth: oauthRouter,
