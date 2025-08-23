@@ -1,5 +1,5 @@
 <script lang="ts">
-  import autoAnimate from '@formkit/auto-animate';
+  import VirtualList from '@humanspeak/svelte-virtual-list';
   import { X } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
 
@@ -11,7 +11,6 @@
   import { Card } from '$lib/components/ui/card';
   import { Collapsible } from '$lib/components/ui/collapsible';
   import { Input } from '$lib/components/ui/input';
-  import { ScrollArea } from '$lib/components/ui/scroll-area';
   import type { Aircraft } from '$lib/db/types';
   import { api, trpc } from '$lib/trpc';
 
@@ -48,9 +47,9 @@
       <CreateAircraft />
     </div>
 
-    <ScrollArea class="h-[40dvh]">
-      <div use:autoAnimate class="flex flex-col gap-4 pr-2">
-        {#each filteredAircraft as aircraftItem (aircraftItem.id)}
+    <div class="h-[40dvh]">
+      <VirtualList items={filteredAircraft} itemsClass="flex flex-col gap-4">
+        {#snippet renderItem(aircraftItem)}
           <Card level="2" class="w-full flex items-center justify-between p-3">
             <div class="flex flex-col gap-1">
               <h4 class="leading-4">{aircraftItem.name}</h4>
@@ -70,18 +69,14 @@
               >
                 {#snippet triggerContent({ props })}
                   <Button variant="outline" size="icon" {...props}>
-                    <X size="24" />
+                    <X />
                   </Button>
                 {/snippet}
               </Confirm>
             </div>
           </Card>
-        {:else}
-          <p class="w-full pb-2 text-center text-muted-foreground">
-            No aircraft found.
-          </p>
-        {/each}
-      </div>
-    </ScrollArea>
+        {/snippet}
+      </VirtualList>
+    </div>
   </div>
 </Collapsible>

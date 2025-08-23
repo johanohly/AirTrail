@@ -6,7 +6,6 @@ import { page } from '$app/state';
 import type { Flight, CreateFlight, Seat } from '$lib/db/types';
 import { api } from '$lib/trpc';
 import { parseCsv } from '$lib/utils';
-import { airlineFromICAO } from '$lib/utils/data/airlines';
 import { toUtc } from '$lib/utils/datetime';
 
 const FR24_AIRPORT_REGEX = /\(([a-zA-Z]{3})\/(?<ICAO>[a-zA-Z]{4})\)/;
@@ -164,13 +163,19 @@ export const processFR24File = async (content: string) => {
 
     const rawAirline = row.airline ? extractAirlineICAO(row.airline) : null;
     const airline = rawAirline
-      ? (airlineFromICAO(rawAirline)?.icao ?? null)
+      ? ((await api.airline.getByIcao.query(rawAirline)) ?? null)
       : null;
     if (!airline && rawAirline) {
       console.warn(`Unknown airline ICAO code: ${rawAirline}`);
     }
 
-    const aircraft = row.aircraft ? extractAircraftICAO(row.aircraft) : null;
+    const rawAircraft = row.aircraft ? extractAircraftICAO(row.aircraft) : null;
+    const aircraft = rawAircraft
+      ? await api.aircraft.getByIcao.query(rawAircraft)
+      : null;
+    if (!aircraft && rawAircraft) {
+      console.warn(`Unknown aircraft ICAO code: ${rawAircraft}`);
+    }
 
     flights.push({
       date: row.date, // YYYY-MM-DD

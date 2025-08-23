@@ -3,9 +3,8 @@ import type { TZDate } from '@date-fns/tz';
 import { getFlightRoute as getAdsbdbFlightRoute } from './adsbdb';
 import { getFlightRoute as getAerodataboxFlightRoute } from './aerodatabox';
 
-import type { Airport, Aircraft } from '$lib/db/types';
+import type { Airport, Aircraft, Airline } from '$lib/db/types';
 import { appConfig } from '$lib/server/utils/config';
-import type { Airline } from '$lib/utils/data/airlines';
 
 export type FlightLookupOptions = {
   date?: Date;

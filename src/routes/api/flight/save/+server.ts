@@ -15,7 +15,7 @@ const defaultFlight = {
   arrivalTime: null,
   airline: null,
   flightNumber: null,
-  aircraftId: null,
+  aircraft: null,
   aircraftReg: null,
   flightReason: null,
   note: null,

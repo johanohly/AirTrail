@@ -1,16 +1,15 @@
 <script lang="ts">
   import autoAnimate from '@formkit/auto-animate';
   import { createCombobox, melt } from '@melt-ui/svelte';
-  import { CircleX, ChevronsUpDown } from '@o7/icon/lucide';
+  import { ChevronsUpDown, CircleX } from '@o7/icon/lucide';
   import { writable } from 'svelte/store';
   import { fly } from 'svelte/transition';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
 
   import * as Form from '$lib/components/ui/form';
-  import { AIRLINES } from '$lib/data/airlines';
-  import { sortAndFilterByMatch } from '$lib/utils';
-  import { type Airline, airlineFromICAO } from '$lib/utils/data/airlines';
+  import type { Airline } from '$lib/db/types';
+  import { api } from '$lib/trpc';
   import type { flightSchema } from '$lib/zod/flight';
 
   let {
@@ -23,7 +22,7 @@
   const selected = writable(
     $formData.airline
       ? {
-          label: airlineFromICAO($formData.airline)?.name,
+          label: $formData.airline.name,
           value: $formData.airline,
         }
       : undefined,
@@ -31,8 +30,8 @@
 
   const {
     elements: { menu, input, option },
-    states: { open, inputValue },
-  } = createCombobox<string>({
+    states: { open, inputValue, touchedInput },
+  } = createCombobox<Airline>({
     forceVisible: true,
     selected,
     onSelectedChange: ({ next }) => {
@@ -43,12 +42,18 @@
 
   // If the field is updated externally, update the selected value
   formData.subscribe(() => {
-    if ($formData.airline === $selected?.value) return;
+    if (
+      $formData.airline === $selected?.value ||
+      (!$formData.airline && !$selected?.value)
+    ) {
+      return;
+    }
+
     selected.set(
       $formData.airline
         ? {
-            label: airlineFromICAO($formData.airline)?.name,
-            value: $formData.airline,
+            label: $formData.airline.name || 'Unknown Airline',
+            value: $formData.airline.id,
           }
         : undefined,
     );
@@ -60,16 +65,42 @@
     }
   });
 
+  let debounceTimer: ReturnType<typeof setTimeout>;
+
+  const debounce = (callback: () => void) => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(callback, 450);
+  };
+
   let airlines: Airline[] = $state([]);
+  let loading = $state(false);
+
   $effect(() => {
-    if ($open && $inputValue !== '') {
-      airlines = sortAndFilterByMatch(AIRLINES, $inputValue, [
-        { key: 'icao', exact: true },
-        { key: 'iata', exact: true },
-        { key: 'name', exact: false },
-      ]);
-    } else {
+    if ($touchedInput && $inputValue !== '' && !loading) {
+      loading = true;
+      debounce(async () => {
+        airlines = await api.autocomplete.airline.query($inputValue);
+        loading = false;
+      });
+    } else if (!loading && ($inputValue === '' || !$open)) {
       airlines = [];
+    }
+  });
+
+  // Ensure results are repopulated when the input is focused/opened with a prefilled value
+  $effect(() => {
+    if ($open && !$touchedInput && $inputValue !== '' && !loading) {
+      loading = true;
+      (async () => {
+        try {
+          airlines = await api.autocomplete.airline.query($inputValue);
+        } catch (error) {
+          console.error('Error fetching airlines:', error);
+          airlines = [];
+        } finally {
+          loading = false;
+        }
+      })();
     }
   });
 </script>
@@ -91,6 +122,7 @@
             onclick={() => {
               // @ts-expect-error - This is totally fine
               $selected = undefined;
+              $formData.airline = null;
               $inputValue = '';
             }}
             class="cursor-pointer absolute right-10 top-1/2 z-10 -translate-y-1/2 text-muted-foreground hover:text-foreground"
@@ -109,34 +141,28 @@
   </Form.Control>
   {#if $open}
     <ul
-      class="z-5000 flex max-h-[300px] flex-col overflow-hidden rounded-lg border"
+      class="z-5000 flex max-h-[300px] flex-col overflow-hidden rounded-lg"
       use:melt={$menu}
       transition:fly={{ duration: 150, y: -5 }}
     >
-      <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
       <div
         use:autoAnimate
         class="flex max-h-full flex-col gap-1 overflow-y-auto bg-popover text-card-foreground"
         tabindex="0"
       >
-        {#each airlines as airline}
+        {#each airlines as airline (airline.id)}
           <li
             use:melt={$option({
-              value: airline.icao,
+              value: airline,
               label: airline.name,
             })}
             class="relative cursor-pointer scroll-my-2 rounded-md p-2 dark:bg-dark-1 border data-highlighted:bg-zinc-300 dark:data-highlighted:bg-dark-2"
           >
-            <div class="flex flex-col overflow-hidden">
+            <div class="flex flex-col">
               <span class="truncate">{airline.name}</span>
-              <p class="text-sm">
-                {#if airline.iata}
-                  <span class="text-muted-foreground">IATA</span>
-                  <b class="mr-2">{airline.iata}</b>
-                {/if}
-                <span class="text-muted-foreground">ICAO</span>
-                <b>{airline.icao}</b>
-              </p>
+              <span class="text-sm opacity-75">{airline.icao || 'No ICAO'}</span
+              >
             </div>
           </li>
         {:else}
@@ -144,7 +170,9 @@
             class="relative cursor-pointer scroll-my-2 rounded-md p-2
         bg-popover dark:bg-dark-1 border"
           >
-            {#if $inputValue}
+            {#if loading}
+              Loading airlines...
+            {:else if $inputValue}
               No airlines found.
             {:else}
               Start typing to search...

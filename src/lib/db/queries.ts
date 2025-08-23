@@ -25,12 +25,19 @@ const aircraft = (db: Kysely<DB>, id: Expression<number>) => {
   ).as('aircraft');
 };
 
+const airline = (db: Kysely<DB>, id: Expression<number>) => {
+  return jsonObjectFrom(
+    db.selectFrom('airline').selectAll().where('airline.id', '=', id),
+  ).as('airline');
+};
+
 export const listFlightPrimitive = async (db: Kysely<DB>, userId: string) => {
   return await db
     .selectFrom('flight')
     .selectAll('flight')
-    .select(({ ref }) => [aircraft(db, ref('flight.aircraftId'))])
     .select((eb) => airports(db, eb.ref('flight.from'), eb.ref('flight.to')))
+    .select(({ ref }) => [aircraft(db, ref('flight.aircraftId'))])
+    .select(({ ref }) => [airline(db, ref('flight.airlineId'))])
     .select((eb) => [
       jsonArrayFrom(
         eb
@@ -57,6 +64,7 @@ export const getFlightPrimitive = async (db: Kysely<DB>, id: number) => {
     .selectAll()
     .select(({ ref }) => airports(db, ref('flight.from'), ref('flight.to')))
     .select(({ ref }) => [aircraft(db, ref('flight.aircraftId'))])
+    .select(({ ref }) => [airline(db, ref('flight.airlineId'))])
     .select((eb) =>
       jsonArrayFrom(
         eb
@@ -74,13 +82,18 @@ export const createFlightPrimitive = async (
   data: CreateFlight,
 ) => {
   return await db.transaction().execute(async (trx) => {
-    const { seats, ...flightData } = data;
+    const { seats, aircraft, airline, ...flightData } = data;
+    const aircraftId = aircraft?.id ?? null;
+    const airlineId = airline?.id ?? null;
+
     const resp = await trx
       .insertInto('flight')
       .values({
         ...flightData,
         from: flightData.from.code,
         to: flightData.to.code,
+        aircraftId,
+        airlineId,
       })
       .returning('id')
       .executeTakeFirstOrThrow();
@@ -105,8 +118,9 @@ export const updateFlightPrimitive = async (
   data: CreateFlight,
 ) => {
   await db.transaction().execute(async (trx) => {
-    const { seats, aircraft, ...flightData } = data;
+    const { seats, aircraft, airline, ...flightData } = data;
     const aircraftId = aircraft?.id ?? null;
+    const airlineId = airline?.id ?? null;
 
     await trx
       .updateTable('flight')
@@ -115,6 +129,7 @@ export const updateFlightPrimitive = async (
         from: flightData.from.code,
         to: flightData.to.code,
         aircraftId,
+        airlineId,
       })
       .where('id', '=', id)
       .executeTakeFirstOrThrow();

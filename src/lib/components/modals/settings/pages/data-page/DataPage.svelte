@@ -1,9 +1,15 @@
 <script lang="ts">
-  import { FlightTakeoff, LocationOn, Flight } from '@o7/icon/material/solid';
+  import {
+    Airlines,
+    FlightTakeoff,
+    LocationOn,
+    Flight,
+  } from '@o7/icon/material/solid';
 
   import { PageHeader } from '../';
 
   import Aircraft from './aircraft/Aircraft.svelte';
+  import Airline from './airline/Airline.svelte';
   import CustomAirports from './airport/CustomAirports.svelte';
   import StatCard from './StatCard.svelte';
   import UpdateFromSource from './UpdateFromSource.svelte';
@@ -19,6 +25,9 @@
   const aircraftResult = trpc.aircraft.list.query();
   let aircraft = $derived.by(() => $aircraftResult.data || []);
 
+  const airlinesResult = trpc.airline.list.query();
+  let airlines = $derived.by(() => $airlinesResult.data || []);
+
   const fetchAirports = async () => {
     const airportData = await api.airport.getData.query();
     numAirports = airportData.numAirports;
@@ -32,7 +41,7 @@
 
 <PageHeader
   title="Data"
-  subtitle="Manage custom airports, airlines and airplanes."
+  subtitle="Manage custom airports, airlines and aircraft."
 >
   <div class="flex flex-col gap-4">
     <Card>
@@ -53,6 +62,11 @@
               <Flight class="text-primary" />
             {/snippet}
           </StatCard>
+          <StatCard title="Airlines" value={airlines.length}>
+            {#snippet icon()}
+              <Airlines class="text-primary" />
+            {/snippet}
+          </StatCard>
         </div>
       </CardContent>
     </Card>
@@ -60,5 +74,6 @@
     <UpdateFromSource {fetchAirports} />
     <CustomAirports bind:airports={customAirports} {fetchAirports} />
     <Aircraft {aircraft} />
+    <Airline {airlines} />
   </div>
 </PageHeader>

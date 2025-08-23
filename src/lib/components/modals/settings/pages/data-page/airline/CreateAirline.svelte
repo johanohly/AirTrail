@@ -4,25 +4,25 @@
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
 
-  import AircraftFormFields from './AircraftFormFields.svelte';
+  import AirlineFormFields from './AirlineFormFields.svelte';
 
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
   import { Modal } from '$lib/components/ui/modal';
-  import { aircraftSchema } from '$lib/zod/aircraft';
+  import { airlineSchema } from '$lib/zod/airline';
   import { trpc } from '$lib/trpc';
 
   let open = $state(false);
 
   const form = superForm(
-    defaults<Infer<typeof aircraftSchema>>(zod(aircraftSchema)),
+    defaults<Infer<typeof airlineSchema>>(zod(airlineSchema)),
     {
       dataType: 'json',
-      validators: zod(aircraftSchema),
+      validators: zod(airlineSchema),
       onUpdated({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
-            trpc.aircraft.list.utils.invalidate();
+            trpc.airline.list.utils.invalidate();
             open = false;
             return void toast.success(form.message.text);
           }
@@ -40,14 +40,14 @@
 </Button>
 
 <Modal bind:open dialogOnly>
-  <h2 class="text-lg font-medium">Add Aircraft</h2>
+  <h2 class="text-lg font-medium">Add Airline</h2>
   <form
     method="POST"
-    action="/api/aircraft/save/form"
+    action="/api/airline/save/form"
     class="grid gap-4"
     use:enhance
   >
-    <AircraftFormFields {form} />
+    <AirlineFormFields {form} />
     <Form.Button>Create</Form.Button>
   </form>
 </Modal>

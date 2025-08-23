@@ -4,32 +4,32 @@
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
 
-  import AircraftFormFields from './AircraftFormFields.svelte';
+  import AirlineFormFields from './AirlineFormFields.svelte';
   import { Button } from '$lib/components/ui/button';
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Form from '$lib/components/ui/form';
-  import type { Aircraft } from '$lib/db/types';
+  import type { Airline } from '$lib/db/types';
   import { trpc } from '$lib/trpc';
-  import { aircraftSchema } from '$lib/zod/aircraft';
+  import { airlineSchema } from '$lib/zod/airline';
 
   let {
-    aircraft,
+    airline,
   }: {
-    aircraft: Aircraft;
+    airline: Airline;
   } = $props();
 
   let open = $state(false);
 
   const form = superForm(
-    defaults<Infer<typeof aircraftSchema>>(aircraft, zod(aircraftSchema)),
+    defaults<Infer<typeof airlineSchema>>(airline, zod(airlineSchema)),
     {
       dataType: 'json',
       id: Math.random().toString(36).substring(7),
-      validators: zod(aircraftSchema),
+      validators: zod(airlineSchema),
       onUpdated({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
-            trpc.aircraft.list.utils.invalidate();
+            trpc.airline.list.utils.invalidate();
             open = false;
             return void toast.success(form.message.text);
           }
@@ -54,14 +54,14 @@
     interactOutsideBehavior="ignore"
     class="max-h-full overflow-y-auto max-w-lg"
   >
-    <h2>Edit Aircraft</h2>
+    <h2>Edit Airline</h2>
     <form
       method="POST"
-      action="/api/aircraft/save/form"
+      action="/api/airline/save/form"
       use:enhance
       class="grid gap-4"
     >
-      <AircraftFormFields {form} />
+      <AirlineFormFields {form} />
       <Form.Button>Save</Form.Button>
     </form>
   </Dialog.Content>

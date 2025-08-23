@@ -7,7 +7,6 @@ import type { PlatformOptions } from '$lib/components/modals/settings/pages/impo
 import type { CreateFlight, Seat } from '$lib/db/types';
 import { api } from '$lib/trpc';
 import { distanceBetween, parseCsv } from '$lib/utils';
-import { airlineFromIATA, airlineFromICAO } from '$lib/utils/data/airlines';
 import { estimateFlightDuration, parseLocal, toUtc } from '$lib/utils/datetime';
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
@@ -128,13 +127,13 @@ export const processJetLogFile = async (
     let airline = null;
     if (row.airline) {
       const airlineIcao = row.airline.trim().toUpperCase();
-      airline = airlineFromICAO(airlineIcao)?.icao ?? null;
+      airline = (await api.airline.getByIcao.query(airlineIcao)) ?? null;
     }
 
     if (!airline && options.airlineFromFlightNumber && row.flight_number) {
       const airlineIata = /([A-Za-z]{2})\d*/.exec(row.flight_number)?.[1];
       airline = airlineIata
-        ? (airlineFromIATA(airlineIata)?.icao ?? null)
+        ? ((await api.airline.getByIata.query(airlineIata)) ?? null)
         : null;
     }
 

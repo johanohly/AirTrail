@@ -1,5 +1,4 @@
 import { ContinentMap } from '$lib/db/types';
-import { airlineFromICAO } from '$lib/utils/data/airlines';
 import { type FlightData, toTitleCase } from '$lib/utils';
 
 export type ChartKey =
@@ -116,7 +115,7 @@ export function airlineDistribution(
 ): Record<string, number> {
   const counts = flights.reduce<Record<string, number>>((acc, flight) => {
     if (!flight.airline) return acc;
-    const label = airlineFromICAO(flight.airline)?.name;
+    const label = flight.airline?.name;
     if (label) acc[label] = (acc[label] || 0) + 1;
     return acc;
   }, {});

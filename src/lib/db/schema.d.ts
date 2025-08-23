@@ -12,6 +12,18 @@ export type aircraft = {
     name: string;
     icao: string | null;
 };
+export type airline = {
+    id: Generated<number>;
+    /**
+     * ICAO airline code
+     */
+    icao: string | null;
+    /**
+     * IATA airline code
+     */
+    iata: string | null;
+    name: string;
+};
 export type airport = {
     /**
      * ICAO code (could also be a regional code like "DE-0456")
@@ -64,13 +76,10 @@ export type flight = {
      * @kyselyType('leisure' | 'business' | 'crew' | 'other')
      */
     flightReason: 'leisure' | 'business' | 'crew' | 'other' | null;
-    /**
-     * ICAO airline code
-     */
-    airline: string | null;
     aircraftReg: string | null;
     note: string | null;
     aircraftId: number | null;
+    airlineId: number | null;
 };
 export type seat = {
     id: Generated<number>;
@@ -125,6 +134,7 @@ export type visited_country = {
 };
 export type DB = {
     aircraft: aircraft;
+    airline: airline;
     airport: airport;
     apiKey: api_key;
     appConfig: app_config;

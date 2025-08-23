@@ -17,15 +17,12 @@
   import * as Tooltip from '$lib/components/ui/tooltip';
   import { cn, type FlightData } from '$lib/utils';
   import { formatAircraft } from '$lib/utils/data/aircraft';
-  import { airlineFromICAO } from '$lib/utils/data/airlines';
   import { formatSeat } from '$lib/utils/data/data';
   import {
     Duration,
     formatAsDate,
     formatAsDateTime,
     formatAsMonth,
-    formatAsTime,
-    isSameLocalDay,
     isUsingAmPm,
   } from '$lib/utils/datetime';
 
@@ -52,8 +49,6 @@
         const depDate = f.departure;
         const arrDate = f.arrival;
 
-        const airline = f.airline ? airlineFromICAO(f.airline) : null;
-
         return {
           ...f,
           from: {
@@ -73,7 +68,6 @@
           depTime: depDate ? formatAsDateTime(depDate) : formatAsDate(f.date),
           arrTime: arrDate ? formatAsDateTime(arrDate) : null,
           seat: formatSeat(f),
-          airline,
         };
       })
       .sort((a, b) => {

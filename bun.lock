@@ -9,6 +9,7 @@
         "@deck.gl/layers": "~9.1.14",
         "@deck.gl/mapbox": "~9.1.14",
         "@formkit/auto-animate": "^0.8.2",
+        "@humanspeak/svelte-virtual-list": "^0.2.6",
         "@internationalized/date": "^3.8.2",
         "@layerstack/utils": "^2.0.0-next.14",
         "@lucia-auth/adapter-postgresql": "^3.1.2",
@@ -235,6 +236,8 @@
     "@humanfs/core": ["@humanfs/core@0.19.1", "", {}, "sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA=="],
 
     "@humanfs/node": ["@humanfs/node@0.16.6", "", { "dependencies": { "@humanfs/core": "^0.19.1", "@humanwhocodes/retry": "^0.3.0" } }, "sha512-YuI2ZHQL78Q5HbhDiBA1X4LmYdXCKCMQIfw0pw7piHJwyREFebJUvrQN4cMssyES6x+vfUbx1CIpaQUKYdQZOw=="],
+
+    "@humanspeak/svelte-virtual-list": ["@humanspeak/svelte-virtual-list@0.2.6", "", { "dependencies": { "esm-env": "^1.2.2" }, "peerDependencies": { "svelte": "^5.0.0" } }, "sha512-nfD81b4LQw2bTSFYV/M0ky/pnUkfI0KYr5qCVJHZe6h3dUtXoNIhoxypI6JGBcpW3D8jN5Y53NOkfDggJNb5nA=="],
 
     "@humanwhocodes/module-importer": ["@humanwhocodes/module-importer@1.0.1", "", {}, "sha512-bxveV4V8v5Yb4ncFTT3rPSgZBOpCkjfK0y4oVVVJwIuDVBRMDXrPyXRL988i5ap9m9bnyEEjWfm5WkBmtffLfA=="],
 

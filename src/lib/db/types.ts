@@ -1,5 +1,6 @@
 import type {
   aircraft,
+  airline,
   airport,
   api_key,
   flight,
@@ -20,6 +21,9 @@ export type ApiKey = Omit<
 export type Aircraft = Omit<aircraft, 'id'> & {
   id: number;
 };
+export type Airline = Omit<airline, 'id'> & {
+  id: number;
+};
 export type Airport = Omit<airport, 'custom'> & {
   custom: boolean;
 };
@@ -29,12 +33,16 @@ export type CreateAirport = Partial<Omit<Airport, 'code'>> & {
 export type Seat = Omit<seat, 'id'> & {
   id: number;
 };
-export type Flight = Omit<flight, 'id' | 'from' | 'to' | 'aircraftId'> & {
+export type Flight = Omit<
+  flight,
+  'id' | 'from' | 'to' | 'aircraftId' | 'airlineId'
+> & {
   id: number;
   from: Airport;
   to: Airport;
   seats: Seat[];
   aircraft: Aircraft | null;
+  airline: Airline | null;
 };
 type CreateFlightAirport = Partial<Omit<Airport, 'code'>> & {
   code: string;
@@ -43,6 +51,7 @@ export type CreateFlight = Omit<Flight, 'id' | 'from' | 'to' | 'seats'> & {
   from: CreateFlightAirport;
   to: CreateFlightAirport;
   aircraft: Aircraft | null;
+  airline: Airline | null;
   seats: Omit<Seat, 'flightId' | 'id'>[];
 };
 
