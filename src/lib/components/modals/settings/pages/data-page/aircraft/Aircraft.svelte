@@ -60,7 +60,9 @@
               </p>
             </div>
             <div class="flex items-center gap-2">
-              <EditAircraft aircraft={aircraftItem} />
+              {#key aircraftItem}
+                <EditAircraft aircraft={aircraftItem} />
+              {/key}
               <Confirm
                 onConfirm={async () => deleteAircraft(aircraftItem.id)}
                 title="Remove Aircraft"
