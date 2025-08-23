@@ -121,7 +121,7 @@ layer(base);
     --destructive: hsl(0, 72.2%, 50.6%);
     --destructive-foreground: hsl(0, 0%, 98%);
 
-    --ring: hsl(240, 10%, 3.9%);
+    --ring: oklch(70.8% 0 0);
 
     --radius: 0.5rem;
   }

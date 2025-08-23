@@ -31,7 +31,7 @@ export const editPasswordSchema = z
         path: ['confirmPassword'],
       });
     }
-    if (currentPassword === newPassword) {
+    if (newPassword && currentPassword === newPassword) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'New password must be different from current password',

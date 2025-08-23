@@ -166,6 +166,7 @@
       </div>
     {/snippet}
   </Form.Control>
+  <Form.FieldErrors />
 </Form.Field>
 
 {#if lookupResults && lookupResults.length > 1}

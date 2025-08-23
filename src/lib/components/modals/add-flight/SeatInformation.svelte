@@ -73,6 +73,7 @@
                           ? value
                           : null;
                       }}
+                      allowDeselect
                     >
                       <Select.Trigger {...props}>
                         {$formData.seats[index]?.seat
@@ -123,6 +124,7 @@
                           ? value
                           : null;
                       }}
+                      allowDeselect
                     >
                       <Select.Trigger {...props}>
                         {$formData.seats[index]?.seatClass

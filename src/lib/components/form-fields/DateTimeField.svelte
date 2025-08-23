@@ -10,7 +10,7 @@
   import { Input } from '$lib/components/ui/input';
   import * as Popover from '$lib/components/ui/popover';
   import { HelpTooltip } from '$lib/components/ui/tooltip';
-  import { toTitleCase } from '$lib/utils';
+  import { cn, toTitleCase } from '$lib/utils';
   import { dateValueFromISO } from '$lib/utils/datetime';
   import type { flightSchema } from '$lib/zod/flight';
 
@@ -65,7 +65,11 @@
         >
           <div class="flex w-full max-w-[232px] flex-col gap-1.5">
             <DateField.Input
-              class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              class={cn(
+                'border-input bg-background selection:bg-primary dark:bg-input/30 selection:text-primary-foreground ring-offset-background placeholder:text-muted-foreground shadow-xs flex h-9 w-full min-w-0 rounded-md border px-3 py-[6px] text-base outline-none transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
+                'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
+                'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
+              )}
             >
               {#snippet children({ segments })}
                 {#each segments as { part, value }}
@@ -89,7 +93,7 @@
                     {...props}
                     class="ml-auto inline-flex items-center justify-center text-muted-foreground transition-all hover:text-foreground active:text-foreground"
                   >
-                    <CalendarDays size="20" />
+                    <CalendarDays size={16} />
                   </Popover.Trigger>
                   <Popover.Content class="p-0">
                     <Calendar
