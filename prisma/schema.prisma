@@ -56,8 +56,8 @@ model airport {
 model aircraft {
   id   Int  @id @default(autoincrement())
   /// ICAO aircraft type code
-  icao String
   name String
+  icao String?
 
   flights flight[]
 }

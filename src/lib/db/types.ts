@@ -1,4 +1,11 @@
-import type { aircraft, airport, api_key, flight, seat, user } from '$lib/db/schema';
+import type {
+  aircraft,
+  airport,
+  api_key,
+  flight,
+  seat,
+  user,
+} from '$lib/db/schema';
 
 export type ServerUser = user;
 export type User = Omit<ServerUser, 'password'>;
@@ -10,9 +17,8 @@ export type ApiKey = Omit<
   createdAt: Date;
   lastUsed: Date | null;
 };
-export type Aircraft = aircraft;
-export type CreateAircraft = Partial<Omit<Aircraft, 'icao'>> & {
-  icao: string;
+export type Aircraft = Omit<aircraft, 'id'> & {
+  id: number;
 };
 export type Airport = Omit<airport, 'custom'> & {
   custom: boolean;
@@ -23,11 +29,12 @@ export type CreateAirport = Partial<Omit<Airport, 'code'>> & {
 export type Seat = Omit<seat, 'id'> & {
   id: number;
 };
-export type Flight = Omit<flight, 'id' | 'from' | 'to'> & {
+export type Flight = Omit<flight, 'id' | 'from' | 'to' | 'aircraftId'> & {
   id: number;
   from: Airport;
   to: Airport;
   seats: Seat[];
+  aircraft: Aircraft | null;
 };
 type CreateFlightAirport = Partial<Omit<Airport, 'code'>> & {
   code: string;
@@ -35,6 +42,7 @@ type CreateFlightAirport = Partial<Omit<Airport, 'code'>> & {
 export type CreateFlight = Omit<Flight, 'id' | 'from' | 'to' | 'seats'> & {
   from: CreateFlightAirport;
   to: CreateFlightAirport;
+  aircraft: Aircraft | null;
   seats: Omit<Seat, 'flightId' | 'id'>[];
 };
 

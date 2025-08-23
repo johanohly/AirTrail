@@ -49,8 +49,10 @@
     if (
       $formData[field] === $selected?.value ||
       (!$formData[field] && !$selected?.value)
-    )
+    ) {
       return;
+    }
+
     selected.set(
       $formData[field]
         ? {

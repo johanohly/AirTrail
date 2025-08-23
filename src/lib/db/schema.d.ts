@@ -9,8 +9,8 @@ export type aircraft = {
     /**
      * ICAO aircraft type code
      */
-    icao: string;
     name: string;
+    icao: string | null;
 };
 export type airport = {
     /**

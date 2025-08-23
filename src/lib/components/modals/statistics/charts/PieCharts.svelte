@@ -67,7 +67,7 @@
   <div class="cursor-pointer" onclick={() => onOpenChart?.('aircraft-regs')}>
     <PieChart
       data={topAircraftRegDistribution}
-      title="Top Specific Aircrafts"
+      title="Top Specific Aircraft"
     />
   </div>
   <div class="cursor-pointer" onclick={() => onOpenChart?.('airports')}>

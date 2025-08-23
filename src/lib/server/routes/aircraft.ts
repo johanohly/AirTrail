@@ -4,11 +4,18 @@ import { db } from '$lib/db';
 import { adminProcedure, authedProcedure, router } from '$lib/server/trpc';
 
 export const aircraftRouter = router({
-  get: authedProcedure.input(z.string()).query(async ({ input }) => {
+  get: authedProcedure.input(z.number()).query(async ({ input }) => {
     return await db
       .selectFrom('aircraft')
       .selectAll()
-      .where('icao', '=', input)
+      .where('id', '=', input)
+      .executeTakeFirst();
+  }),
+  getByIcao: authedProcedure.input(z.string()).query(async ({ input }) => {
+    return await db
+      .selectFrom('aircraft')
+      .selectAll()
+      .where('icao', 'ilike', input)
       .executeTakeFirst();
   }),
   list: authedProcedure.query(async () => {
@@ -18,27 +25,10 @@ export const aircraftRouter = router({
       .orderBy('name')
       .execute();
   }),
-  getData: authedProcedure.query(async () => {
-    const numAircraft = await db
-      .selectFrom('aircraft')
-      .select((eb) => eb.fn.count('aircraft.icao').as('count'))
-      .executeTakeFirst();
-
-    const allAircraft = await db
-      .selectFrom('aircraft')
-      .selectAll()
-      .orderBy('name')
-      .execute();
-
-    return {
-      numAircraft: Number(numAircraft?.count ?? 0),
-      aircraft: allAircraft,
-    };
-  }),
-  delete: adminProcedure.input(z.string()).mutation(async ({ input }) => {
+  delete: adminProcedure.input(z.number()).mutation(async ({ input }) => {
     const result = await db
       .deleteFrom('aircraft')
-      .where('icao', '=', input)
+      .where('id', '=', input)
       .execute();
     return result.length > 0;
   }),

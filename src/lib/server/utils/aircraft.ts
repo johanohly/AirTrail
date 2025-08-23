@@ -5,7 +5,19 @@ import type { Aircraft, CreateAircraft } from '$lib/db/types';
 import type { ErrorActionResult } from '$lib/utils/forms';
 import type { aircraftSchema } from '$lib/zod/aircraft';
 
-export const getAircraft = async (input: string): Promise<Aircraft | null> => {
+export const getAircraft = async (id: number): Promise<Aircraft | null> => {
+  return (
+    (await db
+      .selectFrom('aircraft')
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst()) ?? null
+  );
+};
+
+export const getAircraftByIcao = async (
+  input: string,
+): Promise<Aircraft | null> => {
   return (
     (await db
       .selectFrom('aircraft')
@@ -36,28 +48,18 @@ export const createAircraft = async (data: Aircraft) => {
   await db.insertInto('aircraft').values(data).execute();
 };
 
-export const updateAircraft = async (data: CreateAircraft) => {
+export const updateAircraft = async (data: Aircraft) => {
   await db
     .updateTable('aircraft')
     .set(data)
-    .where('icao', '=', data.icao)
+    .where('id', '=', data.id)
     .execute();
 };
 
 export const validateAndSaveAircraft = async (
-  data: z.infer<typeof aircraftSchema>,
+  aircraft: z.infer<typeof aircraftSchema>,
 ): Promise<ErrorActionResult> => {
-  const pathError = (path: string, message: string) => {
-    return { success: false, type: 'path', path, message } as const;
-  };
-
-  const aircraft = {
-    ...data,
-    icao: data.icao.toUpperCase(),
-  };
-
-  const icao = aircraft.icao;
-  const existingAircraft = await getAircraft(icao);
+  const existingAircraft = await getAircraft(aircraft.id);
   let updating = false;
   if (existingAircraft) {
     updating = true;

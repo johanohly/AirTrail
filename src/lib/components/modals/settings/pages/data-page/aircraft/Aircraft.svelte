@@ -18,8 +18,8 @@
     fetchAircraft,
   }: { aircraft: Aircraft[]; fetchAircraft: () => Promise<void> } = $props();
 
-  const deleteAircraft = async (icao: string) => {
-    const success = await api.aircraft.delete.mutate(icao);
+  const deleteAircraft = async (id: number) => {
+    const success = await api.aircraft.delete.mutate(id);
     if (success) {
       toast.success('Aircraft removed');
       await fetchAircraft();
@@ -39,19 +39,19 @@
   subtitle="Manage aircraft types in your database."
 >
   <div use:autoAnimate class="flex flex-col gap-4">
-    {#each aircraft as aircraftItem (aircraftItem.icao)}
+    {#each aircraft as aircraftItem (aircraftItem.id)}
       <Card level="2" class="w-full flex items-center justify-between p-3">
         <div class="flex flex-col gap-1">
           <h4 class="leading-4">{aircraftItem.name}</h4>
           <p class="text-sm">
             <span class="text-muted-foreground">ICAO</span>
-            <b>{aircraftItem.icao}</b>
+            <b>{aircraftItem.icao ?? 'N/A'}</b>
           </p>
         </div>
         <div class="flex items-center gap-2">
           <EditAircraft aircraft={aircraftItem} />
           <Confirm
-            onConfirm={async () => deleteAircraft(aircraftItem.icao)}
+            onConfirm={async () => deleteAircraft(aircraftItem.id)}
             title="Remove Aircraft"
             description="Are you sure you want to remove this aircraft? This may affect existing flight records."
           >

@@ -19,10 +19,17 @@ const airports = (
   ];
 };
 
+const aircraft = (db: Kysely<DB>, id: Expression<number>) => {
+  return jsonObjectFrom(
+    db.selectFrom('aircraft').selectAll().where('aircraft.id', '=', id),
+  ).as('aircraft');
+};
+
 export const listFlightPrimitive = async (db: Kysely<DB>, userId: string) => {
   return await db
     .selectFrom('flight')
     .selectAll('flight')
+    .select(({ ref }) => [aircraft(db, ref('flight.aircraftId'))])
     .select((eb) => airports(db, eb.ref('flight.from'), eb.ref('flight.to')))
     .select((eb) => [
       jsonArrayFrom(
@@ -49,6 +56,7 @@ export const getFlightPrimitive = async (db: Kysely<DB>, id: number) => {
     .selectFrom('flight')
     .selectAll()
     .select(({ ref }) => airports(db, ref('flight.from'), ref('flight.to')))
+    .select(({ ref }) => [aircraft(db, ref('flight.aircraftId'))])
     .select((eb) =>
       jsonArrayFrom(
         eb
@@ -97,13 +105,16 @@ export const updateFlightPrimitive = async (
   data: CreateFlight,
 ) => {
   await db.transaction().execute(async (trx) => {
-    const { seats, ...flightData } = data;
+    const { seats, aircraft, ...flightData } = data;
+    const aircraftId = aircraft?.id ?? null;
+
     await trx
       .updateTable('flight')
       .set({
         ...flightData,
         from: flightData.from.code,
         to: flightData.to.code,
+        aircraftId,
       })
       .where('id', '=', id)
       .executeTakeFirstOrThrow();

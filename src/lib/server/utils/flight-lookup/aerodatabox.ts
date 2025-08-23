@@ -12,9 +12,10 @@ import type { FlightLookupOptions, FlightLookupResult } from './flight-lookup';
 
 import { getAirport } from '$lib/server/utils/airport';
 import { appConfig } from '$lib/server/utils/config';
-import { type Aircraft, aircraftFromICAO } from '$lib/utils/data/aircraft';
 import { airlineFromICAO } from '$lib/utils/data/airlines';
 import { RequestRateLimiter } from '$lib/utils/ratelimiter';
+import { getAircraftByIcao } from '$lib/server/utils/aircraft';
+import type { Aircraft } from '$lib/db/types';
 
 const BASE_URL = 'https://aerodatabox.p.rapidapi.com';
 const rateLimiter = new RequestRateLimiter();
@@ -165,5 +166,5 @@ async function getAircraftFromReg(reg: string): Promise<Aircraft | null> {
     return null;
   }
 
-  return aircraftFromICAO(data.icaoCode);
+  return await getAircraftByIcao(data.icaoCode);
 }

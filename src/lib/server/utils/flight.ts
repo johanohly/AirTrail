@@ -1,5 +1,6 @@
 import type { TZDate } from '@date-fns/tz';
 import { differenceInSeconds, format, isBefore, parseISO } from 'date-fns';
+import type { Insertable } from 'kysely';
 import { z } from 'zod';
 
 import { db } from '$lib/db';
@@ -10,9 +11,8 @@ import {
   listFlightPrimitive,
   updateFlightPrimitive,
 } from '$lib/db/queries';
-import type { CreateFlight, User } from '$lib/db/types';
-import type { Insertable } from 'kysely';
 import type { DB } from '$lib/db/schema';
+import type { CreateFlight, User } from '$lib/db/types';
 import { distanceBetween } from '$lib/utils';
 import {
   estimateFlightDuration,

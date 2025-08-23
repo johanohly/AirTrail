@@ -21,10 +21,7 @@
   let open = $state(false);
 
   const form = superForm(
-    defaults<Infer<typeof aircraftSchema>>(
-      aircraft,
-      zod(aircraftSchema),
-    ),
+    defaults<Infer<typeof aircraftSchema>>(aircraft, zod(aircraftSchema)),
     {
       dataType: 'json',
       id: Math.random().toString(36).substring(7),
