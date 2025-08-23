@@ -56,7 +56,6 @@
         $formData.id = flight.id;
       },
       onUpdate({ form }) {
-        console.log('onUpdate', form);
         if (form.message) {
           if (form.message.type === 'success') {
             trpc.flight.list.utils.invalidate();
