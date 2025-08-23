@@ -4,6 +4,6 @@
   const { children }: { children: Snippet } = $props();
 </script>
 
-<nav class="flex lg:flex-col lg:space-y-1">
+<nav class="flex md:flex-col md:space-y-1">
   {@render children()}
 </nav>

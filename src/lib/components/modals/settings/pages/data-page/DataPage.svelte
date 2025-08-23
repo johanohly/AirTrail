@@ -6,10 +6,12 @@
   import Aircraft from './aircraft/Aircraft.svelte';
   import CustomAirports from './airport/CustomAirports.svelte';
   import UpdateFromSource from './UpdateFromSource.svelte';
+  import StatCard from './StatCard.svelte';
 
-  import StatCard from '$lib/components/modals/settings/pages/data-page/StatCard.svelte';
   import type { Aircraft as AircraftType, Airport } from '$lib/db/types';
   import { api } from '$lib/trpc';
+  import { Card } from '$lib/components/ui/card';
+  import { CardContent } from '$lib/components/ui/card/index.js';
 
   let numAirports: number | null = $state(null);
   let customAirports: Airport[] = $state([]);
@@ -29,14 +31,6 @@
     fetchAirports();
     fetchAircraft();
   });
-
-  const zeros = (value: number) => {
-    const maxLength = 13;
-    const valueLength = value.toString().length;
-    const zeroLength = maxLength - valueLength;
-
-    return '0'.repeat(zeroLength);
-  };
 </script>
 
 <PageHeader
@@ -44,48 +38,27 @@
   subtitle="Manage custom airports, airlines and airplanes."
 >
   <div class="flex flex-col gap-4">
-    <div class="flex">
-      <div
-        class="flex flex-col justify-between rounded-3xl bg-zinc-50 dark:bg-dark-1 p-5"
-      >
-        <div class="flex flex-wrap gap-x-12">
-          <div class="flex place-items-center gap-4 text-primary">
-            <FlightTakeoff />
-            <p>Airports</p>
-          </div>
-
-          <div class="relative text-center font-mono text-2xl font-semibold">
-            <span class="text-[#DCDADA] dark:text-[#525252]"
-              >{zeros(numAirports ?? 0)}</span
-            ><span class="text-primary">{numAirports}</span>
-          </div>
+    <Card>
+      <CardContent>
+        <div class="flex flex-col">
+          <StatCard title="Airports" value={numAirports}>
+            {#snippet icon()}
+              <FlightTakeoff class="text-primary" />
+            {/snippet}
+          </StatCard>
+          <StatCard title="Custom Airports" value={customAirports.length}>
+            {#snippet icon()}
+              <LocationOn class="text-primary" />
+            {/snippet}
+          </StatCard>
+          <StatCard title="Aircraft" value={aircraft.length}>
+            {#snippet icon()}
+              <Flight class="text-primary" />
+            {/snippet}
+          </StatCard>
         </div>
-        <div class="flex flex-wrap gap-x-12">
-          <div class="flex place-items-center gap-4 text-primary">
-            <LocationOn />
-            <p>Custom Airports</p>
-          </div>
-
-          <div class="relative text-center font-mono text-2xl font-semibold">
-            <span class="text-[#DCDADA] dark:text-[#525252]"
-              >{zeros(customAirports.length)}</span
-            ><span class="text-primary">{customAirports.length}</span>
-          </div>
-        </div>
-        <div class="flex flex-wrap gap-x-12">
-          <div class="flex place-items-center gap-4 text-primary">
-            <Flight />
-            <p>Aircraft</p>
-          </div>
-
-          <div class="relative text-center font-mono text-2xl font-semibold">
-            <span class="text-[#DCDADA] dark:text-[#525252]"
-              >{zeros(aircraft.length ?? 0)}</span
-            ><span class="text-primary">{aircraft.length}</span>
-          </div>
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
 
     <UpdateFromSource {fetchAirports} />
     <CustomAirports bind:airports={customAirports} {fetchAirports} />

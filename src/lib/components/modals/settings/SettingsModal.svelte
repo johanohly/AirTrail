@@ -20,7 +20,7 @@
   import { Modal } from '$lib/components/ui/modal';
   import { Separator } from '$lib/components/ui/separator';
   import { cn } from '$lib/utils';
-  import { isLargeScreen } from '$lib/utils/size';
+  import { isMediumScreen } from '$lib/utils/size';
 
   const ACCOUNT_SETTINGS = [
     { title: 'General', id: 'general' },
@@ -73,8 +73,8 @@
       </p>
     </div>
     <Separator class="my-6" />
-    <div class="flex flex-col gap-8 lg:flex-row lg:gap-12">
-      <aside class="flex lg:flex-col md:-mx-4 lg:w-1/5 overflow-auto">
+    <div class="flex flex-col gap-8 md:flex-row md:gap-12">
+      <aside class="flex md:flex-col md:-mx-4 md:w-1/5 overflow-auto">
         <SettingsTabContainer>
           {#each ACCOUNT_SETTINGS as setting}
             {@const isActive = activeTab === setting.id}
@@ -104,7 +104,7 @@
         {#if user && user.role !== 'user'}
           <Separator
             class="my-2"
-            orientation={$isLargeScreen ? 'horizontal' : 'vertical'}
+            orientation={$isMediumScreen ? 'horizontal' : 'vertical'}
           />
           <SettingsTabContainer>
             {#each ADMIN_SETTINGS as setting}
@@ -134,7 +134,7 @@
           </SettingsTabContainer>
         {/if}
       </aside>
-      <div class="flex-1 lg:max-w-2xl">
+      <div class="flex-1 md:max-w-2xl">
         {#if activeTab === 'general'}
           <GeneralPage />
         {:else if activeTab === 'security'}
