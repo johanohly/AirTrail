@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Plus } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
@@ -39,7 +40,14 @@
   const { enhance } = form;
 </script>
 
-<Button variant="outline" onclick={() => (open = true)}>Create</Button>
+<Button
+  variant="outline"
+  onclick={() => (open = true)}
+  class="font-medium shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]"
+>
+  <Plus size={16} class="shrink-0 mr-2" />
+  Create
+</Button>
 
 <Modal bind:open dialogOnly>
   <h2 class="text-lg font-medium">Add Aircraft</h2>
