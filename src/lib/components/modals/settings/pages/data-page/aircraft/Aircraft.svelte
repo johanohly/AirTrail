@@ -13,26 +13,18 @@
   import { Input } from '$lib/components/ui/input';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import type { Aircraft } from '$lib/db/types';
-  import { api } from '$lib/trpc';
+  import { api, trpc } from '$lib/trpc';
 
-  const {
-    aircraft = $bindable([]),
-    fetchAircraft,
-  }: { aircraft: Aircraft[]; fetchAircraft: () => Promise<void> } = $props();
+  const { aircraft = [] }: { aircraft: Aircraft[] } = $props();
 
   const deleteAircraft = async (id: number) => {
     const success = await api.aircraft.delete.mutate(id);
     if (success) {
+      await trpc.aircraft.list.utils.invalidate();
       toast.success('Aircraft removed');
-      await fetchAircraft();
     } else {
       toast.error('Failed to remove aircraft');
     }
-  };
-
-  const onCreate = async (newAircraft: Aircraft) => {
-    aircraft.push(newAircraft);
-    await fetchAircraft();
   };
 
   const filteredAircraft = $derived(
@@ -53,7 +45,7 @@
   <div class="flex flex-col gap-4">
     <div class="flex gap-2 justify-between">
       <Input oninput={handleSearch} class="h-9" placeholder="Search aircraft" />
-      <CreateAircraft onAircraftCreate={onCreate} />
+      <CreateAircraft />
     </div>
 
     <ScrollArea class="h-[40dvh]">

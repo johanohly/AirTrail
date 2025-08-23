@@ -29,7 +29,7 @@
       onUpdated({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
-            trpc.flight.list.utils.invalidate();
+            trpc.aircraft.list.utils.invalidate();
             open = false;
             return void toast.success(form.message.text);
           }

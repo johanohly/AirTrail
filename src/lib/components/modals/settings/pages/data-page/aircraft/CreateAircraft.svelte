@@ -9,14 +9,8 @@
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
   import { Modal } from '$lib/components/ui/modal';
-  import type { Aircraft } from '$lib/db/types';
   import { aircraftSchema } from '$lib/zod/aircraft';
-
-  const {
-    onAircraftCreate,
-  }: {
-    onAircraftCreate: (aircraft: Aircraft) => Promise<void>;
-  } = $props();
+  import { trpc } from '$lib/trpc';
 
   let open = $state(false);
 
@@ -28,8 +22,8 @@
       onUpdated({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
+            trpc.aircraft.list.utils.invalidate();
             open = false;
-            onAircraftCreate(form.data);
             return void toast.success(form.message.text);
           }
           toast.error(form.message.text);

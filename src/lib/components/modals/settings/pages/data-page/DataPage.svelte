@@ -5,17 +5,19 @@
 
   import Aircraft from './aircraft/Aircraft.svelte';
   import CustomAirports from './airport/CustomAirports.svelte';
-  import UpdateFromSource from './UpdateFromSource.svelte';
   import StatCard from './StatCard.svelte';
+  import UpdateFromSource from './UpdateFromSource.svelte';
 
-  import type { Aircraft as AircraftType, Airport } from '$lib/db/types';
-  import { api } from '$lib/trpc';
   import { Card } from '$lib/components/ui/card';
   import { CardContent } from '$lib/components/ui/card/index.js';
+  import type { Airport } from '$lib/db/types';
+  import { api, trpc } from '$lib/trpc';
 
   let numAirports: number | null = $state(null);
   let customAirports: Airport[] = $state([]);
-  let aircraft: AircraftType[] = $state([]);
+
+  const aircraftResult = trpc.aircraft.list.query();
+  let aircraft = $derived.by(() => $aircraftResult.data || []);
 
   const fetchAirports = async () => {
     const airportData = await api.airport.getData.query();
@@ -23,13 +25,8 @@
     customAirports = airportData.customAirports;
   };
 
-  const fetchAircraft = async () => {
-    aircraft = await api.aircraft.list.query();
-  };
-
   $effect(() => {
     fetchAirports();
-    fetchAircraft();
   });
 </script>
 
@@ -62,6 +59,6 @@
 
     <UpdateFromSource {fetchAirports} />
     <CustomAirports bind:airports={customAirports} {fetchAirports} />
-    <Aircraft bind:aircraft {fetchAircraft} />
+    <Aircraft {aircraft} />
   </div>
 </PageHeader>
