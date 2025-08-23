@@ -34,6 +34,7 @@
             <div class="grid grid-cols-[1fr_auto] gap-2">
               <SeatUserField {form} {index} />
               <button
+                type="button"
                 class="group flex items-center justify-center size-8 disabled:cursor-not-allowed"
                 disabled={$formData.seats.length === 1}
                 onclick={() => {
