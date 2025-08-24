@@ -14,15 +14,9 @@ export type aircraft = {
 };
 export type airline = {
     id: Generated<number>;
-    /**
-     * ICAO airline code
-     */
-    icao: string | null;
-    /**
-     * IATA airline code
-     */
-    iata: string | null;
     name: string;
+    icao: string | null;
+    iata: string | null;
 };
 export type airport = {
     /**
