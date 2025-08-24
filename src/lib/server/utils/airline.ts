@@ -27,16 +27,6 @@ export const getAirlineByIcao = async (
   );
 };
 
-export const getAirlineById = async (id: number): Promise<Airline | null> => {
-  return (
-    (await db
-      .selectFrom('airline')
-      .selectAll()
-      .where('id', '=', id)
-      .executeTakeFirst()) ?? null
-  );
-};
-
 export const findAirline = async (input: string): Promise<Airline[] | null> => {
   return await db
     .selectFrom('airline')
