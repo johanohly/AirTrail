@@ -34,11 +34,7 @@
   const { enhance } = form;
 </script>
 
-<Button
-  variant="outline"
-  onclick={() => (open = true)}
-  class="font-medium shadow-sm hover:shadow-md transition-all duration-200 hover:scale-[1.02]"
->
+<Button variant="outline" onclick={() => (open = true)}>
   <Plus size={16} class="shrink-0 mr-2" />
   Create
 </Button>

@@ -2,9 +2,8 @@ import { differenceInSeconds, format } from 'date-fns';
 
 import { page } from '$app/state';
 import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
-import type { CreateFlight, SeatClasses } from '$lib/db/types';
+import type { Airline, CreateFlight, SeatClasses } from '$lib/db/types';
 import { api } from '$lib/trpc';
-import { airlineFromIATA } from '$lib/utils/data/airlines';
 import { parseLocalISO } from '$lib/utils/datetime';
 
 const AITA_SEAT_CLASS_MAP: Record<string, (typeof SeatClasses)[number]> = {
@@ -81,9 +80,9 @@ export const processAITAFile = async (
       }
 
       const airlineIata = flightNumber.split(';')[0];
-      let airline: string | null = null;
+      let airline: Airline | null = null;
       if (options.airlineFromFlightNumber && airlineIata) {
-        airline = airlineFromIATA(airlineIata)?.icao ?? null;
+        airline = (await api.airline.getByIata.query(airlineIata)) ?? null;
       }
 
       const seatNumber = rawSeat && rawSeat !== 'None' ? rawSeat : null;

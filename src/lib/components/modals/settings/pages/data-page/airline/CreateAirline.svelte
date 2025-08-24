@@ -4,32 +4,26 @@
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
 
-  import AirportFormFields from './AirportFormFields.svelte';
+  import AirlineFormFields from './AirlineFormFields.svelte';
 
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
   import { Modal } from '$lib/components/ui/modal';
-  import type { Airport } from '$lib/db/types';
-  import { airportSchema } from '$lib/zod/airport';
-
-  const {
-    onAirportCreate,
-  }: {
-    onAirportCreate: (airport: Airport) => Promise<void>;
-  } = $props();
+  import { airlineSchema } from '$lib/zod/airline';
+  import { trpc } from '$lib/trpc';
 
   let open = $state(false);
 
   const form = superForm(
-    defaults<Infer<typeof airportSchema>>(zod(airportSchema)),
+    defaults<Infer<typeof airlineSchema>>(zod(airlineSchema)),
     {
       dataType: 'json',
-      validators: zod(airportSchema),
+      validators: zod(airlineSchema),
       onUpdated({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
+            trpc.airline.list.utils.invalidate();
             open = false;
-            onAirportCreate({ ...form.data, custom: true });
             return void toast.success(form.message.text);
           }
           toast.error(form.message.text);
@@ -46,14 +40,14 @@
 </Button>
 
 <Modal bind:open dialogOnly>
-  <h2 class="text-lg font-medium">Add Airport</h2>
+  <h2 class="text-lg font-medium">Add Airline</h2>
   <form
     method="POST"
-    action="/api/airport/save/form"
+    action="/api/airline/save/form"
     class="grid gap-4"
     use:enhance
   >
-    <AirportFormFields {form} />
+    <AirlineFormFields {form} />
     <Form.Button>Create</Form.Button>
   </form>
 </Modal>

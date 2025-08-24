@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-import { RequestRateLimiter } from '$lib/utils/ratelimiter';
 import { getAirport } from '$lib/server/utils/airport';
-import { airlineFromICAO } from '$lib/utils/data/airlines';
+import { api } from '$lib/trpc';
+import { RequestRateLimiter } from '$lib/utils/ratelimiter';
 
 const flightRouteSchema = z.object({
   response: z.object({
@@ -43,7 +43,7 @@ export async function getFlightRoute(flightNumber: string) {
     {
       from,
       to,
-      airline: airlineFromICAO(result.airline.icao),
+      airline: await api.airline.getByIcao.query(result.airline.icao),
       departure: null,
       arrival: null,
     },

@@ -62,6 +62,15 @@ model aircraft {
   flights flight[]
 }
 
+model airline {
+  id   Int     @id @default(autoincrement())
+  name String
+  icao String?
+  iata String?
+
+  flights flight[]
+}
+
 model flight {
   id        Int     @id @default(autoincrement())
   date      String
@@ -76,13 +85,13 @@ model flight {
   flight_number String?
   /// @kyselyType('leisure' | 'business' | 'crew' | 'other')
   flight_reason String?
-  /// ICAO airline code
-  airline       String?
   aircraft_reg  String?
   note          String?
 
   aircraft_id Int?
+  airline_id  Int?
   aircraft aircraft? @relation(fields: [aircraft_id], references: [id])
+  airline  airline?  @relation(fields: [airline_id], references: [id])
   seats    seat[]
 }
 

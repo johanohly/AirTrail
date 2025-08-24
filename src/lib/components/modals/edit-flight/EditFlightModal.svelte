@@ -55,12 +55,13 @@
       onSubmit() {
         $formData.id = flight.id;
       },
-      onUpdated({ form }) {
+      onUpdate({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
             trpc.flight.list.utils.invalidate();
+            toast.success(form.message.text);
             open = false;
-            return void toast.success(form.message.text);
+            return;
           }
           toast.error(form.message.text);
         }
@@ -79,7 +80,7 @@
         {...props}
         disabled={triggerDisabled}
       >
-        <SquarePen size="20" />
+        <SquarePen size={16} />
       </Button>
     {/snippet}
   </Dialog.Trigger>

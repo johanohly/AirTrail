@@ -34,6 +34,7 @@
     "@deck.gl/layers": "~9.1.14",
     "@deck.gl/mapbox": "~9.1.14",
     "@formkit/auto-animate": "^0.8.2",
+    "@humanspeak/svelte-virtual-list": "^0.2.6",
     "@internationalized/date": "^3.8.2",
     "@layerstack/utils": "^2.0.0-next.14",
     "@lucia-auth/adapter-postgresql": "^3.1.2",

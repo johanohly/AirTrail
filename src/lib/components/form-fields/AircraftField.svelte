@@ -127,6 +127,7 @@
             onclick={() => {
               // @ts-expect-error - This is totally fine
               $selected = undefined;
+              $formData.aircraft = null;
               $inputValue = '';
             }}
             class="cursor-pointer absolute right-10 top-1/2 z-10 -translate-y-1/2 text-muted-foreground hover:text-foreground"

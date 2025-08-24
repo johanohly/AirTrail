@@ -10,12 +10,12 @@ import {
 
 import type { FlightLookupOptions, FlightLookupResult } from './flight-lookup';
 
+import type { Aircraft } from '$lib/db/types';
+import { getAircraftByIcao } from '$lib/server/utils/aircraft';
 import { getAirport } from '$lib/server/utils/airport';
 import { appConfig } from '$lib/server/utils/config';
-import { airlineFromICAO } from '$lib/utils/data/airlines';
 import { RequestRateLimiter } from '$lib/utils/ratelimiter';
-import { getAircraftByIcao } from '$lib/server/utils/aircraft';
-import type { Aircraft } from '$lib/db/types';
+import { getAirlineByIcao } from '$lib/server/utils/airline';
 
 const BASE_URL = 'https://aerodatabox.p.rapidapi.com';
 const rateLimiter = new RequestRateLimiter();
@@ -125,7 +125,9 @@ export async function getFlightRoute(
       to: toAirport,
       departure: departureTime,
       arrival: arrivalTime,
-      airline: item.airline?.icao ? airlineFromICAO(item.airline.icao) : null,
+      airline: item.airline?.icao
+        ? await getAirlineByIcao(item.airline.icao)
+        : null,
       aircraft: item.aircraft?.reg
         ? await getAircraftFromReg(item.aircraft.reg)
         : null,
