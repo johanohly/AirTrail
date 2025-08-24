@@ -271,7 +271,8 @@
 {/snippet}
 
 {#snippet flightAndTailNumber(flight)}
-  {#if flight.flightNumber || flight.aircraftReg}
+  {@const hasAircraftDetails = flight.aircraft || flight.aircraftReg}
+  {#if flight.flightNumber || hasAircraftDetails}
     <Tooltip.AutoTooltip
       text={flight.flightNumber ?? formatAircraft(flight)}
       class="text-sm truncate"
@@ -279,7 +280,7 @@
   {:else}
     <p class="text-sm text-transparent">.</p>
   {/if}
-  {#if flight.flightNumber && flight.aircraftReg}
+  {#if flight.flightNumber && hasAircraftDetails}
     <Tooltip.AutoTooltip
       text={formatAircraft(flight)}
       class="text-sm text-muted-foreground truncate"
