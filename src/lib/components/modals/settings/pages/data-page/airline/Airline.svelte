@@ -8,11 +8,11 @@
 
   import { Confirm } from '$lib/components/helpers';
   import { Button } from '$lib/components/ui/button';
+  import { Card } from '$lib/components/ui/card';
   import { Collapsible } from '$lib/components/ui/collapsible';
   import { Input } from '$lib/components/ui/input';
   import type { Airline } from '$lib/db/types';
   import { api, trpc } from '$lib/trpc';
-  import { Card } from '$lib/components/ui/card';
 
   const { airlines = [] }: { airlines: Airline[] } = $props();
 

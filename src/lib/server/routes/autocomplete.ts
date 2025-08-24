@@ -6,12 +6,6 @@ import { findAircraft } from '$lib/server/utils/aircraft';
 import { findAirline } from '$lib/server/utils/airline';
 import { findAirports } from '$lib/server/utils/airport';
 
-const eq = (a: string | number, b: string | number) => {
-  a = String(a);
-  b = String(b);
-  return a.toLowerCase() === b.toLowerCase();
-};
-
 export const autocompleteRouter = router({
   airport: authedProcedure
     .input(z.string())

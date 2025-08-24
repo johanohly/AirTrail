@@ -16,9 +16,7 @@ export const getAirport = async (input: string): Promise<Airport | null> => {
   );
 };
 
-export const findAirports = async (
-  input: string,
-): Promise<Airport[] | null> => {
+export const findAirports = async (input: string): Promise<Airport[]> => {
   return await findAirportsPrimitive(db, input);
 };
 
