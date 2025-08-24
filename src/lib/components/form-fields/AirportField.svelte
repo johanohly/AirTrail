@@ -152,7 +152,7 @@
         tabindex="0"
         use:autoAnimate
       >
-        {#each airports as airport (airport.code)}
+        {#each airports as airport (airport.id)}
           <li
             use:melt={$option({
               value: airport,
@@ -176,7 +176,7 @@
                     <b class="mr-2">{airport.iata}</b>
                   {/if}
                   <span class="text-muted-foreground">ICAO</span>
-                  <b>{airport.code}</b>
+                  <b>{airport.icao}</b>
                 </p>
               </div>
               <div class="w-12 shrink-0">

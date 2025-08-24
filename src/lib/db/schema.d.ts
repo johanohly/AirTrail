@@ -19,10 +19,8 @@ export type airline = {
     iata: string | null;
 };
 export type airport = {
-    /**
-     * ICAO code (could also be a regional code like "DE-0456")
-     */
-    code: string;
+    id: Generated<number>;
+    icao: string;
     iata: string | null;
     lat: number;
     lon: number;
@@ -54,8 +52,6 @@ export type app_config = {
 export type flight = {
     id: Generated<number>;
     date: string;
-    from: string;
-    to: string;
     /**
      * YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
      */
@@ -72,6 +68,8 @@ export type flight = {
     flightReason: 'leisure' | 'business' | 'crew' | 'other' | null;
     aircraftReg: string | null;
     note: string | null;
+    fromId: number | null;
+    toId: number | null;
     aircraftId: number | null;
     airlineId: number | null;
 };

@@ -5,7 +5,7 @@ datasource db {
 }
 
 generator kysely {
-  provider = "prisma-kysely"
+  provider        = "prisma-kysely"
   previewFeatures = ["postgresqlExtensions"]
 
   output    = "../src/lib/db"
@@ -38,8 +38,8 @@ model user {
 }
 
 model airport {
-  /// ICAO code (could also be a regional code like "DE-0456")
-  code      String  @id
+  id        Int     @id @default(autoincrement())
+  icao      String
   iata      String?
   lat       Float
   lon       Float
@@ -51,10 +51,14 @@ model airport {
   continent String
   country   String
   custom    Boolean @default(false)
+
+  flights_from flight[] @relation("flights_from")
+
+  flights_to flight[] @relation("flights_to")
 }
 
 model aircraft {
-  id   Int  @id @default(autoincrement())
+  id   Int     @id @default(autoincrement())
   /// ICAO aircraft type code
   name String
   icao String?
@@ -74,8 +78,6 @@ model airline {
 model flight {
   id        Int     @id @default(autoincrement())
   date      String
-  from      String
-  to        String
   /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
   departure String?
   /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
@@ -88,11 +90,19 @@ model flight {
   aircraft_reg  String?
   note          String?
 
+  from_id     Int?
+  to_id       Int?
   aircraft_id Int?
   airline_id  Int?
+
+  from     airport?  @relation("flights_from", fields: [from_id], references: [id])
+  to       airport?  @relation("flights_to", fields: [to_id], references: [id])
   aircraft aircraft? @relation(fields: [aircraft_id], references: [id])
   airline  airline?  @relation(fields: [airline_id], references: [id])
   seats    seat[]
+
+  @@index([from_id], map: "flight_from_id_idx")
+  @@index([to_id],   map: "flight_to_id_idx")
 }
 
 model seat {

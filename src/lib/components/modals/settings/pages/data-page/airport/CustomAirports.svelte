@@ -20,8 +20,8 @@
     fetchAirports,
   }: { airports: Airport[]; fetchAirports: () => Promise<void> } = $props();
 
-  const deleteAirport = async (code: string) => {
-    const success = await api.airport.delete.mutate(code);
+  const deleteAirport = async (id: number) => {
+    const success = await api.airport.delete.mutate(id);
     if (success) {
       toast.success('Airport removed');
       await fetchAirports();
@@ -56,7 +56,7 @@
       <CreateAirport onAirportCreate={onCreate} />
     </div>
     <div use:autoAnimate class="flex flex-col gap-4">
-      {#each filteredAirports as airport (airport.code)}
+      {#each filteredAirports as airport (airport.id)}
         <Card level="2" class="w-full flex items-center justify-between p-3">
           <div class="flex flex-col gap-1">
             <h4 class="leading-4">{airport.name}</h4>
@@ -66,13 +66,13 @@
                 <b class="mr-2">{airport.iata}</b>
               {/if}
               <span class="text-muted-foreground">ICAO</span>
-              <b>{airport.code}</b>
+              <b>{airport.icao}</b>
             </p>
           </div>
           <div class="flex items-center gap-2">
             <EditAirport {airport} />
             <Confirm
-              onConfirm={async () => deleteAirport(airport.code)}
+              onConfirm={async () => deleteAirport(airport.id)}
               title="Remove Airport"
               description="Are you sure you want to remove this airport?"
             >

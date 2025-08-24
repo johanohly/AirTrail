@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import type { RequestHandler } from './$types';
 
-import { getAirport } from '$lib/server/utils/airport';
+import { getAirportByIcao } from '$lib/server/utils/airport';
 import { apiError, unauthorized, validateApiKey } from '$lib/server/utils/api';
 import { validateAndSaveFlight } from '$lib/server/utils/flight';
 import { flightSchema } from '$lib/zod/flight';
@@ -44,12 +44,12 @@ export const POST: RequestHandler = async ({ request }) => {
     return unauthorized();
   }
 
-  const from = await getAirport(parsed.data.from);
+  const from = await getAirportByIcao(parsed.data.from);
   if (!from) {
     return apiError('Invalid departure airport');
   }
 
-  const to = await getAirport(parsed.data.to);
+  const to = await getAirportByIcao(parsed.data.to);
   if (!to) {
     return apiError('Invalid arrival airport');
   }

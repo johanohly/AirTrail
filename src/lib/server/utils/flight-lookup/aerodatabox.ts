@@ -12,10 +12,10 @@ import type { FlightLookupOptions, FlightLookupResult } from './flight-lookup';
 
 import type { Aircraft } from '$lib/db/types';
 import { getAircraftByIcao } from '$lib/server/utils/aircraft';
-import { getAirport } from '$lib/server/utils/airport';
+import { getAirlineByIcao } from '$lib/server/utils/airline';
+import { getAirportByIcao } from '$lib/server/utils/airport';
 import { appConfig } from '$lib/server/utils/config';
 import { RequestRateLimiter } from '$lib/utils/ratelimiter';
-import { getAirlineByIcao } from '$lib/server/utils/airline';
 
 const BASE_URL = 'https://aerodatabox.p.rapidapi.com';
 const rateLimiter = new RequestRateLimiter();
@@ -100,8 +100,8 @@ export async function getFlightRoute(
 
   const result: FlightLookupResult = [];
   for (const item of data) {
-    const fromAirport = await getAirport(item.departure.airport.icao);
-    const toAirport = await getAirport(item.arrival.airport.icao);
+    const fromAirport = await getAirportByIcao(item.departure.airport.icao);
+    const toAirport = await getAirportByIcao(item.arrival.airport.icao);
 
     if (!fromAirport || !toAirport) {
       continue;

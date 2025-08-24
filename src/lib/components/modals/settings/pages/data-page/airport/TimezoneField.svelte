@@ -57,7 +57,7 @@
 <Form.Field {form} name="tz" class="flex flex-col">
   <Form.Control>
     {#snippet children({ props })}
-      <Form.Label>Timezone</Form.Label>
+      <Form.Label>Timezone *</Form.Label>
       <Form.Description>
         The timezone of the airport. <HelpTooltip
           text="Needed for accurate time normalization. The backend converts all times to UTC for storage, so it needs to know the timezone for conversion."
