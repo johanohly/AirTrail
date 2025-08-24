@@ -20,6 +20,7 @@
     const success = await api.aircraft.delete.mutate(id);
     if (success) {
       await trpc.aircraft.list.utils.invalidate();
+      await trpc.flight.list.utils.invalidate();
       toast.success('Aircraft removed');
     } else {
       toast.error('Failed to remove aircraft');

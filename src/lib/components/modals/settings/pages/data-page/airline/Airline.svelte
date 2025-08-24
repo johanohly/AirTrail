@@ -20,6 +20,7 @@
     const success = await api.airline.delete.mutate(id);
     if (success) {
       await trpc.airline.list.utils.invalidate();
+      await trpc.flight.list.utils.invalidate();
       toast.success('Airline removed');
     } else {
       toast.error('Failed to remove airline');
