@@ -24,6 +24,7 @@ const seedAirports = [
     continent: 'EU',
     tz: 'Europe/London',
     type: 'large_airport',
+    iata: 'LHR',
   },
   {
     icao: 'KJFK',
@@ -34,6 +35,7 @@ const seedAirports = [
     continent: 'NA',
     tz: 'America/New_York',
     type: 'large_airport',
+    iata: 'JFK',
   },
   {
     icao: 'KMIA',
@@ -44,6 +46,7 @@ const seedAirports = [
     continent: 'NA',
     tz: 'America/New_York',
     type: 'large_airport',
+    iata: 'MIA',
   },
   {
     icao: 'OMDB',
@@ -54,6 +57,7 @@ const seedAirports = [
     continent: 'AS',
     tz: 'Asia/Dubai',
     type: 'large_airport',
+    iata: 'DXB',
   },
   {
     icao: 'HECA',
@@ -64,6 +68,7 @@ const seedAirports = [
     continent: 'AF',
     tz: 'Africa/Cairo',
     type: 'large_airport',
+    iata: 'CAI',
   },
   {
     icao: 'OEJN',
@@ -74,6 +79,7 @@ const seedAirports = [
     continent: 'AS',
     tz: 'Asia/Riyadh',
     type: 'large_airport',
+    iata: 'JED',
   },
   {
     icao: 'VHHH',
@@ -84,6 +90,7 @@ const seedAirports = [
     continent: 'AS',
     tz: 'Asia/Hong_Kong',
     type: 'large_airport',
+    iata: 'HKG',
   },
   {
     icao: 'RCTP',
@@ -94,6 +101,7 @@ const seedAirports = [
     continent: 'AS',
     tz: 'Asia/Taipei',
     type: 'large_airport',
+    iata: 'TPE',
   },
   {
     icao: 'OERK',
@@ -104,6 +112,7 @@ const seedAirports = [
     continent: 'AS',
     tz: 'Asia/Riyadh',
     type: 'large_airport',
+    iata: 'RUH',
   },
   {
     icao: 'VTBS',
@@ -114,6 +123,7 @@ const seedAirports = [
     continent: 'AS',
     tz: 'Asia/Bangkok',
     type: 'large_airport',
+    iata: 'BKK',
   },
   {
     icao: 'RKSI',
@@ -124,6 +134,7 @@ const seedAirports = [
     continent: 'AS',
     tz: 'Asia/Seoul',
     type: 'large_airport',
+    iata: 'ICN',
   },
 ];
 
@@ -143,7 +154,10 @@ export const seedFlight = async (db: Kysely<DB>, userId: string) => {
     } else {
       const newAirport = await db
         .insertInto('airport')
-        .values(airportData)
+        .values({
+          ...airportData,
+          custom: true,
+        })
         .returning('id')
         .executeTakeFirstOrThrow();
 
