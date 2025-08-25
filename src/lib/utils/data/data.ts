@@ -57,7 +57,7 @@ export const prepareFlightArcData = (data: FlightData[]) => {
       from: Airport;
       to: Airport;
       flights: ReturnType<typeof formatSimpleFlight>[];
-      airlines: string[];
+      airlines: number[];
       exclusivelyFuture: boolean;
     };
   } = {};
@@ -84,8 +84,8 @@ export const prepareFlightArcData = (data: FlightData[]) => {
     }
 
     if (flight.airline) {
-      if (!routeMap[key].airlines.includes(flight.airline)) {
-        routeMap[key].airlines.push(flight.airline);
+      if (!routeMap[key].airlines.includes(flight.airline.id)) {
+        routeMap[key].airlines.push(flight.airline.id);
       }
     }
   });
@@ -97,7 +97,7 @@ export const prepareVisitedAirports = (data: FlightData[]) => {
   const visited: (Airport & {
     arrivals: number;
     departures: number;
-    airlines: string[];
+    airlines: number[];
     flights: ReturnType<typeof formatSimpleFlight>[];
     frequency: number;
   })[] = [];
@@ -122,8 +122,8 @@ export const prepareVisitedAirports = (data: FlightData[]) => {
       visit.arrivals++;
     }
 
-    if (flight.airline && !visit.airlines.includes(flight.airline)) {
-      visit.airlines.push(flight.airline);
+    if (flight.airline && !visit.airlines.includes(flight.airline.id)) {
+      visit.airlines.push(flight.airline.id);
     }
 
     visit.flights.push(formatSimpleFlight(flight));
@@ -157,8 +157,8 @@ export const prepareVisitedAirports = (data: FlightData[]) => {
 
 const formatSimpleFlight = (f: FlightData) => {
   return {
-    airports: [f.from.code, f.to.code],
-    route: `${f.from.iata ?? f.from.code} - ${f.to.iata ?? f.to.code}`,
+    airports: [f.from.id, f.to.id],
+    route: `${f.from.iata ?? f.from.icao} - ${f.to.iata ?? f.to.icao}`,
     date: f.date,
     airline: f.airline ?? '',
   };

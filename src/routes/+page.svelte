@@ -27,9 +27,9 @@
     return flights.filter((f) => {
       if (
         (filters.departureAirports.length &&
-          !filters.departureAirports.includes(f.from.code)) ||
+          !filters.departureAirports.includes(f.from.id.toString())) ||
         (filters.arrivalAirports.length &&
-          !filters.arrivalAirports.includes(f.to.code))
+          !filters.arrivalAirports.includes(f.to.id.toString()))
       ) {
         return false;
       } else if (
