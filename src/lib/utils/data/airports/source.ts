@@ -9,7 +9,10 @@ import { airportSourceSchema } from '$lib/zod/airport';
 export const BATCH_SIZE = 1000;
 
 export const ensureAirports = async () => {
-  const airports = await db.selectFrom('airport').execute();
+  const airports = await db
+    .selectFrom('airport')
+    .where('custom', '=', false)
+    .execute();
   if (airports.length > 0) {
     return;
   }
