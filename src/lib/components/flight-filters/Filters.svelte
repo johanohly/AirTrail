@@ -44,6 +44,7 @@
       .map((airport) => ({
         value: airport.id.toString(),
         label: `${airport.iata ?? airport.icao} | ${airport.name}`,
+        shortLabel: airport.iata ?? airport.icao,
       }));
   };
 
