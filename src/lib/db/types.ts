@@ -24,18 +24,16 @@ export type Aircraft = Omit<aircraft, 'id'> & {
 export type Airline = Omit<airline, 'id'> & {
   id: number;
 };
-export type Airport = Omit<airport, 'custom'> & {
+export type Airport = Omit<airport, 'id' | 'custom'> & {
+  id: number;
   custom: boolean;
-};
-export type CreateAirport = Partial<Omit<Airport, 'code'>> & {
-  code: string;
 };
 export type Seat = Omit<seat, 'id'> & {
   id: number;
 };
 export type Flight = Omit<
   flight,
-  'id' | 'from' | 'to' | 'aircraftId' | 'airlineId'
+  'id' | 'fromId' | 'toId' | 'aircraftId' | 'airlineId'
 > & {
   id: number;
   from: Airport;
@@ -44,10 +42,10 @@ export type Flight = Omit<
   aircraft: Aircraft | null;
   airline: Airline | null;
 };
-type CreateFlightAirport = Partial<Omit<Airport, 'code'>> & {
-  code: string;
+type CreateFlightAirport = Partial<Omit<Airport, 'id'>> & {
+  id: number;
 };
-export type CreateFlight = Omit<Flight, 'id' | 'from' | 'to' | 'seats'> & {
+export type CreateFlight = Omit<Flight, 'id' | 'seats'> & {
   from: CreateFlightAirport;
   to: CreateFlightAirport;
   aircraft: Aircraft | null;

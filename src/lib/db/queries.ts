@@ -6,15 +6,15 @@ import type { CreateFlight } from './types';
 
 const airports = (
   db: Kysely<DB>,
-  from: Expression<string>,
-  to: Expression<string>,
+  from: Expression<number>,
+  to: Expression<number>,
 ) => {
   return [
     jsonObjectFrom(
-      db.selectFrom('airport').where('airport.code', '=', from).selectAll(),
+      db.selectFrom('airport').where('airport.id', '=', from).selectAll(),
     ).as('from'),
     jsonObjectFrom(
-      db.selectFrom('airport').where('airport.code', '=', to).selectAll(),
+      db.selectFrom('airport').where('airport.id', '=', to).selectAll(),
     ).as('to'),
   ];
 };
@@ -35,7 +35,9 @@ export const listFlightPrimitive = async (db: Kysely<DB>, userId: string) => {
   return await db
     .selectFrom('flight')
     .selectAll('flight')
-    .select((eb) => airports(db, eb.ref('flight.from'), eb.ref('flight.to')))
+    .select((eb) =>
+      airports(db, eb.ref('flight.fromId'), eb.ref('flight.toId')),
+    )
     .select(({ ref }) => [aircraft(db, ref('flight.aircraftId'))])
     .select(({ ref }) => [airline(db, ref('flight.airlineId'))])
     .select((eb) => [
@@ -62,7 +64,7 @@ export const getFlightPrimitive = async (db: Kysely<DB>, id: number) => {
   return await db
     .selectFrom('flight')
     .selectAll()
-    .select(({ ref }) => airports(db, ref('flight.from'), ref('flight.to')))
+    .select(({ ref }) => airports(db, ref('flight.fromId'), ref('flight.toId')))
     .select(({ ref }) => [aircraft(db, ref('flight.aircraftId'))])
     .select(({ ref }) => [airline(db, ref('flight.airlineId'))])
     .select((eb) =>
@@ -82,7 +84,9 @@ export const createFlightPrimitive = async (
   data: CreateFlight,
 ) => {
   return await db.transaction().execute(async (trx) => {
-    const { seats, aircraft, airline, ...flightData } = data;
+    const { seats, from, to, aircraft, airline, ...flightData } = data;
+    const fromId = from.id;
+    const toId = to.id;
     const aircraftId = aircraft?.id ?? null;
     const airlineId = airline?.id ?? null;
 
@@ -90,8 +94,8 @@ export const createFlightPrimitive = async (
       .insertInto('flight')
       .values({
         ...flightData,
-        from: flightData.from.code,
-        to: flightData.to.code,
+        fromId,
+        toId,
         aircraftId,
         airlineId,
       })
@@ -118,7 +122,9 @@ export const updateFlightPrimitive = async (
   data: CreateFlight,
 ) => {
   await db.transaction().execute(async (trx) => {
-    const { seats, aircraft, airline, ...flightData } = data;
+    const { seats, from, to, aircraft, airline, ...flightData } = data;
+    const fromId = from.id;
+    const toId = to.id;
     const aircraftId = aircraft?.id ?? null;
     const airlineId = airline?.id ?? null;
 
@@ -126,8 +132,8 @@ export const updateFlightPrimitive = async (
       .updateTable('flight')
       .set({
         ...flightData,
-        from: flightData.from.code,
-        to: flightData.to.code,
+        fromId,
+        toId,
         aircraftId,
         airlineId,
       })
@@ -196,15 +202,15 @@ export const findAirportsPrimitive = async (db: Kysely<DB>, input: string) => {
     .selectAll()
     .where((qb) =>
       qb.or([
+        qb('icao', 'ilike', input),
         qb('iata', 'ilike', input),
-        qb('code', 'ilike', input),
         sql<boolean>`unaccent("name") ILIKE unaccent(${namePattern})` as any,
       ]),
     )
     .select([
       sql`CASE
+              WHEN "icao" ILIKE ${input} THEN 1
               WHEN "iata" ILIKE ${input} THEN 1
-              WHEN "code" ILIKE ${input} THEN 1
               WHEN unaccent("name") ILIKE unaccent(${namePattern}) THEN 2
               ELSE 3
             END`.as('match_rank'),

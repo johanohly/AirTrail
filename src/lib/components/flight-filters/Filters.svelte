@@ -30,20 +30,21 @@
     flights: FlightData[],
     airportSelector: (f: FlightData) => Airport,
   ) => {
-    const seenICAO = new Set();
+    const seen = new Set();
     return flights
       .map(airportSelector)
       .filter((airport) => {
-        if (seenICAO.has(airport.code)) {
+        if (seen.has(airport.id)) {
           return false;
         } else {
-          seenICAO.add(airport.code);
+          seen.add(airport.id);
           return true;
         }
       })
       .map((airport) => ({
-        value: airport.code,
-        label: `${airport.iata ?? airport.code} | ${airport.name}`,
+        value: airport.id.toString(),
+        label: `${airport.iata ?? airport.icao} | ${airport.name}`,
+        shortLabel: airport.iata ?? airport.icao,
       }));
   };
 

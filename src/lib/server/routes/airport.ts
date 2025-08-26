@@ -6,7 +6,7 @@ import { getAirport } from '$lib/server/utils/airport';
 import { updateAirports } from '$lib/utils/data/airports/source';
 
 export const airportRouter = router({
-  get: authedProcedure.input(z.string()).query(async ({ input }) => {
+  get: authedProcedure.input(z.number()).query(async ({ input }) => {
     return await getAirport(input);
   }),
   getFromIATA: authedProcedure.input(z.string()).query(async ({ input }) => {
@@ -21,7 +21,7 @@ export const airportRouter = router({
   getData: authedProcedure.query(async () => {
     const numAirports = await db
       .selectFrom('airport')
-      .select((eb) => eb.fn.count('airport.code').as('count'))
+      .select((eb) => eb.fn.count('airport.id').as('count'))
       .where('custom', '=', false)
       .executeTakeFirst();
 
@@ -36,10 +36,10 @@ export const airportRouter = router({
       customAirports,
     };
   }),
-  delete: adminProcedure.input(z.string()).mutation(async ({ input }) => {
+  delete: adminProcedure.input(z.number()).mutation(async ({ input }) => {
     const result = await db
       .deleteFrom('airport')
-      .where('code', '=', input)
+      .where('id', '=', input)
       .execute();
     return result.length > 0;
   }),

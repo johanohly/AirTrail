@@ -54,14 +54,14 @@
 </Form.Field>
 
 <section class="grid grid-cols-2 gap-2">
-  <Form.Field {form} name="code" class="flex flex-col">
+  <Form.Field {form} name="icao" class="flex flex-col">
     <Form.Control>
       {#snippet children()}
         <Form.Label>ICAO *</Form.Label>
         <InputOTP.Root
-          value={$formData.code}
+          value={$formData.icao}
           onValueChange={(v) => {
-            $formData.code = v.toUpperCase();
+            $formData.icao = v.toUpperCase();
           }}
           pattern={REGEXP_ONLY_CHARS}
           maxlength={4}

@@ -94,7 +94,7 @@
   <Form.Field {form} name="country">
     <Form.Control>
       {#snippet children({ props })}
-        <Form.Label>Country</Form.Label>
+        <Form.Label>Country *</Form.Label>
         <Select.Root
           bind:value={$formData.country}
           name={props.name}
@@ -118,7 +118,7 @@
   <Form.Field {form} name="continent">
     <Form.Control>
       {#snippet children({ props })}
-        <Form.Label>Continent</Form.Label>
+        <Form.Label>Continent *</Form.Label>
         <Select.Root
           bind:value={$formData.continent}
           name={props.name}

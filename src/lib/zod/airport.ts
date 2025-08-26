@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { AirportTypes, Continents } from '$lib/db/types';
 
 export const airportSchema = z.object({
-  code: z
+  id: z.number(),
+  icao: z
     .string({ message: 'Set a code' })
     .regex(/^[A-Z]{4}$/, 'Code must be 4 uppercase letters'),
   type: z
@@ -30,17 +31,17 @@ export const airportSchema = z.object({
  * Only used inside the flight schema.
  */
 export const flightAirportSchema = z.object({
-  code: z
-    .string()
-    .refine((val) => val !== '', { message: 'Select an airport' }),
+  id: z.number(),
   type: z.enum(AirportTypes),
   name: z.string(),
   lat: z.number(),
   lon: z.number(),
   continent: z.enum(Continents),
   country: z.string(),
+  icao: z.string(),
   iata: z.string().nullable(),
   tz: z.string(),
+  custom: z.boolean(),
 });
 
 const yesNoBoolean = z.preprocess((val) => String(val) === 'yes', z.boolean());

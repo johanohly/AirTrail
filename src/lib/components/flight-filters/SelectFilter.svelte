@@ -19,10 +19,24 @@
     title: string;
     placeholder: string;
     disabled: boolean;
-    options: { value: string; label: string }[];
+    options: { value: string; label: string; shortLabel?: string }[];
   } = $props();
 
   let open = $state(false);
+
+  const optionByValue = $derived.by(() => {
+    const map = new Map<
+      string,
+      { value: string; label: string; shortLabel?: string }
+    >();
+    for (const o of options ?? []) map.set(o.value, o);
+    return map;
+  });
+
+  function getShortLabel(value: string) {
+    const opt = optionByValue.get(value);
+    return opt?.shortLabel ?? opt?.label ?? value;
+  }
 
   function handleSelect(currentValue: string) {
     if (Array.isArray(filterValues) && filterValues.includes(currentValue)) {
@@ -63,9 +77,9 @@
                 {filterValues.length} Selected
               </Badge>
             {:else}
-              {#each filterValues as option}
+              {#each filterValues as value}
                 <Badge variant="secondary" class="rounded-sm px-1 font-normal">
-                  {option}
+                  {getShortLabel(value)}
                 </Badge>
               {/each}
             {/if}

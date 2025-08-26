@@ -9,7 +9,10 @@ import { airportSourceSchema } from '$lib/zod/airport';
 export const BATCH_SIZE = 1000;
 
 export const ensureAirports = async () => {
-  const airports = await db.selectFrom('airport').execute();
+  const airports = await db
+    .selectFrom('airport')
+    .where('custom', '=', false)
+    .execute();
   if (airports.length > 0) {
     return;
   }
@@ -31,16 +34,16 @@ export const updateAirports = async () => {
   const start = Date.now();
 
   const existingAirports = await db.selectFrom('airport').selectAll().execute();
-  const existingMap = new Map(existingAirports.map((a) => [a.code, a]));
+  const existingMap = new Map(existingAirports.map((a) => [a.id, a]));
   const data = await fetchAirports();
-  const newMap = new Map(data.map((a) => [a.code, a]));
+  const newMap = new Map(data.map((a) => [a.id, a]));
 
   const newAirports: Airport[] = [];
   const updatedAirports: Airport[] = [];
   const removedAirports: Airport[] = [];
 
   for (const airport of data) {
-    const existing = existingMap.get(airport.code);
+    const existing = existingMap.get(airport.id);
 
     // Means the airport was manually added by the user
     if (existing?.custom) {
@@ -55,7 +58,7 @@ export const updateAirports = async () => {
   }
 
   for (const airport of existingAirports) {
-    if (!newMap.has(airport.code) && !airport.custom) {
+    if (!newMap.has(airport.id) && !airport.custom) {
       removedAirports.push(airport);
     }
   }
@@ -71,7 +74,7 @@ export const updateAirports = async () => {
     await db
       .updateTable('airport')
       .set(airport)
-      .where('code', '=', airport.code)
+      .where('id', '=', airport.id)
       .execute();
   }
 
@@ -79,9 +82,9 @@ export const updateAirports = async () => {
     await db
       .deleteFrom('airport')
       .where(
-        'code',
+        'id',
         'in',
-        removedAirports.slice(i, i + BATCH_SIZE).map((a) => a.code),
+        removedAirports.slice(i, i + BATCH_SIZE).map((a) => a.id),
       )
       .execute();
   }
@@ -135,7 +138,7 @@ export const fetchAirports = async (): Promise<Airport[]> => {
       }
 
       return {
-        code: createAirportCode(airport, dataMap),
+        icao: createAirportCode(airport, dataMap),
         iata: airport.iata_code === '' ? null : airport.iata_code,
         type: airport.type,
         name: airport.name,

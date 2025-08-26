@@ -53,12 +53,12 @@
           ...f,
           from: {
             iata: f.from.iata,
-            icao: f.from.code,
+            icao: f.from.icao,
             name: f.from.name,
           },
           to: {
             iata: f.to.iata,
-            icao: f.to.code,
+            icao: f.to.icao,
             name: f.to.name,
           },
           duration: f.duration

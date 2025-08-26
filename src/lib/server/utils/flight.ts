@@ -93,7 +93,7 @@ export const validateAndSaveFlight = async (
   let duration: number | null = null;
   if (departure && arrival) {
     duration = differenceInSeconds(arrival, departure);
-  } else if (from.code !== to.code) {
+  } else if (from.id !== to.id) {
     // if the airports are the same, the duration can't be calculated
     const fromLonLat = { lon: from.lon, lat: from.lat };
     const toLonLat = { lon: to.lon, lat: to.lat };
