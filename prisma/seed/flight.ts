@@ -3,7 +3,7 @@ import { Sync as Factory } from 'factory.ts';
 import { Kysely } from 'kysely';
 
 import type { DB } from '../../src/lib/db/schema';
-import type { CreateFlight, Airport } from '../../src/lib/db/types';
+import type { CreateFlight } from '../../src/lib/db/types';
 
 const routes = [
   { from: 'EGLL', to: 'KJFK', duration: 26637 }, // London-Heathrow to New York-JFK
