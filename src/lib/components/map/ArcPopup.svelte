@@ -19,7 +19,7 @@
       alt={data.from.country}
       class="w-8 h-5 mr-2"
     />
-    {data.from.iata ?? data.from.code} - {data.from.name}
+    {data.from.iata ?? data.from.icao} - {data.from.name}
   </h4>
   <h4 class="flex items-center text-lg">
     <img
@@ -27,7 +27,7 @@
       alt={data.to.country}
       class="w-8 h-5 mr-2"
     />
-    {data.to.iata ?? data.to.code} - {data.to.name}
+    {data.to.iata ?? data.to.icao} - {data.to.name}
   </h4>
 </div>
 <div class="h-px bg-muted my-3" />
@@ -64,7 +64,7 @@
     <div class="grid grid-cols-[repeat(3,1fr)]">
       <h4 class="font-thin">{flight.route}</h4>
       <h4 class="font-thin">{formatAsDate(flight.date, true, true)}</h4>
-      <h4 class="font-thin">{flight.airline}</h4>
+      <h4 class="font-thin">{flight.airline.name}</h4>
     </div>
   {/each}
   {#if data.flights.length > 5}

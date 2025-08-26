@@ -94,12 +94,12 @@
       if (hoveredAirport == airport) {
         return AIRPORT_COLOR(80);
       } else if (
-        hoveredAirport?.flights.some((f) => f.airports.includes(airport.code))
+        hoveredAirport?.flights.some((f) => f.airports.includes(airport.id))
       ) {
         return AIRPORT_COLOR(50);
       } else if (
-        hoveredArc?.from.code === airport.code ||
-        hoveredArc?.to.code === airport.code
+        hoveredArc?.from.id === airport.id ||
+        hoveredArc?.to.id === airport.id
       ) {
         return AIRPORT_COLOR(50);
       } else if (hoveredArc) {
@@ -115,15 +115,15 @@
   const getAirportLineColor = () => {
     return (airport: (typeof visitedAirports)[number]): Color => {
       if (
-        hoveredAirport?.code === airport.code ||
-        hoveredAirport?.flights.some((f) => f.airports.includes(airport.code))
+        hoveredAirport?.id === airport.id ||
+        hoveredAirport?.flights.some((f) => f.airports.includes(airport.id))
       ) {
         return AIRPORT_COLOR(255);
       } else if (hoveredAirport) {
         return INACTIVE_COLOR(255);
       } else if (
-        hoveredArc?.from.code === airport.code ||
-        hoveredArc?.to.code === airport.code
+        hoveredArc?.from.id === airport.id ||
+        hoveredArc?.to.id === airport.id
       ) {
         return AIRPORT_COLOR(255);
       } else if (hoveredArc) {
@@ -141,8 +141,8 @@
       } else if (hoveredArc) {
         return INACTIVE_COLOR(200);
       } else if (
-        hoveredAirport?.code === d.from.code ||
-        hoveredAirport?.code === d.to.code
+        hoveredAirport?.id === d.from.id ||
+        hoveredAirport?.id === d.to.id
       ) {
         return point === 'source' ? FROM_COLOR : TO_COLOR;
       } else if (hoveredAirport) {

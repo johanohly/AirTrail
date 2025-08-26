@@ -1,6 +1,6 @@
 import type { TZDate } from '@date-fns/tz';
 import { differenceInSeconds, format, isBefore, parseISO } from 'date-fns';
-import type { Insertable } from 'kysely';
+import { type Insertable, sql } from 'kysely';
 import { z } from 'zod';
 
 import { db } from '$lib/db';
@@ -8,11 +8,12 @@ import {
   createFlightPrimitive,
   createManyFlightsPrimitive,
   getFlightPrimitive,
+  listFlightBaseQuery,
   listFlightPrimitive,
   updateFlightPrimitive,
 } from '$lib/db/queries';
 import type { DB } from '$lib/db/schema';
-import type { CreateFlight, User } from '$lib/db/types';
+import type { CreateFlight, Flight, User } from '$lib/db/types';
 import { distanceBetween } from '$lib/utils';
 import {
   estimateFlightDuration,
@@ -23,6 +24,10 @@ import {
 } from '$lib/utils/datetime';
 import type { ErrorActionResult } from '$lib/utils/forms';
 import type { flightSchema } from '$lib/zod/flight';
+
+export const listFlightsQuery = (userId: string) => {
+  return listFlightBaseQuery(db, userId);
+};
 
 export const listFlights = async (userId: string) => {
   return await listFlightPrimitive(db, userId);
@@ -172,17 +177,9 @@ export const updateFlight = async (id: number, data: CreateFlight) => {
   return await updateFlightPrimitive(db, id, data);
 };
 
-const signature = (f: {
-  date: string | null | undefined;
-  from: string | { code: string };
-  to: string | { code: string };
-  flightNumber?: string | null;
-  aircraftReg?: string | null;
-  departure?: string | null;
-  arrival?: string | null;
-}) => {
-  const from = typeof f.from === 'string' ? f.from : f.from.code;
-  const to = typeof f.to === 'string' ? f.to : f.to.code;
+const signature = (f: CreateFlight) => {
+  const from = f.from.id;
+  const to = f.to.id;
   return [
     f.date ?? '',
     from ?? '',
@@ -222,37 +219,18 @@ export const createManyFlights = async (
 
   // Gather candidate filters
   const dates = new Set(uniqueFlights.map((f) => f.date));
-  const froms = new Set(uniqueFlights.map((f) => f.from.code));
-  const tos = new Set(uniqueFlights.map((f) => f.to.code));
+  const froms = new Set(uniqueFlights.map((f) => f.from.id));
+  const tos = new Set(uniqueFlights.map((f) => f.to.id));
 
   // Fetch existing flights for candidate space
-  let existingFlights: Array<{
-    id: number;
-    date: string;
-    from: string;
-    to: string;
-    flightNumber: string | null;
-    aircraftReg: string | null;
-    departure: string | null;
-    arrival: string | null;
-  }> = [];
+  let existingFlights: Flight[] = [];
 
   if (dates.size && froms.size && tos.size) {
-    existingFlights = await db
-      .selectFrom('flight')
-      .select([
-        'id',
-        'date',
-        'from',
-        'to',
-        'flightNumber',
-        'aircraftReg',
-        'departure',
-        'arrival',
-      ])
+    const listQuery = listFlightsQuery(userId);
+    existingFlights = await listQuery
       .where('date', 'in', Array.from(dates))
-      .where('from', 'in', Array.from(froms))
-      .where('to', 'in', Array.from(tos))
+      .where('fromId', 'in', Array.from(froms))
+      .where('toId', 'in', Array.from(tos))
       .execute();
   }
 

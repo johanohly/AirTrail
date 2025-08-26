@@ -9,7 +9,16 @@ export const airportRouter = router({
   get: authedProcedure.input(z.number()).query(async ({ input }) => {
     return await getAirport(input);
   }),
-  getFromIATA: authedProcedure.input(z.string()).query(async ({ input }) => {
+  getFromIcao: authedProcedure.input(z.string()).query(async ({ input }) => {
+    return (
+      (await db
+        .selectFrom('airport')
+        .selectAll()
+        .where('icao', 'ilike', input)
+        .executeTakeFirst()) ?? null
+    );
+  }),
+  getFromIata: authedProcedure.input(z.string()).query(async ({ input }) => {
     return (
       (await db
         .selectFrom('airport')

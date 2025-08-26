@@ -31,8 +31,8 @@ const airline = (db: Kysely<DB>, id: Expression<number>) => {
   ).as('airline');
 };
 
-export const listFlightPrimitive = async (db: Kysely<DB>, userId: string) => {
-  return await db
+export const listFlightBaseQuery = (db: Kysely<DB>, userId: string) => {
+  return db
     .selectFrom('flight')
     .selectAll('flight')
     .select((eb) =>
@@ -56,8 +56,13 @@ export const listFlightPrimitive = async (db: Kysely<DB>, userId: string) => {
           .whereRef('seat.flightId', '=', 'flight.id')
           .where('seat.userId', '=', userId),
       ),
-    )
-    .execute();
+    );
+};
+
+export const listFlightPrimitive = async (db: Kysely<DB>, userId: string) => {
+  const listQuery = listFlightBaseQuery(db, userId);
+
+  return await listQuery.execute();
 };
 
 export const getFlightPrimitive = async (db: Kysely<DB>, id: number) => {
@@ -165,10 +170,12 @@ export const createManyFlightsPrimitive = async (
     const flights = await trx
       .insertInto('flight')
       .values(
-        data.map(({ seats: _, ...rest }) => ({
+        data.map(({ seats: _, from, to, aircraft, airline, ...rest }) => ({
           ...rest,
-          from: rest.from.code,
-          to: rest.to.code,
+          fromId: from.id,
+          toId: to.id,
+          aircraftId: aircraft?.id ?? null,
+          airlineId: airline?.id ?? null,
         })),
       )
       .returning('id')

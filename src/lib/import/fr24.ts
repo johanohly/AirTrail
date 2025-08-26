@@ -106,8 +106,8 @@ export const processFR24File = async (content: string) => {
       continue;
     }
 
-    const from = await api.airport.get.query(fromCode);
-    const to = await api.airport.get.query(toCode);
+    const from = await api.airport.getFromIcao.query(fromCode);
+    const to = await api.airport.getFromIcao.query(toCode);
     if (!from || !to) {
       if (!from && !unknownAirports.includes(row.from)) {
         unknownAirports.push(row.from);
