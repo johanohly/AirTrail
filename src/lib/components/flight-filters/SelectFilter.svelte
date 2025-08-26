@@ -25,7 +25,10 @@
   let open = $state(false);
 
   const optionByValue = $derived.by(() => {
-    const map = new Map<string, { value: string; label: string; shortLabel?: string }>();
+    const map = new Map<
+      string,
+      { value: string; label: string; shortLabel?: string }
+    >();
     for (const o of options ?? []) map.set(o.value, o);
     return map;
   });
