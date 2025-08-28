@@ -221,7 +221,6 @@ export async function getPublicShareData(slug: string) {
       showFlightList: share.showFlightList,
     },
     flights: sanitizedFlights,
-    stats: share.showStats ? calculateStats(sanitizedFlights) : null,
   };
 }
 
@@ -297,74 +296,6 @@ function sanitizeFlightData(
 
     return sanitized;
   });
-}
-
-/**
- * Calculate basic statistics for flights
- * Updated to work with complete objects instead of individual field properties
- */
-function calculateStats(flights: SanitizedFlight[]) {
-  const totalFlights = flights.length;
-  const totalDistance = flights.reduce((sum, flight) => {
-    // Calculate distance using complete airport objects
-    if (flight.from.lat && flight.from.lon && flight.to.lat && flight.to.lon) {
-      const distance = calculateDistance(
-        flight.from.lat,
-        flight.from.lon,
-        flight.to.lat,
-        flight.to.lon,
-      );
-      return sum + distance;
-    }
-    return sum;
-  }, 0);
-
-  const uniqueAirports = new Set();
-  const uniqueCountries = new Set();
-  const uniqueAirlines = new Set();
-
-  flights.forEach((flight) => {
-    // Use complete airport objects
-    if (flight.from.icao) uniqueAirports.add(flight.from.icao);
-    if (flight.to.icao) uniqueAirports.add(flight.to.icao);
-
-    // Add countries from airport objects
-    if (flight.from.country) uniqueCountries.add(flight.from.country);
-    if (flight.to.country) uniqueCountries.add(flight.to.country);
-
-    // Use complete airline object
-    if (flight.airline?.icao) uniqueAirlines.add(flight.airline.icao);
-  });
-
-  return {
-    totalFlights,
-    totalDistance: Math.round(totalDistance),
-    uniqueAirports: uniqueAirports.size,
-    uniqueCountries: uniqueCountries.size,
-    uniqueAirlines: uniqueAirlines.size,
-  };
-}
-
-/**
- * Calculate distance between two coordinates using Haversine formula
- */
-function calculateDistance(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number,
-): number {
-  const R = 6371; // Earth's radius in kilometers
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
 }
 
 /**

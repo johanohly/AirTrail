@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { ChartPie } from '@o7/icon/lucide';
+
   import { page } from '$app/state';
   import { Map } from '$lib/components/map';
   import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
@@ -20,7 +22,6 @@
   let showStatistics = $state(false);
 
   const shareSettings = $derived($shareQuery.data?.settings);
-  const shareStats = $derived($shareQuery.data?.stats);
 </script>
 
 <svelte:head>
@@ -28,33 +29,7 @@
   <meta name="description" content="View shared flight data on AirTrail" />
 </svelte:head>
 
-{#if $shareQuery.isLoading}
-  <div class="flex items-center justify-center min-h-screen">
-    <div class="text-center space-y-4">
-      <div
-        class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"
-      ></div>
-      <p class="text-muted-foreground">Loading shared flight data...</p>
-    </div>
-  </div>
-{:else if $shareQuery.error}
-  <div class="flex items-center justify-center min-h-screen">
-    <div class="text-center space-y-4 max-w-md">
-      <div class="text-6xl">✈️</div>
-      <h1 class="text-2xl font-bold">Share Not Found</h1>
-      <p class="text-muted-foreground">
-        This shared flight data is either not available, has expired, or the
-        link is incorrect.
-      </p>
-      <a
-        href="/"
-        class="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-      >
-        Go to AirTrail
-      </a>
-    </div>
-  </div>
-{:else if shareSettings && flights.length > 0}
+{#if shareSettings && flights.length > 0}
   <!-- Navigation bar for accessible modals -->
   {#if shareSettings.showFlightList || shareSettings.showStats}
     <nav
@@ -78,7 +53,7 @@
               Flight List
             </button>
           {/if}
-          {#if shareSettings.showStats && shareStats}
+          {#if shareSettings.showStats}
             <button
               onclick={() => (showStatistics = true)}
               class="px-3 py-1.5 text-sm bg-secondary hover:bg-secondary/80 rounded-md transition-colors"
@@ -91,7 +66,6 @@
     </nav>
   {/if}
 
-  <!-- Map display -->
   {#if shareSettings.showMap}
     <div
       class={shareSettings.showFlightList || shareSettings.showStats
@@ -101,10 +75,9 @@
       <Map {flights} filteredFlights={flights} />
     </div>
   {:else}
-    <!-- If map is not shown, display alternative content -->
     <div class="min-h-screen flex items-center justify-center">
-      <div class="text-center space-y-4 max-w-md">
-        <div class="text-6xl">📊</div>
+      <div class="text-center flex flex-col items-center space-y-4 max-w-md">
+        <ChartPie size={64} class="text-primary" />
         <h1 class="text-2xl font-bold">Shared Flight Data</h1>
         <p class="text-muted-foreground">
           This share includes {flights.length} flights.
@@ -118,34 +91,19 @@
     </div>
   {/if}
 
-  <!-- Flight List Modal (if enabled) -->
   {#if shareSettings.showFlightList}
     <ListFlightsModal
       bind:open={showFlightList}
       {flights}
       filteredFlights={flights}
       readonly={true}
-      filters={{
-        departureAirports: [],
-        arrivalAirports: [],
-        fromDate: null,
-        toDate: null,
-        aircraftRegs: [],
-      }}
     />
   {/if}
 
-  <!-- Statistics Modal (if enabled) -->
-  {#if shareSettings.showStats && shareStats}
-    <StatisticsModal
-      bind:open={showStatistics}
-      allFlights={flights}
-      readonly={true}
-      sharedStats={shareStats}
-    />
+  {#if shareSettings.showStats}
+    <StatisticsModal bind:open={showStatistics} allFlights={flights} />
   {/if}
 {:else if shareSettings}
-  <!-- No flights in this share -->
   <div class="flex items-center justify-center min-h-screen">
     <div class="text-center space-y-4 max-w-md">
       <div class="text-6xl">✈️</div>
@@ -154,16 +112,6 @@
         This share doesn't contain any flight data, or the filters applied
         result in no visible flights.
       </p>
-    </div>
-  </div>
-{:else}
-  <!-- Fallback loading state -->
-  <div class="flex items-center justify-center min-h-screen">
-    <div class="text-center space-y-4">
-      <div
-        class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"
-      ></div>
-      <p class="text-muted-foreground">Loading...</p>
     </div>
   </div>
 {/if}

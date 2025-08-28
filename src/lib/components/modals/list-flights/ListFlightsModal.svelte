@@ -28,17 +28,17 @@
 
   let {
     open = $bindable<boolean>(),
-    filters = $bindable(),
+    filters = $bindable<FlightFilters | undefined>(),
     flights,
     filteredFlights,
     deleteFlight,
     readonly = false,
   }: {
     open?: boolean;
-    filters: FlightFilters;
+    filters?: FlightFilters;
     flights: FlightData[];
     filteredFlights: FlightData[];
-    deleteFlight: (id: number) => Promise<void>;
+    deleteFlight?: (id: number) => Promise<void>;
     readonly?: boolean;
   } = $props();
 
@@ -117,7 +117,7 @@
   dialogOnly
 >
   <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
-  {#if !readonly}
+  {#if filters && !readonly}
     <Toolbar
       bind:filters
       bind:flights
@@ -304,7 +304,7 @@
       <EditFlightModal {flight} triggerDisabled={selecting} />
     {/key}
     <Confirm
-      onConfirm={() => deleteFlight(flight.id)}
+      onConfirm={() => deleteFlight?.(flight.id)}
       title="Remove Flight"
       description="Are you sure you want to remove this flight? All seats will be removed as well."
     >
