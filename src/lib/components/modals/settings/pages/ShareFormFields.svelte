@@ -9,6 +9,7 @@
   import { Button } from '$lib/components/ui/button';
   import { generateRandomString } from '$lib/utils/string';
   import DateField from '$lib/components/form-fields/DateField.svelte';
+  import DateRangeField from '$lib/components/form-fields/DateRangeField.svelte';
   import type { shareSchema } from '$lib/zod/share';
 
   const { form }: { form: SuperForm<Infer<typeof shareSchema>> } = $props();
@@ -96,11 +97,7 @@
 <div class="space-y-3">
   <Label class="text-sm font-medium">Content Visibility</Label>
   <div class="space-y-2">
-    <Form.Field
-      {form}
-      name="showMap"
-      class="flex flex-row items-center space-x-2"
-    >
+    <Form.Field {form} name="showMap" class="flex flex-row items-center">
       <Form.Control>
         {#snippet children({ props })}
           <Checkbox bind:checked={$formData.showMap} {...props} />
@@ -109,11 +106,7 @@
       </Form.Control>
     </Form.Field>
 
-    <Form.Field
-      {form}
-      name="showStats"
-      class="flex flex-row items-center space-x-2"
-    >
+    <Form.Field {form} name="showStats" class="flex flex-row items-center">
       <Form.Control>
         {#snippet children({ props })}
           <Checkbox bind:checked={$formData.showStats} {...props} />
@@ -122,11 +115,7 @@
       </Form.Control>
     </Form.Field>
 
-    <Form.Field
-      {form}
-      name="showFlightList"
-      class="flex flex-row items-center space-x-2"
-    >
+    <Form.Field {form} name="showFlightList" class="flex flex-row items-center">
       <Form.Control>
         {#snippet children({ props })}
           <Checkbox bind:checked={$formData.showFlightList} {...props} />
@@ -138,17 +127,12 @@
 </div>
 
 <!-- Date Range Filter -->
-<div class="space-y-3">
-  <Label class="text-sm font-medium">Date Range (Optional)</Label>
-  <div class="flex gap-2">
-    <div class="flex-1">
-      <DateField {form} name="dateFrom" label="From" />
-    </div>
-    <div class="flex-1">
-      <DateField {form} name="dateTo" label="To" />
-    </div>
-  </div>
-</div>
+<DateRangeField
+  {form}
+  startName="dateFrom"
+  endName="dateTo"
+  label="Date Range (Optional)"
+/>
 
 <!-- Data Privacy -->
 <div class="space-y-3">
@@ -157,7 +141,7 @@
     <Form.Field
       {form}
       name="showFlightNumbers"
-      class="flex flex-row items-center space-x-2"
+      class="flex flex-row items-center"
     >
       <Form.Control>
         {#snippet children({ props })}
@@ -169,11 +153,7 @@
       </Form.Control>
     </Form.Field>
 
-    <Form.Field
-      {form}
-      name="showAirlines"
-      class="flex flex-row items-center space-x-2"
-    >
+    <Form.Field {form} name="showAirlines" class="flex flex-row items-center">
       <Form.Control>
         {#snippet children({ props })}
           <Checkbox bind:checked={$formData.showAirlines} {...props} />
@@ -182,11 +162,7 @@
       </Form.Control>
     </Form.Field>
 
-    <Form.Field
-      {form}
-      name="showAircraft"
-      class="flex flex-row items-center space-x-2"
-    >
+    <Form.Field {form} name="showAircraft" class="flex flex-row items-center">
       <Form.Control>
         {#snippet children({ props })}
           <Checkbox bind:checked={$formData.showAircraft} {...props} />
@@ -197,11 +173,7 @@
       </Form.Control>
     </Form.Field>
 
-    <Form.Field
-      {form}
-      name="showTimes"
-      class="flex flex-row items-center space-x-2"
-    >
+    <Form.Field {form} name="showTimes" class="flex flex-row items-center">
       <Form.Control>
         {#snippet children({ props })}
           <Checkbox bind:checked={$formData.showTimes} {...props} />
@@ -210,11 +182,7 @@
       </Form.Control>
     </Form.Field>
 
-    <Form.Field
-      {form}
-      name="showDates"
-      class="flex flex-row items-center space-x-2"
-    >
+    <Form.Field {form} name="showDates" class="flex flex-row items-center">
       <Form.Control>
         {#snippet children({ props })}
           <Checkbox bind:checked={$formData.showDates} {...props} />
