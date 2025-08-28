@@ -82,15 +82,24 @@ export type ShareCreateInput = z.infer<typeof shareCreateSchema>;
 export type ShareUpdateInput = z.infer<typeof shareUpdateSchema>;
 
 /**
+ * Delete all expired shares from the database (global cleanup)
+ */
+export async function deleteExpiredShares() {
+  const result = await db
+    .deleteFrom('publicShare')
+    .where('expiresAt', '<', new Date())
+    .where('expiresAt', 'is not', null)
+    .execute();
+
+  return result.reduce((total, r) => total + Number(r.numDeletedRows), 0);
+}
+
+/**
  * List all shares for a user, removing expired ones
  */
 export async function listUserShares(userId: string) {
   // Delete expired shares first
-  await db
-    .deleteFrom('publicShare')
-    .where('userId', '=', userId)
-    .where('expiresAt', '<', new Date())
-    .execute();
+  await deleteExpiredShares();
 
   // Return active shares
   return await db
