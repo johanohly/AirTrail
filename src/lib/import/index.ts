@@ -5,6 +5,7 @@ import {
 import type { CreateFlight } from '$lib/db/types';
 import { processAirTrailFile } from '$lib/import/airtrail';
 import { processAITAFile } from '$lib/import/aita';
+import { processFlightyFile } from '$lib/import/flighty';
 import { processFR24File } from '$lib/import/fr24';
 import { processJetLogFile } from '$lib/import/jetlog';
 import { processTripItFile } from '$lib/import/tripit';
@@ -25,6 +26,7 @@ const processors: Record<PlatformValue, Processor> = {
   fr24: async (content) => processFR24File(content),
   aita: async (content, options) => processAITAFile(content, options),
   tripit: async (content, options) => processTripItFile(content, options),
+  flighty: async (content, options) => processFlightyFile(content, options),
 };
 
 export const processFile = async (
