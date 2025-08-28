@@ -12,6 +12,7 @@
   import { trpc } from '$lib/trpc';
   import { shareSchema } from '$lib/zod/share';
   import { TextTooltip } from '$lib/components/ui/tooltip/index.js';
+  import { CalendarDate } from '@internationalized/date';
 
   interface Share {
     id: number;
@@ -39,7 +40,11 @@
     id: share.id,
     slug: share.slug,
     expiresAt: share.expiresAt
-      ? new Date(share.expiresAt).toISOString().slice(0, 16)
+      ? new CalendarDate(
+          share.expiresAt.getFullYear(),
+          share.expiresAt.getMonth() + 1,
+          share.expiresAt.getDate(),
+        ).toString()
       : '',
     expiryOption: share.expiresAt ? ('custom' as const) : ('never' as const),
     showMap: share.showMap,

@@ -8,6 +8,7 @@
   import * as Select from '$lib/components/ui/select';
   import { Button } from '$lib/components/ui/button';
   import { generateRandomString } from '$lib/utils/string';
+  import DateField from '$lib/components/form-fields/DateField.svelte';
   import type { shareSchema } from '$lib/zod/share';
 
   const { form }: { form: SuperForm<Infer<typeof shareSchema>> } = $props();
@@ -24,7 +25,7 @@
   ];
 
   const getCurrentDurationLabel = (value: string) => {
-    const option = durationOptions.find(opt => opt.value === value);
+    const option = durationOptions.find((opt) => opt.value === value);
     return option?.label || 'Select duration';
   };
 
@@ -52,7 +53,12 @@
             class="rounded-l-none min-w-0 flex-1"
           />
         </div>
-        <Button type="button" variant="outline" onclick={generateNewSlug} class="shrink-0">
+        <Button
+          type="button"
+          variant="outline"
+          onclick={generateNewSlug}
+          class="shrink-0"
+        >
           Generate
         </Button>
       </div>
@@ -71,7 +77,7 @@
           {getCurrentDurationLabel($formData.expiryOption)}
         </Select.Trigger>
         <Select.Content>
-          {#each durationOptions as option}
+          {#each durationOptions as option (option.value)}
             <Select.Item value={option.value} label={option.label} />
           {/each}
         </Select.Content>
@@ -83,19 +89,7 @@
 </Form.Field>
 
 {#if $formData.expiryOption === 'custom'}
-  <Form.Field {form} name="expiresAt" class="flex flex-col">
-    <Form.Control>
-      {#snippet children({ props })}
-        <Form.Label>Expires At</Form.Label>
-        <Input
-          type="datetime-local"
-          bind:value={$formData.expiresAt}
-          {...props}
-        />
-      {/snippet}
-    </Form.Control>
-    <Form.FieldErrors />
-  </Form.Field>
+  <DateField {form} name="expiresAt" label="Expires At" />
 {/if}
 
 <!-- Content Visibility -->
@@ -147,35 +141,12 @@
 <div class="space-y-3">
   <Label class="text-sm font-medium">Date Range (Optional)</Label>
   <div class="flex gap-2">
-    <Form.Field {form} name="dateFrom" class="flex-1">
-      <Form.Control>
-        {#snippet children({ props })}
-          <Form.Label class="text-sm">From</Form.Label>
-          <Input
-            type="date"
-            bind:value={$formData.dateFrom}
-            {...props}
-            placeholder="From date"
-          />
-        {/snippet}
-      </Form.Control>
-      <Form.FieldErrors />
-    </Form.Field>
-
-    <Form.Field {form} name="dateTo" class="flex-1">
-      <Form.Control>
-        {#snippet children({ props })}
-          <Form.Label class="text-sm">To</Form.Label>
-          <Input
-            type="date"
-            bind:value={$formData.dateTo}
-            {...props}
-            placeholder="To date"
-          />
-        {/snippet}
-      </Form.Control>
-      <Form.FieldErrors />
-    </Form.Field>
+    <div class="flex-1">
+      <DateField {form} name="dateFrom" label="From" />
+    </div>
+    <div class="flex-1">
+      <DateField {form} name="dateTo" label="To" />
+    </div>
   </div>
 </div>
 
