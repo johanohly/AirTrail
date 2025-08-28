@@ -254,15 +254,15 @@ function sanitizeFlightData(
   return flights.map((flight) => {
     // Create sanitized seats array (only include user's seats, remove sensitive data)
     const userSeats = flight.seats
-      .filter(seat => seat.userId === share.userId)
-      .map(seat => ({
+      .filter((seat) => seat.userId === share.userId)
+      .map((seat) => ({
         ...seat,
         // Remove sensitive seat data
         seatNumber: null,
         guestName: null,
         userId: seat.userId, // Keep userId for seat identification
       }));
-    
+
     const sanitized: SanitizedFlight = {
       id: flight.id,
       from: flight.from!, // Always include complete from airport
@@ -327,11 +327,11 @@ function calculateStats(flights: SanitizedFlight[]) {
     // Use complete airport objects
     if (flight.from.icao) uniqueAirports.add(flight.from.icao);
     if (flight.to.icao) uniqueAirports.add(flight.to.icao);
-    
+
     // Add countries from airport objects
     if (flight.from.country) uniqueCountries.add(flight.from.country);
     if (flight.to.country) uniqueCountries.add(flight.to.country);
-    
+
     // Use complete airline object
     if (flight.airline?.icao) uniqueAirlines.add(flight.airline.icao);
   });

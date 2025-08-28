@@ -98,7 +98,7 @@
         ? 'h-full pt-14'
         : 'h-full'}
     >
-      <Map {flights} filteredFlights={flights} readonly={true} />
+      <Map {flights} filteredFlights={flights} />
     </div>
   {:else}
     <!-- If map is not shown, display alternative content -->

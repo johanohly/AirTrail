@@ -32,12 +32,14 @@
     flights,
     filteredFlights,
     deleteFlight,
+    readonly = false,
   }: {
     open?: boolean;
     filters: FlightFilters;
     flights: FlightData[];
     filteredFlights: FlightData[];
     deleteFlight: (id: number) => Promise<void>;
+    readonly?: boolean;
   } = $props();
 
   const formattedFlights = $derived.by(() => {
@@ -115,15 +117,17 @@
   dialogOnly
 >
   <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
-  <Toolbar
-    bind:filters
-    bind:flights
-    bind:selecting
-    bind:selectedFlights
-    bind:page
-    {flightsPerPage}
-    numOfFlights={filteredFlights.length}
-  />
+  {#if !readonly}
+    <Toolbar
+      bind:filters
+      bind:flights
+      bind:selecting
+      bind:selectedFlights
+      bind:page
+      {flightsPerPage}
+      numOfFlights={filteredFlights.length}
+    />
+  {/if}
   {#if flightsByYear.length === 0}
     <div class="h-full flex items-center justify-center">
       <AirplanemodeInactive class="text-muted-foreground size-[20dvw]" />
@@ -190,9 +194,11 @@
                   <div class="hidden sm:flex flex-col">
                     {@render seatAndAirline(flight)}
                   </div>
-                  <div class="flex justify-end w-full">
-                    {@render actions(flight)}
-                  </div>
+                  {#if !readonly}
+                    <div class="flex justify-end w-full">
+                      {@render actions(flight)}
+                    </div>
+                  {/if}
                 </div>
                 <Separator class="my-4 md:hidden" />
                 <div class="max-lg:hidden flex flex-col w-48 shrink-0">
@@ -223,9 +229,11 @@
                     {@render airport(flight.to)}
                   </div>
                 </div>
-                <div class="hidden md:flex">
-                  {@render actions(flight)}
-                </div>
+                {#if !readonly}
+                  <div class="hidden md:flex">
+                    {@render actions(flight)}
+                  </div>
+                {/if}
               </div>
             </Card>
           {/each}
