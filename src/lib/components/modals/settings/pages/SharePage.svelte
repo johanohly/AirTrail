@@ -140,5 +140,5 @@
         {/each}
       </div>
     {/if}
-  </div></PageHeader
->
+  </div>
+</PageHeader>
