@@ -15,29 +15,24 @@
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { processFile } from '$lib/import';
   import { trpc } from '$lib/trpc';
-  import { cn } from '$lib/utils';
+  import { cn, pluralize } from '$lib/utils';
 
   let { open = $bindable() }: { open: boolean } = $props();
 
-  // Wizard state
   let step = $state<1 | 2 | 3 | 4>(1);
 
-  // File state
   let files: FileList | null = $state(null);
   let fileError: string | null = $state(null);
 
-  // Import state
   let importing = $state(false);
   let importedCount = $state(0);
   let unknownAirports = $state<string[]>([]);
 
-  // Platform/options state
   let platform = $state<(typeof platforms)[0]>(platforms[0]);
   let ownerOnly = $state(false);
   let matchAirlineFromFlightNumber = $state(true);
   let dedupeImportedFlights = $state(true);
 
-  // UI
   const steps = ['Source', 'File', 'Options', 'Status'] as const;
 
   const validateFile = () => {
@@ -101,7 +96,9 @@
     unknownAirports = result.unknownAirports;
     importedCount = stats?.insertedFlights ?? 0;
     if (importedCount > 0) {
-      toast.success(`Imported ${importedCount} flights`);
+      toast.success(
+        `Imported ${importedCount} ${pluralize(importedCount, 'flight')}`,
+      );
     } else {
       toast.info('No new flights to import');
     }

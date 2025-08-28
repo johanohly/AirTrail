@@ -54,4 +54,14 @@ export const platforms = [
       airlineFromFlightNumber: true,
     },
   },
+  {
+    name: 'Flighty',
+    value: 'flighty',
+    description: 'CSV export from Flighty flight tracker app.',
+    extensions: ['.csv'],
+    options: {
+      filterOwner: false,
+      airlineFromFlightNumber: false,
+    },
+  },
 ] as const;
