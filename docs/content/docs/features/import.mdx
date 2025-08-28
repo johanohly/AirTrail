@@ -5,7 +5,7 @@ title: Import
 The import feature allows you to import flight data from other sources into AirTrail.
 Currently, AirTrail supports importing flights from [MyFlightRadar24](https://my.flightradar24.com)
 , [App in the Air](https://appintheair.com), [JetLog](https://github.com/pbogre/jetlog), [TripIt (ICS)](https://www.tripit.com)
-and [AirTrail JSON files](/docs/features/export).
+, [Flighty](https://flightyapp.com) and [AirTrail JSON files](/docs/features/export).
 
 ## Import flights from MyFlightradar24
 
@@ -88,6 +88,32 @@ Notes and limitations:
 - All-day trip header events (VALUE=DATE) are ignored; only flight events are imported.
 - Flight events are detected when the SUMMARY looks like "SK2535 CPH to BHX" (airline + flight number, origin IATA, destination IATA).
 - Times are parsed from DTSTART/DTEND; Zulu (Z) and TZID times are supported.
+
+## Import flights from Flighty
+
+Flighty is a popular flight tracking app that allows you to export your flight data as a CSV file.
+
+Export from Flighty:
+
+1. Open the Flighty app on your device.
+2. Go to the "Profile" tab.
+3. Tap on "Settings" (gear icon).
+4. Scroll down to the "Manage" section and tap on "Account Data".
+5. Choose "Export Your Flights".
+6. Share or save the CSV file to your device.
+
+Import the CSV file into AirTrail:
+
+1. Open the AirTrail application.
+2. Go to the settings page and open the Import tab.
+3. Choose the source "Flighty".
+4. Select your CSV file from Flighty.
+5. Click Import.
+
+Notes:
+
+- The importer will prioritize actual departure/arrival times over scheduled times when available.
+- Seat types, cabin classes, and flight reasons will be mapped to AirTrail's standardized values.
 
 ## Import flights from AirTrail JSON files
 
