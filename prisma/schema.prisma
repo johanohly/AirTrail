@@ -35,6 +35,7 @@ model user {
   seats             seat[]
   visited_countries visited_country[]
   api_keys          api_key[]
+  public_share      public_share[]
 }
 
 model airport {
@@ -102,7 +103,7 @@ model flight {
   seats    seat[]
 
   @@index([from_id], map: "flight_from_id_idx")
-  @@index([to_id],   map: "flight_to_id_idx")
+  @@index([to_id], map: "flight_to_id_idx")
 }
 
 model seat {
@@ -156,4 +157,33 @@ model api_key {
   last_used  DateTime? @db.Timestamptz
 
   user user @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model public_share {
+  id         Int       @id @default(autoincrement())
+  user_id    String
+  slug       String    @unique
+  expires_at DateTime? @db.Timestamptz
+  created_at DateTime  @default(now()) @db.Timestamptz
+
+  // Privacy settings
+  show_map         Boolean @default(true)
+  show_stats       Boolean @default(false)
+  show_flight_list Boolean @default(false)
+
+  // Flight filtering
+  date_from String? // YYYY-MM-DD
+  date_to   String? // YYYY-MM-DD
+
+  // Data privacy settings
+  show_flight_numbers Boolean @default(true)
+  show_airlines       Boolean @default(true)
+  show_aircraft       Boolean @default(false)
+  show_times          Boolean @default(false)
+  show_dates          Boolean @default(true)
+
+  user user @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([slug])
+  @@index([user_id])
 }

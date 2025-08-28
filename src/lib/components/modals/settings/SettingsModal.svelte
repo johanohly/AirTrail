@@ -8,6 +8,7 @@
     AppearancePage,
     UsersPage,
     ExportPage,
+    SharePage,
     OAuthPage,
     SecurityPage,
     DataPage,
@@ -26,6 +27,7 @@
     { title: 'General', id: 'general' },
     { title: 'Security', id: 'security' },
     { title: 'Appearance', id: 'appearance' },
+    { title: 'Share', id: 'share' },
     { title: 'Import', id: 'import' },
     { title: 'Export', id: 'export' },
   ] as const;
@@ -145,6 +147,8 @@
           <SecurityPage />
         {:else if activeTab === 'appearance'}
           <AppearancePage />
+        {:else if activeTab === 'share'}
+          <SharePage />
         {:else if activeTab === 'import'}
           <ImportPage bind:open />
         {:else if activeTab === 'export'}
