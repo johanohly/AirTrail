@@ -43,7 +43,7 @@
 
     {@render children()}
 
-    {#if !page.error && !['/login', '/setup'].includes(page.url.pathname)}
+    {#if data.user && !page.error && !['/login', '/setup'].includes(page.url.pathname)}
       <NavigationDock />
     {/if}
   </TooltipProvider>
