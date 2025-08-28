@@ -4,6 +4,10 @@ export const shareSchema = z.object({
   id: z.number().optional(),
   slug: z
     .string()
+    .regex(
+      /^[a-zA-Z0-9_-]+$/,
+      'Share URL can only contain letters, numbers, hyphens, and underscores',
+    )
     .min(1, 'Share URL is required')
     .max(50, 'Share URL must be 50 characters or less'),
   expiresAt: z.string().optional(),
