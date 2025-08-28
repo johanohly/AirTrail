@@ -32,7 +32,7 @@
 <ScreenSize />
 <Toaster />
 
-{#if !dev && data.user?.role !== 'user'}
+{#if !dev && data.user && data.user.role !== 'user'}
   <NewVersionAnnouncement />
 {/if}
 
