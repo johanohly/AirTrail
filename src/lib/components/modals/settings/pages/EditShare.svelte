@@ -9,8 +9,9 @@
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
   import { Modal } from '$lib/components/ui/modal';
-  import { shareSchema } from '$lib/zod/share';
   import { trpc } from '$lib/trpc';
+  import { shareSchema } from '$lib/zod/share';
+  import { TextTooltip } from '$lib/components/ui/tooltip/index.js';
 
   interface Share {
     id: number;
@@ -73,9 +74,11 @@
   const { enhance } = form;
 </script>
 
-<Button variant="outline" size="sm" onclick={() => (open = true)}>
-  <SquarePen size={16} />
-</Button>
+<TextTooltip content="Edit share">
+  <Button variant="outline" size="icon" onclick={() => (open = true)}>
+    <SquarePen size={16} />
+  </Button>
+</TextTooltip>
 
 <Modal bind:open dialogOnly>
   <h2 class="text-lg font-medium">Edit Share</h2>

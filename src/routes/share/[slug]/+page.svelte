@@ -1,5 +1,6 @@
 <script lang="ts">
   import { ChartPie } from '@o7/icon/lucide';
+  import { AirplanemodeInactive } from '@o7/icon/material/solid';
 
   import { page } from '$app/state';
   import { Map } from '$lib/components/map';
@@ -105,8 +106,8 @@
   {/if}
 {:else if shareSettings}
   <div class="flex items-center justify-center min-h-screen">
-    <div class="text-center space-y-4 max-w-md">
-      <div class="text-6xl">✈️</div>
+    <div class="flex flex-col items-center text-center space-y-4 max-w-md">
+      <AirplanemodeInactive size={64} class="text-primary" />
       <h1 class="text-2xl font-bold">No Flights to Display</h1>
       <p class="text-muted-foreground">
         This share doesn't contain any flight data, or the filters applied

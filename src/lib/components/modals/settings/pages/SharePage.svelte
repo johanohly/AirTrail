@@ -1,38 +1,22 @@
 <script lang="ts">
-  import { toast } from 'svelte-sonner';
   import { Copy, ExternalLink, Trash2 } from '@o7/icon/lucide';
+  import { toast } from 'svelte-sonner';
 
   import CreateShare from './CreateShare.svelte';
   import EditShare from './EditShare.svelte';
-
-  import { Button } from '$lib/components/ui/button';
   import PageHeader from './PageHeader.svelte';
-  import { api, trpc } from '$lib/trpc';
 
-  interface Share {
-    id: number;
-    slug: string;
-    expiresAt?: Date;
-    createdAt: Date;
-    showMap: boolean;
-    showStats: boolean;
-    showFlightList: boolean;
-    dateFrom?: string;
-    dateTo?: string;
-    showFlightNumbers: boolean;
-    showAirlines: boolean;
-    showAircraft: boolean;
-    showTimes: boolean;
-    showDates: boolean;
-  }
+  import { Confirm } from '$lib/components/helpers';
+  import { Button } from '$lib/components/ui/button';
+  import { Card } from '$lib/components/ui/card';
+  import { TextTooltip } from '$lib/components/ui/tooltip/index.js';
+  import { api, trpc } from '$lib/trpc';
 
   // tRPC query for shares list
   const sharesQuery = trpc.share.list.query();
 
   // Delete share function
   const deleteShare = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this share?')) return;
-
     try {
       const success = await api.share.delete.mutate(id.toString());
       if (success) {
@@ -47,7 +31,6 @@
     }
   };
 
-  // Copy share URL to clipboard
   async function copyShareUrl(slug: string) {
     const url = `${window.location.origin}/share/${slug}`;
     try {
@@ -73,70 +56,96 @@
         Error loading shares: {$sharesQuery.error.message}
       </p>
     {:else if !$sharesQuery.data || $sharesQuery.data.length === 0}
-      <p class="text-center text-muted-foreground py-8">
-        No shares created yet.
-      </p>
+      <p class="text-center text-muted-foreground">No shares created yet.</p>
     {:else}
-      <div class="space-y-3">
+      <div class="space-y-4">
         {#each $sharesQuery.data as share (share.id)}
-          <div class="border rounded-lg p-4 space-y-2">
-            <div class="flex items-center justify-between">
-              <div class="space-y-1">
-                <p class="font-medium">/{share.slug}</p>
-                <p class="text-sm text-muted-foreground">
-                  Created: {new Date(share.createdAt).toLocaleDateString()}
-                  {#if share.expiresAt}
-                    • Expires: {new Date(share.expiresAt).toLocaleDateString()}
-                  {:else}
-                    • Never expires
-                  {/if}
-                </p>
-                <div class="flex gap-2 text-xs">
+          <Card level="2" class="p-4">
+            <div class="flex items-center justify-between gap-4">
+              <div class="flex-1 space-y-3">
+                <div>
+                  <h4 class="font-semibold text-lg">{share.slug}</h4>
+                  <p class="text-sm text-muted-foreground mt-1">
+                    Created {new Date(share.createdAt).toLocaleDateString()}
+                    {#if share.expiresAt}
+                      • Expires {new Date(share.expiresAt).toLocaleDateString()}
+                    {:else}
+                      • Never expires
+                    {/if}
+                  </p>
+                </div>
+
+                <div class="flex flex-wrap gap-2">
                   {#if share.showMap}
-                    <span class="bg-primary/10 text-primary px-2 py-1 rounded">
+                    <span
+                      class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                    >
                       Map
                     </span>
                   {/if}
                   {#if share.showStats}
-                    <span class="bg-primary/10 text-primary px-2 py-1 rounded">
-                      Stats
+                    <span
+                      class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary/50 text-secondary-foreground"
+                    >
+                      Statistics
                     </span>
                   {/if}
                   {#if share.showFlightList}
-                    <span class="bg-primary/10 text-primary px-2 py-1 rounded">
-                      Flights
+                    <span
+                      class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent/50 text-accent-foreground"
+                    >
+                      Flight List
+                    </span>
+                  {/if}
+                  {#if share.dateFrom || share.dateTo}
+                    <span
+                      class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground"
+                    >
+                      Date Filtered
                     </span>
                   {/if}
                 </div>
               </div>
-              <div class="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onclick={() => copyShareUrl(share.slug)}
-                >
-                  <Copy size={16} />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onclick={() => window.open(`/share/${share.slug}`, '_blank')}
-                >
-                  <ExternalLink size={16} />
-                </Button>
+
+              <div class="flex items-center gap-2">
+                <TextTooltip content="Copy share URL">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onclick={() => copyShareUrl(share.slug)}
+                  >
+                    <Copy size={16} />
+                  </Button>
+                </TextTooltip>
+                <TextTooltip content="Preview in new tab">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onclick={() =>
+                      window.open(`/share/${share.slug}`, '_blank')}
+                  >
+                    <ExternalLink size={16} />
+                  </Button>
+                </TextTooltip>
                 {#key share}
                   <EditShare {share} />
                 {/key}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onclick={() => deleteShare(share.id)}
-                >
-                  <Trash2 size={16} />
-                </Button>
+                <TextTooltip content="Delete share">
+                  <Confirm
+                    title="Delete Share"
+                    description="Are you sure you want to delete this share? This action cannot be undone."
+                    onConfirm={() => deleteShare(share.id)}
+                  >
+                    {#snippet triggerContent({ props })}
+                      <Button variant="outline" size="icon" {...props}>
+                        <Trash2 size={16} />
+                      </Button>
+                    {/snippet}
+                  </Confirm>
+                </TextTooltip>
               </div>
             </div>
-          </div>
+          </Card>
         {/each}
       </div>
     {/if}
