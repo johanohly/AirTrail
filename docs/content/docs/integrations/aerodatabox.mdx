@@ -2,9 +2,33 @@
 title: AeroDataBox
 ---
 
-AeroDataBox allows AirTrail to look up flight numbers and get additional information about flights filled-in automatically when adding a flight.
+AeroDataBox is an enhanced flight lookup provider that can replace the default **adsbdb** service used by AirTrail for flight number lookups.
+
+## Why Use AeroDataBox?
+
+By default, AirTrail uses adsbdb for flight number lookups, which is free and requires no configuration. However, adsbdb has several limitations:
+
+- Limited flight data coverage
+- No ability to search flights by date
+- Less reliable data for some routes and airlines
+
+AeroDataBox provides significant improvements:
+
+- **Much better flight data coverage** and accuracy
+- **Date search capability** - you can look up historical flights by specifying a date
+
 AeroDataBox provides a free tier that should be enough for most users.
 Get an API key here: [https://rapidapi.com/aedbx-aedbx/api/aerodatabox](https://rapidapi.com/aedbx-aedbx/api/aerodatabox).
+
+## Date Search Feature
+
+One of the key advantages of AeroDataBox is the ability to search for flights by date. When using AeroDataBox as your flight lookup provider, you can:
+
+- Enter a flight number along with a specific date (uses the existing "Departure" field) to find historical flight information
+- Look up flights that occurred weeks or months ago
+- Get more accurate departure and arrival times for past flights
+
+This is particularly useful when logging flights retroactively or when you need to look up flight details from a previous trip.
 
 - Optional by default: The integration is disabled unless you provide an API key.
 - Where to set the key:
@@ -15,5 +39,6 @@ Get an API key here: [https://rapidapi.com/aedbx-aedbx/api/aerodatabox](https://
 - Proxied lookups: All flight number lookups are performed by the server, which adds the API key in the request to AeroDataBox. The browser never talks to AeroDataBox directly.
 
 ### What happens without a key?
+
 - Flight lookup features that rely on AeroDataBox are unavailable until a key is configured.
 - The rest of AirTrail continues to work normally.
