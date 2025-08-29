@@ -96,9 +96,9 @@ export type seat = {
     userId: string | null;
     guestName: string | null;
     /**
-     * @kyselyType('window' | 'aisle' | 'middle' | 'other')
+     * @kyselyType('window' | 'aisle' | 'middle' | 'pilot' | 'copilot' | 'jumpseat' | 'other')
      */
-    seat: 'window' | 'aisle' | 'middle' | 'other' | null;
+    seat: 'window' | 'aisle' | 'middle' | 'pilot' | 'copilot' | 'jumpseat' | 'other' | null;
     /**
      * Seat number (e.g. 12A)
      */

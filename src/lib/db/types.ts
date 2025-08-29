@@ -73,7 +73,15 @@ export const ContinentMap = {
   AN: 'Antarctica',
 };
 
-export const SeatTypes = ['window', 'aisle', 'middle', 'other'] as const;
+export const SeatTypes = [
+  'window',
+  'aisle',
+  'middle',
+  'pilot',
+  'copilot',
+  'jumpseat',
+  'other',
+] as const;
 export const SeatClasses = [
   'economy',
   'economy+',

@@ -434,6 +434,9 @@ components:
                   - 'aisle'
                   - 'window'
                   - 'middle'
+                  - 'pilot'
+                  - 'copilot'
+                  - 'jumpseat'
                   - 'other'
               seatNumber:
                 type: string
