@@ -50,10 +50,12 @@
     </div>
     {#each data.flights
       .slice(0, 5)
-      .sort((a, b) => b.date.getTime() - a.date.getTime()) as flight}
+      .sort( (a, b) => (a.date && b.date ? b.date.getTime() - a.date.getTime() : 0), ) as flight}
       <div class="grid grid-cols-[repeat(3,1fr)]">
         <h4 class="font-thin">{flight.route}</h4>
-        <h4 class="font-thin">{formatAsDate(flight.date, true, true)}</h4>
+        <h4 class="font-thin">
+          {flight.date ? formatAsDate(flight.date, true, true) : ''}
+        </h4>
         <h4 class="font-thin">{flight.airline.name}</h4>
       </div>
     {/each}

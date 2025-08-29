@@ -36,7 +36,7 @@
   }: {
     flights: FlightData[];
     filteredFlights: FlightData[];
-    filters: FlightFilters;
+    filters?: FlightFilters;
   } = $props();
 
   let map: maplibregl.Map | undefined = $state(undefined);
@@ -68,11 +68,12 @@
 
   const showClear = $derived.by(() => {
     return (
-      filters.departureAirports.length ||
-      filters.arrivalAirports.length ||
-      filters.fromDate ||
-      filters.toDate ||
-      filters.aircraftRegs.length
+      filters &&
+      (filters.departureAirports.length ||
+        filters.arrivalAirports.length ||
+        filters.fromDate ||
+        filters.toDate ||
+        filters.aircraftRegs.length)
     );
   });
 </script>
@@ -99,19 +100,21 @@
         <ControlButton onclick={() => fitFlights()} title="Show all flights">
           <Fullscreen size={20} />
         </ControlButton>
-        <Popover.Root>
-          <Popover.Trigger>
-            <ControlButton title="Filter flights">
-              <Funnel size={18} />
-            </ControlButton>
-          </Popover.Trigger>
-          <Popover.Content
-            side="right"
-            class="flex flex-col grow-0 gap-2 w-fit"
-          >
-            <Filters bind:flights bind:filters />
-          </Popover.Content>
-        </Popover.Root>
+        {#if filters}
+          <Popover.Root>
+            <Popover.Trigger>
+              <ControlButton title="Filter flights">
+                <Funnel size={18} />
+              </ControlButton>
+            </Popover.Trigger>
+            <Popover.Content
+              side="right"
+              class="flex flex-col grow-0 gap-2 w-fit"
+            >
+              <Filters bind:flights bind:filters />
+            </Popover.Content>
+          </Popover.Root>
+        {/if}
       </ControlGroup>
     </Control>
     <Control position="top-left">

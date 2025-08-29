@@ -107,9 +107,9 @@ export function routeDistribution(
 ): Record<string, number> {
   const counts = flights.reduce<Record<string, number>>((acc, flight) => {
     const label =
-      (flight.from.iata || flight.from.code) +
+      (flight.from.iata || flight.from.icao) +
       '-' +
-      (flight.to.iata || flight.to.code);
+      (flight.to.iata || flight.to.icao);
     acc[label] = (acc[label] || 0) + 1;
     return acc;
   }, {});
@@ -165,7 +165,7 @@ export function airportDistribution(
 ): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const { from, to } of flights) {
-    for (const code of [from.iata || from.code, to.iata || to.code]) {
+    for (const code of [from.iata || from.icao, to.iata || to.icao]) {
       counts[code] = (counts[code] ?? 0) + 1;
     }
   }

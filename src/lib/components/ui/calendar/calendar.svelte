@@ -87,7 +87,7 @@ get along, so we shut typescript up by casting `value` to `never`.
   {#snippet children({ months, weekdays })}
     <Calendar.Header>
       <Calendar.PrevButton />
-      <Calendar.Heading bind:value bind:placeholder bind:mode />
+      <Calendar.Heading bind:placeholder bind:mode />
       <Calendar.NextButton />
     </Calendar.Header>
     <div class="relative overflow-hidden">
