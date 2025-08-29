@@ -9,55 +9,103 @@
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
 
+  interface GitHubRelease {
+    tag_name: string;
+    body: string;
+    draft: boolean;
+    prerelease: boolean;
+  }
+
   let open = $state(false);
-  let changelog: { name: string; body: string } | null = $state(null);
+  let changelogs: { name: string; body: string }[] = $state([]);
   $effect(() => {
-    fetch(
-      'https://api.github.com/repos/johanohly/AirTrail/releases/latest',
-    ).then(async (response) => {
-      if (!response.ok) return;
+    fetch('https://api.github.com/repos/johanohly/AirTrail/releases').then(
+      async (response) => {
+        if (!response.ok) return;
 
-      const data = await response.json();
-      const latestVersion = new SemVer(data.tag_name);
-      const dismissedVersion = localStorage.getItem('dismissedVersion');
+        const data: GitHubRelease[] = await response.json();
+        const dismissedVersion = localStorage.getItem('dismissedVersion');
+        const currentVersion = new SemVer(version);
 
-      // If the latest version is the same as the current version or the new version has been dismissed, return
-      if (
-        semver.lte(latestVersion, version) ||
-        (dismissedVersion && semver.lte(latestVersion, dismissedVersion))
-      ) {
-        return;
-      }
+        // Filter releases to show only those newer than current version and not dismissed
+        const newReleases = data
+          .filter((release: GitHubRelease) => {
+            const releaseVersion = new SemVer(release.tag_name);
+            const isNewerThanCurrent = semver.gt(
+              releaseVersion,
+              currentVersion,
+            );
+            const isNotDismissed =
+              !dismissedVersion || semver.gt(releaseVersion, dismissedVersion);
+            return (
+              isNewerThanCurrent &&
+              isNotDismissed &&
+              !release.draft &&
+              !release.prerelease
+            );
+          })
+          .map((release: GitHubRelease) => ({
+            name: release.tag_name,
+            body: release.body,
+          }));
 
-      changelog = {
-        name: data.tag_name,
-        body: data.body,
-      };
-      open = true;
-    });
+        if (newReleases.length > 0) {
+          changelogs = newReleases;
+          open = true;
+        }
+      },
+    );
   });
 
   const dismissVersion = () => {
-    if (!changelog) return;
-    localStorage.setItem('dismissedVersion', changelog?.name);
+    if (changelogs.length === 0) return;
+    // Store the latest (highest) version from the current batch as dismissed
+    const latestVersion = changelogs
+      .map((c) => new SemVer(c.name))
+      .sort((a, b) => semver.compare(b, a))[0];
+    localStorage.setItem('dismissedVersion', latestVersion.version);
     open = false;
   };
 </script>
 
-{#if changelog}
+{#if changelogs.length > 0}
   <Dialog.Root bind:open>
     <Dialog.Content>
       <Dialog.Header>
-        <Dialog.Title class="flex items-center gap-4">
-          New version available!
-          <Badge>{changelog.name}</Badge>
+        <Dialog.Title
+          class={changelogs.length === 1
+            ? 'flex items-center gap-2'
+            : 'space-y-2'}
+        >
+          {#if changelogs.length === 1}
+            <div class="flex items-center gap-2">
+              New version available!
+              <Badge>{changelogs[0].name}</Badge>
+            </div>
+          {:else}
+            <div>
+              {changelogs.length} new versions available!
+            </div>
+            <div class="flex flex-wrap gap-2">
+              {#each changelogs as changelog (changelog.name)}
+                <Badge>{changelog.name}</Badge>
+              {/each}
+            </div>
+          {/if}
         </Dialog.Title>
       </Dialog.Header>
-      <div class="prose max-h-[80dvh] overflow-y-auto">
-        <SvelteMarkdown
-          source={changelog.body}
-          renderers={{ link: NewTabLink }}
-        />
+      <div class="prose max-h-[80dvh] overflow-y-auto space-y-6">
+        {#each changelogs as changelog (changelog.name)}
+          <div class="border-b border-gray-200 pb-4 last:border-b-0">
+            <h3 class="text-lg font-semibold mb-2 flex items-center gap-2">
+              Version {changelog.name}
+            </h3>
+            <SvelteMarkdown
+              source={changelog.body}
+              renderers={{ link: NewTabLink }}
+            />
+          </div>
+        {/each}
       </div>
       <Dialog.Footer>
         <Button
