@@ -11,7 +11,8 @@ export const load = async (event: Parameters<LayoutServerLoad>[0]) => {
   if (
     (!event.locals.user || !event.locals.session) &&
     event.route.id !== '/(auth)/login' &&
-    event.route.id !== '/(auth)/setup'
+    event.route.id !== '/(auth)/setup' &&
+    event.route.id !== '/share/[slug]'
   ) {
     return redirect(302, resolve('/login'));
   }
