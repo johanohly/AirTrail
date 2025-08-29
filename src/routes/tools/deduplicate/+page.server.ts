@@ -19,8 +19,10 @@ export const load: PageServerLoad = async ({ locals }) => {
     const hasDuplicate = uniqueFlights.some(
       (f) =>
         f.date === flight.date &&
-        f.from.code === flight.from.code &&
-        f.to.code === flight.to.code,
+        f.from &&
+        f.to &&
+        f.from.id === flight.from?.id &&
+        f.to.id === flight.to?.id,
     );
 
     if (hasDuplicate) {

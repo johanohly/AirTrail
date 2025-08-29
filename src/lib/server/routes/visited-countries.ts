@@ -64,6 +64,10 @@ export const visitedCountriesRouter = router({
     const countries: Set<number> = new Set();
 
     for (const flight of flights) {
+      if (!flight.from || !flight.to) {
+        continue;
+      }
+
       const originCountry = countryFromAlpha2(flight.from.country);
       const destinationCountry = countryFromAlpha2(flight.to.country);
       if (!originCountry || !destinationCountry) {
