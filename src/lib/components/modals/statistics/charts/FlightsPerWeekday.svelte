@@ -30,7 +30,7 @@
 
     return weekdays.map((weekday) => {
       const weekdayFlights = data.filter(
-        (flight) => flight.date.getDay() === weekday,
+        (flight) => flight.date?.getDay() === weekday,
       );
       return {
         weekday,

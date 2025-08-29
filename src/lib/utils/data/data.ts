@@ -11,7 +11,7 @@ type ExcludedType<T, U> = {
 };
 
 type FlightOverrides = {
-  date: TZDate;
+  date: TZDate | null;
   departure: TZDate | null;
   arrival: TZDate | null;
   distance: number;
@@ -32,7 +32,10 @@ export const prepareFlightData = (data: Flight[]): FlightData[] => {
       return {
         ...flight,
         date:
-          departure ?? parseLocal(flight.date, 'yyyy-MM-dd', flight.from.tz),
+          departure ??
+          (flight.date
+            ? parseLocal(flight.date, 'yyyy-MM-dd', flight.from.tz)
+            : null),
         departure,
         arrival: flight.arrival
           ? parseLocalizeISO(flight.arrival, flight.to.tz)

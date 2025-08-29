@@ -66,8 +66,12 @@
           duration: f.duration
             ? Duration.fromSeconds(f.duration).toString()
             : '',
-          month: formatAsMonth(f.date),
-          depTime: depDate ? formatAsDateTime(depDate) : formatAsDate(f.date),
+          month: f.date ? formatAsMonth(f.date) : null,
+          depTime: depDate
+            ? formatAsDateTime(depDate)
+            : f.date
+              ? formatAsDate(f.date)
+              : null,
           arrTime: arrDate ? formatAsDateTime(arrDate) : null,
           seat: formatSeat(f),
         };
@@ -75,8 +79,10 @@
       .sort((a, b) => {
         if (a.departure && b.departure) {
           return isBefore(a.departure, b.departure) ? 1 : -1;
-        } else {
+        } else if (a.date && b.date) {
           return isBefore(a.date, b.date) ? 1 : -1;
+        } else {
+          return 0;
         }
       });
   });
@@ -93,7 +99,7 @@
   const flightsByYear = $derived.by(() => {
     const raw = paginatedFlights.reduce(
       (acc, f) => {
-        const year = f.date.getFullYear();
+        const year = f.date?.getFullYear() ?? 0;
         if (!acc[year]) acc[year] = [];
         acc[year].push(f);
         return acc;
@@ -135,13 +141,15 @@
   {:else}
     <ScrollArea type="hover">
       {#each flightsByYear as { year, flights } (year)}
-        <LabelledSeparator class="mt-4 mb-2">
-          <h3
-            class="border px-4 py-1 rounded-full border-dashed text-sm font-medium leading-7"
-          >
-            {year}
-          </h3>
-        </LabelledSeparator>
+        {#if year !== '0'}
+          <LabelledSeparator class="mt-4 mb-2">
+            <h3
+              class="border px-4 py-1 rounded-full border-dashed text-sm font-medium leading-7"
+            >
+              {year}
+            </h3>
+          </LabelledSeparator>
+        {/if}
         <div class="space-y-2" use:autoAnimate>
           {#each flights as flight (flight.id)}
             <Card
@@ -167,40 +175,42 @@
               <div
                 class="flex items-stretch md:items-center max-md:flex-col-reverse max-md:content-start flex-1 h-full min-w-0"
               >
-                <div class="max-md:hidden flex justify-center shrink-0 w-11">
-                  <span class="text-lg font-medium">{flight.month}</span>
-                </div>
-                <Separator
-                  orientation="vertical"
-                  class="max-md:hidden h-10 mx-3"
-                />
-                <div
-                  class={cn(
-                    'max-md:hidden flex flex-col shrink-0',
-                    isUsingAmPm() ? 'w-36' : 'w-32',
-                  )}
-                >
-                  {@render flightTimes(flight)}
-                </div>
-                <div class="px-4 flex md:hidden">
+                {#if flight.month}
+                  <div class="max-md:hidden flex justify-center shrink-0 w-11">
+                    <span class="text-lg font-medium">{flight.month}</span>
+                  </div>
+                  <Separator
+                    orientation="vertical"
+                    class="max-md:hidden h-10 mx-3"
+                  />
                   <div
                     class={cn(
-                      'flex flex-col shrink-0',
+                      'max-md:hidden flex flex-col shrink-0',
                       isUsingAmPm() ? 'w-36' : 'w-32',
                     )}
                   >
                     {@render flightTimes(flight)}
                   </div>
-                  <div class="hidden sm:flex flex-col">
-                    {@render seatAndAirline(flight)}
-                  </div>
-                  {#if !readonly}
-                    <div class="flex justify-end w-full">
-                      {@render actions(flight)}
+                  <div class="px-4 flex md:hidden">
+                    <div
+                      class={cn(
+                        'flex flex-col shrink-0',
+                        isUsingAmPm() ? 'w-36' : 'w-32',
+                      )}
+                    >
+                      {@render flightTimes(flight)}
                     </div>
-                  {/if}
-                </div>
-                <Separator class="my-4 md:hidden" />
+                    <div class="hidden sm:flex flex-col">
+                      {@render seatAndAirline(flight)}
+                    </div>
+                    {#if !readonly}
+                      <div class="flex justify-end w-full">
+                        {@render actions(flight)}
+                      </div>
+                    {/if}
+                  </div>
+                  <Separator class="my-4 md:hidden" />
+                {/if}
                 <div class="max-lg:hidden flex flex-col w-48 shrink-0">
                   {@render seatAndAirline(flight)}
                 </div>
