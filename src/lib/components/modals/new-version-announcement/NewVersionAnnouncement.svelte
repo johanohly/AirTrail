@@ -25,7 +25,7 @@
 
         const data: GitHubRelease[] = await response.json();
         const dismissedVersion = localStorage.getItem('dismissedVersion');
-        const currentVersion = new SemVer("1.0.0");
+        const currentVersion = new SemVer(version);
 
         // Filter releases to show only those newer than current version and not dismissed
         const newReleases = data
@@ -72,15 +72,26 @@
   <Dialog.Root bind:open>
     <Dialog.Content>
       <Dialog.Header>
-        <Dialog.Title class="flex items-center gap-4">
-          {changelogs.length === 1
-            ? 'New version available!'
-            : `${changelogs.length} new versions available!`}
-          <div class="flex gap-2">
-            {#each changelogs as changelog (changelog.name)}
-              <Badge>{changelog.name}</Badge>
-            {/each}
-          </div>
+        <Dialog.Title
+          class={changelogs.length === 1
+            ? 'flex items-center gap-2'
+            : 'space-y-2'}
+        >
+          {#if changelogs.length === 1}
+            <div class="flex items-center gap-2">
+              New version available!
+              <Badge>{changelogs[0].name}</Badge>
+            </div>
+          {:else}
+            <div>
+              {changelogs.length} new versions available!
+            </div>
+            <div class="flex flex-wrap gap-2">
+              {#each changelogs as changelog (changelog.name)}
+                <Badge>{changelog.name}</Badge>
+              {/each}
+            </div>
+          {/if}
         </Dialog.Title>
       </Dialog.Header>
       <div class="prose max-h-[80dvh] overflow-y-auto space-y-6">
