@@ -36,8 +36,8 @@ export type Flight = Omit<
   'id' | 'fromId' | 'toId' | 'aircraftId' | 'airlineId'
 > & {
   id: number;
-  from: Airport;
-  to: Airport;
+  from: Airport | null;
+  to: Airport | null;
   seats: Seat[];
   aircraft: Aircraft | null;
   airline: Airline | null;

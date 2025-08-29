@@ -53,16 +53,8 @@
 
         return {
           ...f,
-          from: {
-            iata: f.from.iata,
-            icao: f.from.icao,
-            name: f.from.name,
-          },
-          to: {
-            iata: f.to.iata,
-            icao: f.to.icao,
-            name: f.to.name,
-          },
+          from: f.from,
+          to: f.to,
           duration: f.duration
             ? Duration.fromSeconds(f.duration).toString()
             : '',
@@ -329,7 +321,9 @@
 
 {#snippet airport(airport)}
   <div class="w-11 flex flex-col items-center justify-center">
-    <span class="text-lg font-bold">{airport.iata || airport.icao}</span>
+    <span class="text-lg font-bold">
+      {airport?.iata || airport?.icao || 'N/A'}
+    </span>
     <Tooltip.AutoTooltip
       text={airport.name}
       class="text-center w-32 text-xs text-muted-foreground truncate"

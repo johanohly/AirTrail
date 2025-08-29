@@ -25,8 +25,9 @@
 
   // Only show completed flights
   const flights = $derived.by(() =>
-    allFlights.filter((f) =>
-      isBefore(f.arrival ? f.arrival : f.date, nowIn(f.to.tz)),
+    allFlights.filter(
+      (f) =>
+        !f.date || isBefore(f.arrival ? f.arrival : f.date, nowIn(f.to!.tz)),
     ),
   );
 
@@ -69,8 +70,11 @@
           hours: duration.hours,
           minutes: duration.minutes,
         };
-        airports = new Set(flights.flatMap((f) => [f.from.name, f.to.name]))
-          .size;
+        airports = new Set(
+          flights
+            .filter((f) => f.from && f.to)
+            .flatMap((f) => [f.from!.name, f.to!.name]),
+        ).size;
       }, 200);
     } else {
       flightCount = 0;
