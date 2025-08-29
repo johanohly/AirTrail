@@ -86,7 +86,10 @@
                         <Select.Item value="middle" label="Middle" />
                         <Select.Item value="aisle" label="Aisle" />
                         <Select.Item value="pilot" label="Pilot / Captain" />
-                        <Select.Item value="copilot" label="Co-pilot / First officer" />
+                        <Select.Item
+                          value="copilot"
+                          label="Co-pilot / First officer"
+                        />
                         <Select.Item value="jumpseat" label="Jumpseat" />
                         <Select.Item value="other" label="Other" />
                       </Select.Content>

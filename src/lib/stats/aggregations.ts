@@ -34,7 +34,15 @@ export function seatDistribution(
   ctx: StatsContext,
   options?: AggregationOptions,
 ): Record<string, number> {
-  const categories = ['window', 'aisle', 'middle', 'pilot', 'copilot', 'jumpseat', 'other'];
+  const categories = [
+    'window',
+    'aisle',
+    'middle',
+    'pilot',
+    'copilot',
+    'jumpseat',
+    'other',
+  ];
   const counts = categories.reduce<Record<string, number>>((acc, category) => {
     acc[toTitleCase(category)] = flights.filter((f) =>
       f.seats.some((v) => v.userId === ctx.userId && v.seat === category),

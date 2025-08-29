@@ -80,7 +80,7 @@ export const SeatTypes = [
   'pilot',
   'copilot',
   'jumpseat',
-  'other'
+  'other',
 ] as const;
 export const SeatClasses = [
   'economy',
