@@ -43,7 +43,7 @@ export const findAirline = async (input: string): Promise<Airline[] | null> => {
     .execute();
 };
 
-export const createAirline = async (data: Airline) => {
+export const createAirline = async (data: Omit<Airline, 'id'>) => {
   await db.insertInto('airline').values(data).execute();
 };
 
@@ -54,13 +54,9 @@ export const updateAirline = async (data: Airline) => {
 export const validateAndSaveAirline = async (
   airline: z.infer<typeof airlineSchema>,
 ): Promise<ErrorActionResult> => {
-  const existingAirline = await getAirline(airline.id);
-  let updating = false;
-  if (existingAirline) {
-    updating = true;
-  }
+  const existingAirline = airline.id ? await getAirline(airline.id) : null;
 
-  if (updating) {
+  if (existingAirline) {
     try {
       await updateAirline(airline);
     } catch (_) {
@@ -77,7 +73,11 @@ export const validateAndSaveAirline = async (
     };
   } else {
     try {
-      await createAirline(airline);
+      await createAirline({
+        name: airline.name,
+        icao: airline.icao,
+        iata: airline.iata,
+      });
     } catch (_) {
       return {
         success: false,
