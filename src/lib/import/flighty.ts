@@ -49,6 +49,12 @@ const mapSeatType = (seatType: string | null): Seat['seat'] => {
       return 'aisle';
     case 'middle':
       return 'middle';
+    case 'captain':
+      return 'pilot';
+    case 'pilot':
+      return 'copilot';
+    case 'jumpseat':
+      return 'jumpseat';
     default:
       return 'other';
   }
