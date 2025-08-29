@@ -3,11 +3,10 @@ import { z } from 'zod';
 
 import { db } from '$lib/db';
 import { listFlightBaseQuery } from '$lib/db/queries';
-import type { public_share, flight } from '$lib/db/schema';
-import type { Flight, Airport, Aircraft, Airline, Seat } from '$lib/db/types';
+import type { Airport, Aircraft, Airline, Seat } from '$lib/db/types';
 import { generateRandomString } from '$lib/server/utils/random';
 import type { ErrorActionResult } from '$lib/utils/forms';
-import type { shareSchema } from '$lib/zod/share';
+import { baseShareSchema, type shareSchema } from '$lib/zod/share';
 
 // Simple interface for database query results
 interface ShareRecord {
@@ -47,20 +46,12 @@ interface SanitizedFlight {
 }
 
 // Zod schemas for input validation
-export const shareCreateSchema = z.object({
-  slug: z.string().optional(),
-  expiresAt: z.date().optional(),
-  showMap: z.boolean().default(true),
-  showStats: z.boolean().default(false),
-  showFlightList: z.boolean().default(false),
-  dateFrom: z.string().optional(), // YYYY-MM-DD
-  dateTo: z.string().optional(), // YYYY-MM-DD
-  showFlightNumbers: z.boolean().default(true),
-  showAirlines: z.boolean().default(true),
-  showAircraft: z.boolean().default(false),
-  showTimes: z.boolean().default(false),
-  showDates: z.boolean().default(true),
-});
+export const shareCreateSchema = z
+  .object({
+    slug: z.string().optional(),
+    expiresAt: z.date().optional(),
+  })
+  .merge(baseShareSchema);
 
 export const shareUpdateSchema = z.object({
   id: z.number(),
