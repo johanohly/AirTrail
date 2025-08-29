@@ -112,7 +112,7 @@ model seat {
   user_id    String?
   guest_name String?
 
-  /// @kyselyType('window' | 'aisle' | 'middle' | 'other')
+  /// @kyselyType('window' | 'aisle' | 'middle' | 'pilot' | 'copilot' | 'jumpseat' | 'other')
   seat        String?
   /// Seat number (e.g. 12A)
   seat_number String?
