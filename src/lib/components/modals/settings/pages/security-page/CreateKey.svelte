@@ -46,15 +46,19 @@
 
 <Modal bind:open dialogOnly>
   {#if !key}
-    <h1 class="text-lg font-medium">Create API Key</h1>
-    <Label>Name</Label>
-    <Input bind:value={name} />
-    <Button onclick={create} disabled={loading} class="mt-1 gap-2">
-      {#if loading}
-        <LoaderCircle size={16} />
-      {/if}
-      Create
-    </Button>
+    <div class="flex flex-col gap-4">
+      <h1 class="text-lg font-medium">Create API Key</h1>
+      <div class="flex flex-col gap-2">
+        <Label for="name">Name</Label>
+        <Input bind:value={name} id="name" />
+      </div>
+      <Button onclick={create} disabled={loading} class="gap-2">
+        {#if loading}
+          <LoaderCircle size={16} />
+        {/if}
+        Create
+      </Button>
+    </div>
   {:else}
     <div>
       <h1 class="text-lg font-medium">Your API Key</h1>

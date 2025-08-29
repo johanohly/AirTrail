@@ -29,7 +29,12 @@
   const { form: formData, enhance } = form;
 </script>
 
-<form method="POST" action="/api/users/edit" use:enhance>
+<form
+  method="POST"
+  action="/api/users/edit"
+  use:enhance
+  class="flex flex-col gap-2"
+>
   <Form.Field {form} name="username">
     <Form.Control>
       {#snippet children({ props })}
