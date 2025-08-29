@@ -121,7 +121,7 @@
   });
 </script>
 
-<Form.Field {form} name={`${field}.code`} class="flex flex-col">
+<Form.Field {form} name={field} class="flex flex-col">
   <Form.Control>
     {#snippet children({ props })}
       <Form.Label>{toTitleCase(field)} *</Form.Label>

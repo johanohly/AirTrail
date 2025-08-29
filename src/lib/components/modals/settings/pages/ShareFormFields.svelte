@@ -94,9 +94,9 @@
 {/if}
 
 <!-- Content Visibility -->
-<div class="space-y-3">
+<div class="flex flex-col gap-2">
   <Label class="text-sm font-medium">Content Visibility</Label>
-  <div class="space-y-2">
+  <div class="flex flex-col gap-2">
     <Form.Field {form} name="showMap" class="flex flex-row items-center">
       <Form.Control>
         {#snippet children({ props })}
@@ -135,9 +135,9 @@
 />
 
 <!-- Data Privacy -->
-<div class="space-y-3">
+<div class="flex flex-col gap-2">
   <Label class="text-sm font-medium">Data Privacy</Label>
-  <div class="space-y-2">
+  <div class="flex flex-col gap-2">
     <Form.Field
       {form}
       name="showFlightNumbers"

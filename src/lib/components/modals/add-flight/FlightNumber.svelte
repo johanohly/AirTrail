@@ -8,17 +8,16 @@
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
+  import { HelpTooltip } from '$lib/components/ui/tooltip';
   import type { FlightLookupResultItem } from '$lib/server/utils/flight-lookup/flight-lookup';
+  import { appConfig } from '$lib/state.svelte';
   import { api } from '$lib/trpc';
   import {
-    dateValueFromISO,
     formatAsTime,
     formatRelativeDate,
     isUsingAmPm,
   } from '$lib/utils/datetime';
   import type { flightSchema } from '$lib/zod/flight';
-  import { appConfig } from '$lib/state.svelte';
-  import { HelpTooltip } from '$lib/components/ui/tooltip';
 
   const displayLocale = isUsingAmPm() ? 'en-US' : 'fr-FR';
 
@@ -41,7 +40,7 @@
     const { from, to, airline, aircraft, aircraftReg } = result;
 
     if (
-      ($formData.from.code !== '' || $formData.to.code !== '') &&
+      ($formData.from || $formData.to) &&
       !confirm(
         'Are you sure you want to overwrite the current flight information?',
       )
@@ -51,8 +50,8 @@
 
     $formData.from = from;
     $formData.to = to;
-    $formData.airline = airline?.icao ?? null;
-    $formData.aircraft = aircraft?.icao ?? null;
+    $formData.airline = airline ?? null;
+    $formData.aircraft = aircraft ?? null;
     $formData.aircraftReg = aircraftReg ?? null;
 
     if (result.arrival && result.departure) {
@@ -183,7 +182,7 @@
           <div class="min-w-0">
             <div class="text-sm font-medium truncate">
               {r.airline?.name ?? r.airline?.icao ?? 'Airline unknown'} — {r
-                .from?.code ?? '?'} → {r.to?.code ?? '?'}
+                .from?.icao ?? '?'} → {r.to?.icao ?? '?'}
             </div>
             {#if r.departure && r.arrival}
               <div class="text-xs text-muted-foreground truncate">

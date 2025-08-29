@@ -71,7 +71,7 @@
       >
         <Form.Control>
           {#snippet children({ props })}
-            <div class="space-y-0.5">
+            <div class="grid gap-0.5">
               <Form.Label class="text-base">Enable OAuth</Form.Label>
               <Form.Description>
                 Enable OAuth for your AirTrail instance.
@@ -89,8 +89,11 @@
       <Form.Field {form} name="issuerUrl">
         <Form.Control>
           {#snippet children({ props })}
-            <Form.Label>Issuer URL</Form.Label>
-            <Form.Description>The URL of the OAuth provider.</Form.Description>
+            <div class="grid gap-1">
+              <Form.Label>Issuer URL</Form.Label>
+              <Form.Description>The URL of the OAuth provider.</Form.Description
+              >
+            </div>
             <Input
               bind:value={$formData.issuerUrl}
               {...props}
@@ -108,10 +111,12 @@
       <Form.Field {form} name="clientId">
         <Form.Control>
           {#snippet children({ props })}
-            <Form.Label>Client ID</Form.Label>
-            <Form.Description>
-              The client ID provided by the OAuth provider.
-            </Form.Description>
+            <div class="grid gap-1">
+              <Form.Label>Client ID</Form.Label>
+              <Form.Description>
+                The client ID provided by the OAuth provider.
+              </Form.Description>
+            </div>
             <Input bind:value={$formData.clientId} {...props} />
           {/snippet}
         </Form.Control>
@@ -125,10 +130,12 @@
       <Form.Field {form} name="clientSecret">
         <Form.Control>
           {#snippet children({ props })}
-            <Form.Label>Client Secret</Form.Label>
-            <Form.Description>
-              The client secret provided by the OAuth provider.
-            </Form.Description>
+            <div class="grid gap-1">
+              <Form.Label>Client Secret</Form.Label>
+              <Form.Description>
+                The client secret provided by the OAuth provider.
+              </Form.Description>
+            </div>
             <Input
               bind:value={$formData.clientSecret}
               {...props}
@@ -146,10 +153,12 @@
       <Form.Field {form} name="scope">
         <Form.Control>
           {#snippet children({ props })}
-            <Form.Label>Scope</Form.Label>
-            <Form.Description>
-              The scope of the OAuth provider (space-separated).
-            </Form.Description>
+            <div class="grid gap-1">
+              <Form.Label>Scope</Form.Label>
+              <Form.Description>
+                The scope of the OAuth provider (space-separated).
+              </Form.Description>
+            </div>
             <Input
               bind:value={$formData.scope}
               {...props}
@@ -171,7 +180,7 @@
       >
         <Form.Control>
           {#snippet children({ props })}
-            <div class="space-y-0.5">
+            <div class="grid gap-0.5">
               <Form.Label class="text-base">Auto Register</Form.Label>
               <Form.Description>
                 Automatically register new users when they sign in with OAuth.
@@ -193,7 +202,7 @@
       >
         <Form.Control>
           {#snippet children({ props })}
-            <div class="space-y-0.5">
+            <div class="grid gap-0.5">
               <Form.Label class="text-base">Auto Login</Form.Label>
               <Form.Description>
                 Automatically redirect users to the OAuth provider when they

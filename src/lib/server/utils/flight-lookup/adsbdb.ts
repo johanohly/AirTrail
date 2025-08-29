@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
+import { getAirlineByIcao } from '$lib/server/utils/airline';
 import { getAirportByIcao } from '$lib/server/utils/airport';
-import { api } from '$lib/trpc';
 import { RequestRateLimiter } from '$lib/utils/ratelimiter';
 
 const flightRouteSchema = z.object({
@@ -39,11 +39,13 @@ export async function getFlightRoute(flightNumber: string) {
     throw new Error('Flight not found');
   }
 
+  const airline = await getAirlineByIcao(result.airline.icao);
+
   return [
     {
       from,
       to,
-      airline: await api.airline.getByIcao.query(result.airline.icao),
+      airline,
       departure: null,
       arrival: null,
     },

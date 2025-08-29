@@ -26,8 +26,14 @@ const timePrimitive = z
   .nullable();
 
 export const flightAirportsSchema = z.object({
-  from: flightAirportSchema,
-  to: flightAirportSchema,
+  from: flightAirportSchema
+    .nullable()
+    .default(null)
+    .refine((value) => value !== null, 'Select a departure airport'),
+  to: flightAirportSchema
+    .nullable()
+    .default(null)
+    .refine((value) => value !== null, 'Select an arrival airport'),
 });
 
 export const flightDateTimeSchema = z.object({

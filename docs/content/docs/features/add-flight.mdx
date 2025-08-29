@@ -28,3 +28,19 @@ For the most consistent results, search using the ICAO or IATA code.
 
 If you have a flight number, you can enter it at the top.
 Clicking "Search" will try to fill in the origin, destination, and airline fields for you.
+
+### Flight Data Providers
+
+By default, AirTrail uses **adsbdb** for flight number lookups. While adsbdb is free and doesn't require configuration, it has some limitations:
+
+- Limited flight data coverage
+- No ability to search flights by date
+- Less reliable data for some routes and airlines
+
+For much better results and additional features, you can configure **AeroDataBox** as your flight lookup provider instead. AeroDataBox offers:
+
+- More comprehensive flight data
+- Better accuracy and coverage
+- **Ability to search by date**
+
+To set up AeroDataBox, see the [AeroDataBox integration documentation](/docs/integrations/aerodatabox).

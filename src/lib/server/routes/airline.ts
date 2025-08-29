@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { db } from '$lib/db';
 import { adminProcedure, authedProcedure, router } from '$lib/server/trpc';
+import { getAirlineByIcao } from '$lib/server/utils/airline';
 
 export const airlineRouter = router({
   get: authedProcedure.input(z.number()).query(async ({ input }) => {
@@ -12,11 +13,7 @@ export const airlineRouter = router({
       .executeTakeFirst();
   }),
   getByIcao: authedProcedure.input(z.string()).query(async ({ input }) => {
-    return await db
-      .selectFrom('airline')
-      .selectAll()
-      .where('icao', 'ilike', input)
-      .executeTakeFirst();
+    return await getAirlineByIcao(input);
   }),
   getByIata: authedProcedure.input(z.string()).query(async ({ input }) => {
     return await db

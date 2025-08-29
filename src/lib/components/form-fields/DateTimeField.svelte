@@ -40,7 +40,7 @@
 </script>
 
 <div class="grid gap-2 grid-cols-[3fr_2fr]">
-  <Form.Field {form} name={field} class="flex flex-col">
+  <Form.Field {form} name={field}>
     <Form.Control>
       {#snippet children({ props })}
         <Form.Label>
@@ -124,7 +124,7 @@
     </Form.Control>
     <Form.FieldErrors />
   </Form.Field>
-  <Form.Field {form} name={`${field}Time`} class="flex flex-col">
+  <Form.Field {form} name={`${field}Time`}>
     <Form.Control>
       {#snippet children({ props })}
         <Form.Label class="flex gap-1">
