@@ -9,8 +9,8 @@
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
   import { Modal } from '$lib/components/ui/modal';
-  import { aircraftSchema } from '$lib/zod/aircraft';
   import { trpc } from '$lib/trpc';
+  import { aircraftSchema } from '$lib/zod/aircraft';
 
   let open = $state(false);
 

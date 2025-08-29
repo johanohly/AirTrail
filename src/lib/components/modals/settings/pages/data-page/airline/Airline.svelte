@@ -63,7 +63,9 @@
               </div>
             </div>
             <div class="flex gap-1">
-              <EditAirline {airline} />
+              {#key airline}
+                <EditAirline {airline} />
+              {/key}
               <Confirm
                 title="Remove Airline"
                 description="Are you sure you want to remove {airline.name}?"

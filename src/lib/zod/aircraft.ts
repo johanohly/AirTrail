@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const aircraftSchema = z.object({
-  id: z.number(),
+  id: z.number().nullable(),
   name: z.string().min(1, 'Aircraft name is required'),
   icao: z
     .string({ message: 'Set an ICAO code' })

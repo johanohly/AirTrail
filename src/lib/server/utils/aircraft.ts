@@ -44,7 +44,7 @@ export const findAircraft = async (
     .execute();
 };
 
-export const createAircraft = async (data: Aircraft) => {
+export const createAircraft = async (data: Omit<Aircraft, 'id'>) => {
   await db.insertInto('aircraft').values(data).execute();
 };
 
@@ -59,13 +59,9 @@ export const updateAircraft = async (data: Aircraft) => {
 export const validateAndSaveAircraft = async (
   aircraft: z.infer<typeof aircraftSchema>,
 ): Promise<ErrorActionResult> => {
-  const existingAircraft = await getAircraft(aircraft.id);
-  let updating = false;
-  if (existingAircraft) {
-    updating = true;
-  }
+  const existingAircraft = aircraft.id ? await getAircraft(aircraft.id) : null;
 
-  if (updating) {
+  if (existingAircraft) {
     try {
       await updateAircraft(aircraft);
     } catch (_) {
@@ -82,7 +78,10 @@ export const validateAndSaveAircraft = async (
     };
   } else {
     try {
-      await createAircraft(aircraft);
+      await createAircraft({
+        name: aircraft.name,
+        icao: aircraft.icao,
+      });
     } catch (_) {
       return {
         success: false,
