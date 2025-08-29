@@ -6,13 +6,11 @@
 
   let {
     ref = $bindable(null),
-    value = $bindable(),
     class: className,
     placeholder = $bindable(),
     mode = $bindable(),
     ...restProps
   }: CalendarPrimitive.HeadingProps & {
-    value: DateValue | DateValue[] | undefined;
     placeholder: DateValue | undefined;
     mode: 'normal' | 'year' | 'month';
   } = $props();

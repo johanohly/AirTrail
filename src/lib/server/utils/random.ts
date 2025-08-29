@@ -5,3 +5,12 @@ export const generateString = (): string => {
   crypto.getRandomValues(bytes);
   return encodeBase32LowerCaseNoPadding(bytes);
 };
+
+export const generateRandomString = (length: number = 12): string => {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};

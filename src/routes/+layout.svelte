@@ -32,7 +32,7 @@
 <ScreenSize />
 <Toaster />
 
-{#if !dev && data.user?.role !== 'user'}
+{#if !dev && data.user && data.user.role !== 'user'}
   <NewVersionAnnouncement />
 {/if}
 
@@ -43,7 +43,7 @@
 
     {@render children()}
 
-    {#if !page.error && !['/login', '/setup'].includes(page.url.pathname)}
+    {#if data.user && !page.error && !['/login', '/setup'].includes(page.url.pathname)}
       <NavigationDock />
     {/if}
   </TooltipProvider>

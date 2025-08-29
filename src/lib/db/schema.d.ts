@@ -73,6 +73,23 @@ export type flight = {
     aircraftId: number | null;
     airlineId: number | null;
 };
+export type public_share = {
+    id: Generated<number>;
+    userId: string;
+    slug: string;
+    expiresAt: Timestamp | null;
+    createdAt: Generated<Timestamp>;
+    showMap: Generated<boolean>;
+    showStats: Generated<boolean>;
+    showFlightList: Generated<boolean>;
+    dateFrom: string | null;
+    dateTo: string | null;
+    showFlightNumbers: Generated<boolean>;
+    showAirlines: Generated<boolean>;
+    showAircraft: Generated<boolean>;
+    showTimes: Generated<boolean>;
+    showDates: Generated<boolean>;
+};
 export type seat = {
     id: Generated<number>;
     flightId: number;
@@ -131,6 +148,7 @@ export type DB = {
     apiKey: api_key;
     appConfig: app_config;
     flight: flight;
+    publicShare: public_share;
     seat: seat;
     session: session;
     user: user;
