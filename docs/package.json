@@ -19,7 +19,7 @@
     "fumadocs-openapi": "^8.1.3",
     "fumadocs-ui": "^15.2.12",
     "lucide-react": "^0.482.0",
-    "next": "15.2.4",
+    "next": "15.4.7",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "shiki": "^3.3.0",
