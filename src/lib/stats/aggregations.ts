@@ -93,7 +93,7 @@ export function continentDistribution(
   }));
   const counts = continents.reduce<Record<string, number>>((acc, continent) => {
     acc[continent.name] = flights.filter(
-      (f) => f.to.continent === continent.code,
+      (f) => f.to && f.to.continent === continent.code,
     ).length;
     return acc;
   }, {});
@@ -106,6 +106,8 @@ export function routeDistribution(
   options?: AggregationOptions,
 ): Record<string, number> {
   const counts = flights.reduce<Record<string, number>>((acc, flight) => {
+    if (!flight.from || !flight.to) return acc;
+
     const label =
       (flight.from.iata || flight.from.icao) +
       '-' +
@@ -165,7 +167,9 @@ export function airportDistribution(
 ): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const { from, to } of flights) {
-    for (const code of [from.iata || from.icao, to.iata || to.icao]) {
+    for (const code of [from?.iata || from?.icao, to?.iata || to?.icao]) {
+      if (!code) continue;
+
       counts[code] = (counts[code] ?? 0) + 1;
     }
   }

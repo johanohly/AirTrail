@@ -28,11 +28,12 @@
 
   const uniqueAirports = (
     flights: FlightData[],
-    airportSelector: (f: FlightData) => Airport,
+    airportSelector: (f: FlightData) => Airport | null,
   ) => {
     const seen = new Set();
     return flights
       .map(airportSelector)
+      .filter((airport): airport is Airport => !!airport)
       .filter((airport) => {
         if (seen.has(airport.id)) {
           return false;
