@@ -214,7 +214,8 @@ components:
     Airport:
       type: object
       required:
-        - code
+        - id
+        - icao
         - iata
         - name
         - lat
@@ -224,7 +225,11 @@ components:
         - country
         - tz
       properties:
-        code:
+        id:
+          type: number
+          description: 'The unique ID of the airport in the AirTrail database'
+          example: 42
+        icao:
           type: string
           description: 'The ICAO code of the airport.'
           example: 'KJFK'
@@ -293,10 +298,12 @@ components:
           example: 1
         from:
           type: object
+          nullable: true
           description: 'The departure airport.'
           $ref: '#/components/schemas/Airport'
         to:
           type: object
+          nullable: true
           description: 'The arrival airport.'
           $ref: '#/components/schemas/Airport'
         departure:
@@ -336,6 +343,9 @@ components:
                   - 'aisle'
                   - 'window'
                   - 'middle'
+                  - 'pilot'
+                  - 'copilot'
+                  - 'jumpseat'
                   - 'other'
               seatNumber:
                 type: [string, 'null']
@@ -542,6 +552,9 @@ components:
                   - 'aisle'
                   - 'window'
                   - 'middle'
+                  - 'pilot'
+                  - 'copilot'
+                  - 'jumpseat'
                   - 'other'
               seatNumber:
                 type: string
