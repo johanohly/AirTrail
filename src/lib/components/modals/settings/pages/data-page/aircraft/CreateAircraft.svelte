@@ -11,8 +11,9 @@
   import { Modal } from '$lib/components/ui/modal';
   import { trpc } from '$lib/trpc';
   import { aircraftSchema } from '$lib/zod/aircraft';
+  import { aircraftSearchCache } from '$lib/utils/data/aircraft';
 
-  let open = $state(false);
+  let { open = $bindable(false), withoutTrigger } = $props();
 
   const form = superForm(
     defaults<Infer<typeof aircraftSchema>>(zod(aircraftSchema)),
@@ -23,6 +24,7 @@
         if (form.message) {
           if (form.message.type === 'success') {
             trpc.aircraft.list.utils.invalidate();
+            aircraftSearchCache.clear();
             open = false;
             return void toast.success(form.message.text);
           }
@@ -34,10 +36,12 @@
   const { enhance } = form;
 </script>
 
-<Button variant="outline" onclick={() => (open = true)}>
-  <Plus size={16} class="shrink-0 mr-2" />
-  Create
-</Button>
+{#if !withoutTrigger}
+  <Button variant="outline" onclick={() => (open = true)}>
+    <Plus size={16} class="shrink-0 mr-2" />
+    Create
+  </Button>
+{/if}
 
 <Modal bind:open dialogOnly>
   <h2 class="text-lg font-medium">Add Aircraft</h2>

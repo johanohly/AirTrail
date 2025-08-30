@@ -54,9 +54,9 @@
   });
 </script>
 
-<Button onclick={() => (open = true)} class="w-full">
-  <Plus size={16} class="mr-2" />
-  Create New Share
+<Button onclick={() => (open = true)} variant="outline">
+  <Plus size={16} class="shrink-0 mr-2" />
+  Create
 </Button>
 
 <Modal bind:open dialogOnly>

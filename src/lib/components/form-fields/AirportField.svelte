@@ -13,6 +13,7 @@
   import { cn, toTitleCase } from '$lib/utils';
   import { airportSearchCache } from '$lib/utils/data/airports/cache';
   import type { flightSchema } from '$lib/zod/flight';
+  import CreateAirport from '$lib/components/modals/settings/pages/data-page/airport/CreateAirport.svelte';
 
   let {
     field,
@@ -110,15 +111,16 @@
       loading = true;
       (async () => {
         try {
-          const res = await api.autocomplete.airport.query($inputValue);
-          airports = res;
-          airportSearchCache.set(key, res);
+          airports = await api.autocomplete.airport.query($inputValue);
+          airportSearchCache.set(key, airports);
         } finally {
           loading = false;
         }
       })();
     }
   });
+
+  let createAirport = $state(false);
 </script>
 
 <Form.Field {form} name={field} class="flex flex-col">
@@ -189,21 +191,35 @@
             </div>
           </li>
         {:else}
-          <li
-            class="relative cursor-pointer scroll-my-2 rounded-md p-2
+          {#if loading || !$inputValue}
+            <li
+              class="relative cursor-pointer scroll-my-2 rounded-md p-2
         bg-popover dark:bg-dark-1 border"
-          >
-            {#if loading}
-              Loading...
-            {:else if $inputValue}
-              No airports found.
-            {:else}
-              Start typing to search...
-            {/if}
-          </li>
+            >
+              {#if loading}
+                Loading airports...
+              {:else}
+                Start typing to search...
+              {/if}
+            </li>
+          {:else}
+            <button
+              onclick={() => {
+                open.set(false);
+                createAirport = true;
+              }}
+              class="flex flex-col relative cursor-pointer scroll-my-2 rounded-md p-2
+        bg-popover dark:bg-dark-1 border text-left"
+            >
+              <span>No results found</span>
+              <span class="text-sm opacity-75">Create a new airport?</span>
+            </button>
+          {/if}
         {/each}
       </div>
     </ul>
   {/if}
   <Form.FieldErrors />
 </Form.Field>
+
+<CreateAirport bind:open={createAirport} withoutTrigger />

@@ -9,10 +9,11 @@
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
   import { Modal } from '$lib/components/ui/modal';
-  import { airlineSchema } from '$lib/zod/airline';
   import { trpc } from '$lib/trpc';
+  import { airlineSearchCache } from '$lib/utils/data/airlines';
+  import { airlineSchema } from '$lib/zod/airline';
 
-  let open = $state(false);
+  let { open = $bindable(false), withoutTrigger } = $props();
 
   const form = superForm(
     defaults<Infer<typeof airlineSchema>>(zod(airlineSchema)),
@@ -23,6 +24,7 @@
         if (form.message) {
           if (form.message.type === 'success') {
             trpc.airline.list.utils.invalidate();
+            airlineSearchCache.clear();
             open = false;
             return void toast.success(form.message.text);
           }
@@ -34,10 +36,12 @@
   const { enhance } = form;
 </script>
 
-<Button variant="outline" onclick={() => (open = true)}>
-  <Plus size={16} class="shrink-0 mr-2" />
-  Create
-</Button>
+{#if !withoutTrigger}
+  <Button variant="outline" onclick={() => (open = true)}>
+    <Plus size={16} class="shrink-0 mr-2" />
+    Create
+  </Button>
+{/if}
 
 <Modal bind:open dialogOnly>
   <h2 class="text-lg font-medium">Add Airline</h2>

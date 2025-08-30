@@ -9,13 +9,12 @@
   import { Confirm } from '$lib/components/helpers';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
+  import { Input } from '$lib/components/ui/input';
   import { TextTooltip } from '$lib/components/ui/tooltip/index.js';
   import { api, trpc } from '$lib/trpc';
 
-  // tRPC query for shares list
   const sharesQuery = trpc.share.list.query();
 
-  // Delete share function
   const deleteShare = async (id: number) => {
     try {
       const success = await api.share.delete.mutate(id.toString());
@@ -40,6 +39,17 @@
       toast.error('Failed to copy URL');
     }
   }
+
+  let search = $state('');
+  const handleSearch = (e: Event) => {
+    search = (e.target as HTMLInputElement).value;
+  };
+
+  const filteredShares = $derived(
+    $sharesQuery.data?.filter((share) =>
+      share.slug.toLowerCase().includes(search.toLowerCase()),
+    ) || [],
+  );
 </script>
 
 <PageHeader
@@ -47,7 +57,10 @@
   subtitle="Create and manage public shares of your flight data."
 >
   <div class="space-y-4">
-    <CreateShare />
+    <div class="flex gap-2 justify-between">
+      <Input oninput={handleSearch} class="h-9" placeholder="Search shares" />
+      <CreateShare />
+    </div>
 
     {#if $sharesQuery.isLoading}
       <p class="text-center text-muted-foreground py-8">Loading shares...</p>
@@ -57,9 +70,13 @@
       </p>
     {:else if !$sharesQuery.data || $sharesQuery.data.length === 0}
       <p class="text-center text-muted-foreground">No shares created yet.</p>
+    {:else if filteredShares.length === 0}
+      <p class="text-center text-muted-foreground">
+        No shares found matching your search.
+      </p>
     {:else}
       <div class="space-y-4">
-        {#each $sharesQuery.data as share (share.id)}
+        {#each filteredShares as share (share.id)}
           <Card level="2" class="p-4">
             <div class="flex items-center justify-between gap-4">
               <div class="flex-1 space-y-3">
