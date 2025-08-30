@@ -92,7 +92,7 @@
             <dl class="flex flex-col text-sm">
               <dt class="text-muted-foreground mb-2">Deleted</dt>
               <dd class="flex gap-2">
-                <span class="font-medium font-mono">{result.created}</span>
+                <span class="font-medium font-mono">{result.removed}</span>
               </dd>
             </dl>
           </div>
