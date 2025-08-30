@@ -14,7 +14,7 @@ type FlightOverrides = {
   date: TZDate | null;
   departure: TZDate | null;
   arrival: TZDate | null;
-  distance: number;
+  distance: number | null;
   raw: Flight;
 };
 export type FlightData = ExcludedType<Flight, FlightOverrides> &
@@ -25,26 +25,36 @@ export const prepareFlightData = (data: Flight[]): FlightData[] => {
 
   return data
     .map((flight) => {
-      const departure = flight.departure
-        ? parseLocalizeISO(flight.departure, flight.from.tz)
-        : null;
+      const departure =
+        flight.departure && flight.from
+          ? parseLocalizeISO(flight.departure, flight.from.tz)
+          : flight.departure
+            ? parseLocalizeISO(flight.departure, 'UTC')
+            : null;
 
       return {
         ...flight,
         date:
           departure ??
-          (flight.date
+          (flight.date && flight.from
             ? parseLocal(flight.date, 'yyyy-MM-dd', flight.from.tz)
-            : null),
+            : flight.date
+              ? parseLocal(flight.date, 'yyyy-MM-dd', 'UTC')
+              : null),
         departure,
-        arrival: flight.arrival
-          ? parseLocalizeISO(flight.arrival, flight.to.tz)
-          : null,
+        arrival:
+          flight.arrival && flight.to
+            ? parseLocalizeISO(flight.arrival, flight.to.tz)
+            : flight.arrival
+              ? parseLocalizeISO(flight.arrival, 'UTC')
+              : null,
         distance:
-          distanceBetween(
-            [flight.from.lon, flight.from.lat],
-            [flight.to.lon, flight.to.lat],
-          ) / 1000,
+          flight.from && flight.to
+            ? distanceBetween(
+                [flight.from.lon, flight.from.lat],
+                [flight.to.lon, flight.to.lat],
+              ) / 1000
+            : null,
         raw: flight,
       };
     })
@@ -66,12 +76,14 @@ export const prepareFlightArcData = (data: FlightData[]) => {
   } = {};
 
   data.forEach((flight) => {
+    if (!flight.from || !flight.to) return;
+
     const key = [flight.from.name, flight.to.name]
       .sort((a, b) => a.localeCompare(b))
       .join('-');
     if (!routeMap[key]) {
       routeMap[key] = {
-        distance: flight.distance,
+        distance: flight.distance!,
         from: flight.from,
         to: flight.to,
         flights: [],
@@ -82,7 +94,11 @@ export const prepareFlightArcData = (data: FlightData[]) => {
 
     routeMap[key].flights.push(formatSimpleFlight(flight));
 
-    if (routeMap[key].flights.every((f) => isAfter(f.date, nowIn('UTC')))) {
+    if (
+      routeMap[key].flights.every(
+        (f) => f.date && isAfter(f.date, nowIn('UTC')),
+      )
+    ) {
       routeMap[key].exclusivelyFuture = true;
     }
 
@@ -105,6 +121,8 @@ export const prepareVisitedAirports = (data: FlightData[]) => {
     frequency: number;
   })[] = [];
   const formatAirport = (flight: FlightData, direction: 'from' | 'to') => {
+    if (!flight[direction]) return;
+
     const airport = flight[direction];
     let visit = visited.find((v) => v.name === airport.name);
     if (!visit) {
@@ -160,8 +178,8 @@ export const prepareVisitedAirports = (data: FlightData[]) => {
 
 const formatSimpleFlight = (f: FlightData) => {
   return {
-    airports: [f.from.id, f.to.id],
-    route: `${f.from.iata ?? f.from.icao} - ${f.to.iata ?? f.to.icao}`,
+    airports: [f.from?.id, f.to?.id],
+    route: `${f.from?.iata ?? f.from?.icao ?? 'N/A'} - ${f.to?.iata ?? f.to?.icao ?? 'N/A'}`,
     date: f.date,
     airline: f.airline ?? '',
   };

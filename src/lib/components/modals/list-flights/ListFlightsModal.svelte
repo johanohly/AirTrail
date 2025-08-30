@@ -325,7 +325,7 @@
       {airport?.iata || airport?.icao || 'N/A'}
     </span>
     <Tooltip.AutoTooltip
-      text={airport.name}
+      text={airport?.name || 'Deleted Airport'}
       class="text-center w-32 text-xs text-muted-foreground truncate"
     />
   </div>
