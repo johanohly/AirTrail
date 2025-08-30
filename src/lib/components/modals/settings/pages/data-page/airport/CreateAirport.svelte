@@ -10,15 +10,18 @@
   import * as Form from '$lib/components/ui/form';
   import { Modal } from '$lib/components/ui/modal';
   import type { Airport } from '$lib/db/types';
+  import { airportSearchCache } from '$lib/utils/data/airports/cache';
   import { airportSchema } from '$lib/zod/airport';
 
-  const {
+  let {
+    open = $bindable(false),
     onAirportCreate,
+    withoutTrigger = false,
   }: {
-    onAirportCreate: (airport: Airport) => Promise<void>;
+    open?: boolean;
+    onAirportCreate?: (airport: Airport) => Promise<void>;
+    withoutTrigger?: boolean;
   } = $props();
-
-  let open = $state(false);
 
   const form = superForm(
     defaults<Infer<typeof airportSchema>>(zod(airportSchema)),
@@ -29,7 +32,8 @@
         if (form.message) {
           if (form.message.type === 'success') {
             open = false;
-            onAirportCreate({ ...form.data, custom: true });
+            airportSearchCache.clear();
+            onAirportCreate?.({ ...form.data, custom: true });
             return void toast.success(form.message.text);
           }
           toast.error(form.message.text);
@@ -40,10 +44,12 @@
   const { enhance } = form;
 </script>
 
-<Button variant="outline" onclick={() => (open = true)}>
-  <Plus size={16} class="shrink-0 mr-2" />
-  Create
-</Button>
+{#if !withoutTrigger}
+  <Button variant="outline" onclick={() => (open = true)}>
+    <Plus size={16} class="shrink-0 mr-2" />
+    Create
+  </Button>
+{/if}
 
 <Modal bind:open dialogOnly>
   <h2 class="text-lg font-medium">Add Airport</h2>

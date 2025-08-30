@@ -11,6 +11,8 @@
   import type { Aircraft } from '$lib/db/types';
   import { api } from '$lib/trpc';
   import type { flightSchema } from '$lib/zod/flight';
+  import CreateAircraft from '$lib/components/modals/settings/pages/data-page/aircraft/CreateAircraft.svelte';
+  import { aircraftSearchCache } from '$lib/utils/data/aircraft';
 
   let {
     form,
@@ -81,9 +83,17 @@
 
   $effect(() => {
     if ($touchedInput && $inputValue !== '' && !loading) {
+      const key = $inputValue.toLowerCase();
+      const cached = aircraftSearchCache.get(key);
+      if (cached) {
+        aircraft = cached;
+        return;
+      }
+
       loading = true;
       debounce(async () => {
         aircraft = await api.autocomplete.aircraft.query($inputValue);
+        aircraftSearchCache.set(key, aircraft);
         loading = false;
       });
     } else if (!loading && ($inputValue === '' || !$open)) {
@@ -94,20 +104,26 @@
   // Ensure results are repopulated when the input is focused/opened with a prefilled value
   $effect(() => {
     if ($open && !$touchedInput && $inputValue !== '' && !loading) {
+      const key = $inputValue.toLowerCase();
+      const cached = aircraftSearchCache.get(key);
+      if (cached) {
+        aircraft = cached;
+        return;
+      }
+
       loading = true;
       (async () => {
         try {
-          const res = await api.autocomplete.aircraft.query($inputValue);
-          aircraft = res;
-        } catch (error) {
-          console.error('Error fetching aircraft:', error);
-          aircraft = [];
+          aircraft = await api.autocomplete.aircraft.query($inputValue);
+          aircraftSearchCache.set(key, aircraft);
         } finally {
           loading = false;
         }
       })();
     }
   });
+
+  let createAircraft = $state(false);
 </script>
 
 <Form.Field {form} name="aircraft" class="flex flex-col">
@@ -170,21 +186,35 @@
             </div>
           </li>
         {:else}
-          <li
-            class="relative cursor-pointer scroll-my-2 rounded-md p-2
+          {#if loading || !$inputValue}
+            <li
+              class="relative cursor-pointer scroll-my-2 rounded-md p-2
         bg-popover dark:bg-dark-1 border"
-          >
-            {#if loading}
-              Loading aircraft...
-            {:else if $inputValue}
-              No aircraft found.
-            {:else}
-              Start typing to search...
-            {/if}
-          </li>
+            >
+              {#if loading}
+                Loading aircraft...
+              {:else}
+                Start typing to search...
+              {/if}
+            </li>
+          {:else}
+            <button
+              onclick={() => {
+                open.set(false);
+                createAircraft = true;
+              }}
+              class="flex flex-col relative cursor-pointer scroll-my-2 rounded-md p-2
+        bg-popover dark:bg-dark-1 border text-left"
+            >
+              <span>No results found</span>
+              <span class="text-sm opacity-75">Create a new aircraft?</span>
+            </button>
+          {/if}
         {/each}
       </div>
     </ul>
   {/if}
   <Form.FieldErrors />
 </Form.Field>
+
+<CreateAircraft bind:open={createAircraft} withoutTrigger />
