@@ -34,16 +34,16 @@ export const updateAirports = async () => {
   const start = Date.now();
 
   const existingAirports = await db.selectFrom('airport').selectAll().execute();
-  const existingMap = new Map(existingAirports.map((a) => [a.id, a]));
+  const existingMap = new Map(existingAirports.map((a) => [a.icao, a]));
   const data = await fetchAirports();
-  const newMap = new Map(data.map((a) => [a.id, a]));
+  const newMap = new Map(data.map((a) => [a.icao, a]));
 
-  const newAirports: Airport[] = [];
+  const newAirports: InsertAirport[] = [];
   const updatedAirports: Airport[] = [];
   const removedAirports: Airport[] = [];
 
   for (const airport of data) {
-    const existing = existingMap.get(airport.id);
+    const existing = existingMap.get(airport.icao);
 
     // Means the airport was manually added by the user
     if (existing?.custom) {
@@ -52,13 +52,16 @@ export const updateAirports = async () => {
 
     if (!existing) {
       newAirports.push(airport);
-    } else if (!deepEqual(airport, existing)) {
-      updatedAirports.push(airport);
+    } else {
+      const { id: _, ...airportWithoutId } = existing;
+      if (!deepEqual(airport, airportWithoutId)) {
+        updatedAirports.push({ ...airport, id: existing.id });
+      }
     }
   }
 
   for (const airport of existingAirports) {
-    if (!newMap.has(airport.id) && !airport.custom) {
+    if (!newMap.has(airport.icao) && !airport.custom) {
       removedAirports.push(airport);
     }
   }
@@ -97,7 +100,7 @@ export const updateAirports = async () => {
   };
 };
 
-export const fetchAirports = async (): Promise<Airport[]> => {
+export const fetchAirports = async (): Promise<InsertAirport[]> => {
   const resp = await fetch(
     'https://davidmegginson.github.io/ourairports-data/airports.csv',
   );
@@ -127,7 +130,7 @@ export const fetchAirports = async (): Promise<Airport[]> => {
     dataMap.set(key, airport.id);
   }
 
-  const airports: Airport[] = data
+  return data
     .map((airport) => {
       const tz = find(airport.latitude_deg, airport.longitude_deg)[0];
       if (!tz) {
@@ -150,7 +153,7 @@ export const fetchAirports = async (): Promise<Airport[]> => {
         custom: false,
       };
     })
-    .filter((airport) => airport !== null) as Airport[];
-
-  return airports;
+    .filter((airport) => airport !== null);
 };
+
+type InsertAirport = Omit<Airport, 'id'>;
