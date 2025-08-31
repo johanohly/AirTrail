@@ -70,7 +70,7 @@
         <Form.Field {form} name="displayName">
           <Form.Control>
             {#snippet children({ props })}
-              <Form.Label>Name</Form.Label>
+              <Form.Label>Display Name</Form.Label>
               <Input {...props} bind:value={$formData.displayName} />
             {/snippet}
           </Form.Control>

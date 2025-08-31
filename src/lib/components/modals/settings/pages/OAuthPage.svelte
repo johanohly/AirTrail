@@ -71,8 +71,8 @@
       >
         <Form.Control>
           {#snippet children({ props })}
-            <div class="grid gap-0.5">
-              <Form.Label class="text-base">Enable OAuth</Form.Label>
+            <div class="grid gap-1">
+              <Form.Label>Enable OAuth</Form.Label>
               <Form.Description>
                 Enable OAuth for your AirTrail instance.
               </Form.Description>
@@ -180,8 +180,8 @@
       >
         <Form.Control>
           {#snippet children({ props })}
-            <div class="grid gap-0.5">
-              <Form.Label class="text-base">Auto Register</Form.Label>
+            <div class="grid gap-1">
+              <Form.Label>Auto Register</Form.Label>
               <Form.Description>
                 Automatically register new users when they sign in with OAuth.
               </Form.Description>
@@ -202,8 +202,8 @@
       >
         <Form.Control>
           {#snippet children({ props })}
-            <div class="grid gap-0.5">
-              <Form.Label class="text-base">Auto Login</Form.Label>
+            <div class="grid gap-1">
+              <Form.Label>Auto Login</Form.Label>
               <Form.Description>
                 Automatically redirect users to the OAuth provider when they
                 visit the login page.
