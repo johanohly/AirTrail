@@ -13,7 +13,7 @@
   "dependencies": {
     "@scalar/api-client-react": "^1.3.31",
     "@tailwindcss/postcss": "^4.1.12",
-    "algoliasearch": "^4.25.2",
+    "algoliasearch": "^5.36.0",
     "fumadocs-core": "^15.7.6",
     "fumadocs-mdx": "^11.8.2",
     "fumadocs-openapi": "^9.3.3",
