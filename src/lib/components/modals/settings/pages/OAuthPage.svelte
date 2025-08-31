@@ -180,7 +180,7 @@
       >
         <Form.Control>
           {#snippet children({ props })}
-            <div class="grid gap-0.5">
+            <div class="grid gap-1">
               <Form.Label>Auto Register</Form.Label>
               <Form.Description>
                 Automatically register new users when they sign in with OAuth.
@@ -202,7 +202,7 @@
       >
         <Form.Control>
           {#snippet children({ props })}
-            <div class="grid gap-0.5">
+            <div class="grid gap-1">
               <Form.Label>Auto Login</Form.Label>
               <Form.Description>
                 Automatically redirect users to the OAuth provider when they
