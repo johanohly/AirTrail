@@ -27,7 +27,8 @@
   const flights = $derived.by(() =>
     allFlights.filter(
       (f) =>
-        !f.date || isBefore(f.arrival ? f.arrival : f.date, nowIn(f.to!.tz)),
+        !f.date ||
+        isBefore(f.arrival ? f.arrival : f.date, nowIn(f.to?.tz || 'UTC')),
     ),
   );
 
