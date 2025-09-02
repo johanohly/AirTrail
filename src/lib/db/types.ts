@@ -4,47 +4,30 @@ import type {
   airport,
   api_key,
   flight,
+  public_share,
   seat,
   user,
 } from '$lib/db/schema';
+import type { Selectable } from 'kysely';
 
-export type ServerUser = user;
-export type User = Omit<ServerUser, 'password'>;
-export type ApiKey = Omit<
-  api_key,
-  'id' | 'key' | 'userId' | 'createdAt' | 'lastUsed'
-> & {
-  id: number;
-  createdAt: Date;
-  lastUsed: Date | null;
-};
-export type Aircraft = Omit<aircraft, 'id'> & {
-  id: number;
-};
-export type Airline = Omit<airline, 'id'> & {
-  id: number;
-};
-export type Airport = Omit<airport, 'id' | 'custom'> & {
-  id: number;
-  custom: boolean;
-};
-export type Seat = Omit<seat, 'id'> & {
-  id: number;
-};
+export type FullUser = Selectable<user>;
+export type User = Omit<FullUser, 'password'>;
+export type ApiKey = Omit<Selectable<api_key>, 'key' | 'userId'>;
+export type Aircraft = Selectable<aircraft>;
+export type Airline = Selectable<airline>;
+export type Airport = Selectable<airport>;
+export type Seat = Selectable<seat>;
 export type Flight = Omit<
-  flight,
-  'id' | 'fromId' | 'toId' | 'aircraftId' | 'airlineId'
+  Selectable<flight>,
+  'fromId' | 'toId' | 'aircraftId' | 'airlineId'
 > & {
-  id: number;
   from: Airport | null;
   to: Airport | null;
   seats: Seat[];
   aircraft: Aircraft | null;
   airline: Airline | null;
 };
-type CreateFlightAirport = Partial<Omit<Airport, 'id'>> & {
-  id: number;
-};
+type CreateFlightAirport = Partial<Airport>;
 export type CreateFlight = Omit<Flight, 'id' | 'seats'> & {
   from: CreateFlightAirport;
   to: CreateFlightAirport;
@@ -52,6 +35,7 @@ export type CreateFlight = Omit<Flight, 'id' | 'seats'> & {
   airline: Airline | null;
   seats: Omit<Seat, 'flightId' | 'id'>[];
 };
+export type PublicShare = Selectable<public_share>;
 
 export const AirportTypes = [
   'small_airport',

@@ -33,25 +33,6 @@
     },
   );
   const { enhance } = form;
-
-  // Set default values when opening modal
-  $effect(() => {
-    if (open) {
-      form.form.update(($form) => ({
-        ...$form,
-        slug: generateRandomString(12),
-        expiryOption: 'never',
-        showMap: true,
-        showStats: false,
-        showFlightList: false,
-        showFlightNumbers: true,
-        showAirlines: true,
-        showAircraft: false,
-        showTimes: false,
-        showDates: true,
-      }));
-    }
-  });
 </script>
 
 <Button onclick={() => (open = true)} variant="outline">
