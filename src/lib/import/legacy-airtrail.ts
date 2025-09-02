@@ -1,22 +1,24 @@
 import { z } from 'zod';
 
 import { page } from '$app/state';
-import type { CreateFlight } from '$lib/db/types';
-import { api } from '$lib/trpc';
-import { aircraftSchema } from '$lib/zod/aircraft';
-import { airlineSchema } from '$lib/zod/airline';
-import { flightAirportSchema } from '$lib/zod/airport';
 import {
-  flightOptionalInformationSchema,
-  flightSeatInformationSchema,
-} from '$lib/zod/flight';
+  type CreateFlight,
+  FlightReasons,
+  SeatClasses,
+  SeatTypes,
+} from '$lib/db/types';
+import { api } from '$lib/trpc';
 
 const AirTrailFile = z.object({
   flights: z
     .object({
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-      from: flightAirportSchema.omit({ id: true }),
-      to: flightAirportSchema.omit({ id: true }),
+      from: z.object({
+        code: z.string().max(4, 'Airport code is too long'),
+      }),
+      to: z.object({
+        code: z.string().max(4, 'Airport code is too long'),
+      }),
       departure: z
         .string()
         .datetime({ offset: true, message: 'Invalid datetime' })
@@ -26,13 +28,42 @@ const AirTrailFile = z.object({
         .datetime({ offset: true, message: 'Invalid datetime' })
         .nullable(),
       duration: z.number().int().positive().nullable(),
-      airline: airlineSchema.omit({ id: true }).nullable(),
-      aircraft: aircraftSchema.omit({ id: true }).nullable(),
+      airline: z.string().max(4, 'Airline is too long').nullable(),
+      flightNumber: z.string().max(10, 'Flight number is too long').nullable(), // should cover all cases
+      aircraft: z.string().max(4, 'Aircraft is too long').nullable(),
+      aircraftReg: z
+        .string()
+        .max(10, 'Aircraft registration is too long')
+        .nullable(),
+      flightReason: z.enum(FlightReasons).nullable(),
+      note: z.string().max(1000, 'Note is too long').nullable(),
+      seats: z
+        .object({
+          userId: z.string().nullable(),
+          guestName: z.string().max(50, 'Guest name is too long').nullable(),
+          seat: z.enum(SeatTypes).nullable(),
+          seatNumber: z.string().max(5, 'Seat number is too long').nullable(), // 12A-1 for example
+          seatClass: z.enum(SeatClasses).nullable(),
+        })
+        .refine((data) => data.userId ?? data.guestName, {
+          message: 'Select a user or add a guest name',
+          path: ['userId'],
+        })
+        .array()
+        .min(1, 'Add at least one seat')
+        .refine((data) => data.some((seat) => seat.userId), {
+          message: 'At least one seat must be assigned to a user',
+        })
+        .default([
+          {
+            userId: '<USER_ID>',
+            guestName: null,
+            seat: null,
+            seatNumber: null,
+            seatClass: null,
+          },
+        ]),
     })
-    .merge(
-      flightOptionalInformationSchema.omit({ airline: true, aircraft: true }),
-    )
-    .merge(flightSeatInformationSchema)
     .array()
     .min(1, 'At least one flight is required'),
   users: z
@@ -52,7 +83,7 @@ const AirTrailFile = z.object({
     .min(1, 'At least one user is required'),
 });
 
-export const processAirTrailFile = async (input: string) => {
+export const processLegacyAirTrailFile = async (input: string) => {
   const user = page.data.user;
   if (!user) {
     throw new Error('User not found');
@@ -95,10 +126,10 @@ export const processAirTrailFile = async (input: string) => {
         ? users.find((user) => user.username === dataUser?.username)
         : null;
       /*
-      1. If the user is known, no guest name is needed.
-      2. If the user is unknown, but the guest name is known, use the guest name.
-      3. If the user is unknown and the guest name is unknown, use the provided display name (this could happen if the user is not in the database).
-       */
+        1. If the user is known, no guest name is needed.
+        2. If the user is unknown, but the guest name is known, use the guest name.
+        3. If the user is unknown and the guest name is unknown, use the provided display name (this could happen if the user is not in the database).
+         */
       const guestName = user
         ? null
         : seat.guestName
@@ -131,38 +162,28 @@ export const processAirTrailFile = async (input: string) => {
       });
     }
 
-    const from = await api.airport.getFromIcao.query(rawFlight.from.icao);
-    const to = await api.airport.getFromIcao.query(rawFlight.to.icao);
+    const from = await api.airport.getFromIcao.query(rawFlight.from.code);
+    const to = await api.airport.getFromIcao.query(rawFlight.to.code);
     if (!from || !to) {
-      if (!from && !unknownAirports.includes(rawFlight.from.icao)) {
-        unknownAirports.push(rawFlight.from.icao);
+      if (!from && !unknownAirports.includes(rawFlight.from.code)) {
+        unknownAirports.push(rawFlight.from.code);
       }
-      if (!to && !unknownAirports.includes(rawFlight.to.icao)) {
-        unknownAirports.push(rawFlight.to.icao);
+      if (!to && !unknownAirports.includes(rawFlight.to.code)) {
+        unknownAirports.push(rawFlight.to.code);
       }
       continue;
     }
 
-    let airline = null;
-    if (rawFlight.airline) {
-      airline = rawFlight.airline.icao
-        ? await api.airline.getByIcao.query(rawFlight.airline.icao)
-        : await api.airline.getByName.query(rawFlight.airline.name);
-    }
-
-    let aircraft = null;
-    if (rawFlight.aircraft) {
-      aircraft = rawFlight.aircraft.icao
-        ? await api.aircraft.getByIcao.query(rawFlight.aircraft.icao)
-        : await api.aircraft.getByName.query(rawFlight.aircraft.name);
-    }
-
     flights.push({
       ...rawFlight,
+      airline: rawFlight.airline
+        ? await api.airline.getByIcao.query(rawFlight.airline)
+        : null,
+      aircraft: rawFlight.aircraft
+        ? await api.aircraft.getByIcao.query(rawFlight.aircraft)
+        : null,
       from,
       to,
-      airline,
-      aircraft,
       seats,
     });
   }

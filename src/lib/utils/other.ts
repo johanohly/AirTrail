@@ -3,6 +3,17 @@ import { cubicOut } from 'svelte/easing';
 import type { TransitionConfig } from 'svelte/transition';
 import { twMerge } from 'tailwind-merge';
 
+export const omit = <T extends object, K extends keyof T>(
+  obj: T,
+  keys: K[],
+): Omit<T, K> => {
+  const clone = { ...obj };
+  for (const key of keys) {
+    delete clone[key];
+  }
+  return clone;
+};
+
 export const deepMerge = (target: any, source: any): any => {
   const output = { ...target };
   for (const key in source) {

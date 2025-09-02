@@ -35,16 +35,6 @@ export const platforms = [
     },
   },
   {
-    name: 'AirTrail',
-    value: 'airtrail',
-    description: 'JSON export from AirTrail (re-import your data).',
-    extensions: ['.json'],
-    options: {
-      filterOwner: false,
-      airlineFromFlightNumber: false,
-    },
-  },
-  {
     name: 'TripIt (ICS)',
     value: 'tripit',
     description: 'Trip export from TripIt as an ICS file.',
@@ -59,6 +49,27 @@ export const platforms = [
     value: 'flighty',
     description: 'CSV export from Flighty flight tracker app.',
     extensions: ['.csv'],
+    options: {
+      filterOwner: false,
+      airlineFromFlightNumber: false,
+    },
+  },
+  {
+    name: 'AirTrail',
+    value: 'airtrail',
+    description: 'JSON export from AirTrail (re-import your data).',
+    extensions: ['.json'],
+    options: {
+      filterOwner: false,
+      airlineFromFlightNumber: false,
+    },
+  },
+  {
+    name: 'AirTrail (pre-v3)',
+    value: 'legacy-airtrail',
+    description:
+      'JSON export from AirTrail (exported from a pre-v3 version of AirTrail).',
+    extensions: ['.json'],
     options: {
       filterOwner: false,
       airlineFromFlightNumber: false,
