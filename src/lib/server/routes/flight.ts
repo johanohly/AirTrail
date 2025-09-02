@@ -13,6 +13,7 @@ import {
 } from '$lib/server/utils/flight';
 import { getFlightRoute } from '$lib/server/utils/flight-lookup/flight-lookup';
 import { generateCsv } from '$lib/utils/csv';
+import { omit } from '$lib/utils/other';
 
 export const flightRouter = router({
   lookup: authedProcedure
@@ -146,11 +147,13 @@ export const flightRouter = router({
       .select(['id', 'displayName', 'username'])
       .execute();
     const res = await listFlights(user.id);
-    const flights = res.map(({ id: _, ...flight }) => ({
-      ...flight,
-      seats: flight.seats.map(({ id: _, flightId: __, ...seat }) => ({
-        ...seat,
-      })),
+    const flights = res.map((flight) => ({
+      ...omit(flight, ['id', 'fromId', 'toId', 'airlineId', 'aircraftId']),
+      from: flight.from ? omit(flight.from, ['id']) : null,
+      to: flight.to ? omit(flight.to, ['id']) : null,
+      airline: flight.airline ? omit(flight.airline, ['id']) : null,
+      aircraft: flight.aircraft ? omit(flight.aircraft, ['id']) : null,
+      seats: flight.seats.map((seat) => omit(seat, ['id', 'flightId'])),
     }));
     return JSON.stringify(
       {
@@ -168,8 +171,10 @@ export const flightRouter = router({
 
       return {
         ...flight,
-        from: flight.from.code,
-        to: flight.to.code,
+        from: flight.from?.name,
+        to: flight.to?.name,
+        airline: flight.airline?.name,
+        aircraft: flight.aircraft?.name,
         seat: seat?.seat,
         seatNumber: seat?.seatNumber,
         seatClass: seat?.seatClass,

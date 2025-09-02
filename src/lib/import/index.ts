@@ -8,6 +8,7 @@ import { processAITAFile } from '$lib/import/aita';
 import { processFlightyFile } from '$lib/import/flighty';
 import { processFR24File } from '$lib/import/fr24';
 import { processJetLogFile } from '$lib/import/jetlog';
+import { processLegacyAirTrailFile } from '$lib/import/legacy-airtrail';
 import { processTripItFile } from '$lib/import/tripit';
 import { readFile } from '$lib/utils';
 
@@ -22,6 +23,7 @@ type Processor = (
 
 const processors: Record<PlatformValue, Processor> = {
   airtrail: async (content) => processAirTrailFile(content),
+  'legacy-airtrail': async (content) => processLegacyAirTrailFile(content),
   jetlog: async (content, options) => processJetLogFile(content, options),
   fr24: async (content) => processFR24File(content),
   aita: async (content, options) => processAITAFile(content, options),

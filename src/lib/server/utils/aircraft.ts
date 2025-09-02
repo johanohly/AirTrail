@@ -27,6 +27,18 @@ export const getAircraftByIcao = async (
   );
 };
 
+export const getAircraftByName = async (
+  input: string,
+): Promise<Aircraft | null> => {
+  return (
+    (await db
+      .selectFrom('aircraft')
+      .selectAll()
+      .where('name', 'ilike', input)
+      .executeTakeFirst()) ?? null
+  );
+};
+
 export const findAircraft = async (
   input: string,
 ): Promise<Aircraft[] | null> => {

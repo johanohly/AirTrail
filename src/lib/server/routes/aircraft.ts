@@ -2,21 +2,21 @@ import { z } from 'zod';
 
 import { db } from '$lib/db';
 import { adminProcedure, authedProcedure, router } from '$lib/server/trpc';
+import {
+  getAircraft,
+  getAircraftByIcao,
+  getAircraftByName,
+} from '$lib/server/utils/aircraft';
 
 export const aircraftRouter = router({
   get: authedProcedure.input(z.number()).query(async ({ input }) => {
-    return await db
-      .selectFrom('aircraft')
-      .selectAll()
-      .where('id', '=', input)
-      .executeTakeFirst();
+    return await getAircraft(input);
   }),
   getByIcao: authedProcedure.input(z.string()).query(async ({ input }) => {
-    return await db
-      .selectFrom('aircraft')
-      .selectAll()
-      .where('icao', 'ilike', input)
-      .executeTakeFirst();
+    return await getAircraftByIcao(input);
+  }),
+  getByName: authedProcedure.input(z.string()).query(async ({ input }) => {
+    return await getAircraftByName(input);
   }),
   list: authedProcedure.query(async () => {
     return await db
