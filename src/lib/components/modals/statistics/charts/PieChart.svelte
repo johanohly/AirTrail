@@ -19,7 +19,9 @@
       return { 'No data': 1 };
     }
     return Object.fromEntries(
-      Object.entries(data).sort(([, a], [, b]) => b - a),
+      Object.entries(data)
+        .filter(([, value]) => value > 0)
+        .sort(([, a], [, b]) => b - a),
     );
   });
 </script>
@@ -58,7 +60,7 @@
           <p><span class="font-bold">{title}</span></p>
         </div>
       {/if}
-      {#each Object.entries(data) as [key, value] (key)}
+      {#each Object.entries(data).filter(([, value]) => value > 0) as [key, value] (key)}
         <p><span class="font-bold">{value}</span> {key}</p>
       {/each}
     </div>
