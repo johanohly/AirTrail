@@ -34,7 +34,7 @@ export const getAirlineByName = async (
     (await db
       .selectFrom('airline')
       .selectAll()
-      .where('icao', 'ilike', input)
+      .where('name', 'ilike', input)
       .executeTakeFirst()) ?? null
   );
 };

@@ -3,14 +3,13 @@ import { z } from 'zod';
 import { page } from '$app/state';
 import type { CreateFlight } from '$lib/db/types';
 import { api } from '$lib/trpc';
+import { aircraftSchema } from '$lib/zod/aircraft';
+import { airlineSchema } from '$lib/zod/airline';
+import { flightAirportSchema } from '$lib/zod/airport';
 import {
-  flightAirportsSchema,
   flightOptionalInformationSchema,
   flightSeatInformationSchema,
 } from '$lib/zod/flight';
-import { flightAirportSchema } from '$lib/zod/airport';
-import { airlineSchema } from '$lib/zod/airline';
-import { aircraftSchema } from '$lib/zod/aircraft';
 
 const AirTrailFile = z.object({
   flights: z
