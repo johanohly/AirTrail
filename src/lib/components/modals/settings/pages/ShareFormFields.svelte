@@ -1,15 +1,15 @@
 <script lang="ts">
   import type { Infer, SuperForm } from 'sveltekit-superforms';
 
+  import DateField from '$lib/components/form-fields/DateField.svelte';
+  import DateRangeField from '$lib/components/form-fields/DateRangeField.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Checkbox } from '$lib/components/ui/checkbox';
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
-  import { Checkbox } from '$lib/components/ui/checkbox';
   import * as Select from '$lib/components/ui/select';
-  import { Button } from '$lib/components/ui/button';
   import { generateRandomString } from '$lib/utils/string';
-  import DateField from '$lib/components/form-fields/DateField.svelte';
-  import DateRangeField from '$lib/components/form-fields/DateRangeField.svelte';
   import type { shareSchema } from '$lib/zod/share';
 
   const { form }: { form: SuperForm<Infer<typeof shareSchema>> } = $props();
@@ -187,6 +187,15 @@
         {#snippet children({ props })}
           <Checkbox bind:checked={$formData.showDates} {...props} />
           <Form.Label class="text-sm font-normal">Show Flight Dates</Form.Label>
+        {/snippet}
+      </Form.Control>
+    </Form.Field>
+
+    <Form.Field {form} name="showSeat" class="flex flex-row items-center">
+      <Form.Control>
+        {#snippet children({ props })}
+          <Checkbox bind:checked={$formData.showSeat} {...props} />
+          <Form.Label class="text-sm font-normal">Show Seat</Form.Label>
         {/snippet}
       </Form.Control>
     </Form.Field>

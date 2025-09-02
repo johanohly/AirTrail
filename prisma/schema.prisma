@@ -181,6 +181,7 @@ model public_share {
   show_aircraft       Boolean @default(false)
   show_times          Boolean @default(false)
   show_dates          Boolean @default(true)
+  show_seat           Boolean @default(false)
 
   user user @relation(fields: [user_id], references: [id], onDelete: Cascade)
 

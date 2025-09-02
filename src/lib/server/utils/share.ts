@@ -3,29 +3,16 @@ import { z } from 'zod';
 
 import { db } from '$lib/db';
 import { listFlightBaseQuery } from '$lib/db/queries';
-import type { Airport, Aircraft, Airline, Seat } from '$lib/db/types';
+import type {
+  Airport,
+  Aircraft,
+  Airline,
+  Seat,
+  PublicShare,
+} from '$lib/db/types';
 import { generateRandomString } from '$lib/server/utils/random';
 import type { ErrorActionResult } from '$lib/utils/forms';
 import { baseShareSchema, type shareSchema } from '$lib/zod/share';
-
-// Simple interface for database query results
-interface ShareRecord {
-  id: number;
-  userId: string;
-  slug: string;
-  expiresAt: Date | null;
-  createdAt: Date;
-  showMap: boolean;
-  showStats: boolean;
-  showFlightList: boolean;
-  dateFrom: string | null;
-  dateTo: string | null;
-  showFlightNumbers: boolean;
-  showAirlines: boolean;
-  showAircraft: boolean;
-  showTimes: boolean;
-  showDates: boolean;
-}
 
 // Use complete objects instead of individual field properties
 interface SanitizedFlight {
@@ -67,6 +54,7 @@ export const shareUpdateSchema = z.object({
   showAircraft: z.boolean().optional(),
   showTimes: z.boolean().optional(),
   showDates: z.boolean().optional(),
+  showSeat: z.boolean().optional(),
 });
 
 export type ShareCreateInput = z.infer<typeof shareCreateSchema>;
@@ -137,6 +125,7 @@ export async function createShare(userId: string, input: ShareCreateInput) {
       showAircraft: input.showAircraft,
       showTimes: input.showTimes,
       showDates: input.showDates,
+      showSeat: input.showSeat,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any)
     .returningAll()
@@ -228,7 +217,7 @@ export async function getPublicShareData(slug: string) {
  * Get flights for a share with date filtering
  * Reuses the complete listFlightBaseQuery instead of sparse field selection
  */
-async function getFilteredFlightsForShare(share: ShareRecord) {
+async function getFilteredFlightsForShare(share: PublicShare) {
   let query = listFlightBaseQuery(db, share.userId);
 
   // Apply date filtering if specified
@@ -248,7 +237,7 @@ async function getFilteredFlightsForShare(share: ShareRecord) {
  */
 function sanitizeFlightData(
   flights: Awaited<ReturnType<typeof getFilteredFlightsForShare>>,
-  share: ShareRecord,
+  share: PublicShare,
 ): SanitizedFlight[] {
   return flights.map((flight) => {
     // Create sanitized seats array (only include user's seats, remove sensitive data)
@@ -256,10 +245,10 @@ function sanitizeFlightData(
       .filter((seat) => seat.userId === share.userId)
       .map((seat) => ({
         ...seat,
-        // Remove sensitive seat data
-        seatNumber: null,
-        guestName: null,
-        userId: seat.userId, // Keep userId for seat identification
+        seat: share.showSeat ? seat.seat : null,
+        seatClass: share.showSeat ? seat.seatClass : null,
+        seatNumber: share.showSeat ? seat.seatNumber : null,
+        userId: seat.userId,
       }));
 
     const sanitized: SanitizedFlight = {
@@ -371,6 +360,7 @@ export async function validateAndSaveShare(
           showAircraft: shareData.showAircraft,
           showTimes: shareData.showTimes,
           showDates: shareData.showDates,
+          showSeat: shareData.showSeat,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any)
         .where('id', '=', shareData.id)
@@ -423,6 +413,7 @@ export async function validateAndSaveShare(
           showAircraft: shareData.showAircraft,
           showTimes: shareData.showTimes,
           showDates: shareData.showDates,
+          showSeat: shareData.showSeat,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any)
         .execute();

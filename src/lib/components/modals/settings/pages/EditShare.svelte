@@ -29,6 +29,7 @@
     showAircraft: boolean;
     showTimes: boolean;
     showDates: boolean;
+    showSeat: boolean;
   }
 
   const { share }: { share: Share } = $props();
@@ -57,6 +58,7 @@
     showAircraft: share.showAircraft,
     showTimes: share.showTimes,
     showDates: share.showDates,
+    showSeat: share.showSeat,
   };
 
   const form = superForm(

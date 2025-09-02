@@ -89,6 +89,7 @@ export type public_share = {
     showAircraft: Generated<boolean>;
     showTimes: Generated<boolean>;
     showDates: Generated<boolean>;
+    showSeat: Generated<boolean>;
 };
 export type seat = {
     id: Generated<number>;
