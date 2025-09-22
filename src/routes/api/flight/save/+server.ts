@@ -21,6 +21,13 @@ const defaultFlight = {
   note: null,
 };
 
+const defaultSeat = {
+  guestName: null,
+  seat: null,
+  seatNumber: null,
+  seatClass: null,
+};
+
 const saveApiFlightSchema = flightSchema.merge(
   z.object({
     from: z.string(),
@@ -28,10 +35,30 @@ const saveApiFlightSchema = flightSchema.merge(
   }),
 );
 
+const dateTimeSchema = z.string().datetime({ offset: true });
+
 export const POST: RequestHandler = async ({ request }) => {
   const body = await request.json();
-  const filled = { ...defaultFlight, ...body };
-  const parsed = saveApiFlightSchema.safeParse(filled);
+  const filled = {
+    ...defaultFlight,
+    ...body,
+    seats: body.seats.map((s) => ({ ...defaultSeat, ...s })),
+  };
+  const flight = {
+    ...filled,
+    departure: dateTimeSchema.safeParse(filled.departure).success
+      ? filled.departure
+      : filled.departure
+        ? filled.departure + 'T10:00:00.000+00:00'
+        : null,
+    arrival: dateTimeSchema.safeParse(filled.arrival).success
+      ? filled.arrival
+      : filled.arrival
+        ? filled.arrival + 'T10:00:00.000+00:00'
+        : null,
+  };
+
+  const parsed = saveApiFlightSchema.safeParse(flight);
   if (!parsed.success) {
     return json(
       { success: false, errors: parsed.error.errors },
