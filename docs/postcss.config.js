@@ -1,6 +1,6 @@
 /* eslint-disable */
 module.exports = {
   plugins: {
-    '@tailwindcss/postcss': {},
+    "@tailwindcss/postcss": {},
   },
 };

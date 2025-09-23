@@ -434,7 +434,6 @@ components:
             properties:
               userId:
                 type: string
-                default: '<USER_ID>'
                 description: 'The ID of the user whose seat it is. Set to `<USER_ID>` to assign the seat to yourself.'
               guestName:
                 type: string
@@ -541,13 +540,10 @@ components:
             properties:
               userId:
                 type: string
-                default: '<USER_ID>'
-                nullable: true
                 description: 'The ID of the user whose seat it is. Set to `<USER_ID>` to assign the seat to yourself.'
               guestName:
                 type: string
                 default: null
-                nullable: true
                 description: 'The name of the guest if the seat is not assigned to a user.'
               seat:
                 type: string

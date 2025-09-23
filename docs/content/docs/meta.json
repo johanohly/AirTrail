@@ -1,3 +1,10 @@
 {
-  "pages": ["overview", "install", "features", "integrations", "api", "development"]
+  "pages": [
+    "overview",
+    "install",
+    "features",
+    "integrations",
+    "api",
+    "development"
+  ]
 }

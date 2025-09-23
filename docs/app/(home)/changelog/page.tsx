@@ -1,18 +1,18 @@
-import defaultMdxComponents from 'fumadocs-ui/mdx';
-import { Jsx, toJsxRuntime } from 'hast-util-to-jsx-runtime';
-import { JSX } from 'react';
-import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
-import { remark } from 'remark';
-import remarkRehype from 'remark-rehype';
-import { z } from 'zod';
+import defaultMdxComponents from "fumadocs-ui/mdx";
+import { type Jsx, toJsxRuntime } from "hast-util-to-jsx-runtime";
+import type { JSX } from "react";
+import { Fragment, jsx, jsxs } from "react/jsx-runtime";
+import { remark } from "remark";
+import remarkRehype from "remark-rehype";
+import { z } from "zod";
 
 export default async function Changelog() {
   const formatter = new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'long',
+    dateStyle: "long",
   });
 
   const resp = await fetch(
-    'https://api.github.com/repos/johanohly/AirTrail/releases',
+    "https://api.github.com/repos/johanohly/AirTrail/releases"
   );
   const body = await resp.json();
   const releases: {
@@ -36,7 +36,7 @@ export default async function Changelog() {
 
   for (const release of releases) {
     const nodes = processor.parse({
-      value: release.body.replaceAll("What's Changed", ''),
+      value: release.body.replaceAll("What's Changed", ""),
     });
     const hast = await processor.run(nodes);
     release.bodyElement = toJsxRuntime(hast, {
@@ -51,21 +51,21 @@ export default async function Changelog() {
   return (
     <div className="flex flex-col">
       <div className="">
-        <h3 className="text-3xl font-bold">Changelog</h3>
+        <h3 className="font-bold text-3xl">Changelog</h3>
         <p className="text-muted-foreground">
           Stay up to date with the latest changes to AirTrail!
         </p>
       </div>
-      <div className="border-t mt-10 pt-20" />
-      {releases.map((release, i) => (
+      <div className="mt-10 border-t pt-20" />
+      {releases.map((release, _i) => (
         <section
-          className={`relative flex flex-col ${release.name !== releases[0].name && 'border-t pt-20 !mt-20'}`}
+          className={`relative flex flex-col ${release.name !== releases[0].name && "!mt-20 border-t pt-20"}`}
           key={release.html_url}
         >
           <p className="text-muted-foreground">
             {formatter.format(release.published_at)}
           </p>
-          <h1 className="text-3xl font-bold !m-0">{release.name}</h1>
+          <h1 className="!m-0 font-bold text-3xl">{release.name}</h1>
           <div className="prose">{release.bodyElement}</div>
         </section>
       ))}

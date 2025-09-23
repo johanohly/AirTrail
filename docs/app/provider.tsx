@@ -1,13 +1,13 @@
-'use client';
-import { RootProvider } from 'fumadocs-ui/provider';
-import dynamic from 'next/dynamic';
-import type { ReactNode } from 'react';
+"use client";
+import { RootProvider } from "fumadocs-ui/provider";
+import dynamic from "next/dynamic";
+import type { ReactNode } from "react";
 
-const SearchDialog = dynamic(() => import('@/components/Search'));
+const SearchDialog = dynamic(() => import("@/components/Search"));
 
-interface Props {
+type Props = {
   children: ReactNode;
-}
+};
 
 export function Provider({ children }: Readonly<Props>) {
   return (
