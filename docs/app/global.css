@@ -1,6 +1,6 @@
-@import 'tailwindcss';
-@import 'fumadocs-ui/css/dusk.css';
-@import 'fumadocs-ui/css/preset.css';
+@import "tailwindcss";
+@import "fumadocs-ui/css/dusk.css";
+@import "fumadocs-ui/css/preset.css";
 
 @source '../node_modules/fumadocs-ui/dist/**/*.js';
 @source '../node_modules/fumadocs-openapi/dist/**/*.js';
@@ -23,7 +23,7 @@
   background-color: white;
 }
 
-#nd-subnav a[data-active='true'] {
+#nd-subnav a[data-active="true"] {
   color: var(--color-fd-primary);
 }
 

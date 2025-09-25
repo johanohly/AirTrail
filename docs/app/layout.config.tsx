@@ -1,4 +1,4 @@
-import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
+import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
 
 /**
  * Shared layout configurations
@@ -11,26 +11,22 @@ export const baseOptions: BaseLayoutProps = {
   nav: {
     title: (
       <div className="flex items-center">
-        <img
-          src="/logo.png"
-          alt="AirTrail Logo"
-          style={{ height: '1.5rem' }}
-        />
-        <span style={{ marginLeft: '0.5rem' }}>AirTrail</span>
+        <img alt="AirTrail Logo" src="/logo.png" style={{ height: "1.5rem" }} />
+        <span style={{ marginLeft: "0.5rem" }}>AirTrail</span>
       </div>
     ),
   },
-  githubUrl: 'https://github.com/JohanOhly/AirTrail',
+  githubUrl: "https://github.com/JohanOhly/AirTrail",
   links: [
     {
-      text: 'Docs',
-      url: '/docs/overview/introduction',
-      active: 'nested-url',
+      text: "Docs",
+      url: "/docs/overview/introduction",
+      active: "nested-url",
     },
     {
-      text: 'Changelog',
-      url: '/changelog',
-      active: 'url',
+      text: "Changelog",
+      url: "/changelog",
+      active: "url",
     },
   ],
 };

@@ -1,4 +1,5 @@
-import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
 import {
   ChartPie,
   CloudDownload,
@@ -7,39 +8,37 @@ import {
   Moon,
   TabletSmartphone,
   Users,
-} from 'lucide-react';
-import Image from 'next/image';
-import Link from 'next/link';
-import React from 'react';
-
-import Aurora from '@/components/Aurora';
-import { CodeBlock } from '@/components/CodeBlock';
-import DarkImg from '@/public/dark.png';
-import LightImg from '@/public/light.png';
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import type React from "react";
+import Aurora from "@/components/Aurora";
+import DarkImg from "@/public/dark.png";
+import LightImg from "@/public/light.png";
 
 export default function HomePage() {
   return (
     <>
       <Aurora bands={40} />
       <div className="flex flex-col pb-10 md:pb-40">
-        <h1 className="text-4xl md:text-7xl font-bold mb-6 relative text-left dark:text-zinc-100 text-zinc-700 max-w-4xl">
+        <h1 className="relative mb-6 max-w-4xl text-left font-bold text-4xl text-zinc-700 md:text-7xl dark:text-zinc-100">
           Welcome to AirTrail
         </h1>
-        <h2 className="relative text-sm sm:text-xl text-zinc-500 dark:text-zinc-300 tracking-wide mb-8 text-left max-w-2xl antialiased leading-loose">
+        <h2 className="relative mb-8 max-w-2xl text-left text-sm text-zinc-500 leading-loose tracking-wide antialiased sm:text-xl dark:text-zinc-300">
           A modern, open-source personal flight tracking system
         </h2>
-        <div className="flex relative sm:flex-row flex-col space-y-2 justify-center sm:space-y-0 sm:space-x-4 sm:justify-start mb-4 w-full">
+        <div className="relative mb-4 flex w-full flex-col justify-center space-y-2 sm:flex-row sm:justify-start sm:space-x-4 sm:space-y-0">
           <Link
-            className="bg-fd-primary no-underline flex space-x-2 group cursor-pointer relative hover:shadow-2xl transition duration-200 shadow-zinc-900 p-px font-semibold text-white px-4 py-2 w-full sm:w-52 h-14 rounded-2xl text-sm text-center items-center justify-center"
+            className="group relative flex h-14 w-full cursor-pointer items-center justify-center space-x-2 rounded-2xl bg-fd-primary p-px px-4 py-2 text-center font-semibold text-sm text-white no-underline shadow-zinc-900 transition duration-200 hover:shadow-2xl sm:w-52"
             href="/docs/overview/introduction"
           >
             Get Started
           </Link>
           <Link
-            className="w-full sm:w-52 text-sm text-black bg-white dark:bg-fd-card h-14 border border-transparent  dark:text-white dark:border-neutral-600 flex justify-center items-center rounded-2xl hover:shadow-lg transition duration-200 shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)]"
+            className="flex h-14 w-full items-center justify-center rounded-2xl border border-transparent bg-white text-black text-sm shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)] transition duration-200 hover:shadow-lg sm:w-52 dark:border-neutral-600 dark:bg-fd-card dark:text-white"
             href="https://github.com/johanohly/AirTrail"
-            target="_blank"
             rel="noopener noreferrer"
+            target="_blank"
           >
             GitHub
           </Link>
@@ -47,21 +46,21 @@ export default function HomePage() {
       </div>
       <div className="pb-10 md:pb-40">
         <Image
-          src={DarkImg}
-          className="hidden dark:block"
           alt="AirTrail screenshot"
+          className="hidden dark:block"
+          src={DarkImg}
         />
         <Image
-          src={LightImg}
-          className="dark:hidden"
           alt="AirTrail screenshot"
+          className="dark:hidden"
+          src={LightImg}
         />
       </div>
       <div className="pb-10 md:pb-40">
         <FeaturesSection />
       </div>
       <div className="flex flex-col space-y-4">
-        <h3 className="text-3xl font-medium">Install and get started now</h3>
+        <h3 className="font-medium text-3xl">Install and get started now</h3>
         <div className="steps">
           <div className="step">
             <strong className="text-lg">Run the installation script</strong>
@@ -69,24 +68,28 @@ export default function HomePage() {
               The installation script only works on Linux systems with Docker
               preinstalled.
             </p>
-            <CodeBlock
-              lang="bash"
-              code={`bash <(curl -o- https://raw.githubusercontent.com/JohanOhly/AirTrail/main/scripts/install.sh)`}
-            />
+            <div className="my-4">
+              <DynamicCodeBlock
+                code={
+                  "bash <(curl -o- https://raw.githubusercontent.com/JohanOhly/AirTrail/main/scripts/install.sh)"
+                }
+                lang="bash"
+              />
+            </div>
           </div>
           <div className="step mb-6">
             <strong className="text-lg">
-              {' '}
-              Visit your new AirTrail instance!{' '}
+              {" "}
+              Visit your new AirTrail instance!{" "}
             </strong>
             <p className="text-muted-foreground">
-              AirTrail will be available at{' '}
+              AirTrail will be available at{" "}
               <Link
-                className="underline text-blue-500"
-                href={`http://localhost:3000`}
+                className="text-blue-500 underline"
+                href={"http://localhost:3000"}
               >
                 http://localhost:3000
-              </Link>{' '}
+              </Link>{" "}
               locally, at the address you specified during installation.
             </p>
           </div>
@@ -95,8 +98,8 @@ export default function HomePage() {
               Follow the post-installation guide
             </strong>
             <Card
-              title="Post-installation guide"
               href="/docs/install/post-installation"
+              title="Post-installation guide"
             />
           </div>
         </div>
@@ -108,14 +111,14 @@ export default function HomePage() {
           </p>
           <Cards>
             <Card
-              title="Docker Compose"
               description="Get started in minutes using Docker Compose"
               href="/docs/install/docker-compose"
+              title="Docker Compose"
             />
             <Card
-              title="Other"
               description="See all installation guides"
               href="/docs/overview/quick-start"
+              title="Other"
             />
           </Cards>
         </div>
@@ -129,44 +132,44 @@ function FeaturesSection() {
     <>
       <div className="stagger not-prose">
         <StaggerCard
-          title="World Map"
           description="View all your flights on an interactive world map."
+          title="World Map"
         >
           <Map />
         </StaggerCard>
         <StaggerCard
-          title="Flight History"
           description="Keep track of all your flights in one place."
+          title="Flight History"
         >
           <History />
         </StaggerCard>
         <StaggerCard
-          title="Statistics"
           description="Get insights into your flight history with statistics."
+          title="Statistics"
         >
           <ChartPie />
         </StaggerCard>
         <StaggerCard
-          title="Dark Mode"
           description="Switch between light and dark mode."
+          title="Dark Mode"
         >
           <Moon />
         </StaggerCard>
         <StaggerCard
-          title="Multiple Users"
           description="Manage multiple users, share flights among them, secure your data with user authentication and integrate with your OAuth provider."
+          title="Multiple Users"
         >
           <Users />
         </StaggerCard>
         <StaggerCard
-          title="Import Flights"
           description="Import flights from various sources including MyFlightRadar24, App in the Air and JetLog."
+          title="Import Flights"
         >
           <CloudDownload />
         </StaggerCard>
         <StaggerCard
-          title="Responsive Design"
           description="Use the application on any device with a responsive design."
+          title="Responsive Design"
         >
           <TabletSmartphone />
         </StaggerCard>
@@ -197,23 +200,27 @@ function FeaturesSection() {
   );
 }
 
-interface StaggerCardProps {
+type StaggerCardProps = {
   title: string;
   description: string;
   children: React.ReactNode;
-}
+};
 
-function StaggerCard({ title, description, children }: Readonly<StaggerCardProps>) {
+function StaggerCard({
+  title,
+  description,
+  children,
+}: Readonly<StaggerCardProps>) {
   return (
     <div
       className="block rounded-lg border bg-fd-card text-fd-card-foreground shadow-md transition-colors"
-      style={{ padding: 'clamp(1rem,calc(.125rem + 3vw),2.5rem)' }}
+      style={{ padding: "clamp(1rem,calc(.125rem + 3vw),2.5rem)" }}
     >
-      <div className="flex items-center gap-3 mb-4">
+      <div className="mb-4 flex items-center gap-3">
         <div className="not-prose w-fit rounded-md border bg-fd-muted p-1.5 text-fd-muted-foreground [&_svg]:size-5">
           {children}
         </div>
-        <span className="text-xl font-medium">{title}</span>
+        <span className="font-medium text-xl">{title}</span>
       </div>
       {description}
     </div>

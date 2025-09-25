@@ -1,27 +1,27 @@
-import { Callout } from 'fumadocs-ui/components/callout';
-import { Card, Cards } from 'fumadocs-ui/components/card';
-import { ImageZoom } from 'fumadocs-ui/components/image-zoom';
-import defaultMdxComponents from 'fumadocs-ui/mdx';
-import { APIPage } from 'fumadocs-openapi/ui';
+import { APIPage } from "fumadocs-openapi/ui";
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { ImageZoom } from "fumadocs-ui/components/image-zoom";
+import defaultMdxComponents from "fumadocs-ui/mdx";
 import {
-  DocsPage,
   DocsBody,
   DocsDescription,
+  DocsPage,
   DocsTitle,
-} from 'fumadocs-ui/page';
-import { notFound } from 'next/navigation';
+} from "fumadocs-ui/page";
+import { notFound } from "next/navigation";
 
-import { openapi, source } from '@/lib/source';
+import { openapi, source } from "@/lib/source";
 
 const installFooter = {
   items: {
     previous: {
-      name: 'Requirements',
-      url: '/docs/install/requirements',
+      name: "Requirements",
+      url: "/docs/install/requirements",
     },
     next: {
-      name: 'Post-installation',
-      url: '/docs/install/post-installation',
+      name: "Post-installation",
+      url: "/docs/install/post-installation",
     },
   },
 };
@@ -34,20 +34,22 @@ const customFooters: Record<
     };
   }
 > = {
-  'install/docker-compose.mdx': installFooter,
-  'install/one-click.mdx': installFooter,
-  'install/portainer.mdx': installFooter,
-  'install/synology.mdx': installFooter,
+  "install/docker-compose.mdx": installFooter,
+  "install/one-click.mdx": installFooter,
+  "install/portainer.mdx": installFooter,
+  "install/synology.mdx": installFooter,
 };
 
-interface Props {
+type Props = {
   params: Promise<{ slug?: string[] }>;
-}
+};
 
 export default async function Page(props: Readonly<Props>) {
   const params = await props.params;
   const page = source.getPage(params.slug);
-  if (!page) return notFound();
+  if (!page) {
+    return notFound();
+  }
 
   const path = page.file.path;
   const fullPath = `docs/content/docs/${path}`;
@@ -57,20 +59,20 @@ export default async function Page(props: Readonly<Props>) {
 
   return (
     <DocsPage
-      toc={page.data.toc}
-      tableOfContent={{
-        style: 'clerk',
-        single: false,
-      }}
-      full={page.data.full}
       editOnGithub={{
-        repo: 'AirTrail',
-        owner: 'johanohly',
-        sha: 'main',
+        repo: "AirTrail",
+        owner: "johanohly",
+        sha: "main",
         path: fullPath,
       }}
-      lastUpdate={lastModified}
       footer={footerOverride}
+      full={page.data.full}
+      lastUpdate={lastModified}
+      tableOfContent={{
+        style: "clerk",
+        single: false,
+      }}
+      toc={page.data.toc}
     >
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
@@ -82,7 +84,7 @@ export default async function Page(props: Readonly<Props>) {
             Callout,
             Card,
             Cards,
-            // @ts-ignore
+            // @ts-expect-error
             img: (props) => <ImageZoom {...(props as any)} />,
           }}
         />
@@ -100,7 +102,9 @@ export async function generateMetadata(props: {
 }) {
   const params = await props.params;
   const page = source.getPage(params.slug);
-  if (!page) return notFound();
+  if (!page) {
+    return notFound();
+  }
 
   return {
     title: page.data.title,
