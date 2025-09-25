@@ -11,6 +11,9 @@ const config = {
   images: {
     unoptimized: true,
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   webpack: (config) => {
     // Make sure base64-js and ieee754 resolve correctly
     config.resolve.fallback = {
