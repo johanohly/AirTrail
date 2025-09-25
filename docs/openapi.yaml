@@ -431,9 +431,12 @@ components:
           items:
             type: object
             description: 'A seat on the flight.'
+            required:
+              - userId
             properties:
               userId:
                 type: string
+                example: '<USER_ID>'
                 description: 'The ID of the user whose seat it is. Set to `<USER_ID>` to assign the seat to yourself.'
               guestName:
                 type: string
