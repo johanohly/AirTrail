@@ -3,9 +3,13 @@ import { z } from 'zod';
 
 import type { RequestHandler } from './$types';
 
+import { getAircraftByIcao } from '$lib/server/utils/aircraft';
+import { getAirlineByIcao } from '$lib/server/utils/airline';
 import { getAirportByIcao } from '$lib/server/utils/airport';
 import { apiError, unauthorized, validateApiKey } from '$lib/server/utils/api';
 import { validateAndSaveFlight } from '$lib/server/utils/flight';
+import { aircraftSchema } from '$lib/zod/aircraft';
+import { airlineSchema } from '$lib/zod/airline';
 import { flightSchema } from '$lib/zod/flight';
 
 const defaultFlight = {
@@ -33,7 +37,13 @@ const saveApiFlightSchema = flightSchema.merge(
     from: z.string(),
     to: z.string(),
   }),
-);
+).omit({ aircraft: true, airline: true })
+.merge(z.object({
+    aircraft: aircraftSchema.omit({ id: true, name: true }).nullable()
+  }))
+  .merge(z.object({
+    airline: airlineSchema.omit({ id: true, iata: true, name: true }).nullable()
+  }));
 
 const dateTimeSchema = z.string().datetime({ offset: true });
 
@@ -81,10 +91,22 @@ export const POST: RequestHandler = async ({ request }) => {
     return apiError('Invalid arrival airport');
   }
 
+  let aircraft
+  if (parsed.data.aircraft && parsed.data.aircraft.icao) {
+    aircraft = await getAircraftByIcao(parsed.data.aircraft.icao)
+  }
+
+  let airline
+  if (parsed.data.airline && parsed.data.airline.icao) {
+    airline = await getAirlineByIcao(parsed.data.airline.icao)
+  }
+
   const data = {
     ...parsed.data,
     from,
     to,
+    aircraft,
+    airline
   };
 
   if (data.seats[0]?.userId === '<USER_ID>') {
