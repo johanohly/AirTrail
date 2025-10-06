@@ -39,17 +39,14 @@ const saveApiFlightSchema = flightSchema
       to: z.string(),
     }),
   )
-  .omit({ aircraft: true, airline: true })
   .merge(
     z.object({
-      aircraft: aircraftSchema.omit({ id: true, name: true }).nullable(),
+      aircraft: aircraftSchema.shape.icao,
     }),
   )
   .merge(
     z.object({
-      airline: airlineSchema
-        .omit({ id: true, iata: true, name: true })
-        .nullable(),
+      airline: airlineSchema.shape.icao,
     }),
   );
 
@@ -100,13 +97,19 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   let aircraft;
-  if (parsed.data.aircraft && parsed.data.aircraft.icao) {
-    aircraft = await getAircraftByIcao(parsed.data.aircraft.icao);
+  if (parsed.data.aircraft) {
+    aircraft = await getAircraftByIcao(parsed.data.aircraft);
+    if (!aircraft) {
+      return apiError('Invalid aircraft');
+    }
   }
 
   let airline;
-  if (parsed.data.airline && parsed.data.airline.icao) {
-    airline = await getAirlineByIcao(parsed.data.airline.icao);
+  if (parsed.data.airline) {
+    airline = await getAirlineByIcao(parsed.data.airline);
+    if (!airline) {
+      return apiError('Invalid airline');
+    }
   }
 
   const data = {
