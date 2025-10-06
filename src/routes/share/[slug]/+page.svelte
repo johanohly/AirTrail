@@ -102,7 +102,11 @@
   {/if}
 
   {#if shareSettings.showStats}
-    <StatisticsModal bind:open={showStatistics} allFlights={flights} />
+    <StatisticsModal
+      bind:open={showStatistics}
+      allFlights={flights}
+      disableUserSeatFiltering={true}
+    />
   {/if}
 {:else if shareSettings}
   <div class="flex items-center justify-center min-h-screen">
