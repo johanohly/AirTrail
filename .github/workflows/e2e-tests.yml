@@ -61,7 +61,7 @@ jobs:
 
       - name: Install playwright
         if: steps.cache-playwright.outputs.cache-hit != 'true'
-        run: bunx playwright install --with-deps
+        run: bunx playwright install --with-deps chromium
 
       - name: Create the database
         run: bun run db:migrate-dev
