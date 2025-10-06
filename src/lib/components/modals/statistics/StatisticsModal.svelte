@@ -18,9 +18,11 @@
   let {
     open = $bindable<boolean>(),
     allFlights,
+    disableUserSeatFiltering = false,
   }: {
     open?: boolean;
     allFlights: FlightData[];
+    disableUserSeatFiltering?: boolean;
   } = $props();
 
   // Only show completed flights
@@ -159,7 +161,11 @@
           </span>
         </StatsCard>
       </div>
-      <PieCharts {flights} onOpenChart={(key) => (activeChart = key)} />
+      <PieCharts
+        {flights}
+        onOpenChart={(key) => (activeChart = key)}
+        {disableUserSeatFiltering}
+      />
       <div class="flex flex-col md:flex-row gap-4">
         <FlightsPerMonth {flights} />
         <FlightsPerWeekday {flights} />

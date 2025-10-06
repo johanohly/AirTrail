@@ -13,7 +13,8 @@ export type ChartKey =
   | 'routes';
 
 export type StatsContext = {
-  userId?: string | null;
+  // If omitted, aggregate for all users
+  userId?: string;
 };
 
 export type AggregationOptions = {
@@ -45,7 +46,9 @@ export function seatDistribution(
   ];
   const counts = categories.reduce<Record<string, number>>((acc, category) => {
     acc[toTitleCase(category)] = flights.filter((f) =>
-      f.seats.some((v) => v.userId === ctx.userId && v.seat === category),
+      f.seats.some(
+        (v) => (v.userId === ctx.userId || !ctx.userId) && v.seat === category,
+      ),
     ).length;
     return acc;
   }, {});
@@ -60,7 +63,10 @@ export function seatClassDistribution(
   const categories = ['economy', 'economy+', 'business', 'first', 'private'];
   const counts = categories.reduce<Record<string, number>>((acc, category) => {
     acc[toTitleCase(category)] = flights.filter((f) =>
-      f.seats.some((v) => v.userId === ctx.userId && v.seatClass === category),
+      f.seats.some(
+        (v) =>
+          (v.userId === ctx.userId || !ctx.userId) && v.seatClass === category,
+      ),
     ).length;
     return acc;
   }, {});

@@ -8,12 +8,19 @@
   let {
     flights,
     onOpenChart,
-  }: { flights: FlightData[]; onOpenChart?: (key: ChartKey) => void } =
-    $props();
+    disableUserSeatFiltering = false,
+  }: {
+    flights: FlightData[];
+    onOpenChart?: (key: ChartKey) => void;
+    // Seat user override
+    disableUserSeatFiltering?: boolean;
+  } = $props();
 
   const user = $derived(page.data.user);
 
-  const ctx = $derived.by(() => ({ userId: user?.id }));
+  const ctx = $derived.by(() => ({
+    userId: disableUserSeatFiltering ? undefined : user?.id,
+  }));
 
   const seatDistribution = $derived.by(() =>
     CHARTS['seat'].aggregate(flights, ctx),
