@@ -80,13 +80,13 @@ export async function getFlightRoute(
 
   type AedbxFlight = {
     departure: {
-      airport: { icao: string; timeZone: string };
-      scheduledTime: { local: string };
+      airport: { icao?: string; timeZone?: string };
+      scheduledTime?: { local: string };
       revisedTime?: { local: string };
     };
     arrival: {
-      airport: { icao: string; timeZone: string };
-      scheduledTime: { local: string };
+      airport: { icao?: string; timeZone?: string };
+      scheduledTime?: { local: string };
       revisedTime?: { local: string };
     };
     airline?: { icao?: string };
@@ -100,6 +100,10 @@ export async function getFlightRoute(
 
   const result: FlightLookupResult = [];
   for (const item of data) {
+    if (!item.departure.airport.icao || !item.arrival.airport.icao) {
+      continue;
+    }
+
     const fromAirport = await getAirportByIcao(item.departure.airport.icao);
     const toAirport = await getAirportByIcao(item.arrival.airport.icao);
 
@@ -107,18 +111,21 @@ export async function getFlightRoute(
       continue;
     }
 
-    const departureTime = parse(
-      item.departure.revisedTime?.local ?? item.departure.scheduledTime.local,
-      'yyyy-MM-dd HH:mmxxx',
-      new Date(),
-      { in: tz(item.departure.airport.timeZone) },
-    );
-    const arrivalTime = parse(
-      item.arrival.revisedTime?.local ?? item.arrival.scheduledTime.local,
-      'yyyy-MM-dd HH:mmxxx',
-      new Date(),
-      { in: tz(item.arrival.airport.timeZone) },
-    );
+    const departureTimeStr =
+      item.departure.revisedTime?.local ?? item.departure.scheduledTime?.local;
+    const arrivalTimeStr =
+      item.arrival.revisedTime?.local ?? item.arrival.scheduledTime?.local;
+
+    const departureTime = departureTimeStr
+      ? parse(departureTimeStr, 'yyyy-MM-dd HH:mmxxx', new Date(), {
+          in: tz(item.departure.airport.timeZone ?? fromAirport.tz),
+        })
+      : null;
+    const arrivalTime = arrivalTimeStr
+      ? parse(arrivalTimeStr, 'yyyy-MM-dd HH:mmxxx', new Date(), {
+          in: tz(item.arrival.airport.timeZone ?? toAirport.tz),
+        })
+      : null;
 
     const flightInfo = {
       from: fromAirport,
