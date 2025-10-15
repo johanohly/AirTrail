@@ -19,13 +19,13 @@
     defaultFilters,
     type FlightFilters,
   } from '$lib/components/flight-filters/types';
-  import { OnResizeEnd } from '$lib/components/helpers';
   import * as Popover from '$lib/components/ui/popover';
   import {
     calculateBounds,
     prepareFlightArcData,
     type FlightData,
   } from '$lib/utils';
+  import { flightAddedState } from '$lib/state.svelte';
 
   const { GlobeControl } = maplibregl;
 
@@ -50,7 +50,7 @@
     return prepareFlightArcData(filteredFlights);
   });
 
-  const fitFlights = () => {
+  export const fitFlights = () => {
     if (!map || !flightArcs) return;
 
     const bounds = calculateBounds(flightArcs);
@@ -60,11 +60,6 @@
       padding: 120,
     });
   };
-
-  // Fit flights whenever the flights change
-  $effect(() => {
-    fitFlights();
-  });
 
   const showClear = $derived.by(() => {
     return (
@@ -76,15 +71,17 @@
         filters.aircraftRegs.length)
     );
   });
+
+  $effect(() => {
+    if (flightAddedState.added) {
+      fitFlights();
+      flightAddedState.added = false;
+    }
+  });
 </script>
 
-<OnResizeEnd callback={fitFlights} />
-
 <MapLibre
-  onload={(event) => {
-    // event.addControl(new GlobeControl(), 'top-left');
-    fitFlights();
-  }}
+  onload={fitFlights}
   bind:map
   {style}
   diffStyleUpdates
@@ -97,7 +94,7 @@
   {#if flights.length}
     <Control position="top-left">
       <ControlGroup>
-        <ControlButton onclick={() => fitFlights()} title="Show all flights">
+        <ControlButton onclick={fitFlights} title="Show all flights">
           <Fullscreen size={20} />
         </ControlButton>
         {#if filters}
