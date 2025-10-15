@@ -1,6 +1,10 @@
 import type { ClientAppConfig, FullAppConfig } from '$lib/server/utils/config';
 import type { DeepBoolean } from '$lib/utils';
 
+export const flightAddedState = $state({
+  added: false,
+});
+
 export const openModalsState = $state({
   addFlight: false,
   listFlights: false,

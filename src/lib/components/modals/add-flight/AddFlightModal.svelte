@@ -13,6 +13,7 @@
   import { Modal } from '$lib/components/ui/modal';
   import { trpc } from '$lib/trpc';
   import { flightSchema } from '$lib/zod/flight';
+  import { flightAddedState } from '$lib/state.svelte';
 
   let { open = $bindable() }: { open: boolean } = $props();
 
@@ -26,6 +27,7 @@
           if (form.message.type === 'success') {
             trpc.flight.list.utils.invalidate();
             open = false;
+            flightAddedState.added = true;
             return void toast.success(form.message.text);
           }
           toast.error(form.message.text);
