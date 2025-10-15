@@ -117,7 +117,7 @@
       return;
     }
 
-    // Sort results: Today first (by time), then others by full datetime ascending (older first)
+    // Sort results by datetime ascending (oldest first)
     const sorted = results.slice().sort((a, b) => {
       const da = getPrimaryDate(a);
       const db = getPrimaryDate(b);
@@ -125,10 +125,6 @@
       if (!da && !db) return 0;
       if (!da) return 1;
       if (!db) return -1;
-
-      const aToday = isToday(da);
-      const bToday = isToday(db);
-      if (aToday !== bToday) return aToday ? -1 : 1;
 
       return da.getTime() - db.getTime();
     });
@@ -169,38 +165,80 @@
 </Form.Field>
 
 {#if lookupResults && lookupResults.length > 1}
-  <div
-    class="mt-3 rounded-md border bg-card text-card-foreground overflow-hidden"
-  >
-    <div class="flex items-center justify-between p-3 border-b">
-      <div class="font-medium">Select a flight</div>
-      <Button variant="ghost" onclick={clearResults}>Clear</Button>
+  <div class="mt-3 space-y-2">
+    <div
+      class="flex items-center justify-between text-sm text-muted-foreground"
+    >
+      <span>Select your flight</span>
+      <Button variant="ghost" size="sm" onclick={clearResults}>Clear</Button>
     </div>
-    <ul class="divide-y">
-      {#each lookupResults as r, i (i)}
-        <li class="p-3 flex items-center gap-3 justify-between">
-          <div class="min-w-0">
-            <div class="text-sm font-medium truncate">
-              {r.airline?.name ?? r.airline?.icao ?? 'Airline unknown'} — {r
-                .from?.icao ?? '?'} → {r.to?.icao ?? '?'}
+
+    <div class="space-y-1.5">
+      {#each lookupResults as r}
+        {@const primaryDate = getPrimaryDate(r)}
+        {@const isFlightToday = primaryDate && isToday(primaryDate)}
+        <button
+          onclick={() => applyLookupResult(r)}
+          class="group w-full rounded-lg border bg-card p-3 text-left transition-all hover:border-primary hover:shadow-sm active:scale-[0.98] {isFlightToday
+            ? 'border-primary/40 bg-primary/5'
+            : ''}"
+        >
+          <div class="flex gap-3">
+            <div
+              class="flex flex-col items-center justify-center rounded-md border px-2.5 py-2 {isFlightToday
+                ? 'border-primary/70 bg-primary text-primary-foreground shadow-sm'
+                : 'border-border bg-muted/50'} flex-shrink-0"
+            >
+              {#if primaryDate}
+                <div class="text-xl font-bold leading-none tabular-nums">
+                  {format(primaryDate, 'd')}
+                </div>
+                <div
+                  class="text-[10px] font-medium uppercase leading-none mt-0.5 opacity-80"
+                >
+                  {format(primaryDate, 'MMM')}
+                </div>
+              {:else}
+                <div class="text-xs">?</div>
+              {/if}
             </div>
-            {#if r.departure && r.arrival}
-              <div class="text-xs text-muted-foreground truncate">
-                {formatRelativeDate(getPrimaryDate(r))}
-                {formatRelativeDate(getPrimaryDate(r)) ? ' · ' : ''}
-                {formatAsTime(r.departure)} → {formatAsTime(r.arrival)}
+
+            <div class="flex-1 min-w-0 space-y-0.5">
+              <div class="flex items-baseline gap-1.5">
+                {#if isFlightToday}
+                  <span
+                    class="rounded-sm bg-primary px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-foreground"
+                  >
+                    Today
+                  </span>
+                {:else if primaryDate}
+                  <span class="text-xs font-medium text-muted-foreground">
+                    {formatRelativeDate(primaryDate)}
+                  </span>
+                {/if}
               </div>
-            {/if}
-            {#if r.from?.name || r.to?.name}
-              <div class="text-xs text-muted-foreground truncate">
-                {r.from?.name ?? ''}{r.from?.name && r.to?.name ? ' · ' : ''}{r
-                  .to?.name ?? ''}
+
+              <div class="font-semibold text-base leading-tight">
+                {r.from?.iata ?? r.from?.icao ?? '?'} → {r.to?.iata ??
+                  r.to?.icao ??
+                  '?'}
               </div>
-            {/if}
+
+              {#if r.departure && r.arrival}
+                <div
+                  class="text-sm font-medium tabular-nums text-muted-foreground"
+                >
+                  {formatAsTime(r.departure)} – {formatAsTime(r.arrival)}
+                </div>
+              {/if}
+
+              <div class="text-xs text-muted-foreground truncate">
+                {r.airline?.name ?? r.airline?.icao ?? 'Unknown'}
+              </div>
+            </div>
           </div>
-          <Button size="sm" onclick={() => applyLookupResult(r)}>Use</Button>
-        </li>
+        </button>
       {/each}
-    </ul>
+    </div>
   </div>
 {/if}
