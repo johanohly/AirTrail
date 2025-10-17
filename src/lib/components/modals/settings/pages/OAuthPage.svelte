@@ -214,6 +214,28 @@
         </Form.Control>
       </Form.Field>
     </Locked>
+    <Locked
+      locked={appConfig.envConfigured?.oauth?.hidePasswordAuth ?? false}
+      tooltip={lockedTooltip}
+    >
+      <Form.Field
+        {form}
+        name="hidePasswordAuth"
+        class="flex flex-row items-center justify-between"
+      >
+        <Form.Control>
+          {#snippet children({ props })}
+            <div class="grid gap-1">
+              <Form.Label>Hide Password Authentication</Form.Label>
+              <Form.Description>
+                Hide password authentication when OAuth is enabled.
+              </Form.Description>
+            </div>
+            <Switch bind:checked={$formData.hidePasswordAuth} {...props} />
+          {/snippet}
+        </Form.Control>
+      </Form.Field>
+    </Locked>
     <Form.Button disabled={!changes}>Save</Form.Button>
   </form>
 </PageHeader>

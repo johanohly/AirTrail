@@ -118,40 +118,46 @@
         <div class="grid gap-2 text-center">
           <h1 class="text-3xl font-bold">Login</h1>
           <p class="text-muted-foreground text-balance">
-            Welcome back! Enter your username and password to login
+            {#if !(appConfig.oauth.enabled && appConfig.oauth.hidePasswordAuth)}
+              Welcome back! Enter your username and password to login
+            {:else}
+              Welcome back! Login with SSO
+            {/if}
           </p>
         </div>
-        <form
-          use:enhance
-          action="/api/users/login"
-          method="POST"
-          class="grid gap-4"
-        >
-          <Form.Field {form} name="username">
-            <Form.Control>
-              {#snippet children({ props })}
-                <Form.Label>Username</Form.Label>
-                <Input {...props} bind:value={$formData.username} />
-              {/snippet}
-            </Form.Control>
-            <Form.FieldErrors />
-          </Form.Field>
-          <Form.Field {form} name="password">
-            <Form.Control>
-              {#snippet children({ props })}
-                <Form.Label>Password</Form.Label>
-                <PasswordInput {...props} bind:value={$formData.password} />
-              {/snippet}
-            </Form.Control>
-            <Form.FieldErrors />
-          </Form.Field>
-          <Form.Button disabled={$submitting || oauthLoading}>
-            {#if $submitting}
-              <LoaderCircle class="animate-spin mr-1" size="18" />
-            {/if}
-            Log in
-          </Form.Button>
-        </form>
+        {#if !(appConfig.oauth.enabled && appConfig.oauth.hidePasswordAuth)}
+          <form
+            use:enhance
+            action="/api/users/login"
+            method="POST"
+            class="grid gap-4"
+          >
+            <Form.Field {form} name="username">
+              <Form.Control>
+                {#snippet children({ props })}
+                  <Form.Label>Username</Form.Label>
+                  <Input {...props} bind:value={$formData.username} />
+                {/snippet}
+              </Form.Control>
+              <Form.FieldErrors />
+            </Form.Field>
+            <Form.Field {form} name="password">
+              <Form.Control>
+                {#snippet children({ props })}
+                  <Form.Label>Password</Form.Label>
+                  <PasswordInput {...props} bind:value={$formData.password} />
+                {/snippet}
+              </Form.Control>
+              <Form.FieldErrors />
+            </Form.Field>
+            <Form.Button disabled={$submitting || oauthLoading}>
+              {#if $submitting}
+                <LoaderCircle class="animate-spin mr-1" size="18" />
+              {/if}
+              Log in
+            </Form.Button>
+          </form>
+        {/if}
         {#if appConfig.oauth.enabled}
           <Button
             onclick={oauthLogin}
