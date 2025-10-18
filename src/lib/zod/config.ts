@@ -8,6 +8,7 @@ export const oauthConfigSchema = z.object({
   scope: z.string().min(1).nullable(),
   autoRegister: z.boolean().nullable().default(true),
   autoLogin: z.boolean().nullable().default(false),
+  hidePasswordForm: z.boolean().nullable().default(false),
 });
 
 export const integrationsConfigSchema = z.object({
