@@ -18,12 +18,16 @@
   <DrawerPrimitive.Content
     bind:ref
     class={cn(
-      'bg-background fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border',
+      'z-50 bg-background mt-24 fixed bottom-0 left-0 right-0 flex max-h-[90%] flex-col rounded-t-[10px] border',
       className,
     )}
     {...restProps}
   >
-    <div class="bg-muted mx-auto mt-4 h-2 w-[100px] rounded-full"></div>
-    {@render children?.()}
+    <div class="flex flex-col overflow-y-auto rounded-t-[10px] p-4">
+      <div
+        class="bg-muted mx-auto mb-4 h-1.5 w-[100px] shrink-0 rounded-full"
+      ></div>
+      {@render children?.()}
+    </div>
   </DrawerPrimitive.Content>
 </DrawerPrimitive.Portal>
