@@ -12,7 +12,7 @@ permissions:
 jobs:
   build_and_push:
     name: Build and Push
-    runs-on: ubicloud-standard-4
+    runs-on: ${{ github.repository == 'johanohly/AirTrail' && 'ubicloud-standard-4' || 'ubuntu-latest' }}
 
     strategy:
       fail-fast: false
