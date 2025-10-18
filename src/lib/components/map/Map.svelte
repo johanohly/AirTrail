@@ -76,6 +76,10 @@
   });
 
   let previousFilteredCount = $state(0);
+  const hasTempFilters = $derived(
+    tempFilters &&
+      (tempFilters.routes.length > 0 || tempFilters.airportsEither.length > 0),
+  );
 
   $effect(() => {
     if (flightAddedState.added) {
@@ -86,7 +90,14 @@
 
   $effect(() => {
     const currentCount = filteredFlights.length;
-    if (previousFilteredCount !== currentCount && previousFilteredCount > 0) {
+    if (
+      previousFilteredCount !== currentCount &&
+      previousFilteredCount > 0 &&
+      !hasTempFilters
+    ) {
+      // If there are temp filters, we don't want to fit as that means the user
+      // clicked on a route/airport to trigger the list view and fitting in that
+      // case looks jarring.
       fitFlights();
     }
     previousFilteredCount = currentCount;
