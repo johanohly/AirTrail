@@ -75,11 +75,21 @@
     );
   });
 
+  let previousFilteredCount = $state(0);
+
   $effect(() => {
     if (flightAddedState.added) {
       fitFlights();
       flightAddedState.added = false;
     }
+  });
+
+  $effect(() => {
+    const currentCount = filteredFlights.length;
+    if (previousFilteredCount !== currentCount && previousFilteredCount > 0) {
+      fitFlights();
+    }
+    previousFilteredCount = currentCount;
   });
 </script>
 
