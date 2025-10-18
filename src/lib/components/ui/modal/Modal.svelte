@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
 
-  import * as Dialog from '$lib/components/ui/dialog/index.js';
-  import * as Drawer from '$lib/components/ui/drawer/index.js';
+  import * as Dialog from '$lib/components/ui/dialog';
+  import * as Drawer from '$lib/components/ui/drawer';
   import { cn } from '$lib/utils';
   import { isMediumScreen } from '$lib/utils/size';
 
@@ -41,9 +41,7 @@
 {:else}
   <Drawer.Root bind:open>
     <Drawer.Content>
-      <div class="mx-4 mb-4 overflow-y-auto">
-        {@render children()}
-      </div>
+      {@render children()}
     </Drawer.Content>
   </Drawer.Root>
 {/if}
