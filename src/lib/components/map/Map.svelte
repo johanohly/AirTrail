@@ -95,12 +95,15 @@
       previousFilteredCount > 0 &&
       !hasTempFilters
     ) {
-      // If there are temp filters, we don't want to fit as that means the user
-      // clicked on a route/airport to trigger the list view and fitting in that
-      // case looks jarring.
       fitFlights();
     }
-    previousFilteredCount = currentCount;
+
+    // If there are temp filters, we don't want to fit as that means the user
+    // clicked on a route/airport to trigger the list view and fitting in that
+    // case looks jarring.
+    if (!hasTempFilters) {
+      previousFilteredCount = currentCount;
+    }
   });
 </script>
 

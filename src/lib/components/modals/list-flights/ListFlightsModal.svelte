@@ -1,6 +1,12 @@
 <script lang="ts">
   import autoAnimate from '@formkit/auto-animate';
-  import { Plane, PlaneTakeoff, PlaneLanding, X } from '@o7/icon/lucide';
+  import {
+    ArrowLeftRight,
+    Plane,
+    PlaneTakeoff,
+    PlaneLanding,
+    X,
+  } from '@o7/icon/lucide';
   import { AirplanemodeInactive } from '@o7/icon/material';
   import { isBefore } from 'date-fns';
 
@@ -177,7 +183,7 @@
               class="w-6 h-4"
             />
             {tempFilterRoute.from.iata ?? tempFilterRoute.from.icao}
-            <span class="text-muted-foreground">↔</span>
+            <ArrowLeftRight class="text-muted-foreground" />
             <img
               src="https://flagcdn.com/{tempFilterRoute.to.country.toLowerCase()}.svg"
               alt={tempFilterRoute.to.country}
