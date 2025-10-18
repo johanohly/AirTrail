@@ -18,6 +18,7 @@
   import {
     defaultFilters,
     type FlightFilters,
+    type TempFilters,
   } from '$lib/components/flight-filters/types';
   import * as Popover from '$lib/components/ui/popover';
   import {
@@ -33,10 +34,12 @@
     flights,
     filteredFlights,
     filters = $bindable(),
+    tempFilters = $bindable(),
   }: {
     flights: FlightData[];
     filteredFlights: FlightData[];
     filters?: FlightFilters;
+    tempFilters?: TempFilters;
   } = $props();
 
   let map: maplibregl.Map | undefined = $state(undefined);
@@ -108,7 +111,7 @@
               side="right"
               class="flex flex-col grow-0 gap-2 w-fit"
             >
-              <Filters bind:flights bind:filters />
+              <Filters bind:flights bind:filters bind:tempFilters />
             </Popover.Content>
           </Popover.Root>
         {/if}
@@ -133,5 +136,5 @@
     </Control>
   {/if}
 
-  <AirportsArcsLayer flights={filteredFlights} {flightArcs} />
+  <AirportsArcsLayer flights={filteredFlights} {flightArcs} bind:tempFilters />
 </MapLibre>

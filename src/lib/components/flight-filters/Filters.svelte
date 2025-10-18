@@ -5,6 +5,7 @@
   import {
     defaultFilters,
     type FlightFilters,
+    type TempFilters,
   } from '$lib/components/flight-filters/types';
   import { Button } from '$lib/components/ui/button';
   import type { Airport } from '$lib/db/types';
@@ -13,9 +14,13 @@
   let {
     flights = $bindable(),
     filters = $bindable(),
+    tempFilters = $bindable(),
+    hasTempFilters = false,
   }: {
     flights: FlightData[];
     filters: FlightFilters;
+    tempFilters?: TempFilters;
+    hasTempFilters?: boolean;
   } = $props();
 
   const showClear = $derived.by(
@@ -23,7 +28,8 @@
       filters.departureAirports.length ||
       filters.arrivalAirports.length ||
       filters.fromDate ||
-      filters.toDate,
+      filters.toDate ||
+      filters.aircraftRegs.length,
   );
 
   const uniqueAirports = (
@@ -89,20 +95,22 @@
   );
 </script>
 
-<SelectFilter
-  bind:filterValues={filters.departureAirports}
-  title="Departure Airport"
-  placeholder="Search departure airports"
-  disabled={flights.length === 0}
-  options={departureAirports}
-/>
-<SelectFilter
-  bind:filterValues={filters.arrivalAirports}
-  title="Arrival Airport"
-  placeholder="Search arrival airports"
-  disabled={flights.length === 0}
-  options={arrivalAirports}
-/>
+{#if !hasTempFilters}
+  <SelectFilter
+    bind:filterValues={filters.departureAirports}
+    title="Departure Airport"
+    placeholder="Search departure airports"
+    disabled={flights.length === 0}
+    options={departureAirports}
+  />
+  <SelectFilter
+    bind:filterValues={filters.arrivalAirports}
+    title="Arrival Airport"
+    placeholder="Search arrival airports"
+    disabled={flights.length === 0}
+    options={arrivalAirports}
+  />
+{/if}
 <DateFilter
   bind:date={filters.fromDate}
   title="From"
