@@ -4,13 +4,16 @@
 
   import {
     defaultFilters,
+    defaultTempFilters,
     type FlightFilters,
+    type TempFilters,
+    type Route,
   } from '$lib/components/flight-filters/types';
   import { Map } from '$lib/components/map';
   import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
   import { openModalsState } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
-  import { prepareFlightData } from '$lib/utils';
+  import { prepareFlightData, type FlightData } from '$lib/utils';
 
   const rawFlights = trpc.flight.list.query();
 
@@ -22,32 +25,85 @@
   });
 
   let filters: FlightFilters = $state(defaultFilters);
+  let tempFilters: TempFilters = $state(defaultTempFilters);
+
+  $effect(() => {
+    if (!openModalsState.listFlights) {
+      tempFilters = defaultTempFilters;
+    }
+  });
+
+  const matchesRoute = (f: FlightData, r: Route): boolean => {
+    const fromId = f.from.id.toString();
+    const toId = f.to.id.toString();
+    return (fromId === r.a && toId === r.b) || (fromId === r.b && toId === r.a);
+  };
 
   const filteredFlights = $derived.by(() => {
     return flights.filter((f) => {
+      const fromId = f.from.id.toString();
+      const toId = f.to.id.toString();
+
+      if (tempFilters.routes.length || tempFilters.airportsEither.length) {
+        if (
+          tempFilters.routes.length &&
+          !tempFilters.routes.some((r) => matchesRoute(f, r))
+        ) {
+          return false;
+        }
+        if (
+          tempFilters.airportsEither.length &&
+          ![fromId, toId].some((id) => tempFilters.airportsEither.includes(id))
+        ) {
+          return false;
+        }
+      } else {
+        if (
+          filters.departureAirports.length &&
+          !filters.departureAirports.includes(fromId)
+        ) {
+          return false;
+        }
+        if (
+          filters.arrivalAirports.length &&
+          !filters.arrivalAirports.includes(toId)
+        ) {
+          return false;
+        }
+        if (
+          filters.airportsEither.length &&
+          ![fromId, toId].some((id) => filters.airportsEither.includes(id))
+        ) {
+          return false;
+        }
+        if (
+          filters.routes.length &&
+          !filters.routes.some((r) => matchesRoute(f, r))
+        ) {
+          return false;
+        }
+      }
+
       if (
-        (filters.departureAirports.length &&
-          !filters.departureAirports.includes(f.from.id.toString())) ||
-        (filters.arrivalAirports.length &&
-          !filters.arrivalAirports.includes(f.to.id.toString()))
-      ) {
-        return false;
-      } else if (
         filters.fromDate &&
         isBefore(f.date, filters.fromDate.toDate(f.date.timeZone ?? 'UTC'))
       ) {
         return false;
-      } else if (
+      }
+      if (
         filters.toDate &&
         isAfter(f.date, filters.toDate.toDate(f.date.timeZone ?? 'UTC'))
       ) {
         return false;
-      } else if (
+      }
+
+      if (
         filters.aircraftRegs.length &&
         !filters.aircraftRegs.includes(f.aircraftReg || '')
       ) {
         return false;
       }
+
       return true;
     });
   });
@@ -74,6 +130,7 @@
 <ListFlightsModal
   bind:open={openModalsState.listFlights}
   bind:filters
+  bind:tempFilters
   {flights}
   {filteredFlights}
   {deleteFlight}
@@ -83,4 +140,4 @@
   allFlights={filteredFlights}
 />
 
-<Map bind:filters {flights} {filteredFlights} />
+<Map bind:filters bind:tempFilters {flights} {filteredFlights} />

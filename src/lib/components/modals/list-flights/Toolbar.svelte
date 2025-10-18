@@ -10,7 +10,10 @@
   import { toast } from 'svelte-sonner';
 
   import Filters from '$lib/components/flight-filters/Filters.svelte';
-  import type { FlightFilters } from '$lib/components/flight-filters/types';
+  import type {
+    FlightFilters,
+    TempFilters,
+  } from '$lib/components/flight-filters/types';
   import { Confirm } from '$lib/components/helpers';
   import { Button } from '$lib/components/ui/button';
   import * as Popover from '$lib/components/ui/popover';
@@ -20,19 +23,23 @@
   let {
     flights = $bindable(),
     filters = $bindable(),
+    tempFilters = $bindable(),
     page = $bindable(),
     flightsPerPage,
     numOfFlights,
     selecting = $bindable(),
     selectedFlights = $bindable(),
+    hasTempFilters = false,
   }: {
     flights: FlightData[];
     filters: FlightFilters;
+    tempFilters?: TempFilters;
     page: number;
     flightsPerPage: number;
     numOfFlights: number;
     selecting: boolean;
     selectedFlights: number[];
+    hasTempFilters?: boolean;
   } = $props();
 
   let pages = $derived.by(() => {
@@ -70,28 +77,44 @@
 </script>
 
 <div class="flex justify-between items-center">
-  <div class="flex gap-2 max-xl:hidden">
-    <Filters bind:flights bind:filters />
+  <div class="flex gap-2">
+    {#if hasTempFilters}
+      <Button
+        variant="outline"
+        size="sm"
+        onclick={() => {
+          if (tempFilters) {
+            tempFilters.airportsEither = [];
+            tempFilters.routes = [];
+          }
+        }}
+      >
+        Show All Flights
+      </Button>
+    {/if}
+    <div class="flex gap-2 max-xl:hidden">
+      <Filters bind:flights bind:filters bind:tempFilters {hasTempFilters} />
+    </div>
+    <Popover.Root bind:open>
+      <Popover.Trigger>
+        {#snippet child({ props })}
+          <Button
+            variant="outline"
+            size="sm"
+            class="gap-2 xl:hidden"
+            {...props}
+            disabled={flights.length === 0}
+          >
+            <Funnel size={16} />
+            <span class="max-sm:hidden">Filters</span>
+          </Button>
+        {/snippet}
+      </Popover.Trigger>
+      <Popover.Content class="flex flex-col grow-0 gap-2 w-fit">
+        <Filters bind:flights bind:filters bind:tempFilters {hasTempFilters} />
+      </Popover.Content>
+    </Popover.Root>
   </div>
-  <Popover.Root bind:open>
-    <Popover.Trigger>
-      {#snippet child({ props })}
-        <Button
-          variant="outline"
-          size="sm"
-          class="gap-2 xl:hidden"
-          {...props}
-          disabled={flights.length === 0}
-        >
-          <Funnel size={16} />
-          <span class="max-sm:hidden">Filters</span>
-        </Button>
-      {/snippet}
-    </Popover.Trigger>
-    <Popover.Content class="flex flex-col grow-0 gap-2 w-fit">
-      <Filters bind:flights bind:filters />
-    </Popover.Content>
-  </Popover.Root>
   <div class="flex gap-2">
     <div class="flex items-center gap-2">
       <span class="hidden sm:block text-sm">

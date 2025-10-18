@@ -6,7 +6,10 @@
 
   import Toolbar from './Toolbar.svelte';
 
-  import type { FlightFilters } from '$lib/components/flight-filters/types';
+  import type {
+    FlightFilters,
+    TempFilters,
+  } from '$lib/components/flight-filters/types';
   import { Confirm } from '$lib/components/helpers';
   import { EditFlightModal } from '$lib/components/modals';
   import { Button } from '$lib/components/ui/button';
@@ -29,6 +32,7 @@
   let {
     open = $bindable<boolean>(),
     filters = $bindable<FlightFilters | undefined>(),
+    tempFilters = $bindable<TempFilters | undefined>(),
     flights,
     filteredFlights,
     deleteFlight,
@@ -36,6 +40,7 @@
   }: {
     open?: boolean;
     filters?: FlightFilters;
+    tempFilters?: TempFilters;
     flights: FlightData[];
     filteredFlights: FlightData[];
     deleteFlight?: (id: number) => Promise<void>;
@@ -107,6 +112,39 @@
 
   let selecting = $state(false);
   let selectedFlights = $state<number[]>([]);
+
+  const hasTempFilters = $derived.by(
+    () =>
+      tempFilters &&
+      (tempFilters.airportsEither.length > 0 || tempFilters.routes.length > 0),
+  );
+
+  const tempFilterAirport = $derived.by(() => {
+    if (!tempFilters?.airportsEither.length) return null;
+    const airportId = tempFilters.airportsEither[0]!;
+    const flight = flights.find(
+      (f) =>
+        f.from?.id.toString() === airportId ||
+        f.to?.id.toString() === airportId,
+    );
+    return flight?.from?.id.toString() === airportId ? flight.from : flight?.to;
+  });
+
+  const tempFilterRoute = $derived.by(() => {
+    if (!tempFilters?.routes.length) return null;
+    const route = tempFilters.routes[0]!;
+    const flight = flights.find(
+      (f) =>
+        (f.from?.id.toString() === route.a &&
+          f.to?.id.toString() === route.b) ||
+        (f.from?.id.toString() === route.b && f.to?.id.toString() === route.a),
+    );
+    if (!flight) return null;
+    return {
+      from: flight.from,
+      to: flight.to,
+    };
+  });
 </script>
 
 <Modal
@@ -114,18 +152,59 @@
   class="max-w-full flex flex-col h-full rounded-none!"
   dialogOnly
 >
-  <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
-  {#if filters && !readonly}
-    <Toolbar
-      bind:filters
-      bind:flights
-      bind:selecting
-      bind:selectedFlights
-      bind:page
-      {flightsPerPage}
-      numOfFlights={filteredFlights.length}
-    />
-  {/if}
+  <div class="flex flex-col gap-2">
+    {#if hasTempFilters}
+      <div class="flex flex-col gap-1">
+        {#if tempFilterAirport}
+          <h3 class="text-sm font-thin text-muted-foreground">Airport</h3>
+          <h2 class="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <img
+              src="https://flagcdn.com/{tempFilterAirport.country.toLowerCase()}.svg"
+              alt={tempFilterAirport.country}
+              class="w-8 h-5"
+            />
+            {tempFilterAirport.iata ?? tempFilterAirport.icao}
+            <span class="text-base font-normal text-muted-foreground">
+              — {tempFilterAirport.name}
+            </span>
+          </h2>
+        {:else if tempFilterRoute}
+          <h3 class="text-sm font-thin text-muted-foreground">Route</h3>
+          <h2 class="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <img
+              src="https://flagcdn.com/{tempFilterRoute.from.country.toLowerCase()}.svg"
+              alt={tempFilterRoute.from.country}
+              class="w-6 h-4"
+            />
+            {tempFilterRoute.from.iata ?? tempFilterRoute.from.icao}
+            <span class="text-muted-foreground">↔</span>
+            <img
+              src="https://flagcdn.com/{tempFilterRoute.to.country.toLowerCase()}.svg"
+              alt={tempFilterRoute.to.country}
+              class="w-6 h-4"
+            />
+            {tempFilterRoute.to.iata ?? tempFilterRoute.to.icao}
+          </h2>
+        {/if}
+      </div>
+    {:else}
+      <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
+    {/if}
+
+    {#if filters && !readonly}
+      <Toolbar
+        bind:filters
+        bind:tempFilters
+        bind:flights
+        bind:selecting
+        bind:selectedFlights
+        bind:page
+        {flightsPerPage}
+        {hasTempFilters}
+        numOfFlights={filteredFlights.length}
+      />
+    {/if}
+  </div>
   {#if flightsByYear.length === 0}
     <div class="h-full flex items-center justify-center">
       <AirplanemodeInactive class="text-muted-foreground size-[20dvw]" />

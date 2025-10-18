@@ -2,7 +2,7 @@
   import type { PickingInfo, Color } from '@deck.gl/core';
   import { ArcLayer, ScatterplotLayer } from '@deck.gl/layers';
   import { MapboxOverlay } from '@deck.gl/mapbox';
-  import { onMount, onDestroy } from 'svelte';
+  import { onDestroy } from 'svelte';
   import {
     Box,
     getId,
@@ -15,11 +15,16 @@
   import { AirportPopup, ArcPopup } from '.';
 
   import {
+    normalizeRoute,
+    type TempFilters,
+  } from '$lib/components/flight-filters/types';
+  import { openModalsState } from '$lib/state.svelte';
+  import {
     type FlightData,
     prepareFlightArcData,
     prepareVisitedAirports,
   } from '$lib/utils';
-  import { isMediumScreen, isSmallScreen } from '$lib/utils/size';
+  import { isMediumScreen } from '$lib/utils/size';
 
   const AIRPORT_COLOR = (alpha: number): Color => [16, 185, 129, alpha]; // Tailwind emerald-500
   const INACTIVE_COLOR = (alpha: number): Color => [113, 113, 122, alpha];
@@ -31,9 +36,11 @@
   let {
     flights,
     flightArcs,
+    tempFilters = $bindable(),
   }: {
     flights: FlightData[];
     flightArcs: ReturnType<typeof prepareFlightArcData>;
+    tempFilters?: TempFilters;
   } = $props();
 
   const visitedAirports = $derived.by(() => {
@@ -75,6 +82,26 @@
       layerType: 'deckgl',
       type,
     };
+  };
+
+  const handleAirportClick = (e: PickingInfo<VisitedAirport>) => {
+    if (e.object && tempFilters) {
+      tempFilters.airportsEither = [e.object.id.toString()];
+      tempFilters.routes = [];
+      openModalsState.listFlights = true;
+    }
+  };
+
+  const handleArcClick = (e: PickingInfo<FlightArc>) => {
+    if (e.object && tempFilters) {
+      const route = normalizeRoute(
+        e.object.from.id.toString(),
+        e.object.to.id.toString(),
+      );
+      tempFilters.routes = [route];
+      tempFilters.airportsEither = [];
+      openModalsState.listFlights = true;
+    }
   };
 
   let layer: MapboxOverlay | undefined = $state();
@@ -166,6 +193,7 @@
     getLineWidth: 1,
     pickable: true,
     onHover: handleAirportHover,
+    onClick: handleAirportClick,
     getFillColor: getAirportFillColor(),
     getLineColor: getAirportLineColor(),
     updateTriggers: {
@@ -202,6 +230,7 @@
     getTargetColor: [0, 0, 0, 0],
     pickable: true,
     onHover: handleArcHover,
+    onClick: handleArcClick,
     getWidth: 3 * 6,
     getHeight: 0,
     greatCircle: true,
