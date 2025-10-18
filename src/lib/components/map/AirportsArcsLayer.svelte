@@ -25,6 +25,7 @@
     prepareVisitedAirports,
   } from '$lib/utils';
   import { isMediumScreen } from '$lib/utils/size';
+  import { isTouchDevice } from '@melt-ui/svelte/internal/helpers';
 
   const AIRPORT_COLOR = (alpha: number): Color => [16, 185, 129, alpha]; // Tailwind emerald-500
   const INACTIVE_COLOR = (alpha: number): Color => [113, 113, 122, alpha];
@@ -65,23 +66,27 @@
   setPopupTarget(new Box(undefined));
 
   const handleAirportHover = (e: PickingInfo<VisitedAirport>) => {
-    hoveredAirport = e.object ?? undefined;
-    const type = e.index !== -1 ? 'mousemove' : 'mouseleave';
-    layerEvent.value = {
-      ...e,
-      layerType: 'deckgl',
-      type,
-    };
+    if (!isTouchDevice()) {
+      hoveredAirport = e.object ?? undefined;
+      const type = e.index !== -1 ? 'mousemove' : 'mouseleave';
+      layerEvent.value = {
+        ...e,
+        layerType: 'deckgl',
+        type,
+      };
+    }
   };
 
   const handleArcHover = (e: PickingInfo<FlightArc>) => {
-    hoveredArc = e.object ?? undefined;
-    const type = e.index !== -1 ? 'mousemove' : 'mouseleave';
-    layerEvent.value = {
-      ...e,
-      layerType: 'deckgl',
-      type,
-    };
+    if (!isTouchDevice()) {
+      hoveredArc = e.object ?? undefined;
+      const type = e.index !== -1 ? 'mousemove' : 'mouseleave';
+      layerEvent.value = {
+        ...e,
+        layerType: 'deckgl',
+        type,
+      };
+    }
   };
 
   const handleAirportClick = (e: PickingInfo<VisitedAirport>) => {
