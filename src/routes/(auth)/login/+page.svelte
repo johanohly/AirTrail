@@ -1,6 +1,6 @@
 <script lang="ts">
   import { LoaderCircle } from '@o7/icon/lucide';
-  import { onMount, untrack } from 'svelte';
+  import { onMount } from 'svelte';
   import { toast } from 'svelte-sonner';
   import { superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
@@ -118,14 +118,14 @@
         <div class="grid gap-2 text-center">
           <h1 class="text-3xl font-bold">Login</h1>
           <p class="text-muted-foreground text-balance">
-            {#if !(appConfig.oauth.enabled && appConfig.oauth.hidePasswordAuth)}
+            {#if !(appConfig.oauth.enabled && appConfig.oauth.hidePasswordForm)}
               Welcome back! Enter your username and password to login
             {:else}
               Welcome back! Login with SSO
             {/if}
           </p>
         </div>
-        {#if !(appConfig.oauth.enabled && appConfig.oauth.hidePasswordAuth)}
+        {#if !(appConfig.oauth.enabled && appConfig.oauth.hidePasswordForm)}
           <form
             use:enhance
             action="/api/users/login"
