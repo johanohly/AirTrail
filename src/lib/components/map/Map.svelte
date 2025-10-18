@@ -105,7 +105,10 @@
 </script>
 
 <MapLibre
-  onload={fitFlights}
+  onload={() => {
+    map?.touchPitch.disable();
+    fitFlights();
+  }}
   bind:map
   {style}
   diffStyleUpdates
