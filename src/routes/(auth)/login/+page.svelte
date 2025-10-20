@@ -118,10 +118,13 @@
         <div class="grid gap-2 text-center">
           <h1 class="text-3xl font-bold">Login</h1>
           <p class="text-muted-foreground text-balance">
-            {#if !(appConfig.oauth.enabled && appConfig.oauth.hidePasswordForm)}
+            {#if !appConfig.oauth.enabled}
               Welcome back! Enter your username and password to login
+            {:else if appConfig.oauth.hidePasswordForm}
+              Welcome back! Login with {appConfig.oauth.providerName}
             {:else}
-              Welcome back! Login with SSO
+              Welcome back! Enter your username and password or login with {appConfig
+                .oauth.providerName}
             {/if}
           </p>
         </div>
@@ -167,7 +170,7 @@
             {#if oauthLoading}
               <LoaderCircle class="animate-spin mr-1" size={16} />
             {/if}
-            Log in with SSO
+            Log in with {appConfig.oauth.providerName}
           </Button>
         {/if}
       </div>
