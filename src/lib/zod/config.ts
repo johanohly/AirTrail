@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const oauthConfigSchema = z.object({
   enabled: z.boolean().default(false),
-  providerName: z.string().nullable(),
+  providerName: z.string().default("SSO"),
   issuerUrl: z.string().nullable(),
   clientId: z.string().nullable(),
   clientSecret: z.string().nullable(),
