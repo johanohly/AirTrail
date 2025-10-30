@@ -29,9 +29,7 @@
     const data = $rawVisitedCountries.data;
     if (!data || !data.length) return [];
 
-    return data.filter(
-      (country) => country.status === 'visited' || country.status === 'lived',
-    );
+    return data;
   });
 
   let filters: FlightFilters = $state(defaultFilters);

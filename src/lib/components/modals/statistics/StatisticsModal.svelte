@@ -5,13 +5,18 @@
   import ChartDrillDown from './charts/ChartDrillDown.svelte';
   import FlightsPerMonth from './charts/FlightsPerMonth.svelte';
   import FlightsPerWeekday from './charts/FlightsPerWeekday.svelte';
+  import PieChart from './charts/PieChart.svelte';
   import PieCharts from './charts/PieCharts.svelte';
   import StatsCard from './StatsCard.svelte';
 
   import { page } from '$app/state';
   import { Modal } from '$lib/components/ui/modal';
   import { type VisitedCountry } from '$lib/db/types';
-  import { CHARTS, type ChartKey } from '$lib/stats/aggregations';
+  import {
+    COUNTRY_CHARTS,
+    FLIGHT_CHARTS,
+    type FlightChartKey,
+  } from '$lib/stats/aggregations';
   import { type FlightData, kmToMiles } from '$lib/utils';
   import { Duration, nowIn } from '$lib/utils/datetime';
   import { round } from '$lib/utils/number';
@@ -51,14 +56,19 @@
   let earthCircumnavigations = $state(0);
 
   // Expanded chart state
-  let activeChart: ChartKey | null = $state(null);
+  let activeChart: FlightChartKey | null = $state(null);
   const user = $derived(page.data.user);
   const ctx = $derived.by(() => ({ userId: user?.id }));
 
   const activeChartData = $derived.by(() => {
     if (!activeChart) return {} as Record<string, number>;
-    return CHARTS[activeChart].aggregate(flights, ctx);
+    return FLIGHT_CHARTS[activeChart].aggregate(flights, ctx);
   });
+
+  // Country statistics
+  const countryStatusData = $derived.by(() =>
+    COUNTRY_CHARTS['visited-country-status'].aggregate(visitedCountries),
+  );
 
   $effect(() => {
     if (open) {
@@ -82,7 +92,9 @@
             .filter((f) => f.from && f.to)
             .flatMap((f) => [f.from!.name, f.to!.name]),
         ).size;
-        countriesCount = visitedCountries.length;
+        countriesCount = visitedCountries.filter(
+          (c) => c.status === 'visited' || c.status === 'lived',
+        ).length;
       }, 200);
     } else {
       flightCount = 0;
@@ -173,6 +185,7 @@
           </span>
         </StatsCard>
       </div>
+      <h3 class="text-2xl font-bold tracking-tight pt-4">Flight Statistics</h3>
       <PieCharts
         {flights}
         onOpenChart={(key) => (activeChart = key)}
@@ -181,6 +194,10 @@
       <div class="flex flex-col md:flex-row gap-4">
         <FlightsPerMonth {flights} />
         <FlightsPerWeekday {flights} />
+      </div>
+      <h3 class="text-2xl font-bold tracking-tight pt-4">Country Statistics</h3>
+      <div class="grid gap-4 pb-2 md:grid-cols-2 xl:grid-cols-3">
+        <PieChart title="Visited Country Status" data={countryStatusData} />
       </div>
     </div>
   {/if}

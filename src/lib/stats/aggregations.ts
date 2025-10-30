@@ -1,7 +1,11 @@
-import { ContinentMap } from '$lib/db/types';
+import {
+  ContinentMap,
+  type VisitedCountry,
+  VisitedCountryStatus,
+} from '$lib/db/types';
 import { type FlightData, toTitleCase } from '$lib/utils';
 
-export type ChartKey =
+export type FlightChartKey =
   | 'seat-class'
   | 'seat'
   | 'reason'
@@ -12,6 +16,10 @@ export type ChartKey =
   | 'airports'
   | 'routes';
 
+export type CountryChartKey = 'visited-country-status';
+
+export type ChartKey = FlightChartKey | CountryChartKey;
+
 export type StatsContext = {
   // If omitted, aggregate for all users
   userId?: string;
@@ -20,6 +28,21 @@ export type StatsContext = {
 export type AggregationOptions = {
   limit?: number; // if provided, return top N
 };
+
+export function visitedCountryStatusDistribution(
+  visitedCountries: VisitedCountry[],
+): Record<string, number> {
+  const counts = VisitedCountryStatus.reduce<Record<string, number>>(
+    (acc, status) => {
+      acc[toTitleCase(status)] = visitedCountries.filter(
+        (c) => c.status === status,
+      ).length;
+      return acc;
+    },
+    {},
+  );
+  return counts;
+}
 
 function sortAndLimit(
   counts: Record<string, number>,
@@ -182,8 +205,8 @@ export function airportDistribution(
   return sortAndLimit(counts, options);
 }
 
-export const CHARTS: Record<
-  ChartKey,
+export const FLIGHT_CHARTS: Record<
+  FlightChartKey,
   {
     title: string;
     aggregate: (
@@ -208,4 +231,17 @@ export const CHARTS: Record<
   },
   airports: { title: 'Visited Airports', aggregate: airportDistribution },
   routes: { title: 'Routes', aggregate: routeDistribution },
+};
+
+export const COUNTRY_CHARTS: Record<
+  CountryChartKey,
+  {
+    title: string;
+    aggregate: (visitedCountries: VisitedCountry[]) => Record<string, number>;
+  }
+> = {
+  'visited-country-status': {
+    title: 'Visited Country Status',
+    aggregate: visitedCountryStatusDistribution,
+  },
 };
