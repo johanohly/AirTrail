@@ -16,12 +16,22 @@
   import { prepareFlightData, type FlightData } from '$lib/utils';
 
   const rawFlights = trpc.flight.list.query();
+  const rawVisitedCountries = trpc.visitedCountries.list.query();
 
   const flights = $derived.by(() => {
     const data = $rawFlights.data;
     if (!data || !data.length) return [];
 
     return prepareFlightData(data);
+  });
+
+  const visitedCountriesData = $derived.by(() => {
+    const data = $rawVisitedCountries.data;
+    if (!data || !data.length) return [];
+
+    return data.filter(
+      (country) => country.status === 'visited' || country.status === 'lived',
+    );
   });
 
   let filters: FlightFilters = $state(defaultFilters);
@@ -138,6 +148,7 @@
 <StatisticsModal
   bind:open={openModalsState.statistics}
   allFlights={filteredFlights}
+  visitedCountries={visitedCountriesData}
 />
 
 <Map bind:filters bind:tempFilters {flights} {filteredFlights} />

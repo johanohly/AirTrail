@@ -7,6 +7,7 @@ import type {
   public_share,
   seat,
   user,
+  visited_country,
 } from '$lib/db/schema';
 import type { Selectable } from 'kysely';
 
@@ -36,6 +37,7 @@ export type CreateFlight = Omit<Flight, 'id' | 'seats'> & {
   seats: Omit<Seat, 'flightId' | 'id'>[];
 };
 export type PublicShare = Selectable<public_share>;
+export type VisitedCountry = Selectable<visited_country>;
 
 export const AirportTypes = [
   'small_airport',
