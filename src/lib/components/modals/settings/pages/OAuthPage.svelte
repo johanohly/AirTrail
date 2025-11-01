@@ -83,19 +83,19 @@
       </Form.Field>
     </Locked>
     <Locked
-      locked={appConfig.envConfigured?.oauth?.providerName ?? false}
+      locked={appConfig.envConfigured?.oauth?.buttonText ?? false}
       tooltip={lockedTooltip}
     >
-      <Form.Field {form} name="providerName">
+      <Form.Field {form} name="buttonText">
         <Form.Control>
           {#snippet children({ props })}
             <div class="grid gap-1">
-              <Form.Label>Provider Name</Form.Label>
+              <Form.Label>Button Text</Form.Label>
               <Form.Description>
-                The name of the OAuth provider.
+                The text to display on the OAuth login button.
               </Form.Description>
             </div>
-            <Input bind:value={$formData.providerName} {...props} />
+            <Input bind:value={$formData.buttonText} {...props} />
           {/snippet}
         </Form.Control>
         <Form.FieldErrors />

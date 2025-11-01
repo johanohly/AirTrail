@@ -120,11 +120,8 @@
           <p class="text-muted-foreground text-balance">
             {#if !appConfig.oauth.enabled}
               Welcome back! Enter your username and password to login
-            {:else if appConfig.oauth.hidePasswordForm}
-              Welcome back! Login with {appConfig.oauth.providerName}
             {:else}
-              Welcome back! Enter your username and password or login with {appConfig
-                .oauth.providerName}
+              Welcome back! Login below
             {/if}
           </p>
         </div>
@@ -170,7 +167,7 @@
             {#if oauthLoading}
               <LoaderCircle class="animate-spin mr-1" size={16} />
             {/if}
-            Log in with {appConfig.oauth.providerName}
+            {appConfig.oauth.buttonText}
           </Button>
         {/if}
       </div>
