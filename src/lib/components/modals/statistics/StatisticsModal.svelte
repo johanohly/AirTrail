@@ -1,27 +1,38 @@
 <script lang="ts">
   import NumberFlow from '@number-flow/svelte';
+  import { Plus } from '@o7/icon/lucide';
   import { isBefore } from 'date-fns';
 
   import ChartDrillDown from './charts/ChartDrillDown.svelte';
   import FlightsPerMonth from './charts/FlightsPerMonth.svelte';
   import FlightsPerWeekday from './charts/FlightsPerWeekday.svelte';
+  import PieChart from './charts/PieChart.svelte';
   import PieCharts from './charts/PieCharts.svelte';
   import StatsCard from './StatsCard.svelte';
 
   import { page } from '$app/state';
+  import { Button } from '$lib/components/ui/button';
   import { Modal } from '$lib/components/ui/modal';
-  import { CHARTS, type ChartKey } from '$lib/stats/aggregations';
+  import { type VisitedCountry } from '$lib/db/types';
+  import {
+    COUNTRY_CHARTS,
+    FLIGHT_CHARTS,
+    type ChartKey,
+  } from '$lib/stats/aggregations';
   import { type FlightData, kmToMiles } from '$lib/utils';
   import { Duration, nowIn } from '$lib/utils/datetime';
   import { round } from '$lib/utils/number';
+  import { resolve } from '$app/paths';
 
   let {
     open = $bindable<boolean>(),
     allFlights,
+    visitedCountries = [],
     disableUserSeatFiltering = false,
   }: {
     open?: boolean;
     allFlights: FlightData[];
+    visitedCountries?: VisitedCountry[];
     disableUserSeatFiltering?: boolean;
   } = $props();
 
@@ -44,6 +55,7 @@
   let totalDistance = $state(0);
   let totalDurationParts = $state({ days: 0, hours: 0, minutes: 0 });
   let airports = $state(0);
+  let countriesCount = $state(0);
   let earthCircumnavigations = $state(0);
 
   // Expanded chart state
@@ -53,8 +65,15 @@
 
   const activeChartData = $derived.by(() => {
     if (!activeChart) return {} as Record<string, number>;
-    return CHARTS[activeChart].aggregate(flights, ctx);
+    return (
+      FLIGHT_CHARTS[activeChart] ?? COUNTRY_CHARTS[activeChart]
+    ).aggregate(flights, ctx);
   });
+
+  // Country statistics
+  const countryStatusData = $derived.by(() =>
+    COUNTRY_CHARTS['visited-country-status'].aggregate(visitedCountries),
+  );
 
   $effect(() => {
     if (open) {
@@ -78,12 +97,16 @@
             .filter((f) => f.from && f.to)
             .flatMap((f) => [f.from!.name, f.to!.name]),
         ).size;
+        countriesCount = visitedCountries.filter(
+          (c) => c.status === 'visited' || c.status === 'lived',
+        ).length;
       }, 200);
     } else {
       flightCount = 0;
       totalDistance = 0;
       totalDurationParts = { days: 0, hours: 0, minutes: 0 };
       airports = 0;
+      countriesCount = 0;
       earthCircumnavigations = 0;
     }
   });
@@ -116,7 +139,7 @@
   {:else}
     <div class="space-y-4">
       <h2 class="text-3xl font-bold tracking-tight">Statistics</h2>
-      <div class="grid gap-4 pb-2 md:grid-cols-2 lg:grid-cols-4">
+      <div class="grid gap-4 pb-2 md:grid-cols-2 lg:grid-cols-5">
         <StatsCard class="py-4 px-8">
           <h3 class="text-sm font-medium">Flights</h3>
           <span class="text-2xl font-bold">
@@ -160,7 +183,28 @@
             <NumberFlow value={airports} />
           </span>
         </StatsCard>
+        <StatsCard class="py-4 px-8">
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex flex-col">
+              <h3 class="text-sm font-medium">Countries</h3>
+              <span class="text-2xl font-bold">
+                <NumberFlow value={countriesCount} />
+              </span>
+            </div>
+            {#if countriesCount === 0}
+              <Button
+                href={resolve('/visited-countries')}
+                variant="secondary"
+                size="sm"
+              >
+                <Plus size={16} />
+                Add
+              </Button>
+            {/if}
+          </div>
+        </StatsCard>
       </div>
+      <h3 class="text-2xl font-bold tracking-tight pt-4">Flight Statistics</h3>
       <PieCharts
         {flights}
         onOpenChart={(key) => (activeChart = key)}
@@ -169,6 +213,15 @@
       <div class="flex flex-col md:flex-row gap-4">
         <FlightsPerMonth {flights} />
         <FlightsPerWeekday {flights} />
+      </div>
+      <h3 class="text-2xl font-bold tracking-tight pt-4">Country Statistics</h3>
+      <div class="grid gap-4 pb-2 md:grid-cols-2 xl:grid-cols-3">
+        <div
+          class="cursor-pointer"
+          onclick={() => (activeChart = 'visited-country-status')}
+        >
+          <PieChart title="Visited Country Status" data={countryStatusData} />
+        </div>
       </div>
     </div>
   {/if}
