@@ -83,6 +83,25 @@
       </Form.Field>
     </Locked>
     <Locked
+      locked={appConfig.envConfigured?.oauth?.providerName ?? false}
+      tooltip={lockedTooltip}
+    >
+      <Form.Field {form} name="providerName">
+        <Form.Control>
+          {#snippet children({ props })}
+            <div class="grid gap-1">
+              <Form.Label>Provider Name</Form.Label>
+              <Form.Description>
+                The name of the OAuth provider.
+              </Form.Description>
+            </div>
+            <Input bind:value={$formData.providerName} {...props} />
+          {/snippet}
+        </Form.Control>
+        <Form.FieldErrors />
+      </Form.Field>
+    </Locked>
+    <Locked
       locked={appConfig.envConfigured?.oauth?.issuerUrl ?? false}
       tooltip={lockedTooltip}
     >
