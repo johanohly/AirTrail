@@ -22,6 +22,7 @@
   const addFlightItem = {
     label: 'Add flight',
     icon: GitBranchPlus,
+    testId: 'add-flight-button',
     onClick: () => {
       openModalsState.addFlight = true;
     },
@@ -29,6 +30,7 @@
   const listFlightsItem = {
     label: 'List flights',
     icon: LayoutList,
+    testId: 'list-flights-button',
     onClick: () => {
       openModalsState.listFlights = true;
     },
@@ -36,6 +38,7 @@
   const flightsStatisticsItem = {
     label: 'Statistics',
     icon: ChartColumn,
+    testId: 'statistics-button',
     onClick: () => {
       openModalsState.statistics = true;
     },

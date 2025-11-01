@@ -6,6 +6,7 @@
     label: string;
     icon: any;
     id?: string;
+    testId?: string;
     href?: string;
     onClick?: () => void;
   };
@@ -23,6 +24,7 @@
     >
       <Tooltip.Root delayDuration={0}>
         <Tooltip.Trigger
+          data-testid={item.testId}
           class="hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 transition-all duration-200 rounded-full p-3 mx-0"
         >
           <svelte:component this={item.icon} />
@@ -36,6 +38,7 @@
     <Tooltip.Root delayDuration={0}>
       <Tooltip.Trigger
         id={item.id}
+        data-testid={item.testId}
         onclick={onClick}
         class="hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 transition-all duration-200 rounded-full p-3 mx-0"
       >

@@ -20,10 +20,20 @@ export const ensureAirports = async () => {
   console.time('Populate initial airport database');
 
   const data = await fetchAirports();
-  for (let i = 0; i < data.length; i += BATCH_SIZE) {
+
+  // Check for existing (custom) airports to avoid duplicates
+  const existingAirports = await db.selectFrom('airport').selectAll().execute();
+  const existingMap = new Map(existingAirports.map((a) => [a.icao, a]));
+
+  const newAirports = data.filter((airport) => {
+    const existing = existingMap.get(airport.icao);
+    return !existing;
+  });
+
+  for (let i = 0; i < newAirports.length; i += BATCH_SIZE) {
     await db
       .insertInto('airport')
-      .values(data.slice(i, i + BATCH_SIZE))
+      .values(newAirports.slice(i, i + BATCH_SIZE))
       .execute();
   }
 
