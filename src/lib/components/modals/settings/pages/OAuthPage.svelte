@@ -170,6 +170,25 @@
       </Form.Field>
     </Locked>
     <Locked
+      locked={appConfig.envConfigured?.oauth?.buttonText ?? false}
+      tooltip={lockedTooltip}
+    >
+      <Form.Field {form} name="buttonText">
+        <Form.Control>
+          {#snippet children({ props })}
+            <div class="grid gap-1">
+              <Form.Label>Button Text</Form.Label>
+              <Form.Description>
+                The text to display on the OAuth login button.
+              </Form.Description>
+            </div>
+            <Input bind:value={$formData.buttonText} {...props} />
+          {/snippet}
+        </Form.Control>
+        <Form.FieldErrors />
+      </Form.Field>
+    </Locked>
+    <Locked
       locked={appConfig.envConfigured?.oauth?.autoRegister ?? false}
       tooltip={lockedTooltip}
     >
