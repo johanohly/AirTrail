@@ -2,7 +2,7 @@
   import { PieChart } from 'layerchart';
 
   import { Button } from '$lib/components/ui/button';
-  import { type ChartKey, CHARTS } from '$lib/stats/aggregations';
+  import { type FlightChartKey, FLIGHT_CHARTS } from '$lib/stats/aggregations';
   import { type FlightData } from '$lib/utils';
 
   let {
@@ -11,13 +11,13 @@
     flights,
     onBack,
   }: {
-    chartKey: ChartKey;
+    chartKey: FlightChartKey;
     data: Record<string, number>;
     flights: FlightData[];
     onBack: () => void;
   } = $props();
 
-  const chartDef = $derived(CHARTS[chartKey]);
+  const chartDef = $derived(FLIGHT_CHARTS[chartKey]);
   const totalCount = $derived(Object.values(data).reduce((a, b) => a + b, 0));
   const sortedEntries = $derived(
     Object.entries(data).sort(([, a], [, b]) => b - a),

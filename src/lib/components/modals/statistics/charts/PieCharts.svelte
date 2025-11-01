@@ -2,7 +2,7 @@
   import PieChart from './PieChart.svelte';
 
   import { page } from '$app/state';
-  import { CHARTS, type ChartKey } from '$lib/stats/aggregations';
+  import { FLIGHT_CHARTS, type FlightChartKey } from '$lib/stats/aggregations';
   import { type FlightData } from '$lib/utils';
 
   let {
@@ -11,7 +11,7 @@
     disableUserSeatFiltering = false,
   }: {
     flights: FlightData[];
-    onOpenChart?: (key: ChartKey) => void;
+    onOpenChart?: (key: FlightChartKey) => void;
     // Seat user override
     disableUserSeatFiltering?: boolean;
   } = $props();
@@ -23,32 +23,32 @@
   }));
 
   const seatDistribution = $derived.by(() =>
-    CHARTS['seat'].aggregate(flights, ctx),
+    FLIGHT_CHARTS['seat'].aggregate(flights, ctx),
   );
   const seatClassDistribution = $derived.by(() =>
-    CHARTS['seat-class'].aggregate(flights, ctx),
+    FLIGHT_CHARTS['seat-class'].aggregate(flights, ctx),
   );
   const reasonDistribution = $derived.by(() =>
-    CHARTS['reason'].aggregate(flights, ctx),
+    FLIGHT_CHARTS['reason'].aggregate(flights, ctx),
   );
   const continentDistribution = $derived.by(() =>
-    CHARTS['continents'].aggregate(flights, ctx),
+    FLIGHT_CHARTS['continents'].aggregate(flights, ctx),
   );
 
   const topAirlineDistribution = $derived.by(() =>
-    CHARTS['airlines'].aggregate(flights, ctx, { limit: 5 }),
+    FLIGHT_CHARTS['airlines'].aggregate(flights, ctx, { limit: 5 }),
   );
   const topAircraftDistribution = $derived.by(() =>
-    CHARTS['aircraft-models'].aggregate(flights, ctx, { limit: 5 }),
+    FLIGHT_CHARTS['aircraft-models'].aggregate(flights, ctx, { limit: 5 }),
   );
   const topAircraftRegDistribution = $derived.by(() =>
-    CHARTS['aircraft-regs'].aggregate(flights, ctx, { limit: 5 }),
+    FLIGHT_CHARTS['aircraft-regs'].aggregate(flights, ctx, { limit: 5 }),
   );
   const topAirportDistribution = $derived.by(() =>
-    CHARTS['airports'].aggregate(flights, ctx, { limit: 5 }),
+    FLIGHT_CHARTS['airports'].aggregate(flights, ctx, { limit: 5 }),
   );
   const topRouteDistribution = $derived.by(() =>
-    CHARTS['routes'].aggregate(flights, ctx, { limit: 5 }),
+    FLIGHT_CHARTS['routes'].aggregate(flights, ctx, { limit: 5 }),
   );
 </script>
 
