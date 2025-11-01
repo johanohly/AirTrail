@@ -1,8 +1,13 @@
 <script lang="ts">
+  import { ChartColumn } from '@o7/icon/lucide';
   import { PieChart } from 'layerchart';
 
   import { Button } from '$lib/components/ui/button';
-  import { type FlightChartKey, FLIGHT_CHARTS } from '$lib/stats/aggregations';
+  import {
+    type ChartKey,
+    FLIGHT_CHARTS,
+    COUNTRY_CHARTS,
+  } from '$lib/stats/aggregations';
   import { type FlightData } from '$lib/utils';
 
   let {
@@ -11,13 +16,15 @@
     flights,
     onBack,
   }: {
-    chartKey: FlightChartKey;
+    chartKey: ChartKey;
     data: Record<string, number>;
     flights: FlightData[];
     onBack: () => void;
   } = $props();
 
-  const chartDef = $derived(FLIGHT_CHARTS[chartKey]);
+  const chartDef = $derived(
+    FLIGHT_CHARTS[chartKey] ?? COUNTRY_CHARTS[chartKey],
+  );
   const totalCount = $derived(Object.values(data).reduce((a, b) => a + b, 0));
   const sortedEntries = $derived(
     Object.entries(data).sort(([, a], [, b]) => b - a),
@@ -143,8 +150,10 @@
           </div>
           <div class="max-h-[500px] overflow-y-auto">
             {#if noData}
-              <div class="p-8 text-center text-zinc-500 dark:text-zinc-400">
-                <div class="text-4xl mb-2">📊</div>
+              <div
+                class="p-8 flex flex-col items-center text-zinc-500 dark:text-zinc-400"
+              >
+                <ChartColumn class="mb-2" />
                 <p class="text-lg font-medium">No data available</p>
                 <p class="text-sm">
                   This chart will populate as you add more flights

@@ -1,5 +1,6 @@
 <script lang="ts">
   import NumberFlow from '@number-flow/svelte';
+  import { Plus } from '@o7/icon/lucide';
   import { isBefore } from 'date-fns';
 
   import ChartDrillDown from './charts/ChartDrillDown.svelte';
@@ -10,16 +11,18 @@
   import StatsCard from './StatsCard.svelte';
 
   import { page } from '$app/state';
+  import { Button } from '$lib/components/ui/button';
   import { Modal } from '$lib/components/ui/modal';
   import { type VisitedCountry } from '$lib/db/types';
   import {
     COUNTRY_CHARTS,
     FLIGHT_CHARTS,
-    type FlightChartKey,
+    type ChartKey,
   } from '$lib/stats/aggregations';
   import { type FlightData, kmToMiles } from '$lib/utils';
   import { Duration, nowIn } from '$lib/utils/datetime';
   import { round } from '$lib/utils/number';
+  import { resolve } from '$app/paths';
 
   let {
     open = $bindable<boolean>(),
@@ -56,13 +59,15 @@
   let earthCircumnavigations = $state(0);
 
   // Expanded chart state
-  let activeChart: FlightChartKey | null = $state(null);
+  let activeChart: ChartKey | null = $state(null);
   const user = $derived(page.data.user);
   const ctx = $derived.by(() => ({ userId: user?.id }));
 
   const activeChartData = $derived.by(() => {
     if (!activeChart) return {} as Record<string, number>;
-    return FLIGHT_CHARTS[activeChart].aggregate(flights, ctx);
+    return (
+      FLIGHT_CHARTS[activeChart] ?? COUNTRY_CHARTS[activeChart]
+    ).aggregate(flights, ctx);
   });
 
   // Country statistics
@@ -179,10 +184,24 @@
           </span>
         </StatsCard>
         <StatsCard class="py-4 px-8">
-          <h3 class="text-sm font-medium">Countries</h3>
-          <span class="text-2xl font-bold">
-            <NumberFlow value={countriesCount} />
-          </span>
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex flex-col">
+              <h3 class="text-sm font-medium">Countries</h3>
+              <span class="text-2xl font-bold">
+                <NumberFlow value={countriesCount} />
+              </span>
+            </div>
+            {#if countriesCount === 0}
+              <Button
+                href={resolve('/visited-countries')}
+                variant="secondary"
+                size="sm"
+              >
+                <Plus size={16} />
+                Add
+              </Button>
+            {/if}
+          </div>
         </StatsCard>
       </div>
       <h3 class="text-2xl font-bold tracking-tight pt-4">Flight Statistics</h3>
@@ -197,7 +216,12 @@
       </div>
       <h3 class="text-2xl font-bold tracking-tight pt-4">Country Statistics</h3>
       <div class="grid gap-4 pb-2 md:grid-cols-2 xl:grid-cols-3">
-        <PieChart title="Visited Country Status" data={countryStatusData} />
+        <div
+          class="cursor-pointer"
+          onclick={() => (activeChart = 'visited-country-status')}
+        >
+          <PieChart title="Visited Country Status" data={countryStatusData} />
+        </div>
       </div>
     </div>
   {/if}
