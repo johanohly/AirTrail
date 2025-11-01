@@ -1,58 +1,80 @@
 import { db } from '@test/db';
-import { generateId } from 'lucia';
+import type { Flight } from '$lib/db/types';
 
-export interface Flight {
-  id: string;
+export interface FlightInput {
   date: string;
-  fromId: string;
-  toId: string;
-  departure: string | null;
-  arrival: string | null;
-  duration: number | null;
+  fromId: number;
+  toId: number;
+  departure?: string | null;
+  arrival?: string | null;
+  duration?: number | null;
+  flightNumber?: string | null;
+  flightReason?: 'leisure' | 'business' | 'crew' | 'other' | null;
+  aircraftReg?: string | null;
+  note?: string | null;
+  aircraftId?: number | null;
+  airlineId?: number | null;
+}
+
+export interface FlightWithSeats extends FlightInput {
   userId: string;
-  flightNumber: string | null;
+  seat?: {
+    seat?:
+      | 'window'
+      | 'aisle'
+      | 'middle'
+      | 'pilot'
+      | 'copilot'
+      | 'jumpseat'
+      | 'other'
+      | null;
+    seatNumber?: string | null;
+    seatClass?:
+      | 'economy'
+      | 'economy+'
+      | 'business'
+      | 'first'
+      | 'private'
+      | null;
+    guestName?: string | null;
+  };
 }
 
 export const flightsFactory = {
-  async create(
-    userId: string,
-    fromAirportId: string,
-    toAirportId: string,
-    overrides: Partial<Flight> = {},
-  ): Promise<{ flight: Flight }> {
-    const flight: Flight = {
-      id: generateId(15),
-      date: '2024-01-15',
-      fromId: fromAirportId,
-      toId: toAirportId,
-      departure: null,
-      arrival: null,
-      duration: null,
-      userId,
-      flightNumber: null,
-      ...overrides,
-    };
-
-    await db
+  async create(input: FlightWithSeats): Promise<{ flight: { id: number } }> {
+    // Insert flight
+    const flightResult = await db
       .insertInto('flight')
       .values({
-        id: flight.id,
-        date: flight.date,
-        fromId: flight.fromId,
-        toId: flight.toId,
-        departure: flight.departure,
-        arrival: flight.arrival,
-        duration: flight.duration,
-        userId: flight.userId,
-        flightNumber: flight.flightNumber,
-        aircraftId: null,
-        airlineId: null,
-        flightReason: null,
-        note: null,
-        trackingLink: null,
+        date: input.date,
+        fromId: input.fromId,
+        toId: input.toId,
+        departure: input.departure ?? null,
+        arrival: input.arrival ?? null,
+        duration: input.duration ?? null,
+        flightNumber: input.flightNumber ?? null,
+        flightReason: input.flightReason ?? null,
+        aircraftReg: input.aircraftReg ?? null,
+        note: input.note ?? null,
+        aircraftId: input.aircraftId ?? null,
+        airlineId: input.airlineId ?? null,
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+
+    // Insert seat for the flight
+    await db
+      .insertInto('seat')
+      .values({
+        flightId: flightResult.id,
+        userId: input.userId,
+        seat: input.seat?.seat ?? null,
+        seatNumber: input.seat?.seatNumber ?? null,
+        seatClass: input.seat?.seatClass ?? null,
+        guestName: input.seat?.guestName ?? null,
       })
       .execute();
 
-    return { flight };
+    return { flight: { id: flightResult.id } };
   },
 };
