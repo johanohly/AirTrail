@@ -20,11 +20,11 @@ export const ensureAirports = async () => {
   console.time('Populate initial airport database');
 
   const data = await fetchAirports();
-  
+
   // Check for existing (custom) airports to avoid duplicates
   const existingAirports = await db.selectFrom('airport').selectAll().execute();
   const existingMap = new Map(existingAirports.map((a) => [a.icao, a]));
-  
+
   const newAirports = data.filter((airport) => {
     const existing = existingMap.get(airport.icao);
     return !existing;

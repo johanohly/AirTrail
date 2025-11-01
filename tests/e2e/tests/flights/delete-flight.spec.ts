@@ -90,7 +90,7 @@ test.describe('Delete Flight', () => {
             })
             .first();
 
-          if (await deleteButton.count() > 0) {
+          if ((await deleteButton.count()) > 0) {
             await deleteButton.click();
           }
         }
@@ -113,7 +113,7 @@ test.describe('Delete Flight', () => {
 
         // The flight should be removed from the list
         const flightText = modal.getByText(/JFK.*LHR|LHR.*JFK|BA100/i);
-        if (await flightText.count() > 0) {
+        if ((await flightText.count()) > 0) {
           await expect(flightText).not.toBeVisible({ timeout: 5000 });
         }
       },
@@ -174,9 +174,9 @@ test.describe('Delete Flight', () => {
         });
 
         // Verify the flight is in the list
-        await expect(
-          modal.getByText(/MIA|DXB|OMDB/i).first(),
-        ).toBeVisible({ timeout: 5000 });
+        await expect(modal.getByText(/MIA|DXB|OMDB/i).first()).toBeVisible({
+          timeout: 5000,
+        });
 
         // Find and click delete button
         const flightCard = modal
@@ -200,7 +200,7 @@ test.describe('Delete Flight', () => {
             .filter({ hasText: /MIA|DXB|OMDB/i })
             .last();
 
-          if (await deleteButton.count() > 0) {
+          if ((await deleteButton.count()) > 0) {
             await deleteButton.click();
           }
         }
@@ -222,4 +222,3 @@ test.describe('Delete Flight', () => {
     );
   });
 });
-

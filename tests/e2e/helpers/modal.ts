@@ -11,7 +11,9 @@ export const withinModal = async (
 ) => {
   const modal = page.getByRole('dialog');
   if (title) {
-    await expect(modal.getByRole('heading', { level: 2, name: title })).toBeVisible();
+    await expect(
+      modal.getByRole('heading', { level: 2, name: title }),
+    ).toBeVisible();
   }
 
   await expect(modal).toBeVisible();
@@ -22,4 +24,3 @@ export const withinModal = async (
     await expect(modal).not.toBeVisible();
   }
 };
-

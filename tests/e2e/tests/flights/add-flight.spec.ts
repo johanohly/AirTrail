@@ -70,10 +70,13 @@ test.describe('Add Flight', () => {
 
         // Wait for dropdown and select the airport
         await page.waitForTimeout(500); // Wait for debounce
-        await expect(
-          page.getByText(/London Heathrow Airport/i),
-        ).toBeVisible({ timeout: 10000 });
-        await page.getByText(/London Heathrow Airport/i).first().click();
+        await expect(page.getByText(/London Heathrow Airport/i)).toBeVisible({
+          timeout: 10000,
+        });
+        await page
+          .getByText(/London Heathrow Airport/i)
+          .first()
+          .click();
 
         // Fill in departure date - use the hidden input field
         // The form uses a hidden input with name="departure" that stores the ISO datetime string
@@ -98,7 +101,7 @@ test.describe('Add Flight', () => {
           .filter({ has: page.locator('svg[class*="CalendarDays"]') })
           .first();
 
-        if (await calendarIcon.count() > 0) {
+        if ((await calendarIcon.count()) > 0) {
           await calendarIcon.click();
           await page.waitForTimeout(300);
           // Try to click on day 15 in the calendar
@@ -106,7 +109,7 @@ test.describe('Add Flight', () => {
             .locator('button')
             .filter({ hasText: /^15$/ })
             .first();
-          if (await dayButtons.count() > 0) {
+          if ((await dayButtons.count()) > 0) {
             await dayButtons.click();
             await page.waitForTimeout(300);
           }
@@ -125,15 +128,14 @@ test.describe('Add Flight', () => {
 
     // Verify flight appears in the list
     await page.getByTestId('list-flights-button').click();
-    
+
     // Wait for the flights modal to open
     await expect(page.getByText(/all flights/i)).toBeVisible({ timeout: 5000 });
-    
+
     // Check that the flight appears in the list
     // Look for either airport code
-    await expect(
-      page.getByText(/JFK|EGLL|LHR/i).first(),
-    ).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/JFK|EGLL|LHR/i).first()).toBeVisible({
+      timeout: 5000,
+    });
   });
 });
-

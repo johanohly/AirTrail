@@ -22,9 +22,7 @@ export interface AirportInput {
 }
 
 export const airportsFactory = {
-  async getOrCreate(
-    input: AirportInput,
-  ): Promise<{ airport: Airport }> {
+  async getOrCreate(input: AirportInput): Promise<{ airport: Airport }> {
     // Check if airport already exists
     const existing = await db
       .selectFrom('airport')

@@ -19,17 +19,29 @@ export interface FlightInput {
 export interface FlightWithSeats extends FlightInput {
   userId: string;
   seat?: {
-    seat?: 'window' | 'aisle' | 'middle' | 'pilot' | 'copilot' | 'jumpseat' | 'other' | null;
+    seat?:
+      | 'window'
+      | 'aisle'
+      | 'middle'
+      | 'pilot'
+      | 'copilot'
+      | 'jumpseat'
+      | 'other'
+      | null;
     seatNumber?: string | null;
-    seatClass?: 'economy' | 'economy+' | 'business' | 'first' | 'private' | null;
+    seatClass?:
+      | 'economy'
+      | 'economy+'
+      | 'business'
+      | 'first'
+      | 'private'
+      | null;
     guestName?: string | null;
   };
 }
 
 export const flightsFactory = {
-  async create(
-    input: FlightWithSeats,
-  ): Promise<{ flight: { id: number } }> {
+  async create(input: FlightWithSeats): Promise<{ flight: { id: number } }> {
     // Insert flight
     const flightResult = await db
       .insertInto('flight')
