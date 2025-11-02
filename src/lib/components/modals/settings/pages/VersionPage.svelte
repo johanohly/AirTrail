@@ -46,7 +46,9 @@
             {versionState.latestVersion}
           </a>
         {:else}
-          <span class="font-mono font-semibold">Unable to get latest version.</span>
+          <span class="font-mono font-semibold"
+            >Unable to get latest version.</span
+          >
         {/if}
       </p>
     </div>
