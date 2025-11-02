@@ -13,6 +13,7 @@
     SecurityPage,
     DataPage,
     IntegrationsPage,
+    VersionPage,
   } from './pages';
 
   import { page } from '$app/state';
@@ -30,6 +31,7 @@
     { title: 'Share', id: 'share' },
     { title: 'Import', id: 'import' },
     { title: 'Export', id: 'export' },
+    { title: 'Version', id: 'version' },
   ] as const;
   const ADMIN_SETTINGS = [
     { title: 'Data', id: 'data' },
@@ -153,6 +155,8 @@
           <ImportPage bind:open />
         {:else if activeTab === 'export'}
           <ExportPage />
+        {:else if activeTab === 'version'}
+          <VersionPage />
         {:else if activeTab === 'data'}
           <DataPage />
         {:else if activeTab === 'integrations'}
