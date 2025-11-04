@@ -21,3 +21,19 @@ export const appConfig = $state<{
   configured: null,
   envConfigured: null,
 });
+
+export const versionState = $state<{
+  currentVersion: string;
+  latestVersion: string | null;
+  newReleases: Array<{ name: string; body: string }>;
+  isChecking: boolean;
+  alreadyChecked: boolean;
+  dismissedVersion: string | null;
+}>({
+  currentVersion: '',
+  latestVersion: null,
+  newReleases: [],
+  isChecking: false,
+  alreadyChecked: false,
+  dismissedVersion: null,
+});
