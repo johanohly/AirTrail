@@ -13,16 +13,18 @@
     SecurityPage,
     DataPage,
     IntegrationsPage,
-    VersionPage,
   } from './pages';
 
+  import { version } from '$app/environment';
   import { page } from '$app/state';
   import SettingsTabContainer from '$lib/components/modals/settings/SettingsTabContainer.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Modal } from '$lib/components/ui/modal';
   import { Separator } from '$lib/components/ui/separator';
+  import { versionState } from '$lib/state.svelte';
   import { cn } from '$lib/utils';
   import { isMediumScreen } from '$lib/utils/size';
+  import { checkForNewVersions } from '$lib/utils/version';
 
   const ACCOUNT_SETTINGS = [
     { title: 'General', id: 'general' },
@@ -31,7 +33,6 @@
     { title: 'Share', id: 'share' },
     { title: 'Import', id: 'import' },
     { title: 'Export', id: 'export' },
-    { title: 'Version', id: 'version' },
   ] as const;
   const ADMIN_SETTINGS = [
     { title: 'Data', id: 'data' },
@@ -61,6 +62,18 @@
   const [send, receive] = crossfade({
     duration: 250,
     easing: cubicInOut,
+  });
+
+  $effect(() => {
+    if (
+      open &&
+      user &&
+      user.role !== 'user' &&
+      !versionState.alreadyChecked &&
+      !versionState.isChecking
+    ) {
+      checkForNewVersions();
+    }
   });
 </script>
 
@@ -155,8 +168,6 @@
           <ImportPage bind:open />
         {:else if activeTab === 'export'}
           <ExportPage />
-        {:else if activeTab === 'version'}
-          <VersionPage />
         {:else if activeTab === 'data'}
           <DataPage />
         {:else if activeTab === 'integrations'}
@@ -167,6 +178,22 @@
           <OAuthPage />
         {/if}
       </div>
+    </div>
+    <div class="flex items-center justify-center">
+      <p class="text-xs text-muted-foreground">
+        Powered by
+        <a
+          href="https://github.com/johanohly/AirTrail"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="font-medium text-foreground hover:underline">AirTrail</a
+        >
+        {#if user && user.role !== 'user' && versionState.latestVersion && versionState.latestVersion !== version}
+          ({version}, {versionState.latestVersion} available)
+        {:else}
+          ({version})
+        {/if}
+      </p>
     </div>
   </div>
 </Modal>
