@@ -84,7 +84,9 @@
     isSearching = true;
     clearResults();
 
-    const normalizedFlightNumber = $formData.flightNumber.trim().replace(/\s/g, '');
+    const normalizedFlightNumber = $formData.flightNumber
+      .trim()
+      .replace(/\s/g, '');
 
     let results: FlightLookupResultItem[] = [];
     try {
