@@ -42,15 +42,15 @@
   });
 
   const matchesRoute = (f: FlightData, r: Route): boolean => {
-    const fromId = f.from.id.toString();
-    const toId = f.to.id.toString();
+    const fromId = f.from?.id.toString();
+    const toId = f.to?.id.toString();
     return (fromId === r.a && toId === r.b) || (fromId === r.b && toId === r.a);
   };
 
   const filteredFlights = $derived.by(() => {
     return flights.filter((f) => {
-      const fromId = f.from.id.toString();
-      const toId = f.to.id.toString();
+      const fromId = f.from?.id.toString();
+      const toId = f.to?.id.toString();
 
       if (tempFilters.routes.length || tempFilters.airportsEither.length) {
         if (
@@ -61,26 +61,32 @@
         }
         if (
           tempFilters.airportsEither.length &&
-          ![fromId, toId].some((id) => tempFilters.airportsEither.includes(id))
+          (!fromId ||
+            !toId ||
+            ![fromId, toId].some((id) =>
+              tempFilters.airportsEither.includes(id),
+            ))
         ) {
           return false;
         }
       } else {
         if (
           filters.departureAirports.length &&
-          !filters.departureAirports.includes(fromId)
+          (!fromId || !filters.departureAirports.includes(fromId))
         ) {
           return false;
         }
         if (
           filters.arrivalAirports.length &&
-          !filters.arrivalAirports.includes(toId)
+          (!toId || !filters.arrivalAirports.includes(toId))
         ) {
           return false;
         }
         if (
           filters.airportsEither.length &&
-          ![fromId, toId].some((id) => filters.airportsEither.includes(id))
+          (!fromId ||
+            !toId ||
+            ![fromId, toId].some((id) => filters.airportsEither.includes(id)))
         ) {
           return false;
         }
@@ -94,13 +100,15 @@
 
       if (
         filters.fromDate &&
-        isBefore(f.date, filters.fromDate.toDate(f.date.timeZone ?? 'UTC'))
+        (!f.date ||
+          isBefore(f.date, filters.fromDate.toDate(f.date.timeZone ?? 'UTC')))
       ) {
         return false;
       }
       if (
         filters.toDate &&
-        isAfter(f.date, filters.toDate.toDate(f.date.timeZone ?? 'UTC'))
+        (!f.date ||
+          isAfter(f.date, filters.toDate.toDate(f.date.timeZone ?? 'UTC')))
       ) {
         return false;
       }
