@@ -65,9 +65,11 @@
 
   const activeChartData = $derived.by(() => {
     if (!activeChart) return {} as Record<string, number>;
-    return (
-      FLIGHT_CHARTS[activeChart] ?? COUNTRY_CHARTS[activeChart]
-    ).aggregate(flights, ctx);
+    if (activeChart in COUNTRY_CHARTS) {
+      return countryStatusData;
+    } else {
+      return FLIGHT_CHARTS[activeChart].aggregate(flights, ctx);
+    }
   });
 
   // Country statistics
