@@ -1,15 +1,13 @@
 import { loader } from "fumadocs-core/source";
-import { createMDXSource } from "fumadocs-mdx";
-import { createOpenAPI, transformerOpenAPI } from "fumadocs-openapi/server";
+import { createOpenAPI, openapiPlugin } from "fumadocs-openapi/server";
+import { docs } from "@/.source";
 
-import { docs, meta } from "@/.source";
-
-export const openapi = createOpenAPI();
+export const openapi = createOpenAPI({
+  input: ["./openapi.yaml"],
+});
 
 export const source = loader({
   baseUrl: "/docs",
-  source: createMDXSource(docs, meta),
-  pageTree: {
-    transformers: [transformerOpenAPI()],
-  },
+  source: docs.toFumadocsSource(),
+  plugins: [openapiPlugin()],
 });
