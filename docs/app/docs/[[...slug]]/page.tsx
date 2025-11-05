@@ -40,18 +40,14 @@ const customFooters: Record<
   "install/synology.mdx": installFooter,
 };
 
-type Props = {
-  params: Promise<{ slug?: string[] }>;
-};
-
-export default async function Page(props: Readonly<Props>) {
+export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
   const params = await props.params;
   const page = source.getPage(params.slug);
   if (!page) {
     return notFound();
   }
 
-  const path = page.file.path;
+  const path = page.path;
   const fullPath = `docs/content/docs/${path}`;
   const { body: Mdx, lastModified } = page.data;
 
