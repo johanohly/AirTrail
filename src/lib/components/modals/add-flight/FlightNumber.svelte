@@ -84,10 +84,14 @@
     isSearching = true;
     clearResults();
 
+    const normalizedFlightNumber = $formData.flightNumber
+      .trim()
+      .replace(/\s/g, '');
+
     let results: FlightLookupResultItem[] = [];
     try {
       const tempResults = await api.flight.lookup.query({
-        flightNumber: $formData.flightNumber,
+        flightNumber: normalizedFlightNumber,
         date: $formData.departure ?? undefined,
       });
       results = tempResults.map((r) => ({
