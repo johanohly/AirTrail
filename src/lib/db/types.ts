@@ -9,7 +9,7 @@ import type {
   user,
   visited_country,
 } from '$lib/db/schema';
-import type { Selectable } from 'kysely';
+import type { Insertable, Selectable } from 'kysely';
 
 export type FullUser = Selectable<user>;
 export type User = Omit<FullUser, 'password'>;
@@ -17,6 +17,7 @@ export type ApiKey = Omit<Selectable<api_key>, 'key' | 'userId'>;
 export type Aircraft = Selectable<aircraft>;
 export type Airline = Selectable<airline>;
 export type Airport = Selectable<airport>;
+export type CreateAirport = Insertable<airport>;
 export type Seat = Selectable<seat>;
 export type Flight = Omit<
   Selectable<flight>,

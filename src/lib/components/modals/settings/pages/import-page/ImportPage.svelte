@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { LoaderCircle, Upload } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
 
   import { PageHeader } from '../';
@@ -10,18 +9,20 @@
 
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
-  import { Checkbox } from '$lib/components/ui/checkbox';
-  import { Label } from '$lib/components/ui/label';
-  import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { processFile } from '$lib/import';
   import { trpc } from '$lib/trpc';
   import { cn, pluralize } from '$lib/utils';
+  import FileStep from './FileStep.svelte';
+  import OptionsStep from './OptionsStep.svelte';
+  import StatusStep from './StatusStep.svelte';
+  import type { Airport } from '$lib/db/types';
 
   let { open = $bindable() }: { open: boolean } = $props();
 
   let step = $state<1 | 2 | 3 | 4>(1);
 
   let files: FileList | null = $state(null);
+  let originalFile: File | null = $state(null);
   let fileError: string | null = $state(null);
 
   let importing = $state(false);
@@ -66,6 +67,7 @@
     if (!file || fileError) return;
 
     importing = true;
+    originalFile = file; // keep for reprocessing with mappings
     let result: Awaited<ReturnType<typeof processFile>>;
     try {
       result = await processFile(file, platform.value, {
@@ -102,15 +104,52 @@
     } else {
       toast.info('No new flights to import');
     }
-    files = null;
+    files = null; // clear picker, retain originalFile
     importing = false;
     step = 4; // Show status screen
+  };
+
+  const handleReprocess = async (mapping: Record<string, Airport>) => {
+    if (!originalFile) return;
+    importing = true;
+    try {
+      const result = await processFile(originalFile, platform.value, {
+        filterOwner: ownerOnly,
+        airlineFromFlightNumber: matchAirlineFromFlightNumber,
+        airportMapping: mapping,
+      });
+
+      const { flights } = result;
+      if (flights.length) {
+        const stats = await $createMany.mutateAsync({
+          flights,
+          dedupe: dedupeImportedFlights,
+        });
+        const added = stats?.insertedFlights ?? 0;
+        importedCount += added;
+        if (added > 0) {
+          toast.success(`Imported ${added} ${pluralize(added, 'flight')}`);
+        } else {
+          toast.info('No new flights to import with this mapping');
+        }
+      } else {
+        toast.info('No additional flights found with this mapping');
+      }
+
+      unknownAirports = result.unknownAirports;
+    } catch (error) {
+      toast.error('Failed to reprocess file');
+      console.error(error);
+    } finally {
+      importing = false;
+    }
   };
 
   const closeAndReset = () => {
     unknownAirports = [];
     importedCount = 0;
     files = null;
+    originalFile = null;
     fileError = null;
     importing = false;
     ownerOnly = false;
@@ -175,140 +214,33 @@
       <Button onclick={() => (step = 2)}>Next</Button>
     </div>
   {:else if step === 2}
-    <!-- Step 2: Choose file -->
-    <div class="space-y-2">
-      <h3 class="text-sm font-medium">Upload file</h3>
-      <label for="file" class="block">
-        <Card
-          class={cn(
-            'cursor-pointer py-12 border-2 border-dashed flex flex-col items-center hover:bg-card-hover dark:hover:bg-dark-2',
-            { 'border-destructive': fileError },
-          )}
-        >
-          <Upload />
-          {#if fileError}
-            {fileError}
-          {:else}
-            {files?.[0]?.name ?? 'Upload file'}
-          {/if}
-        </Card>
-      </label>
-      <p class="text-xs text-muted-foreground">
-        Supported: CSV, TXT, JSON, ICS. Max 5MB.
-      </p>
-    </div>
-    <input
-      onchange={validateFile}
-      id="file"
-      name="file"
-      type="file"
-      accept=".csv,.txt,.json,.ics"
+    <FileStep
       bind:files
-      class="hidden"
+      {fileError}
+      {validateFile}
+      canNext={canImport}
+      onback={() => (step = 1)}
+      onnext={() => (step = 3)}
     />
-    <div class="mt-4 flex justify-between">
-      <Button variant="secondary" onclick={() => (step = 1)}>Back</Button>
-      <Button onclick={() => (step = 3)} disabled={!canImport}>Next</Button>
-    </div>
   {:else if step === 3}
-    <!-- Step 3: Options (if any) -->
-    <div class="space-y-2">
-      <h3 class="text-sm font-medium">Options</h3>
-      <Card class="p-3 space-y-2">
-        {#if platform.options.airlineFromFlightNumber}
-          <div class="flex items-center gap-2">
-            <Checkbox
-              id="match-airline-from-flight-number"
-              bind:checked={matchAirlineFromFlightNumber}
-              aria-labelledby="match-airline-from-flight-number-label"
-            />
-            <Label
-              id="match-airline-from-flight-number-label"
-              for="match-airline-from-flight-number"
-            >
-              Match airline from flight number
-            </Label>
-          </div>
-        {/if}
-        {#if platform.options.filterOwner}
-          <div class="flex items-center gap-2">
-            <Checkbox
-              id="owner-only"
-              bind:checked={ownerOnly}
-              aria-labelledby="owner-only-label"
-            />
-            <Label id="owner-only-label" for="owner-only">
-              Only import your flights
-            </Label>
-          </div>
-        {/if}
-        <div class="flex items-center gap-2">
-          <Checkbox
-            id="dedupe-imported-flights"
-            bind:checked={dedupeImportedFlights}
-            aria-labelledby="dedupe-imported-flights-label"
-          />
-          <Label
-            id="dedupe-imported-flights-label"
-            for="dedupe-imported-flights"
-          >
-            Deduplicate imported flights
-          </Label>
-        </div>
-      </Card>
-      <div class="mt-4 flex justify-between">
-        <Button variant="secondary" onclick={() => (step = 2)}>Back</Button>
-        <Button onclick={handleImport} disabled={!canImport || importing}>
-          {#if importing}
-            <LoaderCircle class="animate-spin mr-1" size={16} />
-          {/if}
-          Import
-        </Button>
-      </div>
-    </div>
+    <OptionsStep
+      showAirlineFromFlightNumber={platform.options.airlineFromFlightNumber}
+      showFilterOwner={platform.options.filterOwner}
+      bind:ownerOnly
+      bind:matchAirlineFromFlightNumber
+      bind:dedupeImportedFlights
+      {importing}
+      {canImport}
+      onback={() => (step = 2)}
+      onimport={handleImport}
+    />
   {:else}
-    <!-- Step 4: Status/result -->
-    <div class="space-y-2">
-      <h3 class="text-sm font-medium">Status</h3>
-      <Card class="p-3">
-        <p class="text-sm">Imported {importedCount} flights.</p>
-
-        {#if unknownAirports.length}
-          <h4 class="mt-4 text-md font-semibold">Unknown airports</h4>
-          <p class="text-muted-foreground">
-            The following airports are not in the database and flights with
-            these airports have therefore not been imported.
-          </p>
-          <p class="text-muted-foreground">
-            Chances are the airport codes have been officially changed, but that
-            the change hasn't reflected in your export file. The easiest
-            solution is to investigate the codes, and manually change the
-            occurrences in the file before trying to import again.
-          </p>
-          <p class="text-muted-foreground">
-            If the airports are truly missing, please report them directly to
-            our source, <a href="https://ourairports.com/">OurAirports</a>, or
-            add them as custom airports.
-          </p>
-          <ScrollArea class="h-[30dvh]">
-            <ul class="mt-4 ml-4 list-disc">
-              {#each unknownAirports as airport (airport)}
-                <li>{airport}</li>
-              {/each}
-            </ul>
-          </ScrollArea>
-          <div class="mt-4 flex gap-2">
-            <Button href="https://ourairports.com/" target="_blank"
-              >OurAirports</Button
-            >
-            <Button variant="secondary" onclick={closeAndReset}>Close</Button>
-          </div>
-        {:else}
-          <div class="mt-4 flex justify-end">
-            <Button onclick={closeAndReset}>Close</Button>
-          </div>
-        {/if}
-      </Card>
-    </div>
+    <StatusStep
+      {importedCount}
+      {unknownAirports}
+      busy={importing}
+      onreprocess={handleReprocess}
+      onclose={closeAndReset}
+    />
   {/if}
 </PageHeader>

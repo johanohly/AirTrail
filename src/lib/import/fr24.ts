@@ -86,7 +86,12 @@ const extractAircraftICAO = (aircraft: string) => {
   return match.groups?.ICAO ?? null;
 };
 
-export const processFR24File = async (content: string) => {
+import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
+
+export const processFR24File = async (
+  content: string,
+  options: PlatformOptions,
+) => {
   const [data, error] = parseCsv(content, FR24Flight);
   if (error) {
     throw error;
@@ -106,14 +111,16 @@ export const processFR24File = async (content: string) => {
       continue;
     }
 
-    const from = await api.airport.getFromIcao.query(fromCode);
-    const to = await api.airport.getFromIcao.query(toCode);
+    const mappedFrom = options.airportMapping?.[fromCode];
+    const mappedTo = options.airportMapping?.[toCode];
+    const from = mappedFrom ?? (await api.airport.getFromIcao.query(fromCode));
+    const to = mappedTo ?? (await api.airport.getFromIcao.query(toCode));
     if (!from || !to) {
-      if (!from && !unknownAirports.includes(row.from)) {
-        unknownAirports.push(row.from);
+      if (!from && fromCode && !unknownAirports.includes(fromCode)) {
+        unknownAirports.push(fromCode);
       }
-      if (!to && !unknownAirports.includes(row.to)) {
-        unknownAirports.push(row.to);
+      if (!to && toCode && !unknownAirports.includes(toCode)) {
+        unknownAirports.push(toCode);
       }
       continue;
     }

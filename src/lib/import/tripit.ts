@@ -170,8 +170,10 @@ export const processTripItFile = async (
     const arrival = parseIcsDate(ev.dtend.value, ev.dtend.tzid ?? undefined);
     if (!departure || !arrival) continue;
 
-    const from = await api.airport.getFromIata.query(fromCode);
-    const to = await api.airport.getFromIata.query(toCode);
+    const mappedFrom = options.airportMapping?.[fromCode];
+    const mappedTo = options.airportMapping?.[toCode];
+    const from = mappedFrom ?? (await api.airport.getFromIata.query(fromCode));
+    const to = mappedTo ?? (await api.airport.getFromIata.query(toCode));
     if (!from || !to) {
       if (!from && !unknownAirports.includes(fromCode))
         unknownAirports.push(fromCode);
