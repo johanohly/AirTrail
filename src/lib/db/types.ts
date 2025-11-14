@@ -39,6 +39,10 @@ export type CreateFlight = Omit<Flight, 'id' | 'seats'> & {
 export type PublicShare = Selectable<public_share>;
 export type VisitedCountry = Selectable<visited_country>;
 
+export function wasVisited(country: VisitedCountry): boolean {
+  return country.status === 'visited' || country.status === 'lived';
+}
+
 export const AirportTypes = [
   'small_airport',
   'medium_airport',
