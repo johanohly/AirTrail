@@ -58,16 +58,11 @@ export const processAITAFile = async (
         ? options.airportMapping?.[rawFrom]
         : undefined;
       const mappedTo = rawTo ? options.airportMapping?.[rawTo] : undefined;
-      const from = mappedFrom
-        ? mappedFrom
-        : rawFrom
-          ? await api.airport.getFromIata.query(rawFrom)
-          : null;
-      const to = mappedTo
-        ? mappedTo
-        : rawTo
-          ? await api.airport.getFromIata.query(rawTo)
-          : undefined;
+      const from =
+        mappedFrom ||
+        (rawFrom ? await api.airport.getFromIata.query(rawFrom) : null);
+      const to =
+        mappedTo || (rawTo ? await api.airport.getFromIata.query(rawTo) : null);
 
       const departure = rawDeparture
         ? parseLocalISO(rawDeparture, 'UTC')

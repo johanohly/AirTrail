@@ -5,7 +5,6 @@ import { findAirportsPrimitive } from '$lib/db/queries';
 import type { Airport, CreateAirport } from '$lib/db/types';
 import type { ErrorActionResult } from '$lib/utils/forms';
 import type { airportSchema } from '$lib/zod/airport';
-import type { Insertable } from 'kysely';
 
 export const getAirport = async (input: number): Promise<Airport | null> => {
   return (

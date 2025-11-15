@@ -3,6 +3,7 @@ import { addDays, isBefore, parse } from 'date-fns';
 import { z } from 'zod';
 
 import { page } from '$app/state';
+import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type { Flight, CreateFlight, Seat } from '$lib/db/types';
 import { api } from '$lib/trpc';
 import { parseCsv } from '$lib/utils';
@@ -86,8 +87,6 @@ const extractAircraftICAO = (aircraft: string) => {
   return match.groups?.ICAO ?? null;
 };
 
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
-
 export const processFR24File = async (
   content: string,
   options: PlatformOptions,
@@ -116,10 +115,10 @@ export const processFR24File = async (
     const from = mappedFrom ?? (await api.airport.getFromIcao.query(fromCode));
     const to = mappedTo ?? (await api.airport.getFromIcao.query(toCode));
     if (!from || !to) {
-      if (!from && fromCode && !unknownAirports.includes(fromCode)) {
+      if (!from && !unknownAirports.includes(fromCode)) {
         unknownAirports.push(fromCode);
       }
-      if (!to && toCode && !unknownAirports.includes(toCode)) {
+      if (!to && !unknownAirports.includes(toCode)) {
         unknownAirports.push(toCode);
       }
       continue;
