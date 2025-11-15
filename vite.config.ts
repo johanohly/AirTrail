@@ -9,11 +9,8 @@ const pwaOptions: VitePWAOptions = {
   registerType: 'autoUpdate',
   includeAssets: [
     'favicon.png', 
-    'favicon.ico',
-    'pwa-192x192.png',
-    'pwa-512x512.png',
-    'pwa-maskable-192x192.png',
-    'pwa-maskable-512x512.png',
+    'favicon.svg',
+    'apple-touch-icon.png',
     'countries.geojson'
   ],
   manifest: {
@@ -23,32 +20,21 @@ const pwaOptions: VitePWAOptions = {
     start_url: '/',
     scope: '/',
     display: 'standalone',
+    orientation: 'any',
     background_color: '#000000',
     theme_color: '#3c83f6',
     icons: [
       {
-        "src": "/pwa-192x192.png",
-        "sizes": "192x192",
-        "type": "image/png",
+        "src": "/favicon.svg",
+        "sizes": "any",
+        "type": "image/svg+xml",
         "purpose": "any"
       },
       {
-        "src": "/pwa-512x512.png",
-        "sizes": "512x512",
+        "src": "/favicon.png",
+        "sizes": "96x96",
         "type": "image/png",
         "purpose": "any"
-      },
-      {
-        "src": "/pwa-maskable-192x192.png",
-        "sizes": "192x192",
-        "type": "image/png",
-        "purpose": "maskable"
-      },
-      {
-        "src": "/pwa-maskable-512x512.png",
-        "sizes": "512x512",
-        "type": "image/png",
-        "purpose": "maskable"
       },
     ],
   },
