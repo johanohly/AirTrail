@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { AirportTypes, Continents } from '$lib/db/types';
 
 export const airportSchema = z.object({
-  id: z.number(),
+  id: z.number().nullable(),
   icao: z
     .string({ message: 'Set a code' })
     .regex(/^[A-Z]{4}$/, 'Code must be 4 uppercase letters'),

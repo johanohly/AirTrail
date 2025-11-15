@@ -138,8 +138,10 @@ export const processFlightyFile = async (
       continue;
     }
 
-    const from = await api.airport.getFromIata.query(row.from);
-    const to = await api.airport.getFromIata.query(row.to);
+    const mappedFrom = options.airportMapping?.[row.from];
+    const mappedTo = options.airportMapping?.[row.to];
+    const from = mappedFrom ?? (await api.airport.getFromIata.query(row.from));
+    const to = mappedTo ?? (await api.airport.getFromIata.query(row.to));
 
     if (!from || !to) {
       if (!from && !unknownAirports.includes(row.from)) {

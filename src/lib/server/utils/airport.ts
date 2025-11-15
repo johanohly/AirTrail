@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { db } from '$lib/db';
 import { findAirportsPrimitive } from '$lib/db/queries';
-import type { Airport } from '$lib/db/types';
+import type { Airport, CreateAirport } from '$lib/db/types';
 import type { ErrorActionResult } from '$lib/utils/forms';
 import type { airportSchema } from '$lib/zod/airport';
 
@@ -32,7 +32,7 @@ export const findAirports = async (input: string): Promise<Airport[]> => {
   return await findAirportsPrimitive(db, input);
 };
 
-export const createAirport = async (data: Airport) => {
+export const createAirport = async (data: CreateAirport) => {
   await db.insertInto('airport').values(data).execute();
 };
 
@@ -78,8 +78,9 @@ export const validateAndSaveAirport = async (
     };
   } else {
     try {
-      await createAirport(airport);
-    } catch (_) {
+      const { id: _, ...airportWithoutId } = airport;
+      await createAirport(airportWithoutId);
+    } catch {
       return {
         success: false,
         type: 'error',

@@ -83,7 +83,12 @@ const AirTrailFile = z.object({
     .min(1, 'At least one user is required'),
 });
 
-export const processLegacyAirTrailFile = async (input: string) => {
+import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
+
+export const processLegacyAirTrailFile = async (
+  input: string,
+  options: PlatformOptions,
+) => {
   const user = page.data.user;
   if (!user) {
     throw new Error('User not found');
@@ -162,8 +167,12 @@ export const processLegacyAirTrailFile = async (input: string) => {
       });
     }
 
-    const from = await api.airport.getFromIcao.query(rawFlight.from.code);
-    const to = await api.airport.getFromIcao.query(rawFlight.to.code);
+    const mappedFrom = options.airportMapping?.[rawFlight.from.code];
+    const mappedTo = options.airportMapping?.[rawFlight.to.code];
+    const from =
+      mappedFrom ?? (await api.airport.getFromIcao.query(rawFlight.from.code));
+    const to =
+      mappedTo ?? (await api.airport.getFromIcao.query(rawFlight.to.code));
     if (!from || !to) {
       if (!from && !unknownAirports.includes(rawFlight.from.code)) {
         unknownAirports.push(rawFlight.from.code);
@@ -190,6 +199,6 @@ export const processLegacyAirTrailFile = async (input: string) => {
 
   return {
     flights,
-    unknownAirports: [],
+    unknownAirports,
   };
 };

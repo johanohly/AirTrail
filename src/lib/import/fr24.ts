@@ -3,6 +3,7 @@ import { addDays, isBefore, parse } from 'date-fns';
 import { z } from 'zod';
 
 import { page } from '$app/state';
+import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type { Flight, CreateFlight, Seat } from '$lib/db/types';
 import { api } from '$lib/trpc';
 import { parseCsv } from '$lib/utils';
@@ -86,7 +87,10 @@ const extractAircraftICAO = (aircraft: string) => {
   return match.groups?.ICAO ?? null;
 };
 
-export const processFR24File = async (content: string) => {
+export const processFR24File = async (
+  content: string,
+  options: PlatformOptions,
+) => {
   const [data, error] = parseCsv(content, FR24Flight);
   if (error) {
     throw error;
@@ -106,14 +110,16 @@ export const processFR24File = async (content: string) => {
       continue;
     }
 
-    const from = await api.airport.getFromIcao.query(fromCode);
-    const to = await api.airport.getFromIcao.query(toCode);
+    const mappedFrom = options.airportMapping?.[fromCode];
+    const mappedTo = options.airportMapping?.[toCode];
+    const from = mappedFrom ?? (await api.airport.getFromIcao.query(fromCode));
+    const to = mappedTo ?? (await api.airport.getFromIcao.query(toCode));
     if (!from || !to) {
-      if (!from && !unknownAirports.includes(row.from)) {
-        unknownAirports.push(row.from);
+      if (!from && !unknownAirports.includes(fromCode)) {
+        unknownAirports.push(fromCode);
       }
-      if (!to && !unknownAirports.includes(row.to)) {
-        unknownAirports.push(row.to);
+      if (!to && !unknownAirports.includes(toCode)) {
+        unknownAirports.push(toCode);
       }
       continue;
     }

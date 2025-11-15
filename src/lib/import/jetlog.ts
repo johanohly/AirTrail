@@ -68,8 +68,12 @@ export const processJetLogFile = async (
   const unknownAirports: string[] = [];
 
   for (const row of data) {
-    const from = await api.airport.getFromIcao.query(row.origin);
-    const to = await api.airport.getFromIcao.query(row.destination);
+    const mappedFrom = options.airportMapping?.[row.origin];
+    const mappedTo = options.airportMapping?.[row.destination];
+    const from =
+      mappedFrom ?? (await api.airport.getFromIcao.query(row.origin));
+    const to =
+      mappedTo ?? (await api.airport.getFromIcao.query(row.destination));
     if (!from || !to) {
       if (!from && !unknownAirports.includes(row.origin)) {
         unknownAirports.push(row.origin);
