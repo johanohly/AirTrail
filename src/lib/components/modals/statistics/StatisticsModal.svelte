@@ -3,6 +3,7 @@
   import { Plus } from '@o7/icon/lucide';
   import { isBefore } from 'date-fns';
 
+  import BarChart from './charts/BarChart.svelte';
   import ChartDrillDown from './charts/ChartDrillDown.svelte';
   import FlightsPerMonth from './charts/FlightsPerMonth.svelte';
   import FlightsPerWeekday from './charts/FlightsPerWeekday.svelte';
@@ -13,8 +14,9 @@
   import { page } from '$app/state';
   import { Button } from '$lib/components/ui/button';
   import { Modal } from '$lib/components/ui/modal';
-  import { type VisitedCountry } from '$lib/db/types';
+  import { type VisitedCountry, wasVisited } from '$lib/db/types';
   import {
+    COUNTRY_BAR_CHARTS,
     COUNTRY_CHARTS,
     FLIGHT_CHARTS,
     type ChartKey,
@@ -77,6 +79,10 @@
     COUNTRY_CHARTS['visited-country-status'].aggregate(visitedCountries),
   );
 
+  const countriesByContinentData = $derived.by(() =>
+    COUNTRY_BAR_CHARTS['countries-by-continent'].aggregate(visitedCountries),
+  );
+
   $effect(() => {
     if (open) {
       setTimeout(() => {
@@ -99,9 +105,7 @@
             .filter((f) => f.from && f.to)
             .flatMap((f) => [f.from!.name, f.to!.name]),
         ).size;
-        countriesCount = visitedCountries.filter(
-          (c) => c.status === 'visited' || c.status === 'lived',
-        ).length;
+        countriesCount = visitedCountries.filter(wasVisited).length;
       }, 200);
     } else {
       flightCount = 0;
@@ -224,6 +228,10 @@
         >
           <PieChart title="Visited Country Status" data={countryStatusData} />
         </div>
+        <BarChart
+          title="Countries by Continent"
+          data={countriesByContinentData}
+        />
       </div>
     </div>
   {/if}
