@@ -1,9 +1,10 @@
-import type { Airport } from '$lib/db/types';
+import type { Airline, Airport } from '$lib/db/types';
 
 export type PlatformOptions = {
   filterOwner: boolean;
   airlineFromFlightNumber: boolean;
   airportMapping?: Record<string, Airport>;
+  airlineMapping?: Record<string, Airline>;
 };
 
 export const platforms = [

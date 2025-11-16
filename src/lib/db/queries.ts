@@ -90,8 +90,8 @@ export const createFlightPrimitive = async (
 ) => {
   return await db.transaction().execute(async (trx) => {
     const { seats, from, to, aircraft, airline, ...flightData } = data;
-    const fromId = from.id;
-    const toId = to.id;
+    const fromId = from?.id ?? null;
+    const toId = to?.id ?? null;
     const aircraftId = aircraft?.id ?? null;
     const airlineId = airline?.id ?? null;
 
@@ -172,8 +172,8 @@ export const createManyFlightsPrimitive = async (
       .values(
         data.map(({ seats: _, from, to, aircraft, airline, ...rest }) => ({
           ...rest,
-          fromId: from.id,
-          toId: to.id,
+          fromId: from?.id ?? null,
+          toId: to?.id ?? null,
           aircraftId: aircraft?.id ?? null,
           airlineId: airline?.id ?? null,
         })),

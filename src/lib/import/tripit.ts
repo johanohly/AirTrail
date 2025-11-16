@@ -149,7 +149,8 @@ export const processTripItFile = async (
   }
 
   const flights: CreateFlight[] = [];
-  const unknownAirports: string[] = [];
+  const unknownAirports: Record<string, number[]> = {};
+  const unknownAirlines: Record<string, number[]> = {};
 
   for (const ev of events) {
     // Skip all-day events (trip headers)
@@ -163,6 +164,8 @@ export const processTripItFile = async (
     const fromCode = sm.groups['from'];
     const toCode = sm.groups['to'];
 
+    if (!flightNumber || !fromCode || !toCode) continue;
+
     const departure = parseIcsDate(
       ev.dtstart.value,
       ev.dtstart.tzid ?? undefined,
@@ -174,24 +177,35 @@ export const processTripItFile = async (
     const mappedTo = options.airportMapping?.[toCode];
     const from = mappedFrom ?? (await api.airport.getFromIata.query(fromCode));
     const to = mappedTo ?? (await api.airport.getFromIata.query(toCode));
-    if (!from || !to) {
-      if (!from && !unknownAirports.includes(fromCode))
-        unknownAirports.push(fromCode);
-      if (!to && !unknownAirports.includes(toCode))
-        unknownAirports.push(toCode);
-      continue;
+
+    const airlineIata = flightNumber.replace(/\d+.*/, '');
+    const mappedAirline = airlineIata
+      ? options.airlineMapping?.[airlineIata]
+      : undefined;
+    let airline: Airline | null = mappedAirline || null;
+    if (!airline && options.airlineFromFlightNumber && airlineIata) {
+      airline = (await api.airline.getByIata.query(airlineIata)) ?? null;
     }
 
-    let airline: Airline | null = null;
-    if (options.airlineFromFlightNumber) {
-      const airlineIata = flightNumber.replace(/\d+.*/, '');
-      airline = (await api.airline.getByIata.query(airlineIata)) ?? null;
+    const flightIndex = flights.length;
+
+    if (!from) {
+      if (!unknownAirports[fromCode]) unknownAirports[fromCode] = [];
+      unknownAirports[fromCode].push(flightIndex);
+    }
+    if (!to) {
+      if (!unknownAirports[toCode]) unknownAirports[toCode] = [];
+      unknownAirports[toCode].push(flightIndex);
+    }
+    if (!airline && airlineIata) {
+      if (!unknownAirlines[airlineIata]) unknownAirlines[airlineIata] = [];
+      unknownAirlines[airlineIata].push(flightIndex);
     }
 
     flights.push({
       date: format(departure, 'yyyy-MM-dd'),
-      from,
-      to,
+      from: from || null,
+      to: to || null,
       departure: departure.toISOString(),
       arrival: arrival.toISOString(),
       duration: differenceInSeconds(arrival, departure),
@@ -213,5 +227,5 @@ export const processTripItFile = async (
     });
   }
 
-  return { flights, unknownAirports };
+  return { flights, unknownAirports, unknownAirlines };
 };

@@ -92,7 +92,8 @@ export const processAirTrailFile = async (
   }, {});
   const users = await api.user.list.query();
 
-  const unknownAirports: string[] = [];
+  const unknownAirports: Record<string, number[]> = {};
+  const unknownAirlines: Record<string, number[]> = {};
   for (const rawFlight of data.flights) {
     const seats = rawFlight.seats.map((seat) => {
       const dataUser = dataUsers?.[seat.userId ?? ''];
@@ -142,21 +143,17 @@ export const processAirTrailFile = async (
       mappedFrom ?? (await api.airport.getFromIcao.query(rawFlight.from.icao));
     const to =
       mappedTo ?? (await api.airport.getFromIcao.query(rawFlight.to.icao));
-    if (!from || !to) {
-      if (!from && !unknownAirports.includes(rawFlight.from.icao)) {
-        unknownAirports.push(rawFlight.from.icao);
-      }
-      if (!to && !unknownAirports.includes(rawFlight.to.icao)) {
-        unknownAirports.push(rawFlight.to.icao);
-      }
-      continue;
-    }
 
     let airline = null;
     if (rawFlight.airline) {
-      airline = rawFlight.airline.icao
-        ? await api.airline.getByIcao.query(rawFlight.airline.icao)
-        : await api.airline.getByName.query(rawFlight.airline.name);
+      const mappedAirline = rawFlight.airline.icao
+        ? options.airlineMapping?.[rawFlight.airline.icao]
+        : undefined;
+      airline =
+        mappedAirline ||
+        (rawFlight.airline.icao
+          ? await api.airline.getByIcao.query(rawFlight.airline.icao)
+          : await api.airline.getByName.query(rawFlight.airline.name));
     }
 
     let aircraft = null;
@@ -166,10 +163,28 @@ export const processAirTrailFile = async (
         : await api.aircraft.getByName.query(rawFlight.aircraft.name);
     }
 
+    const flightIndex = flights.length;
+
+    if (!from) {
+      if (!unknownAirports[rawFlight.from.icao])
+        unknownAirports[rawFlight.from.icao] = [];
+      unknownAirports[rawFlight.from.icao].push(flightIndex);
+    }
+    if (!to) {
+      if (!unknownAirports[rawFlight.to.icao])
+        unknownAirports[rawFlight.to.icao] = [];
+      unknownAirports[rawFlight.to.icao].push(flightIndex);
+    }
+    if (!airline && rawFlight.airline?.icao) {
+      const code = rawFlight.airline.icao;
+      if (!unknownAirlines[code]) unknownAirlines[code] = [];
+      unknownAirlines[code].push(flightIndex);
+    }
+
     flights.push({
       ...rawFlight,
-      from,
-      to,
+      from: from || null,
+      to: to || null,
       airline,
       aircraft,
       seats,
@@ -179,5 +194,6 @@ export const processAirTrailFile = async (
   return {
     flights,
     unknownAirports,
+    unknownAirlines,
   };
 };

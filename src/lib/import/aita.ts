@@ -24,7 +24,8 @@ export const processAITAFile = async (
     /^([^;\n\r]*);(\w*);.*?;(\w{2,4};\d{2,4});(\w*);(\w{3});(\w{3});([\d\-T:]+);([\d\-T:]+);([\d\-T:]+);([\d\-T:]+);(.*)/gm;
 
   const flights: CreateFlight[] = [];
-  const unknownAirports: string[] = [];
+  const unknownAirports: Record<string, number[]> = {};
+  const unknownAirlines: Record<string, number[]> = {};
 
   const userId = page.data.user?.id;
   if (!userId) {
@@ -74,19 +75,12 @@ export const processAITAFile = async (
         continue;
       }
 
-      if (!from || !to) {
-        if (!from && rawFrom && !unknownAirports.includes(rawFrom)) {
-          unknownAirports.push(rawFrom);
-        }
-        if (!to && rawTo && !unknownAirports.includes(rawTo)) {
-          unknownAirports.push(rawTo);
-        }
-        continue;
-      }
-
       const airlineIata = flightNumber.split(';')[0];
-      let airline: Airline | null = null;
-      if (options.airlineFromFlightNumber && airlineIata) {
+      const mappedAirline = airlineIata
+        ? options.airlineMapping?.[airlineIata]
+        : undefined;
+      let airline: Airline | null = mappedAirline || null;
+      if (!airline && options.airlineFromFlightNumber && airlineIata) {
         airline = (await api.airline.getByIata.query(airlineIata)) ?? null;
       }
 
@@ -97,10 +91,26 @@ export const processAITAFile = async (
         seatClass = AITA_SEAT_CLASS_MAP?.[cleanSeatClass ?? 'noop'] ?? null;
       }
 
+      const flightIndex = flights.length;
+
+      // Track unknown codes with flight index
+      if (!from && rawFrom) {
+        if (!unknownAirports[rawFrom]) unknownAirports[rawFrom] = [];
+        unknownAirports[rawFrom].push(flightIndex);
+      }
+      if (!to && rawTo) {
+        if (!unknownAirports[rawTo]) unknownAirports[rawTo] = [];
+        unknownAirports[rawTo].push(flightIndex);
+      }
+      if (!airline && airlineIata) {
+        if (!unknownAirlines[airlineIata]) unknownAirlines[airlineIata] = [];
+        unknownAirlines[airlineIata].push(flightIndex);
+      }
+
       flights.push({
         date: format(departure, 'yyyy-MM-dd'),
-        from,
-        to,
+        from: from || null,
+        to: to || null,
         departure: departure.toISOString(),
         arrival: arrival.toISOString(),
         duration: differenceInSeconds(arrival, departure),
@@ -126,5 +136,6 @@ export const processAITAFile = async (
   return {
     flights,
     unknownAirports,
+    unknownAirlines,
   };
 };

@@ -14,7 +14,11 @@ import { readFile } from '$lib/utils';
 
 export type PlatformValue = (typeof platforms)[number]['value'];
 
-type ProcessResult = { flights: CreateFlight[]; unknownAirports: string[] };
+type ProcessResult = {
+  flights: CreateFlight[];
+  unknownAirports: Record<string, number[]>; // code -> flight indices
+  unknownAirlines: Record<string, number[]>; // code -> flight indices
+};
 
 type Processor = (
   content: string,

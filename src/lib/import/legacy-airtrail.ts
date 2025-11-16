@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { page } from '$app/state';
+import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import {
   type CreateFlight,
   FlightReasons,
@@ -83,8 +84,6 @@ const AirTrailFile = z.object({
     .min(1, 'At least one user is required'),
 });
 
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
-
 export const processLegacyAirTrailFile = async (
   input: string,
   options: PlatformOptions,
@@ -123,7 +122,8 @@ export const processLegacyAirTrailFile = async (
   }, {});
   const users = await api.user.list.query();
 
-  const unknownAirports: string[] = [];
+  const unknownAirports: Record<string, number[]> = {};
+  const unknownAirlines: Record<string, number[]> = {};
   for (const rawFlight of data.flights) {
     const seats = rawFlight.seats.map((seat) => {
       const dataUser = dataUsers?.[seat.userId ?? ''];
@@ -173,26 +173,40 @@ export const processLegacyAirTrailFile = async (
       mappedFrom ?? (await api.airport.getFromIcao.query(rawFlight.from.code));
     const to =
       mappedTo ?? (await api.airport.getFromIcao.query(rawFlight.to.code));
-    if (!from || !to) {
-      if (!from && !unknownAirports.includes(rawFlight.from.code)) {
-        unknownAirports.push(rawFlight.from.code);
-      }
-      if (!to && !unknownAirports.includes(rawFlight.to.code)) {
-        unknownAirports.push(rawFlight.to.code);
-      }
-      continue;
+
+    let airline = null;
+    if (rawFlight.airline) {
+      const mappedAirline = options.airlineMapping?.[rawFlight.airline];
+      airline =
+        mappedAirline || (await api.airline.getByIcao.query(rawFlight.airline));
+    }
+
+    const flightIndex = flights.length;
+
+    if (!from) {
+      if (!unknownAirports[rawFlight.from.code])
+        unknownAirports[rawFlight.from.code] = [];
+      unknownAirports[rawFlight.from.code].push(flightIndex);
+    }
+    if (!to) {
+      if (!unknownAirports[rawFlight.to.code])
+        unknownAirports[rawFlight.to.code] = [];
+      unknownAirports[rawFlight.to.code].push(flightIndex);
+    }
+    if (!airline && rawFlight.airline) {
+      if (!unknownAirlines[rawFlight.airline])
+        unknownAirlines[rawFlight.airline] = [];
+      unknownAirlines[rawFlight.airline].push(flightIndex);
     }
 
     flights.push({
       ...rawFlight,
-      airline: rawFlight.airline
-        ? await api.airline.getByIcao.query(rawFlight.airline)
-        : null,
+      airline,
       aircraft: rawFlight.aircraft
         ? await api.aircraft.getByIcao.query(rawFlight.aircraft)
         : null,
-      from,
-      to,
+      from: from || null,
+      to: to || null,
       seats,
     });
   }
@@ -200,5 +214,6 @@ export const processLegacyAirTrailFile = async (
   return {
     flights,
     unknownAirports,
+    unknownAirlines,
   };
 };

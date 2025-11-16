@@ -15,7 +15,7 @@
   import FileStep from './FileStep.svelte';
   import OptionsStep from './OptionsStep.svelte';
   import StatusStep from './StatusStep.svelte';
-  import type { Airport } from '$lib/db/types';
+  import type { Airline, Airport } from '$lib/db/types';
 
   let { open = $bindable() }: { open: boolean } = $props();
 
@@ -27,7 +27,8 @@
 
   let importing = $state(false);
   let importedCount = $state(0);
-  let unknownAirports = $state<string[]>([]);
+  let unknownAirports = $state<Record<string, string[]>>({});
+  let unknownAirlines = $state<Record<string, string[]>>({});
 
   let platform = $state<(typeof platforms)[0]>(platforms[0]);
   let ownerOnly = $state(false);
@@ -96,6 +97,7 @@
     });
 
     unknownAirports = result.unknownAirports;
+    unknownAirlines = result.unknownAirlines;
     importedCount = stats?.insertedFlights ?? 0;
     if (importedCount > 0) {
       toast.success(
@@ -109,14 +111,18 @@
     step = 4; // Show status screen
   };
 
-  const handleReprocess = async (mapping: Record<string, Airport>) => {
+  const handleReprocess = async (
+    airportMapping: Record<string, Airport>,
+    airlineMapping: Record<string, Airline>,
+  ) => {
     if (!originalFile) return;
     importing = true;
     try {
       const result = await processFile(originalFile, platform.value, {
         filterOwner: ownerOnly,
         airlineFromFlightNumber: matchAirlineFromFlightNumber,
-        airportMapping: mapping,
+        airportMapping,
+        airlineMapping,
       });
 
       const { flights } = result;
@@ -137,6 +143,7 @@
       }
 
       unknownAirports = result.unknownAirports;
+      unknownAirlines = result.unknownAirlines;
     } catch (error) {
       toast.error('Failed to reprocess file');
       console.error(error);
@@ -146,7 +153,8 @@
   };
 
   const closeAndReset = () => {
-    unknownAirports = [];
+    unknownAirports = {};
+    unknownAirlines = {};
     importedCount = 0;
     files = null;
     originalFile = null;
@@ -238,6 +246,7 @@
     <StatusStep
       {importedCount}
       {unknownAirports}
+      {unknownAirlines}
       busy={importing}
       onreprocess={handleReprocess}
       onclose={closeAndReset}
