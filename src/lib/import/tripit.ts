@@ -164,6 +164,8 @@ export const processTripItFile = async (
     const fromCode = sm.groups['from'];
     const toCode = sm.groups['to'];
 
+    if (!flightNumber || !fromCode || !toCode) continue;
+
     const departure = parseIcsDate(
       ev.dtstart.value,
       ev.dtstart.tzid ?? undefined,

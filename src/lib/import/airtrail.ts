@@ -149,11 +149,11 @@ export const processAirTrailFile = async (
       const mappedAirline = rawFlight.airline.icao
         ? options.airlineMapping?.[rawFlight.airline.icao]
         : undefined;
-      airline = mappedAirline
-        ? mappedAirline
-        : rawFlight.airline.icao
+      airline =
+        mappedAirline ||
+        (rawFlight.airline.icao
           ? await api.airline.getByIcao.query(rawFlight.airline.icao)
-          : await api.airline.getByName.query(rawFlight.airline.name);
+          : await api.airline.getByName.query(rawFlight.airline.name));
     }
 
     let aircraft = null;

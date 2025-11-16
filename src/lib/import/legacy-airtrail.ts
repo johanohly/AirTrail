@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { page } from '$app/state';
+import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import {
   type CreateFlight,
   FlightReasons,
@@ -82,8 +83,6 @@ const AirTrailFile = z.object({
     .array()
     .min(1, 'At least one user is required'),
 });
-
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 
 export const processLegacyAirTrailFile = async (
   input: string,
@@ -178,9 +177,8 @@ export const processLegacyAirTrailFile = async (
     let airline = null;
     if (rawFlight.airline) {
       const mappedAirline = options.airlineMapping?.[rawFlight.airline];
-      airline = mappedAirline
-        ? mappedAirline
-        : await api.airline.getByIcao.query(rawFlight.airline);
+      airline =
+        mappedAirline || (await api.airline.getByIcao.query(rawFlight.airline));
     }
 
     const flightIndex = flights.length;

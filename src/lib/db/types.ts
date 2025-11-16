@@ -31,8 +31,8 @@ export type Flight = Omit<
 };
 type CreateFlightAirport = Partial<Airport>;
 export type CreateFlight = Omit<Flight, 'id' | 'seats'> & {
-  from: CreateFlightAirport;
-  to: CreateFlightAirport;
+  from: CreateFlightAirport | null;
+  to: CreateFlightAirport | null;
   aircraft: Aircraft | null;
   airline: Airline | null;
   seats: Omit<Seat, 'flightId' | 'id'>[];

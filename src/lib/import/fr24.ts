@@ -127,7 +127,7 @@ export const processFR24File = async (
             `${row.date} ${row.dep_time}`,
             'yyyy-MM-dd HH:mm:ss',
             new Date(),
-            { in: tz(from.tz) },
+            { in: tz(from?.tz || 'UTC') },
           ),
         )
       : null;
@@ -137,7 +137,7 @@ export const processFR24File = async (
             `${row.date} ${row.arr_time}`,
             'yyyy-MM-dd HH:mm:ss',
             new Date(),
-            { in: tz(to.tz) },
+            { in: tz(to?.tz || 'UTC') },
           ),
         )
       : null;
@@ -163,11 +163,11 @@ export const processFR24File = async (
     const mappedAirline = rawAirline
       ? options.airlineMapping?.[rawAirline]
       : undefined;
-    const airline = mappedAirline
-      ? mappedAirline
-      : rawAirline
-        ? ((await api.airline.getByIcao.query(rawAirline)) ?? null)
-        : null;
+    const airline =
+      mappedAirline ||
+      (rawAirline
+        ? (await api.airline.getByIcao.query(rawAirline)) || null
+        : null);
 
     const rawAircraft = row.aircraft ? extractAircraftICAO(row.aircraft) : null;
     const aircraft = rawAircraft
@@ -179,11 +179,11 @@ export const processFR24File = async (
 
     const flightIndex = flights.length;
 
-    if (!from && fromCode) {
+    if (!from) {
       if (!unknownAirports[fromCode]) unknownAirports[fromCode] = [];
       unknownAirports[fromCode].push(flightIndex);
     }
-    if (!to && toCode) {
+    if (!to) {
       if (!unknownAirports[toCode]) unknownAirports[toCode] = [];
       unknownAirports[toCode].push(flightIndex);
     }
