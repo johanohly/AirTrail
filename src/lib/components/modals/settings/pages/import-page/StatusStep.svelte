@@ -4,38 +4,66 @@
   import { Card } from '$lib/components/ui/card';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { Separator } from '$lib/components/ui/separator';
-  import type { Airport } from '$lib/db/types';
+  import type { Airline, Airport } from '$lib/db/types';
   import AirportPicker from '$lib/components/form-fields/AirportPicker.svelte';
+  import AirlinePicker from '$lib/components/form-fields/AirlinePicker.svelte';
+  import CreateAirport from '$lib/components/modals/settings/pages/data-page/airport/CreateAirport.svelte';
+  import CreateAirline from '$lib/components/modals/settings/pages/data-page/airline/CreateAirline.svelte';
   import { pluralize } from '$lib/utils';
 
   let {
     importedCount = 0,
-    unknownAirports = [],
+    unknownAirports = {},
+    unknownAirlines = {},
     busy = false,
     onreprocess,
     onclose,
   }: {
     importedCount?: number;
-    unknownAirports?: string[];
+    unknownAirports?: Record<string, string[]>;
+    unknownAirlines?: Record<string, string[]>;
     busy?: boolean;
-    onreprocess?: (mapping: Record<string, Airport>) => void;
+    onreprocess?: (
+      airportMapping: Record<string, Airport>,
+      airlineMapping: Record<string, Airline>,
+    ) => void;
     onclose?: () => void;
   } = $props();
 
-  let mapping: Record<string, Airport> = $state({});
-  const canReprocess = $derived(Object.values(mapping).some(Boolean) && !busy);
-  const mappedCount = $derived(Object.keys(mapping).length);
+  const unknownAirportCodes = $derived(Object.keys(unknownAirports));
+  const unknownAirlineCodes = $derived(Object.keys(unknownAirlines));
 
-  const setMapping = (code: string, airport: Airport | null) => {
+  let airportMapping: Record<string, Airport> = $state({});
+  let airlineMapping: Record<string, Airline> = $state({});
+  const canReprocess = $derived(
+    (Object.values(airportMapping).some(Boolean) ||
+      Object.values(airlineMapping).some(Boolean)) &&
+      !busy,
+  );
+  const mappedAirportCount = $derived(Object.keys(airportMapping).length);
+  const mappedAirlineCount = $derived(Object.keys(airlineMapping).length);
+
+  let createAirport = $state(false);
+  let createAirline = $state(false);
+
+  const setAirportMapping = (code: string, airport: Airport | null) => {
     if (airport) {
-      mapping[code] = airport;
+      airportMapping[code] = airport;
     } else {
-      delete mapping[code];
+      delete airportMapping[code];
+    }
+  };
+
+  const setAirlineMapping = (code: string, airline: Airline | null) => {
+    if (airline) {
+      airlineMapping[code] = airline;
+    } else {
+      delete airlineMapping[code];
     }
   };
 
   const handleReprocess = () => {
-    onreprocess?.(mapping);
+    onreprocess?.(airportMapping, airlineMapping);
   };
 </script>
 
@@ -58,10 +86,10 @@
       </div>
     </div>
 
-    {#if unknownAirports.length}
+    {#if unknownAirportCodes.length || unknownAirlineCodes.length}
       <Separator class="my-4" />
 
-      <!-- Unknown Airports Section -->
+      <!-- Unknown Codes Section -->
       <div class="flex items-start gap-3">
         <CircleAlert
           class="text-amber-600 dark:text-amber-500 mt-0.5 shrink-0"
@@ -69,45 +97,87 @@
         />
         <div class="flex-1">
           <p class="font-medium text-sm">
-            {unknownAirports.length} Unknown Airport {pluralize(
-              unknownAirports.length,
+            {unknownAirportCodes.length + unknownAirlineCodes.length} Unknown {pluralize(
+              unknownAirportCodes.length + unknownAirlineCodes.length,
               'Code',
             )}
           </p>
           <p class="text-sm text-muted-foreground mt-0.5">
-            The following airport codes were not found in our database. Match
-            them to existing airports to import the remaining flights.
+            The following codes were not found in our database. Match them to
+            existing entries or create new ones.
           </p>
         </div>
       </div>
 
       <ScrollArea class="h-[28dvh] mt-4 pr-2">
         <div class="space-y-3">
-          {#each unknownAirports as code (code)}
-            <div class="flex items-center gap-3">
-              <div
-                class="flex items-center justify-center w-20 h-9 bg-muted/50 rounded-md border shrink-0"
-              >
-                <span class="text-sm font-mono font-medium">{code}</span>
-              </div>
-              <div class="flex-1">
-                <AirportPicker
-                  placeholder="Search for airport..."
-                  onchange={(airport) => setMapping(code, airport)}
-                  disabled={busy}
-                  compact
-                />
-              </div>
+          {#if unknownAirportCodes.length}
+            <div class="space-y-2">
+              <p class="text-xs font-medium text-muted-foreground uppercase">
+                Airports ({unknownAirportCodes.length})
+              </p>
+              {#each unknownAirportCodes as code (code)}
+                <div class="flex items-center gap-3">
+                  <div
+                    class="flex items-center justify-center w-20 h-9 bg-muted/50 rounded-md border shrink-0"
+                  >
+                    <span class="text-sm font-mono font-medium">{code}</span>
+                  </div>
+                  <div class="flex-1">
+                    <AirportPicker
+                      placeholder="Search for airport..."
+                      onchange={(airport) => setAirportMapping(code, airport)}
+                      onCreateNew={() => (createAirport = true)}
+                      disabled={busy}
+                      compact
+                    />
+                  </div>
+                </div>
+              {/each}
             </div>
-          {/each}
+          {/if}
+          {#if unknownAirlineCodes.length}
+            <div class="space-y-2" class:mt-4={unknownAirportCodes.length}>
+              <p class="text-xs font-medium text-muted-foreground uppercase">
+                Airlines ({unknownAirlineCodes.length})
+              </p>
+              {#each unknownAirlineCodes as code (code)}
+                <div class="flex items-center gap-3">
+                  <div
+                    class="flex items-center justify-center w-20 h-9 bg-muted/50 rounded-md border shrink-0"
+                  >
+                    <span class="text-sm font-mono font-medium">{code}</span>
+                  </div>
+                  <div class="flex-1">
+                    <AirlinePicker
+                      placeholder="Search for airline..."
+                      onchange={(airline) => setAirlineMapping(code, airline)}
+                      onCreateNew={() => (createAirline = true)}
+                      disabled={busy}
+                      compact
+                    />
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
         </div>
       </ScrollArea>
 
-      {#if mappedCount > 0}
+      {#if mappedAirportCount > 0 || mappedAirlineCount > 0}
         <div class="mt-4 p-3 bg-muted/30 rounded-md border border-muted">
           <p class="text-xs text-muted-foreground">
-            {mappedCount} of {unknownAirports.length}
-            {pluralize(unknownAirports.length, 'code')} mapped
+            {#if mappedAirportCount > 0}
+              {mappedAirportCount} of {unknownAirportCodes.length}
+              {pluralize(unknownAirportCodes.length, 'airport')} mapped
+            {/if}
+            {#if mappedAirportCount > 0 && mappedAirlineCount > 0}
+              <span class="mx-1">•</span>
+            {/if}
+            {#if mappedAirlineCount > 0}
+              {mappedAirlineCount} of {unknownAirlineCodes.length}
+              {pluralize(unknownAirlineCodes.length, 'airline')} mapped
+            {/if}
           </p>
         </div>
       {/if}
@@ -140,3 +210,6 @@
     {/if}
   </Card>
 </div>
+
+<CreateAirport bind:open={createAirport} withoutTrigger />
+<CreateAirline bind:open={createAirline} withoutTrigger />

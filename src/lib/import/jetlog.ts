@@ -60,12 +60,14 @@ export const processJetLogFile = async (
   if (data.length === 0 || error) {
     return {
       flights: [],
-      unknownAirports: [],
+      unknownAirports: {},
+      unknownAirlines: {},
     };
   }
 
   const flights: CreateFlight[] = [];
-  const unknownAirports: string[] = [];
+  const unknownAirports: Record<string, number[]> = {};
+  const unknownAirlines: Record<string, number[]> = {};
 
   for (const row of data) {
     const mappedFrom = options.airportMapping?.[row.origin];
@@ -74,15 +76,6 @@ export const processJetLogFile = async (
       mappedFrom ?? (await api.airport.getFromIcao.query(row.origin));
     const to =
       mappedTo ?? (await api.airport.getFromIcao.query(row.destination));
-    if (!from || !to) {
-      if (!from && !unknownAirports.includes(row.origin)) {
-        unknownAirports.push(row.origin);
-      }
-      if (!to && !unknownAirports.includes(row.destination)) {
-        unknownAirports.push(row.destination);
-      }
-      continue;
-    }
 
     const departure = row.departure_time
       ? toUtc(
@@ -128,17 +121,23 @@ export const processJetLogFile = async (
 
     const seatClass = row.ticket_class ?? null;
 
-    let airline = null;
-    if (row.airline) {
-      const airlineIcao = row.airline.trim().toUpperCase();
-      airline = (await api.airline.getByIcao.query(airlineIcao)) ?? null;
+    let airlineCode: string | undefined;
+    const mappedAirline = row.airline
+      ? options.airlineMapping?.[row.airline.trim().toUpperCase()]
+      : undefined;
+    let airline = mappedAirline || null;
+
+    if (!airline && row.airline) {
+      airlineCode = row.airline.trim().toUpperCase();
+      airline = (await api.airline.getByIcao.query(airlineCode)) ?? null;
     }
 
     if (!airline && options.airlineFromFlightNumber && row.flight_number) {
       const airlineIata = /([A-Za-z]{2})\d*/.exec(row.flight_number)?.[1];
-      airline = airlineIata
-        ? ((await api.airline.getByIata.query(airlineIata)) ?? null)
-        : null;
+      if (airlineIata) {
+        airlineCode = airlineIata;
+        airline = (await api.airline.getByIata.query(airlineIata)) ?? null;
+      }
     }
 
     let aircraft = null;
@@ -148,10 +147,26 @@ export const processJetLogFile = async (
       aircraft = (await api.aircraft.getByIcao.query(aircraftIcao)) ?? null;
     }
 
+    const flightIndex = flights.length;
+
+    if (!from) {
+      if (!unknownAirports[row.origin]) unknownAirports[row.origin] = [];
+      unknownAirports[row.origin].push(flightIndex);
+    }
+    if (!to) {
+      if (!unknownAirports[row.destination])
+        unknownAirports[row.destination] = [];
+      unknownAirports[row.destination].push(flightIndex);
+    }
+    if (!airline && airlineCode) {
+      if (!unknownAirlines[airlineCode]) unknownAirlines[airlineCode] = [];
+      unknownAirlines[airlineCode].push(flightIndex);
+    }
+
     flights.push({
       date: row.date,
-      from,
-      to,
+      from: from || null,
+      to: to || null,
       departure: departure ? departure.toISOString() : null,
       arrival: arrival ? arrival.toISOString() : null,
       duration,
@@ -178,5 +193,6 @@ export const processJetLogFile = async (
   return {
     flights,
     unknownAirports,
+    unknownAirlines,
   };
 };
