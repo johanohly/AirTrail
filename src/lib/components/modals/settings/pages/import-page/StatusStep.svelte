@@ -1,14 +1,15 @@
 <script lang="ts">
   import { Check, CircleAlert, ExternalLink } from '@o7/icon/lucide';
+
+  import AirlinePicker from '$lib/components/form-fields/AirlinePicker.svelte';
+  import AirportPicker from '$lib/components/form-fields/AirportPicker.svelte';
+  import CreateAirline from '$lib/components/modals/settings/pages/data-page/airline/CreateAirline.svelte';
+  import CreateAirport from '$lib/components/modals/settings/pages/data-page/airport/CreateAirport.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { Separator } from '$lib/components/ui/separator';
   import type { Airline, Airport } from '$lib/db/types';
-  import AirportPicker from '$lib/components/form-fields/AirportPicker.svelte';
-  import AirlinePicker from '$lib/components/form-fields/AirlinePicker.svelte';
-  import CreateAirport from '$lib/components/modals/settings/pages/data-page/airport/CreateAirport.svelte';
-  import CreateAirline from '$lib/components/modals/settings/pages/data-page/airline/CreateAirline.svelte';
   import { pluralize } from '$lib/utils';
 
   let {
