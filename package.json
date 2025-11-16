@@ -6,6 +6,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "dev": "vite dev",
+    "docker:buildx:setup": "bash docker/buildx-setup.sh",
+    "docker:buildx:dev": "docker buildx build --platform linux/amd64,linux/arm64 -f docker/Dockerfile -t johly/airtrail:dev --push .",
     "docs:dev": "cd docs && bun run dev",
     "docs:generate": "cd docs && bun run generate",
     "d": "bun run dx && bun run dev",
