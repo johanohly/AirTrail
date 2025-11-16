@@ -8,13 +8,14 @@ const pwaOptions: VitePWAOptions = {
   injectRegister: 'auto',
   registerType: 'autoUpdate',
   includeAssets: [
-    'favicon.png', 
+    'favicon.png',
     'favicon.svg',
     'apple-touch-icon.png',
-    'countries.geojson'
+    'countries.geojson',
   ],
   manifest: {
     name: 'AirTrail',
+    short_name: 'AirTrail',
     description: 'A modern, open-source personal flight tracking system',
     categories: ['travel', 'navigation', 'utilities'],
     start_url: '/',
@@ -25,16 +26,16 @@ const pwaOptions: VitePWAOptions = {
     theme_color: '#3c83f6',
     icons: [
       {
-        "src": "/favicon.svg",
-        "sizes": "any",
-        "type": "image/svg+xml",
-        "purpose": "any"
+        src: '/favicon.svg',
+        sizes: 'any',
+        type: 'image/svg+xml',
+        purpose: 'any',
       },
       {
-        "src": "/favicon.png",
-        "sizes": "96x96",
-        "type": "image/png",
-        "purpose": "any"
+        src: '/favicon.png',
+        sizes: '96x96',
+        type: 'image/png',
+        purpose: 'any',
       },
     ],
   },
@@ -44,10 +45,5 @@ const pwaOptions: VitePWAOptions = {
 };
 
 export default defineConfig({
-  plugins: [
-    o7Icon(), 
-    tailwindcss(), 
-    sveltekit(), 
-    VitePWA(pwaOptions),
-  ],
+  plugins: [o7Icon(), tailwindcss(), sveltekit(), VitePWA(pwaOptions)],
 });
