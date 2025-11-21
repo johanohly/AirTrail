@@ -34,7 +34,9 @@
     >),
     departure: flight.departure
       ? flight.departure.toISOString()
-      : flight.date?.toISOString(),
+      : flight.raw.date
+        ? new Date(flight.raw.date + 'T00:00:00Z').toISOString()
+        : null,
     arrival: flight.arrival ? flight.arrival.toISOString() : null,
     departureTime: flight.departure
       ? formatAsTime(flight.departure, displayLocale)
