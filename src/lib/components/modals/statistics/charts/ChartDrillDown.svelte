@@ -23,11 +23,17 @@
   } = $props();
 
   const chartDef = $derived(
-    FLIGHT_CHARTS[chartKey] ?? COUNTRY_CHARTS[chartKey],
+    chartKey in FLIGHT_CHARTS
+      ? FLIGHT_CHARTS[chartKey as keyof typeof FLIGHT_CHARTS]
+      : COUNTRY_CHARTS[chartKey as keyof typeof COUNTRY_CHARTS],
   );
   const totalCount = $derived(Object.values(data).reduce((a, b) => a + b, 0));
   const sortedEntries = $derived(
-    Object.entries(data).sort(([, a], [, b]) => b - a),
+    Object.entries(data).sort(([keyA, a], [keyB, b]) => {
+      if (keyA === 'No Data') return 1;
+      if (keyB === 'No Data') return -1;
+      return b - a;
+    }),
   );
 
   const noData = $derived(totalCount === 0);
@@ -94,18 +100,22 @@
                   value="value"
                   cRange={noData
                     ? ['#3b82f650']
-                    : [
-                        '#3b82f6',
-                        '#6366f1',
-                        '#8b5cf6',
-                        '#a855f7',
-                        '#d946ef',
-                        '#ec4899',
-                        '#f59e0b',
-                        '#10b981',
-                        '#06b6d4',
-                        '#8b5cf6',
-                      ]}
+                    : chartData.map((d, i) => {
+                        if (d.label === 'Others' || d.label === 'No Data')
+                          return '#71717a';
+                        return [
+                          '#3b82f6',
+                          '#6366f1',
+                          '#8b5cf6',
+                          '#a855f7',
+                          '#d946ef',
+                          '#ec4899',
+                          '#f59e0b',
+                          '#10b981',
+                          '#06b6d4',
+                          '#8b5cf6',
+                        ][i % 10] as string;
+                      })}
                 />
               </div>
             </div>
@@ -170,31 +180,38 @@
                         <div class="flex-shrink-0">
                           <div
                             class="w-3 h-3 rounded-full bg-gradient-to-r"
-                            style="background: linear-gradient(45deg,
-                                 {[
-                              '#3b82f6',
-                              '#6366f1',
-                              '#8b5cf6',
-                              '#a855f7',
-                              '#d946ef',
-                              '#ec4899',
-                              '#f59e0b',
-                              '#10b981',
-                              '#06b6d4',
-                              '#8b5cf6',
-                            ][index % 10]},
-                                 {[
-                              '#6366f1',
-                              '#8b5cf6',
-                              '#a855f7',
-                              '#d946ef',
-                              '#ec4899',
-                              '#f59e0b',
-                              '#10b981',
-                              '#06b6d4',
-                              '#8b5cf6',
-                              '#3b82f6',
-                            ][index % 10]})"
+                            style="background: {key === 'Others' ||
+                            key === 'No Data'
+                              ? '#71717a'
+                              : `linear-gradient(45deg,
+                                 ${
+                                   [
+                                     '#3b82f6',
+                                     '#6366f1',
+                                     '#8b5cf6',
+                                     '#a855f7',
+                                     '#d946ef',
+                                     '#ec4899',
+                                     '#f59e0b',
+                                     '#10b981',
+                                     '#06b6d4',
+                                     '#8b5cf6',
+                                   ][index % 10]
+                                 },
+                                 ${
+                                   [
+                                     '#6366f1',
+                                     '#8b5cf6',
+                                     '#a855f7',
+                                     '#d946ef',
+                                     '#ec4899',
+                                     '#f59e0b',
+                                     '#10b981',
+                                     '#06b6d4',
+                                     '#8b5cf6',
+                                     '#3b82f6',
+                                   ][index % 10]
+                                 })`}"
                           ></div>
                         </div>
                         <div>
@@ -204,7 +221,9 @@
                             {key}
                           </div>
                           <div class="text-sm text-zinc-600 dark:text-zinc-400">
-                            Rank #{index + 1}
+                            {#if key !== 'No Data'}
+                              Rank #{index + 1}
+                            {/if}
                           </div>
                         </div>
                       </div>
@@ -228,31 +247,38 @@
                           class="h-2 rounded-full bg-gradient-to-r transition-all duration-300"
                           style="width: {getPercentage(
                             value,
-                          )}%; background: linear-gradient(45deg,
-                            {[
-                            '#3b82f6',
-                            '#6366f1',
-                            '#8b5cf6',
-                            '#a855f7',
-                            '#d946ef',
-                            '#ec4899',
-                            '#f59e0b',
-                            '#10b981',
-                            '#06b6d4',
-                            '#8b5cf6',
-                          ][index % 10]},
-                            {[
-                            '#6366f1',
-                            '#8b5cf6',
-                            '#a855f7',
-                            '#d946ef',
-                            '#ec4899',
-                            '#f59e0b',
-                            '#10b981',
-                            '#06b6d4',
-                            '#8b5cf6',
-                            '#3b82f6',
-                          ][index % 10]})"
+                          )}%; background: {key === 'Others' ||
+                          key === 'No Data'
+                            ? '#71717a'
+                            : `linear-gradient(45deg,
+                            ${
+                              [
+                                '#3b82f6',
+                                '#6366f1',
+                                '#8b5cf6',
+                                '#a855f7',
+                                '#d946ef',
+                                '#ec4899',
+                                '#f59e0b',
+                                '#10b981',
+                                '#06b6d4',
+                                '#8b5cf6',
+                              ][index % 10]
+                            },
+                            ${
+                              [
+                                '#6366f1',
+                                '#8b5cf6',
+                                '#a855f7',
+                                '#d946ef',
+                                '#ec4899',
+                                '#f59e0b',
+                                '#10b981',
+                                '#06b6d4',
+                                '#8b5cf6',
+                                '#3b82f6',
+                              ][index % 10]
+                            })`}"
                         ></div>
                       </div>
                     </div>
