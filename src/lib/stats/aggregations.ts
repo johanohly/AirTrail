@@ -49,8 +49,20 @@ function sortAndLimit(
   options?: AggregationOptions,
 ): Record<string, number> {
   const entries = Object.entries(counts).sort(([, a], [, b]) => b - a);
-  const limited = options?.limit ? entries.slice(0, options.limit) : entries;
-  return Object.fromEntries(limited);
+  if (!options?.limit || entries.length <= options.limit) {
+    return Object.fromEntries(entries);
+  }
+
+  const top = entries.slice(0, options.limit);
+  const others = entries
+    .slice(options.limit)
+    .reduce((acc, [, count]) => acc + count, 0);
+
+  if (others > 0) {
+    top.push(['Others', others]);
+  }
+
+  return Object.fromEntries(top);
 }
 
 export function seatDistribution(
@@ -75,6 +87,13 @@ export function seatDistribution(
     ).length;
     return acc;
   }, {});
+
+  const totalClassified = Object.values(counts).reduce((a, b) => a + b, 0);
+  const noData = flights.length - totalClassified;
+  if (noData > 0) {
+    counts['No Data'] = noData;
+  }
+
   return sortAndLimit(counts, options);
 }
 
@@ -93,6 +112,13 @@ export function seatClassDistribution(
     ).length;
     return acc;
   }, {});
+
+  const totalClassified = Object.values(counts).reduce((a, b) => a + b, 0);
+  const noData = flights.length - totalClassified;
+  if (noData > 0) {
+    counts['No Data'] = noData;
+  }
+
   return sortAndLimit(counts, options);
 }
 
@@ -108,6 +134,13 @@ export function reasonDistribution(
     ).length;
     return acc;
   }, {});
+
+  const totalClassified = Object.values(counts).reduce((a, b) => a + b, 0);
+  const noData = flights.length - totalClassified;
+  if (noData > 0) {
+    counts['No Data'] = noData;
+  }
+
   return sortAndLimit(counts, options);
 }
 
@@ -126,6 +159,13 @@ export function continentDistribution(
     ).length;
     return acc;
   }, {});
+
+  const totalClassified = Object.values(counts).reduce((a, b) => a + b, 0);
+  const noData = flights.length - totalClassified;
+  if (noData > 0) {
+    counts['No Data'] = noData;
+  }
+
   return sortAndLimit(counts, options);
 }
 
@@ -153,9 +193,8 @@ export function airlineDistribution(
   options?: AggregationOptions,
 ): Record<string, number> {
   const counts = flights.reduce<Record<string, number>>((acc, flight) => {
-    if (!flight.airline) return acc;
-    const label = flight.airline?.name;
-    if (label) acc[label] = (acc[label] || 0) + 1;
+    const label = flight.airline?.name ?? 'No Data';
+    acc[label] = (acc[label] || 0) + 1;
     return acc;
   }, {});
   return sortAndLimit(counts, options);
@@ -167,9 +206,8 @@ export function aircraftModelDistribution(
   options?: AggregationOptions,
 ): Record<string, number> {
   const counts = flights.reduce<Record<string, number>>((acc, flight) => {
-    if (!flight.aircraft) return acc;
-    const label = flight.aircraft?.name;
-    if (label) acc[label] = (acc[label] || 0) + 1;
+    const label = flight.aircraft?.name ?? 'No Data';
+    acc[label] = (acc[label] || 0) + 1;
     return acc;
   }, {});
   return sortAndLimit(counts, options);
@@ -181,8 +219,7 @@ export function aircraftRegDistribution(
   options?: AggregationOptions,
 ): Record<string, number> {
   const counts = flights.reduce<Record<string, number>>((acc, flight) => {
-    if (!flight.aircraftReg) return acc;
-    const label = flight.aircraftReg;
+    const label = flight.aircraftReg ?? 'No Data';
     acc[label] = (acc[label] || 0) + 1;
     return acc;
   }, {});

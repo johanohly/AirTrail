@@ -21,6 +21,7 @@
     return Object.fromEntries(
       Object.entries(data)
         .filter(([, value]) => value > 0)
+        .filter(([key]) => key !== 'No Data')
         .sort(([, a], [, b]) => b - a),
     );
   });
@@ -51,7 +52,12 @@
         value="value"
         cRange={noData
           ? ['#3b82f650']
-          : ['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef']}
+          : Object.keys(placeholderOrData).map((key) => {
+              if (key === 'Others' || key === 'No Data') return '#71717a'; // zinc-500
+              return ['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef'][
+                Object.keys(placeholderOrData).indexOf(key) % 5
+              ] as string;
+            })}
       />
     </div>
     <div>
@@ -60,7 +66,9 @@
           <p><span class="font-bold">{title}</span></p>
         </div>
       {/if}
-      {#each Object.entries(data).filter(([, value]) => value > 0) as [key, value] (key)}
+      {#each Object.entries(data)
+        .filter(([, value]) => value > 0)
+        .filter(([key]) => key !== 'No Data') as [key, value] (key)}
         <p><span class="font-bold">{value}</span> {key}</p>
       {/each}
     </div>
