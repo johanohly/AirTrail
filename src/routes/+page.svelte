@@ -114,6 +114,13 @@
       }
 
       if (
+        filters.airline.length &&
+        !filters.airline.includes(`${f.airline?.iata ?? f.airline?.icao} | ${f.airline?.name}` || '')
+      ) {
+        return false;
+      }
+
+      if (
         filters.aircraftRegs.length &&
         !filters.aircraftRegs.includes(f.aircraftReg || '')
       ) {
