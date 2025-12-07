@@ -29,6 +29,7 @@
       filters.arrivalAirports.length ||
       filters.fromDate ||
       filters.toDate ||
+      filters.airline.length ||
       filters.aircraftRegs.length,
   );
 
@@ -64,6 +65,36 @@
     if (!flights) return [];
     return uniqueAirports(flights, (f) => f.to);
   });
+
+  const getAirlineRegistrationsByFrequency = (flights: FlightData[]): { value: string; label: string }[] => {
+    if (!flights) return [];
+
+    const airlineFrequencyMap = flights.reduce<Map<string, number>>(
+      (acc, flight) => {
+        if (flight.airline) {
+          let name = `${flight.airline.iata ?? flight.airline.icao} | ${flight.airline.name}`
+          acc.set(name, (acc.get(name) ?? 0) + 1);
+        }
+        return acc;
+      },
+      new Map()
+    );
+
+    return Array.from(airlineFrequencyMap.entries())
+      .map(([airline, count]) => ({
+        airline,
+        flightCount: count,
+      }))
+      .sort((a, b) => b.flightCount - a.flightCount)
+      .map(({ airline }) => ({
+        value: airline,
+        label: airline,
+      }));
+  };
+
+  const airline = $derived.by(() =>
+    getAirlineRegistrationsByFrequency(flights),
+  );
 
   const getAircraftRegistrationsByFrequency = (flights: FlightData[]) => {
     if (!flights) return [];
@@ -122,6 +153,13 @@
   title="To"
   iconDirection="down"
   disabled={flights.length === 0}
+/>
+<SelectFilter
+  bind:filterValues={filters.airline}
+  title="Airline"
+  placeholder="Search airlines"
+  disabled={!airline.length}
+  options={airline}
 />
 <SelectFilter
   bind:filterValues={filters.aircraftRegs}
