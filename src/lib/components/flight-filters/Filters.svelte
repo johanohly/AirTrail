@@ -66,18 +66,20 @@
     return uniqueAirports(flights, (f) => f.to);
   });
 
-  const getAirlineRegistrationsByFrequency = (flights: FlightData[]): { value: string; label: string }[] => {
+  const getAirlineRegistrationsByFrequency = (
+    flights: FlightData[],
+  ): { value: string; label: string }[] => {
     if (!flights) return [];
 
     const airlineFrequencyMap = flights.reduce<Map<string, number>>(
       (acc, flight) => {
         if (flight.airline) {
-          let name = `${flight.airline.iata ?? flight.airline.icao} | ${flight.airline.name}`
+          let name = `${flight.airline.iata ?? flight.airline.icao} | ${flight.airline.name}`;
           acc.set(name, (acc.get(name) ?? 0) + 1);
         }
         return acc;
       },
-      new Map()
+      new Map(),
     );
 
     return Array.from(airlineFrequencyMap.entries())
