@@ -115,7 +115,9 @@
 
       if (
         filters.airline.length &&
-        !filters.airline.includes(`${f.airline?.iata ?? f.airline?.icao} | ${f.airline?.name}` || '')
+        !filters.airline.includes(
+          `${f.airline?.iata ?? f.airline?.icao} | ${f.airline?.name}` || '',
+        )
       ) {
         return false;
       }
