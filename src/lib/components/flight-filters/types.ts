@@ -12,6 +12,7 @@ export type FlightFilters = {
   routes: Route[];
   fromDate: CalendarDate | undefined;
   toDate: CalendarDate | undefined;
+  airline: string[];
   aircraftRegs: string[];
 };
 
@@ -27,6 +28,7 @@ export const defaultFilters: FlightFilters = {
   routes: [],
   fromDate: undefined,
   toDate: undefined,
+  airline: [],
   aircraftRegs: [],
 };
 
