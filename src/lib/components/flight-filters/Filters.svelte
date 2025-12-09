@@ -30,6 +30,7 @@
       filters.fromDate ||
       filters.toDate ||
       filters.airline.length ||
+      filters.aircraft.length ||
       filters.aircraftRegs.length,
   );
 
@@ -66,7 +67,7 @@
     return uniqueAirports(flights, (f) => f.to);
   });
 
-  const getAirlineRegistrationsByFrequency = (
+  const getAirlinesByFrequency = (
     flights: FlightData[],
   ): { value: string; label: string }[] => {
     if (!flights) return [];
@@ -94,9 +95,35 @@
       }));
   };
 
-  const airline = $derived.by(() =>
-    getAirlineRegistrationsByFrequency(flights),
-  );
+  const airline = $derived.by(() => getAirlinesByFrequency(flights));
+
+  const getAircraftByFrequency = (flights: FlightData[]) => {
+    if (!flights) return [];
+
+    const aircraftFrequencyMap = flights.reduce<Map<string, number>>(
+      (acc, flight) => {
+        if (flight.aircraft) {
+          let name = `${flight.aircraft.name} | ${flight.aircraft.icao}`;
+          acc.set(name, (acc.get(name) || 0) + 1);
+        }
+        return acc;
+      },
+      new Map(),
+    );
+
+    return Array.from(aircraftFrequencyMap.entries())
+      .map(([aircraft, count]) => ({
+        aircraft,
+        flightCount: count,
+      }))
+      .sort((a, b) => b.flightCount - a.flightCount)
+      .map(({ aircraft }) => ({
+        value: aircraft,
+        label: aircraft,
+      }));
+  };
+
+  const aircraft = $derived.by(() => getAircraftByFrequency(flights));
 
   const getAircraftRegistrationsByFrequency = (flights: FlightData[]) => {
     if (!flights) return [];
@@ -133,6 +160,7 @@
     bind:filterValues={filters.departureAirports}
     title="Departure Airport"
     placeholder="Search departure airports"
+    icon="depart"
     disabled={flights.length === 0}
     options={departureAirports}
   />
@@ -140,6 +168,7 @@
     bind:filterValues={filters.arrivalAirports}
     title="Arrival Airport"
     placeholder="Search arrival airports"
+    icon="arrive"
     disabled={flights.length === 0}
     options={arrivalAirports}
   />
@@ -160,13 +189,23 @@
   bind:filterValues={filters.airline}
   title="Airline"
   placeholder="Search airlines"
+  icon="airline"
   disabled={!airline.length}
   options={airline}
+/>
+<SelectFilter
+  bind:filterValues={filters.aircraft}
+  title="Aircraft"
+  placeholder="Search by aircraft"
+  icon="plane"
+  disabled={!aircraft.length}
+  options={aircraft}
 />
 <SelectFilter
   bind:filterValues={filters.aircraftRegs}
   title="Tail Number"
   placeholder="Search tail numbers"
+  icon="plane"
   disabled={!aircraftRegs.length}
   options={aircraftRegs}
 />

@@ -123,6 +123,13 @@
       }
 
       if (
+        filters.aircraft.length &&
+        !filters.aircraft.includes(f.aircraft || '')
+      ) {
+        return false;
+      }
+
+      if (
         filters.aircraftRegs.length &&
         !filters.aircraftRegs.includes(f.aircraftReg || '')
       ) {

@@ -13,6 +13,7 @@ export type FlightFilters = {
   fromDate: CalendarDate | undefined;
   toDate: CalendarDate | undefined;
   airline: string[];
+  aircraft: string[];
   aircraftRegs: string[];
 };
 
@@ -29,6 +30,7 @@ export const defaultFilters: FlightFilters = {
   fromDate: undefined,
   toDate: undefined,
   airline: [],
+  aircraft: [],
   aircraftRegs: [],
 };
 
