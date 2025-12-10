@@ -124,7 +124,7 @@
 
       if (
         filters.aircraft.length &&
-        !filters.aircraft.includes(f.aircraft || '')
+        !filters.aircraft.includes(`${f.aircraft?.name} | ${f.aircraft?.icao}` || '')
       ) {
         return false;
       }
