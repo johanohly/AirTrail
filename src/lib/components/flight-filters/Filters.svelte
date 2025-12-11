@@ -75,8 +75,7 @@
     const airlineFrequencyMap = flights.reduce<Map<string, number>>(
       (acc, flight) => {
         if (flight.airline) {
-          let name = `${flight.airline.iata ?? flight.airline.icao} | ${flight.airline.name}`;
-          acc.set(name, (acc.get(name) ?? 0) + 1);
+          acc.set(flight.airline.name, (acc.get(flight.airline.name) ?? 0) + 1);
         }
         return acc;
       },
@@ -103,8 +102,10 @@
     const aircraftFrequencyMap = flights.reduce<Map<string, number>>(
       (acc, flight) => {
         if (flight.aircraft) {
-          let name = `${flight.aircraft.name} | ${flight.aircraft.icao}`;
-          acc.set(name, (acc.get(name) || 0) + 1);
+          acc.set(
+            flight.aircraft.name,
+            (acc.get(flight.aircraft.name) || 0) + 1,
+          );
         }
         return acc;
       },
