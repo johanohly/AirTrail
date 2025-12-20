@@ -5,7 +5,6 @@
   import { AirplanemodeInactive } from '@o7/icon/material';
 
   import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
-  import { LabelledSeparator } from '$lib/components/ui/separator';
   import type { Airline, Airport } from '$lib/db/types';
   import { cn } from '$lib/utils';
   import { formatAsDate } from '$lib/utils/datetime';
@@ -29,10 +28,12 @@
     flightsByYear,
     selecting = false,
     selectedFlights = $bindable<number[]>([]),
+    onEdit,
   }: {
     flightsByYear: YearGroup[];
     selecting?: boolean;
     selectedFlights?: number[];
+    onEdit?: (flight: Flight) => void;
   } = $props();
 
   const formatDate = (flight: Flight) => {
@@ -66,30 +67,25 @@
 {:else}
   <div class="flex flex-col" use:autoAnimate>
     {#each flightsByYear as { year, flights } (year)}
-      {#if year !== '0'}
-        <LabelledSeparator class="mt-4 mb-2">
-          <h3
-            class="border px-4 py-1 rounded-full border-dashed text-sm font-medium leading-7"
-          >
-            {year}
-          </h3>
-        </LabelledSeparator>
-      {/if}
       <div use:autoAnimate>
         {#each flights as flight, index (flight.id)}
           {@const isLast = index === flights.length - 1}
           {@const isSelected = selecting && selectedFlights.includes(flight.id)}
           <button
             type="button"
-            class={cn('flex w-full text-left', {
-              'cursor-pointer': selecting,
-            })}
+            class={cn(
+              'flex w-full text-left rounded-lg -mx-2 px-2 transition-colors',
+              isSelected
+                ? 'bg-destructive/10 hover:bg-destructive/15'
+                : 'hover:bg-hover active:bg-hover',
+            )}
             onclick={() => {
               if (selecting) {
                 toggleSelection(flight.id);
+              } else {
+                onEdit?.(flight);
               }
             }}
-            disabled={!selecting}
           >
             <!-- Logo Column -->
             <div
@@ -107,8 +103,6 @@
               class={cn(
                 'flex-1 flex justify-between items-start py-5 min-w-0',
                 !isLast && 'border-b border-border',
-                isSelected &&
-                  'bg-destructive/10 -mx-2 px-2 rounded-lg border-destructive',
               )}
             >
               <!-- Route Info (Left Side) -->

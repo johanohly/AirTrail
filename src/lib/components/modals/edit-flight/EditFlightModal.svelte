@@ -18,10 +18,14 @@
 
   let {
     flight,
-    triggerDisabled,
+    triggerDisabled = false,
+    open = $bindable(false),
+    showTrigger = true,
   }: {
     flight: FlightData;
-    triggerDisabled: boolean;
+    triggerDisabled?: boolean;
+    open?: boolean;
+    showTrigger?: boolean;
   } = $props();
 
   // If their language uses 12-hour time format, we display the time in *a* 12-hour format
@@ -45,8 +49,6 @@
       ? formatAsTime(flight.arrival, displayLocale)
       : null,
   };
-
-  let open = $state(false);
 
   const form = superForm(
     defaults<Infer<typeof flightSchema>>(schemaFlight, zod(flightSchema)),
@@ -74,18 +76,20 @@
 </script>
 
 <Dialog.Root bind:open>
-  <Dialog.Trigger>
-    {#snippet child({ props })}
-      <Button
-        variant="outline"
-        size="icon"
-        {...props}
-        disabled={triggerDisabled}
-      >
-        <SquarePen size={16} />
-      </Button>
-    {/snippet}
-  </Dialog.Trigger>
+  {#if showTrigger}
+    <Dialog.Trigger>
+      {#snippet child({ props })}
+        <Button
+          variant="outline"
+          size="icon"
+          {...props}
+          disabled={triggerDisabled}
+        >
+          <SquarePen size={16} />
+        </Button>
+      {/snippet}
+    </Dialog.Trigger>
+  {/if}
   <Dialog.Content
     preventScroll={false}
     interactOutsideBehavior="ignore"

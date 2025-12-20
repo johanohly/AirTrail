@@ -122,6 +122,18 @@
   let selecting = $state(false);
   let selectedFlights = $state<number[]>([]);
 
+  // Mobile edit state
+  let mobileEditFlight = $state<FlightData | null>(null);
+  let mobileEditOpen = $state(false);
+
+  const handleMobileEdit = (flight: { id: number }) => {
+    const originalFlight = filteredFlights.find((f) => f.id === flight.id);
+    if (originalFlight) {
+      mobileEditFlight = originalFlight;
+      mobileEditOpen = true;
+    }
+  };
+
   const hasTempFilters = $derived.by(
     () =>
       tempFilters &&
@@ -219,7 +231,12 @@
       <AirplanemodeInactive class="text-muted-foreground size-[20dvw]" />
     </div>
   {:else if !$isMediumScreen}
-    <MobileFlightList {flightsByYear} {selecting} bind:selectedFlights />
+    <MobileFlightList
+      {flightsByYear}
+      {selecting}
+      bind:selectedFlights
+      onEdit={readonly ? undefined : handleMobileEdit}
+    />
   {:else}
     <ScrollArea type="hover">
       <div class="hidden md:block">
@@ -340,6 +357,15 @@
         {/each}
       </div>
     </ScrollArea>
+  {/if}
+
+  <!-- Mobile Edit Modal -->
+  {#if mobileEditFlight}
+    <EditFlightModal
+      flight={mobileEditFlight}
+      bind:open={mobileEditOpen}
+      showTrigger={false}
+    />
   {/if}
 </Modal>
 
