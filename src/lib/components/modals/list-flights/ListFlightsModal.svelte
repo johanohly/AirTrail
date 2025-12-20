@@ -12,6 +12,7 @@
 
   import Toolbar from './Toolbar.svelte';
 
+  import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
   import type {
     FlightFilters,
     TempFilters,
@@ -254,7 +255,11 @@
               >
                 {#if flight.month}
                   <div class="max-md:hidden flex justify-center shrink-0 w-11">
-                    <span class="text-lg font-medium">{flight.month}</span>
+                    <AirlineIcon
+                      airline={flight.airline}
+                      size={36}
+                      fallback="plane"
+                    />
                   </div>
                   <Separator
                     orientation="vertical"

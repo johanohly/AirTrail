@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { db } from '$lib/db';
 import type { Airline } from '$lib/db/types';
+import { uploadManager } from '$lib/server/utils/uploads';
 import type { ErrorActionResult } from '$lib/utils/forms';
 import type { airlineSchema } from '$lib/zod/airline';
 
@@ -70,7 +71,16 @@ export const validateAndSaveAirline = async (
 
   if (existingAirline) {
     try {
-      await updateAirline(airline);
+      // Don't update iconPath - it's managed separately via the icon upload API
+      await db
+        .updateTable('airline')
+        .set({
+          name: airline.name,
+          icao: airline.icao,
+          iata: airline.iata,
+        })
+        .where('id', '=', existingAirline.id)
+        .execute();
     } catch (_) {
       return {
         success: false,
@@ -89,6 +99,7 @@ export const validateAndSaveAirline = async (
         name: airline.name,
         icao: airline.icao,
         iata: airline.iata,
+        iconPath: airline.iconPath ?? null,
       });
     } catch (_) {
       return {
@@ -102,5 +113,30 @@ export const validateAndSaveAirline = async (
       success: true,
       message: 'Airline created',
     };
+  }
+};
+
+export const validateAirlineIcons = async (): Promise<void> => {
+  if (!uploadManager.isConfigured) {
+    return;
+  }
+
+  const airlines = await db
+    .selectFrom('airline')
+    .select(['id', 'iconPath'])
+    .where('iconPath', 'is not', null)
+    .execute();
+
+  for (const airline of airlines) {
+    if (airline.iconPath && !uploadManager.fileExists(airline.iconPath)) {
+      console.warn(
+        `Airline ${airline.id} has missing icon file: ${airline.iconPath}. Setting to null.`,
+      );
+      await db
+        .updateTable('airline')
+        .set({ iconPath: null })
+        .where('id', '=', airline.id)
+        .execute();
+    }
   }
 };

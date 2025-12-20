@@ -17,6 +17,7 @@ export type airline = {
     name: string;
     icao: string | null;
     iata: string | null;
+    iconPath: string | null;
 };
 export type airport = {
     id: Generated<number>;

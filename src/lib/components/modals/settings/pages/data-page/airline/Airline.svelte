@@ -1,12 +1,13 @@
 <script lang="ts">
   import SvelteVirtualList from '@humanspeak/svelte-virtual-list';
-  import { X } from '@o7/icon/lucide';
+  import { SquarePen, X } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
 
   import CreateAirline from './CreateAirline.svelte';
   import EditAirline from './EditAirline.svelte';
 
-  import { Confirm } from '$lib/components/helpers';
+  import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
+  import { confirmation } from '$lib/components/helpers';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { Collapsible } from '$lib/components/ui/collapsible';
@@ -16,8 +17,23 @@
 
   const { airlines = [] }: { airlines: Airline[] } = $props();
 
-  const deleteAirline = async (id: number) => {
-    const success = await api.airline.delete.mutate(id);
+  // Single shared edit state
+  let editOpen = $state(false);
+  let airlineToEdit = $state<Airline | null>(null);
+
+  const openEdit = (airline: Airline) => {
+    airlineToEdit = airline;
+    editOpen = true;
+  };
+
+  const deleteAirline = async (airline: Airline) => {
+    const confirmed = await confirmation.show({
+      title: 'Remove Airline',
+      description: `Are you sure you want to remove ${airline.name}?`,
+    });
+    if (!confirmed) return;
+
+    const success = await api.airline.delete.mutate(airline.id);
     if (success) {
       await trpc.airline.list.utils.invalidate();
       await trpc.flight.list.utils.invalidate();
@@ -51,32 +67,35 @@
       >
         {#snippet renderItem(airline)}
           <Card level="2" class="w-full flex items-center justify-between p-3">
-            <div class="flex flex-col">
-              <span class="font-medium">{airline.name}</span>
-              <div class="flex gap-4 text-sm text-muted-foreground">
-                {#if airline.iata}
-                  <span>IATA: <b>{airline.iata}</b></span>
-                {/if}
-                {#if airline.icao}
-                  <span>ICAO: <b>{airline.icao}</b></span>
-                {/if}
+            <div class="flex items-center gap-3">
+              <AirlineIcon {airline} size={32} />
+              <div class="flex flex-col">
+                <span class="font-medium">{airline.name}</span>
+                <div class="flex gap-4 text-sm text-muted-foreground">
+                  {#if airline.iata}
+                    <span>IATA: <b>{airline.iata}</b></span>
+                  {/if}
+                  {#if airline.icao}
+                    <span>ICAO: <b>{airline.icao}</b></span>
+                  {/if}
+                </div>
               </div>
             </div>
             <div class="flex gap-1">
-              {#key airline}
-                <EditAirline {airline} />
-              {/key}
-              <Confirm
-                title="Remove Airline"
-                description="Are you sure you want to remove {airline.name}?"
-                onConfirm={() => deleteAirline(airline.id)}
+              <Button
+                variant="outline"
+                size="icon"
+                onclick={() => openEdit(airline)}
               >
-                {#snippet triggerContent({ props })}
-                  <Button variant="outline" size="icon" {...props}>
-                    <X />
-                  </Button>
-                {/snippet}
-              </Confirm>
+                <SquarePen size={16} />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onclick={() => deleteAirline(airline)}
+              >
+                <X />
+              </Button>
             </div>
           </Card>
         {/snippet}
@@ -84,3 +103,5 @@
     </div>
   </div>
 </Collapsible>
+
+<EditAirline airline={airlineToEdit} bind:open={editOpen} />

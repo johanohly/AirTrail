@@ -52,6 +52,9 @@
     use:enhance
   >
     <AirlineFormFields {form} />
+    <p class="text-sm text-muted-foreground">
+      You can add an icon after creating the airline by editing it.
+    </p>
     <Form.Button>Create</Form.Button>
   </form>
 </Modal>

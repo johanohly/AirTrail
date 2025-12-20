@@ -19,4 +19,5 @@ export const airlineSchema = z.object({
       'IATA code must contain only uppercase letters and numbers',
     )
     .nullable(),
+  iconPath: z.string().nullable().optional(),
 });

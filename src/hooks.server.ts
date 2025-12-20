@@ -4,7 +4,9 @@ import type { Cookie } from 'lucia';
 
 import { env } from '$env/dynamic/private';
 import { lucia } from '$lib/server/auth';
+import { validateAirlineIcons } from '$lib/server/utils/airline';
 import { appConfig } from '$lib/server/utils/config';
+import { uploadManager } from '$lib/server/utils/uploads';
 import { ensureAirports } from '$lib/utils/data/airports/source';
 
 async function loadConfig() {
@@ -21,6 +23,8 @@ export const init: ServerInit = async () => {
   }
 
   await ensureAirports();
+  await uploadManager.init();
+  await validateAirlineIcons();
 };
 
 const authHandle: Handle = async ({ event, resolve }) => {

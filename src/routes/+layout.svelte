@@ -7,7 +7,7 @@
   import { dev } from '$app/environment';
   import { page } from '$app/state';
   import { NavigationDock } from '$lib/components';
-  import { ScreenSize } from '$lib/components/helpers';
+  import { ConfirmWrapper, ScreenSize } from '$lib/components/helpers';
   import {
     AddFlightModal,
     NewVersionAnnouncement,
@@ -31,6 +31,7 @@
 <ModeWatcher />
 <ScreenSize />
 <Toaster />
+<ConfirmWrapper />
 
 {#if !dev && data.user && data.user.role !== 'user'}
   <NewVersionAnnouncement />

@@ -68,10 +68,11 @@ model aircraft {
 }
 
 model airline {
-  id   Int     @id @default(autoincrement())
-  name String
-  icao String?
-  iata String?
+  id        Int     @id @default(autoincrement())
+  name      String
+  icao      String?
+  iata      String?
+  icon_path String?
 
   flights flight[]
 }

@@ -5,6 +5,7 @@
   import { writable } from 'svelte/store';
   import { fly } from 'svelte/transition';
 
+  import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
   import type { Airline } from '$lib/db/types';
   import { api } from '$lib/trpc';
   import { cn, toTitleCase } from '$lib/utils';
@@ -168,24 +169,27 @@
               'relative cursor-pointer scroll-my-2 rounded-md p-2 dark:bg-dark-1 border data-highlighted:bg-zinc-300 dark:data-highlighted:bg-dark-2',
             )}
           >
-            <div class="flex flex-col overflow-hidden">
-              <span class={cn('truncate', { 'text-sm font-medium': compact })}
-                >{toTitleCase(airline.name)}</span
-              >
-              <p
-                class={cn('text-sm text-muted-foreground', {
-                  'text-xs': compact,
-                })}
-              >
-                {#if airline.iata}
-                  <span>IATA</span>
-                  <b class="mr-2">{airline.iata}</b>
-                {/if}
-                {#if airline.icao}
-                  <span>ICAO</span>
-                  <b>{airline.icao}</b>
-                {/if}
-              </p>
+            <div class="flex items-center gap-2 overflow-hidden">
+              <AirlineIcon {airline} size={compact ? 20 : 24} />
+              <div class="flex flex-col overflow-hidden">
+                <span class={cn('truncate', { 'text-sm font-medium': compact })}
+                  >{toTitleCase(airline.name)}</span
+                >
+                <p
+                  class={cn('text-sm text-muted-foreground', {
+                    'text-xs': compact,
+                  })}
+                >
+                  {#if airline.iata}
+                    <span>IATA</span>
+                    <b class="mr-2">{airline.iata}</b>
+                  {/if}
+                  {#if airline.icao}
+                    <span>ICAO</span>
+                    <b>{airline.icao}</b>
+                  {/if}
+                </p>
+              </div>
             </div>
           </li>
         {:else}
