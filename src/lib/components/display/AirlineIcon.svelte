@@ -2,6 +2,7 @@
   import { Plane } from '@o7/icon/lucide';
   import { Airlines } from '@o7/icon/material/solid';
 
+  import * as Avatar from '$lib/components/ui/avatar';
   import type { Airline } from '$lib/db/types';
 
   let {
@@ -15,16 +16,38 @@
     class?: string;
     fallback?: 'airline' | 'plane';
   } = $props();
+
+  let loadingStatus = $state<'loading' | 'loaded' | 'error'>('loading');
+
+  const hasIcon = $derived(!!airline?.iconPath);
 </script>
 
-{#if airline?.iconPath}
-  <img
-    src="/api/uploads/{airline.iconPath}"
-    alt={airline.name}
-    width={size}
-    height={size}
-    class="object-contain {className}"
-  />
+{#if hasIcon}
+  <Avatar.Root
+    bind:loadingStatus
+    class="rounded-none bg-transparent {className}"
+    style="width: {size}px; height: {size}px;"
+  >
+    <Avatar.Image
+      src="/api/uploads/{airline?.iconPath}"
+      alt={airline?.name}
+      class="object-contain"
+    />
+    <Avatar.Fallback class="rounded-none bg-transparent">
+      <div
+        class="flex items-center justify-center text-destructive"
+        style:width="{size}px"
+        style:height="{size}px"
+        title="Failed to load icon"
+      >
+        {#if fallback === 'plane'}
+          <Plane size={size * 0.7} />
+        {:else}
+          <Airlines size={size * 0.8} />
+        {/if}
+      </div>
+    </Avatar.Fallback>
+  </Avatar.Root>
 {:else}
   <div
     class="flex items-center justify-center shrink-0 text-muted-foreground {className}"
@@ -34,7 +57,7 @@
     {#if fallback === 'plane'}
       <Plane size={size * 0.7} />
     {:else}
-      <Airlines />
+      <Airlines size={size * 0.8} />
     {/if}
   </div>
 {/if}

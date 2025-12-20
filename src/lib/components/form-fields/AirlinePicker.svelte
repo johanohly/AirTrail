@@ -170,7 +170,7 @@
             )}
           >
             <div class="flex items-center gap-2 overflow-hidden">
-              <AirlineIcon {airline} size={compact ? 20 : 24} />
+              <AirlineIcon {airline} size={compact ? 20 : 36} />
               <div class="flex flex-col overflow-hidden">
                 <span class={cn('truncate', { 'text-sm font-medium': compact })}
                   >{toTitleCase(airline.name)}</span
