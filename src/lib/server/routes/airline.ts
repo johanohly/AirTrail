@@ -6,6 +6,7 @@ import {
   getAirline,
   getAirlineByIcao,
   getAirlineByName,
+  populateDefaultAirlineIcons,
 } from '$lib/server/utils/airline';
 
 export const airlineRouter = router({
@@ -35,4 +36,9 @@ export const airlineRouter = router({
       .execute();
     return result.length > 0;
   }),
+  importDefaultIcons: adminProcedure
+    .input(z.object({ overwrite: z.boolean() }))
+    .mutation(async ({ input }) => {
+      return await populateDefaultAirlineIcons({ overwrite: input.overwrite });
+    }),
 });

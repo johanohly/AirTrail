@@ -146,12 +146,14 @@ export const validateAirlineIcons = async (): Promise<void> => {
 const GITHUB_TARBALL_URL =
   'https://api.github.com/repos/johanohly/AirTrail/tarball/main';
 
+type IconData = { buffer: Buffer; extension: string };
+
 /**
  * Downloads the AirTrail repo tarball and extracts airline icons.
- * @returns Map of ICAO code (uppercase) -> SVG content buffer
+ * @returns Map of ICAO code (uppercase) -> icon data (buffer + extension)
  */
-async function fetchAirlineIconsFromGitHub(): Promise<Map<string, Buffer>> {
-  const icaoToIcon = new Map<string, Buffer>();
+async function fetchAirlineIconsFromGitHub(): Promise<Map<string, IconData>> {
+  const icaoToIcon = new Map<string, IconData>();
 
   const response = await fetch(GITHUB_TARBALL_URL, {
     headers: {
@@ -177,11 +179,15 @@ async function fetchAirlineIconsFromGitHub(): Promise<Map<string, Buffer>> {
         const chunks: Buffer[] = [];
         entry.on('data', (chunk: Buffer) => chunks.push(chunk));
         entry.on('end', () => {
-          // Extract ICAO from filename: .../static/airlines/AAR.svg -> AAR
+          // Extract ICAO and extension from filename: .../static/airlines/AAR.svg
           const filename = entry.path.split('/').pop();
           if (filename) {
             const icao = filename.replace(/\.[^.]+$/, '').toUpperCase();
-            icaoToIcon.set(icao, Buffer.concat(chunks));
+            const extension = filename.substring(filename.lastIndexOf('.'));
+            icaoToIcon.set(icao, {
+              buffer: Buffer.concat(chunks),
+              extension,
+            });
           }
         });
       },
@@ -246,7 +252,7 @@ export const populateDefaultAirlineIcons = async (options?: {
     `Fetching default icons for ${airlines.length} airline(s) from GitHub...`,
   );
 
-  let icaoToIcon: Map<string, Buffer>;
+  let icaoToIcon: Map<string, IconData>;
   try {
     icaoToIcon = await fetchAirlineIconsFromGitHub();
   } catch (err) {
@@ -262,13 +268,13 @@ export const populateDefaultAirlineIcons = async (options?: {
     if (!airline.icao) continue;
 
     const icao = airline.icao.toUpperCase();
-    const iconBuffer = icaoToIcon.get(icao);
+    const iconData = icaoToIcon.get(icao);
 
-    if (!iconBuffer) {
+    if (!iconData) {
       continue;
     }
 
-    const relativePath = `airlines/${airline.id}.svg`;
+    const relativePath = `airlines/${airline.id}${iconData.extension}`;
 
     // Delete old icon if overwriting and path is different
     if (
@@ -279,7 +285,7 @@ export const populateDefaultAirlineIcons = async (options?: {
       await uploadManager.deleteFile(airline.iconPath);
     }
 
-    const success = await uploadManager.saveFile(relativePath, iconBuffer);
+    const success = await uploadManager.saveFile(relativePath, iconData.buffer);
 
     if (success) {
       await db
