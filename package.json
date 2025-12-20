@@ -73,6 +73,7 @@
     "sveltekit-superforms": "^2.27.1",
     "tailwind-merge": "^3.3.1",
     "tailwind-variants": "^2.1.0",
+    "tar": "^7.5.2",
     "trpc-svelte-query": "^2.1.0",
     "vaul-svelte": "^1.0.0-next.7",
     "zod": "^3.25.16"
@@ -93,6 +94,7 @@
     "@types/d3-shape": "^3.1.7",
     "@types/pg": "^8.15.5",
     "@types/semver": "^7.7.0",
+    "@types/tar": "^6.1.13",
     "@vitest/coverage-v8": "2.1.4",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.33.0",

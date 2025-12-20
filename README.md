@@ -94,6 +94,10 @@ If you find an issue, please report it on the [issue tracker](https://github.com
 
 > [Country Flags](https://flagpedia.net)
 
+### Airline Icons
+
+The airline icon list ([`static/airlines`](static/airlines)) is based on [Soaring Symbols](https://github.com/anhthang/soaring-symbols) by Anh Thang, licensed under the MIT License.
+
 ### Logo
 
 The logo is from Lucide, which is a free icon pack that can be found [here](https://www.lucide.dev/).
