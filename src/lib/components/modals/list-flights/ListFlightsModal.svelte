@@ -18,6 +18,7 @@
     FlightFilters,
     TempFilters,
   } from '$lib/components/flight-filters/types';
+  import * as AlertDialog from '$lib/components/ui/alert-dialog';
   import { Confirm } from '$lib/components/helpers';
   import { EditFlightModal } from '$lib/components/modals';
   import { Button } from '$lib/components/ui/button';
@@ -134,6 +135,23 @@
     }
   };
 
+  // Mobile delete state
+  let mobileDeleteFlightId = $state<number | null>(null);
+  let mobileDeleteOpen = $state(false);
+
+  const handleMobileDelete = (flight: { id: number }) => {
+    mobileDeleteFlightId = flight.id;
+    mobileDeleteOpen = true;
+  };
+
+  const confirmMobileDelete = async () => {
+    if (mobileDeleteFlightId !== null) {
+      await deleteFlight?.(mobileDeleteFlightId);
+      mobileDeleteFlightId = null;
+      mobileDeleteOpen = false;
+    }
+  };
+
   const hasTempFilters = $derived.by(
     () =>
       tempFilters &&
@@ -170,10 +188,10 @@
 
 <Modal
   bind:open
-  class="max-w-full flex flex-col h-full rounded-none!"
+  class="max-w-full flex flex-col h-full rounded-none! max-md:p-0"
   dialogOnly
 >
-  <div class="flex flex-col gap-2">
+  <div class="flex flex-col gap-2 max-md:px-4 max-md:pt-4">
     {#if hasTempFilters}
       <div class="flex flex-col gap-1">
         {#if tempFilterAirport}
@@ -236,6 +254,7 @@
       {selecting}
       bind:selectedFlights
       onEdit={readonly ? undefined : handleMobileEdit}
+      onDelete={readonly ? undefined : handleMobileDelete}
     />
   {:else}
     <ScrollArea type="hover">
@@ -367,6 +386,25 @@
       showTrigger={false}
     />
   {/if}
+
+  <!-- Mobile Delete Confirmation -->
+  <AlertDialog.Root bind:open={mobileDeleteOpen}>
+    <AlertDialog.Content>
+      <AlertDialog.Header>
+        <AlertDialog.Title>Remove Flight</AlertDialog.Title>
+        <AlertDialog.Description>
+          Are you sure you want to remove this flight? All seats will be removed
+          as well.
+        </AlertDialog.Description>
+      </AlertDialog.Header>
+      <AlertDialog.Footer>
+        <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+        <AlertDialog.Action onclick={confirmMobileDelete}>
+          Remove
+        </AlertDialog.Action>
+      </AlertDialog.Footer>
+    </AlertDialog.Content>
+  </AlertDialog.Root>
 </Modal>
 
 {#snippet flightTimes(flight)}
