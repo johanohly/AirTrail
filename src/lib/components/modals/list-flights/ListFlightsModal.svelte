@@ -10,6 +10,7 @@
   import { AirplanemodeInactive } from '@o7/icon/material';
   import { isBefore } from 'date-fns';
 
+  import DeleteFlightModal from './DeleteFlightModal.svelte';
   import MobileFlightList from './MobileFlightList.svelte';
   import Toolbar from './Toolbar.svelte';
 
@@ -18,8 +19,6 @@
     FlightFilters,
     TempFilters,
   } from '$lib/components/flight-filters/types';
-  import * as AlertDialog from '$lib/components/ui/alert-dialog';
-  import { Confirm } from '$lib/components/helpers';
   import { EditFlightModal } from '$lib/components/modals';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
@@ -135,20 +134,33 @@
     }
   };
 
-  // Mobile delete state
-  let mobileDeleteFlightId = $state<number | null>(null);
-  let mobileDeleteOpen = $state(false);
+  // Delete state (used for both mobile and desktop)
+  type DeleteFlight = {
+    id: number;
+    from: (typeof filteredFlights)[0]['from'];
+    to: (typeof filteredFlights)[0]['to'];
+    airline: (typeof filteredFlights)[0]['airline'];
+  };
+  let deleteFlightData = $state<DeleteFlight | null>(null);
+  let deleteModalOpen = $state(false);
 
-  const handleMobileDelete = (flight: { id: number }) => {
-    mobileDeleteFlightId = flight.id;
-    mobileDeleteOpen = true;
+  const handleDelete = (flight: { id: number }) => {
+    const originalFlight = filteredFlights.find((f) => f.id === flight.id);
+    if (originalFlight) {
+      deleteFlightData = {
+        id: originalFlight.id,
+        from: originalFlight.from,
+        to: originalFlight.to,
+        airline: originalFlight.airline,
+      };
+      deleteModalOpen = true;
+    }
   };
 
-  const confirmMobileDelete = async () => {
-    if (mobileDeleteFlightId !== null) {
-      await deleteFlight?.(mobileDeleteFlightId);
-      mobileDeleteFlightId = null;
-      mobileDeleteOpen = false;
+  const confirmDelete = async () => {
+    if (deleteFlightData !== null) {
+      await deleteFlight?.(deleteFlightData.id);
+      deleteFlightData = null;
     }
   };
 
@@ -254,7 +266,7 @@
       {selecting}
       bind:selectedFlights
       onEdit={readonly ? undefined : handleMobileEdit}
-      onDelete={readonly ? undefined : handleMobileDelete}
+      onDelete={readonly ? undefined : handleDelete}
     />
   {:else}
     <ScrollArea type="hover">
@@ -387,24 +399,12 @@
     />
   {/if}
 
-  <!-- Mobile Delete Confirmation -->
-  <AlertDialog.Root bind:open={mobileDeleteOpen}>
-    <AlertDialog.Content>
-      <AlertDialog.Header>
-        <AlertDialog.Title>Remove Flight</AlertDialog.Title>
-        <AlertDialog.Description>
-          Are you sure you want to remove this flight? All seats will be removed
-          as well.
-        </AlertDialog.Description>
-      </AlertDialog.Header>
-      <AlertDialog.Footer>
-        <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-        <AlertDialog.Action onclick={confirmMobileDelete}>
-          Remove
-        </AlertDialog.Action>
-      </AlertDialog.Footer>
-    </AlertDialog.Content>
-  </AlertDialog.Root>
+  <!-- Delete Confirmation -->
+  <DeleteFlightModal
+    bind:open={deleteModalOpen}
+    flight={deleteFlightData}
+    onConfirm={confirmDelete}
+  />
 </Modal>
 
 {#snippet flightTimes(flight)}
@@ -467,17 +467,14 @@
     {#key flight}
       <EditFlightModal {flight} triggerDisabled={selecting} />
     {/key}
-    <Confirm
-      onConfirm={() => deleteFlight?.(flight.id)}
-      title="Remove Flight"
-      description="Are you sure you want to remove this flight? All seats will be removed as well."
+    <Button
+      variant="outline"
+      size="icon"
+      disabled={selecting}
+      onclick={() => handleDelete(flight)}
     >
-      {#snippet triggerContent({ props })}
-        <Button variant="outline" size="icon" {...props} disabled={selecting}>
-          <X size="24" />
-        </Button>
-      {/snippet}
-    </Confirm>
+      <X size="24" />
+    </Button>
   </div>
 {/snippet}
 

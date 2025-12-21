@@ -325,7 +325,7 @@
       <SquarePen size={22} />
       <span class="text-xs font-medium">Edit</span>
     </button>
-    <div class="w-px bg-border" />
+    <div class="w-px bg-border"></div>
     <button
       type="button"
       class="flex-1 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 active:bg-destructive/15 transition-colors"
@@ -345,7 +345,7 @@
       class:bg-destructive={currentZone === 'delete' ||
         currentZone === 'revealed'}
       class:opacity-0={currentZone === 'revealed'}
-    />
+    ></div>
   {/if}
 
   <!-- Layer 3: Single centered icon (visible during swipe, hidden when buttons shown) -->
