@@ -197,7 +197,7 @@
 <SelectFilter
   bind:filterValues={filters.aircraft}
   title="Aircraft"
-  placeholder="Search by aircraft"
+  placeholder="Search aircraft"
   icon="plane"
   disabled={!aircraft.length}
   options={aircraft}

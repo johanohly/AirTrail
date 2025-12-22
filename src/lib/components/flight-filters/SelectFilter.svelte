@@ -1,12 +1,6 @@
 <script lang="ts">
-  import {
-    Check,
-    Funnel,
-    Plane,
-    PlaneLanding,
-    PlaneTakeoff,
-    TicketsPlane,
-  } from '@o7/icon/lucide';
+  import { Check, Funnel, Plane, PlaneLanding, PlaneTakeoff } from '@o7/icon';
+  import { Airlines } from '@o7/icon/material';
 
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
@@ -76,7 +70,7 @@
         {:else if icon == 'arrive'}
           <PlaneLanding size={16} class="mr-2" />
         {:else if icon == 'airline'}
-          <TicketsPlane size={16} class="mr-2" />
+          <Airlines size={20} class="mr-2" />
         {:else}
           <Funnel size={16} class="mr-2" />
         {/if}
