@@ -8,8 +8,9 @@
     type TempFilters,
   } from '$lib/components/flight-filters/types';
   import { Button } from '$lib/components/ui/button';
-  import type { Airport } from '$lib/db/types';
+  import type { Airline, Airport } from '$lib/db/types';
   import type { FlightData } from '$lib/utils';
+  import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
 
   let {
     flights = $bindable(),
@@ -67,34 +68,31 @@
     return uniqueAirports(flights, (f) => f.to);
   });
 
-  const getAirlinesByFrequency = (
-    flights: FlightData[],
-  ): { value: string; label: string }[] => {
-    if (!flights) return [];
+  const airlineData = $derived.by(() => {
+    if (!flights) return { options: [], byName: new Map<string, Airline>() };
 
-    const airlineFrequencyMap = flights.reduce<Map<string, number>>(
-      (acc, flight) => {
-        if (flight.airline) {
-          acc.set(flight.airline.name, (acc.get(flight.airline.name) ?? 0) + 1);
-        }
-        return acc;
-      },
-      new Map(),
-    );
+    const frequencyMap = new Map<string, number>();
+    const byName = new Map<string, Airline>();
 
-    return Array.from(airlineFrequencyMap.entries())
-      .map(([airline, count]) => ({
-        airline,
-        flightCount: count,
-      }))
+    for (const flight of flights) {
+      if (flight.airline) {
+        frequencyMap.set(
+          flight.airline.name,
+          (frequencyMap.get(flight.airline.name) ?? 0) + 1,
+        );
+        byName.set(flight.airline.name, flight.airline);
+      }
+    }
+
+    const options = Array.from(frequencyMap.entries())
+      .map(([name, count]) => ({ name, flightCount: count }))
       .sort((a, b) => b.flightCount - a.flightCount)
-      .map(({ airline }) => ({
-        value: airline,
-        label: airline,
-      }));
-  };
+      .map(({ name }) => ({ value: name, label: name }));
 
-  const airline = $derived.by(() => getAirlinesByFrequency(flights));
+    return { options, byName };
+  });
+
+  const airline = $derived(airlineData.options);
 
   const getAircraftByFrequency = (flights: FlightData[]) => {
     if (!flights) return [];
@@ -190,15 +188,19 @@
   bind:filterValues={filters.airline}
   title="Airline"
   placeholder="Search airlines"
-  icon="airline"
+  triggerIcon="airline"
   disabled={!airline.length}
   options={airline}
-/>
+>
+  {#snippet itemIcon(value)}
+    <AirlineIcon airline={airlineData.byName.get(value) ?? null} />
+  {/snippet}
+</SelectFilter>
 <SelectFilter
   bind:filterValues={filters.aircraft}
   title="Aircraft"
   placeholder="Search aircraft"
-  icon="plane"
+  triggerIcon="plane"
   disabled={!aircraft.length}
   options={aircraft}
 />
@@ -206,7 +208,7 @@
   bind:filterValues={filters.aircraftRegs}
   title="Tail Number"
   placeholder="Search tail numbers"
-  icon="plane"
+  triggerIcon="plane"
   disabled={!aircraftRegs.length}
   options={aircraftRegs}
 />
