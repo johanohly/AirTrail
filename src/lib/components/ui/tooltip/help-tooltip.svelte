@@ -23,7 +23,7 @@
       <Info size="15" />
     {/if}
   </Popover.Trigger>
-  <Popover.Content side="top">
+  <Popover.Content side="top" class="z-50 overflow-hidden rounded-md border px-3 py-1.5 text-sm shadow-md">
     {#if content}
       {@render content()}
     {:else}
