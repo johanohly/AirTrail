@@ -53,10 +53,11 @@
   </div>
 {:else}
   <div class="flex flex-col" use:autoAnimate>
-    {#each flightsByYear as { year, flights } (year)}
+    {#each flightsByYear as { year, flights }, yearIndex (year)}
+      {@const isLastYear = yearIndex === flightsByYear.length - 1}
       <div use:autoAnimate>
         {#each flights as flight, index (flight.id)}
-          {@const isLast = index === flights.length - 1}
+          {@const isLastFlight = index === flights.length - 1}
           {@const isSelected = selecting && selectedFlights.includes(flight.id)}
           <div class="isolate">
             <SwipeableFlightRow
@@ -84,7 +85,7 @@
               {/snippet}
             </SwipeableFlightRow>
             <!-- Separator outside swipeable content with its own stacking context -->
-            {#if !isLast}
+            {#if !(isLastFlight && isLastYear)}
               <div class="relative z-10 h-px bg-border"></div>
             {/if}
           </div>
