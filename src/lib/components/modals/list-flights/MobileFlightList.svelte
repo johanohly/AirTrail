@@ -58,7 +58,7 @@
         {#each flights as flight, index (flight.id)}
           {@const isLast = index === flights.length - 1}
           {@const isSelected = selecting && selectedFlights.includes(flight.id)}
-          <div>
+          <div class="isolate">
             <SwipeableFlightRow
               disabled={selecting}
               onEdit={() => onEdit?.(flight)}
@@ -83,9 +83,9 @@
                 </button>
               {/snippet}
             </SwipeableFlightRow>
-            <!-- Separator outside swipeable content -->
+            <!-- Separator outside swipeable content with its own stacking context -->
             {#if !isLast}
-              <div class="relative z-10 border-b border-border bg-background"></div>
+              <div class="relative z-10 h-px bg-border"></div>
             {/if}
           </div>
         {/each}
