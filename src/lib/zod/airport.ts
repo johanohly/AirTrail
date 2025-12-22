@@ -35,7 +35,7 @@ export const flightAirportSchema = z.object({
   id: z.number(),
   type: z.enum(AirportTypes),
   name: z.string(),
-  municipality: z.string().nullable(),
+  municipality: z.string().nullable().default(null),
   lat: z.number(),
   lon: z.number(),
   continent: z.enum(Continents),
