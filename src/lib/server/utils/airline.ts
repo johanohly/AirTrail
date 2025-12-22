@@ -248,9 +248,7 @@ export const populateDefaultAirlineIcons = async (options?: {
     return 0;
   }
 
-  console.log(
-    `Fetching default icons for ${airlines.length} airline(s) from GitHub...`,
-  );
+  console.log(`Fetching default airline icons from GitHub...`);
 
   let icaoToIcon: Map<string, IconData>;
   try {

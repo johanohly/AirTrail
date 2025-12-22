@@ -124,7 +124,7 @@ export const updateAirports = async () => {
       FROM (VALUES ${sql.join(
         batch.map(
           (a) =>
-            sql`(${a.id}, ${a.icao}, ${a.iata}, ${a.lat}, ${a.lon}, ${a.tz}, ${a.name}, ${a.municipality}, ${a.type}, ${a.continent}, ${a.country}, ${a.custom})`,
+            sql`(${a.id}::int, ${a.icao}, ${a.iata}, ${a.lat}::float8, ${a.lon}::float8, ${a.tz}, ${a.name}, ${a.municipality}, ${a.type}, ${a.continent}, ${a.country}, ${a.custom}::bool)`,
         ),
       )}) AS v(id, icao, iata, lat, lon, tz, name, municipality, type, continent, country, custom)
       WHERE airport.id = v.id
