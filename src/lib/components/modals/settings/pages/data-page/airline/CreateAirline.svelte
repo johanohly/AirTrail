@@ -6,8 +6,10 @@
 
   import AirlineFormFields from './AirlineFormFields.svelte';
 
+  import IconUploadField from '$lib/components/form-fields/IconUploadField.svelte';
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
+  import { Label } from '$lib/components/ui/label';
   import { Modal } from '$lib/components/ui/modal';
   import { trpc } from '$lib/trpc';
   import { airlineSearchCache } from '$lib/utils/data/airlines';
@@ -15,14 +17,43 @@
 
   let { open = $bindable(false), withoutTrigger } = $props();
 
+  let pendingIconFile = $state<File | null>(null);
+
+  async function uploadPendingIcon(airlineId: number) {
+    if (!pendingIconFile) return;
+
+    const formData = new FormData();
+    formData.append('file', pendingIconFile);
+    formData.append('airlineId', airlineId.toString());
+
+    try {
+      const response = await fetch('/api/airline/icon', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+      if (!result.success) {
+        toast.error(result.error || 'Failed to upload icon');
+      }
+    } catch {
+      toast.error('Failed to upload icon');
+    }
+  }
+
   const form = superForm(
     defaults<Infer<typeof airlineSchema>>(zod(airlineSchema)),
     {
       dataType: 'json',
       validators: zod(airlineSchema),
-      onUpdated({ form }) {
+      async onUpdated({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
+            // Upload pending icon if one was selected
+            if (pendingIconFile && form.message.id) {
+              await uploadPendingIcon(form.message.id);
+            }
+            pendingIconFile = null;
             trpc.airline.list.utils.invalidate();
             airlineSearchCache.clear();
             open = false;
@@ -52,9 +83,15 @@
     use:enhance
   >
     <AirlineFormFields {form} />
-    <p class="text-sm text-muted-foreground">
-      You can add an icon after creating the airline by editing it.
-    </p>
+    <div class="space-y-2">
+      <Label>Icon</Label>
+      <IconUploadField
+        currentIconPath={null}
+        airlineId={null}
+        pendingMode={true}
+        bind:pendingFile={pendingIconFile}
+      />
+    </div>
     <Form.Button>Create</Form.Button>
   </form>
 </Modal>

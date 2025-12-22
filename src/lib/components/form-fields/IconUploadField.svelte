@@ -4,31 +4,79 @@
 
   import { Button } from '$lib/components/ui/button';
 
+  const ALLOWED_TYPES = [
+    'image/png',
+    'image/jpeg',
+    'image/svg+xml',
+    'image/webp',
+  ];
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
   let {
     currentIconPath = null,
     airlineId,
     onUpload,
     onRemove,
+    pendingMode = false,
+    pendingFile = $bindable<File | null>(null),
   }: {
     currentIconPath: string | null;
     airlineId: number | null;
     onUpload?: (path: string) => void;
     onRemove?: () => void;
+    pendingMode?: boolean;
+    pendingFile?: File | null;
   } = $props();
 
   let fileInput: HTMLInputElement;
   let uploading = $state(false);
   let removing = $state(false);
   let cacheKey = $state(Date.now());
+  let pendingPreviewUrl = $state<string | null>(null);
+
+  // Create preview URL for pending file
+  $effect(() => {
+    if (pendingMode && pendingFile) {
+      const url = URL.createObjectURL(pendingFile);
+      pendingPreviewUrl = url;
+      return () => URL.revokeObjectURL(url);
+    } else {
+      pendingPreviewUrl = null;
+    }
+  });
 
   const iconUrl = $derived(
-    currentIconPath ? `/api/uploads/${currentIconPath}?v=${cacheKey}` : null,
+    pendingMode
+      ? pendingPreviewUrl
+      : currentIconPath
+        ? `/api/uploads/${currentIconPath}?v=${cacheKey}`
+        : null,
   );
 
-  async function handleFileSelect(event: Event) {
-    const target = event.target as HTMLInputElement;
-    const file = target.files?.[0];
-    if (!file || !airlineId) return;
+  function validateFile(file: File): string | null {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return 'Invalid file type. Use PNG, JPG, SVG, or WebP.';
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return 'File too large (max 5MB).';
+    }
+    return null;
+  }
+
+  async function processFile(file: File) {
+    const error = validateFile(file);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+
+    // In pending mode, just store the file for later upload
+    if (pendingMode) {
+      pendingFile = file;
+      return;
+    }
+
+    if (!airlineId) return;
 
     uploading = true;
     const formData = new FormData();
@@ -53,11 +101,43 @@
       toast.error('Failed to upload icon');
     } finally {
       uploading = false;
-      target.value = '';
+    }
+  }
+
+  async function handleFileSelect(event: Event) {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+    target.value = '';
+    if (!file) return;
+    await processFile(file);
+  }
+
+  function handlePaste(event: ClipboardEvent) {
+    if (!pendingMode && !airlineId) return;
+    if (uploading || removing) return;
+
+    const items = event.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        event.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          processFile(file);
+        }
+        return;
+      }
     }
   }
 
   async function handleRemove() {
+    // In pending mode, just clear the pending file
+    if (pendingMode) {
+      pendingFile = null;
+      return;
+    }
+
     if (!airlineId) return;
 
     removing = true;
@@ -83,11 +163,13 @@
   }
 
   function triggerUpload() {
-    if (!uploading && !removing && airlineId) {
+    if (!uploading && !removing && (pendingMode || airlineId)) {
       fileInput.click();
     }
   }
 </script>
+
+<svelte:window onpaste={handlePaste} />
 
 <input
   bind:this={fileInput}
@@ -95,7 +177,7 @@
   accept=".png,.jpg,.jpeg,.svg,.webp"
   onchange={handleFileSelect}
   class="hidden"
-  disabled={!airlineId}
+  disabled={!pendingMode && !airlineId}
 />
 
 <div class="flex items-start gap-4">
@@ -103,7 +185,7 @@
   <button
     type="button"
     onclick={triggerUpload}
-    disabled={!airlineId || uploading || removing}
+    disabled={(!pendingMode && !airlineId) || uploading || removing}
     class="relative w-20 h-20 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 bg-muted/30 hover:bg-muted/50 transition-colors flex items-center justify-center overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed group"
   >
     {#if uploading}
@@ -138,7 +220,7 @@
         type="button"
         variant="outline"
         size="sm"
-        disabled={uploading || removing || !airlineId}
+        disabled={uploading || removing || (!pendingMode && !airlineId)}
         onclick={triggerUpload}
       >
         {#if uploading}
@@ -167,7 +249,8 @@
       {/if}
     </div>
     <p class="text-xs text-muted-foreground">
-      PNG, JPG, SVG, or WebP. Max 5MB.
+      PNG, JPG, SVG, or WebP. Max 5MB.<br />
+      You can also paste from clipboard.
     </p>
   </div>
 </div>

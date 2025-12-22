@@ -58,8 +58,15 @@ export const findAirline = async (input: string): Promise<Airline[] | null> => {
     .execute();
 };
 
-export const createAirline = async (data: Omit<Airline, 'id'>) => {
-  await db.insertInto('airline').values(data).execute();
+export const createAirline = async (
+  data: Omit<Airline, 'id'>,
+): Promise<number> => {
+  const result = await db
+    .insertInto('airline')
+    .values(data)
+    .returning('id')
+    .executeTakeFirstOrThrow();
+  return result.id;
 };
 
 export const updateAirline = async (data: Airline) => {
@@ -96,8 +103,9 @@ export const validateAndSaveAirline = async (
       message: 'Airline updated',
     };
   } else {
+    let newId: number;
     try {
-      await createAirline({
+      newId = await createAirline({
         name: airline.name,
         icao: airline.icao,
         iata: airline.iata,
@@ -114,6 +122,7 @@ export const validateAndSaveAirline = async (
     return {
       success: true,
       message: 'Airline created',
+      id: newId,
     };
   }
 };

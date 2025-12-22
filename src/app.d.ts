@@ -11,7 +11,7 @@ declare global {
     }
 
     namespace Superforms {
-      type Message = { type: 'success' | 'error'; text: string };
+      type Message = { type: 'success' | 'error'; text: string; id?: number };
     }
   }
 }

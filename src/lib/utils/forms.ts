@@ -7,7 +7,7 @@ import {
 export type ErrorActionResult = {
   success: boolean;
 } & (
-  | { success: true; message: string }
+  | { success: true; message: string; id?: number }
   | { success: false; type: 'path'; path: string; message: string }
   | { success: false; type: 'error'; message: string }
   | { success: false; type: 'httpError'; status: number; message: string }
@@ -18,7 +18,7 @@ export const handleErrorActionResult = (
   result: ErrorActionResult,
 ) => {
   if (result.success) {
-    form.message = { type: 'success', text: result.message };
+    form.message = { type: 'success', text: result.message, id: result.id };
     return actionResult('success', { form });
   }
 
