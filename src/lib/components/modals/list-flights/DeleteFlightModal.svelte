@@ -2,11 +2,9 @@
   import FlightCard from './FlightCard.svelte';
 
   import { Button } from '$lib/components/ui/button';
-  import * as Dialog from '$lib/components/ui/dialog';
-  import * as Drawer from '$lib/components/ui/drawer';
   import { Input } from '$lib/components/ui/input';
+  import { Modal } from '$lib/components/ui/modal';
   import type { Airline, Airport } from '$lib/db/types';
-  import { isMediumScreen } from '$lib/utils/size';
 
   type Flight = {
     id: number;
@@ -47,15 +45,15 @@
     }
   };
 
-  const handleOpenChange = (isOpen: boolean) => {
-    open = isOpen;
-    if (!isOpen) {
+  // Reset input when modal closes
+  $effect(() => {
+    if (!open) {
       confirmationInput = '';
     }
-  };
+  });
 </script>
 
-{#snippet content()}
+<Modal bind:open preset="alert">
   <div class="flex flex-col gap-4 min-w-0">
     <div class="flex flex-col gap-1">
       <h2 class="text-lg font-semibold">Delete flight</h2>
@@ -100,18 +98,4 @@
       </Button>
     </div>
   </div>
-{/snippet}
-
-{#if $isMediumScreen}
-  <Dialog.Root open={open} onOpenChange={handleOpenChange}>
-    <Dialog.Content class="max-w-md" closeButton={false}>
-      {@render content()}
-    </Dialog.Content>
-  </Dialog.Root>
-{:else}
-  <Drawer.Root open={open} onOpenChange={handleOpenChange}>
-    <Drawer.Content>
-      {@render content()}
-    </Drawer.Content>
-  </Drawer.Root>
-{/if}
+</Modal>

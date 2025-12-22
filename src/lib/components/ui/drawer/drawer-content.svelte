@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Drawer as DrawerPrimitive } from 'vaul-svelte';
+  import { Drawer as DrawerPrimitive } from '@johly/vaul-svelte';
 
   import DrawerOverlay from './drawer-overlay.svelte';
 
@@ -18,7 +18,7 @@
   <DrawerPrimitive.Content
     bind:ref
     class={cn(
-      'z-50 bg-background mt-24 fixed bottom-0 left-0 right-0 flex max-h-[90%] flex-col rounded-t-[10px] border',
+      'z-50 bg-background mt-24 fixed bottom-0 left-0 right-0 flex max-h-[90%] flex-col rounded-t-[10px] border-t',
       className,
     )}
     {...restProps}

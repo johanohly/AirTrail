@@ -38,6 +38,7 @@
     "@formkit/auto-animate": "^0.8.2",
     "@humanspeak/svelte-virtual-list": "^0.2.6",
     "@internationalized/date": "^3.8.2",
+    "@johly/vaul-svelte": "1.0.0-next.10",
     "@layerstack/utils": "^2.0.0-next.14",
     "@lucia-auth/adapter-postgresql": "^3.1.2",
     "@node-rs/argon2": "^2.0.2",
@@ -75,7 +76,6 @@
     "tailwind-variants": "^2.1.0",
     "tar": "^7.5.2",
     "trpc-svelte-query": "^2.1.0",
-    "vaul-svelte": "^1.0.0-next.7",
     "zod": "^3.25.16"
   },
   "devDependencies": {

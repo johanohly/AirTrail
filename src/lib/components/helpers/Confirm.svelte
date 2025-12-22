@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
 
-  import * as AlertDialog from '$lib/components/ui/alert-dialog';
+  import { Button } from '$lib/components/ui/button';
+  import { Modal } from '$lib/components/ui/modal';
 
   let {
     onConfirm,
@@ -22,25 +23,27 @@
   let open = $state(false);
 </script>
 
-<AlertDialog.Root bind:open>
-  <AlertDialog.Trigger>
-    {#snippet child({ props })}
-      {@render triggerContent({ props })}
-    {/snippet}
-  </AlertDialog.Trigger>
-  <AlertDialog.Content>
-    <AlertDialog.Header>
-      <AlertDialog.Title>{title}</AlertDialog.Title>
-      <AlertDialog.Description>{description}</AlertDialog.Description>
-    </AlertDialog.Header>
-    <AlertDialog.Footer>
-      <AlertDialog.Cancel>{cancelText}</AlertDialog.Cancel>
-      <AlertDialog.Action
+{@render triggerContent({ props: { onclick: () => (open = true) } })}
+
+<Modal bind:open preset="alert">
+  <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-1.5">
+      <h2 class="text-lg font-semibold">{title}</h2>
+      <p class="text-sm text-muted-foreground">{description}</p>
+    </div>
+    <div class="flex justify-end gap-2">
+      <Button variant="outline" onclick={() => (open = false)}>
+        {cancelText}
+      </Button>
+      <Button
+        variant="destructive"
         onclick={async () => {
           await onConfirm();
           open = false;
-        }}>{confirmText}</AlertDialog.Action
+        }}
       >
-    </AlertDialog.Footer>
-  </AlertDialog.Content>
-</AlertDialog.Root>
+        {confirmText}
+      </Button>
+    </div>
+  </div>
+</Modal>

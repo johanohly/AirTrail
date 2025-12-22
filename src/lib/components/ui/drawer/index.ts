@@ -1,4 +1,4 @@
-import { Drawer as DrawerPrimitive } from 'vaul-svelte';
+import { Drawer as DrawerPrimitive } from '@johly/vaul-svelte';
 
 import Content from './drawer-content.svelte';
 import Description from './drawer-description.svelte';

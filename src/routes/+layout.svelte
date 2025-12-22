@@ -42,7 +42,9 @@
     <SettingsModal bind:open={openModalsState.settings} />
     <AddFlightModal bind:open={openModalsState.addFlight} />
 
-    {@render children()}
+    <main class="h-full" data-vaul-drawer-wrapper>
+      {@render children()}
+    </main>
 
     {#if data.user && !page.error && !['/login', '/setup'].includes(page.url.pathname)}
       <NavigationDock />
