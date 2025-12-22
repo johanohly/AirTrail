@@ -1,4 +1,5 @@
 import { find } from 'geo-tz';
+import { sql } from 'kysely';
 
 import { db } from '$lib/db';
 import type { Airport } from '$lib/db/types';
@@ -105,12 +106,29 @@ export const updateAirports = async () => {
       .execute();
   }
 
-  for (const airport of updatedAirports) {
-    await db
-      .updateTable('airport')
-      .set(airport)
-      .where('id', '=', airport.id)
-      .execute();
+  for (let i = 0; i < updatedAirports.length; i += BATCH_SIZE) {
+    const batch = updatedAirports.slice(i, i + BATCH_SIZE);
+    await sql`
+      UPDATE airport SET
+        icao = v.icao,
+        iata = v.iata,
+        lat = v.lat,
+        lon = v.lon,
+        tz = v.tz,
+        name = v.name,
+        municipality = v.municipality,
+        type = v.type,
+        continent = v.continent,
+        country = v.country,
+        custom = v.custom
+      FROM (VALUES ${sql.join(
+        batch.map(
+          (a) =>
+            sql`(${a.id}, ${a.icao}, ${a.iata}, ${a.lat}, ${a.lon}, ${a.tz}, ${a.name}, ${a.municipality}, ${a.type}, ${a.continent}, ${a.country}, ${a.custom})`,
+        ),
+      )}) AS v(id, icao, iata, lat, lon, tz, name, municipality, type, continent, country, custom)
+      WHERE airport.id = v.id
+    `.execute(db);
   }
 
   for (let i = 0; i < removedAirports.length; i += BATCH_SIZE) {
