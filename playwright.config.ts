@@ -11,7 +11,7 @@ export default defineConfig({
   reporter: process.env.CI ? [['list'], ['github'], ['html']] : [['list'], ['html']],
   use: {
     baseURL: 'http://localhost:3000',
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
     video: 'retain-on-failure',
     screenshot: 'only-on-failure',
     locale: 'en-US',

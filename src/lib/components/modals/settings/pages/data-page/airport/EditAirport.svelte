@@ -22,7 +22,11 @@
 
   const form = superForm(
     defaults<Infer<typeof airportSchema>>(
-      { ...airport, iata: airport.iata || '' },
+      {
+        ...airport,
+        iata: airport.iata || '',
+        municipality: airport.municipality || '',
+      },
       zod(airportSchema),
     ),
     {

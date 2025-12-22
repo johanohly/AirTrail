@@ -13,6 +13,7 @@ test.describe('Add Flight', () => {
     const { airport: fromAirport } = await airportsFactory.getOrCreate({
       icao: 'KJFK',
       name: 'John F Kennedy International Airport',
+      municipality: 'New York',
       lat: 40.6413,
       lon: -73.7781,
       country: 'US',
@@ -25,6 +26,7 @@ test.describe('Add Flight', () => {
     const { airport: toAirport } = await airportsFactory.getOrCreate({
       icao: 'EGLL',
       name: 'London Heathrow Airport',
+      municipality: 'London',
       lat: 51.47,
       lon: -0.4543,
       country: 'GB',
@@ -48,17 +50,14 @@ test.describe('Add Flight', () => {
           .locator('input[placeholder="Select an airport"]')
           .first();
         await fromField.click();
-        await fromField.fill('JFK');
+        await fromField.fill(fromAirport.iata);
 
         // Wait for dropdown to appear and select the airport
         await page.waitForTimeout(500); // Wait for debounce
-        await expect(
-          page.getByText(/John F Kennedy International Airport/i),
-        ).toBeVisible({ timeout: 10000 });
-        await page
-          .getByText(/John F Kennedy International Airport/i)
-          .first()
-          .click();
+        await expect(page.getByText(fromAirport.name)).toBeVisible({
+          timeout: 10000,
+        });
+        await page.getByText(fromAirport.name).first().click();
 
         // Fill in arrival airport - search for LHR
         await modal.getByText(/^To \*$/i).waitFor({ timeout: 5000 });
@@ -66,17 +65,14 @@ test.describe('Add Flight', () => {
           .locator('input[placeholder="Select an airport"]')
           .nth(1);
         await toField.click();
-        await toField.fill('LHR');
+        await toField.fill(toAirport.iata);
 
         // Wait for dropdown and select the airport
         await page.waitForTimeout(500); // Wait for debounce
-        await expect(page.getByText(/London Heathrow Airport/i)).toBeVisible({
+        await expect(page.getByText(toAirport.name)).toBeVisible({
           timeout: 10000,
         });
-        await page
-          .getByText(/London Heathrow Airport/i)
-          .first()
-          .click();
+        await page.getByText(toAirport.name).first().click();
 
         // Fill in departure date - use the hidden input field
         // The form uses a hidden input with name="departure" that stores the ISO datetime string

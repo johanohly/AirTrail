@@ -50,6 +50,7 @@ export const validateAndSaveAirport = async (
   const airport = {
     ...data,
     iata: data.iata !== '' ? data.iata : null,
+    municipality: data.municipality !== '' ? data.municipality : null,
     custom: true,
   };
 

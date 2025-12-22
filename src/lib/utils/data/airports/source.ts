@@ -13,31 +13,53 @@ export const ensureAirports = async () => {
     .selectFrom('airport')
     .where('custom', '=', false)
     .execute();
-  if (airports.length > 0) {
+
+  if (airports.length === 0) {
+    // No airports at all - do initial population
+    console.log('Populating initial airport database...');
+    console.time('Populate initial airport database');
+
+    const data = await fetchAirports();
+
+    // Check for existing (custom) airports to avoid duplicates
+    const existingAirports = await db
+      .selectFrom('airport')
+      .selectAll()
+      .execute();
+    const existingMap = new Map(existingAirports.map((a) => [a.icao, a]));
+
+    const newAirports = data.filter((airport) => {
+      const existing = existingMap.get(airport.icao);
+      return !existing;
+    });
+
+    for (let i = 0; i < newAirports.length; i += BATCH_SIZE) {
+      await db
+        .insertInto('airport')
+        .values(newAirports.slice(i, i + BATCH_SIZE))
+        .execute();
+    }
+
+    console.timeEnd('Populate initial airport database');
     return;
   }
 
-  console.time('Populate initial airport database');
+  // Check if any non-custom airport has a municipality (migration check)
+  const anyWithMunicipality = await db
+    .selectFrom('airport')
+    .select('id')
+    .where('custom', '=', false)
+    .where('municipality', 'is not', null)
+    .limit(1)
+    .executeTakeFirst();
 
-  const data = await fetchAirports();
-
-  // Check for existing (custom) airports to avoid duplicates
-  const existingAirports = await db.selectFrom('airport').selectAll().execute();
-  const existingMap = new Map(existingAirports.map((a) => [a.icao, a]));
-
-  const newAirports = data.filter((airport) => {
-    const existing = existingMap.get(airport.icao);
-    return !existing;
-  });
-
-  for (let i = 0; i < newAirports.length; i += BATCH_SIZE) {
-    await db
-      .insertInto('airport')
-      .values(newAirports.slice(i, i + BATCH_SIZE))
-      .execute();
+  if (!anyWithMunicipality) {
+    // Need to re-import to populate municipality
+    console.log('Re-importing airports to populate municipality...');
+    console.time('Re-importing airports to populate municipality');
+    await updateAirports();
+    console.timeEnd('Re-importing airports to populate municipality');
   }
-
-  console.timeEnd('Populate initial airport database');
 };
 
 export const updateAirports = async () => {
@@ -155,6 +177,7 @@ export const fetchAirports = async (): Promise<InsertAirport[]> => {
         iata: airport.iata_code === '' ? null : airport.iata_code,
         type: airport.type,
         name: airport.name,
+        municipality: airport.municipality || null,
         lat: airport.latitude_deg,
         lon: airport.longitude_deg,
         continent: airport.continent,

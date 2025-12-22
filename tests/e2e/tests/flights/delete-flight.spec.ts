@@ -14,6 +14,7 @@ test.describe('Delete Flight', () => {
     const { airport: fromAirport } = await airportsFactory.getOrCreate({
       icao: 'KJFK',
       name: 'John F Kennedy International Airport',
+      municipality: 'New York',
       lat: 40.6413,
       lon: -73.7781,
       country: 'US',
@@ -26,6 +27,7 @@ test.describe('Delete Flight', () => {
     const { airport: toAirport } = await airportsFactory.getOrCreate({
       icao: 'EGLL',
       name: 'London Heathrow Airport',
+      municipality: 'London',
       lat: 51.47,
       lon: -0.4543,
       country: 'GB',
@@ -69,39 +71,19 @@ test.describe('Delete Flight', () => {
         // Wait for the card to be visible
         await expect(flightCard).toBeVisible({ timeout: 5000 });
 
-        // Find all buttons in the card and click the last one (usually the delete button)
+        // Find all buttons in the card and click the last one
         const allButtons = flightCard.locator('button');
-        const buttonCount = await allButtons.count();
 
-        if (buttonCount > 0) {
-          // The delete button is typically the last button in the actions area
-          await allButtons.last().click();
-        } else {
-          // Fallback: Look for button containing an X icon
-          const deleteButton = modal
-            .locator('button')
-            .filter({
-              has: page.locator(
-                'svg, [aria-label*="delete"], [aria-label*="remove"], [aria-label*="Remove"]',
-              ),
-            })
-            .filter({
-              has: flightCard,
-            })
-            .first();
+        // The delete button is the last button in the actions area
+        await allButtons.last().click();
 
-          if ((await deleteButton.count()) > 0) {
-            await deleteButton.click();
-          }
-        }
-
-        // Confirm deletion in the confirmation dialog (this is a separate modal)
-        await expect(page.getByText('Remove Flight')).toBeVisible({
-          timeout: 5000,
-        });
+        // Confirm deletion in the confirmation dialog
+        await page
+          .locator('input[id="confirmation"]')
+          .fill(`${fromAirport.iata}-${toAirport.iata}`);
 
         // Click confirm button
-        await page.getByRole('button', { name: 'Confirm' }).click();
+        await page.getByRole('button', { name: 'Delete flight' }).click();
 
         // Wait for success toast
         await expect(page.getByText(/flight deleted/i)).toBeVisible({
@@ -129,6 +111,7 @@ test.describe('Delete Flight', () => {
     const { airport: fromAirport } = await airportsFactory.getOrCreate({
       icao: 'KMIA',
       name: 'Miami International Airport',
+      municipality: 'Miami',
       lat: 25.7959,
       lon: -80.287,
       country: 'US',
@@ -141,6 +124,7 @@ test.describe('Delete Flight', () => {
     const { airport: toAirport } = await airportsFactory.getOrCreate({
       icao: 'OMDB',
       name: 'Dubai International Airport',
+      municipality: 'Dubai',
       lat: 25.2532,
       lon: 55.3657,
       country: 'AE',
@@ -186,29 +170,10 @@ test.describe('Delete Flight', () => {
 
         await expect(flightCard).toBeVisible({ timeout: 5000 });
 
-        // Find the delete button (last button in the card is typically the delete button)
+        // Find the delete button (last button in the card is the delete button)
         const allButtons = flightCard.locator('button');
-        const buttonCount = await allButtons.count();
 
-        if (buttonCount > 0) {
-          await allButtons.last().click();
-        } else {
-          // Fallback: look for button with X icon
-          const deleteButton = modal
-            .locator('button')
-            .filter({ has: page.locator('svg') })
-            .filter({ hasText: /MIA|DXB|OMDB/i })
-            .last();
-
-          if ((await deleteButton.count()) > 0) {
-            await deleteButton.click();
-          }
-        }
-
-        // Cancel deletion
-        await expect(page.getByText('Remove Flight')).toBeVisible({
-          timeout: 5000,
-        });
+        await allButtons.last().click();
 
         // Click cancel button
         await page.getByRole('button', { name: 'Cancel' }).click();

@@ -3,34 +3,38 @@ import { isPathname } from '@test/fixtures/url';
 import { db, test } from '@test/index';
 import { generateId } from 'lucia';
 
-test('can complete set up', async ({ page }) => {
-  await db.deleteFrom('user').execute();
+test.describe.configure({ mode: 'serial' });
 
-  const testUser = {
-    username: `setup_user_${generateId(8)}`,
-    password: 'testPassword123',
-    displayName: 'Setup Test User',
-  };
+test.describe('Setup', async () => {
+  test('can complete set up', async ({ page }) => {
+    await db.deleteFrom('user').execute();
 
-  await page.goto('/');
-  await page.waitForURL(/\/setup/);
+    const testUser = {
+      username: `setup_user_${generateId(8)}`,
+      password: 'testPassword123',
+      displayName: 'Setup Test User',
+    };
 
-  await page.fill('input[name="username"]', testUser.username);
-  await page.fill('input[name="password"]', testUser.password);
-  await page.fill('input[name="displayName"]', testUser.displayName);
-  await page.click('button[type="submit"]');
+    await page.goto('/');
+    await page.waitForURL(/\/setup/);
 
-  await page.waitForURL(isPathname('/'));
+    await page.fill('input[name="username"]', testUser.username);
+    await page.fill('input[name="password"]', testUser.password);
+    await page.fill('input[name="displayName"]', testUser.displayName);
+    await page.click('button[type="submit"]');
 
-  await db
-    .deleteFrom('user')
-    .where('username', '=', testUser.username)
-    .execute();
-});
+    await page.waitForURL(isPathname('/'));
 
-test('cannot complete set up if user already exists', async ({ page }) => {
-  await usersFactory.create();
+    await db
+      .deleteFrom('user')
+      .where('username', '=', testUser.username)
+      .execute();
+  });
 
-  await page.goto('/setup');
-  await page.waitForURL(isPathname('/login'));
+  test('cannot complete set up if user already exists', async ({ page }) => {
+    await usersFactory.create();
+
+    await page.goto('/setup');
+    await page.waitForURL(isPathname('/login'));
+  });
 });

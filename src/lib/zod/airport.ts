@@ -12,6 +12,7 @@ export const airportSchema = z.object({
     // @ts-expect-error - z.enum always defaults to the first enum value, but we dont want a default
     .default(''),
   name: z.string().min(1, 'Set a name'),
+  municipality: z.string(),
   // @ts-expect-error - z.number always defaults to 0, but we dont want a default
   lat: z.number({ message: 'Set the latitude' }).default(null),
   // @ts-expect-error - z.number always defaults to 0, but we dont want a default
@@ -34,6 +35,7 @@ export const flightAirportSchema = z.object({
   id: z.number(),
   type: z.enum(AirportTypes),
   name: z.string(),
+  municipality: z.string().nullable(),
   lat: z.number(),
   lon: z.number(),
   continent: z.enum(Continents),

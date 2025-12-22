@@ -33,7 +33,7 @@
 
   const getCityName = (airport: Airport | null) => {
     if (!airport) return 'Unknown';
-    return airport.name;
+    return airport.municipality || airport.name;
   };
 </script>
 
