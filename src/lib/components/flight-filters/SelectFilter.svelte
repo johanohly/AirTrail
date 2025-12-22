@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Check, Funnel } from '@o7/icon/lucide';
+  import { Check, Funnel, Plane, PlaneLanding, PlaneTakeoff } from '@o7/icon';
+  import { Airlines } from '@o7/icon/material';
 
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
@@ -12,12 +13,14 @@
     filterValues = $bindable<string[]>(),
     title,
     placeholder,
+    icon,
     disabled,
     options,
   }: {
     filterValues: string[];
     title: string;
     placeholder: string;
+    icon: string;
     disabled: boolean;
     options: { value: string; label: string; shortLabel?: string }[];
   } = $props();
@@ -60,7 +63,17 @@
         {...props}
         {disabled}
       >
-        <Funnel size={16} class="mr-2" />
+        {#if icon == 'plane'}
+          <Plane size={16} class="mr-2" />
+        {:else if icon == 'depart'}
+          <PlaneTakeoff size={16} class="mr-2" />
+        {:else if icon == 'arrive'}
+          <PlaneLanding size={16} class="mr-2" />
+        {:else if icon == 'airline'}
+          <Airlines size={20} class="mr-2" />
+        {:else}
+          <Funnel size={16} class="mr-2" />
+        {/if}
         {title}
 
         {#if filterValues.length > 0}
