@@ -1,5 +1,18 @@
+<script lang="ts" module>
+  import { getContext } from 'svelte';
+
+  const ModalContextKey = Symbol('ModalContext');
+
+  export type ModalContext = {
+    closeModal: () => void;
+    registerHeader: () => void;
+  };
+  export const getModalContext = () =>
+    getContext<ModalContext>(ModalContextKey);
+</script>
+
 <script lang="ts">
-  import type { Snippet } from 'svelte';
+  import { setContext, type Snippet } from 'svelte';
 
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Drawer from '$lib/components/ui/drawer';
@@ -22,7 +35,6 @@
     closeOnOutsideClick = true,
     closeOnEscape = true,
     closeButton,
-    drawerNoPadding = false,
     children,
   }: {
     open: boolean;
@@ -32,12 +44,22 @@
     closeOnOutsideClick?: boolean;
     closeOnEscape?: boolean;
     closeButton?: boolean;
-    drawerNoPadding?: boolean;
     children: Snippet;
   } = $props();
 
+  const state = $state({
+    hasHeader: false,
+  });
+
+  setContext(ModalContextKey, {
+    closeModal: () => (open = false),
+    registerHeader: () => (state.hasHeader = true),
+  });
+
   const presetConfig = $derived(presets[preset]);
-  const resolvedCloseButton = $derived(closeButton ?? presetConfig.closeButton);
+  const resolvedCloseButton = $derived(
+    state.hasHeader ? false : (closeButton ?? presetConfig.closeButton),
+  );
 
   const useDialog = isMediumScreen;
 </script>
@@ -50,13 +72,14 @@
       preventScroll={false}
       escapeKeydownBehavior={closeOnEscape ? 'close' : 'ignore'}
       interactOutsideBehavior={closeOnOutsideClick ? 'close' : 'ignore'}
+      noPadding={state.hasHeader}
     >
-      {@render children?.()}
+      {@render children()}
     </Dialog.Content>
   </Dialog.Root>
 {:else}
   <Drawer.Root bind:open shouldScaleBackground>
-    <Drawer.Content {drawerNoPadding}>
+    <Drawer.Content noPadding={state.hasHeader}>
       {@render children()}
     </Drawer.Content>
   </Drawer.Root>

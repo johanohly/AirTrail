@@ -168,11 +168,28 @@ layer(base);
   body {
     @apply bg-background text-foreground;
   }
+
+  html,
+  body {
+    @apply h-full;
+  }
+
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--border, currentColor);
+  }
 }
 
-html,
-body {
-  @apply h-full;
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.max-w-screen-lg {
+  max-width: 1024px;
 }
 
 .page-container {

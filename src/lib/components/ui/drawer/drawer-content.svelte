@@ -8,10 +8,10 @@
   let {
     ref = $bindable(null),
     class: className,
-    drawerNoPadding = false,
+    noPadding = false,
     children,
     ...restProps
-  }: DrawerPrimitive.ContentProps & {drawerNoPadding?: boolean} = $props();
+  }: DrawerPrimitive.ContentProps & { noPadding?: boolean } = $props();
 </script>
 
 <DrawerPrimitive.Portal>
@@ -32,7 +32,7 @@
       >
         <div class="my-3 bg-muted h-1.5 w-12 shrink-0 rounded-full"></div>
       </div>
-      <div class:p-3={!drawerNoPadding}>
+      <div class:p-3={!noPadding}>
         {@render children?.()}
       </div>
     </div>

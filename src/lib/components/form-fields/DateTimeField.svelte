@@ -63,7 +63,7 @@
           minValue={parseDate('1970-01-01')}
           locale={navigator.language}
         >
-          <div class="flex w-full max-w-[232px] flex-col gap-1.5">
+          <div class="flex w-full flex-col gap-1.5">
             <DateField.Input
               class={cn(
                 'border-input bg-background selection:bg-primary dark:bg-input/30 selection:text-primary-foreground ring-offset-background placeholder:text-muted-foreground shadow-xs flex h-9 w-full min-w-0 rounded-md border px-3 py-[6px] text-base outline-none transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',

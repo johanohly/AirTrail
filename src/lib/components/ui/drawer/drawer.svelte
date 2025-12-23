@@ -1,5 +1,8 @@
 <script lang="ts">
-  import { Drawer as DrawerPrimitive, type ParentDrawerState } from '@johly/vaul-svelte';
+  import {
+    Drawer as DrawerPrimitive,
+    type ParentDrawerState,
+  } from '@johly/vaul-svelte';
 
   let {
     shouldScaleBackground = true,
