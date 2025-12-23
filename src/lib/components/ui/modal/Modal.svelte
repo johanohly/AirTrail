@@ -67,12 +67,16 @@
 {#if $useDialog || dialogOnly}
   <Dialog.Root bind:open>
     <Dialog.Content
-      class={cn('max-h-full overflow-y-auto', presetConfig.class, className)}
+      class={cn(
+        'max-h-full overflow-y-auto',
+        presetConfig.class,
+        { 'p-0 gap-0': state.hasHeader },
+        className,
+      )}
       closeButton={resolvedCloseButton}
       preventScroll={false}
       escapeKeydownBehavior={closeOnEscape ? 'close' : 'ignore'}
       interactOutsideBehavior={closeOnOutsideClick ? 'close' : 'ignore'}
-      noPadding={state.hasHeader}
     >
       {@render children()}
     </Dialog.Content>

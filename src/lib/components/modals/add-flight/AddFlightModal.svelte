@@ -41,7 +41,7 @@
   });
 </script>
 
-<Modal bind:open closeOnOutsideClick={false} class="max-w-screen-lg gap-0">
+<Modal bind:open closeOnOutsideClick={false} class="max-w-screen-lg">
   <ModalHeader>
     <div class="flex min-w-0 max-w-full items-center gap-1">
       <div class="flex min-w-0 items-center gap-2 px-1.5">
