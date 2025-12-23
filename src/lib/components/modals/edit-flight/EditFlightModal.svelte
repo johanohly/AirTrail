@@ -1,16 +1,13 @@
 <script lang="ts">
-  import { SquarePen } from '@o7/icon/lucide';
+  import { ChevronRight, SquarePen } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
 
-  import { AirportField, DateTimeField } from '$lib/components/form-fields';
-  import FlightInformation from '$lib/components/modals/add-flight/FlightInformation.svelte';
-  import FlightNumber from '$lib/components/modals/add-flight/FlightNumber.svelte';
-  import SeatInformation from '$lib/components/modals/add-flight/SeatInformation.svelte';
+  import { FlightForm } from '$lib/components/modals/flight-form';
   import { Button } from '$lib/components/ui/button';
-  import * as Dialog from '$lib/components/ui/dialog';
   import * as Form from '$lib/components/ui/form';
+  import { Modal, ModalFooter, ModalHeader } from '$lib/components/ui/modal';
   import { trpc } from '$lib/trpc';
   import type { FlightData } from '$lib/utils';
   import { formatAsTime, isUsingAmPm } from '$lib/utils/datetime';
@@ -75,41 +72,38 @@
   const { form: formData, enhance } = form;
 </script>
 
-<Dialog.Root bind:open>
-  {#if showTrigger}
-    <Dialog.Trigger>
-      {#snippet child({ props })}
-        <Button
-          variant="outline"
-          size="icon"
-          {...props}
-          disabled={triggerDisabled}
-        >
-          <SquarePen size={16} />
-        </Button>
-      {/snippet}
-    </Dialog.Trigger>
-  {/if}
-  <Dialog.Content
-    preventScroll={false}
-    interactOutsideBehavior="ignore"
-    class="max-h-full overflow-y-auto max-w-lg"
+{#if showTrigger}
+  <Button
+    variant="outline"
+    size="icon"
+    onclick={() => (open = true)}
+    disabled={triggerDisabled}
   >
-    <h2 class="text-lg font-medium">Edit Flight</h2>
-    <form
-      method="POST"
-      action="/api/flight/save/form"
-      use:enhance
-      class="grid gap-4"
-    >
-      <FlightNumber {form} />
-      <AirportField field="from" {form} />
-      <AirportField field="to" {form} />
-      <DateTimeField field="departure" {form} />
-      <DateTimeField field="arrival" {form} />
-      <SeatInformation {form} />
-      <FlightInformation {form} />
-      <Form.Button>Save</Form.Button>
-    </form>
-  </Dialog.Content>
-</Dialog.Root>
+    <SquarePen size={16} />
+  </Button>
+{/if}
+
+<Modal bind:open closeOnOutsideClick={false} class="max-w-screen-lg gap-0">
+  <ModalHeader>
+    <div class="flex min-w-0 max-w-full items-center gap-1">
+      <div class="flex min-w-0 items-center gap-2 px-1.5">
+        <span class="min-w-0 truncate text-sm font-semibold">Flights</span>
+      </div>
+      <ChevronRight size={14} class="text-muted-foreground shrink-0" />
+      <div class="flex min-w-0 items-center gap-2 px-1">
+        <div
+          class="flex items-center justify-center rounded-full bg-muted px-0 size-5 shrink-0"
+        >
+          <SquarePen size={14} />
+        </div>
+        <h3 class="!mt-0 max-w-sm truncate text-sm font-medium">Edit flight</h3>
+      </div>
+    </div>
+  </ModalHeader>
+  <form method="POST" action="/api/flight/save/form" use:enhance>
+    <FlightForm {form} />
+    <ModalFooter>
+      <Form.Button size="sm">Save</Form.Button>
+    </ModalFooter>
+  </form>
+</Modal>

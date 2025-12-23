@@ -4,7 +4,8 @@
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
 
-  import SeatUserField from '$lib/components/modals/add-flight/SeatUserField.svelte';
+  import SeatUserField from './SeatUserField.svelte';
+
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import * as Form from '$lib/components/ui/form';
