@@ -35,6 +35,7 @@
     closeOnOutsideClick = true,
     closeOnEscape = true,
     closeButton,
+    drawerNoPadding = false,
     children,
   }: {
     open: boolean;
@@ -44,6 +45,7 @@
     closeOnOutsideClick?: boolean;
     closeOnEscape?: boolean;
     closeButton?: boolean;
+    drawerNoPadding?: boolean;
     children: Snippet;
   } = $props();
 
@@ -83,7 +85,7 @@
   </Dialog.Root>
 {:else}
   <Drawer.Root bind:open shouldScaleBackground>
-    <Drawer.Content noPadding={state.hasHeader}>
+    <Drawer.Content noPadding={drawerNoPadding || state.hasHeader}>
       {@render children()}
     </Drawer.Content>
   </Drawer.Root>
