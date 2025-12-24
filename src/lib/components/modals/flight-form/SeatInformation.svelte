@@ -1,10 +1,10 @@
 <script lang="ts">
   import autoAnimate from '@formkit/auto-animate';
-  import { Plus } from '@o7/icon/lucide';
+  import { Plus, X } from '@o7/icon/lucide';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
 
-  import SeatUserField from './SeatUserField.svelte';
+  import PassengerPicker from './PassengerPicker.svelte';
 
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
@@ -13,15 +13,33 @@
   import * as Select from '$lib/components/ui/select';
   import { Separator } from '$lib/components/ui/separator';
   import { SeatClasses, SeatTypes } from '$lib/db/types';
-  import { toTitleCase } from '$lib/utils';
+  import { cn, toTitleCase } from '$lib/utils';
   import type { flightSchema } from '$lib/zod/flight';
+  import { TextTooltip } from '$lib/components/ui/tooltip/index.ts';
 
   let {
     form,
   }: {
     form: SuperForm<z.infer<typeof flightSchema>>;
   } = $props();
-  const { form: formData } = form;
+  const { form: formData, errors } = form;
+
+  const seatTypeLabels: Record<string, string> = {
+    window: 'Window',
+    middle: 'Middle',
+    aisle: 'Aisle',
+    pilot: 'Pilot',
+    copilot: 'Co-pilot',
+    jumpseat: 'Jumpseat',
+    other: 'Other',
+  };
+
+  const getExcludedUserIds = (currentIndex: number): string[] => {
+    return $formData.seats
+      .filter((_, i) => i !== currentIndex)
+      .map((s) => s.userId)
+      .filter((id): id is string => id !== null);
+  };
 </script>
 
 <section>
@@ -31,130 +49,139 @@
     <div class="space-y-2" use:autoAnimate>
       {#each $formData.seats as _, index}
         {#if $formData.seats[index]}
-          <Card class="grid gap-3 p-2">
-            <div class="grid grid-cols-[1fr_auto] gap-2">
-              <SeatUserField {form} {index} />
-              <button
-                type="button"
-                class="group flex items-center justify-center size-8 disabled:cursor-not-allowed"
-                disabled={$formData.seats.length === 1}
-                onclick={() => {
-                  $formData.seats = $formData.seats.filter(
-                    (_, i) => i !== index,
-                  );
-                }}
+          <Card class="overflow-hidden">
+            <div class="flex items-center gap-2 px-3 py-2">
+              <div class="flex-1 min-w-0">
+                <PassengerPicker
+                  bind:userId={$formData.seats[index].userId}
+                  bind:guestName={$formData.seats[index].guestName}
+                  excludeUserIds={getExcludedUserIds(index)}
+                  placeholderError={!!$errors?.seats?.[index]?.userId?.length}
+                />
+              </div>
+              <TextTooltip
+                content="Remove seat"
+                rootProps={{ delayDuration: 0 }}
               >
-                <span
-                  class="flex items-center justify-center size-6 rounded-full bg-secondary group-disabled:text-muted-foreground"
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  class="shrink-0 text-muted-foreground hover:text-destructive"
+                  disabled={$formData.seats.length === 1}
+                  onclick={() => {
+                    $formData.seats = $formData.seats.filter(
+                      (_, i) => i !== index,
+                    );
+                  }}
                 >
-                  <Plus
-                    size="18"
-                    class="rotate-45 group-hover:-rotate-45 group-disabled:rotate-45 transition-transform"
-                  />
-                </span>
-              </button>
+                  <X size={16} />
+                </Button>
+              </TextTooltip>
             </div>
 
-            {#if $formData.seats[index].userId && $formData.seats[index].guestName}
-              <span class="-mt-3 text-yellow-500 font-medium text-sm">
-                Ignoring guest name because user is selected
-              </span>
-            {/if}
+            <Separator />
 
-            <div class="grid grid-cols-[1fr_1fr_1fr] gap-2">
+            <div class="px-3 pt-2.5 pb-3 bg-muted/30 space-y-2">
+              <div class="grid grid-cols-[3fr_2fr] gap-2">
+                <Form.ElementField {form} name="seats[{index}].seatClass">
+                  <Form.Control>
+                    {#snippet children({ props })}
+                      <Form.Label class="text-xs">Class</Form.Label>
+                      <Select.Root
+                        type="single"
+                        value={$formData.seats[index]?.seatClass ?? undefined}
+                        onValueChange={(value) => {
+                          // @ts-expect-error - value is a SeatClass
+                          $formData.seats[index].seatClass =
+                            SeatClasses.includes(
+                              // @ts-expect-error - value is a SeatClass
+                              value,
+                            )
+                              ? value
+                              : null;
+                        }}
+                        allowDeselect
+                      >
+                        <Select.Trigger {...props} size="sm">
+                          {$formData.seats[index]?.seatClass
+                            ? toTitleCase($formData.seats[index].seatClass)
+                            : 'Select class...'}
+                        </Select.Trigger>
+                        <Select.Content>
+                          <Select.Item value="economy" label="Economy" />
+                          <Select.Item value="economy+" label="Economy+" />
+                          <Select.Item value="business" label="Business" />
+                          <Select.Item value="first" label="First" />
+                          <Select.Item value="private" label="Private" />
+                        </Select.Content>
+                      </Select.Root>
+                      <input
+                        type="hidden"
+                        value={$formData.seats[index]?.seatClass}
+                        name={props.name}
+                      />
+                    {/snippet}
+                  </Form.Control>
+                  <Form.FieldErrors />
+                </Form.ElementField>
+
+                <Form.ElementField {form} name="seats[{index}].seatNumber">
+                  <Form.Control>
+                    {#snippet children({ props })}
+                      <Form.Label class="text-xs">Seat #</Form.Label>
+                      <Input
+                        value={$formData.seats[index]?.seatNumber ?? ''}
+                        oninput={(e) => {
+                          if ($formData.seats[index]) {
+                            $formData.seats[index].seatNumber =
+                              e.currentTarget.value || null;
+                          }
+                        }}
+                        placeholder="Seat number"
+                        class="h-8 text-sm not-placeholder-shown:uppercase"
+                        {...props}
+                      />
+                    {/snippet}
+                  </Form.Control>
+                  <Form.FieldErrors />
+                </Form.ElementField>
+              </div>
+
               <Form.ElementField {form} name="seats[{index}].seat">
                 <Form.Control>
                   {#snippet children({ props })}
-                    <Form.Label>Seat</Form.Label>
-                    <Select.Root
-                      type="single"
-                      value={$formData.seats?.[index]?.seat ?? undefined}
-                      onValueChange={(value) => {
-                        // @ts-expect-error - value is a SeatType
-                        $formData.seats[index].seat = SeatTypes.includes(value)
-                          ? value
-                          : null;
-                      }}
-                      allowDeselect
-                    >
-                      <Select.Trigger {...props}>
-                        {$formData.seats[index]?.seat
-                          ? toTitleCase($formData.seats[index].seat)
-                          : 'Select seat...'}
-                      </Select.Trigger>
-                      <Select.Content>
-                        <Select.Item value="window" label="Window" />
-                        <Select.Item value="middle" label="Middle" />
-                        <Select.Item value="aisle" label="Aisle" />
-                        <Select.Item value="pilot" label="Pilot / Captain" />
-                        <Select.Item
-                          value="copilot"
-                          label="Co-pilot / First officer"
-                        />
-                        <Select.Item value="jumpseat" label="Jumpseat" />
-                        <Select.Item value="other" label="Other" />
-                      </Select.Content>
-                    </Select.Root>
+                    <Form.Label class="sr-only">Seat Type</Form.Label>
+                    <div class="flex flex-wrap gap-1.5">
+                      {#each SeatTypes as type}
+                        <button
+                          type="button"
+                          class={cn(
+                            'px-2.5 py-1 rounded-md text-xs font-medium border transition-colors',
+                            $formData.seats[index]?.seat === type
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-background text-muted-foreground border-input hover:border-foreground/20 hover:text-foreground',
+                          )}
+                          onclick={() => {
+                            if ($formData.seats[index]) {
+                              $formData.seats[index].seat =
+                                $formData.seats[index].seat === type
+                                  ? null
+                                  : type;
+                            }
+                          }}
+                        >
+                          {seatTypeLabels[type] ?? toTitleCase(type)}
+                        </button>
+                      {/each}
+                    </div>
                     <input
                       type="hidden"
-                      value={$formData.seats?.[index]?.seat}
+                      value={$formData.seats[index]?.seat}
                       name={props.name}
                     />
                   {/snippet}
                 </Form.Control>
-                <Form.FieldErrors />
-              </Form.ElementField>
-              <Form.ElementField {form} name="seats[{index}].seatNumber">
-                <Form.Control>
-                  {#snippet children({ props })}
-                    <Form.Label>Seat Number</Form.Label>
-                    <Input
-                      bind:value={$formData.seats[index].seatNumber}
-                      {...props}
-                    />
-                  {/snippet}
-                </Form.Control>
-                <Form.FieldErrors />
-              </Form.ElementField>
-              <Form.ElementField {form} name="seats[{index}].seatClass">
-                <Form.Control>
-                  {#snippet children({ props })}
-                    <Form.Label>Seat Class</Form.Label>
-                    <Select.Root
-                      type="single"
-                      value={$formData.seats?.[index]?.seatClass ?? undefined}
-                      onValueChange={(value) => {
-                        // @ts-expect-error - value is a SeatClass
-                        $formData.seats[index].seatClass = SeatClasses.includes(
-                          // @ts-expect-error - value is a SeatClass
-                          value,
-                        )
-                          ? value
-                          : null;
-                      }}
-                      allowDeselect
-                    >
-                      <Select.Trigger {...props}>
-                        {$formData.seats[index]?.seatClass
-                          ? toTitleCase($formData.seats[index].seatClass)
-                          : 'Select class...'}
-                      </Select.Trigger>
-                      <Select.Content>
-                        <Select.Item value="economy" label="Economy" />
-                        <Select.Item value="economy+" label="Economy+" />
-                        <Select.Item value="business" label="Business" />
-                        <Select.Item value="first" label="First" />
-                        <Select.Item value="private" label="Private" />
-                      </Select.Content>
-                    </Select.Root>
-                    <input
-                      type="hidden"
-                      value={$formData.seats?.[index]?.seatClass}
-                      name={props.name}
-                    />
-                  {/snippet}
-                </Form.Control>
-                <Form.FieldErrors />
               </Form.ElementField>
             </div>
           </Card>
@@ -177,6 +204,7 @@
         ];
       }}
     >
+      <Plus size={16} class="mr-1" />
       Add Seat
     </Button>
     <Form.FieldErrors />
