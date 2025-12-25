@@ -88,6 +88,7 @@
     "@sveltejs/adapter-node": "^5.2.14",
     "@sveltejs/kit": "^2.27.3",
     "@sveltejs/vite-plugin-svelte": "^6.1.1",
+    "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.11",
     "@types/d3-geo": "^3.1.0",
     "@types/d3-scale": "^4.0.9",

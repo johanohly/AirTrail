@@ -10,6 +10,7 @@
     Modal,
     ModalBody,
     ModalBreadcrumbHeader,
+    ModalFooter,
   } from '$lib/components/ui/modal';
   import * as Form from '$lib/components/ui/form';
   import type { Airport } from '$lib/db/types';
@@ -62,15 +63,14 @@
     title="Edit airport"
     icon={SquarePen}
   />
-  <ModalBody>
-    <form
-      method="POST"
-      action="/api/airport/save/form"
-      use:enhance
-      class="grid gap-4"
-    >
-      <AirportFormFields {form} />
+  <form method="POST" action="/api/airport/save/form" use:enhance>
+    <ModalBody>
+      <div class="grid gap-4">
+        <AirportFormFields {form} />
+      </div>
+    </ModalBody>
+    <ModalFooter>
       <Form.Button>Save</Form.Button>
-    </form>
-  </ModalBody>
+    </ModalFooter>
+  </form>
 </Modal>

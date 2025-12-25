@@ -67,7 +67,7 @@
   <Form.FieldErrors />
 </Form.Field>
 
-<section class="grid grid-cols-2 gap-2">
+<section class="grid grid-cols-1 gap-2 sm:grid-cols-2">
   <Form.Field {form} name="icao" class="flex flex-col">
     <Form.Control>
       {#snippet children()}

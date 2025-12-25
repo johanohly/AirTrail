@@ -12,6 +12,7 @@
     Modal,
     ModalBody,
     ModalBreadcrumbHeader,
+    ModalFooter,
   } from '$lib/components/ui/modal';
   import type { Airport } from '$lib/db/types';
   import { airportSearchCache } from '$lib/utils/data/airports/cache';
@@ -57,15 +58,14 @@
 
 <Modal bind:open>
   <ModalBreadcrumbHeader section="Airports" title="Add airport" icon={Plus} />
-  <ModalBody>
-    <form
-      method="POST"
-      action="/api/airport/save/form"
-      class="grid gap-4"
-      use:enhance
-    >
-      <AirportFormFields {form} />
+  <form method="POST" action="/api/airport/save/form" use:enhance>
+    <ModalBody>
+      <div class="grid gap-4">
+        <AirportFormFields {form} />
+      </div>
+    </ModalBody>
+    <ModalFooter>
       <Form.Button>Create</Form.Button>
-    </form>
-  </ModalBody>
+    </ModalFooter>
+  </form>
 </Modal>

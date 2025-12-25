@@ -90,7 +90,7 @@
   </div>
 {/if}
 
-<section class="grid grid-cols-2 gap-2">
+<section class="grid grid-cols-1 gap-2 sm:grid-cols-2">
   <Form.Field {form} name="country">
     <Form.Control>
       {#snippet children({ props })}
