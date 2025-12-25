@@ -1,15 +1,15 @@
 <script lang="ts">
   import autoAnimate from '@formkit/auto-animate';
   import { createCombobox, melt } from '@melt-ui/svelte';
-  import { User, UserPlus } from '@o7/icon/lucide';
+  import { User, UserPlus, UserRoundPlus } from '@o7/icon/lucide';
   import { writable } from 'svelte/store';
   import { fly } from 'svelte/transition';
 
   import { page } from '$app/state';
+  import AddUserModal from '$lib/components/modals/settings/pages/users-page/AddUserModal.svelte';
   import type { User as UserType } from '$lib/db/types';
   import { cn } from '$lib/utils';
 
-  // TODO: add ability to create user inline
   let {
     userId = $bindable<string | null>(null),
     guestName = $bindable<string | null>(null),
@@ -21,6 +21,13 @@
     excludeUserIds?: string[];
     placeholderError?: boolean;
   } = $props();
+
+  let createUser = $state(false);
+  let pendingDisplayName = $state('');
+
+  const canCreateUser = $derived(
+    page.data.user?.role === 'admin' || page.data.user?.role === 'owner',
+  );
 
   const getUsers = () => (page.data.users as UserType[]) ?? [];
 
@@ -42,7 +49,8 @@
 
   type SelectionValue =
     | { type: 'user'; user: UserType }
-    | { type: 'guest'; name: string };
+    | { type: 'guest'; name: string }
+    | { type: 'create'; name: string };
 
   const buildSelectedOption = ():
     | { label: string; value: SelectionValue }
@@ -79,6 +87,13 @@
         userId = null;
         guestName = null;
         return next;
+      }
+
+      if (next.value.type === 'create') {
+        // Open modal, don't change selection
+        pendingDisplayName = next.value.name;
+        createUser = true;
+        return undefined;
       }
 
       if (next.value.type === 'user') {
@@ -124,6 +139,20 @@
 
   const showGuestOption = $derived($inputValue.trim().length > 0);
   const trimmedInput = $derived($inputValue.trim());
+
+  const handleUserCreated = (username: string) => {
+    // Find the newly created user by username and auto-select them
+    const users = getUsers();
+    const newUser = users.find((u) => u.username === username);
+    if (newUser) {
+      userId = newUser.id;
+      guestName = null;
+      selected.set({
+        label: newUser.displayName,
+        value: { type: 'user', user: newUser },
+      });
+    }
+  };
 </script>
 
 <div class="w-full">
@@ -145,7 +174,7 @@
 
   {#if $open}
     <ul
-      class="z-5000 flex max-h-[300px] flex-col overflow-hidden rounded-lg mt-1 border bg-popover shadow-lg"
+      class="pointer-events-auto z-5000 flex max-h-[300px] flex-col overflow-hidden rounded-lg mt-1 border bg-popover shadow-lg"
       use:melt={$menu}
       transition:fly={{ duration: 150, y: -5 }}
     >
@@ -207,9 +236,35 @@
                 >" as guest
               </span>
             </li>
+            {#if canCreateUser}
+              <li
+                use:melt={$option({
+                  value: { type: 'create', name: trimmedInput },
+                  label: trimmedInput,
+                })}
+                class="cursor-pointer rounded-md px-2.5 py-2 flex items-center gap-2.5 data-highlighted:bg-background transition-colors"
+              >
+                <div
+                  class="size-7 rounded-full bg-muted flex items-center justify-center shrink-0"
+                >
+                  <UserRoundPlus size={14} class="text-muted-foreground" />
+                </div>
+                <span class="text-sm text-muted-foreground">
+                  Create new user "<span class="font-medium text-foreground"
+                    >{trimmedInput}</span
+                  >"
+                </span>
+              </li>
+            {/if}
           </div>
         {/if}
       </div>
     </ul>
   {/if}
 </div>
+
+<AddUserModal
+  bind:open={createUser}
+  initialDisplayName={pendingDisplayName}
+  onCreated={handleUserCreated}
+/>

@@ -19,18 +19,27 @@
 
   let {
     open = $bindable(),
+    initialDisplayName = '',
+    onCreated,
   }: {
     open: boolean;
+    initialDisplayName?: string;
+    onCreated?: (username: string) => void;
   } = $props();
 
+  let createdUsername: string;
   const form = superForm(
     defaults<Infer<typeof addUserSchema>>(zod(addUserSchema)),
     {
       validators: zod(addUserSchema),
-      onUpdated({ form }) {
+      onUpdate() {
+        createdUsername = $formData.username;
+      },
+      async onUpdated({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
-            invalidateAll();
+            await invalidateAll();
+            onCreated?.(createdUsername);
             open = false;
             return void toast.success(form.message.text);
           }
@@ -41,6 +50,12 @@
   );
 
   const { form: formData, enhance, submitting } = form;
+
+  $effect(() => {
+    if (open && initialDisplayName) {
+      $formData.displayName = initialDisplayName;
+    }
+  });
 </script>
 
 <Modal bind:open>

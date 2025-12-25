@@ -162,7 +162,7 @@
   </Form.Control>
   {#if $open}
     <ul
-      class="z-5000 flex max-h-[300px] flex-col overflow-hidden rounded-lg"
+      class="pointer-events-auto z-5000 flex max-h-[300px] flex-col overflow-hidden rounded-lg"
       use:melt={$menu}
       transition:fly={{ duration: 150, y: -5 }}
     >
