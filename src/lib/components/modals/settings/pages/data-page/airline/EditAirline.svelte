@@ -6,7 +6,12 @@
   import AirlineFormFields from './AirlineFormFields.svelte';
 
   import IconUploadField from '$lib/components/form-fields/IconUploadField.svelte';
-  import * as Dialog from '$lib/components/ui/dialog';
+  import { SquarePen } from '@o7/icon/lucide';
+  import {
+    Modal,
+    ModalBody,
+    ModalBreadcrumbHeader,
+  } from '$lib/components/ui/modal';
   import * as Form from '$lib/components/ui/form';
   import { Label } from '$lib/components/ui/label';
   import type { Airline } from '$lib/db/types';
@@ -68,13 +73,13 @@
   };
 </script>
 
-<Dialog.Root bind:open>
-  <Dialog.Content
-    preventScroll={false}
-    interactOutsideBehavior="ignore"
-    class="max-h-full overflow-y-auto max-w-lg"
-  >
-    <h2>Edit Airline</h2>
+<Modal bind:open closeOnOutsideClick={false} class="max-w-lg">
+  <ModalBreadcrumbHeader
+    section="Airlines"
+    title="Edit airline"
+    icon={SquarePen}
+  />
+  <ModalBody>
     <form
       method="POST"
       action="/api/airline/save/form"
@@ -93,5 +98,5 @@
       </div>
       <Form.Button>Save</Form.Button>
     </form>
-  </Dialog.Content>
-</Dialog.Root>
+  </ModalBody>
+</Modal>

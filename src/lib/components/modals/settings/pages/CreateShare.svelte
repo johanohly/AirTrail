@@ -8,7 +8,11 @@
 
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
-  import { Modal } from '$lib/components/ui/modal';
+  import {
+    Modal,
+    ModalBody,
+    ModalBreadcrumbHeader,
+  } from '$lib/components/ui/modal';
   import { shareSchema } from '$lib/zod/share';
   import { trpc } from '$lib/trpc';
   import { generateRandomString } from '$lib/utils/string';
@@ -40,15 +44,17 @@
   Create
 </Button>
 
-<Modal bind:open dialogOnly>
-  <h2 class="text-lg font-medium">Create Share</h2>
-  <form
-    method="POST"
-    action="/api/share/save/form"
-    class="grid gap-4"
-    use:enhance
-  >
-    <ShareFormFields {form} />
-    <Form.Button>Create</Form.Button>
-  </form>
+<Modal bind:open>
+  <ModalBreadcrumbHeader section="Shares" title="Create share" icon={Plus} />
+  <ModalBody>
+    <form
+      method="POST"
+      action="/api/share/save/form"
+      class="grid gap-4"
+      use:enhance
+    >
+      <ShareFormFields {form} />
+      <Form.Button>Create</Form.Button>
+    </form>
+  </ModalBody>
 </Modal>

@@ -6,7 +6,11 @@
 
   import AirportFormFields from '$lib/components/modals/settings/pages/data-page/airport/AirportFormFields.svelte';
   import { Button } from '$lib/components/ui/button';
-  import * as Dialog from '$lib/components/ui/dialog';
+  import {
+    Modal,
+    ModalBody,
+    ModalBreadcrumbHeader,
+  } from '$lib/components/ui/modal';
   import * as Form from '$lib/components/ui/form';
   import type { Airport } from '$lib/db/types';
   import { trpc } from '$lib/trpc';
@@ -48,20 +52,17 @@
   const { enhance } = form;
 </script>
 
-<Dialog.Root bind:open>
-  <Dialog.Trigger>
-    {#snippet child({ props })}
-      <Button variant="outline" size="icon" {...props}>
-        <SquarePen size="20" />
-      </Button>
-    {/snippet}
-  </Dialog.Trigger>
-  <Dialog.Content
-    preventScroll={false}
-    interactOutsideBehavior="ignore"
-    class="max-h-full overflow-y-auto max-w-lg"
-  >
-    <h2>Edit Airport</h2>
+<Button variant="outline" size="icon" onclick={() => (open = true)}>
+  <SquarePen size="20" />
+</Button>
+
+<Modal bind:open closeOnOutsideClick={false} class="max-w-lg">
+  <ModalBreadcrumbHeader
+    section="Airports"
+    title="Edit airport"
+    icon={SquarePen}
+  />
+  <ModalBody>
     <form
       method="POST"
       action="/api/airport/save/form"
@@ -71,5 +72,5 @@
       <AirportFormFields {form} />
       <Form.Button>Save</Form.Button>
     </form>
-  </Dialog.Content>
-</Dialog.Root>
+  </ModalBody>
+</Modal>

@@ -10,7 +10,11 @@
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
   import { Label } from '$lib/components/ui/label';
-  import { Modal } from '$lib/components/ui/modal';
+  import {
+    Modal,
+    ModalBody,
+    ModalBreadcrumbHeader,
+  } from '$lib/components/ui/modal';
   import { trpc } from '$lib/trpc';
   import { airlineSearchCache } from '$lib/utils/data/airlines';
   import { airlineSchema } from '$lib/zod/airline';
@@ -74,24 +78,26 @@
   </Button>
 {/if}
 
-<Modal bind:open dialogOnly>
-  <h2 class="text-lg font-medium">Add Airline</h2>
-  <form
-    method="POST"
-    action="/api/airline/save/form"
-    class="grid gap-4"
-    use:enhance
-  >
-    <AirlineFormFields {form} />
-    <div class="space-y-2">
-      <Label>Icon</Label>
-      <IconUploadField
-        currentIconPath={null}
-        airlineId={null}
-        pendingMode={true}
-        bind:pendingFile={pendingIconFile}
-      />
-    </div>
-    <Form.Button>Create</Form.Button>
-  </form>
+<Modal bind:open>
+  <ModalBreadcrumbHeader section="Airlines" title="Add airline" icon={Plus} />
+  <ModalBody>
+    <form
+      method="POST"
+      action="/api/airline/save/form"
+      class="grid gap-4"
+      use:enhance
+    >
+      <AirlineFormFields {form} />
+      <div class="space-y-2">
+        <Label>Icon</Label>
+        <IconUploadField
+          currentIconPath={null}
+          airlineId={null}
+          pendingMode={true}
+          bind:pendingFile={pendingIconFile}
+        />
+      </div>
+      <Form.Button>Create</Form.Button>
+    </form>
+  </ModalBody>
 </Modal>

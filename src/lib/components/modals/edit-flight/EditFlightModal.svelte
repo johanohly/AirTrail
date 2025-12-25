@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ChevronRight, SquarePen } from '@o7/icon/lucide';
+  import { SquarePen } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
@@ -7,7 +7,11 @@
   import { FlightForm } from '$lib/components/modals/flight-form';
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
-  import { Modal, ModalFooter, ModalHeader } from '$lib/components/ui/modal';
+  import {
+    Modal,
+    ModalBreadcrumbHeader,
+    ModalFooter,
+  } from '$lib/components/ui/modal';
   import { trpc } from '$lib/trpc';
   import type { FlightData } from '$lib/utils';
   import { formatAsTime, isUsingAmPm } from '$lib/utils/datetime';
@@ -83,23 +87,12 @@
   </Button>
 {/if}
 
-<Modal bind:open closeOnOutsideClick={false} class="max-w-screen-lg gap-0">
-  <ModalHeader>
-    <div class="flex min-w-0 max-w-full items-center gap-1">
-      <div class="flex min-w-0 items-center gap-2 px-1.5">
-        <span class="min-w-0 truncate text-sm font-semibold">Flights</span>
-      </div>
-      <ChevronRight size={14} class="text-muted-foreground shrink-0" />
-      <div class="flex min-w-0 items-center gap-2 px-1">
-        <div
-          class="flex items-center justify-center rounded-full bg-muted px-0 size-5 shrink-0"
-        >
-          <SquarePen size={14} />
-        </div>
-        <h3 class="!mt-0 max-w-sm truncate text-sm font-medium">Edit flight</h3>
-      </div>
-    </div>
-  </ModalHeader>
+<Modal bind:open closeOnOutsideClick={false} class="max-w-screen-lg">
+  <ModalBreadcrumbHeader
+    section="Flights"
+    title="Edit flight"
+    icon={SquarePen}
+  />
   <form method="POST" action="/api/flight/save/form" use:enhance>
     <FlightForm {form} />
     <ModalFooter>

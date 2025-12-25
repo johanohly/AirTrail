@@ -35,6 +35,7 @@
     closeOnOutsideClick = true,
     closeOnEscape = true,
     closeButton,
+    dialogNoPadding = false,
     drawerNoPadding = false,
     children,
   }: {
@@ -45,6 +46,7 @@
     closeOnOutsideClick?: boolean;
     closeOnEscape?: boolean;
     closeButton?: boolean;
+    dialogNoPadding?: boolean;
     drawerNoPadding?: boolean;
     children: Snippet;
   } = $props();
@@ -72,7 +74,7 @@
       class={cn(
         'max-h-full overflow-y-auto',
         presetConfig.class,
-        { 'p-0 gap-0': state.hasHeader },
+        { 'p-0 gap-0': dialogNoPadding || state.hasHeader },
         className,
       )}
       closeButton={resolvedCloseButton}

@@ -8,7 +8,11 @@
 
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
-  import { Modal } from '$lib/components/ui/modal';
+  import {
+    Modal,
+    ModalBody,
+    ModalBreadcrumbHeader,
+  } from '$lib/components/ui/modal';
   import { trpc } from '$lib/trpc';
   import { aircraftSchema } from '$lib/zod/aircraft';
   import { aircraftSearchCache } from '$lib/utils/data/aircraft';
@@ -43,15 +47,17 @@
   </Button>
 {/if}
 
-<Modal bind:open dialogOnly>
-  <h2 class="text-lg font-medium">Add Aircraft</h2>
-  <form
-    method="POST"
-    action="/api/aircraft/save/form"
-    class="grid gap-4"
-    use:enhance
-  >
-    <AircraftFormFields {form} />
-    <Form.Button>Create</Form.Button>
-  </form>
+<Modal bind:open>
+  <ModalBreadcrumbHeader section="Aircraft" title="Add aircraft" icon={Plus} />
+  <ModalBody>
+    <form
+      method="POST"
+      action="/api/aircraft/save/form"
+      class="grid gap-4"
+      use:enhance
+    >
+      <AircraftFormFields {form} />
+      <Form.Button>Create</Form.Button>
+    </form>
+  </ModalBody>
 </Modal>

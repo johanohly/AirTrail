@@ -11,7 +11,7 @@
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { Collapsible } from '$lib/components/ui/collapsible';
-  import * as Dialog from '$lib/components/ui/dialog';
+  import { Modal } from '$lib/components/ui/modal';
   import { Input } from '$lib/components/ui/input';
   import type { Airline } from '$lib/db/types';
   import { api, trpc } from '$lib/trpc';
@@ -144,36 +144,34 @@
 
 <EditAirline airline={airlineToEdit} bind:open={editOpen} />
 
-<Dialog.Root bind:open={importDialogOpen}>
-  <Dialog.Content class="max-w-md">
-    <Dialog.Header>
-      <Dialog.Title>Import Default Icons</Dialog.Title>
-      <Dialog.Description>
-        Download airline icons from the AirTrail repository for airlines that
-        have a matching ICAO code.
-      </Dialog.Description>
-    </Dialog.Header>
-    <div class="flex flex-col gap-2">
-      <Button
-        variant="outline"
-        disabled={importingIcons}
-        onclick={() => importDefaultIcons(false)}
-      >
-        {#if importingIcons}
-          <LoaderCircle size={16} class="mr-2 animate-spin" />
-        {/if}
-        Fill missing icons only
-      </Button>
-      <Button
-        variant="outline"
-        disabled={importingIcons}
-        onclick={() => importDefaultIcons(true)}
-      >
-        {#if importingIcons}
-          <LoaderCircle size={16} class="mr-2 animate-spin" />
-        {/if}
-        Overwrite all with defaults
-      </Button>
-    </div>
-  </Dialog.Content>
-</Dialog.Root>
+<Modal bind:open={importDialogOpen} class="max-w-md">
+  <div class="flex flex-col gap-1.5">
+    <h2 class="text-lg font-semibold">Import Default Icons</h2>
+    <p class="text-sm text-muted-foreground">
+      Download airline icons from the AirTrail repository for airlines that have
+      a matching ICAO code.
+    </p>
+  </div>
+  <div class="flex flex-col gap-2">
+    <Button
+      variant="outline"
+      disabled={importingIcons}
+      onclick={() => importDefaultIcons(false)}
+    >
+      {#if importingIcons}
+        <LoaderCircle size={16} class="mr-2 animate-spin" />
+      {/if}
+      Fill missing icons only
+    </Button>
+    <Button
+      variant="outline"
+      disabled={importingIcons}
+      onclick={() => importDefaultIcons(true)}
+    >
+      {#if importingIcons}
+        <LoaderCircle size={16} class="mr-2 animate-spin" />
+      {/if}
+      Overwrite all with defaults
+    </Button>
+  </div>
+</Modal>
