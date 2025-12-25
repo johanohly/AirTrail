@@ -1,7 +1,12 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
 
+  import { getModalContext } from './Modal.svelte';
+
   let { children }: { children: Snippet } = $props();
+
+  const ctx = getModalContext();
+  ctx.registerFooter();
 </script>
 
 <div

@@ -3,9 +3,16 @@
 
   const ModalContextKey = Symbol('ModalContext');
 
+  export type ModalState = {
+    hasHeader: boolean;
+    hasFooter: boolean;
+  };
+
   export type ModalContext = {
     closeModal: () => void;
     registerHeader: () => void;
+    registerFooter: () => void;
+    getState: () => ModalState;
   };
   export const getModalContext = () =>
     getContext<ModalContext>(ModalContextKey);
@@ -53,11 +60,14 @@
 
   const state = $state({
     hasHeader: false,
+    hasFooter: false,
   });
 
   setContext(ModalContextKey, {
     closeModal: () => (open = false),
     registerHeader: () => (state.hasHeader = true),
+    registerFooter: () => (state.hasFooter = true),
+    getState: () => state,
   });
 
   const presetConfig = $derived(presets[preset]);
