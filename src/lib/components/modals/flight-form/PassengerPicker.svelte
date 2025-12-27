@@ -6,7 +6,7 @@
   import { fly } from 'svelte/transition';
 
   import { page } from '$app/state';
-  import AddUserModal from '$lib/components/modals/settings/pages/users-page/AddUserModal.svelte';
+  import UserModal from '$lib/components/modals/settings/pages/users-page/UserModal.svelte';
   import type { User as UserType } from '$lib/db/types';
   import { cn } from '$lib/utils';
 
@@ -263,8 +263,9 @@
   {/if}
 </div>
 
-<AddUserModal
+<UserModal
   bind:open={createUser}
+  mode="add"
   initialDisplayName={pendingDisplayName}
-  onCreated={handleUserCreated}
+  onSuccess={handleUserCreated}
 />

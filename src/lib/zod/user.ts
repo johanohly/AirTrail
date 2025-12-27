@@ -17,6 +17,9 @@ export const userSchema = z.object({
 });
 
 export const editUserSchema = userSchema.omit({ password: true, role: true });
+export const adminEditUserSchema = userSchema
+  .omit({ password: true })
+  .extend({ id: z.string() });
 export const editPasswordSchema = z
   .object({
     currentPassword: z.string().min(8, 'Must be at least 8 characters long'),
