@@ -3,7 +3,14 @@
   import { Motion, useMotionValue, useSpring } from 'svelte-motion';
   import { SquarePen, Trash2 } from '@o7/icon/lucide';
 
+  import { getDrawerContext } from '$lib/components/ui/drawer/drawer.svelte';
   import { cn } from '$lib/utils';
+
+  const drawerContext = getDrawerContext();
+
+  // Check if drawer is being dragged (vaul adds this class during drag)
+  const isDrawerDragging = () =>
+    document.querySelector('.vaul-dragging') !== null;
 
   type SwipeZone = 'neutral' | 'edit' | 'delete' | 'revealed';
 
@@ -193,8 +200,10 @@
       const absX = Math.abs(deltaX);
       const absY = Math.abs(deltaY);
       // If moved enough and more horizontal than vertical, lock to horizontal
-      if (absX > MOVE_THRESHOLD && absX > absY) {
+      // But only if the drawer isn't already being dragged
+      if (absX > MOVE_THRESHOLD && absX > absY && !isDrawerDragging()) {
         isHorizontalSwipe = true;
+        drawerContext?.lockDismiss();
       }
     }
 
@@ -229,6 +238,11 @@
 
     if (!isDragging || disabled) return;
     isDragging = false;
+
+    // Unlock drawer dismissal if we locked it
+    if (isHorizontalSwipe) {
+      drawerContext?.unlockDismiss();
+    }
 
     const velocity = calculateVelocity();
 

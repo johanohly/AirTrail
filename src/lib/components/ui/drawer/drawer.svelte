@@ -1,3 +1,17 @@
+<script lang="ts" module>
+  import { getContext, setContext } from 'svelte';
+
+  const DrawerContextKey = Symbol('DrawerContext');
+
+  export type DrawerContext = {
+    lockDismiss: () => void;
+    unlockDismiss: () => void;
+  };
+
+  export const getDrawerContext = () =>
+    getContext<DrawerContext | undefined>(DrawerContextKey);
+</script>
+
 <script lang="ts">
   import {
     Drawer as DrawerPrimitive,
@@ -11,6 +25,17 @@
     drawerState = $bindable<ParentDrawerState>(),
     ...restProps
   }: DrawerPrimitive.RootProps = $props();
+
+  let dismissLocked = $state(false);
+
+  setContext(DrawerContextKey, {
+    lockDismiss: () => {
+      dismissLocked = true;
+    },
+    unlockDismiss: () => {
+      dismissLocked = false;
+    },
+  } satisfies DrawerContext);
 </script>
 
 <DrawerPrimitive.Root
@@ -18,5 +43,6 @@
   bind:open
   bind:activeSnapPoint
   bind:drawerState
+  dismissible={!dismissLocked}
   {...restProps}
 />
