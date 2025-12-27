@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { Info } from '@o7/icon/lucide';
+  import { CircleQuestionMark } from '@o7/icon/lucide';
   import type { Snippet } from 'svelte';
 
-  import * as Popover from '$lib/components/ui/popover/index.js';
+  import * as Popover from '$lib/components/ui/popover';
 
   const {
     text,
@@ -16,11 +16,11 @@
 </script>
 
 <Popover.Root>
-  <Popover.Trigger title="Click to view tooltip">
+  <Popover.Trigger title="Click to view tooltip" class="text-muted-foreground">
     {#if children}
       {@render children()}
     {:else}
-      <Info size="15" />
+      <CircleQuestionMark size={16} />
     {/if}
   </Popover.Trigger>
   <Popover.Content

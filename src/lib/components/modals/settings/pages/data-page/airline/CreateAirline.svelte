@@ -73,7 +73,7 @@
 
 {#if !withoutTrigger}
   <Button variant="outline" onclick={() => (open = true)}>
-    <Plus size={16} class="shrink-0 mr-2" />
+    <Plus size={16} class="shrink-0" />
     Create
   </Button>
 {/if}

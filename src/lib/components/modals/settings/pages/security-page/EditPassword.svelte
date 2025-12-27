@@ -45,7 +45,12 @@
     icon={KeyRound}
   />
   <ModalBody>
-    <form method="POST" action="/api/users/edit-password" use:enhance>
+    <form
+      class="flex flex-col gap-2"
+      method="POST"
+      action="/api/users/edit-password"
+      use:enhance
+    >
       <Form.Field {form} name="currentPassword">
         <Form.Control>
           {#snippet children({ props })}

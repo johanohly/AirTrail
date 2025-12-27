@@ -39,7 +39,7 @@
   });
 </script>
 
-<div class="grid gap-2 grid-cols-[3fr_2fr]">
+<div class="grid gap-2 grid-cols-[3fr_2fr] items-start">
   <Form.Field {form} name={field}>
     <Form.Control>
       {#snippet children({ props })}
@@ -127,7 +127,7 @@
   <Form.Field {form} name={`${field}Time`}>
     <Form.Control>
       {#snippet children({ props })}
-        <Form.Label class="flex gap-1">
+        <Form.Label class="flex items-center gap-2">
           Time
           <HelpTooltip
             text="Local time. Time can be in 24-hour and 12-hour format."

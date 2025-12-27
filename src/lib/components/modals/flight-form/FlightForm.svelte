@@ -16,7 +16,7 @@
 </script>
 
 <div
-  class="grid w-full gap-y-4 max-md:overflow-auto md:grid-cols-[1fr_1fr] max-md:max-h-[calc(100dvh-200px)] max-md:min-h-[min(566px,_calc(100dvh-200px))]"
+  class="grid w-full gap-y-4 max-md:overflow-auto md:grid-cols-[3fr_2fr] max-md:max-h-[calc(100dvh-200px)] max-md:min-h-[min(566px,_calc(100dvh-200px))]"
 >
   <!-- First column: uses contents on mobile to flatten, block on desktop to group -->
   <div

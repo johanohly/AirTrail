@@ -61,7 +61,12 @@
 <Modal bind:open>
   <ModalBreadcrumbHeader section="Users" title="Add user" icon={User} />
   <ModalBody>
-    <form method="POST" action="/api/users/add" use:enhance>
+    <form
+      class="flex flex-col gap-2"
+      method="POST"
+      action="/api/users/add"
+      use:enhance
+    >
       <Form.Field {form} name="username">
         <Form.Control>
           {#snippet children({ props })}
