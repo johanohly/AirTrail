@@ -96,7 +96,7 @@
     </Dialog.Content>
   </Dialog.Root>
 {:else}
-  <Drawer.Root bind:open shouldScaleBackground autoFocus>
+  <Drawer.Root bind:open shouldScaleBackground>
     <Drawer.Content noPadding={drawerNoPadding || state.hasHeader}>
       {@render children()}
     </Drawer.Content>

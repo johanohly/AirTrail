@@ -20,8 +20,7 @@
 </script>
 
 <section>
-  <h3 class="font-medium">Flight Information</h3>
-  <Separator class="mt-2 mb-3" />
+  <Separator class="mt-2 mb-3 max-md:hidden" />
   <div class="grid gap-4">
     <div class="grid grid-cols-[2fr_1fr] gap-2">
       <AircraftField {form} />

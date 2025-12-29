@@ -8,10 +8,6 @@
 
   const drawerContext = getDrawerContext();
 
-  // Check if drawer is being dragged (vaul adds this class during drag)
-  const isDrawerDragging = () =>
-    document.querySelector('.vaul-dragging') !== null;
-
   type SwipeZone = 'neutral' | 'edit' | 'delete' | 'revealed';
 
   let {
@@ -37,8 +33,9 @@
   let currentOffsetX = $state(0);
   let actionsRevealed = $state(false);
   let lastZone = $state<SwipeZone>('neutral');
-  let hasMoved = $state(false); // Track if user actually swiped vs clicked
+  let hasMoved = $state(false); // Track if user actually moved (any direction) vs clicked
   let isHorizontalSwipe = $state(false); // Lock scroll once horizontal swipe detected
+  let isVerticalScroll = $state(false); // Track if vertical scroll was detected (abort row gesture)
 
   // Long press timer
   let longPressTimer: ReturnType<typeof setTimeout> | null = null;
@@ -74,8 +71,10 @@
   // Button row translation - slides in from right
   const buttonRowTranslateX = $derived(rowWidth - currentOffsetX);
 
-  // Only show colored backgrounds when actively dragging (not during spring animation)
-  const showColoredBackground = $derived(isDragging && currentOffsetX > 0);
+  // Only show colored backgrounds when actively dragging forward (not when swiping back from revealed)
+  const showColoredBackground = $derived(
+    isDragging && currentOffsetX > 0 && !actionsRevealed,
+  );
 
   // Haptic feedback
   const triggerHaptic = (intensity: number = 10) => {
@@ -170,13 +169,18 @@
 
     isDragging = true;
     hasMoved = false;
-    isHorizontalSwipe = false;
+    isVerticalScroll = false;
     startX = e.clientX;
     startY = e.clientY;
     positionHistory = [{ x: e.clientX, time: Date.now() }];
 
-    // Start long press timer (only if not already revealed)
-    if (!actionsRevealed) {
+    // If actions are revealed, we're already in horizontal swipe mode
+    if (actionsRevealed) {
+      isHorizontalSwipe = true;
+      drawerContext?.lockDismiss();
+    } else {
+      isHorizontalSwipe = false;
+      // Start long press timer only if not already revealed
       longPressTimer = setTimeout(() => {
         if (isDragging && currentOffsetX < MOVE_THRESHOLD) {
           isLongPressing = true;
@@ -189,34 +193,60 @@
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
 
+  // Check if drawer is actively dragging (has vaul-dragging class)
+  const isDrawerActiveDragging = () =>
+    document.querySelector('[data-vaul-drawer].vaul-dragging') !== null;
+
   const handlePointerMove = (e: PointerEvent) => {
     if (!isDragging || disabled) return;
 
-    const deltaX = startX - e.clientX;
-    const deltaY = startY - e.clientY;
-
-    // Detect horizontal swipe intent and lock scroll
-    if (!isHorizontalSwipe && !hasMoved) {
-      const absX = Math.abs(deltaX);
-      const absY = Math.abs(deltaY);
-      // If moved enough and more horizontal than vertical, lock to horizontal
-      // But only if the drawer isn't already being dragged
-      if (absX > MOVE_THRESHOLD && absX > absY && !isDrawerDragging()) {
-        isHorizontalSwipe = true;
-        drawerContext?.lockDismiss();
-      }
-    }
-
-    // Prevent scrolling when horizontal swipe detected
-    if (isHorizontalSwipe) {
+    // If in revealed state, always prevent scroll since we're committed to horizontal
+    if (actionsRevealed) {
       e.preventDefault();
     }
 
-    // Mark as moved if threshold exceeded
-    if (Math.abs(deltaX) > MOVE_THRESHOLD) {
-      hasMoved = true;
-      clearLongPress();
+    // If vertical scroll was detected, don't process horizontal swipe
+    if (isVerticalScroll) return;
+
+    // If drawer started actively dragging, abort our gesture
+    if (isDrawerActiveDragging()) {
+      if (isHorizontalSwipe) {
+        // Reset our state since drawer took over
+        isHorizontalSwipe = false;
+        drawerContext?.unlockDismiss();
+        resetPosition();
+      }
+      return;
     }
+
+    const deltaX = startX - e.clientX;
+    const deltaY = startY - e.clientY;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    // Detect gesture direction on first significant movement
+    if (!isHorizontalSwipe && !isVerticalScroll && !hasMoved) {
+      if (absX > MOVE_THRESHOLD || absY > MOVE_THRESHOLD) {
+        hasMoved = true;
+        clearLongPress();
+
+        if (absY > absX) {
+          // Vertical scroll detected - abort row gesture entirely
+          isVerticalScroll = true;
+          return;
+        } else {
+          // Horizontal swipe detected - lock drawer and prevent scroll
+          isHorizontalSwipe = true;
+          drawerContext?.lockDismiss();
+        }
+      }
+    }
+
+    // Only process horizontal swipe if we've committed to it
+    if (!isHorizontalSwipe) return;
+
+    // Prevent scrolling when horizontal swipe detected
+    e.preventDefault();
 
     if (actionsRevealed) {
       // When revealed, allow swiping back (right swipe = negative deltaX)
@@ -246,7 +276,20 @@
 
     const velocity = calculateVelocity();
 
-    // Quick swipe detection - skip zones entirely
+    // Handle revealed state separately - simpler logic for swiping back
+    if (actionsRevealed) {
+      // Any right swipe (negative velocity) or reaching neutral zone closes
+      // Use lower velocity threshold for closing to make it easier
+      if (velocity < -0.3 || currentZone === 'neutral') {
+        resetPosition();
+      } else {
+        goToRevealed();
+      }
+      positionHistory = [];
+      return;
+    }
+
+    // Quick swipe detection - skip zones entirely (only for non-revealed state)
     if (Math.abs(velocity) > QUICK_SWIPE_VELOCITY && hasMoved) {
       if (velocity > 0 && currentOffsetX > 20) {
         // Quick left swipe - go to revealed
@@ -260,21 +303,23 @@
     }
 
     // Zone-based action (only if not a quick swipe)
-    switch (currentZone) {
-      case 'neutral':
-        resetPosition();
-        break;
-      case 'edit':
-        onEdit?.();
-        resetPosition();
-        break;
-      case 'delete':
-        onDelete?.();
-        resetPosition();
-        break;
-      case 'revealed':
-        goToRevealed();
-        break;
+    {
+      switch (currentZone) {
+        case 'neutral':
+          resetPosition();
+          break;
+        case 'edit':
+          onEdit?.();
+          resetPosition();
+          break;
+        case 'delete':
+          onDelete?.();
+          resetPosition();
+          break;
+        case 'revealed':
+          goToRevealed();
+          break;
+      }
     }
 
     positionHistory = [];
@@ -326,6 +371,7 @@
       !showRevealedButtons && 'pointer-events-none',
     )}
     style:transform="translateX({buttonRowTranslateX}px)"
+    style:touch-action="none"
     onpointerdown={handlePointerDown}
     onpointermove={handlePointerMove}
     onpointerup={handlePointerUp}
@@ -392,7 +438,9 @@
         'cursor-grab': !disabled && !isDragging,
         'cursor-grabbing': isDragging,
       })}
-      style:touch-action={isHorizontalSwipe ? 'none' : 'pan-y'}
+      style:touch-action={isHorizontalSwipe || actionsRevealed
+        ? 'none'
+        : 'pan-y'}
       onpointerdown={handlePointerDown}
       onpointermove={handlePointerMove}
       onpointerup={handlePointerUp}

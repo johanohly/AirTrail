@@ -12,7 +12,7 @@
         "@formkit/auto-animate": "^0.8.2",
         "@humanspeak/svelte-virtual-list": "^0.2.6",
         "@internationalized/date": "^3.8.2",
-        "@johly/vaul-svelte": "1.0.0-next.12",
+        "@johly/vaul-svelte": "1.0.0-next.15",
         "@layerstack/utils": "^2.0.0-next.14",
         "@lucia-auth/adapter-postgresql": "^3.1.2",
         "@node-rs/argon2": "^2.0.2",
@@ -426,7 +426,7 @@
 
     "@istanbuljs/schema": ["@istanbuljs/schema@0.1.3", "", {}, "sha512-ZXRY4jNvVgSVQ8DL3LTcakaAtXwTVUxE81hslsyD2AtoXW/wVob10HkOJ1X/pAlcI7D+2YoZKg5do8G/w6RYgA=="],
 
-    "@johly/vaul-svelte": ["@johly/vaul-svelte@1.0.0-next.12", "", { "dependencies": { "runed": "^0.23.2", "svelte-toolbelt": "^0.7.1" }, "peerDependencies": { "svelte": "^5.0.0" } }, "sha512-36LiIFSAo/UGojLDw+k96kTcsZBRx6Uathvbm/2faMJx7Po8PM05yfS6ctaH6rphp1Ag5aUz1Ad/XQCJ5mfJ9Q=="],
+    "@johly/vaul-svelte": ["@johly/vaul-svelte@1.0.0-next.15", "", { "dependencies": { "runed": "^0.23.2", "svelte-toolbelt": "^0.7.1" }, "peerDependencies": { "svelte": "^5.0.0" } }, "sha512-zbth5IkmNBLZVLdgEbS7WZR9PsSvR43jIPOQSxX78+XmQI1w7N/tVv2yQ8OoY57x+hZcA0FRa/ECRCPoqb92PQ=="],
 
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 

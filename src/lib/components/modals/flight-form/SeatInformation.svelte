@@ -15,7 +15,10 @@
   import { SeatClasses, SeatTypes } from '$lib/db/types';
   import { cn, toTitleCase } from '$lib/utils';
   import type { flightSchema } from '$lib/zod/flight';
-  import { TextTooltip } from '$lib/components/ui/tooltip/index.ts';
+  import {
+    HelpTooltip,
+    TextTooltip,
+  } from '$lib/components/ui/tooltip/index.ts';
 
   let {
     form,
@@ -106,7 +109,7 @@
                         <Select.Trigger {...props} size="sm">
                           {$formData.seats[index]?.seatClass
                             ? toTitleCase($formData.seats[index].seatClass)
-                            : 'Select class...'}
+                            : 'Select class'}
                         </Select.Trigger>
                         <Select.Content>
                           <Select.Item value="economy" label="Economy" />
@@ -138,7 +141,7 @@
                               e.currentTarget.value || null;
                           }
                         }}
-                        placeholder="Seat number"
+                        placeholder="e.g. 12A"
                         class="h-8 text-sm not-placeholder-shown:uppercase"
                         {...props}
                       />
