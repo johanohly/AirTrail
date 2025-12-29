@@ -130,7 +130,7 @@
         <Form.Label class="flex items-center gap-2">
           Time
           <HelpTooltip
-            text="Local time. Time can be in 24-hour and 12-hour format."
+            text="Local airport time. Can be in either 24-hour or 12-hour format."
           />
         </Form.Label>
         <Input {...props} bind:value={$formData[`${field}Time`]} />
