@@ -111,7 +111,14 @@
 
   function handlePopstate(event: PopStateEvent) {
     const isTopmostModal = peekModalHistory() === modalId;
-    if (historyPushed && open && !closingFromPopstate && isTopmostModal) {
+    const wasTriggeredByThisModal = event.state?.modal === modalId;
+    if (
+      historyPushed &&
+      open &&
+      !closingFromPopstate &&
+      isTopmostModal &&
+      !wasTriggeredByThisModal
+    ) {
       closingFromPopstate = true;
       historyPushed = false;
       popModalHistory();
