@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { Motion, useMotionValue, useSpring } from 'svelte-motion';
   import { SquarePen, Trash2 } from '@o7/icon/lucide';
 
   import { getDrawerContext } from '$lib/components/ui/drawer/drawer.svelte';
@@ -35,13 +34,11 @@
   let longPressTimer: ReturnType<typeof setTimeout> | null = null;
   let positionHistory: { x: number; time: number }[] = [];
   let activePointerId: number | null = null;
+  let currentVelocity = $state(0);
 
   const LONG_PRESS_DURATION = 400;
   const MOVE_THRESHOLD = 10;
   const QUICK_SWIPE_VELOCITY = 0.8;
-
-  const offsetX = useMotionValue(0);
-  const springOffset = useSpring(offsetX, { stiffness: 400, damping: 30 });
 
   const rowWidth = $derived(rowElement?.offsetWidth ?? 300);
   const currentZone = $derived.by((): SwipeZone => {
@@ -52,20 +49,27 @@
     return 'revealed';
   });
   const isInteracting = $derived(isDragging || actionsRevealed);
+  const FAST_SWIPE_THRESHOLD = 0.5;
   const buttonRowTranslateX = $derived(rowWidth - currentOffsetX);
+  const isFastSwipe = $derived(
+    Math.abs(currentVelocity) >= FAST_SWIPE_THRESHOLD,
+  );
   const showColoredBackground = $derived(
-    isDragging && currentOffsetX > 0 && !actionsRevealed,
+    isDragging && currentOffsetX > 0 && !actionsRevealed && !isFastSwipe,
   );
 
-  const triggerHaptic = (intensity: number = 10) => {
-    if ('vibrate' in navigator) navigator.vibrate(intensity);
+  const triggerHaptic = () => {
+    if ('vibrate' in navigator) navigator.vibrate(10);
   };
 
   $effect(() => {
     if (currentZone !== lastZone && isDragging) {
-      if (currentZone === 'edit') triggerHaptic(15);
-      else if (currentZone === 'delete') triggerHaptic(25);
-      else if (currentZone === 'revealed') triggerHaptic(35);
+      if (
+        (currentZone === 'edit' || currentZone === 'delete') &&
+        !isFastSwipe
+      ) {
+        triggerHaptic();
+      }
       lastZone = currentZone;
     }
   });
@@ -84,15 +88,14 @@
   const resetPosition = () => {
     currentOffsetX = 0;
     actionsRevealed = false;
-    offsetX.set(0);
     lastZone = 'neutral';
+    currentVelocity = 0;
   };
 
   const goToRevealed = () => {
     actionsRevealed = true;
     currentOffsetX = rowWidth;
-    offsetX.set(-rowWidth);
-    triggerHaptic(35);
+    currentVelocity = 0;
   };
 
   const clearLongPress = () => {
@@ -222,9 +225,9 @@
       currentOffsetX = Math.max(0, Math.min(deltaX, rowWidth));
     }
 
-    offsetX.set(-currentOffsetX);
     positionHistory.push({ x: e.clientX, time: Date.now() });
     if (positionHistory.length > 5) positionHistory.shift();
+    currentVelocity = calculateVelocity();
   };
 
   const handlePointerUp = () => {
@@ -313,6 +316,7 @@
     class={cn(
       'absolute inset-0 flex items-stretch bg-muted',
       !showRevealedButtons && 'pointer-events-none',
+      !isDragging && 'transition-transform duration-200 ease-out',
     )}
     style:transform="translateX({buttonRowTranslateX}px)"
     style:touch-action="none"
@@ -372,19 +376,16 @@
   {/if}
 
   <!-- Card content -->
-  <Motion style={{ x: springOffset }} let:motion>
-    <div
-      use:motion
-      class={cn('relative bg-background select-none', {
-        'cursor-grab': !disabled && !isDragging,
-        'cursor-grabbing': isDragging,
-      })}
-      style:touch-action={isHorizontalSwipe || actionsRevealed
-        ? 'none'
-        : 'pan-y'}
-      onpointerdown={handlePointerDown}
-    >
-      {@render children({ isInteracting })}
-    </div>
-  </Motion>
+  <div
+    class={cn('relative bg-background select-none', {
+      'cursor-grab': !disabled && !isDragging,
+      'cursor-grabbing': isDragging,
+      'transition-transform duration-200 ease-out': !isDragging,
+    })}
+    style:transform="translateX({-currentOffsetX}px)"
+    style:touch-action={isHorizontalSwipe || actionsRevealed ? 'none' : 'pan-y'}
+    onpointerdown={handlePointerDown}
+  >
+    {@render children({ isInteracting })}
+  </div>
 </div>
