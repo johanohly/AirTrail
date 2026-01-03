@@ -127,7 +127,7 @@
     const handleScroll = () => {
       if (!isDragging) resetPosition();
     };
-    const handleClickOutside = (e: MouseEvent) => {
+    const handlePointerDownOutside = (e: PointerEvent) => {
       if (!isDragging && rowElement && !rowElement.contains(e.target as Node)) {
         resetPosition();
       }
@@ -137,10 +137,12 @@
       capture: true,
       passive: true,
     });
-    document.addEventListener('click', handleClickOutside, { capture: true });
+    document.addEventListener('pointerdown', handlePointerDownOutside, {
+      capture: true,
+    });
     return () => {
       window.removeEventListener('scroll', handleScroll, { capture: true });
-      document.removeEventListener('click', handleClickOutside, {
+      document.removeEventListener('pointerdown', handlePointerDownOutside, {
         capture: true,
       });
     };
