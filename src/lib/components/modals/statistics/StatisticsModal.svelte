@@ -131,6 +131,7 @@
   class="max-w-full h-full overflow-y-auto rounded-none!"
   dialogOnly
   closeOnEscape={false}
+  closeButton={false}
 >
   {#if activeChart}
     <ChartDrillDown
