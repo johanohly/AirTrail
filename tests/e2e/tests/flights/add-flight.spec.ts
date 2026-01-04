@@ -119,7 +119,7 @@ test.describe('Add Flight', () => {
           timeout: 10000,
         });
       },
-      { page, title: 'Add Flight' },
+      { page, title: 'New flight' },
     );
 
     // Verify flight appears in the list
