@@ -19,10 +19,17 @@
   } = $props();
 
   let open = $state(true);
+  let confirmed = $state(false);
 
   $effect(() => {
-    if (!open) onCancel?.();
+    if (!open && !confirmed) onCancel?.();
   });
+
+  const handleConfirm = async () => {
+    confirmed = true;
+    open = false;
+    await onConfirm();
+  };
 </script>
 
 <Modal bind:open preset="alert">
@@ -35,13 +42,7 @@
       <Button variant="outline" onclick={() => (open = false)}>
         {cancelText}
       </Button>
-      <Button
-        variant="destructive"
-        onclick={async () => {
-          open = false;
-          await onConfirm();
-        }}
-      >
+      <Button variant="destructive" onclick={handleConfirm}>
         {confirmText}
       </Button>
     </div>
