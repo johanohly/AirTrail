@@ -189,6 +189,10 @@ layer(base);
   scrollbar-width: none;
 }
 
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 .max-w-screen-lg {
   max-width: 1024px;
 }
