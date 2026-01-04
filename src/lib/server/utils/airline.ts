@@ -1,4 +1,5 @@
-import { Readable } from 'stream';
+import { Readable } from 'node:stream';
+
 import * as tar from 'tar';
 import { z } from 'zod';
 
