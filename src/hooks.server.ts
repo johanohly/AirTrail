@@ -1,8 +1,7 @@
-import { type Handle, json, type ServerInit, text } from '@sveltejs/kit';
+import { type Handle, type ServerInit } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import type { Cookie } from 'lucia';
 
-import { env } from '$env/dynamic/private';
 import { lucia } from '$lib/server/auth';
 import {
   populateDefaultAirlineIcons,
