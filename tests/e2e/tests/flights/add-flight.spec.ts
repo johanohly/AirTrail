@@ -47,7 +47,7 @@ test.describe('Add Flight', () => {
         // Find the "From" field by label, then find the input within that form field
         await modal.getByText(/^From \*$/i).waitFor({ timeout: 5000 });
         const fromField = modal
-          .locator('input[placeholder="Select an airport"]')
+          .locator('input[placeholder="Choose an airport"]')
           .first();
         await fromField.click();
         await fromField.fill(fromAirport.iata);
@@ -62,7 +62,7 @@ test.describe('Add Flight', () => {
         // Fill in arrival airport - search for LHR
         await modal.getByText(/^To \*$/i).waitFor({ timeout: 5000 });
         const toField = modal
-          .locator('input[placeholder="Select an airport"]')
+          .locator('input[placeholder="Choose an airport"]')
           .nth(1);
         await toField.click();
         await toField.fill(toAirport.iata);
@@ -115,7 +115,7 @@ test.describe('Add Flight', () => {
         await modal.getByRole('button', { name: /add flight/i }).click();
 
         // Wait for success toast
-        await expect(page.getByText(/flight added successfully/i)).toBeVisible({
+        await expect(page.getByText(/flight added/i)).toBeVisible({
           timeout: 10000,
         });
       },
