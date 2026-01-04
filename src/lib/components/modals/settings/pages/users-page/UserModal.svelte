@@ -91,8 +91,8 @@
       $formData.displayName = data.displayName;
       $formData.unit = data.unit;
       $formData.role = data.role;
-      if ('password' in data && data.password) {
-        $formData.password = data.password;
+      if ('password' in data) {
+        $formData.password = data.password ?? '';
       }
     }
   });
