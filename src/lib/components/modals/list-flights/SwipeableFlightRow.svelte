@@ -316,7 +316,7 @@
   <!-- Button row (revealed on swipe) -->
   <div
     class={cn(
-      'absolute inset-0 flex items-stretch bg-muted',
+      'absolute inset-0 flex items-stretch bg-muted select-none',
       !showRevealedButtons && 'pointer-events-none',
       !isDragging && 'transition-transform duration-200 ease-out',
     )}
