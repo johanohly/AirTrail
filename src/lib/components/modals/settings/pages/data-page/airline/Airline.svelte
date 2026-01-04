@@ -88,10 +88,10 @@
           onclick={() => (importDialogOpen = true)}
         >
           {#if importingIcons}
-            <LoaderCircle size={16} class="shrink-0  animate-spin" />
+            <LoaderCircle size={16} class="shrink-0 animate-spin" />
             Importing...
           {:else}
-            <Download size={16} class="shrink-o" />
+            <Download size={16} class="shrink-0" />
             Import Icons
           {/if}
         </Button>
