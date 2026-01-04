@@ -11,7 +11,7 @@ export const test = base.extend<{ db: Kysely<DB>; prepareLocalStorage: void }>({
   prepareLocalStorage: [
     async ({ page }, use) => {
       await page.addInitScript(() => {
-        window.localStorage.setItem('dismissedVersion', 'v999.9.9');
+        globalThis.localStorage.setItem('dismissedVersion', 'v999.9.9');
       });
 
       await use();
