@@ -212,6 +212,52 @@ async function fetchAirlineIconsFromGitHub(): Promise<Map<string, IconData>> {
   return icaoToIcon;
 }
 
+const hasAnyAirlineWithIcon = async (): Promise<boolean> => {
+  const result = await db
+    .selectFrom('airline')
+    .select('id')
+    .where('iconPath', 'is not', null)
+    .limit(1)
+    .executeTakeFirst();
+  return !!result;
+};
+
+const getAirlinesForIconPopulation = async (overwrite: boolean) => {
+  let query = db
+    .selectFrom('airline')
+    .select(['id', 'icao', 'iconPath'])
+    .where('icao', 'is not', null);
+
+  if (!overwrite) {
+    query = query.where('iconPath', 'is', null);
+  }
+
+  return query.execute();
+};
+
+const saveAirlineIcon = async (
+  airline: { id: number; icao: string | null; iconPath: string | null },
+  iconData: IconData,
+  overwrite: boolean,
+): Promise<boolean> => {
+  const relativePath = `airlines/${airline.id}${iconData.extension}`;
+
+  if (overwrite && airline.iconPath && airline.iconPath !== relativePath) {
+    await uploadManager.deleteFile(airline.iconPath);
+  }
+
+  const success = await uploadManager.saveFile(relativePath, iconData.buffer);
+  if (!success) return false;
+
+  await db
+    .updateTable('airline')
+    .set({ iconPath: relativePath })
+    .where('id', '=', airline.id)
+    .execute();
+
+  return true;
+};
+
 /**
  * Populates default airline icons from GitHub for airlines without icons.
  * Downloads the repo tarball once and extracts all icons, avoiding rate limits.
@@ -227,33 +273,13 @@ export const populateDefaultAirlineIcons = async (options?: {
     return 0;
   }
 
-  // For initial install: check if any airline already has an icon
-  if (options?.onlyIfNoIcons) {
-    const anyWithIcon = await db
-      .selectFrom('airline')
-      .select('id')
-      .where('iconPath', 'is not', null)
-      .limit(1)
-      .executeTakeFirst();
-
-    if (anyWithIcon) {
-      return 0;
-    }
+  if (options?.onlyIfNoIcons && (await hasAnyAirlineWithIcon())) {
+    return 0;
   }
 
-  // Get airlines that need icons
-  let query = db
-    .selectFrom('airline')
-    .select(['id', 'icao', 'iconPath'])
-    .where('icao', 'is not', null);
-
-  // If not overwriting, only get airlines without icons
-  if (!options?.overwrite) {
-    query = query.where('iconPath', 'is', null);
-  }
-
-  const airlines = await query.execute();
-
+  const airlines = await getAirlinesForIconPopulation(
+    options?.overwrite ?? false,
+  );
   if (airlines.length === 0) {
     return 0;
   }
@@ -271,38 +297,18 @@ export const populateDefaultAirlineIcons = async (options?: {
   console.log(`Found ${icaoToIcon.size} icons in repository.`);
 
   let populated = 0;
-
   for (const airline of airlines) {
-    if (!airline.icao) continue;
+    const iconData = airline.icao
+      ? icaoToIcon.get(airline.icao.toUpperCase())
+      : null;
+    if (!iconData) continue;
 
-    const icao = airline.icao.toUpperCase();
-    const iconData = icaoToIcon.get(icao);
-
-    if (!iconData) {
-      continue;
-    }
-
-    const relativePath = `airlines/${airline.id}${iconData.extension}`;
-
-    // Delete old icon if overwriting and path is different
-    if (
-      options?.overwrite &&
-      airline.iconPath &&
-      airline.iconPath !== relativePath
-    ) {
-      await uploadManager.deleteFile(airline.iconPath);
-    }
-
-    const success = await uploadManager.saveFile(relativePath, iconData.buffer);
-
-    if (success) {
-      await db
-        .updateTable('airline')
-        .set({ iconPath: relativePath })
-        .where('id', '=', airline.id)
-        .execute();
-      populated++;
-    }
+    const saved = await saveAirlineIcon(
+      airline,
+      iconData,
+      options?.overwrite ?? false,
+    );
+    if (saved) populated++;
   }
 
   if (populated > 0) {
