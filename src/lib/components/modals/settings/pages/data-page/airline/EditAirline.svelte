@@ -1,30 +1,38 @@
 <script lang="ts">
-  import { SquarePen } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
 
   import AirlineFormFields from './AirlineFormFields.svelte';
-  import { Button } from '$lib/components/ui/button';
-  import * as Dialog from '$lib/components/ui/dialog';
+
+  import IconUploadField from '$lib/components/form-fields/IconUploadField.svelte';
+  import { SquarePen } from '@o7/icon/lucide';
+  import {
+    Modal,
+    ModalBody,
+    ModalBreadcrumbHeader,
+  } from '$lib/components/ui/modal';
   import * as Form from '$lib/components/ui/form';
+  import { Label } from '$lib/components/ui/label';
   import type { Airline } from '$lib/db/types';
   import { trpc } from '$lib/trpc';
   import { airlineSchema } from '$lib/zod/airline';
 
   let {
     airline,
+    open = $bindable(false),
   }: {
-    airline: Airline;
+    airline: Airline | null;
+    open: boolean;
   } = $props();
 
-  let open = $state(false);
+  let currentIconPath = $state<string | null>(null);
 
   const form = superForm(
-    defaults<Infer<typeof airlineSchema>>(airline, zod(airlineSchema)),
+    defaults<Infer<typeof airlineSchema>>(zod(airlineSchema)),
     {
       dataType: 'json',
-      id: Math.random().toString(36).substring(7),
+      id: 'edit-airline',
       validators: zod(airlineSchema),
       onUpdated({ form }) {
         if (form.message) {
@@ -38,23 +46,40 @@
       },
     },
   );
-  const { enhance } = form;
+  const { enhance, form: formData } = form;
+
+  // Reset form data when airline changes
+  $effect(() => {
+    if (airline) {
+      $formData = {
+        id: airline.id,
+        name: airline.name,
+        icao: airline.icao,
+        iata: airline.iata,
+        iconPath: airline.iconPath,
+      };
+      currentIconPath = airline.iconPath;
+    }
+  });
+
+  const handleIconUpload = (path: string) => {
+    currentIconPath = path;
+    trpc.airline.list.utils.invalidate();
+  };
+
+  const handleIconRemove = () => {
+    currentIconPath = null;
+    trpc.airline.list.utils.invalidate();
+  };
 </script>
 
-<Dialog.Root bind:open>
-  <Dialog.Trigger>
-    {#snippet child({ props })}
-      <Button variant="outline" size="icon" {...props}>
-        <SquarePen size={16} />
-      </Button>
-    {/snippet}
-  </Dialog.Trigger>
-  <Dialog.Content
-    preventScroll={false}
-    interactOutsideBehavior="ignore"
-    class="max-h-full overflow-y-auto max-w-lg"
-  >
-    <h2>Edit Airline</h2>
+<Modal bind:open closeOnOutsideClick={false} class="max-w-lg">
+  <ModalBreadcrumbHeader
+    section="Airlines"
+    title="Edit airline"
+    icon={SquarePen}
+  />
+  <ModalBody>
     <form
       method="POST"
       action="/api/airline/save/form"
@@ -62,7 +87,16 @@
       class="grid gap-4"
     >
       <AirlineFormFields {form} />
+      <div class="space-y-2">
+        <Label>Icon</Label>
+        <IconUploadField
+          {currentIconPath}
+          airlineId={airline?.id ?? null}
+          onUpload={handleIconUpload}
+          onRemove={handleIconRemove}
+        />
+      </div>
       <Form.Button>Save</Form.Button>
     </form>
-  </Dialog.Content>
-</Dialog.Root>
+  </ModalBody>
+</Modal>

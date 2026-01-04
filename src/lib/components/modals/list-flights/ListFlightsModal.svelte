@@ -10,13 +10,15 @@
   import { AirplanemodeInactive } from '@o7/icon/material';
   import { isBefore } from 'date-fns';
 
+  import DeleteFlightModal from './DeleteFlightModal.svelte';
+  import MobileFlightList from './MobileFlightList.svelte';
   import Toolbar from './Toolbar.svelte';
 
+  import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
   import type {
     FlightFilters,
     TempFilters,
   } from '$lib/components/flight-filters/types';
-  import { Confirm } from '$lib/components/helpers';
   import { EditFlightModal } from '$lib/components/modals';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
@@ -34,6 +36,7 @@
     formatAsMonth,
     isUsingAmPm,
   } from '$lib/utils/datetime';
+  import { isMediumScreen } from '$lib/utils/size';
 
   let {
     open = $bindable<boolean>(),
@@ -119,6 +122,48 @@
   let selecting = $state(false);
   let selectedFlights = $state<number[]>([]);
 
+  // Mobile edit state
+  let mobileEditFlight = $state<FlightData | null>(null);
+  let mobileEditOpen = $state(false);
+
+  const handleMobileEdit = (flight: { id: number }) => {
+    const originalFlight = filteredFlights.find((f) => f.id === flight.id);
+    if (originalFlight) {
+      mobileEditFlight = originalFlight;
+      mobileEditOpen = true;
+    }
+  };
+
+  // Delete state (used for both mobile and desktop)
+  type DeleteFlight = {
+    id: number;
+    from: (typeof filteredFlights)[0]['from'];
+    to: (typeof filteredFlights)[0]['to'];
+    airline: (typeof filteredFlights)[0]['airline'];
+  };
+  let deleteFlightData = $state<DeleteFlight | null>(null);
+  let deleteModalOpen = $state(false);
+
+  const handleDelete = (flight: { id: number }) => {
+    const originalFlight = filteredFlights.find((f) => f.id === flight.id);
+    if (originalFlight) {
+      deleteFlightData = {
+        id: originalFlight.id,
+        from: originalFlight.from,
+        to: originalFlight.to,
+        airline: originalFlight.airline,
+      };
+      deleteModalOpen = true;
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (deleteFlightData !== null) {
+      await deleteFlight?.(deleteFlightData.id);
+      deleteFlightData = null;
+    }
+  };
+
   const hasTempFilters = $derived.by(
     () =>
       tempFilters &&
@@ -155,179 +200,217 @@
 
 <Modal
   bind:open
-  class="max-w-full flex flex-col h-full rounded-none!"
-  dialogOnly
+  class="md:max-w-full flex flex-col md:h-full md:rounded-none!"
+  drawerNoPadding
 >
-  <div class="flex flex-col gap-2">
-    {#if hasTempFilters}
-      <div class="flex flex-col gap-1">
-        {#if tempFilterAirport}
-          <h3 class="text-sm font-thin text-muted-foreground">Airport</h3>
-          <h2 class="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <img
-              src="https://flagcdn.com/{tempFilterAirport.country.toLowerCase()}.svg"
-              alt={tempFilterAirport.country}
-              class="w-8 h-5"
-            />
-            {tempFilterAirport.iata ?? tempFilterAirport.icao}
-            <span class="text-base font-normal text-muted-foreground">
-              — {tempFilterAirport.name}
-            </span>
-          </h2>
-        {:else if tempFilterRoute}
-          <h3 class="text-sm font-thin text-muted-foreground">Route</h3>
-          <h2 class="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <img
-              src="https://flagcdn.com/{tempFilterRoute.from.country.toLowerCase()}.svg"
-              alt={tempFilterRoute.from.country}
-              class="w-6 h-4"
-            />
-            {tempFilterRoute.from.iata ?? tempFilterRoute.from.icao}
-            <ArrowLeftRight class="text-muted-foreground" />
-            <img
-              src="https://flagcdn.com/{tempFilterRoute.to.country.toLowerCase()}.svg"
-              alt={tempFilterRoute.to.country}
-              class="w-6 h-4"
-            />
-            {tempFilterRoute.to.iata ?? tempFilterRoute.to.icao}
-          </h2>
-        {/if}
-      </div>
-    {:else}
-      <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
-    {/if}
+  <div class="max-md:max-h-[calc(100dvh-200px)] max-md:overflow-auto">
+    <div class="flex flex-col gap-2 max-md:px-4 max-md:py-4">
+      {#if hasTempFilters}
+        <div class="flex flex-col gap-1">
+          {#if tempFilterAirport}
+            <h3 class="text-sm font-thin text-muted-foreground">Airport</h3>
+            <h2
+              class="text-2xl font-bold tracking-tight flex items-center gap-2"
+            >
+              <img
+                src="https://flagcdn.com/{tempFilterAirport.country.toLowerCase()}.svg"
+                alt={tempFilterAirport.country}
+                class="w-8 h-5"
+              />
+              {tempFilterAirport.iata ?? tempFilterAirport.icao}
+              <span class="text-base font-normal text-muted-foreground">
+                — {tempFilterAirport.name}
+              </span>
+            </h2>
+          {:else if tempFilterRoute}
+            <h3 class="text-sm font-thin text-muted-foreground">Route</h3>
+            <h2
+              class="text-2xl font-bold tracking-tight flex items-center gap-2"
+            >
+              <img
+                src="https://flagcdn.com/{tempFilterRoute.from.country.toLowerCase()}.svg"
+                alt={tempFilterRoute.from.country}
+                class="w-6 h-4"
+              />
+              {tempFilterRoute.from.iata ?? tempFilterRoute.from.icao}
+              <ArrowLeftRight class="text-muted-foreground" />
+              <img
+                src="https://flagcdn.com/{tempFilterRoute.to.country.toLowerCase()}.svg"
+                alt={tempFilterRoute.to.country}
+                class="w-6 h-4"
+              />
+              {tempFilterRoute.to.iata ?? tempFilterRoute.to.icao}
+            </h2>
+          {/if}
+        </div>
+      {:else}
+        <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
+      {/if}
 
-    {#if filters && !readonly}
-      <Toolbar
-        bind:filters
-        bind:tempFilters
-        bind:flights
-        bind:selecting
-        bind:selectedFlights
-        bind:page
-        {flightsPerPage}
-        {hasTempFilters}
-        numOfFlights={filteredFlights.length}
-      />
-    {/if}
-  </div>
-  {#if flightsByYear.length === 0}
-    <div class="h-full flex items-center justify-center">
-      <AirplanemodeInactive class="text-muted-foreground size-[20dvw]" />
+      {#if filters && !readonly}
+        <Toolbar
+          bind:filters
+          bind:tempFilters
+          bind:flights
+          bind:selecting
+          bind:selectedFlights
+          bind:page
+          {flightsPerPage}
+          {hasTempFilters}
+          numOfFlights={filteredFlights.length}
+        />
+      {/if}
     </div>
-  {:else}
-    <ScrollArea type="hover">
-      {#each flightsByYear as { year, flights } (year)}
-        {#if year !== '0'}
-          <LabelledSeparator class="mt-4 mb-2">
-            <h3
-              class="border px-4 py-1 rounded-full border-dashed text-sm font-medium leading-7"
-            >
-              {year}
-            </h3>
-          </LabelledSeparator>
-        {/if}
-        <div class="space-y-2" use:autoAnimate>
-          {#each flights as flight (flight.id)}
-            <Card
-              onclick={() => {
-                if (selecting) {
-                  if (selectedFlights.includes(flight.id)) {
-                    selectedFlights = selectedFlights.filter(
-                      (id) => id !== flight.id,
-                    );
-                  } else {
-                    selectedFlights = [...selectedFlights, flight.id];
-                  }
-                }
-              }}
-              level="2"
-              class={cn('flex items-center p-3', {
-                'cursor-pointer border-zinc-600 border-dotted border-2':
-                  selecting,
-                'border-destructive border-solid':
-                  selecting && selectedFlights.includes(flight.id),
-              })}
-            >
-              <div
-                class="flex items-stretch md:items-center max-md:flex-col-reverse max-md:content-start flex-1 h-full min-w-0"
-              >
-                {#if flight.month}
-                  <div class="max-md:hidden flex justify-center shrink-0 w-11">
-                    <span class="text-lg font-medium">{flight.month}</span>
-                  </div>
-                  <Separator
-                    orientation="vertical"
-                    class="max-md:hidden h-10 mx-3"
-                  />
+    {#if flightsByYear.length === 0}
+      <div class="h-full flex items-center justify-center">
+        <AirplanemodeInactive class="text-muted-foreground size-[20dvw]" />
+      </div>
+    {:else if !$isMediumScreen}
+      <MobileFlightList
+        {flightsByYear}
+        {selecting}
+        bind:selectedFlights
+        onEdit={readonly ? undefined : handleMobileEdit}
+        onDelete={readonly ? undefined : handleDelete}
+      />
+    {:else}
+      <ScrollArea type="hover">
+        <div class="hidden md:block">
+          {#each flightsByYear as { year, flights } (year)}
+            {#if year !== '0'}
+              <LabelledSeparator class="mt-4 mb-2">
+                <h3
+                  class="border px-4 py-1 rounded-full border-dashed text-sm font-medium leading-7"
+                >
+                  {year}
+                </h3>
+              </LabelledSeparator>
+            {/if}
+            <div class="space-y-2" use:autoAnimate>
+              {#each flights as flight (flight.id)}
+                <Card
+                  onclick={() => {
+                    if (selecting) {
+                      if (selectedFlights.includes(flight.id)) {
+                        selectedFlights = selectedFlights.filter(
+                          (id) => id !== flight.id,
+                        );
+                      } else {
+                        selectedFlights = [...selectedFlights, flight.id];
+                      }
+                    }
+                  }}
+                  level="2"
+                  class={cn('flex items-center p-3', {
+                    'cursor-pointer border-zinc-600 border-dotted border-2':
+                      selecting,
+                    'border-destructive border-solid':
+                      selecting && selectedFlights.includes(flight.id),
+                  })}
+                >
                   <div
-                    class={cn(
-                      'max-md:hidden flex flex-col shrink-0',
-                      isUsingAmPm() ? 'w-36' : 'w-32',
-                    )}
+                    class="flex items-stretch md:items-center max-md:flex-col-reverse max-md:content-start flex-1 h-full min-w-0"
                   >
-                    {@render flightTimes(flight)}
-                  </div>
-                  <div class="px-4 flex md:hidden">
-                    <div
-                      class={cn(
-                        'flex flex-col shrink-0',
-                        isUsingAmPm() ? 'w-36' : 'w-32',
-                      )}
-                    >
-                      {@render flightTimes(flight)}
-                    </div>
-                    <div class="hidden sm:flex flex-col">
+                    {#if flight.month}
+                      <div
+                        class="max-md:hidden flex justify-center shrink-0 w-11"
+                      >
+                        <AirlineIcon
+                          airline={flight.airline}
+                          size={36}
+                          fallback="plane"
+                        />
+                      </div>
+                      <Separator
+                        orientation="vertical"
+                        class="max-md:hidden h-10 mx-3"
+                      />
+                      <div
+                        class={cn(
+                          'max-md:hidden flex flex-col shrink-0',
+                          isUsingAmPm() ? 'w-36' : 'w-32',
+                        )}
+                      >
+                        {@render flightTimes(flight)}
+                      </div>
+                      <div class="px-4 flex md:hidden">
+                        <div
+                          class={cn(
+                            'flex flex-col shrink-0',
+                            isUsingAmPm() ? 'w-36' : 'w-32',
+                          )}
+                        >
+                          {@render flightTimes(flight)}
+                        </div>
+                        <div class="hidden sm:flex flex-col">
+                          {@render seatAndAirline(flight)}
+                        </div>
+                        {#if !readonly}
+                          <div class="flex justify-end w-full">
+                            {@render actions(flight)}
+                          </div>
+                        {/if}
+                      </div>
+                      <Separator class="my-4 md:hidden" />
+                    {/if}
+                    <div class="max-lg:hidden flex flex-col w-48 shrink-0">
                       {@render seatAndAirline(flight)}
                     </div>
+                    <div class="max-xl:hidden flex flex-col w-48 shrink-0">
+                      {@render flightAndTailNumber(flight)}
+                    </div>
+                    <div class="flex flex-1 px-12 md:px-16">
+                      <div class="w-full grid grid-cols-[auto_1fr_auto] gap-3">
+                        {@render airport(flight.from)}
+                        <div class="h-full flex flex-col justify-center">
+                          <div class="relative">
+                            <div
+                              class="relative w-full h-px border-b border-dashed border-dark-2 dark:border-zinc-500"
+                            >
+                              <div
+                                class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-1 bg-card dark:bg-dark-2 text-dark-2 dark:text-zinc-500"
+                              >
+                                <div class="flex flex-col items-center">
+                                  <Plane size="20" />
+                                  <span class="text-xs">{flight.duration}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        {@render airport(flight.to)}
+                      </div>
+                    </div>
                     {#if !readonly}
-                      <div class="flex justify-end w-full">
+                      <div class="hidden md:flex">
                         {@render actions(flight)}
                       </div>
                     {/if}
                   </div>
-                  <Separator class="my-4 md:hidden" />
-                {/if}
-                <div class="max-lg:hidden flex flex-col w-48 shrink-0">
-                  {@render seatAndAirline(flight)}
-                </div>
-                <div class="max-xl:hidden flex flex-col w-48 shrink-0">
-                  {@render flightAndTailNumber(flight)}
-                </div>
-                <div class="flex flex-1 px-12 md:px-16">
-                  <div class="w-full grid grid-cols-[auto_1fr_auto] gap-3">
-                    {@render airport(flight.from)}
-                    <div class="h-full flex flex-col justify-center">
-                      <div class="relative">
-                        <div
-                          class="relative w-full h-px border-b border-dashed border-dark-2 dark:border-zinc-500"
-                        >
-                          <div
-                            class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-1 bg-card dark:bg-dark-2 text-dark-2 dark:text-zinc-500"
-                          >
-                            <div class="flex flex-col items-center">
-                              <Plane size="20" />
-                              <span class="text-xs">{flight.duration}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    {@render airport(flight.to)}
-                  </div>
-                </div>
-                {#if !readonly}
-                  <div class="hidden md:flex">
-                    {@render actions(flight)}
-                  </div>
-                {/if}
-              </div>
-            </Card>
+                </Card>
+              {/each}
+            </div>
           {/each}
         </div>
-      {/each}
-    </ScrollArea>
+      </ScrollArea>
+    {/if}
+  </div>
+
+  <!-- Mobile Edit Modal -->
+  {#if mobileEditFlight}
+    <EditFlightModal
+      flight={mobileEditFlight}
+      bind:open={mobileEditOpen}
+      showTrigger={false}
+    />
   {/if}
+
+  <!-- Delete Confirmation -->
+  <DeleteFlightModal
+    bind:open={deleteModalOpen}
+    flight={deleteFlightData}
+    onConfirm={confirmDelete}
+  />
 </Modal>
 
 {#snippet flightTimes(flight)}
@@ -390,17 +473,14 @@
     {#key flight}
       <EditFlightModal {flight} triggerDisabled={selecting} />
     {/key}
-    <Confirm
-      onConfirm={() => deleteFlight?.(flight.id)}
-      title="Remove Flight"
-      description="Are you sure you want to remove this flight? All seats will be removed as well."
+    <Button
+      variant="outline"
+      size="icon"
+      disabled={selecting}
+      onclick={() => handleDelete(flight)}
     >
-      {#snippet triggerContent({ props })}
-        <Button variant="outline" size="icon" {...props} disabled={selecting}>
-          <X size="24" />
-        </Button>
-      {/snippet}
-    </Confirm>
+      <X size="24" />
+    </Button>
   </div>
 {/snippet}
 

@@ -24,7 +24,7 @@
       <Form.Label>Airline</Form.Label>
       <AirlinePicker
         bind:value={$formData.airline}
-        placeholder="Select an airline"
+        placeholder="Select airline"
         onCreateNew={() => (createAirline = true)}
       />
       <input hidden bind:value={$formData.airline} name={props.name} />

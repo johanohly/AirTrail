@@ -28,7 +28,7 @@
 
 <FormPrimitive.ElementField {form} {name}>
   {#snippet children({ constraints, errors, tainted, value })}
-    <div bind:this={ref} class={cn('grid gap-2', className)} {...restProps}>
+    <div bind:this={ref} class={cn('grid gap-1', className)} {...restProps}>
       {@render childrenProp?.({
         constraints,
         errors,

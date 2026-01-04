@@ -55,7 +55,9 @@
           {/if}
         </Dialog.Title>
       </Dialog.Header>
-      <div class="prose max-h-[80dvh] overflow-y-auto space-y-6">
+      <div
+        class="prose dark:prose-invert max-h-[80dvh] overflow-y-auto space-y-6"
+      >
         {#each versionState.newReleases as changelog (changelog.name)}
           <div class="border-b border-gray-200 pb-4 last:border-b-0">
             <h3 class="text-lg font-semibold mb-2 flex items-center gap-2">

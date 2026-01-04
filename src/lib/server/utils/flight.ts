@@ -164,7 +164,7 @@ export const validateAndSaveFlight = async (
 
   return {
     success: true,
-    message: 'Flight added successfully',
+    message: 'Flight added',
     id: flightId,
   };
 };

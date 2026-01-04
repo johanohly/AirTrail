@@ -1,19 +1,20 @@
 <script lang="ts">
+  import { Globe } from '@o7/icon';
   import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
 
-  import FlightInformation from './FlightInformation.svelte';
-  import FlightNumber from './FlightNumber.svelte';
-  import SeatInformation from './SeatInformation.svelte';
-
   import { page } from '$app/state';
-  import { AirportField, DateTimeField } from '$lib/components/form-fields';
   import * as Form from '$lib/components/ui/form';
-  import { Modal } from '$lib/components/ui/modal';
+  import {
+    Modal,
+    ModalBreadcrumbHeader,
+    ModalFooter,
+  } from '$lib/components/ui/modal';
+  import { FlightForm } from '$lib/components/modals/flight-form';
+  import { flightAddedState } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
   import { flightSchema } from '$lib/zod/flight';
-  import { flightAddedState } from '$lib/state.svelte';
 
   let { open = $bindable() }: { open: boolean } = $props();
 
@@ -44,21 +45,12 @@
   });
 </script>
 
-<Modal bind:open dialogOnly closeOnOutsideClick={false}>
-  <h2 class="text-lg font-medium">Add Flight</h2>
-  <form
-    method="POST"
-    action="/api/flight/save/form"
-    class="grid gap-4"
-    use:enhance
-  >
-    <FlightNumber {form} />
-    <AirportField field="from" {form} />
-    <AirportField field="to" {form} />
-    <DateTimeField field="departure" {form} />
-    <DateTimeField field="arrival" {form} />
-    <SeatInformation {form} />
-    <FlightInformation {form} />
-    <Form.Button>Add Flight</Form.Button>
+<Modal bind:open closeOnOutsideClick={false} class="max-w-screen-lg">
+  <ModalBreadcrumbHeader section="Flights" title="New flight" icon={Globe} />
+  <form method="POST" action="/api/flight/save/form" use:enhance>
+    <FlightForm {form} />
+    <ModalFooter>
+      <Form.Button size="sm">Add Flight</Form.Button>
+    </ModalFooter>
   </form>
 </Modal>

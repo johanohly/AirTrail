@@ -1,7 +1,11 @@
+import { Readable } from 'node:stream';
+
+import * as tar from 'tar';
 import { z } from 'zod';
 
 import { db } from '$lib/db';
 import type { Airline } from '$lib/db/types';
+import { uploadManager } from '$lib/server/utils/uploads';
 import type { ErrorActionResult } from '$lib/utils/forms';
 import type { airlineSchema } from '$lib/zod/airline';
 
@@ -55,8 +59,15 @@ export const findAirline = async (input: string): Promise<Airline[] | null> => {
     .execute();
 };
 
-export const createAirline = async (data: Omit<Airline, 'id'>) => {
-  await db.insertInto('airline').values(data).execute();
+export const createAirline = async (
+  data: Omit<Airline, 'id'>,
+): Promise<number> => {
+  const result = await db
+    .insertInto('airline')
+    .values(data)
+    .returning('id')
+    .executeTakeFirstOrThrow();
+  return result.id;
 };
 
 export const updateAirline = async (data: Airline) => {
@@ -70,7 +81,16 @@ export const validateAndSaveAirline = async (
 
   if (existingAirline) {
     try {
-      await updateAirline(airline);
+      // Don't update iconPath - it's managed separately via the icon upload API
+      await db
+        .updateTable('airline')
+        .set({
+          name: airline.name,
+          icao: airline.icao,
+          iata: airline.iata,
+        })
+        .where('id', '=', existingAirline.id)
+        .execute();
     } catch (_) {
       return {
         success: false,
@@ -84,11 +104,13 @@ export const validateAndSaveAirline = async (
       message: 'Airline updated',
     };
   } else {
+    let newId: number;
     try {
-      await createAirline({
+      newId = await createAirline({
         name: airline.name,
         icao: airline.icao,
         iata: airline.iata,
+        iconPath: airline.iconPath ?? null,
       });
     } catch (_) {
       return {
@@ -101,6 +123,197 @@ export const validateAndSaveAirline = async (
     return {
       success: true,
       message: 'Airline created',
+      id: newId,
     };
   }
+};
+
+export const validateAirlineIcons = async (): Promise<void> => {
+  if (!uploadManager.isConfigured) {
+    return;
+  }
+
+  const airlines = await db
+    .selectFrom('airline')
+    .select(['id', 'iconPath'])
+    .where('iconPath', 'is not', null)
+    .execute();
+
+  for (const airline of airlines) {
+    if (airline.iconPath && !uploadManager.fileExists(airline.iconPath)) {
+      console.warn(
+        `Airline ${airline.id} has missing icon file: ${airline.iconPath}. Setting to null.`,
+      );
+      await db
+        .updateTable('airline')
+        .set({ iconPath: null })
+        .where('id', '=', airline.id)
+        .execute();
+    }
+  }
+};
+
+const GITHUB_TARBALL_URL =
+  'https://api.github.com/repos/johanohly/AirTrail/tarball/main';
+
+type IconData = { buffer: Buffer; extension: string };
+
+/**
+ * Downloads the AirTrail repo tarball and extracts airline icons.
+ * @returns Map of ICAO code (uppercase) -> icon data (buffer + extension)
+ */
+async function fetchAirlineIconsFromGitHub(): Promise<Map<string, IconData>> {
+  const icaoToIcon = new Map<string, IconData>();
+
+  const response = await fetch(GITHUB_TARBALL_URL, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'AirTrail',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch tarball: ${response.status}`);
+  }
+
+  const buffer = Buffer.from(await response.arrayBuffer());
+  const readable = Readable.from(buffer);
+
+  await new Promise<void>((resolve, reject) => {
+    const parser = new tar.Parser({
+      filter: (path) => {
+        // Match paths like: johanohly-AirTrail-abc123/static/airlines/AAR.svg
+        return /\/static\/airlines\/[A-Z0-9]+\.[a-z]+$/.test(path);
+      },
+      onReadEntry: (entry) => {
+        const chunks: Buffer[] = [];
+        entry.on('data', (chunk: Buffer) => chunks.push(chunk));
+        entry.on('end', () => {
+          // Extract ICAO and extension from filename: .../static/airlines/AAR.svg
+          const filename = entry.path.split('/').pop();
+          if (filename) {
+            const icao = filename.replace(/\.[^.]+$/, '').toUpperCase();
+            const extension = filename.substring(filename.lastIndexOf('.'));
+            icaoToIcon.set(icao, {
+              buffer: Buffer.concat(chunks),
+              extension,
+            });
+          }
+        });
+      },
+    });
+
+    parser.on('end', resolve);
+    parser.on('error', reject);
+
+    readable.pipe(parser);
+  });
+
+  return icaoToIcon;
+}
+
+const hasAnyAirlineWithIcon = async (): Promise<boolean> => {
+  const result = await db
+    .selectFrom('airline')
+    .select('id')
+    .where('iconPath', 'is not', null)
+    .limit(1)
+    .executeTakeFirst();
+  return !!result;
+};
+
+const getAirlinesForIconPopulation = async (overwrite: boolean) => {
+  let query = db
+    .selectFrom('airline')
+    .select(['id', 'icao', 'iconPath'])
+    .where('icao', 'is not', null);
+
+  if (!overwrite) {
+    query = query.where('iconPath', 'is', null);
+  }
+
+  return query.execute();
+};
+
+const saveAirlineIcon = async (
+  airline: { id: number; icao: string | null; iconPath: string | null },
+  iconData: IconData,
+  overwrite: boolean,
+): Promise<boolean> => {
+  const relativePath = `airlines/${airline.id}${iconData.extension}`;
+
+  if (overwrite && airline.iconPath && airline.iconPath !== relativePath) {
+    await uploadManager.deleteFile(airline.iconPath);
+  }
+
+  const success = await uploadManager.saveFile(relativePath, iconData.buffer);
+  if (!success) return false;
+
+  await db
+    .updateTable('airline')
+    .set({ iconPath: relativePath })
+    .where('id', '=', airline.id)
+    .execute();
+
+  return true;
+};
+
+/**
+ * Populates default airline icons from GitHub for airlines without icons.
+ * Downloads the repo tarball once and extracts all icons, avoiding rate limits.
+ * @param options.onlyIfNoIcons If true, only populate if no airlines have icons (for initial install)
+ * @param options.overwrite If true, overwrite existing icons with defaults (for manual re-import)
+ * @returns Number of icons populated
+ */
+export const populateDefaultAirlineIcons = async (options?: {
+  onlyIfNoIcons?: boolean;
+  overwrite?: boolean;
+}): Promise<number> => {
+  if (!uploadManager.isReady) {
+    return 0;
+  }
+
+  if (options?.onlyIfNoIcons && (await hasAnyAirlineWithIcon())) {
+    return 0;
+  }
+
+  const airlines = await getAirlinesForIconPopulation(
+    options?.overwrite ?? false,
+  );
+  if (airlines.length === 0) {
+    return 0;
+  }
+
+  console.log(`Fetching default airline icons from GitHub...`);
+
+  let icaoToIcon: Map<string, IconData>;
+  try {
+    icaoToIcon = await fetchAirlineIconsFromGitHub();
+  } catch (err) {
+    console.warn('Failed to fetch airline icons from GitHub:', err);
+    return 0;
+  }
+
+  console.log(`Found ${icaoToIcon.size} icons in repository.`);
+
+  let populated = 0;
+  for (const airline of airlines) {
+    const iconData = airline.icao
+      ? icaoToIcon.get(airline.icao.toUpperCase())
+      : null;
+    if (!iconData) continue;
+
+    const saved = await saveAirlineIcon(
+      airline,
+      iconData,
+      options?.overwrite ?? false,
+    );
+    if (saved) populated++;
+  }
+
+  if (populated > 0) {
+    console.log(`Populated default icons for ${populated} airline(s).`);
+  }
+
+  return populated;
 };

@@ -1,23 +1,40 @@
 <script lang="ts">
   import SvelteVirtualList from '@humanspeak/svelte-virtual-list';
-  import { X } from '@o7/icon/lucide';
+  import { Download, LoaderCircle, SquarePen, X } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
 
   import CreateAirline from './CreateAirline.svelte';
   import EditAirline from './EditAirline.svelte';
 
-  import { Confirm } from '$lib/components/helpers';
+  import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
+  import { confirmation } from '$lib/components/helpers';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { Collapsible } from '$lib/components/ui/collapsible';
+  import { Modal } from '$lib/components/ui/modal';
   import { Input } from '$lib/components/ui/input';
   import type { Airline } from '$lib/db/types';
   import { api, trpc } from '$lib/trpc';
 
   const { airlines = [] }: { airlines: Airline[] } = $props();
 
-  const deleteAirline = async (id: number) => {
-    const success = await api.airline.delete.mutate(id);
+  // Single shared edit state
+  let editOpen = $state(false);
+  let airlineToEdit = $state<Airline | null>(null);
+
+  const openEdit = (airline: Airline) => {
+    airlineToEdit = airline;
+    editOpen = true;
+  };
+
+  const deleteAirline = async (airline: Airline) => {
+    const confirmed = await confirmation.show({
+      title: 'Remove Airline',
+      description: `Are you sure you want to remove ${airline.name}?`,
+    });
+    if (!confirmed) return;
+
+    const success = await api.airline.delete.mutate(airline.id);
     if (success) {
       await trpc.airline.list.utils.invalidate();
       await trpc.flight.list.utils.invalidate();
@@ -36,13 +53,50 @@
   const handleSearch = (e: Event) => {
     search = (e.target as HTMLInputElement).value;
   };
+
+  let importingIcons = $state(false);
+  let importDialogOpen = $state(false);
+
+  const importDefaultIcons = async (overwrite: boolean) => {
+    importingIcons = true;
+    try {
+      const count = await api.airline.importDefaultIcons.mutate({ overwrite });
+      importDialogOpen = false;
+      if (count > 0) {
+        await trpc.airline.list.utils.invalidate();
+        toast.success(`Imported ${count} icon${count === 1 ? '' : 's'}`);
+      } else {
+        toast.info('No new icons to import');
+      }
+    } catch {
+      toast.error('Failed to import icons');
+    } finally {
+      importingIcons = false;
+    }
+  };
 </script>
 
 <Collapsible title="Airlines" subtitle="Manage airlines in your database.">
   <div class="flex flex-col gap-4">
     <div class="flex gap-2 justify-between">
       <Input oninput={handleSearch} class="h-9" placeholder="Search airlines" />
-      <CreateAirline />
+      <div class="flex gap-2">
+        <Button
+          variant="outline"
+          class="h-9"
+          disabled={importingIcons}
+          onclick={() => (importDialogOpen = true)}
+        >
+          {#if importingIcons}
+            <LoaderCircle size={16} class="shrink-0 animate-spin" />
+            Importing...
+          {:else}
+            <Download size={16} class="shrink-0" />
+            Import Icons
+          {/if}
+        </Button>
+        <CreateAirline withoutTrigger={false} />
+      </div>
     </div>
     <div class="h-[40dvh]">
       <SvelteVirtualList
@@ -51,32 +105,35 @@
       >
         {#snippet renderItem(airline)}
           <Card level="2" class="w-full flex items-center justify-between p-3">
-            <div class="flex flex-col">
-              <span class="font-medium">{airline.name}</span>
-              <div class="flex gap-4 text-sm text-muted-foreground">
-                {#if airline.iata}
-                  <span>IATA: <b>{airline.iata}</b></span>
-                {/if}
-                {#if airline.icao}
-                  <span>ICAO: <b>{airline.icao}</b></span>
-                {/if}
+            <div class="flex items-center gap-3">
+              <AirlineIcon {airline} size={32} />
+              <div class="flex flex-col">
+                <span class="font-medium">{airline.name}</span>
+                <div class="flex gap-4 text-sm text-muted-foreground">
+                  {#if airline.iata}
+                    <span>IATA: <b>{airline.iata}</b></span>
+                  {/if}
+                  {#if airline.icao}
+                    <span>ICAO: <b>{airline.icao}</b></span>
+                  {/if}
+                </div>
               </div>
             </div>
             <div class="flex gap-1">
-              {#key airline}
-                <EditAirline {airline} />
-              {/key}
-              <Confirm
-                title="Remove Airline"
-                description="Are you sure you want to remove {airline.name}?"
-                onConfirm={() => deleteAirline(airline.id)}
+              <Button
+                variant="outline"
+                size="icon"
+                onclick={() => openEdit(airline)}
               >
-                {#snippet triggerContent({ props })}
-                  <Button variant="outline" size="icon" {...props}>
-                    <X />
-                  </Button>
-                {/snippet}
-              </Confirm>
+                <SquarePen size={16} />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onclick={() => deleteAirline(airline)}
+              >
+                <X />
+              </Button>
             </div>
           </Card>
         {/snippet}
@@ -84,3 +141,37 @@
     </div>
   </div>
 </Collapsible>
+
+<EditAirline airline={airlineToEdit} bind:open={editOpen} />
+
+<Modal bind:open={importDialogOpen} class="max-w-md">
+  <div class="flex flex-col gap-1.5">
+    <h2 class="text-lg font-semibold">Import Default Icons</h2>
+    <p class="text-sm text-muted-foreground">
+      Download airline icons from the AirTrail repository for airlines that have
+      a matching ICAO code.
+    </p>
+  </div>
+  <div class="flex flex-col gap-2">
+    <Button
+      variant="outline"
+      disabled={importingIcons}
+      onclick={() => importDefaultIcons(false)}
+    >
+      {#if importingIcons}
+        <LoaderCircle size={16} class="mr-2 animate-spin" />
+      {/if}
+      Fill missing icons only
+    </Button>
+    <Button
+      variant="outline"
+      disabled={importingIcons}
+      onclick={() => importDefaultIcons(true)}
+    >
+      {#if importingIcons}
+        <LoaderCircle size={16} class="mr-2 animate-spin" />
+      {/if}
+      Overwrite all with defaults
+    </Button>
+  </div>
+</Modal>

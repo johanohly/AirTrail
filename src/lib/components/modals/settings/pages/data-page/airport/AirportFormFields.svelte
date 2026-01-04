@@ -29,6 +29,20 @@
   <Form.FieldErrors />
 </Form.Field>
 
+<Form.Field {form} name="municipality" class="flex flex-col">
+  <Form.Control>
+    {#snippet children({ props })}
+      <Form.Label>Municipality</Form.Label>
+      <Input
+        bind:value={$formData.municipality}
+        {...props}
+        placeholder="e.g. Los Angeles"
+      />
+    {/snippet}
+  </Form.Control>
+  <Form.FieldErrors />
+</Form.Field>
+
 <Form.Field {form} name="type">
   <Form.Control>
     {#snippet children({ props })}
@@ -53,7 +67,7 @@
   <Form.FieldErrors />
 </Form.Field>
 
-<section class="grid grid-cols-2 gap-2">
+<section class="grid grid-cols-1 gap-2 sm:grid-cols-2">
   <Form.Field {form} name="icao" class="flex flex-col">
     <Form.Control>
       {#snippet children()}

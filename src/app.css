@@ -4,6 +4,7 @@ layer(base);
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+@plugin "@tailwindcss/typography";
 @source '../node_modules/layerchart/**/*.{svelte,js}';
 
 @custom-variant dark (&:is(.dark *));
@@ -168,11 +169,32 @@ layer(base);
   body {
     @apply bg-background text-foreground;
   }
+
+  html,
+  body {
+    @apply h-full;
+  }
+
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--border, currentColor);
+  }
 }
 
-html,
-body {
-  @apply h-full;
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.max-w-screen-lg {
+  max-width: 1024px;
 }
 
 .page-container {
@@ -439,37 +461,4 @@ a.maplibregl-ctrl-logo::before {
 .maplibregl-user-location-accuracy-circle {
   background-color: hsla(var(--primary) / 20%) !important;
   border-radius: 100% !important;
-}
-
-/* Basic prose styles */
-.prose h1 {
-  @apply text-4xl leading-[1.11] font-bold;
-}
-
-.prose h2 {
-  @apply text-2xl leading-[1.33] font-bold mt-[1em];
-}
-
-.prose h3 {
-  @apply text-xl leading-[1.6] font-semibold mb-2 mt-5;
-}
-
-:where(.prose > :first-child) {
-  @apply mt-0!;
-}
-
-.prose :where(h3 + *) {
-  @apply mt-0!;
-}
-
-.prose ul {
-  @apply list-disc pl-6 mb-4;
-}
-
-.prose a {
-  @apply font-medium border-b border-b-primary;
-}
-
-.prose a:hover {
-  @apply border-b-2;
 }

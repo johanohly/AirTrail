@@ -12,7 +12,7 @@ export const withinModal = async (
   const modal = page.getByRole('dialog');
   if (title) {
     await expect(
-      modal.getByRole('heading', { level: 2, name: title }),
+      modal.getByRole('heading', { level: 3, name: title }),
     ).toBeVisible();
   }
 

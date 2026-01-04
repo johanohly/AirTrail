@@ -7,7 +7,7 @@
   import { dev } from '$app/environment';
   import { page } from '$app/state';
   import { NavigationDock } from '$lib/components';
-  import { ScreenSize } from '$lib/components/helpers';
+  import { ConfirmWrapper, ScreenSize } from '$lib/components/helpers';
   import {
     AddFlightModal,
     NewVersionAnnouncement,
@@ -31,6 +31,7 @@
 <ModeWatcher />
 <ScreenSize />
 <Toaster />
+<ConfirmWrapper />
 
 {#if !dev && data.user && data.user.role !== 'user'}
   <NewVersionAnnouncement />
@@ -41,7 +42,9 @@
     <SettingsModal bind:open={openModalsState.settings} />
     <AddFlightModal bind:open={openModalsState.addFlight} />
 
-    {@render children()}
+    <main class="h-full" data-vaul-drawer-wrapper>
+      {@render children()}
+    </main>
 
     {#if data.user && !page.error && !['/login', '/setup'].includes(page.url.pathname)}
       <NavigationDock />

@@ -4,13 +4,14 @@
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
 
-  import { AirportField, DateTimeField } from '$lib/components/form-fields';
-  import FlightInformation from '$lib/components/modals/add-flight/FlightInformation.svelte';
-  import FlightNumber from '$lib/components/modals/add-flight/FlightNumber.svelte';
-  import SeatInformation from '$lib/components/modals/add-flight/SeatInformation.svelte';
+  import { FlightForm } from '$lib/components/modals/flight-form';
   import { Button } from '$lib/components/ui/button';
-  import * as Dialog from '$lib/components/ui/dialog';
   import * as Form from '$lib/components/ui/form';
+  import {
+    Modal,
+    ModalBreadcrumbHeader,
+    ModalFooter,
+  } from '$lib/components/ui/modal';
   import { trpc } from '$lib/trpc';
   import type { FlightData } from '$lib/utils';
   import { formatAsTime, isUsingAmPm } from '$lib/utils/datetime';
@@ -18,10 +19,14 @@
 
   let {
     flight,
-    triggerDisabled,
+    triggerDisabled = false,
+    open = $bindable(false),
+    showTrigger = true,
   }: {
     flight: FlightData;
-    triggerDisabled: boolean;
+    triggerDisabled?: boolean;
+    open?: boolean;
+    showTrigger?: boolean;
   } = $props();
 
   // If their language uses 12-hour time format, we display the time in *a* 12-hour format
@@ -45,8 +50,6 @@
       ? formatAsTime(flight.arrival, displayLocale)
       : null,
   };
-
-  let open = $state(false);
 
   const form = superForm(
     defaults<Infer<typeof flightSchema>>(schemaFlight, zod(flightSchema)),
@@ -73,39 +76,27 @@
   const { form: formData, enhance } = form;
 </script>
 
-<Dialog.Root bind:open>
-  <Dialog.Trigger>
-    {#snippet child({ props })}
-      <Button
-        variant="outline"
-        size="icon"
-        {...props}
-        disabled={triggerDisabled}
-      >
-        <SquarePen size={16} />
-      </Button>
-    {/snippet}
-  </Dialog.Trigger>
-  <Dialog.Content
-    preventScroll={false}
-    interactOutsideBehavior="ignore"
-    class="max-h-full overflow-y-auto max-w-lg"
+{#if showTrigger}
+  <Button
+    variant="outline"
+    size="icon"
+    onclick={() => (open = true)}
+    disabled={triggerDisabled}
   >
-    <h2 class="text-lg font-medium">Edit Flight</h2>
-    <form
-      method="POST"
-      action="/api/flight/save/form"
-      use:enhance
-      class="grid gap-4"
-    >
-      <FlightNumber {form} />
-      <AirportField field="from" {form} />
-      <AirportField field="to" {form} />
-      <DateTimeField field="departure" {form} />
-      <DateTimeField field="arrival" {form} />
-      <SeatInformation {form} />
-      <FlightInformation {form} />
-      <Form.Button>Save</Form.Button>
-    </form>
-  </Dialog.Content>
-</Dialog.Root>
+    <SquarePen size={16} />
+  </Button>
+{/if}
+
+<Modal bind:open closeOnOutsideClick={false} class="max-w-screen-lg">
+  <ModalBreadcrumbHeader
+    section="Flights"
+    title="Edit flight"
+    icon={SquarePen}
+  />
+  <form method="POST" action="/api/flight/save/form" use:enhance>
+    <FlightForm {form} />
+    <ModalFooter>
+      <Form.Button size="sm">Save</Form.Button>
+    </ModalFooter>
+  </form>
+</Modal>

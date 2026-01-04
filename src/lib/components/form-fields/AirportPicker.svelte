@@ -127,7 +127,7 @@
 
   {#if $open}
     <ul
-      class="z-5000 flex max-h-[300px] flex-col overflow-hidden rounded-lg mt-1"
+      class="pointer-events-auto z-5000 flex max-h-[300px] flex-col overflow-hidden rounded-lg mt-1"
       use:melt={$menu}
       transition:fly={{ duration: 150, y: -5 }}
     >
