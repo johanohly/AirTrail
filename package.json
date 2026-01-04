@@ -95,7 +95,6 @@
     "@types/d3-shape": "^3.1.7",
     "@types/pg": "^8.15.5",
     "@types/semver": "^7.7.0",
-    "@types/tar": "^6.1.13",
     "@vitest/coverage-v8": "2.1.4",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.33.0",
