@@ -40,11 +40,7 @@
         style:height="{size}px"
         title="Failed to load icon"
       >
-        {#if fallback === 'plane'}
-          <Plane size={size * 0.7} />
-        {:else}
-          <Airlines size={size * 0.8} />
-        {/if}
+        {@render fallbackIcon()}
       </div>
     </Avatar.Fallback>
   </Avatar.Root>
@@ -54,10 +50,14 @@
     style:width="{size}px"
     style:height="{size}px"
   >
-    {#if fallback === 'plane'}
-      <Plane size={size * 0.7} />
-    {:else}
-      <Airlines size={size * 0.8} />
-    {/if}
+    {@render fallbackIcon()}
   </div>
 {/if}
+
+{#snippet fallbackIcon()}
+  {#if fallback === 'plane'}
+    <Plane size={size * 0.7} />
+  {:else}
+    <Airlines size={size * 0.8} />
+  {/if}
+{/snippet}
