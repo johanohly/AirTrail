@@ -39,19 +39,20 @@ model user {
 }
 
 model airport {
-  id        Int     @id @default(autoincrement())
-  icao      String
-  iata      String?
-  lat       Float
-  lon       Float
-  tz        String
-  name      String
+  id           Int     @id @default(autoincrement())
+  icao         String
+  iata         String?
+  lat          Float
+  lon          Float
+  tz           String
+  name         String
+  municipality String?
   /// @kyselyType('large_airport' | 'medium_airport' | 'small_airport' | 'heliport' | 'seaplane_base' | 'balloonport' | 'closed')
-  type      String
+  type         String
   /// @kyselyType('EU' | 'NA' | 'SA' | 'AS' | 'AF' | 'OC' | 'AN')
-  continent String
-  country   String
-  custom    Boolean @default(false)
+  continent    String
+  country      String
+  custom       Boolean @default(false)
 
   flights_from flight[] @relation("flights_from")
 
@@ -68,10 +69,11 @@ model aircraft {
 }
 
 model airline {
-  id   Int     @id @default(autoincrement())
-  name String
-  icao String?
-  iata String?
+  id        Int     @id @default(autoincrement())
+  name      String
+  icao      String?
+  iata      String?
+  icon_path String?
 
   flights flight[]
 }

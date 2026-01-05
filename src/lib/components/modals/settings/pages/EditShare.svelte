@@ -8,7 +8,11 @@
 
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
-  import { Modal } from '$lib/components/ui/modal';
+  import {
+    Modal,
+    ModalBody,
+    ModalBreadcrumbHeader,
+  } from '$lib/components/ui/modal';
   import { trpc } from '$lib/trpc';
   import { shareSchema } from '$lib/zod/share';
   import { TextTooltip } from '$lib/components/ui/tooltip/index.js';
@@ -87,15 +91,17 @@
   </Button>
 </TextTooltip>
 
-<Modal bind:open dialogOnly>
-  <h2 class="text-lg font-medium">Edit Share</h2>
-  <form
-    method="POST"
-    action="/api/share/save/form"
-    class="grid gap-4"
-    use:enhance
-  >
-    <ShareFormFields {form} />
-    <Form.Button>Update</Form.Button>
-  </form>
+<Modal bind:open>
+  <ModalBreadcrumbHeader section="Shares" title="Edit share" icon={SquarePen} />
+  <ModalBody>
+    <form
+      method="POST"
+      action="/api/share/save/form"
+      class="grid gap-4"
+      use:enhance
+    >
+      <ShareFormFields {form} />
+      <Form.Button>Update</Form.Button>
+    </form>
+  </ModalBody>
 </Modal>

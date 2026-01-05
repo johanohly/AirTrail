@@ -17,6 +17,7 @@ export type airline = {
     name: string;
     icao: string | null;
     iata: string | null;
+    iconPath: string | null;
 };
 export type airport = {
     id: Generated<number>;
@@ -26,6 +27,7 @@ export type airport = {
     lon: number;
     tz: string;
     name: string;
+    municipality: string | null;
     /**
      * @kyselyType('large_airport' | 'medium_airport' | 'small_airport' | 'heliport' | 'seaplane_base' | 'balloonport' | 'closed')
      */

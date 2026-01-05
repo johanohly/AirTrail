@@ -77,8 +77,10 @@
   });
 </script>
 
-<Modal bind:open class="max-w-2xl">
-  <div class="space-y-6">
+<Modal bind:open class="max-w-2xl" drawerNoPadding>
+  <div
+    class="flex flex-col gap-6 max-md:max-h-[calc(100dvh-200px)] max-md:px-6 max-md:py-3"
+  >
     <div class="space-y-0.5">
       <h2 class="text-2xl font-bold tracking-tight">Settings</h2>
       <p class="text-muted-foreground">

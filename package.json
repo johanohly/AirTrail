@@ -1,11 +1,13 @@
 {
   "name": "airtrail",
-  "version": "3.2.2",
+  "version": "3.3.0",
   "type": "module",
   "scripts": {
     "build": "vite build",
     "preview": "vite preview",
     "dev": "vite dev",
+    "docker:buildx:setup": "bash docker/buildx-setup.sh",
+    "docker:buildx:dev": "docker buildx build --platform linux/amd64,linux/arm64 -f docker/Dockerfile -t johly/airtrail:dev --push .",
     "docs:dev": "cd docs && bun run dev",
     "docs:generate": "cd docs && bun run generate",
     "d": "bun run dx && bun run dev",
@@ -36,6 +38,7 @@
     "@formkit/auto-animate": "^0.8.2",
     "@humanspeak/svelte-virtual-list": "^0.2.6",
     "@internationalized/date": "^3.8.2",
+    "@johly/vaul-svelte": "^1.0.0-next.23",
     "@layerstack/utils": "^2.0.0-next.14",
     "@lucia-auth/adapter-postgresql": "^3.1.2",
     "@node-rs/argon2": "^2.0.2",
@@ -71,8 +74,8 @@
     "sveltekit-superforms": "^2.27.1",
     "tailwind-merge": "^3.3.1",
     "tailwind-variants": "^2.1.0",
+    "tar": "^7.5.2",
     "trpc-svelte-query": "^2.1.0",
-    "vaul-svelte": "^1.0.0-next.7",
     "zod": "^3.25.16"
   },
   "devDependencies": {
@@ -85,6 +88,7 @@
     "@sveltejs/adapter-node": "^5.2.14",
     "@sveltejs/kit": "^2.27.3",
     "@sveltejs/vite-plugin-svelte": "^6.1.1",
+    "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.11",
     "@types/d3-geo": "^3.1.0",
     "@types/d3-scale": "^4.0.9",
@@ -117,6 +121,7 @@
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.39.1",
     "vite": "^7.1.1",
+    "vite-plugin-pwa": "^1.1.0",
     "vitest": "^3.2.4"
   },
   "prisma": {

@@ -18,6 +18,7 @@ const seedAirports = [
   {
     icao: 'EGLL',
     name: 'London Heathrow Airport',
+    municipality: 'London',
     lat: 51.47,
     lon: -0.4543,
     country: 'GB',
@@ -29,6 +30,7 @@ const seedAirports = [
   {
     icao: 'KJFK',
     name: 'John F Kennedy International Airport',
+    municipality: 'New York',
     lat: 40.6413,
     lon: -73.7781,
     country: 'US',
@@ -40,6 +42,7 @@ const seedAirports = [
   {
     icao: 'KMIA',
     name: 'Miami International Airport',
+    municipality: 'Miami',
     lat: 25.7959,
     lon: -80.287,
     country: 'US',
@@ -51,6 +54,7 @@ const seedAirports = [
   {
     icao: 'OMDB',
     name: 'Dubai International Airport',
+    municipality: 'Dubai',
     lat: 25.2532,
     lon: 55.3657,
     country: 'AE',
@@ -62,6 +66,7 @@ const seedAirports = [
   {
     icao: 'HECA',
     name: 'Cairo International Airport',
+    municipality: 'Cairo',
     lat: 30.1219,
     lon: 31.4056,
     country: 'EG',
@@ -73,6 +78,7 @@ const seedAirports = [
   {
     icao: 'OEJN',
     name: 'King Abdulaziz International Airport',
+    municipality: 'Jeddah',
     lat: 21.6796,
     lon: 39.1565,
     country: 'SA',
@@ -84,6 +90,7 @@ const seedAirports = [
   {
     icao: 'VHHH',
     name: 'Hong Kong International Airport',
+    municipality: 'Hong Kong',
     lat: 22.308,
     lon: 113.9185,
     country: 'HK',
@@ -95,6 +102,7 @@ const seedAirports = [
   {
     icao: 'RCTP',
     name: 'Taiwan Taoyuan International Airport',
+    municipality: 'Taipei',
     lat: 25.0797,
     lon: 121.2342,
     country: 'TW',
@@ -106,6 +114,7 @@ const seedAirports = [
   {
     icao: 'OERK',
     name: 'King Khalid International Airport',
+    municipality: 'Riyadh',
     lat: 24.9576,
     lon: 46.6988,
     country: 'SA',
@@ -117,6 +126,7 @@ const seedAirports = [
   {
     icao: 'VTBS',
     name: 'Suvarnabhumi Airport',
+    municipality: 'Bangkok',
     lat: 13.69,
     lon: 100.7501,
     country: 'TH',
@@ -128,6 +138,7 @@ const seedAirports = [
   {
     icao: 'RKSI',
     name: 'Incheon International Airport',
+    municipality: 'Seoul',
     lat: 37.4602,
     lon: 126.4407,
     country: 'KR',

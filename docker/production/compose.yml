@@ -24,9 +24,15 @@ services:
       - .env
     ports:
       - 3000:3000
+    # Uncomment to enable file uploads (e.g., airline icons)
+    # Also set UPLOAD_LOCATION=/app/uploads in your .env file
+    # volumes:
+    #   - uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   db_data:
+  # Uncomment to enable file uploads
+  # uploads:

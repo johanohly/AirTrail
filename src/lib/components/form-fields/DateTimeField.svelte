@@ -39,7 +39,7 @@
   });
 </script>
 
-<div class="grid gap-2 grid-cols-[3fr_2fr]">
+<div class="grid gap-2 grid-cols-[3fr_2fr] items-start">
   <Form.Field {form} name={field}>
     <Form.Control>
       {#snippet children({ props })}
@@ -63,7 +63,7 @@
           minValue={parseDate('1970-01-01')}
           locale={navigator.language}
         >
-          <div class="flex w-full max-w-[232px] flex-col gap-1.5">
+          <div class="flex w-full flex-col gap-1.5">
             <DateField.Input
               class={cn(
                 'border-input bg-background selection:bg-primary dark:bg-input/30 selection:text-primary-foreground ring-offset-background placeholder:text-muted-foreground shadow-xs flex h-9 w-full min-w-0 rounded-md border px-3 py-[6px] text-base outline-none transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
@@ -127,10 +127,10 @@
   <Form.Field {form} name={`${field}Time`}>
     <Form.Control>
       {#snippet children({ props })}
-        <Form.Label class="flex gap-1">
+        <Form.Label class="flex items-center gap-2">
           Time
           <HelpTooltip
-            text="Local time. Time can be in 24-hour and 12-hour format."
+            text="Local airport time. Can be in either 24-hour or 12-hour format."
           />
         </Form.Label>
         <Input {...props} bind:value={$formData[`${field}Time`]} />

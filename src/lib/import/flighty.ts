@@ -115,12 +115,14 @@ export const processFlightyFile = async (
   if (data.length === 0 || error) {
     return {
       flights: [],
-      unknownAirports: [],
+      unknownAirports: {},
+      unknownAirlines: {},
     };
   }
 
   const flights: CreateFlight[] = [];
-  const unknownAirports: string[] = [];
+  const unknownAirports: Record<string, number[]> = {};
+  const unknownAirlines: Record<string, number[]> = {};
 
   for (const row of data) {
     // Parse departure and arrival times
@@ -138,26 +140,22 @@ export const processFlightyFile = async (
       continue;
     }
 
-    const from = await api.airport.getFromIata.query(row.from);
-    const to = await api.airport.getFromIata.query(row.to);
-
-    if (!from || !to) {
-      if (!from && !unknownAirports.includes(row.from)) {
-        unknownAirports.push(row.from);
-      }
-      if (!to && !unknownAirports.includes(row.to)) {
-        unknownAirports.push(row.to);
-      }
-      continue;
-    }
+    const mappedFrom = options.airportMapping?.[row.from];
+    const mappedTo = options.airportMapping?.[row.to];
+    const from = mappedFrom ?? (await api.airport.getFromIata.query(row.from));
+    const to = mappedTo ?? (await api.airport.getFromIata.query(row.to));
 
     const duration = differenceInSeconds(arrival, departure);
 
     let airline = null;
+    let airlineIcao: string | undefined;
     if (row.airline) {
-      const airlineIcao = row.airline.trim().toUpperCase();
-      airline = (await api.airline.getByIcao.query(airlineIcao)) ?? null;
-
+      airlineIcao = row.airline.trim().toUpperCase();
+      const mappedAirline = options.airlineMapping?.[airlineIcao];
+      airline = mappedAirline || null;
+      if (!airline) {
+        airline = (await api.airline.getByIcao.query(airlineIcao)) ?? null;
+      }
       if (!airline) {
         airline = (await api.airline.getByIata.query(airlineIcao)) ?? null;
       }
@@ -173,10 +171,25 @@ export const processFlightyFile = async (
     // Extract date in YYYY-MM-DD format
     const date = departure.toISOString().split('T')[0]!;
 
+    const flightIndex = flights.length;
+
+    if (!from) {
+      if (!unknownAirports[row.from]) unknownAirports[row.from] = [];
+      unknownAirports[row.from].push(flightIndex);
+    }
+    if (!to) {
+      if (!unknownAirports[row.to]) unknownAirports[row.to] = [];
+      unknownAirports[row.to].push(flightIndex);
+    }
+    if (!airline && airlineIcao) {
+      if (!unknownAirlines[airlineIcao]) unknownAirlines[airlineIcao] = [];
+      unknownAirlines[airlineIcao].push(flightIndex);
+    }
+
     flights.push({
       date,
-      from,
-      to,
+      from: from || null,
+      to: to || null,
       departure: departure.toISOString(),
       arrival: arrival.toISOString(),
       duration,
@@ -201,5 +214,6 @@ export const processFlightyFile = async (
   return {
     flights,
     unknownAirports,
+    unknownAirlines,
   };
 };

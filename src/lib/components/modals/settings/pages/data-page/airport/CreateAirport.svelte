@@ -8,7 +8,12 @@
 
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
-  import { Modal } from '$lib/components/ui/modal';
+  import {
+    Modal,
+    ModalBody,
+    ModalBreadcrumbHeader,
+    ModalFooter,
+  } from '$lib/components/ui/modal';
   import type { Airport } from '$lib/db/types';
   import { airportSearchCache } from '$lib/utils/data/airports/cache';
   import { airportSchema } from '$lib/zod/airport';
@@ -46,20 +51,21 @@
 
 {#if !withoutTrigger}
   <Button variant="outline" onclick={() => (open = true)}>
-    <Plus size={16} class="shrink-0 mr-2" />
+    <Plus size={16} class="shrink-0" />
     Create
   </Button>
 {/if}
 
-<Modal bind:open dialogOnly>
-  <h2 class="text-lg font-medium">Add Airport</h2>
-  <form
-    method="POST"
-    action="/api/airport/save/form"
-    class="grid gap-4"
-    use:enhance
-  >
-    <AirportFormFields {form} />
-    <Form.Button>Create</Form.Button>
+<Modal bind:open>
+  <ModalBreadcrumbHeader section="Airports" title="Add airport" icon={Plus} />
+  <form method="POST" action="/api/airport/save/form" use:enhance>
+    <ModalBody>
+      <div class="grid gap-4">
+        <AirportFormFields {form} />
+      </div>
+    </ModalBody>
+    <ModalFooter>
+      <Form.Button>Create</Form.Button>
+    </ModalFooter>
   </form>
 </Modal>

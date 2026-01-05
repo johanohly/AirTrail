@@ -14,7 +14,11 @@ import { readFile } from '$lib/utils';
 
 export type PlatformValue = (typeof platforms)[number]['value'];
 
-type ProcessResult = { flights: CreateFlight[]; unknownAirports: string[] };
+type ProcessResult = {
+  flights: CreateFlight[];
+  unknownAirports: Record<string, number[]>; // code -> flight indices
+  unknownAirlines: Record<string, number[]>; // code -> flight indices
+};
 
 type Processor = (
   content: string,
@@ -22,10 +26,11 @@ type Processor = (
 ) => Promise<ProcessResult>;
 
 const processors: Record<PlatformValue, Processor> = {
-  airtrail: async (content) => processAirTrailFile(content),
-  'legacy-airtrail': async (content) => processLegacyAirTrailFile(content),
+  airtrail: async (content, options) => processAirTrailFile(content, options),
+  'legacy-airtrail': async (content, options) =>
+    processLegacyAirTrailFile(content, options),
   jetlog: async (content, options) => processJetLogFile(content, options),
-  fr24: async (content) => processFR24File(content),
+  fr24: async (content, options) => processFR24File(content, options),
   aita: async (content, options) => processAITAFile(content, options),
   tripit: async (content, options) => processTripItFile(content, options),
   flighty: async (content, options) => processFlightyFile(content, options),

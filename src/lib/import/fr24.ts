@@ -3,6 +3,7 @@ import { addDays, isBefore, parse } from 'date-fns';
 import { z } from 'zod';
 
 import { page } from '$app/state';
+import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type { Flight, CreateFlight, Seat } from '$lib/db/types';
 import { api } from '$lib/trpc';
 import { parseCsv } from '$lib/utils';
@@ -86,7 +87,10 @@ const extractAircraftICAO = (aircraft: string) => {
   return match.groups?.ICAO ?? null;
 };
 
-export const processFR24File = async (content: string) => {
+export const processFR24File = async (
+  content: string,
+  options: PlatformOptions,
+) => {
   const [data, error] = parseCsv(content, FR24Flight);
   if (error) {
     throw error;
@@ -98,7 +102,8 @@ export const processFR24File = async (content: string) => {
   }
 
   const flights: CreateFlight[] = [];
-  const unknownAirports: string[] = [];
+  const unknownAirports: Record<string, number[]> = {};
+  const unknownAirlines: Record<string, number[]> = {};
   for (const row of data) {
     const fromCode = extractAirportICAO(row.from);
     const toCode = extractAirportICAO(row.to);
@@ -106,17 +111,10 @@ export const processFR24File = async (content: string) => {
       continue;
     }
 
-    const from = await api.airport.getFromIcao.query(fromCode);
-    const to = await api.airport.getFromIcao.query(toCode);
-    if (!from || !to) {
-      if (!from && !unknownAirports.includes(row.from)) {
-        unknownAirports.push(row.from);
-      }
-      if (!to && !unknownAirports.includes(row.to)) {
-        unknownAirports.push(row.to);
-      }
-      continue;
-    }
+    const mappedFrom = options.airportMapping?.[fromCode];
+    const mappedTo = options.airportMapping?.[toCode];
+    const from = mappedFrom ?? (await api.airport.getFromIcao.query(fromCode));
+    const to = mappedTo ?? (await api.airport.getFromIcao.query(toCode));
 
     if (row.dep_time === '00:00:00' && row.arr_time === '00:00:00') {
       row.dep_time = null;
@@ -129,7 +127,7 @@ export const processFR24File = async (content: string) => {
             `${row.date} ${row.dep_time}`,
             'yyyy-MM-dd HH:mm:ss',
             new Date(),
-            { in: tz(from.tz) },
+            { in: tz(from?.tz || 'UTC') },
           ),
         )
       : null;
@@ -139,7 +137,7 @@ export const processFR24File = async (content: string) => {
             `${row.date} ${row.arr_time}`,
             'yyyy-MM-dd HH:mm:ss',
             new Date(),
-            { in: tz(to.tz) },
+            { in: tz(to?.tz || 'UTC') },
           ),
         )
       : null;
@@ -162,12 +160,14 @@ export const processFR24File = async (content: string) => {
       FR24_FLIGHT_REASON_MAP?.[row.flight_reason ?? 'noop'] ?? null;
 
     const rawAirline = row.airline ? extractAirlineICAO(row.airline) : null;
-    const airline = rawAirline
-      ? ((await api.airline.getByIcao.query(rawAirline)) ?? null)
-      : null;
-    if (!airline && rawAirline) {
-      console.warn(`Unknown airline ICAO code: ${rawAirline}`);
-    }
+    const mappedAirline = rawAirline
+      ? options.airlineMapping?.[rawAirline]
+      : undefined;
+    const airline =
+      mappedAirline ||
+      (rawAirline
+        ? (await api.airline.getByIcao.query(rawAirline)) || null
+        : null);
 
     const rawAircraft = row.aircraft ? extractAircraftICAO(row.aircraft) : null;
     const aircraft = rawAircraft
@@ -177,10 +177,25 @@ export const processFR24File = async (content: string) => {
       console.warn(`Unknown aircraft ICAO code: ${rawAircraft}`);
     }
 
+    const flightIndex = flights.length;
+
+    if (!from) {
+      if (!unknownAirports[fromCode]) unknownAirports[fromCode] = [];
+      unknownAirports[fromCode].push(flightIndex);
+    }
+    if (!to) {
+      if (!unknownAirports[toCode]) unknownAirports[toCode] = [];
+      unknownAirports[toCode].push(flightIndex);
+    }
+    if (!airline && rawAirline) {
+      if (!unknownAirlines[rawAirline]) unknownAirlines[rawAirline] = [];
+      unknownAirlines[rawAirline].push(flightIndex);
+    }
+
     flights.push({
       date: row.date, // YYYY-MM-DD
-      from,
-      to,
+      from: from || null,
+      to: to || null,
       departure: departure ? departure.toISOString() : null,
       arrival: arrival ? arrival.toISOString() : null,
       duration,
@@ -205,5 +220,6 @@ export const processFR24File = async (content: string) => {
   return {
     flights,
     unknownAirports,
+    unknownAirlines,
   };
 };

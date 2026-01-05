@@ -114,6 +114,20 @@
       }
 
       if (
+        filters.airline.length &&
+        !filters.airline.includes(f.airline?.name || '')
+      ) {
+        return false;
+      }
+
+      if (
+        filters.aircraft.length &&
+        !filters.aircraft.includes(f.aircraft?.name || '')
+      ) {
+        return false;
+      }
+
+      if (
         filters.aircraftRegs.length &&
         !filters.aircraftRegs.includes(f.aircraftReg || '')
       ) {

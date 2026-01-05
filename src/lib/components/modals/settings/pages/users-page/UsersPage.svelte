@@ -8,7 +8,7 @@
   import { invalidateAll } from '$app/navigation';
   import { page } from '$app/state';
   import { Confirm } from '$lib/components/helpers';
-  import AddUserModal from '$lib/components/modals/settings/pages/users-page/AddUserModal.svelte';
+  import UserModal from '$lib/components/modals/settings/pages/users-page/UserModal.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import type { User } from '$lib/db/types';
@@ -36,10 +36,23 @@
     return true;
   };
 
+  const canEditUser = (current_user: User) => {
+    if (current_user.role === 'owner') {
+      return false;
+    }
+    if (current_user.role === 'admin' && page.data.user?.role === 'admin') {
+      return false;
+    }
+    return true;
+  };
+
   let addUserModal = $state(false);
+  let editUserModal = $state(false);
+  let editingUser = $state<User | undefined>(undefined);
 </script>
 
-<AddUserModal bind:open={addUserModal} />
+<UserModal bind:open={addUserModal} mode="add" />
+<UserModal bind:open={editUserModal} mode="edit" user={editingUser} />
 
 <PageHeader title="Users" subtitle="Manage who can access AirTrail.">
   {#snippet headerRight()}
@@ -71,7 +84,15 @@
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <Button disabled variant="outline" size="icon">
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={!canEditUser(current_user)}
+              onclick={() => {
+                editingUser = current_user;
+                editUserModal = true;
+              }}
+            >
               <SquarePen size="20" />
             </Button>
             <Confirm

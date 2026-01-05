@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Check, Funnel } from '@o7/icon/lucide';
+  import { Check, Funnel, Plane, PlaneLanding, PlaneTakeoff } from '@o7/icon';
+  import { Airlines } from '@o7/icon/material';
 
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
@@ -7,17 +8,22 @@
   import * as Popover from '$lib/components/ui/popover';
   import { Separator } from '$lib/components/ui/separator';
   import { cn } from '$lib/utils';
+  import type { Snippet, SvelteComponent } from 'svelte';
 
   let {
     filterValues = $bindable<string[]>(),
     title,
     placeholder,
+    triggerIcon,
+    itemIcon,
     disabled,
     options,
   }: {
     filterValues: string[];
     title: string;
     placeholder: string;
+    triggerIcon: string;
+    itemIcon?: Snippet<[string]>;
     disabled: boolean;
     options: { value: string; label: string; shortLabel?: string }[];
   } = $props();
@@ -50,6 +56,28 @@
   }
 </script>
 
+{#snippet checkbox(value: string)}
+  <div
+    class={cn(
+      'border-foreground flex size-5 shrink-0 items-center justify-center rounded-sm border',
+      filterValues.includes(value)
+        ? 'text-foreground'
+        : 'opacity-50 [&_svg]:invisible',
+    )}
+  >
+    <Check className="size-4" />
+  </div>
+{/snippet}
+
+{#snippet optionLabel(
+  option: { value: string; label: string },
+  grow: boolean = false,
+)}
+  <span class={cn('truncate', grow && 'flex-1')} title={option.label}>
+    {option.label}
+  </span>
+{/snippet}
+
 <Popover.Root bind:open>
   <Popover.Trigger>
     {#snippet child({ props })}
@@ -60,7 +88,17 @@
         {...props}
         {disabled}
       >
-        <Funnel size={16} class="mr-2" />
+        {#if triggerIcon == 'plane'}
+          <Plane size={16} class="mr-2" />
+        {:else if triggerIcon == 'depart'}
+          <PlaneTakeoff size={16} class="mr-2" />
+        {:else if triggerIcon == 'arrive'}
+          <PlaneLanding size={16} class="mr-2" />
+        {:else if triggerIcon == 'airline'}
+          <Airlines size={20} class="mr-2" />
+        {:else}
+          <Funnel size={16} class="mr-2" />
+        {/if}
         {title}
 
         {#if filterValues.length > 0}
@@ -101,19 +139,14 @@
                 keywords={[option.label]}
                 onSelect={() => handleSelect(option.value)}
               >
-                <div
-                  class={cn(
-                    'border-foreground flex size-5 items-center justify-center rounded-sm border',
-                    filterValues.includes(option.value)
-                      ? 'text-foreground'
-                      : 'opacity-50 [&_svg]:invisible',
-                  )}
-                >
-                  <Check className="size-4" />
-                </div>
-                <span class="truncate" title={option.label}>
-                  {option.label}
-                </span>
+                {#if itemIcon}
+                  {@render itemIcon(option.value)}
+                  {@render optionLabel(option, true)}
+                  {@render checkbox(option.value)}
+                {:else}
+                  {@render checkbox(option.value)}
+                  {@render optionLabel(option)}
+                {/if}
               </Command.Item>
             {/each}
           </Command.Group>

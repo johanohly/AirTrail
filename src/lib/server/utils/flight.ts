@@ -164,7 +164,7 @@ export const validateAndSaveFlight = async (
 
   return {
     success: true,
-    message: 'Flight added successfully',
+    message: 'Flight added',
     id: flightId,
   };
 };
@@ -178,8 +178,8 @@ export const updateFlight = async (id: number, data: CreateFlight) => {
 };
 
 const signature = (f: CreateFlight) => {
-  const from = f.from.id;
-  const to = f.to.id;
+  const from = f.from?.id ?? null;
+  const to = f.to?.id ?? null;
   return [
     f.date ?? '',
     from ?? '',
@@ -219,8 +219,12 @@ export const createManyFlights = async (
 
   // Gather candidate filters
   const dates = new Set(uniqueFlights.map((f) => f.date));
-  const froms = new Set(uniqueFlights.map((f) => f.from.id));
-  const tos = new Set(uniqueFlights.map((f) => f.to.id));
+  const froms = new Set(
+    uniqueFlights.map((f) => f.from?.id).filter((id): id is string => !!id),
+  );
+  const tos = new Set(
+    uniqueFlights.map((f) => f.to?.id).filter((id): id is string => !!id),
+  );
 
   // Fetch existing flights for candidate space
   let existingFlights: Flight[] = [];

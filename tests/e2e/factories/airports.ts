@@ -4,6 +4,7 @@ import type { Airport } from '$lib/db/types';
 export interface AirportInput {
   icao: string;
   name: string;
+  municipality?: string | null;
   lat: number;
   lon: number;
   country: string;
@@ -40,6 +41,7 @@ export const airportsFactory = {
       .values({
         icao: input.icao,
         name: input.name,
+        municipality: input.municipality ?? null,
         lat: input.lat,
         lon: input.lon,
         country: input.country,
