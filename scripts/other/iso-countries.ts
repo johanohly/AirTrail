@@ -6,6 +6,7 @@ interface RawCountry {
     'alpha-3': string;
     'country-code': string;
     region: string;
+    "intermediate-region": string
 }
 
 interface Country {
@@ -14,6 +15,11 @@ interface Country {
     alpha3: string;
     numeric: number;
     continent: string;
+}
+
+function mapContinentFromRawCountry(country: RawCountry): string {
+    if (country.region !== "Americas") return country.region;
+    return country['intermediate-region'] === "South America" ? "South America" : "North America"
 }
 
 async function main() {
@@ -29,7 +35,7 @@ async function main() {
         alpha2: country['alpha-2'],
         alpha3: country['alpha-3'],
         numeric: parseInt(country['country-code'], 10),
-        continent: country.region
+        continent: mapContinentFromRawCountry(country)
     }));
 
     // Generate the TypeScript file content
