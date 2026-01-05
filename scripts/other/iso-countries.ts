@@ -26,8 +26,23 @@ async function main() {
     const url = "https://raw.githubusercontent.com/lukes/ISO-3166-Countries-with-Regional-Codes/master/all/all.json";
 
     // Download the json
-    const res = await fetch(url);
-    const json: RawCountry[] = await res.json();
+    let res: Response | undefined;
+    try {
+        res = await fetch(url);
+    } catch (error) {
+        throw new Error(`Failed to fetch countries from GitHub: ${error instanceof Error ? error.message : 'Network error'}`);
+    }
+
+    if (!res.ok) {
+        throw new Error(`Failed to fetch countries from GitHub: HTTP ${res.status} ${res.statusText}`);
+    }
+
+    let json: RawCountry[];
+    try {
+        json = await res.json();
+    } catch (error) {
+        throw new Error(`Failed to parse JSON response: ${error instanceof Error ? error.message : 'Invalid JSON'}`);
+    }
 
     // Transform the data
     const countries: Country[] = json.map(country => ({
@@ -60,4 +75,7 @@ export const COUNTRIES: Country[] = ${JSON.stringify(countries, null, 2)};
     console.log(`✓ Generated countries.ts with ${countries.length} countries`);
 }
 
-main()
+main().catch((error) => {
+    console.error('Error generating countries file:', error.message);
+    process.exit(1);
+});
