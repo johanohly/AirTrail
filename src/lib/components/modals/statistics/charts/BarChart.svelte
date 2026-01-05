@@ -11,7 +11,7 @@
     data: Record<string, { visited: number; total: number }>;
   } = $props();
 
-  const noData = $derived.by(() => Object.values(data).lenght === 0);
+  const noData = $derived.by(() => Object.values(data).length === 0);
 
   const sortedEntries = $derived.by(() => {
     return Object.entries(data).sort(([, a], [, b]) => b.visited - a.visited);
