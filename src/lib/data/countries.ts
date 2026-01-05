@@ -193,7 +193,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Asia',
   },
   {
-    name: 'Bolivia, Plurinational State of',
+    name: 'Bolivia',
     alpha2: 'BO',
     alpha3: 'BOL',
     numeric: 68,
@@ -242,7 +242,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Africa',
   },
   {
-    name: 'Brunei Darussalam',
+    name: 'Brunei',
     alpha2: 'BN',
     alpha3: 'BRN',
     numeric: 96,
@@ -361,7 +361,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Africa',
   },
   {
-    name: 'Congo',
+    name: 'Congo, Republic of the',
     alpha2: 'CG',
     alpha3: 'COG',
     numeric: 178,
@@ -389,7 +389,7 @@ export const COUNTRIES: Country[] = [
     continent: 'North America',
   },
   {
-    name: "Côte d'Ivoire",
+    name: "Cote d'Ivoire",
     alpha2: 'CI',
     alpha3: 'CIV',
     numeric: 384,
@@ -410,7 +410,7 @@ export const COUNTRIES: Country[] = [
     continent: 'North America',
   },
   {
-    name: 'Curaçao',
+    name: 'Curacao',
     alpha2: 'CW',
     alpha3: 'CUW',
     numeric: 531,
@@ -515,7 +515,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Africa',
   },
   {
-    name: 'Falkland Islands (Malvinas)',
+    name: 'Falkland Islands',
     alpha2: 'FK',
     alpha3: 'FLK',
     numeric: 238,
@@ -564,7 +564,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Oceania',
   },
   {
-    name: 'French Southern Territories',
+    name: 'French Southern and Antarctic Lands',
     alpha2: 'TF',
     alpha3: 'ATF',
     numeric: 260,
@@ -697,7 +697,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Oceania',
   },
   {
-    name: 'Holy See',
+    name: 'Holy See (Vatican City)',
     alpha2: 'VA',
     alpha3: 'VAT',
     numeric: 336,
@@ -746,7 +746,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Asia',
   },
   {
-    name: 'Iran, Islamic Republic of',
+    name: 'Iran',
     alpha2: 'IR',
     alpha3: 'IRN',
     numeric: 364,
@@ -837,14 +837,14 @@ export const COUNTRIES: Country[] = [
     continent: 'Oceania',
   },
   {
-    name: "Korea, Democratic People's Republic of",
+    name: 'North Korea',
     alpha2: 'KP',
     alpha3: 'PRK',
     numeric: 408,
     continent: 'Asia',
   },
   {
-    name: 'Korea, Republic of',
+    name: 'South Korea',
     alpha2: 'KR',
     alpha3: 'KOR',
     numeric: 410,
@@ -865,7 +865,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Asia',
   },
   {
-    name: "Lao People's Democratic Republic",
+    name: 'Laos',
     alpha2: 'LA',
     alpha3: 'LAO',
     numeric: 418,
@@ -928,7 +928,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Europe',
   },
   {
-    name: 'Macao',
+    name: 'Macau',
     alpha2: 'MO',
     alpha3: 'MAC',
     numeric: 446,
@@ -1026,7 +1026,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Oceania',
   },
   {
-    name: 'Moldova, Republic of',
+    name: 'Moldova',
     alpha2: 'MD',
     alpha3: 'MDA',
     numeric: 498,
@@ -1103,7 +1103,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Asia',
   },
   {
-    name: 'Netherlands, Kingdom of the',
+    name: 'Netherlands',
     alpha2: 'NL',
     alpha3: 'NLD',
     numeric: 528,
@@ -1201,7 +1201,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Oceania',
   },
   {
-    name: 'Palestine, State of',
+    name: 'Palestine',
     alpha2: 'PS',
     alpha3: 'PSE',
     numeric: 275,
@@ -1243,7 +1243,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Asia',
   },
   {
-    name: 'Pitcairn',
+    name: 'Pitcairn Islands',
     alpha2: 'PN',
     alpha3: 'PCN',
     numeric: 612,
@@ -1278,7 +1278,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Asia',
   },
   {
-    name: 'Réunion',
+    name: 'Reunion',
     alpha2: 'RE',
     alpha3: 'REU',
     numeric: 638,
@@ -1292,7 +1292,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Europe',
   },
   {
-    name: 'Russian Federation',
+    name: 'Russia',
     alpha2: 'RU',
     alpha3: 'RUS',
     numeric: 643,
@@ -1306,14 +1306,14 @@ export const COUNTRIES: Country[] = [
     continent: 'Africa',
   },
   {
-    name: 'Saint Barthélemy',
+    name: 'Saint Barthelemy',
     alpha2: 'BL',
     alpha3: 'BLM',
     numeric: 652,
     continent: 'North America',
   },
   {
-    name: 'Saint Helena, Ascension and Tristan da Cunha',
+    name: 'Saint Helena, Ascension, and Tristan da Cunha',
     alpha2: 'SH',
     alpha3: 'SHN',
     numeric: 654,
@@ -1334,7 +1334,7 @@ export const COUNTRIES: Country[] = [
     continent: 'North America',
   },
   {
-    name: 'Saint Martin (French part)',
+    name: 'Saint Martin',
     alpha2: 'MF',
     alpha3: 'MAF',
     numeric: 663,
@@ -1418,7 +1418,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Asia',
   },
   {
-    name: 'Sint Maarten (Dutch part)',
+    name: 'Sint Maarten',
     alpha2: 'SX',
     alpha3: 'SXM',
     numeric: 534,
@@ -1460,7 +1460,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Africa',
   },
   {
-    name: 'South Georgia and the South Sandwich Islands',
+    name: 'South Georgia and South Sandwich Islands',
     alpha2: 'GS',
     alpha3: 'SGS',
     numeric: 239,
@@ -1502,7 +1502,7 @@ export const COUNTRIES: Country[] = [
     continent: 'South America',
   },
   {
-    name: 'Svalbard and Jan Mayen',
+    name: 'Svalbard',
     alpha2: 'SJ',
     alpha3: 'SJM',
     numeric: 744,
@@ -1523,14 +1523,14 @@ export const COUNTRIES: Country[] = [
     continent: 'Europe',
   },
   {
-    name: 'Syrian Arab Republic',
+    name: 'Syria',
     alpha2: 'SY',
     alpha3: 'SYR',
     numeric: 760,
     continent: 'Asia',
   },
   {
-    name: 'Taiwan, Province of China',
+    name: 'Taiwan',
     alpha2: 'TW',
     alpha3: 'TWN',
     numeric: 158,
@@ -1544,7 +1544,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Asia',
   },
   {
-    name: 'Tanzania, United Republic of',
+    name: 'Tanzania',
     alpha2: 'TZ',
     alpha3: 'TZA',
     numeric: 834,
@@ -1600,7 +1600,7 @@ export const COUNTRIES: Country[] = [
     continent: 'Africa',
   },
   {
-    name: 'Türkiye',
+    name: 'Turkey',
     alpha2: 'TR',
     alpha3: 'TUR',
     numeric: 792,
@@ -1649,14 +1649,14 @@ export const COUNTRIES: Country[] = [
     continent: 'Asia',
   },
   {
-    name: 'United Kingdom of Great Britain and Northern Ireland',
+    name: 'United Kingdom',
     alpha2: 'GB',
     alpha3: 'GBR',
     numeric: 826,
     continent: 'Europe',
   },
   {
-    name: 'United States of America',
+    name: 'United States',
     alpha2: 'US',
     alpha3: 'USA',
     numeric: 840,
@@ -1691,21 +1691,21 @@ export const COUNTRIES: Country[] = [
     continent: 'Oceania',
   },
   {
-    name: 'Venezuela, Bolivarian Republic of',
+    name: 'Venezuela',
     alpha2: 'VE',
     alpha3: 'VEN',
     numeric: 862,
     continent: 'South America',
   },
   {
-    name: 'Viet Nam',
+    name: 'Vietnam',
     alpha2: 'VN',
     alpha3: 'VNM',
     numeric: 704,
     continent: 'Asia',
   },
   {
-    name: 'Virgin Islands (British)',
+    name: 'British Virgin Islands',
     alpha2: 'VG',
     alpha3: 'VGB',
     numeric: 92,
