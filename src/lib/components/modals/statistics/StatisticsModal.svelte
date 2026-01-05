@@ -287,7 +287,6 @@
           title="Countries by Continent"
           data={countriesByContinentData}
         />
-      </div>
       {/if}
     </div>
   {/if}
