@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { Expand } from '@o7/icon/lucide';
-
   import { cn } from '$lib/utils';
 
   let {
@@ -28,9 +26,6 @@
     'relative w-full border-[0.5px] border-zinc-300 rounded-sm p-2 dark:border-zinc-800 min-h-[250px]',
   )}
 >
-  <div class="absolute top-4 right-4">
-    <Expand size={14} />
-  </div>
   <div
     class={cn(
       'border rounded-sm h-full p-4',
