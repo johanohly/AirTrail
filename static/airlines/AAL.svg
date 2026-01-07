@@ -1,0 +1,45 @@
+<svg version="1.2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1509" width="1536" height="1509">
+	<title>American_Airlines_logo_2013-svg</title>
+	<defs>
+		<linearGradient id="g1" x1="1101.3" y1="856.3" x2="1101.3" y2="1835.2" gradientUnits="userSpaceOnUse">
+			<stop offset="0" stop-color="#ed1c24"/>
+			<stop offset=".1" stop-color="#e81b23"/>
+			<stop offset=".3" stop-color="#db1a21"/>
+			<stop offset=".4" stop-color="#c4171d"/>
+			<stop offset=".6" stop-color="#a41317"/>
+			<stop offset=".7" stop-color="#7b0e10"/>
+			<stop offset=".8" stop-color="#780e0f"/>
+		</linearGradient>
+		<linearGradient id="g2" x1="656.2" y1="937.8" x2="1013" y2="937.8" gradientUnits="userSpaceOnUse">
+			<stop offset="0" stop-color="#69231d"/>
+			<stop offset=".3" stop-color="#8d2922"/>
+			<stop offset=".6" stop-color="#b22f26"/>
+			<stop offset=".8" stop-color="#c93329"/>
+			<stop offset="1" stop-color="#d1342a"/>
+		</linearGradient>
+		<linearGradient id="g3" x1="617" y1="885.4" x2="1014.6" y2="646.5" gradientUnits="userSpaceOnUse">
+			<stop offset=".1" stop-color="#e7ebee"/>
+			<stop offset=".4" stop-color="#d5dce0"/>
+			<stop offset=".9" stop-color="#a5b4bb"/>
+			<stop offset="1" stop-color="#96a7b0"/>
+		</linearGradient>
+		<linearGradient id="g4" x1="397.9" y1="684.1" x2="397.9" y2="7.8" gradientUnits="userSpaceOnUse">
+			<stop offset="0" stop-color="#1c2f72"/>
+			<stop offset=".1" stop-color="#174687"/>
+			<stop offset=".4" stop-color="#0d72af"/>
+			<stop offset=".7" stop-color="#0692cc"/>
+			<stop offset=".9" stop-color="#02a6de"/>
+			<stop offset="1" stop-color="#00ade4"/>
+		</linearGradient>
+	</defs>
+	<style>
+		.s0 { fill: url(#g1) } 
+		.s1 { fill: url(#g2) } 
+		.s2 { fill: url(#g3) } 
+		.s3 { fill: url(#g4) } 
+	</style>
+	<path id="Layer" class="s0" d="m670.5 1102.5c-26.1-64.8 101.4-219.6 342.6-229.6l522.6 635.2h-443c-36.6 0-174.4 3-260.6-138.9z"/>
+	<path id="Layer" class="s1" d="m670.5 1102.9c-0.6-1-14.2-33.1-14.2-71.8 0-144.9 128.5-228.3 274.2-258.1l82.6 100.3c-241.2 9.6-368.7 164.4-342.6 229.6z"/>
+	<path id="Layer" class="s2" d="m1153.8 771c-25.7-9.2-59.4-11.2-95.1-11.2-42.3 0-85.9 4.3-128.2 12.9-145.7 29.8-274.2 113.1-274.2 258 0 38.7 13.6 70.8 14.2 71.8l-146.3-240.8c-27.1-48.6-37-76.1-37-107.9 0-86.3 164.5-122.7 384.8-122.7 226.3 0 266.6 84.4 281.8 139.9z"/>
+	<path id="Layer" class="s3" d="m0.5 0.6h205.9c76.9 1.6 125.2 20.5 209.1 124.3l379.9 480.4h-275.5c-144.4 0-166.9-24.8-227.3-124.4z"/>
+</svg>

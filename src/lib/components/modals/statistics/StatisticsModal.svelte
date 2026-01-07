@@ -3,6 +3,7 @@
   import { Plus } from '@o7/icon/lucide';
   import { isBefore } from 'date-fns';
 
+  import BarChart from './charts/BarChart.svelte';
   import ChartDrillDown from './charts/ChartDrillDown.svelte';
   import FlightsPerMonth from './charts/FlightsPerMonth.svelte';
   import FlightsPerWeekday from './charts/FlightsPerWeekday.svelte';
@@ -13,9 +14,10 @@
   import { page } from '$app/state';
   import { Button } from '$lib/components/ui/button';
   import { Modal } from '$lib/components/ui/modal';
+  import { type VisitedCountry, wasVisited } from '$lib/db/types';
   import * as Select from '$lib/components/ui/select';
-  import { type VisitedCountry } from '$lib/db/types';
   import {
+    COUNTRY_BAR_CHARTS,
     COUNTRY_CHARTS,
     FLIGHT_CHARTS,
     type ChartKey,
@@ -113,6 +115,44 @@
   const countryStatusData = $derived.by(() =>
     COUNTRY_CHARTS['visited-country-status'].aggregate(visitedCountries),
   );
+
+  const countriesByContinentData = $derived.by(() =>
+    COUNTRY_BAR_CHARTS['countries-by-continent'].aggregate(visitedCountries),
+  );
+
+  $effect(() => {
+    if (open) {
+      setTimeout(() => {
+        flightCount = flights.length;
+        totalDistance = flights.reduce(
+          (acc, curr) => (acc += curr.distance ?? 0),
+          0,
+        );
+        earthCircumnavigations = totalDistance / 40075;
+        const duration = Duration.fromSeconds(
+          flights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
+        );
+        totalDurationParts = {
+          days: duration.days,
+          hours: duration.hours,
+          minutes: duration.minutes,
+        };
+        airports = new Set(
+          flights
+            .filter((f) => f.from && f.to)
+            .flatMap((f) => [f.from!.name, f.to!.name]),
+        ).size;
+        countriesCount = visitedCountries.filter(wasVisited).length;
+      }, 200);
+    } else {
+      flightCount = 0;
+      totalDistance = 0;
+      totalDurationParts = { days: 0, hours: 0, minutes: 0 };
+      airports = 0;
+      countriesCount = 0;
+      earthCircumnavigations = 0;
+    }
+  });
 </script>
 
 <svelte:window
@@ -243,6 +283,10 @@
             <PieChart title="Visited Country Status" data={countryStatusData} />
           </div>
         </div>
+        <BarChart
+          title="Countries by Continent"
+          data={countriesByContinentData}
+        />
       {/if}
     </div>
   {/if}

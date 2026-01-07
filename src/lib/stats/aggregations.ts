@@ -2,7 +2,9 @@ import {
   ContinentMap,
   type VisitedCountry,
   VisitedCountryStatus,
+  wasVisited,
 } from '$lib/db/types';
+import { COUNTRIES } from '$lib/data/countries';
 import { type FlightData, toTitleCase } from '$lib/utils';
 
 export type FlightChartKey =
@@ -18,7 +20,9 @@ export type FlightChartKey =
 
 export type CountryChartKey = 'visited-country-status';
 
-export type ChartKey = FlightChartKey | CountryChartKey;
+export type CountryBarChartKey = 'countries-by-continent';
+
+export type ChartKey = FlightChartKey | CountryChartKey | CountryBarChartKey;
 
 export type StatsContext = {
   // If omitted, aggregate for all users
@@ -42,6 +46,35 @@ export function visitedCountryStatusDistribution(
     {},
   );
   return counts;
+}
+
+export function countriesByContinentDistribution(
+  visitedCountries: VisitedCountry[],
+): Record<string, { visited: number; total: number }> {
+  const continentByNumeric = new Map<number, string>();
+  const result: Record<string, { visited: number; total: number }> = {};
+
+  for (const country of COUNTRIES) {
+    if (country.continent) {
+      continentByNumeric.set(country.numeric, country.continent);
+
+      if (!result[country.continent]) {
+        result[country.continent] = { visited: 0, total: 0 };
+      }
+      result[country.continent].total++;
+    }
+  }
+
+  for (const visitedCountry of visitedCountries) {
+    if (wasVisited(visitedCountry)) {
+      const continent = continentByNumeric.get(visitedCountry.code);
+      if (continent && result[continent]) {
+        result[continent].visited++;
+      }
+    }
+  }
+
+  return result;
 }
 
 function sortAndLimit(
@@ -280,5 +313,20 @@ export const COUNTRY_CHARTS: Record<
   'visited-country-status': {
     title: 'Visited Country Status',
     aggregate: visitedCountryStatusDistribution,
+  },
+};
+
+export const COUNTRY_BAR_CHARTS: Record<
+  CountryBarChartKey,
+  {
+    title: string;
+    aggregate: (
+      visitedCountries: VisitedCountry[],
+    ) => Record<string, { visited: number; total: number }>;
+  }
+> = {
+  'countries-by-continent': {
+    title: 'Countries by Continent',
+    aggregate: countriesByContinentDistribution,
   },
 };

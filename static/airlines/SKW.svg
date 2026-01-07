@@ -1,0 +1,18 @@
+<svg version="1.2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1057 374" width="1057" height="374">
+	<title>SKYW_BIG-svg</title>
+	<defs>
+		<clipPath clipPathUnits="userSpaceOnUse" id="cp1">
+			<path d="m-17613.64-355.6h20069.98v15518.28h-20069.98z"/>
+		</clipPath>
+	</defs>
+	<style>
+		.s0 { fill: #002e6d } 
+	</style>
+	<g id="Clip-Path: Clip-Path: Page 1" clip-path="url(#cp1)">
+		<g id="Clip-Path: Page 1">
+			<g id="Page 1">
+				<path id="Path 20" fill-rule="evenodd" class="s0" d="m685.1 264.5c-1.4 23.9-9 46.9-20.3 68.3l1236.7-40.6zm-1530.7 29.2l1237.9 39.3c-11.4-20.3-19-43.1-20.4-68.5zm1387.4-161l-6.2-69.7 305.3 12.7-306.7-30.3-4.9-45.8-3.8 45.8-306.7 30.3 305.4-12.7-7.6 69.7c-60.9 6.4-107.8 58.5-107.8 120.5 0 67.2 54.7 120.4 120.5 120.4 67.2 0 121.6-53.2 121.6-120.4 0-62-48.2-114.1-109.1-120.5z"/>
+			</g>
+		</g>
+	</g>
+</svg>
