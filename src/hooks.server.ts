@@ -1,8 +1,7 @@
-import { type Handle, json, type ServerInit, text } from '@sveltejs/kit';
+import { type Handle, type ServerInit } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import type { Cookie } from 'lucia';
 
-import { env } from '$env/dynamic/private';
 import { lucia } from '$lib/server/auth';
 import {
   populateDefaultAirlineIcons,
@@ -59,55 +58,4 @@ const authHandle: Handle = async ({ event, resolve }) => {
   return resolve(event);
 };
 
-/**
- * CSRF protection copied from SvelteKit but with the ability to provide multiple origins.
- * Logic duplicated from `https://github.com/sveltejs/kit/blob/143dbf9da9d65dedfc370160c229c317fe18361c/packages/kit/src/runtime/server/respond.js#L63`
- */
-const csrfHandle: Handle = async ({ event, resolve }) => {
-  const ORIGIN = env.ORIGIN;
-  const ORIGINS = env.ORIGINS;
-  if (!ORIGIN && !ORIGINS) {
-    return resolve(event);
-  }
-
-  const allowedOrigins = ORIGIN
-    ? [ORIGIN]
-    : ORIGINS!.split(',').map((origin) => origin.trim());
-
-  const { request, url } = event;
-  const forbidden =
-    isFormContentType(request) &&
-    (request.method === 'POST' ||
-      request.method === 'PUT' ||
-      request.method === 'PATCH' ||
-      request.method === 'DELETE') &&
-    request.headers.get('origin') !== url.origin &&
-    !allowedOrigins.includes(request.headers.get('origin') ?? '');
-
-  if (forbidden) {
-    const message = `Cross-site ${request.method} form submissions are forbidden`;
-    if (request.headers.get('accept') === 'application/json') {
-      return json({ message }, { status: 403 });
-    }
-    return text(message, { status: 403 });
-  }
-
-  return resolve(event);
-};
-
-const isContentType = (request: Request, ...types: string[]) => {
-  const type =
-    request.headers.get('content-type')?.split(';', 1)[0]?.trim() ?? '';
-  return types.includes(type.toLowerCase());
-};
-
-const isFormContentType = (request: Request) => {
-  return isContentType(
-    request,
-    'application/x-www-form-urlencoded',
-    'multipart/form-data',
-    'text/plain',
-  );
-};
-
-export const handle: Handle = sequence(csrfHandle, authHandle);
+export const handle: Handle = sequence(authHandle);

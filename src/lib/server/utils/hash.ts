@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import { createHash } from 'node:crypto';
 
 import { hash, type Options, verify } from '@node-rs/argon2';
 
