@@ -11,7 +11,7 @@ const config = {
     adapter: adapter({ dynamic_origin: true }),
     version: { name: process.env.npm_package_version },
     csrf: {
-      trustedOrigins: origin?.split(',') ?? [],
+      trustedOrigins: origin?.split(',').map((o) => o.trim()) ?? [],
     },
   },
 };
