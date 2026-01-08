@@ -4,19 +4,19 @@ documentation:
           - docs/docs/**
           - docs/src/**
           - docs/static/**
-
 web:
-  - changed-files:
-      - any-glob-to-any-file:
-          - src/**
-          - static/**
-
+  - all:
+      - changed-files:
+          - any-glob-to-any-file:
+              - src/**
+              - static/**
+          - all-globs-to-all-files:
+              - '!static/airlines/**'
 assets:
   - changed-files:
       - any-globs-to-all-files:
           - static/airlines/**
-
-changelog:skip:
+'changelog:skip':
   - changed-files:
       - any-globs-to-all-files:
           - static/airlines/**
