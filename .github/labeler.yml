@@ -10,3 +10,13 @@ web:
       - any-glob-to-any-file:
           - src/**
           - static/**
+
+assets:
+  - changed-files:
+      - any-globs-to-all-files:
+          - static/airlines/**
+
+changelog:skip:
+  - changed-files:
+      - any-globs-to-all-files:
+          - static/airlines/**
