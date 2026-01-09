@@ -11,11 +11,12 @@
   import PieCharts from './charts/PieCharts.svelte';
   import StatsCard from './StatsCard.svelte';
 
+  import { resolve } from '$app/paths';
   import { page } from '$app/state';
   import { Button } from '$lib/components/ui/button';
   import { Modal } from '$lib/components/ui/modal';
-  import { type VisitedCountry, wasVisited } from '$lib/db/types';
   import * as Select from '$lib/components/ui/select';
+  import { type VisitedCountry, wasVisited } from '$lib/db/types';
   import {
     COUNTRY_BAR_CHARTS,
     COUNTRY_CHARTS,
@@ -25,7 +26,6 @@
   import { type FlightData, kmToMiles } from '$lib/utils';
   import { Duration, nowIn } from '$lib/utils/datetime';
   import { round } from '$lib/utils/number';
-  import { resolve } from '$app/paths';
 
   let {
     open = $bindable<boolean>(),
@@ -170,7 +170,7 @@
   bind:open
   class="max-w-full h-full overflow-y-auto rounded-none!"
   dialogOnly
-  closeOnEscape={true}
+  closeOnEscape={false}
   closeButton={true}
 >
   {#if activeChart}
@@ -182,7 +182,9 @@
     />
   {:else}
     <div class="space-y-4">
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pr-2 sm:pr-4 md:pr-8">
+      <div
+        class="flex flex-col sm:flex-row items-start sm:items-center justify-between pr-2 sm:pr-4 md:pr-8"
+      >
         <h2 class="text-3xl font-bold tracking-tight">Statistics</h2>
         <div class="mt-3 sm:mt-0">
           <Select.Root type="single" bind:value={selectedYear}>
