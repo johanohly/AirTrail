@@ -14,9 +14,9 @@ web:
               - '!static/airlines/**'
 assets:
   - changed-files:
-      - any-globs-to-all-files:
+      - any-glob-to-all-files:
           - static/airlines/**
 'changelog:skip':
   - changed-files:
-      - any-globs-to-all-files:
+      - any-glob-to-all-files:
           - static/airlines/**
