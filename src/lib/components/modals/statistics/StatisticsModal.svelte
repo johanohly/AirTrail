@@ -170,8 +170,8 @@
   bind:open
   class="max-w-full h-full overflow-y-auto rounded-none!"
   dialogOnly
-  closeOnEscape={false}
-  closeButton={false}
+  closeOnEscape={true}
+  closeButton={true}
 >
   {#if activeChart}
     <ChartDrillDown
@@ -182,19 +182,21 @@
     />
   {:else}
     <div class="space-y-4">
-      <div class="flex items-center justify-between">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pr-2 sm:pr-4 md:pr-8">
         <h2 class="text-3xl font-bold tracking-tight">Statistics</h2>
-        <Select.Root type="single" bind:value={selectedYear}>
-          <Select.Trigger class="w-[180px]">
-            {selectedYear === 'all' ? 'All Time' : selectedYear}
-          </Select.Trigger>
-          <Select.Content>
-            <Select.Item value="all" label="All Time" />
-            {#each years as year}
-              <Select.Item value={year} label={year} />
-            {/each}
-          </Select.Content>
-        </Select.Root>
+        <div class="mt-3 sm:mt-0">
+          <Select.Root type="single" bind:value={selectedYear}>
+            <Select.Trigger class="w-[180px]">
+              {selectedYear === 'all' ? 'All Time' : selectedYear}
+            </Select.Trigger>
+            <Select.Content>
+              <Select.Item value="all" label="All Time" />
+              {#each years as year}
+                <Select.Item value={year} label={year} />
+              {/each}
+            </Select.Content>
+          </Select.Root>
+        </div>
       </div>
       <div class="grid gap-4 pb-2 md:grid-cols-2 lg:grid-cols-5">
         <StatsCard class="py-4 px-8">
