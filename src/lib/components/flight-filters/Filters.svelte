@@ -159,7 +159,7 @@
     bind:filterValues={filters.departureAirports}
     title="Departure Airport"
     placeholder="Search departure airports"
-    icon="depart"
+    triggerIcon="depart"
     disabled={flights.length === 0}
     options={departureAirports}
   />
@@ -167,7 +167,7 @@
     bind:filterValues={filters.arrivalAirports}
     title="Arrival Airport"
     placeholder="Search arrival airports"
-    icon="arrive"
+    triggerIcon="arrive"
     disabled={flights.length === 0}
     options={arrivalAirports}
   />
