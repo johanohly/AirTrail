@@ -11837,13 +11837,6 @@
     "defunct": false
   },
   {
-    "id": "sun-phuquoc-airways",
-    "name": "Sun PhuQuoc Airways",
-    "icao": "SPQ",
-    "iata": "9G",
-    "defunct": false
-  },
-  {
     "id": "servicios-optimos-de-aeroenlace",
     "name": "Servicios Optimos de Aeroenlace",
     "icao": "ENL",
@@ -12975,6 +12968,13 @@
     "name": "Sun Country Airlines",
     "icao": "SCX",
     "iata": "SY",
+    "defunct": false
+  },
+  {
+    "id": "sun-phuquoc-airways",
+    "name": "Sun PhuQuoc Airways",
+    "icao": "SPQ",
+    "iata": "9G",
     "defunct": false
   },
   {
