@@ -60,12 +60,15 @@ model airport {
 }
 
 model aircraft {
-  id   Int     @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   /// ICAO aircraft type code
-  name String
-  icao String?
+  name      String
+  icao      String?
+  source_id String?
 
   flights flight[]
+
+  @@index([source_id], map: "aircraft_source_id_idx")
 }
 
 model airline {
@@ -74,8 +77,11 @@ model airline {
   icao      String?
   iata      String?
   icon_path String?
+  source_id String?
 
   flights flight[]
+
+  @@index([source_id], map: "airline_source_id_idx")
 }
 
 model flight {
