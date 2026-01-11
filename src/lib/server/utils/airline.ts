@@ -110,6 +110,7 @@ export const validateAndSaveAirline = async (
         name: airline.name,
         icao: airline.icao,
         iata: airline.iata,
+        sourceId: null,
         iconPath: airline.iconPath ?? null,
       });
     } catch (_) {
@@ -261,6 +262,10 @@ const saveAirlineIcon = async (
 /**
  * Populates default airline icons from GitHub for airlines without icons.
  * Downloads the repo tarball once and extracts all icons, avoiding rate limits.
+ *
+ * @deprecated Use syncAirlineIcons() from sync.ts instead for slug-based icon matching.
+ * This function uses ICAO-based matching which is less reliable than sourceId-based matching.
+ *
  * @param options.onlyIfNoIcons If true, only populate if no airlines have icons (for initial install)
  * @param options.overwrite If true, overwrite existing icons with defaults (for manual re-import)
  * @returns Number of icons populated
