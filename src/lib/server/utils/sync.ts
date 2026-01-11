@@ -1,9 +1,15 @@
+import { Readable } from 'node:stream';
+
+import * as tar from 'tar';
+
 import { db } from '$lib/db';
 import { airlinesDataSchema, aircraftListDataSchema } from '$lib/data/types';
 import { uploadManager } from '$lib/server/utils/uploads';
 
 const GITHUB_RAW_BASE_URL =
-  'https://raw.githubusercontent.com/johanohly/AirTrail/chore/airline-aircraft-definitions';
+  'https://raw.githubusercontent.com/johanohly/AirTrail/main';
+const GITHUB_TARBALL_URL =
+  'https://api.github.com/repos/johanohly/AirTrail/tarball/main';
 
 interface SyncResult {
   added: number;
@@ -177,13 +183,79 @@ export const syncAircraft = async (options?: {
   return result;
 };
 
+type IconData = { buffer: Buffer; extension: string };
+
+/**
+ * Downloads the AirTrail repo tarball and extracts airline icons.
+ * Icons are in data/icons/airlines/ named by sourceId (slug).
+ * @returns Map of sourceId -> icon data (buffer + extension)
+ */
+async function fetchAirlineIconsFromGitHub(): Promise<Map<string, IconData>> {
+  const sourceIdToIcon = new Map<string, IconData>();
+
+  const response = await fetch(GITHUB_TARBALL_URL, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'AirTrail',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch tarball: ${response.status}`);
+  }
+
+  const buffer = Buffer.from(await response.arrayBuffer());
+  const readable = Readable.from(buffer);
+
+  await new Promise<void>((resolve, reject) => {
+    const parser = new tar.Parser({
+      filter: (path) => /\/data\/icons\/airlines\/[^/]+\.[a-z]+$/.test(path),
+      onReadEntry: (entry) => {
+        const chunks: Buffer[] = [];
+        entry.on('data', (chunk: Buffer) => chunks.push(chunk));
+        entry.on('end', () => {
+          const filename = entry.path.split('/').pop();
+          if (filename) {
+            const sourceId = filename.replace(/\.[^.]+$/, '');
+            const extension = filename.substring(filename.lastIndexOf('.'));
+            sourceIdToIcon.set(sourceId, {
+              buffer: Buffer.concat(chunks),
+              extension,
+            });
+          }
+        });
+      },
+    });
+
+    parser.on('end', resolve);
+    parser.on('error', reject);
+
+    readable.pipe(parser);
+  });
+
+  return sourceIdToIcon;
+}
+
+const hasAnyAirlineWithIcon = async (): Promise<boolean> => {
+  const result = await db
+    .selectFrom('airline')
+    .select('id')
+    .where('iconPath', 'is not', null)
+    .limit(1)
+    .executeTakeFirst();
+  return !!result;
+};
+
 /**
  * Syncs airline icons from GitHub to the database.
- * Downloads icons for airlines with sourceId and saves them via uploadManager.
- * @param options.overwrite If true, syncs all airlines with sourceId. If false, only syncs airlines without iconPath.
+ * Downloads tarball and extracts icons, matching by sourceId.
+ *
+ * @param options.onlyIfNoIcons If true, only sync if no airlines have icons (for initial install)
+ * @param options.overwrite If true, overwrites existing icons. If false, only syncs airlines without iconPath.
  * @returns Object with count of synced icons and any errors
  */
 export const syncAirlineIcons = async (options?: {
+  onlyIfNoIcons?: boolean;
   overwrite?: boolean;
 }): Promise<IconSyncResult> => {
   const result: IconSyncResult = { synced: 0, errors: [] };
@@ -193,66 +265,78 @@ export const syncAirlineIcons = async (options?: {
     return result;
   }
 
+  if (options?.onlyIfNoIcons && (await hasAnyAirlineWithIcon())) {
+    return result;
+  }
+
+  let query = db
+    .selectFrom('airline')
+    .select(['id', 'sourceId', 'iconPath'])
+    .where('sourceId', 'is not', null);
+
+  if (!options?.overwrite) {
+    query = query.where('iconPath', 'is', null);
+  }
+
+  const airlines = await query.execute();
+  if (airlines.length === 0) {
+    return result;
+  }
+
+  let sourceIdToIcon: Map<string, IconData>;
   try {
-    let query = db
-      .selectFrom('airline')
-      .select(['id', 'sourceId', 'iconPath'])
-      .where('sourceId', 'is not', null);
-
-    if (!options?.overwrite) {
-      query = query.where('iconPath', 'is', null);
-    }
-
-    const airlines = await query.execute();
-
-    for (const airline of airlines) {
-      if (!airline.sourceId) continue;
-
-      const iconUrl = `${GITHUB_RAW_BASE_URL}/data/icons/airlines/${airline.sourceId}.svg`;
-
-      try {
-        const response = await fetch(iconUrl);
-        if (!response.ok) {
-          continue;
-        }
-
-        const buffer = Buffer.from(await response.arrayBuffer());
-        const ext = '.svg';
-        const relativePath = `airlines/${airline.id}${ext}`;
-
-        if (
-          options?.overwrite &&
-          airline.iconPath &&
-          airline.iconPath !== relativePath
-        ) {
-          await uploadManager.deleteFile(airline.iconPath);
-        }
-
-        const success = await uploadManager.saveFile(relativePath, buffer);
-        if (!success) {
-          result.errors.push(
-            `Failed to save icon for airline ${airline.sourceId}`,
-          );
-          continue;
-        }
-
-        await db
-          .updateTable('airline')
-          .set({ iconPath: relativePath })
-          .where('id', '=', airline.id)
-          .execute();
-
-        result.synced++;
-      } catch (err) {
-        result.errors.push(
-          `Failed to sync icon for ${airline.sourceId}: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
-    }
+    console.log('Fetching airline icons from GitHub...');
+    sourceIdToIcon = await fetchAirlineIconsFromGitHub();
+    console.log(`Found ${sourceIdToIcon.size} icons in repository.`);
   } catch (err) {
     result.errors.push(
-      `Unexpected error during icon sync: ${err instanceof Error ? err.message : String(err)}`,
+      `Failed to fetch icons from GitHub: ${err instanceof Error ? err.message : String(err)}`,
     );
+    return result;
+  }
+
+  for (const airline of airlines) {
+    if (!airline.sourceId) continue;
+
+    const iconData = sourceIdToIcon.get(airline.sourceId);
+    if (!iconData) continue;
+
+    try {
+      const relativePath = `airlines/${airline.id}${iconData.extension}`;
+
+      if (
+        options?.overwrite &&
+        airline.iconPath &&
+        airline.iconPath !== relativePath
+      ) {
+        await uploadManager.deleteFile(airline.iconPath);
+      }
+
+      const success = await uploadManager.saveFile(
+        relativePath,
+        iconData.buffer,
+      );
+      if (!success) {
+        result.errors.push(
+          `Failed to save icon for airline ${airline.sourceId}`,
+        );
+        continue;
+      }
+
+      await db
+        .updateTable('airline')
+        .set({ iconPath: relativePath })
+        .where('id', '=', airline.id)
+        .execute();
+
+      result.synced++;
+    } catch (err) {
+      result.errors.push(`Failed to sync icon for ${airline.sourceId}: ${err}`);
+    }
+  }
+
+  if (result.synced > 0) {
+    console.log(`Synced icons for ${result.synced} airline(s).`);
   }
 
   return result;

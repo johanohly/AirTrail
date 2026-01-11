@@ -3,10 +3,8 @@ import { sequence } from '@sveltejs/kit/hooks';
 import type { Cookie } from 'lucia';
 
 import { lucia } from '$lib/server/auth';
-import {
-  populateDefaultAirlineIcons,
-  validateAirlineIcons,
-} from '$lib/server/utils/airline';
+import { validateAirlineIcons } from '$lib/server/utils/airline';
+import { syncAirlineIcons } from '$lib/server/utils/sync';
 import { appConfig } from '$lib/server/utils/config';
 import { uploadManager } from '$lib/server/utils/uploads';
 import { ensureAirports } from '$lib/utils/data/airports/source';
@@ -27,7 +25,7 @@ export const init: ServerInit = async () => {
   await ensureAirports();
   await uploadManager.init();
   await validateAirlineIcons();
-  await populateDefaultAirlineIcons({ onlyIfNoIcons: true });
+  await syncAirlineIcons({ onlyIfNoIcons: true });
 };
 
 const authHandle: Handle = async ({ event, resolve }) => {

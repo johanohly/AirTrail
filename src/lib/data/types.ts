@@ -5,7 +5,6 @@ export interface Airline {
   name: string;
   icao: string | null;
   iata: string | null;
-  defunct?: boolean;
 }
 
 export interface Aircraft {
