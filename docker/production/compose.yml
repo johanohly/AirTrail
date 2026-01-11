@@ -27,6 +27,7 @@ services:
     volumes:
       # Required for file uploads (e.g., airline icons)
       # The path to the right of the colon needs to match UPLOAD_LOCATION in your .env file
+      # It needs to be writable for UID/GID 1000/1000
       - uploads:/app/uploads
     depends_on:
       db:
