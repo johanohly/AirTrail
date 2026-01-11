@@ -27,7 +27,9 @@
     "db:migrate-deploy": "prisma migrate deploy",
     "db:reset": "prisma migrate reset --force",
     "db:seed": "prisma db seed",
-    "db:push": "prisma db push"
+    "db:push": "prisma db push",
+    "data:format": "bun scripts/data/format-data.js",
+    "data:check": "bun scripts/data/format-data.js --check",
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
