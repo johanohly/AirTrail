@@ -27,6 +27,7 @@ export const getAirlineByIcao = async (
       .selectFrom('airline')
       .selectAll()
       .where('icao', 'ilike', input)
+      .where('defunct', '=', false)
       .executeTakeFirst()) ?? null
   );
 };
@@ -39,6 +40,7 @@ export const getAirlineByName = async (
       .selectFrom('airline')
       .selectAll()
       .where('name', 'ilike', input)
+      .where('defunct', '=', false)
       .executeTakeFirst()) ?? null
   );
 };
@@ -48,10 +50,13 @@ export const findAirline = async (input: string): Promise<Airline[] | null> => {
     .selectFrom('airline')
     .selectAll()
     .where((eb) =>
-      eb.or([
-        eb('name', 'ilike', `%${input}%`),
-        eb('icao', 'ilike', `%${input}%`),
-        eb('iata', 'ilike', `%${input}%`),
+      eb.and([
+        eb.or([
+          eb('name', 'ilike', `%${input}%`),
+          eb('icao', 'ilike', `%${input}%`),
+          eb('iata', 'ilike', `%${input}%`),
+        ]),
+        eb('defunct', '=', false),
       ]),
     )
     .orderBy('name')
@@ -112,6 +117,7 @@ export const validateAndSaveAirline = async (
         iata: airline.iata,
         sourceId: null,
         iconPath: airline.iconPath ?? null,
+        defunct: false,
       });
     } catch (_) {
       return {
