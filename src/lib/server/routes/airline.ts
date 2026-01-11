@@ -21,19 +21,13 @@ export const airlineRouter = router({
       .selectFrom('airline')
       .selectAll()
       .where('iata', 'ilike', input)
-      .where('defunct', '=', false)
       .executeTakeFirst();
   }),
   getByName: authedProcedure.input(z.string()).query(async ({ input }) => {
     return await getAirlineByName(input);
   }),
   list: authedProcedure.query(async () => {
-    return await db
-      .selectFrom('airline')
-      .selectAll()
-      .where('defunct', '=', false)
-      .orderBy('name')
-      .execute();
+    return await db.selectFrom('airline').selectAll().orderBy('name').execute();
   }),
   delete: adminProcedure.input(z.number()).mutation(async ({ input }) => {
     const result = await db

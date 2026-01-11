@@ -78,7 +78,6 @@ model airline {
   iata      String?
   icon_path String?
   source_id String?
-  defunct   Boolean @default(false)
 
   flights flight[]
 

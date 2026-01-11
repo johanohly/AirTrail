@@ -70,7 +70,6 @@ export const syncAirlines = async (options?: {
                 name: airline.name,
                 icao: airline.icao,
                 iata: airline.iata,
-                defunct: !!airline.defunct,
               })
               .where('sourceId', '=', airline.id)
               .execute();
@@ -85,7 +84,6 @@ export const syncAirlines = async (options?: {
               iata: airline.iata,
               sourceId: airline.id,
               iconPath: null,
-              defunct: !!airline.defunct,
             })
             .execute();
           result.added++;

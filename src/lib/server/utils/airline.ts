@@ -50,13 +50,10 @@ export const findAirline = async (input: string): Promise<Airline[] | null> => {
     .selectFrom('airline')
     .selectAll()
     .where((eb) =>
-      eb.and([
-        eb.or([
-          eb('name', 'ilike', `%${input}%`),
-          eb('icao', 'ilike', `%${input}%`),
-          eb('iata', 'ilike', `%${input}%`),
-        ]),
-        eb('defunct', '=', false),
+      eb.or([
+        eb('name', 'ilike', `%${input}%`),
+        eb('icao', 'ilike', `%${input}%`),
+        eb('iata', 'ilike', `%${input}%`),
       ]),
     )
     .orderBy('name')

@@ -20,7 +20,6 @@ export type airline = {
     iata: string | null;
     iconPath: string | null;
     sourceId: string | null;
-    defunct: Generated<boolean>;
 };
 export type airport = {
     id: Generated<number>;
