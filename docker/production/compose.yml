@@ -27,8 +27,11 @@ services:
     volumes:
       # Required for file uploads (e.g., airline icons)
       # The path to the right of the colon needs to match UPLOAD_LOCATION in your .env file
-      # It needs to be writable for UID/GID 1000/1000
+      # It needs to be writable for UID:GID 1000:1000
       - uploads:/app/uploads
+      # If docker isn't running as UID 1000 on your host, consider using a bind mount volume instead, such as:
+      # - ./data/uploads:/app/uploads
+      # and create the folder ./data/uploads with UID:GID 1000:1000
     depends_on:
       db:
         condition: service_healthy
