@@ -22,6 +22,11 @@ interface IconSyncResult {
   errors: string[];
 }
 
+const logError = (errors: string[], message: string) => {
+  console.warn(message);
+  errors.push(message);
+};
+
 /**
  * Syncs airlines from GitHub JSON data to the database.
  * @param options.overwrite If true, updates existing entries. If false, only adds new entries.
@@ -37,7 +42,8 @@ export const syncAirlines = async (options?: {
   try {
     const response = await fetch(`${GITHUB_RAW_BASE_URL}/data/airlines.json`);
     if (!response.ok) {
-      result.errors.push(
+      logError(
+        result.errors,
         `Failed to fetch airlines.json: ${response.status} ${response.statusText}`,
       );
       return result;
@@ -49,7 +55,7 @@ export const syncAirlines = async (options?: {
     try {
       airlines = airlinesDataSchema.parse(json);
     } catch (err) {
-      result.errors.push(`Invalid airlines.json format: ${err}`);
+      logError(result.errors, `Invalid airlines.json format: ${err}`);
       return result;
     }
 
@@ -93,13 +99,15 @@ export const syncAirlines = async (options?: {
           result.added++;
         }
       } catch (err) {
-        result.errors.push(
+        logError(
+          result.errors,
           `Failed to sync airline ${airline.id}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }
   } catch (err) {
-    result.errors.push(
+    logError(
+      result.errors,
       `Unexpected error during airline sync: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
@@ -120,7 +128,8 @@ export const syncAircraft = async (options?: {
   try {
     const response = await fetch(`${GITHUB_RAW_BASE_URL}/data/aircraft.json`);
     if (!response.ok) {
-      result.errors.push(
+      logError(
+        result.errors,
         `Failed to fetch aircraft.json: ${response.status} ${response.statusText}`,
       );
       return result;
@@ -132,7 +141,7 @@ export const syncAircraft = async (options?: {
     try {
       aircraft = aircraftListDataSchema.parse(json);
     } catch (err) {
-      result.errors.push(`Invalid aircraft.json format: ${err}`);
+      logError(result.errors, `Invalid aircraft.json format: ${err}`);
       return result;
     }
 
@@ -261,6 +270,7 @@ export const syncAirlineIcons = async (options?: {
   const result: IconSyncResult = { synced: 0, errors: [] };
 
   if (!uploadManager.isReady) {
+    console.warn('Upload manager is not ready. Cannot sync icons.');
     result.errors.push('Upload manager is not ready. Cannot sync icons.');
     return result;
   }
@@ -289,9 +299,9 @@ export const syncAirlineIcons = async (options?: {
     sourceIdToIcon = await fetchAirlineIconsFromGitHub();
     console.log(`Found ${sourceIdToIcon.size} icons in repository.`);
   } catch (err) {
-    result.errors.push(
-      `Failed to fetch icons from GitHub: ${err instanceof Error ? err.message : String(err)}`,
-    );
+    const message = `Failed to fetch icons from GitHub: ${err instanceof Error ? err.message : String(err)}`;
+    console.warn(message);
+    result.errors.push(message);
     return result;
   }
 
