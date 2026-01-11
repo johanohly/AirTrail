@@ -43,9 +43,7 @@ export const syncAirlines = async (options?: {
     try {
       airlines = airlinesDataSchema.parse(json);
     } catch (err) {
-      result.errors.push(
-        `Invalid airlines.json format: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      result.errors.push(`Invalid airlines.json format: ${err}`);
       return result;
     }
 
@@ -128,9 +126,7 @@ export const syncAircraft = async (options?: {
     try {
       aircraft = aircraftListDataSchema.parse(json);
     } catch (err) {
-      result.errors.push(
-        `Invalid aircraft.json format: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      result.errors.push(`Invalid aircraft.json format: ${err}`);
       return result;
     }
 

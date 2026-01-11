@@ -5,8 +5,7 @@ export interface Airline {
   name: string;
   icao: string | null;
   iata: string | null;
-  icon: string | null;
-  defunct: boolean | null;
+  defunct?: boolean;
 }
 
 export interface Aircraft {
@@ -20,8 +19,7 @@ export const airlineDataSchema = z.object({
   name: z.string().min(1, 'Airline name is required'),
   icao: z.string().nullable(),
   iata: z.string().nullable(),
-  icon: z.string().nullable(),
-  defunct: z.boolean().nullable(),
+  defunct: z.boolean().optional(),
 });
 
 export const aircraftDataSchema = z.object({
