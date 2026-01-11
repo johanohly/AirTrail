@@ -2,8 +2,9 @@ import { Readable } from 'node:stream';
 
 import * as tar from 'tar';
 
-import { db } from '$lib/db';
 import { airlinesDataSchema, aircraftListDataSchema } from '$lib/data/types';
+import { db } from '$lib/db';
+import { appConfig } from '$lib/server/utils/config';
 import { uploadManager } from '$lib/server/utils/uploads';
 
 const GITHUB_RAW_BASE_URL =
@@ -178,13 +179,15 @@ export const syncAircraft = async (options?: {
           result.added++;
         }
       } catch (err) {
-        result.errors.push(
+        logError(
+          result.errors,
           `Failed to sync aircraft ${ac.id}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }
   } catch (err) {
-    result.errors.push(
+    logError(
+      result.errors,
       `Unexpected error during aircraft sync: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
@@ -270,8 +273,7 @@ export const syncAirlineIcons = async (options?: {
   const result: IconSyncResult = { synced: 0, errors: [] };
 
   if (!uploadManager.isReady) {
-    console.warn('Upload manager is not ready. Cannot sync icons.');
-    result.errors.push('Upload manager is not ready. Cannot sync icons.');
+    logError(result.errors, 'Upload manager is not ready. Cannot sync icons.');
     return result;
   }
 
@@ -299,9 +301,10 @@ export const syncAirlineIcons = async (options?: {
     sourceIdToIcon = await fetchAirlineIconsFromGitHub();
     console.log(`Found ${sourceIdToIcon.size} icons in repository.`);
   } catch (err) {
-    const message = `Failed to fetch icons from GitHub: ${err instanceof Error ? err.message : String(err)}`;
-    console.warn(message);
-    result.errors.push(message);
+    logError(
+      result.errors,
+      `Failed to fetch icons from GitHub: ${err instanceof Error ? err.message : String(err)}`,
+    );
     return result;
   }
 
@@ -327,7 +330,8 @@ export const syncAirlineIcons = async (options?: {
         iconData.buffer,
       );
       if (!success) {
-        result.errors.push(
+        logError(
+          result.errors,
           `Failed to save icon for airline ${airline.sourceId}`,
         );
         continue;
@@ -341,7 +345,10 @@ export const syncAirlineIcons = async (options?: {
 
       result.synced++;
     } catch (err) {
-      result.errors.push(`Failed to sync icon for ${airline.sourceId}: ${err}`);
+      logError(
+        result.errors,
+        `Failed to sync icon for ${airline.sourceId}: ${err}`,
+      );
     }
   }
 
@@ -350,4 +357,40 @@ export const syncAirlineIcons = async (options?: {
   }
 
   return result;
+};
+
+const markDataSynced = async () => {
+  await appConfig.set({ data: { lastSynced: new Date().toISOString() } });
+};
+
+export const ensureInitialDataSync = async () => {
+  const config = await appConfig.get();
+  if (config?.data?.lastSynced) {
+    return;
+  }
+
+  console.log('Running initial data sync...');
+  console.time('Initial data sync');
+
+  const [airlinesResult, aircraftResult] = await Promise.all([
+    syncAirlines({ includeDefunct: false }),
+    syncAircraft(),
+  ]);
+
+  const totalAdded = airlinesResult.added + aircraftResult.added;
+  const totalUpdated = airlinesResult.updated + aircraftResult.updated;
+  const allErrors = [...airlinesResult.errors, ...aircraftResult.errors];
+
+  if (allErrors.length > 0) {
+    console.warn('Initial sync completed with errors:', allErrors);
+  }
+
+  if (totalAdded > 0 || totalUpdated > 0) {
+    console.log(
+      `Initial sync: added ${airlinesResult.added} airlines, ${aircraftResult.added} aircraft`,
+    );
+  }
+
+  await markDataSynced();
+  console.timeEnd('Initial data sync');
 };

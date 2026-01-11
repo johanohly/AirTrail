@@ -4,8 +4,11 @@ import type { Cookie } from 'lucia';
 
 import { lucia } from '$lib/server/auth';
 import { validateAirlineIcons } from '$lib/server/utils/airline';
-import { syncAirlineIcons } from '$lib/server/utils/sync';
 import { appConfig } from '$lib/server/utils/config';
+import {
+  ensureInitialDataSync,
+  syncAirlineIcons,
+} from '$lib/server/utils/sync';
 import { uploadManager } from '$lib/server/utils/uploads';
 import { ensureAirports } from '$lib/utils/data/airports/source';
 
@@ -24,6 +27,7 @@ export const init: ServerInit = async () => {
 
   await ensureAirports();
   await uploadManager.init();
+  await ensureInitialDataSync();
   await validateAirlineIcons();
   await syncAirlineIcons({ onlyIfNoIcons: true });
 };

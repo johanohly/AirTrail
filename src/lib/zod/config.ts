@@ -13,13 +13,17 @@ export const oauthConfigSchema = z.object({
 });
 
 export const integrationsConfigSchema = z.object({
-  // AeroDataBox (via RapidAPI) key. Keep server-only.
   aeroDataBoxKey: z.string().nullable(),
+});
+
+export const dataConfigSchema = z.object({
+  lastSynced: z.string().nullable(),
 });
 
 export const appConfigSchema = z.object({
   oauth: oauthConfigSchema,
   integrations: integrationsConfigSchema,
+  data: dataConfigSchema,
 });
 
 export const clientAppConfigSchema = appConfigSchema.extend({
