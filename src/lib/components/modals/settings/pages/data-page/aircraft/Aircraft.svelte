@@ -1,6 +1,6 @@
 <script lang="ts">
   import VirtualList from '@humanspeak/svelte-virtual-list';
-  import { X } from '@o7/icon/lucide';
+  import { RefreshCw, LoaderCircle, X } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
 
   import CreateAircraft from './CreateAircraft.svelte';
@@ -10,6 +10,8 @@
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { Collapsible } from '$lib/components/ui/collapsible';
+  import { Modal } from '$lib/components/ui/modal';
+  import { Checkbox } from '$lib/components/ui/checkbox';
   import { Input } from '$lib/components/ui/input';
   import type { Aircraft } from '$lib/db/types';
   import { api, trpc } from '$lib/trpc';
@@ -36,6 +38,29 @@
   const handleSearch = (e: Event) => {
     search = (e.target as HTMLInputElement).value;
   };
+
+  let syncDialogOpen = $state(false);
+  let syncing = $state(false);
+  let overwrite = $state(false);
+
+  const syncAircraft = async () => {
+    syncing = true;
+    try {
+      const result = await api.aircraft.sync.mutate({ overwrite });
+      await trpc.aircraft.list.utils.invalidate();
+      let message = `Added ${result.added}, Updated ${result.updated}`;
+      if (result.errors.length > 0) {
+        message += ` (${result.errors.length} errors)`;
+        toast.warning(message);
+      } else {
+        toast.success(message);
+      }
+    } catch {
+      toast.error('Failed to sync aircraft');
+    } finally {
+      syncing = false;
+    }
+  };
 </script>
 
 <Collapsible
@@ -45,7 +70,18 @@
   <div class="flex flex-col gap-4">
     <div class="flex gap-2 justify-between">
       <Input oninput={handleSearch} class="h-9" placeholder="Search aircraft" />
-      <CreateAircraft />
+      <div class="flex gap-2">
+        <Button
+          variant="outline"
+          class="h-9"
+          disabled={syncing}
+          onclick={() => (syncDialogOpen = true)}
+        >
+          <RefreshCw size={16} class="shrink-0" />
+          Sync
+        </Button>
+        <CreateAircraft />
+      </div>
     </div>
 
     <div class="h-[40dvh]">
@@ -81,3 +117,28 @@
     </div>
   </div>
 </Collapsible>
+
+<Modal bind:open={syncDialogOpen} class="max-w-md">
+  <div class="flex flex-col gap-1.5">
+    <h2 class="text-lg font-semibold">Sync Aircraft</h2>
+    <p class="text-sm text-muted-foreground">
+      Download aircraft data from the AirTrail repository.
+    </p>
+  </div>
+
+  <div class="flex flex-col gap-3 py-2">
+    <label class="flex items-center gap-2 text-sm">
+      <Checkbox bind:checked={overwrite} />
+      Overwrite existing entries
+    </label>
+  </div>
+
+  <div class="flex flex-col gap-2">
+    <Button variant="outline" disabled={syncing} onclick={syncAircraft}>
+      {#if syncing}
+        <LoaderCircle size={16} class="mr-2 animate-spin" />
+      {/if}
+      Sync Aircraft
+    </Button>
+  </div>
+</Modal>

@@ -7,6 +7,7 @@ import {
   getAircraftByIcao,
   getAircraftByName,
 } from '$lib/server/utils/aircraft';
+import { syncAircraft } from '$lib/server/utils/sync';
 
 export const aircraftRouter = router({
   get: authedProcedure.input(z.number()).query(async ({ input }) => {
@@ -32,4 +33,9 @@ export const aircraftRouter = router({
       .execute();
     return result.length > 0;
   }),
+  sync: adminProcedure
+    .input(z.object({ overwrite: z.boolean().optional() }))
+    .mutation(async ({ input }) => {
+      return await syncAircraft(input);
+    }),
 });

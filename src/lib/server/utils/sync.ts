@@ -3,7 +3,7 @@ import { airlinesDataSchema, aircraftListDataSchema } from '$lib/data/types';
 import { uploadManager } from '$lib/server/utils/uploads';
 
 const GITHUB_RAW_BASE_URL =
-  'https://raw.githubusercontent.com/johanohly/AirTrail/main';
+  'https://raw.githubusercontent.com/johanohly/AirTrail/chore/airline-aircraft-definitions';
 
 interface SyncResult {
   added: number;

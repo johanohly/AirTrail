@@ -6,8 +6,8 @@ import {
   getAirline,
   getAirlineByIcao,
   getAirlineByName,
-  populateDefaultAirlineIcons,
 } from '$lib/server/utils/airline';
+import { syncAirlines, syncAirlineIcons } from '$lib/server/utils/sync';
 
 export const airlineRouter = router({
   get: authedProcedure.input(z.number()).query(async ({ input }) => {
@@ -36,9 +36,19 @@ export const airlineRouter = router({
       .execute();
     return result.length > 0;
   }),
-  importDefaultIcons: adminProcedure
-    .input(z.object({ overwrite: z.boolean() }))
+  sync: adminProcedure
+    .input(
+      z.object({
+        overwrite: z.boolean().optional(),
+        includeDefunct: z.boolean().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
-      return await populateDefaultAirlineIcons({ overwrite: input.overwrite });
+      return await syncAirlines(input);
+    }),
+  syncIcons: adminProcedure
+    .input(z.object({ overwrite: z.boolean().optional() }))
+    .mutation(async ({ input }) => {
+      return await syncAirlineIcons(input);
     }),
 });

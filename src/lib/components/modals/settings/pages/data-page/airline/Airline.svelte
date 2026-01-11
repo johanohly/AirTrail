@@ -1,6 +1,6 @@
 <script lang="ts">
   import SvelteVirtualList from '@humanspeak/svelte-virtual-list';
-  import { Download, LoaderCircle, SquarePen, X } from '@o7/icon/lucide';
+  import { RefreshCw, LoaderCircle, SquarePen, X } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
 
   import CreateAirline from './CreateAirline.svelte';
@@ -13,12 +13,12 @@
   import { Collapsible } from '$lib/components/ui/collapsible';
   import { Modal } from '$lib/components/ui/modal';
   import { Input } from '$lib/components/ui/input';
+  import { Checkbox } from '$lib/components/ui/checkbox';
   import type { Airline } from '$lib/db/types';
   import { api, trpc } from '$lib/trpc';
 
   const { airlines = [] }: { airlines: Airline[] } = $props();
 
-  // Single shared edit state
   let editOpen = $state(false);
   let airlineToEdit = $state<Airline | null>(null);
 
@@ -54,24 +54,52 @@
     search = (e.target as HTMLInputElement).value;
   };
 
-  let importingIcons = $state(false);
-  let importDialogOpen = $state(false);
+  let syncDialogOpen = $state(false);
+  let syncing = $state(false);
+  let syncingIcons = $state(false);
+  let overwrite = $state(false);
+  let includeDefunct = $state(false);
 
-  const importDefaultIcons = async (overwrite: boolean) => {
-    importingIcons = true;
+  const syncAirlines = async () => {
+    syncing = true;
     try {
-      const count = await api.airline.importDefaultIcons.mutate({ overwrite });
-      importDialogOpen = false;
-      if (count > 0) {
-        await trpc.airline.list.utils.invalidate();
-        toast.success(`Imported ${count} icon${count === 1 ? '' : 's'}`);
+      const result = await api.airline.sync.mutate({
+        overwrite,
+        includeDefunct,
+      });
+      await trpc.airline.list.utils.invalidate();
+      let message = `Added ${result.added}, Updated ${result.updated}`;
+      if (result.errors.length > 0) {
+        message += ` (${result.errors.length} errors)`;
+        toast.warning(message);
       } else {
-        toast.info('No new icons to import');
+        toast.success(message);
       }
     } catch {
-      toast.error('Failed to import icons');
+      toast.error('Failed to sync airlines');
     } finally {
-      importingIcons = false;
+      syncing = false;
+    }
+  };
+
+  const syncIcons = async () => {
+    syncingIcons = true;
+    try {
+      const result = await api.airline.syncIcons.mutate({ overwrite });
+      await trpc.airline.list.utils.invalidate();
+      let message = `Synced ${result.synced} icons`;
+      if (result.errors.length > 0) {
+        message += ` (${result.errors.length} errors)`;
+        toast.warning(message);
+      } else if (result.synced === 0) {
+        toast.info('No icons to sync');
+      } else {
+        toast.success(message);
+      }
+    } catch {
+      toast.error('Failed to sync icons');
+    } finally {
+      syncingIcons = false;
     }
   };
 </script>
@@ -84,16 +112,11 @@
         <Button
           variant="outline"
           class="h-9"
-          disabled={importingIcons}
-          onclick={() => (importDialogOpen = true)}
+          disabled={syncing || syncingIcons}
+          onclick={() => (syncDialogOpen = true)}
         >
-          {#if importingIcons}
-            <LoaderCircle size={16} class="shrink-0 animate-spin" />
-            Importing...
-          {:else}
-            <Download size={16} class="shrink-0" />
-            Import Icons
-          {/if}
+          <RefreshCw size={16} class="shrink-0" />
+          Sync
         </Button>
         <CreateAirline withoutTrigger={false} />
       </div>
@@ -144,34 +167,37 @@
 
 <EditAirline airline={airlineToEdit} bind:open={editOpen} />
 
-<Modal bind:open={importDialogOpen} class="max-w-md">
+<Modal bind:open={syncDialogOpen} class="max-w-md">
   <div class="flex flex-col gap-1.5">
-    <h2 class="text-lg font-semibold">Import Default Icons</h2>
+    <h2 class="text-lg font-semibold">Sync Airlines</h2>
     <p class="text-sm text-muted-foreground">
-      Download airline icons from the AirTrail repository for airlines that have
-      a matching ICAO code.
+      Download airline data and icons from the AirTrail repository.
     </p>
   </div>
+
+  <div class="flex flex-col gap-3 py-2">
+    <label class="flex items-center gap-2 text-sm">
+      <Checkbox bind:checked={overwrite} />
+      Overwrite existing entries
+    </label>
+    <label class="flex items-center gap-2 text-sm">
+      <Checkbox bind:checked={includeDefunct} />
+      Include defunct airlines
+    </label>
+  </div>
+
   <div class="flex flex-col gap-2">
-    <Button
-      variant="outline"
-      disabled={importingIcons}
-      onclick={() => importDefaultIcons(false)}
-    >
-      {#if importingIcons}
+    <Button variant="outline" disabled={syncing} onclick={syncAirlines}>
+      {#if syncing}
         <LoaderCircle size={16} class="mr-2 animate-spin" />
       {/if}
-      Fill missing icons only
+      Sync Airlines
     </Button>
-    <Button
-      variant="outline"
-      disabled={importingIcons}
-      onclick={() => importDefaultIcons(true)}
-    >
-      {#if importingIcons}
+    <Button variant="outline" disabled={syncingIcons} onclick={syncIcons}>
+      {#if syncingIcons}
         <LoaderCircle size={16} class="mr-2 animate-spin" />
       {/if}
-      Overwrite all with defaults
+      Sync Icons
     </Button>
   </div>
 </Modal>
