@@ -95,9 +95,15 @@ export const validateAndSaveFlight = async (
     return pathError('arrival', 'Arrival must be after departure');
   }
 
+  const maxDuration = 24 * 60 * 60;
+
   let duration: number | null = null;
   if (departure && arrival) {
     duration = differenceInSeconds(arrival, departure);
+    if (duration > maxDuration)
+    {
+      return pathError('arrival', 'Flight duration cannot be longer than 24 hours');
+    }
   } else if (from.id !== to.id) {
     // if the airports are the same, the duration can't be calculated
     const fromLonLat = { lon: from.lon, lat: from.lat };
