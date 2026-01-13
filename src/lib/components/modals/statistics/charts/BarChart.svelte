@@ -54,7 +54,12 @@
               ? 'cursor-pointer rounded-md p-2 -m-2 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/50'
               : ''}"
             onclick={() => onBarClick?.(continent)}
-            onkeydown={(e) => e.key === 'Enter' && onBarClick?.(continent)}
+            onkeydown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                if (e.key === ' ') e.preventDefault();
+                onBarClick?.(continent);
+              }
+            }}
             role={onBarClick ? 'button' : undefined}
             tabindex={onBarClick ? 0 : undefined}
           >
