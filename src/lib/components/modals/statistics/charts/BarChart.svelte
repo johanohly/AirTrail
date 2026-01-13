@@ -4,9 +4,11 @@
   let {
     title,
     data,
+    onBarClick,
   }: {
     title: string;
     data: Record<string, { visited: number; total: number }>;
+    onBarClick?: (continent: string) => void;
   } = $props();
 
   const noData = $derived.by(() => Object.values(data).length === 0);
@@ -47,7 +49,20 @@
       <div class="space-y-3">
         {#each sortedEntries as [continent, { visited, total }] (continent)}
           {@const percentage = getPercentage(visited, total)}
-          <div class="space-y-1">
+          <div
+            class="space-y-1 {onBarClick
+              ? 'cursor-pointer rounded-md p-2 -m-2 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/50'
+              : ''}"
+            onclick={() => onBarClick?.(continent)}
+            onkeydown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                if (e.key === ' ') e.preventDefault();
+                onBarClick?.(continent);
+              }
+            }}
+            role={onBarClick ? 'button' : undefined}
+            tabindex={onBarClick ? 0 : undefined}
+          >
             <div class="flex items-center justify-between text-sm">
               <span class="font-medium">{continent}</span>
               <span class="text-zinc-600 dark:text-zinc-400">
