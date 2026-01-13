@@ -1,4 +1,5 @@
-import { differenceInSeconds } from 'date-fns';
+import { tz, TZDate } from '@date-fns/tz';
+import { addDays, differenceInSeconds, isBefore, parse } from 'date-fns';
 import { z } from 'zod';
 
 import { page } from '$app/state';
@@ -6,6 +7,7 @@ import type { PlatformOptions } from '$lib/components/modals/settings/pages/impo
 import type { CreateFlight, Seat } from '$lib/db/types';
 import { api } from '$lib/trpc';
 import { parseCsv } from '$lib/utils';
+import { toUtc } from '$lib/utils/datetime';
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
 
@@ -23,20 +25,26 @@ const FlightyFlight = z.object({
   cabin_class: z.string().transform(nullTransformer),
   flight_reason: z.string().transform(nullTransformer),
   tail_number: z.string().transform(nullTransformer),
+  aircraft_type_name: z.string().transform(nullTransformer),
   notes: z.string().transform(nullTransformer),
 });
 
+/** Parses Flighty datetime (local airport time) and converts to UTC */
 const parseFlightyDateTime = (
   actual: string | null,
   scheduled: string | null,
-): Date | null => {
-  try {
-    const dateTimeStr = actual || scheduled;
-    if (!dateTimeStr) return null;
-    return new Date(dateTimeStr);
-  } catch {
-    return null;
-  }
+  airportTz: string,
+): TZDate | null => {
+  const dateTimeStr = actual || scheduled;
+  if (!dateTimeStr) return null;
+
+  const parsed = parse(dateTimeStr, "yyyy-MM-dd'T'HH:mm", new Date(), {
+    in: tz(airportTz),
+  });
+
+  if (isNaN(parsed.getTime())) return null;
+
+  return toUtc(parsed);
 };
 
 const mapSeatType = (seatType: string | null): Seat['seat'] => {
@@ -125,14 +133,20 @@ export const processFlightyFile = async (
   const unknownAirlines: Record<string, number[]> = {};
 
   for (const row of data) {
-    // Parse departure and arrival times
+    const mappedFrom = options.airportMapping?.[row.from];
+    const mappedTo = options.airportMapping?.[row.to];
+    const from = mappedFrom ?? (await api.airport.getFromIata.query(row.from));
+    const to = mappedTo ?? (await api.airport.getFromIata.query(row.to));
+
     const departure = parseFlightyDateTime(
       row.gate_departure_actual,
       row.gate_departure_scheduled,
+      from?.tz ?? 'UTC',
     );
-    const arrival = parseFlightyDateTime(
+    let arrival = parseFlightyDateTime(
       row.gate_arrival_actual,
       row.gate_arrival_scheduled,
+      to?.tz ?? 'UTC',
     );
 
     if (!departure || !arrival) {
@@ -140,10 +154,9 @@ export const processFlightyFile = async (
       continue;
     }
 
-    const mappedFrom = options.airportMapping?.[row.from];
-    const mappedTo = options.airportMapping?.[row.to];
-    const from = mappedFrom ?? (await api.airport.getFromIata.query(row.from));
-    const to = mappedTo ?? (await api.airport.getFromIata.query(row.to));
+    if (isBefore(arrival, departure)) {
+      arrival = addDays(arrival, 1, { in: tz('UTC') });
+    }
 
     const duration = differenceInSeconds(arrival, departure);
 
@@ -161,29 +174,30 @@ export const processFlightyFile = async (
       }
     }
 
-    const aircraft = null;
+    const aircraft = row.aircraft_type_name
+      ? await api.aircraft.getByName.query(row.aircraft_type_name)
+      : null;
 
     const flightNumber =
       row.airline && row.flight
         ? `${row.airline}${row.flight}`.substring(0, 10)
         : null;
 
-    // Extract date in YYYY-MM-DD format
     const date = departure.toISOString().split('T')[0]!;
 
     const flightIndex = flights.length;
 
     if (!from) {
       if (!unknownAirports[row.from]) unknownAirports[row.from] = [];
-      unknownAirports[row.from].push(flightIndex);
+      unknownAirports[row.from]!.push(flightIndex);
     }
     if (!to) {
       if (!unknownAirports[row.to]) unknownAirports[row.to] = [];
-      unknownAirports[row.to].push(flightIndex);
+      unknownAirports[row.to]!.push(flightIndex);
     }
     if (!airline && airlineIcao) {
       if (!unknownAirlines[airlineIcao]) unknownAirlines[airlineIcao] = [];
-      unknownAirlines[airlineIcao].push(flightIndex);
+      unknownAirlines[airlineIcao]!.push(flightIndex);
     }
 
     flights.push({
