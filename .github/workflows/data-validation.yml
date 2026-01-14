@@ -92,11 +92,17 @@ jobs:
           BASE_SHA=${{ github.event.pull_request.base.sha }}
           HEAD_SHA=${{ github.event.pull_request.head.sha }}
 
-          AIRLINES_DIFF=$(git diff --numstat $BASE_SHA $HEAD_SHA -- data/airlines.json 2>/dev/null | awk '{print $1 "+" $2 "-"}' || echo "0+0-")
-          AIRCRAFT_DIFF=$(git diff --numstat $BASE_SHA $HEAD_SHA -- data/aircraft.json 2>/dev/null | awk '{print $1 "+" $2 "-"}' || echo "0+0-")
-          ICONS_ADDED=$(git diff --name-status $BASE_SHA $HEAD_SHA -- 'data/icons/airlines/*' 2>/dev/null | grep -c '^A' || echo "0")
-          ICONS_MODIFIED=$(git diff --name-status $BASE_SHA $HEAD_SHA -- 'data/icons/airlines/*' 2>/dev/null | grep -c '^M' || echo "0")
-          ICONS_DELETED=$(git diff --name-status $BASE_SHA $HEAD_SHA -- 'data/icons/airlines/*' 2>/dev/null | grep -c '^D' || echo "0")
+          AIRLINES_DIFF=$(git diff --numstat $BASE_SHA $HEAD_SHA -- data/airlines.json 2>/dev/null | awk '{print $1 "+" $2 "-"}')
+          AIRCRAFT_DIFF=$(git diff --numstat $BASE_SHA $HEAD_SHA -- data/aircraft.json 2>/dev/null | awk '{print $1 "+" $2 "-"}')
+          ICONS_ADDED=$(git diff --name-status $BASE_SHA $HEAD_SHA -- 'data/icons/airlines/*' 2>/dev/null | grep -c '^A' || true)
+          ICONS_MODIFIED=$(git diff --name-status $BASE_SHA $HEAD_SHA -- 'data/icons/airlines/*' 2>/dev/null | grep -c '^M' || true)
+          ICONS_DELETED=$(git diff --name-status $BASE_SHA $HEAD_SHA -- 'data/icons/airlines/*' 2>/dev/null | grep -c '^D' || true)
+
+          : "${AIRLINES_DIFF:=0+0-}"
+          : "${AIRCRAFT_DIFF:=0+0-}"
+          : "${ICONS_ADDED:=0}"
+          : "${ICONS_MODIFIED:=0}"
+          : "${ICONS_DELETED:=0}"
 
           {
             echo "airlines_diff=$AIRLINES_DIFF"
