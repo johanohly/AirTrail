@@ -34,18 +34,26 @@ async function fetchJsonData<T>(
   schema: ZodSchema<T>,
   errors: string[],
 ): Promise<T | null> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    logError(errors, `Failed to fetch ${url}: ${response.status}`);
-    return null;
-  }
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      logError(errors, `Failed to fetch ${url}: ${response.status}`);
+      return null;
+    }
 
-  const json = await response.json();
-  const parsed = schema.safeParse(json);
-  if (!parsed.success) {
-    logError(errors, `Invalid JSON format from ${url}: ${parsed.error}`);
+    const json = await response.json();
+    const parsed = schema.safeParse(json);
+    if (!parsed.success) {
+      logError(errors, `Invalid JSON format from ${url}: ${parsed.error}`);
+      return null;
+    }
+
+    return parsed.data;
+  } catch (err) {
+    logError(errors, `Failed to fetch ${url}: ${formatError(err)}`);
     return null;
   }
+}
 
   return parsed.data;
 }
