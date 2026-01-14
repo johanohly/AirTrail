@@ -1,6 +1,7 @@
 import { Readable } from 'node:stream';
 
 import * as tar from 'tar';
+import type { ZodSchema } from 'zod';
 
 import { airlinesDataSchema, aircraftListDataSchema } from '$lib/data/types';
 import { db } from '$lib/db';
@@ -28,168 +29,169 @@ const logError = (errors: string[], message: string) => {
   errors.push(message);
 };
 
-/**
- * Syncs airlines from GitHub JSON data to the database.
- * @param options.overwrite If true, updates existing entries. If false, only adds new entries.
- * @param options.includeDefunct If true, includes defunct airlines. If false, filters them out.
- * @returns Object with counts of added/updated airlines and any errors
- */
+async function fetchJsonData<T>(
+  url: string,
+  schema: ZodSchema<T>,
+  errors: string[],
+): Promise<T | null> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    logError(errors, `Failed to fetch ${url}: ${response.status}`);
+    return null;
+  }
+
+  const json = await response.json();
+  const parsed = schema.safeParse(json);
+  if (!parsed.success) {
+    logError(errors, `Invalid JSON format from ${url}: ${parsed.error}`);
+    return null;
+  }
+
+  return parsed.data;
+}
+
+const formatError = (err: unknown): string =>
+  err instanceof Error ? err.message : String(err);
+
+async function upsertAirline(
+  airline: {
+    id: string;
+    name: string;
+    icao: string | null;
+    iata: string | null;
+  },
+  existingIds: Set<string | null>,
+  overwrite: boolean,
+): Promise<'added' | 'updated' | null> {
+  const exists = existingIds.has(airline.id);
+
+  if (exists && !overwrite) return null;
+
+  if (exists) {
+    await db
+      .updateTable('airline')
+      .set({ name: airline.name, icao: airline.icao, iata: airline.iata })
+      .where('sourceId', '=', airline.id)
+      .execute();
+    return 'updated';
+  }
+
+  await db
+    .insertInto('airline')
+    .values({
+      name: airline.name,
+      icao: airline.icao,
+      iata: airline.iata,
+      sourceId: airline.id,
+      iconPath: null,
+    })
+    .execute();
+  return 'added';
+}
+
 export const syncAirlines = async (options?: {
   overwrite?: boolean;
   includeDefunct?: boolean;
 }): Promise<SyncResult> => {
   const result: SyncResult = { added: 0, updated: 0, errors: [] };
 
-  try {
-    const response = await fetch(`${GITHUB_RAW_BASE_URL}/data/airlines.json`);
-    if (!response.ok) {
+  const airlines = await fetchJsonData(
+    `${GITHUB_RAW_BASE_URL}/data/airlines.json`,
+    airlinesDataSchema,
+    result.errors,
+  );
+  if (!airlines) return result;
+
+  const filtered = options?.includeDefunct
+    ? airlines
+    : airlines.filter((a) => !a.defunct);
+
+  const existing = await db
+    .selectFrom('airline')
+    .select(['sourceId'])
+    .where('sourceId', 'is not', null)
+    .execute();
+  const existingIds = new Set(existing.map((e) => e.sourceId));
+
+  for (const airline of filtered) {
+    try {
+      const action = await upsertAirline(
+        airline,
+        existingIds,
+        options?.overwrite ?? false,
+      );
+      if (action === 'added') result.added++;
+      if (action === 'updated') result.updated++;
+    } catch (err) {
       logError(
         result.errors,
-        `Failed to fetch airlines.json: ${response.status} ${response.statusText}`,
+        `Failed to sync airline ${airline.id}: ${formatError(err)}`,
       );
-      return result;
     }
-
-    const json = await response.json();
-
-    let airlines;
-    try {
-      airlines = airlinesDataSchema.parse(json);
-    } catch (err) {
-      logError(result.errors, `Invalid airlines.json format: ${err}`);
-      return result;
-    }
-
-    const filtered = options?.includeDefunct
-      ? airlines
-      : airlines.filter((a) => !a.defunct);
-
-    const existing = await db
-      .selectFrom('airline')
-      .select(['sourceId'])
-      .where('sourceId', 'is not', null)
-      .execute();
-    const existingIds = new Set(existing.map((e) => e.sourceId));
-
-    for (const airline of filtered) {
-      try {
-        if (existingIds.has(airline.id)) {
-          if (options?.overwrite) {
-            await db
-              .updateTable('airline')
-              .set({
-                name: airline.name,
-                icao: airline.icao,
-                iata: airline.iata,
-              })
-              .where('sourceId', '=', airline.id)
-              .execute();
-            result.updated++;
-          }
-        } else {
-          await db
-            .insertInto('airline')
-            .values({
-              name: airline.name,
-              icao: airline.icao,
-              iata: airline.iata,
-              sourceId: airline.id,
-              iconPath: null,
-            })
-            .execute();
-          result.added++;
-        }
-      } catch (err) {
-        logError(
-          result.errors,
-          `Failed to sync airline ${airline.id}: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
-    }
-  } catch (err) {
-    logError(
-      result.errors,
-      `Unexpected error during airline sync: ${err instanceof Error ? err.message : String(err)}`,
-    );
   }
 
   return result;
 };
 
-/**
- * Syncs aircraft from GitHub JSON data to the database.
- * @param options.overwrite If true, updates existing entries. If false, only adds new entries.
- * @returns Object with counts of added/updated aircraft and any errors
- */
+async function upsertAircraft(
+  aircraft: { id: string; name: string; icao: string | null },
+  existingIds: Set<string | null>,
+  overwrite: boolean,
+): Promise<'added' | 'updated' | null> {
+  const exists = existingIds.has(aircraft.id);
+
+  if (exists && !overwrite) return null;
+
+  if (exists) {
+    await db
+      .updateTable('aircraft')
+      .set({ name: aircraft.name, icao: aircraft.icao })
+      .where('sourceId', '=', aircraft.id)
+      .execute();
+    return 'updated';
+  }
+
+  await db
+    .insertInto('aircraft')
+    .values({ name: aircraft.name, icao: aircraft.icao, sourceId: aircraft.id })
+    .execute();
+  return 'added';
+}
+
 export const syncAircraft = async (options?: {
   overwrite?: boolean;
 }): Promise<SyncResult> => {
   const result: SyncResult = { added: 0, updated: 0, errors: [] };
 
-  try {
-    const response = await fetch(`${GITHUB_RAW_BASE_URL}/data/aircraft.json`);
-    if (!response.ok) {
+  const aircraft = await fetchJsonData(
+    `${GITHUB_RAW_BASE_URL}/data/aircraft.json`,
+    aircraftListDataSchema,
+    result.errors,
+  );
+  if (!aircraft) return result;
+
+  const existing = await db
+    .selectFrom('aircraft')
+    .select(['sourceId'])
+    .where('sourceId', 'is not', null)
+    .execute();
+  const existingIds = new Set(existing.map((e) => e.sourceId));
+
+  for (const ac of aircraft) {
+    try {
+      const action = await upsertAircraft(
+        ac,
+        existingIds,
+        options?.overwrite ?? false,
+      );
+      if (action === 'added') result.added++;
+      if (action === 'updated') result.updated++;
+    } catch (err) {
       logError(
         result.errors,
-        `Failed to fetch aircraft.json: ${response.status} ${response.statusText}`,
+        `Failed to sync aircraft ${ac.id}: ${formatError(err)}`,
       );
-      return result;
     }
-
-    const json = await response.json();
-
-    let aircraft;
-    try {
-      aircraft = aircraftListDataSchema.parse(json);
-    } catch (err) {
-      logError(result.errors, `Invalid aircraft.json format: ${err}`);
-      return result;
-    }
-
-    const existing = await db
-      .selectFrom('aircraft')
-      .select(['sourceId'])
-      .where('sourceId', 'is not', null)
-      .execute();
-    const existingIds = new Set(existing.map((e) => e.sourceId));
-
-    for (const ac of aircraft) {
-      try {
-        if (existingIds.has(ac.id)) {
-          if (options?.overwrite) {
-            await db
-              .updateTable('aircraft')
-              .set({
-                name: ac.name,
-                icao: ac.icao,
-              })
-              .where('sourceId', '=', ac.id)
-              .execute();
-            result.updated++;
-          }
-        } else {
-          await db
-            .insertInto('aircraft')
-            .values({
-              name: ac.name,
-              icao: ac.icao,
-              sourceId: ac.id,
-            })
-            .execute();
-          result.added++;
-        }
-      } catch (err) {
-        logError(
-          result.errors,
-          `Failed to sync aircraft ${ac.id}: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
-    }
-  } catch (err) {
-    logError(
-      result.errors,
-      `Unexpected error during aircraft sync: ${err instanceof Error ? err.message : String(err)}`,
-    );
   }
 
   return result;
@@ -258,14 +260,53 @@ const hasAnyAirlineWithIcon = async (): Promise<boolean> => {
   return !!result;
 };
 
-/**
- * Syncs airline icons from GitHub to the database.
- * Downloads tarball and extracts icons, matching by sourceId.
- *
- * @param options.onlyIfNoIcons If true, only sync if no airlines have icons (for initial install)
- * @param options.overwrite If true, overwrites existing icons. If false, only syncs airlines without iconPath.
- * @returns Object with count of synced icons and any errors
- */
+interface AirlineForIconSync {
+  id: number;
+  sourceId: string | null;
+  iconPath: string | null;
+}
+
+async function syncSingleAirlineIcon(
+  airline: AirlineForIconSync,
+  iconData: IconData,
+  overwrite: boolean,
+): Promise<boolean> {
+  const relativePath = `airlines/${airline.id}${iconData.extension}`;
+  const oldIconPath = airline.iconPath;
+
+  const success = await uploadManager.saveFile(relativePath, iconData.buffer);
+  if (!success) return false;
+
+  const shouldDeleteOld =
+    overwrite && oldIconPath && oldIconPath !== relativePath;
+  if (shouldDeleteOld) {
+    await uploadManager.deleteFile(oldIconPath);
+  }
+
+  await db
+    .updateTable('airline')
+    .set({ iconPath: relativePath })
+    .where('id', '=', airline.id)
+    .execute();
+
+  return true;
+}
+
+async function getAirlinesForIconSync(
+  overwrite: boolean,
+): Promise<AirlineForIconSync[]> {
+  let query = db
+    .selectFrom('airline')
+    .select(['id', 'sourceId', 'iconPath'])
+    .where('sourceId', 'is not', null);
+
+  if (!overwrite) {
+    query = query.where('iconPath', 'is', null);
+  }
+
+  return query.execute();
+}
+
 export const syncAirlineIcons = async (options?: {
   onlyIfNoIcons?: boolean;
   overwrite?: boolean;
@@ -281,19 +322,8 @@ export const syncAirlineIcons = async (options?: {
     return result;
   }
 
-  let query = db
-    .selectFrom('airline')
-    .select(['id', 'sourceId', 'iconPath'])
-    .where('sourceId', 'is not', null);
-
-  if (!options?.overwrite) {
-    query = query.where('iconPath', 'is', null);
-  }
-
-  const airlines = await query.execute();
-  if (airlines.length === 0) {
-    return result;
-  }
+  const airlines = await getAirlinesForIconSync(options?.overwrite ?? false);
+  if (airlines.length === 0) return result;
 
   let sourceIdToIcon: Map<string, IconData>;
   try {
@@ -303,7 +333,7 @@ export const syncAirlineIcons = async (options?: {
   } catch (err) {
     logError(
       result.errors,
-      `Failed to fetch icons from GitHub: ${err instanceof Error ? err.message : String(err)}`,
+      `Failed to fetch icons from GitHub: ${formatError(err)}`,
     );
     return result;
   }
@@ -315,38 +345,23 @@ export const syncAirlineIcons = async (options?: {
     if (!iconData) continue;
 
     try {
-      const relativePath = `airlines/${airline.id}${iconData.extension}`;
-      const oldIconPath = airline.iconPath;
-      const shouldDeleteOld =
-        options?.overwrite && oldIconPath && oldIconPath !== relativePath;
-
-      const success = await uploadManager.saveFile(
-        relativePath,
-        iconData.buffer,
+      const synced = await syncSingleAirlineIcon(
+        airline,
+        iconData,
+        options?.overwrite ?? false,
       );
-      if (!success) {
+      if (synced) {
+        result.synced++;
+      } else {
         logError(
           result.errors,
           `Failed to save icon for airline ${airline.sourceId}`,
         );
-        continue;
       }
-
-      if (shouldDeleteOld) {
-        await uploadManager.deleteFile(oldIconPath);
-      }
-
-      await db
-        .updateTable('airline')
-        .set({ iconPath: relativePath })
-        .where('id', '=', airline.id)
-        .execute();
-
-      result.synced++;
     } catch (err) {
       logError(
         result.errors,
-        `Failed to sync icon for ${airline.sourceId}: ${err}`,
+        `Failed to sync icon for ${airline.sourceId}: ${formatError(err)}`,
       );
     }
   }
