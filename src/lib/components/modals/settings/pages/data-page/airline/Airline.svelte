@@ -187,13 +187,21 @@
   </div>
 
   <div class="flex flex-col gap-2">
-    <Button variant="outline" disabled={syncing} onclick={syncAirlines}>
+    <Button
+      variant="outline"
+      disabled={syncing || syncingIcons}
+      onclick={syncAirlines}
+    >
       {#if syncing}
         <LoaderCircle size={16} class="mr-2 animate-spin" />
       {/if}
       Sync Airlines
     </Button>
-    <Button variant="outline" disabled={syncingIcons} onclick={syncIcons}>
+    <Button
+      variant="outline"
+      disabled={syncing || syncingIcons}
+      onclick={syncIcons}
+    >
       {#if syncingIcons}
         <LoaderCircle size={16} class="mr-2 animate-spin" />
       {/if}

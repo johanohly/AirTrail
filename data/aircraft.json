@@ -530,11 +530,6 @@
     "icao": "C208"
   },
   {
-    "id": "cessna-208b",
-    "name": "Cessna 208B",
-    "icao": "C208B"
-  },
-  {
     "id": "cessna-310",
     "name": "Cessna 310",
     "icao": "C310"

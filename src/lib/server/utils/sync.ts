@@ -316,14 +316,9 @@ export const syncAirlineIcons = async (options?: {
 
     try {
       const relativePath = `airlines/${airline.id}${iconData.extension}`;
-
-      if (
-        options?.overwrite &&
-        airline.iconPath &&
-        airline.iconPath !== relativePath
-      ) {
-        await uploadManager.deleteFile(airline.iconPath);
-      }
+      const oldIconPath = airline.iconPath;
+      const shouldDeleteOld =
+        options?.overwrite && oldIconPath && oldIconPath !== relativePath;
 
       const success = await uploadManager.saveFile(
         relativePath,
@@ -335,6 +330,10 @@ export const syncAirlineIcons = async (options?: {
           `Failed to save icon for airline ${airline.sourceId}`,
         );
         continue;
+      }
+
+      if (shouldDeleteOld) {
+        await uploadManager.deleteFile(oldIconPath);
       }
 
       await db

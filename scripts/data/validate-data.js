@@ -21,7 +21,7 @@ const DATA_DIR = join(import.meta.dirname, '../../data');
 
 const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ICAO_AIRLINE_REGEX = /^[A-Z]{3}$/;
-const ICAO_AIRCRAFT_REGEX = /^[A-Z0-9]{2,5}$/;
+const ICAO_AIRCRAFT_REGEX = /^[A-Z0-9]{2,4}$/;
 const IATA_REGEX = /^[A-Z0-9]{2}$/;
 
 const errors = [];
