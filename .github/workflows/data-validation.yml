@@ -1,0 +1,212 @@
+name: Data Validation
+
+on:
+  pull_request:
+    paths:
+      - 'data/**'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2
+
+      - name: Check JSON formatting
+        id: format
+        run: |
+          if ! bun scripts/data/format-data.js --check; then
+            echo "format_failed=true" >> $GITHUB_OUTPUT
+            echo "## ❌ JSON Formatting" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Data files are not properly formatted or sorted." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**To fix:** Run \`bun run data:format\` and commit the changes." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "## ✅ JSON Formatting" >> $GITHUB_STEP_SUMMARY
+          echo "All data files are properly formatted and sorted." >> $GITHUB_STEP_SUMMARY
+
+      - name: Validate data schema
+        id: schema
+        if: always()
+        run: |
+          if ! bun scripts/data/validate-data.js 2>&1 | tee validation-output.txt; then
+            echo "schema_failed=true" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## ❌ Data Validation" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat validation-output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Data Validation" >> $GITHUB_STEP_SUMMARY
+          echo "All schema validations passed." >> $GITHUB_STEP_SUMMARY
+
+      - name: Validate icons
+        id: icons
+        if: always()
+        run: |
+          if ! bun scripts/data/validate-icons.js 2>&1 | tee icon-output.txt; then
+            echo "icons_failed=true" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## ❌ Icon Validation" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat icon-output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Icon Validation" >> $GITHUB_STEP_SUMMARY
+          echo "All icons match airline IDs." >> $GITHUB_STEP_SUMMARY
+
+  summary:
+    runs-on: ubuntu-latest
+    needs: validate
+    if: always()
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate change summary
+        id: changes
+        run: |
+          BASE_SHA=${{ github.event.pull_request.base.sha }}
+          HEAD_SHA=${{ github.event.pull_request.head.sha }}
+
+          count_entries() {
+            local sha=$1 file=$2
+            git show "$sha:$file" 2>/dev/null | node -e "
+              let d=''; process.stdin.on('data',c=>d+=c);
+              process.stdin.on('end',()=>console.log(JSON.parse(d).length));
+            " 2>/dev/null || echo 0
+          }
+
+          BASE_AIRLINES=$(count_entries $BASE_SHA data/airlines.json)
+          HEAD_AIRLINES=$(count_entries $HEAD_SHA data/airlines.json)
+          BASE_AIRCRAFT=$(count_entries $BASE_SHA data/aircraft.json)
+          HEAD_AIRCRAFT=$(count_entries $HEAD_SHA data/aircraft.json)
+
+          AIRLINES_ADDED=$((HEAD_AIRLINES - BASE_AIRLINES))
+          AIRLINES_ADDED=$((AIRLINES_ADDED > 0 ? AIRLINES_ADDED : 0))
+          AIRLINES_REMOVED=$((BASE_AIRLINES - HEAD_AIRLINES))
+          AIRLINES_REMOVED=$((AIRLINES_REMOVED > 0 ? AIRLINES_REMOVED : 0))
+
+          AIRCRAFT_ADDED=$((HEAD_AIRCRAFT - BASE_AIRCRAFT))
+          AIRCRAFT_ADDED=$((AIRCRAFT_ADDED > 0 ? AIRCRAFT_ADDED : 0))
+          AIRCRAFT_REMOVED=$((BASE_AIRCRAFT - HEAD_AIRCRAFT))
+          AIRCRAFT_REMOVED=$((AIRCRAFT_REMOVED > 0 ? AIRCRAFT_REMOVED : 0))
+
+          ICONS_ADDED=$(git diff --name-status $BASE_SHA $HEAD_SHA -- 'data/icons/airlines/*' 2>/dev/null | grep -c '^A' || true)
+          ICONS_MODIFIED=$(git diff --name-status $BASE_SHA $HEAD_SHA -- 'data/icons/airlines/*' 2>/dev/null | grep -c '^M' || true)
+          ICONS_DELETED=$(git diff --name-status $BASE_SHA $HEAD_SHA -- 'data/icons/airlines/*' 2>/dev/null | grep -c '^D' || true)
+
+          : "${ICONS_ADDED:=0}"
+          : "${ICONS_MODIFIED:=0}"
+          : "${ICONS_DELETED:=0}"
+
+          {
+            echo "airlines_added=$AIRLINES_ADDED"
+            echo "airlines_removed=$AIRLINES_REMOVED"
+            echo "aircraft_added=$AIRCRAFT_ADDED"
+            echo "aircraft_removed=$AIRCRAFT_REMOVED"
+            echo "icons_added=$ICONS_ADDED"
+            echo "icons_modified=$ICONS_MODIFIED"
+            echo "icons_deleted=$ICONS_DELETED"
+          } >> $GITHUB_OUTPUT
+
+      - name: Post PR comment
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
+        with:
+          script: |
+            const validation = '${{ needs.validate.result }}';
+            const passed = validation === 'success';
+
+            const airlinesAdded = parseInt('${{ steps.changes.outputs.airlines_added }}') || 0;
+            const airlinesRemoved = parseInt('${{ steps.changes.outputs.airlines_removed }}') || 0;
+            const aircraftAdded = parseInt('${{ steps.changes.outputs.aircraft_added }}') || 0;
+            const aircraftRemoved = parseInt('${{ steps.changes.outputs.aircraft_removed }}') || 0;
+            const iconsAdded = parseInt('${{ steps.changes.outputs.icons_added }}') || 0;
+            const iconsModified = parseInt('${{ steps.changes.outputs.icons_modified }}') || 0;
+            const iconsDeleted = parseInt('${{ steps.changes.outputs.icons_deleted }}') || 0;
+
+            let body = `## ${passed ? '' : '❌ '}Data Validation ${passed ? 'Passed' : 'Failed'}\n\n`;
+
+            body += `### Changes Summary\n\n`;
+            body += `| File | Changes |\n`;
+            body += `|------|--------|\n`;
+
+            const formatChanges = (added, removed, noun) => {
+              const parts = [];
+              if (added > 0) parts.push(`${added} ${noun}${added !== 1 ? 's' : ''} added`);
+              if (removed > 0) parts.push(`${removed} removed`);
+              return parts.join(', ');
+            };
+
+            if (airlinesAdded > 0 || airlinesRemoved > 0) {
+              body += `| \`airlines.json\` | ${formatChanges(airlinesAdded, airlinesRemoved, 'airline')} |\n`;
+            }
+            if (aircraftAdded > 0 || aircraftRemoved > 0) {
+              body += `| \`aircraft.json\` | ${formatChanges(aircraftAdded, aircraftRemoved, 'aircraft')} |\n`;
+            }
+
+            const iconChanges = [];
+            if (iconsAdded > 0) iconChanges.push(`${iconsAdded} added`);
+            if (iconsModified > 0) iconChanges.push(`${iconsModified} modified`);
+            if (iconsDeleted > 0) iconChanges.push(`${iconsDeleted} deleted`);
+            if (iconChanges.length > 0) {
+              body += `| Icons | ${iconChanges.join(', ')} |\n`;
+            }
+
+            if (!passed) {
+              body += `\n### How to Fix\n\n`;
+              body += `See the [workflow summary](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}) for details.\n\n`;
+              body += `**Common fixes:**\n`;
+              body += `- Run \`bun run data:format\` to fix formatting issues\n`;
+              body += `- Ensure icon filenames match an airline \`id\` in \`airlines.json\`\n`;
+              body += `- Check for missing required fields or invalid formats\n`;
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('Data Validation')
+            );
+
+            if (botComment) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+              });
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });

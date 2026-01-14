@@ -12,11 +12,11 @@ web:
               - static/**
           - all-globs-to-all-files:
               - '!static/airlines/**'
-assets:
+data:
   - changed-files:
-      - any-glob-to-all-files:
-          - static/airlines/**
+      - any-glob-to-any-file:
+          - data/**
 'changelog:skip':
   - changed-files:
       - any-glob-to-all-files:
-          - static/airlines/**
+          - data/**

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { CopyMinus, Database } from '@o7/icon/lucide';
 
+  import { resolve } from '$app/paths';
   import { page } from '$app/state';
 </script>
 
@@ -9,7 +10,7 @@
   <div class="flex flex-col md:flex-row gap-2">
     {#if page.data.user?.role === 'owner'}
       <a
-        href="/tools/sql"
+        href={resolve('/tools/sql')}
         class="flex items-center space-x-4 rounded-md border p-4 transition-colors hover:bg-card-hover"
       >
         <Database />
@@ -22,7 +23,7 @@
       </a>
     {/if}
     <a
-      href="/tools/deduplicate"
+      href={resolve('/tools/deduplicate')}
       class="flex items-center space-x-4 rounded-md border p-4 transition-colors hover:bg-card-hover"
     >
       <CopyMinus />

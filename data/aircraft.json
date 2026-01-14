@@ -1,0 +1,627 @@
+[
+  {
+    "id": "agusta-a109",
+    "name": "Agusta A109",
+    "icao": "A109"
+  },
+  {
+    "id": "airbus-a220-100",
+    "name": "Airbus A220-100",
+    "icao": "BCS1"
+  },
+  {
+    "id": "airbus-a220-300",
+    "name": "Airbus A220-300",
+    "icao": "BCS3"
+  },
+  {
+    "id": "airbus-a300-100-200",
+    "name": "Airbus A300-100/200",
+    "icao": "A30B"
+  },
+  {
+    "id": "airbus-a300-600",
+    "name": "Airbus A300-600",
+    "icao": "A306"
+  },
+  {
+    "id": "airbus-a310",
+    "name": "Airbus A310",
+    "icao": "A310"
+  },
+  {
+    "id": "airbus-a318",
+    "name": "Airbus A318",
+    "icao": "A318"
+  },
+  {
+    "id": "airbus-a319",
+    "name": "Airbus A319",
+    "icao": "A319"
+  },
+  {
+    "id": "airbus-a319-2",
+    "name": "Airbus A319",
+    "icao": "A19N"
+  },
+  {
+    "id": "airbus-a320",
+    "name": "Airbus A320",
+    "icao": "A320"
+  },
+  {
+    "id": "airbus-a320neo",
+    "name": "Airbus A320neo",
+    "icao": "A20N"
+  },
+  {
+    "id": "airbus-a321",
+    "name": "Airbus A321",
+    "icao": "A321"
+  },
+  {
+    "id": "airbus-a321neo",
+    "name": "Airbus A321neo",
+    "icao": "A21N"
+  },
+  {
+    "id": "airbus-a330-200",
+    "name": "Airbus A330-200",
+    "icao": "A332"
+  },
+  {
+    "id": "airbus-a330-300",
+    "name": "Airbus A330-300",
+    "icao": "A333"
+  },
+  {
+    "id": "airbus-a340",
+    "name": "Airbus A340",
+    "icao": "A340"
+  },
+  {
+    "id": "airbus-a340-200",
+    "name": "Airbus A340-200",
+    "icao": "A342"
+  },
+  {
+    "id": "airbus-a340-300",
+    "name": "Airbus A340-300",
+    "icao": "A343"
+  },
+  {
+    "id": "airbus-a340-500",
+    "name": "Airbus A340-500",
+    "icao": "A345"
+  },
+  {
+    "id": "airbus-a340-600",
+    "name": "Airbus A340-600",
+    "icao": "A346"
+  },
+  {
+    "id": "airbus-a350-1000",
+    "name": "Airbus A350-1000",
+    "icao": "A35K"
+  },
+  {
+    "id": "airbus-a350-900",
+    "name": "Airbus A350-900",
+    "icao": "A359"
+  },
+  {
+    "id": "airbus-a380-800",
+    "name": "Airbus A380-800",
+    "icao": "A388"
+  },
+  {
+    "id": "antonov-an-12",
+    "name": "Antonov AN-12",
+    "icao": "AN12"
+  },
+  {
+    "id": "antonov-an-124",
+    "name": "Antonov AN-124",
+    "icao": "A124"
+  },
+  {
+    "id": "antonov-an-140",
+    "name": "Antonov AN-140",
+    "icao": "A140"
+  },
+  {
+    "id": "antonov-an-148",
+    "name": "Antonov AN-148",
+    "icao": "A148"
+  },
+  {
+    "id": "antonov-an-22",
+    "name": "Antonov AN-22",
+    "icao": "AN22"
+  },
+  {
+    "id": "antonov-an-225",
+    "name": "Antonov AN-225",
+    "icao": "A225"
+  },
+  {
+    "id": "antonov-an-24",
+    "name": "Antonov AN-24",
+    "icao": "AN24"
+  },
+  {
+    "id": "antonov-an-26",
+    "name": "Antonov AN-26",
+    "icao": "AN26"
+  },
+  {
+    "id": "antonov-an-28",
+    "name": "Antonov AN-28",
+    "icao": "AN28"
+  },
+  {
+    "id": "antonov-an-30",
+    "name": "Antonov AN-30",
+    "icao": "AN30"
+  },
+  {
+    "id": "antonov-an-32",
+    "name": "Antonov AN-32",
+    "icao": "AN32"
+  },
+  {
+    "id": "antonov-an-38",
+    "name": "Antonov AN-38",
+    "icao": "AN38"
+  },
+  {
+    "id": "antonov-an-72",
+    "name": "Antonov AN-72",
+    "icao": "AN72"
+  },
+  {
+    "id": "atr-42-300",
+    "name": "ATR-42-300",
+    "icao": "AT43"
+  },
+  {
+    "id": "atr-42-400",
+    "name": "ATR-42-400",
+    "icao": "AT44"
+  },
+  {
+    "id": "atr-42-500",
+    "name": "ATR-42-500",
+    "icao": "AT45"
+  },
+  {
+    "id": "atr-42-600",
+    "name": "ATR-42-600",
+    "icao": "AT46"
+  },
+  {
+    "id": "atr-72-200",
+    "name": "ATR-72-200",
+    "icao": "AT72"
+  },
+  {
+    "id": "atr-72-210",
+    "name": "ATR-72-210",
+    "icao": "AT73"
+  },
+  {
+    "id": "atr-72-500",
+    "name": "ATR-72-500",
+    "icao": "AT75"
+  },
+  {
+    "id": "avro-rj100",
+    "name": "Avro RJ100",
+    "icao": "RJ1H"
+  },
+  {
+    "id": "avro-rj70",
+    "name": "Avro RJ70",
+    "icao": "RJ70"
+  },
+  {
+    "id": "avro-rj85",
+    "name": "Avro RJ85",
+    "icao": "RJ85"
+  },
+  {
+    "id": "ayres-lm-200-loadmaster",
+    "name": "Ayres LM-200 Loadmaster",
+    "icao": "LOAD"
+  },
+  {
+    "id": "bae-146-100",
+    "name": "BAe-146-100",
+    "icao": "B461"
+  },
+  {
+    "id": "bae-146-200",
+    "name": "BAe-146-200",
+    "icao": "B462"
+  },
+  {
+    "id": "bae-146-300",
+    "name": "BAe-146-300",
+    "icao": "B463"
+  },
+  {
+    "id": "beechcraft-1900",
+    "name": "Beechcraft 1900",
+    "icao": "BE19"
+  },
+  {
+    "id": "beechcraft-baron",
+    "name": "Beechcraft Baron",
+    "icao": "BE58"
+  },
+  {
+    "id": "beechcraft-king-air-200",
+    "name": "Beechcraft King Air 200",
+    "icao": "BE20"
+  },
+  {
+    "id": "beechcraft-king-air-350",
+    "name": "Beechcraft King Air 350",
+    "icao": "BE30"
+  },
+  {
+    "id": "beechcraft-king-air-90",
+    "name": "Beechcraft King Air 90",
+    "icao": "BE9L"
+  },
+  {
+    "id": "beechcraft-super-king-air-350",
+    "name": "Beechcraft Super King Air 350",
+    "icao": "BE35"
+  },
+  {
+    "id": "boeing-707-100",
+    "name": "Boeing 707-100",
+    "icao": "B701"
+  },
+  {
+    "id": "boeing-707-300",
+    "name": "Boeing 707-300",
+    "icao": "B703"
+  },
+  {
+    "id": "boeing-717-200",
+    "name": "Boeing 717-200",
+    "icao": "B712"
+  },
+  {
+    "id": "boeing-727-100",
+    "name": "Boeing 727-100",
+    "icao": "B721"
+  },
+  {
+    "id": "boeing-727-200",
+    "name": "Boeing 727-200",
+    "icao": "B722"
+  },
+  {
+    "id": "boeing-737-200",
+    "name": "Boeing 737-200",
+    "icao": "B732"
+  },
+  {
+    "id": "boeing-737-300",
+    "name": "Boeing 737-300",
+    "icao": "B733"
+  },
+  {
+    "id": "boeing-737-400",
+    "name": "Boeing 737-400",
+    "icao": "B734"
+  },
+  {
+    "id": "boeing-737-500",
+    "name": "Boeing 737-500",
+    "icao": "B735"
+  },
+  {
+    "id": "boeing-737-600",
+    "name": "Boeing 737-600",
+    "icao": "B736"
+  },
+  {
+    "id": "boeing-737-700",
+    "name": "Boeing 737-700",
+    "icao": "B737"
+  },
+  {
+    "id": "boeing-737-800",
+    "name": "Boeing 737-800",
+    "icao": "B738"
+  },
+  {
+    "id": "boeing-737-900",
+    "name": "Boeing 737-900",
+    "icao": "B739"
+  },
+  {
+    "id": "boeing-737-max-10",
+    "name": "Boeing 737 MAX 10",
+    "icao": "B3XM"
+  },
+  {
+    "id": "boeing-737-max-7",
+    "name": "Boeing 737 MAX 7",
+    "icao": "B37M"
+  },
+  {
+    "id": "boeing-737-max-8",
+    "name": "Boeing 737 MAX 8",
+    "icao": "B38M"
+  },
+  {
+    "id": "boeing-737-max-9",
+    "name": "Boeing 737 MAX 9",
+    "icao": "B39M"
+  },
+  {
+    "id": "boeing-747-100",
+    "name": "Boeing 747-100",
+    "icao": "B741"
+  },
+  {
+    "id": "boeing-747-200",
+    "name": "Boeing 747-200",
+    "icao": "B742"
+  },
+  {
+    "id": "boeing-747-300",
+    "name": "Boeing 747-300",
+    "icao": "B743"
+  },
+  {
+    "id": "boeing-747-400",
+    "name": "Boeing 747-400",
+    "icao": "B744"
+  },
+  {
+    "id": "boeing-747-8",
+    "name": "Boeing 747-8",
+    "icao": "B748"
+  },
+  {
+    "id": "boeing-747sp",
+    "name": "Boeing 747SP",
+    "icao": "N74S"
+  },
+  {
+    "id": "boeing-747sr",
+    "name": "Boeing 747SR",
+    "icao": "B74R"
+  },
+  {
+    "id": "boeing-757-200",
+    "name": "Boeing 757-200",
+    "icao": "B752"
+  },
+  {
+    "id": "boeing-757-300",
+    "name": "Boeing 757-300",
+    "icao": "B753"
+  },
+  {
+    "id": "boeing-767-200",
+    "name": "Boeing 767-200",
+    "icao": "B762"
+  },
+  {
+    "id": "boeing-767-300",
+    "name": "Boeing 767-300",
+    "icao": "B763"
+  },
+  {
+    "id": "boeing-767-400",
+    "name": "Boeing 767-400",
+    "icao": "B764"
+  },
+  {
+    "id": "boeing-777-200-er",
+    "name": "Boeing 777-200/ER",
+    "icao": "B772"
+  },
+  {
+    "id": "boeing-777-200lr",
+    "name": "Boeing 777-200LR",
+    "icao": "B77L"
+  },
+  {
+    "id": "boeing-777-300",
+    "name": "Boeing 777-300",
+    "icao": "B773"
+  },
+  {
+    "id": "boeing-777-300er",
+    "name": "Boeing 777-300ER",
+    "icao": "B77W"
+  },
+  {
+    "id": "boeing-787-10",
+    "name": "Boeing 787-10",
+    "icao": "B78X"
+  },
+  {
+    "id": "boeing-787-8",
+    "name": "Boeing 787-8",
+    "icao": "B788"
+  },
+  {
+    "id": "boeing-787-9",
+    "name": "Boeing 787-9",
+    "icao": "B789"
+  },
+  {
+    "id": "bombardier-dhc-8-100-dash-8",
+    "name": "Bombardier DHC-8-100 Dash 8",
+    "icao": "DH8A"
+  },
+  {
+    "id": "bombardier-dhc-8-200-dash-8",
+    "name": "Bombardier DHC-8-200 Dash 8",
+    "icao": "DH8B"
+  },
+  {
+    "id": "bombardier-dhc-8-300-dash-8",
+    "name": "Bombardier DHC-8-300 Dash 8",
+    "icao": "DH8C"
+  },
+  {
+    "id": "bombardier-dhc-8-400-dash-8",
+    "name": "Bombardier DHC-8-400 Dash 8",
+    "icao": "DH8D"
+  },
+  {
+    "id": "british-aerospace-atp",
+    "name": "British Aerospace ATP",
+    "icao": "ATP"
+  },
+  {
+    "id": "canadair-regional-jet-crj-100",
+    "name": "Canadair Regional Jet CRJ-100",
+    "icao": "CRJ1"
+  },
+  {
+    "id": "canadair-regional-jet-crj-1000",
+    "name": "Canadair Regional Jet CRJ-1000",
+    "icao": "CRJX"
+  },
+  {
+    "id": "canadair-regional-jet-crj-200",
+    "name": "Canadair Regional Jet CRJ-200",
+    "icao": "CRJ2"
+  },
+  {
+    "id": "canadair-regional-jet-crj-550-700",
+    "name": "Canadair Regional Jet CRJ-550/700",
+    "icao": "CRJ7"
+  },
+  {
+    "id": "canadair-regional-jet-crj-900",
+    "name": "Canadair Regional Jet CRJ-900",
+    "icao": "CRJ9"
+  },
+  {
+    "id": "cessna-172",
+    "name": "Cessna 172",
+    "icao": "C172"
+  },
+  {
+    "id": "cessna-182",
+    "name": "Cessna 182",
+    "icao": "C182"
+  },
+  {
+    "id": "cessna-206",
+    "name": "Cessna 206",
+    "icao": "C206"
+  },
+  {
+    "id": "cessna-208",
+    "name": "Cessna 208",
+    "icao": "C208"
+  },
+  {
+    "id": "cessna-310",
+    "name": "Cessna 310",
+    "icao": "C310"
+  },
+  {
+    "id": "cessna-414",
+    "name": "Cessna 414",
+    "icao": "C414"
+  },
+  {
+    "id": "cessna-421",
+    "name": "Cessna 421",
+    "icao": "C421"
+  },
+  {
+    "id": "cessna-525",
+    "name": "Cessna 525",
+    "icao": "C525"
+  },
+  {
+    "id": "cessna-560",
+    "name": "Cessna 560",
+    "icao": "C560"
+  },
+  {
+    "id": "cessna-650",
+    "name": "Cessna 650",
+    "icao": "C650"
+  },
+  {
+    "id": "cessna-680",
+    "name": "Cessna 680",
+    "icao": "C680"
+  },
+  {
+    "id": "embraer-e175-long-wing",
+    "name": "Embraer E175 (long wing)",
+    "icao": "E75L"
+  },
+  {
+    "id": "embraer-e175-short-wing",
+    "name": "Embraer E175 (short wing)",
+    "icao": "E75S"
+  },
+  {
+    "id": "embraer-e190-e2",
+    "name": "Embraer E190 E2",
+    "icao": "E290"
+  },
+  {
+    "id": "embraer-e195-e2",
+    "name": "Embraer E195 E2",
+    "icao": "E295"
+  },
+  {
+    "id": "embraer-emb-120-brasilia",
+    "name": "Embraer EMB-120 Brasilia",
+    "icao": "E120"
+  },
+  {
+    "id": "embraer-erj-135",
+    "name": "Embraer ERJ-135",
+    "icao": "E135"
+  },
+  {
+    "id": "embraer-erj-145",
+    "name": "Embraer ERJ-145",
+    "icao": "E145"
+  },
+  {
+    "id": "embraer-erj-170",
+    "name": "Embraer ERJ-170",
+    "icao": "E170"
+  },
+  {
+    "id": "embraer-erj-190",
+    "name": "Embraer ERJ-190",
+    "icao": "EMB9"
+  },
+  {
+    "id": "fokker-100",
+    "name": "Fokker 100",
+    "icao": "F100"
+  },
+  {
+    "id": "gulfstream-rockwell-aero-commander",
+    "name": "Gulfstream/Rockwell (Aero) Commander",
+    "icao": "AC68"
+  },
+  {
+    "id": "gulfstream-rockwell-aero-turbo-commander",
+    "name": "Gulfstream/Rockwell (Aero) Turbo Commander",
+    "icao": "AC90"
+  }
+]
