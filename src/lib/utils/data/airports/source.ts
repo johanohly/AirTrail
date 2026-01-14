@@ -9,6 +9,18 @@ import { airportSourceSchema } from '$lib/zod/airport';
 
 export const BATCH_SIZE = 1000;
 
+/**
+ * Manual timezone overrides for airports where geo-tz returns incorrect results.
+ * Key: ICAO code, Value: Correct IANA timezone
+ *
+ * OOL (Gold Coast): Located right on the Queensland/NSW border.
+ * geo-tz returns Australia/Sydney (NSW, has DST) but it should be
+ * Australia/Brisbane (Queensland, no DST) as the airport operates on QLD time.
+ */
+const TIMEZONE_OVERRIDES: Record<string, string> = {
+  YBCG: 'Australia/Brisbane', // Gold Coast (OOL)
+};
+
 export const ensureAirports = async () => {
   const airports = await db
     .selectFrom('airport')
@@ -182,7 +194,10 @@ export const fetchAirports = async (): Promise<InsertAirport[]> => {
 
   return data
     .map((airport) => {
-      const tz = find(airport.latitude_deg, airport.longitude_deg)[0];
+      const icao = createAirportCode(airport, dataMap);
+      const tz =
+        TIMEZONE_OVERRIDES[icao] ??
+        find(airport.latitude_deg, airport.longitude_deg)[0];
       if (!tz) {
         console.error(
           `Could not find timezone for ${airport.latitude_deg}, ${airport.longitude_deg}`,
@@ -191,7 +206,7 @@ export const fetchAirports = async (): Promise<InsertAirport[]> => {
       }
 
       return {
-        icao: createAirportCode(airport, dataMap),
+        icao,
         iata: airport.iata_code === '' ? null : airport.iata_code,
         type: airport.type,
         name: airport.name,
