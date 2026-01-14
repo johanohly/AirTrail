@@ -2,7 +2,6 @@
 !/docker/**
 !/static/**
 /static/showcase/**
-/static/airlines/**
 !/src/**
 !/prisma/**
 !/temp/**
