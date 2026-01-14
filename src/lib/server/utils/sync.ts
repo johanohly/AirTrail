@@ -55,9 +55,6 @@ async function fetchJsonData<T>(
   }
 }
 
-  return parsed.data;
-}
-
 const formatError = (err: unknown): string =>
   err instanceof Error ? err.message : String(err);
 
