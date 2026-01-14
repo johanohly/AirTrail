@@ -77,6 +77,50 @@ export function countriesByContinentDistribution(
   return result;
 }
 
+export type CountryDetail = {
+  name: string;
+  numeric: number;
+  visited: boolean;
+};
+
+export function countriesByContinentDetails(
+  visitedCountries: VisitedCountry[],
+): Record<string, CountryDetail[]> {
+  const visitedCodes: Set<number> = new Set();
+  for (const country of visitedCountries) {
+    if (wasVisited(country)) {
+      visitedCodes.add(country.code);
+    }
+  }
+
+  const result: Record<string, CountryDetail[]> = {};
+
+  for (const country of COUNTRIES) {
+    if (!country.continent) continue;
+
+    if (!result[country.continent]) {
+      result[country.continent] = [];
+    }
+
+    result[country.continent].push({
+      name: country.name,
+      numeric: country.numeric,
+      visited: visitedCodes.has(country.numeric),
+    });
+  }
+
+  for (const continent in result) {
+    result[continent].sort((a, b) => {
+      if (a.visited !== b.visited) {
+        return a.visited ? -1 : 1; // visited first
+      }
+      return a.name.localeCompare(b.name); // alphabetically
+    });
+  }
+
+  return result;
+}
+
 function sortAndLimit(
   counts: Record<string, number>,
   options?: AggregationOptions,

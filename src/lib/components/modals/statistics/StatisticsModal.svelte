@@ -4,6 +4,7 @@
   import { isBefore } from 'date-fns';
 
   import BarChart from './charts/BarChart.svelte';
+  import BarChartDrillDown from './charts/BarChartDrillDown.svelte';
   import ChartDrillDown from './charts/ChartDrillDown.svelte';
   import FlightsPerMonth from './charts/FlightsPerMonth.svelte';
   import FlightsPerWeekday from './charts/FlightsPerWeekday.svelte';
@@ -20,6 +21,7 @@
   import {
     COUNTRY_BAR_CHARTS,
     COUNTRY_CHARTS,
+    countriesByContinentDetails,
     FLIGHT_CHARTS,
     type ChartKey,
   } from '$lib/stats/aggregations';
@@ -99,6 +101,7 @@
 
   // Expanded chart state
   let activeChart: ChartKey | null = $state(null);
+  let activeContinent: string | null = $state(null);
   const user = $derived(page.data.user);
   const ctx = $derived.by(() => ({ userId: user?.id }));
 
@@ -118,6 +121,10 @@
 
   const countriesByContinentData = $derived.by(() =>
     COUNTRY_BAR_CHARTS['countries-by-continent'].aggregate(visitedCountries),
+  );
+
+  const countriesByContinentDetailsData = $derived.by(() =>
+    countriesByContinentDetails(visitedCountries),
   );
 
   $effect(() => {
@@ -158,7 +165,9 @@
 <svelte:window
   onkeydown={(e) => {
     if (e.key !== 'Escape') return;
-    if (activeChart) {
+    if (activeContinent) {
+      activeContinent = null;
+    } else if (activeChart) {
       activeChart = null;
     } else if (open) {
       open = false;
@@ -173,7 +182,13 @@
   closeOnEscape={false}
   closeButton={true}
 >
-  {#if activeChart}
+  {#if activeContinent}
+    <BarChartDrillDown
+      continent={activeContinent}
+      countries={countriesByContinentDetailsData[activeContinent] || []}
+      onBack={() => (activeContinent = null)}
+    />
+  {:else if activeChart}
     <ChartDrillDown
       chartKey={activeChart}
       data={activeChartData}
@@ -290,6 +305,7 @@
         <BarChart
           title="Countries by Continent"
           data={countriesByContinentData}
+          onBarClick={(continent) => (activeContinent = continent)}
         />
       {/if}
     </div>

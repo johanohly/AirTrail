@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { differenceInSeconds } from 'date-fns';
   import type { Infer, SuperForm } from 'sveltekit-superforms';
 
   import FlightInformation from './FlightInformation.svelte';
@@ -6,6 +7,7 @@
   import SeatInformation from './SeatInformation.svelte';
 
   import { AirportField, DateTimeField } from '$lib/components/form-fields';
+  import { mergeTimeWithDate } from '$lib/utils/datetime';
   import type { flightSchema } from '$lib/zod/flight';
 
   let {
@@ -13,6 +15,39 @@
   }: {
     form: SuperForm<Infer<typeof flightSchema>>;
   } = $props();
+
+  const { form: formData } = form;
+
+  const MAX_DURATION_SECONDS = 24 * 60 * 60;
+
+  const durationWarning = $derived.by(() => {
+    const { departure, departureTime, arrival, arrivalTime, from, to } =
+      $formData;
+    if (
+      !departure ||
+      !departureTime ||
+      !arrival ||
+      !arrivalTime ||
+      !from ||
+      !to
+    ) {
+      return null;
+    }
+
+    try {
+      const dep = mergeTimeWithDate(departure, departureTime, from.tz);
+      const arr = mergeTimeWithDate(arrival, arrivalTime, to.tz);
+      const duration = differenceInSeconds(arr, dep);
+
+      if (duration > MAX_DURATION_SECONDS) {
+        return 'Flight duration exceeds 24 hours';
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  });
 </script>
 
 <div
@@ -29,6 +64,11 @@
         <AirportField field="to" {form} />
         <DateTimeField field="departure" {form} />
         <DateTimeField field="arrival" {form} />
+        {#if durationWarning}
+          <p class="text-amber-600 dark:text-amber-500 text-sm font-medium">
+            {durationWarning}
+          </p>
+        {/if}
       </div>
     </div>
     <div class="order-3 px-6 md:order-none md:px-0">
