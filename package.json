@@ -29,7 +29,9 @@
     "db:seed": "prisma db seed",
     "db:push": "prisma db push",
     "data:format": "bun scripts/data/format-data.js",
-    "data:check": "bun scripts/data/format-data.js --check"
+    "data:check": "bun scripts/data/format-data.js --check",
+    "data:validate": "bun scripts/data/validate-data.js",
+    "data:validate-icons": "bun scripts/data/validate-icons.js"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
