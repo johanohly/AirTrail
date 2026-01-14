@@ -93,21 +93,42 @@ jobs:
           BASE_SHA=${{ github.event.pull_request.base.sha }}
           HEAD_SHA=${{ github.event.pull_request.head.sha }}
 
-          AIRLINES_DIFF=$(git diff --numstat $BASE_SHA $HEAD_SHA -- data/airlines.json 2>/dev/null | awk '{print $1 "+" $2 "-"}')
-          AIRCRAFT_DIFF=$(git diff --numstat $BASE_SHA $HEAD_SHA -- data/aircraft.json 2>/dev/null | awk '{print $1 "+" $2 "-"}')
+          count_entries() {
+            local sha=$1 file=$2
+            git show "$sha:$file" 2>/dev/null | node -e "
+              let d=''; process.stdin.on('data',c=>d+=c);
+              process.stdin.on('end',()=>console.log(JSON.parse(d).length));
+            " 2>/dev/null || echo 0
+          }
+
+          BASE_AIRLINES=$(count_entries $BASE_SHA data/airlines.json)
+          HEAD_AIRLINES=$(count_entries $HEAD_SHA data/airlines.json)
+          BASE_AIRCRAFT=$(count_entries $BASE_SHA data/aircraft.json)
+          HEAD_AIRCRAFT=$(count_entries $HEAD_SHA data/aircraft.json)
+
+          AIRLINES_ADDED=$((HEAD_AIRLINES - BASE_AIRLINES))
+          AIRLINES_ADDED=$((AIRLINES_ADDED > 0 ? AIRLINES_ADDED : 0))
+          AIRLINES_REMOVED=$((BASE_AIRLINES - HEAD_AIRLINES))
+          AIRLINES_REMOVED=$((AIRLINES_REMOVED > 0 ? AIRLINES_REMOVED : 0))
+
+          AIRCRAFT_ADDED=$((HEAD_AIRCRAFT - BASE_AIRCRAFT))
+          AIRCRAFT_ADDED=$((AIRCRAFT_ADDED > 0 ? AIRCRAFT_ADDED : 0))
+          AIRCRAFT_REMOVED=$((BASE_AIRCRAFT - HEAD_AIRCRAFT))
+          AIRCRAFT_REMOVED=$((AIRCRAFT_REMOVED > 0 ? AIRCRAFT_REMOVED : 0))
+
           ICONS_ADDED=$(git diff --name-status $BASE_SHA $HEAD_SHA -- 'data/icons/airlines/*' 2>/dev/null | grep -c '^A' || true)
           ICONS_MODIFIED=$(git diff --name-status $BASE_SHA $HEAD_SHA -- 'data/icons/airlines/*' 2>/dev/null | grep -c '^M' || true)
           ICONS_DELETED=$(git diff --name-status $BASE_SHA $HEAD_SHA -- 'data/icons/airlines/*' 2>/dev/null | grep -c '^D' || true)
 
-          : "${AIRLINES_DIFF:=0+0-}"
-          : "${AIRCRAFT_DIFF:=0+0-}"
           : "${ICONS_ADDED:=0}"
           : "${ICONS_MODIFIED:=0}"
           : "${ICONS_DELETED:=0}"
 
           {
-            echo "airlines_diff=$AIRLINES_DIFF"
-            echo "aircraft_diff=$AIRCRAFT_DIFF"
+            echo "airlines_added=$AIRLINES_ADDED"
+            echo "airlines_removed=$AIRLINES_REMOVED"
+            echo "aircraft_added=$AIRCRAFT_ADDED"
+            echo "aircraft_removed=$AIRCRAFT_REMOVED"
             echo "icons_added=$ICONS_ADDED"
             echo "icons_modified=$ICONS_MODIFIED"
             echo "icons_deleted=$ICONS_DELETED"
@@ -120,11 +141,13 @@ jobs:
             const validation = '${{ needs.validate.result }}';
             const passed = validation === 'success';
 
-            const airlines = '${{ steps.changes.outputs.airlines_diff }}';
-            const aircraft = '${{ steps.changes.outputs.aircraft_diff }}';
-            const iconsAdded = '${{ steps.changes.outputs.icons_added }}';
-            const iconsModified = '${{ steps.changes.outputs.icons_modified }}';
-            const iconsDeleted = '${{ steps.changes.outputs.icons_deleted }}';
+            const airlinesAdded = parseInt('${{ steps.changes.outputs.airlines_added }}') || 0;
+            const airlinesRemoved = parseInt('${{ steps.changes.outputs.airlines_removed }}') || 0;
+            const aircraftAdded = parseInt('${{ steps.changes.outputs.aircraft_added }}') || 0;
+            const aircraftRemoved = parseInt('${{ steps.changes.outputs.aircraft_removed }}') || 0;
+            const iconsAdded = parseInt('${{ steps.changes.outputs.icons_added }}') || 0;
+            const iconsModified = parseInt('${{ steps.changes.outputs.icons_modified }}') || 0;
+            const iconsDeleted = parseInt('${{ steps.changes.outputs.icons_deleted }}') || 0;
 
             let body = `## ${passed ? '' : '❌ '}Data Validation ${passed ? 'Passed' : 'Failed'}\n\n`;
 
@@ -132,17 +155,24 @@ jobs:
             body += `| File | Changes |\n`;
             body += `|------|--------|\n`;
 
-            if (airlines !== '0+0-') {
-              body += `| \`airlines.json\` | ${airlines.replace('+', ' added, ').replace('-', ' removed')} |\n`;
+            const formatChanges = (added, removed, noun) => {
+              const parts = [];
+              if (added > 0) parts.push(`${added} ${noun}${added !== 1 ? 's' : ''} added`);
+              if (removed > 0) parts.push(`${removed} removed`);
+              return parts.join(', ');
+            };
+
+            if (airlinesAdded > 0 || airlinesRemoved > 0) {
+              body += `| \`airlines.json\` | ${formatChanges(airlinesAdded, airlinesRemoved, 'airline')} |\n`;
             }
-            if (aircraft !== '0+0-') {
-              body += `| \`aircraft.json\` | ${aircraft.replace('+', ' added, ').replace('-', ' removed')} |\n`;
+            if (aircraftAdded > 0 || aircraftRemoved > 0) {
+              body += `| \`aircraft.json\` | ${formatChanges(aircraftAdded, aircraftRemoved, 'aircraft')} |\n`;
             }
 
             const iconChanges = [];
-            if (iconsAdded !== '0') iconChanges.push(`${iconsAdded} added`);
-            if (iconsModified !== '0') iconChanges.push(`${iconsModified} modified`);
-            if (iconsDeleted !== '0') iconChanges.push(`${iconsDeleted} deleted`);
+            if (iconsAdded > 0) iconChanges.push(`${iconsAdded} added`);
+            if (iconsModified > 0) iconChanges.push(`${iconsModified} modified`);
+            if (iconsDeleted > 0) iconChanges.push(`${iconsDeleted} deleted`);
             if (iconChanges.length > 0) {
               body += `| Icons | ${iconChanges.join(', ')} |\n`;
             }
