@@ -3010,6 +3010,13 @@
     "defunct": false
   },
   {
+    "id": "barrier-air",
+    "name": "Barrier Air",
+    "icao": "GBA",
+    "iata": null,
+    "defunct": false
+  },
+  {
     "id": "bassaka-air",
     "name": "Bassaka Air",
     "icao": "BSX",
