@@ -1,7 +1,7 @@
 name: Data Validation
 
 on:
-  pull_request_target:
+  pull_request:
     paths:
       - 'data/**'
 
@@ -77,8 +77,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: validate
     if: always()
-    permissions:
-      pull-requests: write
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
@@ -137,79 +135,74 @@ jobs:
             echo "icons_deleted=$ICONS_DELETED"
           } >> $GITHUB_OUTPUT
 
-      - name: Post PR comment
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
+      - name: Build PR comment
+        env:
+          VALIDATION_RESULT: ${{ needs.validate.result }}
+          AIRLINES_ADDED: ${{ steps.changes.outputs.airlines_added }}
+          AIRLINES_REMOVED: ${{ steps.changes.outputs.airlines_removed }}
+          AIRCRAFT_ADDED: ${{ steps.changes.outputs.aircraft_added }}
+          AIRCRAFT_REMOVED: ${{ steps.changes.outputs.aircraft_removed }}
+          ICONS_ADDED: ${{ steps.changes.outputs.icons_added }}
+          ICONS_MODIFIED: ${{ steps.changes.outputs.icons_modified }}
+          ICONS_DELETED: ${{ steps.changes.outputs.icons_deleted }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+
+          const passed = process.env.VALIDATION_RESULT === 'success';
+          const airlinesAdded = parseInt(process.env.AIRLINES_ADDED, 10) || 0;
+          const airlinesRemoved = parseInt(process.env.AIRLINES_REMOVED, 10) || 0;
+          const aircraftAdded = parseInt(process.env.AIRCRAFT_ADDED, 10) || 0;
+          const aircraftRemoved = parseInt(process.env.AIRCRAFT_REMOVED, 10) || 0;
+          const iconsAdded = parseInt(process.env.ICONS_ADDED, 10) || 0;
+          const iconsModified = parseInt(process.env.ICONS_MODIFIED, 10) || 0;
+          const iconsDeleted = parseInt(process.env.ICONS_DELETED, 10) || 0;
+          const runUrl = process.env.RUN_URL;
+
+          let body = `## ${passed ? '' : '❌ '}Data Validation ${passed ? 'Passed' : 'Failed'}\n\n`;
+
+          body += `### Changes Summary\n\n`;
+          body += `| File | Changes |\n`;
+          body += `|------|--------|\n`;
+
+          const formatChanges = (added, removed, noun) => {
+            const parts = [];
+            if (added > 0) parts.push(`${added} ${noun}${added !== 1 ? 's' : ''} added`);
+            if (removed > 0) parts.push(`${removed} removed`);
+            return parts.join(', ');
+          };
+
+          if (airlinesAdded > 0 || airlinesRemoved > 0) {
+            body += `| \`airlines.json\` | ${formatChanges(airlinesAdded, airlinesRemoved, 'airline')} |\n`;
+          }
+          if (aircraftAdded > 0 || aircraftRemoved > 0) {
+            body += `| \`aircraft.json\` | ${formatChanges(aircraftAdded, aircraftRemoved, 'aircraft')} |\n`;
+          }
+
+          const iconChanges = [];
+          if (iconsAdded > 0) iconChanges.push(`${iconsAdded} added`);
+          if (iconsModified > 0) iconChanges.push(`${iconsModified} modified`);
+          if (iconsDeleted > 0) iconChanges.push(`${iconsDeleted} deleted`);
+          if (iconChanges.length > 0) {
+            body += `| Icons | ${iconChanges.join(', ')} |\n`;
+          }
+
+          if (!passed) {
+            body += `\n### How to Fix\n\n`;
+            body += `See the [workflow summary](${runUrl}) for details.\n\n`;
+            body += `**Common fixes:**\n`;
+            body += `- Run \`bun run data:format\` to fix formatting issues\n`;
+            body += `- Ensure icon filenames match an airline \`id\` in \`airlines.json\`\n`;
+            body += `- Check for missing required fields or invalid formats\n`;
+          }
+
+          fs.writeFileSync('comment.md', body);
+          NODE
+
+      - name: Upload PR comment artifact
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
-          script: |
-            const validation = '${{ needs.validate.result }}';
-            const passed = validation === 'success';
-
-            const airlinesAdded = parseInt('${{ steps.changes.outputs.airlines_added }}') || 0;
-            const airlinesRemoved = parseInt('${{ steps.changes.outputs.airlines_removed }}') || 0;
-            const aircraftAdded = parseInt('${{ steps.changes.outputs.aircraft_added }}') || 0;
-            const aircraftRemoved = parseInt('${{ steps.changes.outputs.aircraft_removed }}') || 0;
-            const iconsAdded = parseInt('${{ steps.changes.outputs.icons_added }}') || 0;
-            const iconsModified = parseInt('${{ steps.changes.outputs.icons_modified }}') || 0;
-            const iconsDeleted = parseInt('${{ steps.changes.outputs.icons_deleted }}') || 0;
-
-            let body = `## ${passed ? '' : '❌ '}Data Validation ${passed ? 'Passed' : 'Failed'}\n\n`;
-
-            body += `### Changes Summary\n\n`;
-            body += `| File | Changes |\n`;
-            body += `|------|--------|\n`;
-
-            const formatChanges = (added, removed, noun) => {
-              const parts = [];
-              if (added > 0) parts.push(`${added} ${noun}${added !== 1 ? 's' : ''} added`);
-              if (removed > 0) parts.push(`${removed} removed`);
-              return parts.join(', ');
-            };
-
-            if (airlinesAdded > 0 || airlinesRemoved > 0) {
-              body += `| \`airlines.json\` | ${formatChanges(airlinesAdded, airlinesRemoved, 'airline')} |\n`;
-            }
-            if (aircraftAdded > 0 || aircraftRemoved > 0) {
-              body += `| \`aircraft.json\` | ${formatChanges(aircraftAdded, aircraftRemoved, 'aircraft')} |\n`;
-            }
-
-            const iconChanges = [];
-            if (iconsAdded > 0) iconChanges.push(`${iconsAdded} added`);
-            if (iconsModified > 0) iconChanges.push(`${iconsModified} modified`);
-            if (iconsDeleted > 0) iconChanges.push(`${iconsDeleted} deleted`);
-            if (iconChanges.length > 0) {
-              body += `| Icons | ${iconChanges.join(', ')} |\n`;
-            }
-
-            if (!passed) {
-              body += `\n### How to Fix\n\n`;
-              body += `See the [workflow summary](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}) for details.\n\n`;
-              body += `**Common fixes:**\n`;
-              body += `- Run \`bun run data:format\` to fix formatting issues\n`;
-              body += `- Ensure icon filenames match an airline \`id\` in \`airlines.json\`\n`;
-              body += `- Check for missing required fields or invalid formats\n`;
-            }
-
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-
-            const botComment = comments.find(c =>
-              c.user.type === 'Bot' && c.body.includes('Data Validation')
-            );
-
-            if (botComment) {
-              await github.rest.issues.deleteComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-              });
-            }
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body
-            });
+          name: data-validation-comment
+          path: comment.md
+          retention-days: 7
