@@ -620,14 +620,14 @@
     "icao": "EMB9"
   },
   {
-    "id": "fokker-50",
-    "name": "Fokker 50",
-    "icao": "F50"
-  },
-  {
     "id": "fokker-100",
     "name": "Fokker 100",
     "icao": "F100"
+  },
+  {
+    "id": "fokker-50",
+    "name": "Fokker 50",
+    "icao": "F50"
   },
   {
     "id": "gulfstream-rockwell-aero-commander",
