@@ -565,6 +565,11 @@
     "icao": "C680"
   },
   {
+    "id": "daher-kodiak-100",
+    "name": "Daher Kodiak 100",
+    "icao": "K100"
+  },
+  {
     "id": "embraer-110",
     "name": "Embraer 110",
     "icao": "E110"
@@ -613,6 +618,11 @@
     "id": "embraer-erj-190",
     "name": "Embraer ERJ-190",
     "icao": "EMB9"
+  },
+  {
+    "id": "fokker-50",
+    "name": "Fokker 50",
+    "icao": "F50"
   },
   {
     "id": "fokker-100",
