@@ -730,6 +730,11 @@
     "icao": "C680"
   },
   {
+    "id": "daher-kodiak-100",
+    "name": "Daher Kodiak 100",
+    "icao": "K100"
+  },
+  {
     "id": "cessna-citation-cj2",
     "name": "Cessna Citation CJ2",
     "icao": "C25A"
@@ -1013,6 +1018,11 @@
     "id": "fokker-100",
     "name": "Fokker 100",
     "icao": "F100"
+  },
+  {
+    "id": "fokker-50",
+    "name": "Fokker 50",
+    "icao": "F50"
   },
   {
     "id": "fokker-70",
