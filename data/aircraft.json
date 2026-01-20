@@ -730,11 +730,6 @@
     "icao": "C680"
   },
   {
-    "id": "daher-kodiak-100",
-    "name": "Daher Kodiak 100",
-    "icao": "K100"
-  },
-  {
     "id": "cessna-citation-cj2",
     "name": "Cessna Citation CJ2",
     "icao": "C25A"
@@ -798,6 +793,11 @@
     "id": "convair-cv-580-convair-cv-600-convair-cv-640",
     "name": "Convair CV-580, Convair CV-600, Convair CV-640",
     "icao": "CVLT"
+  },
+  {
+    "id": "daher-kodiak-100",
+    "name": "Daher Kodiak 100",
+    "icao": "K100"
   },
   {
     "id": "dassault-falcon-2000",
