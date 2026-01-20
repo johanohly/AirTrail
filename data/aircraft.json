@@ -1,5 +1,20 @@
 [
   {
+    "id": "aerospatiale-alenia-atr-72-212a-600",
+    "name": "Aerospatiale/Alenia ATR 72-212A (600)",
+    "icao": "AT76"
+  },
+  {
+    "id": "aerospatiale-nord-262",
+    "name": "Aerospatiale (Nord) 262",
+    "icao": "N262"
+  },
+  {
+    "id": "aerospatiale-sn-601-corvette",
+    "name": "Aerospatiale SN.601 Corvette",
+    "icao": "S601"
+  },
+  {
     "id": "agusta-a109",
     "name": "Agusta A109",
     "icao": "A109"
@@ -23,6 +38,11 @@
     "id": "airbus-a300-600",
     "name": "Airbus A300-600",
     "icao": "A306"
+  },
+  {
+    "id": "airbus-a300-600st-super-transporter-beluga",
+    "name": "Airbus A300-600ST \"Super Transporter\" / \"Beluga\"",
+    "icao": "A3ST"
   },
   {
     "id": "airbus-a310",
@@ -75,6 +95,21 @@
     "icao": "A333"
   },
   {
+    "id": "airbus-a330-700-belugaxl",
+    "name": "Airbus A330-700 \"BelugaXL\"",
+    "icao": "A337"
+  },
+  {
+    "id": "airbus-a330-800",
+    "name": "Airbus A330-800",
+    "icao": "A338"
+  },
+  {
+    "id": "airbus-a330-900neo",
+    "name": "Airbus A330-900neo",
+    "icao": "A339"
+  },
+  {
     "id": "airbus-a340",
     "name": "Airbus A340",
     "icao": "A340"
@@ -115,6 +150,11 @@
     "icao": "A388"
   },
   {
+    "id": "airbus-a400m-atlas",
+    "name": "Airbus A400M Atlas",
+    "icao": "A400"
+  },
+  {
     "id": "antonov-an-12",
     "name": "Antonov AN-12",
     "icao": "AN12"
@@ -133,6 +173,11 @@
     "id": "antonov-an-148",
     "name": "Antonov AN-148",
     "icao": "A148"
+  },
+  {
+    "id": "antonov-an-158",
+    "name": "Antonov An-158",
+    "icao": "A158"
   },
   {
     "id": "antonov-an-22",
@@ -275,9 +320,19 @@
     "icao": "BE9L"
   },
   {
+    "id": "beechcraft-model-99",
+    "name": "Beechcraft Model 99",
+    "icao": "BE99"
+  },
+  {
     "id": "beechcraft-super-king-air-350",
     "name": "Beechcraft Super King Air 350",
     "icao": "BE35"
+  },
+  {
+    "id": "beriev-be-200-altair",
+    "name": "Beriev Be-200 Altair",
+    "icao": "BER2"
   },
   {
     "id": "boeing-707-100",
@@ -293,6 +348,11 @@
     "id": "boeing-717-200",
     "name": "Boeing 717-200",
     "icao": "B712"
+  },
+  {
+    "id": "boeing-720b",
+    "name": "Boeing 720B",
+    "icao": "B720"
   },
   {
     "id": "boeing-727-100",
@@ -385,6 +445,11 @@
     "icao": "B744"
   },
   {
+    "id": "boeing-747-400-lcf-dreamlifter",
+    "name": "Boeing 747-400 LCF Dreamlifter",
+    "icao": "BLCF"
+  },
+  {
     "id": "boeing-747-8",
     "name": "Boeing 747-8",
     "icao": "B748"
@@ -445,6 +510,16 @@
     "icao": "B77W"
   },
   {
+    "id": "boeing-777-8",
+    "name": "Boeing 777-8",
+    "icao": "B778"
+  },
+  {
+    "id": "boeing-777-9",
+    "name": "Boeing 777-9",
+    "icao": "B779"
+  },
+  {
     "id": "boeing-787-10",
     "name": "Boeing 787-10",
     "icao": "B78X"
@@ -458,6 +533,36 @@
     "id": "boeing-787-9",
     "name": "Boeing 787-9",
     "icao": "B789"
+  },
+  {
+    "id": "boeing-b-52-stratofortress",
+    "name": "Boeing B-52 Stratofortress",
+    "icao": "B52"
+  },
+  {
+    "id": "boeing-kc-135-stratotanker",
+    "name": "Boeing KC-135 Stratotanker",
+    "icao": "K35R"
+  },
+  {
+    "id": "boeing-p-8-poseidon",
+    "name": "Boeing P-8 Poseidon",
+    "icao": "P8"
+  },
+  {
+    "id": "bombardier-415",
+    "name": "Bombardier 415",
+    "icao": "CL2T"
+  },
+  {
+    "id": "bombardier-bd-100-challenger-300",
+    "name": "Bombardier BD-100 Challenger 300",
+    "icao": "CL30"
+  },
+  {
+    "id": "bombardier-bd-100-challenger-350",
+    "name": "Bombardier BD-100 Challenger 350",
+    "icao": "CL35"
   },
   {
     "id": "bombardier-dhc-8-100-dash-8",
@@ -480,9 +585,54 @@
     "icao": "DH8D"
   },
   {
+    "id": "bombardier-global-5000",
+    "name": "Bombardier Global 5000",
+    "icao": "GL5T"
+  },
+  {
+    "id": "bombardier-global-express-raytheon-sentinel",
+    "name": "Bombardier Global Express / Raytheon Sentinel",
+    "icao": "GLEX"
+  },
+  {
+    "id": "british-aerospace-125-1000-series-hawker-raytheon-1000",
+    "name": "British Aerospace 125-1000 series / Hawker/Raytheon 1000",
+    "icao": "H25C"
+  },
+  {
+    "id": "british-aerospace-125-series-hawker-raytheon-700-800-800xp-850-900",
+    "name": "British Aerospace 125 series / Hawker/Raytheon 700/800/800XP/850/900",
+    "icao": "H25B"
+  },
+  {
     "id": "british-aerospace-atp",
     "name": "British Aerospace ATP",
     "icao": "ATP"
+  },
+  {
+    "id": "british-aerospace-bac-one-eleven",
+    "name": "British Aerospace (BAC) One Eleven",
+    "icao": "BA11"
+  },
+  {
+    "id": "british-aerospace-jetstream-31",
+    "name": "British Aerospace Jetstream 31",
+    "icao": "JS31"
+  },
+  {
+    "id": "british-aerospace-jetstream-32",
+    "name": "British Aerospace Jetstream 32",
+    "icao": "JS32"
+  },
+  {
+    "id": "british-aerospace-jetstream-41",
+    "name": "British Aerospace Jetstream 41",
+    "icao": "JS41"
+  },
+  {
+    "id": "canadair-challenger-600",
+    "name": "Canadair Challenger 600",
+    "icao": "CL60"
   },
   {
     "id": "canadair-regional-jet-crj-100",
@@ -510,6 +660,16 @@
     "icao": "CRJ9"
   },
   {
+    "id": "casa-iptn-212-aviocar",
+    "name": "CASA / IPTN 212 Aviocar",
+    "icao": "C212"
+  },
+  {
+    "id": "casa-iptn-cn-235",
+    "name": "CASA/IPTN CN-235",
+    "icao": "CN35"
+  },
+  {
     "id": "cessna-172",
     "name": "Cessna 172",
     "icao": "C172"
@@ -533,6 +693,11 @@
     "id": "cessna-310",
     "name": "Cessna 310",
     "icao": "C310"
+  },
+  {
+    "id": "cessna-408-skycourier",
+    "name": "Cessna 408 SkyCourier",
+    "icao": "C408"
   },
   {
     "id": "cessna-414",
@@ -565,14 +730,204 @@
     "icao": "C680"
   },
   {
+    "id": "cessna-citation-cj2",
+    "name": "Cessna Citation CJ2",
+    "icao": "C25A"
+  },
+  {
+    "id": "cessna-citation-cj3",
+    "name": "Cessna Citation CJ3",
+    "icao": "C25B"
+  },
+  {
+    "id": "cessna-citation-cj4",
+    "name": "Cessna Citation CJ4",
+    "icao": "C25C"
+  },
+  {
+    "id": "cessna-citation-excel",
+    "name": "Cessna Citation Excel",
+    "icao": "C56X"
+  },
+  {
+    "id": "cessna-citation-i",
+    "name": "Cessna Citation I",
+    "icao": "C500"
+  },
+  {
+    "id": "cessna-citation-ii",
+    "name": "Cessna Citation II",
+    "icao": "C550"
+  },
+  {
+    "id": "cessna-citation-latitude",
+    "name": "Cessna Citation Latitude",
+    "icao": "C68A"
+  },
+  {
+    "id": "cessna-citation-longitude",
+    "name": "Cessna Citation Longitude",
+    "icao": "C700"
+  },
+  {
+    "id": "cessna-citation-mustang",
+    "name": "Cessna Citation Mustang",
+    "icao": "C510"
+  },
+  {
+    "id": "cessna-citation-x",
+    "name": "Cessna Citation X",
+    "icao": "C750"
+  },
+  {
+    "id": "comac-arj21-700-c909",
+    "name": "Comac ARJ21-700 / C909",
+    "icao": "AJ27"
+  },
+  {
+    "id": "comac-c919",
+    "name": "Comac C919",
+    "icao": "C919"
+  },
+  {
+    "id": "convair-cv-580-convair-cv-600-convair-cv-640",
+    "name": "Convair CV-580, Convair CV-600, Convair CV-640",
+    "icao": "CVLT"
+  },
+  {
     "id": "daher-kodiak-100",
     "name": "Daher Kodiak 100",
     "icao": "K100"
   },
   {
+    "id": "dassault-falcon-2000",
+    "name": "Dassault Falcon 2000",
+    "icao": "F2TH"
+  },
+  {
+    "id": "dassault-falcon-50",
+    "name": "Dassault Falcon 50",
+    "icao": "FA50"
+  },
+  {
+    "id": "dassault-falcon-6x",
+    "name": "Dassault Falcon 6X",
+    "icao": "FA6X"
+  },
+  {
+    "id": "dassault-falcon-7x",
+    "name": "Dassault Falcon 7X",
+    "icao": "FA7X"
+  },
+  {
+    "id": "dassault-falcon-900",
+    "name": "Dassault Falcon 900",
+    "icao": "F900"
+  },
+  {
+    "id": "de-havilland-canada-dhc-5-buffalo",
+    "name": "De Havilland Canada DHC-5 Buffalo",
+    "icao": "DHC5"
+  },
+  {
+    "id": "de-havilland-canada-dhc-6-twin-otter",
+    "name": "De Havilland Canada DHC-6 Twin Otter",
+    "icao": "DHC6"
+  },
+  {
+    "id": "de-havilland-canada-dhc-7-dash-7",
+    "name": "De Havilland Canada DHC-7 Dash 7",
+    "icao": "DHC7"
+  },
+  {
+    "id": "dornier-228",
+    "name": "Dornier 228",
+    "icao": "D228"
+  },
+  {
+    "id": "douglas-dc-10-10-15-passenger",
+    "name": "Douglas DC-10-10 / -15 Passenger",
+    "icao": "DC10"
+  },
+  {
+    "id": "douglas-dc-10-10-freighter",
+    "name": "Douglas DC-10-10 Freighter",
+    "icao": "DC10"
+  },
+  {
+    "id": "douglas-dc-10-30-40-freighter",
+    "name": "Douglas DC-10-30 / -40 Freighter",
+    "icao": "DC10"
+  },
+  {
+    "id": "douglas-dc-10-30-40-passenger",
+    "name": "Douglas DC-10-30 / -40 Passenger",
+    "icao": "DC10"
+  },
+  {
+    "id": "douglas-dc-10-30-combi",
+    "name": "Douglas DC-10-30 Combi",
+    "icao": "DC10"
+  },
+  {
+    "id": "douglas-dc-8-50",
+    "name": "Douglas DC-8-50",
+    "icao": "DC85"
+  },
+  {
+    "id": "douglas-dc-8-62",
+    "name": "Douglas DC-8-62",
+    "icao": "DC86"
+  },
+  {
+    "id": "douglas-dc-8-72",
+    "name": "Douglas DC-8-72",
+    "icao": "DC87"
+  },
+  {
+    "id": "douglas-dc-9-10",
+    "name": "Douglas DC-9-10",
+    "icao": "DC91"
+  },
+  {
+    "id": "douglas-dc-9-20",
+    "name": "Douglas DC-9-20",
+    "icao": "DC92"
+  },
+  {
+    "id": "douglas-dc-9-30",
+    "name": "Douglas DC-9-30",
+    "icao": "DC93"
+  },
+  {
+    "id": "douglas-dc-9-40",
+    "name": "Douglas DC-9-40",
+    "icao": "DC94"
+  },
+  {
+    "id": "douglas-dc-9-50",
+    "name": "Douglas DC-9-50",
+    "icao": "DC95"
+  },
+  {
+    "id": "eclipse-500",
+    "name": "Eclipse 500",
+    "icao": "EA50"
+  },
+  {
     "id": "embraer-110",
     "name": "Embraer 110",
     "icao": "E110"
+  },
+  {
+    "id": "embraer-190-lineage-1000",
+    "name": "Embraer 190 / Lineage 1000",
+    "icao": "E190"
+  },
+  {
+    "id": "embraer-195",
+    "name": "Embraer 195",
+    "icao": "E195"
   },
   {
     "id": "embraer-e175-long-wing",
@@ -620,6 +975,46 @@
     "icao": "EMB9"
   },
   {
+    "id": "embraer-legacy-450-praetor-500",
+    "name": "Embraer Legacy 450 / Praetor 500",
+    "icao": "E545"
+  },
+  {
+    "id": "embraer-legacy-500-praetor-600",
+    "name": "Embraer Legacy 500 / Praetor 600",
+    "icao": "E550"
+  },
+  {
+    "id": "embraer-legacy-600-legacy-650",
+    "name": "Embraer Legacy 600 / Legacy 650",
+    "icao": "E35L"
+  },
+  {
+    "id": "embraer-phenom-100",
+    "name": "Embraer Phenom 100",
+    "icao": "E50P"
+  },
+  {
+    "id": "embraer-phenom-300",
+    "name": "Embraer Phenom 300",
+    "icao": "E55P"
+  },
+  {
+    "id": "fairchild-dornier-328jet",
+    "name": "Fairchild Dornier 328JET",
+    "icao": "J328"
+  },
+  {
+    "id": "fairchild-dornier-do-328",
+    "name": "Fairchild Dornier Do.328",
+    "icao": "D328"
+  },
+  {
+    "id": "fairchild-swearingen-metroliner",
+    "name": "Fairchild Swearingen Metroliner",
+    "icao": "SW4"
+  },
+  {
     "id": "fokker-100",
     "name": "Fokker 100",
     "icao": "F100"
@@ -630,6 +1025,56 @@
     "icao": "F50"
   },
   {
+    "id": "fokker-70",
+    "name": "Fokker 70",
+    "icao": "F70"
+  },
+  {
+    "id": "fokker-f27-friendship",
+    "name": "Fokker F27 Friendship",
+    "icao": "F27"
+  },
+  {
+    "id": "fokker-f28-fellowship",
+    "name": "Fokker F28 Fellowship",
+    "icao": "F28"
+  },
+  {
+    "id": "government-aircraft-factories-n22b-n24a-nomad",
+    "name": "Government Aircraft Factories N22B / N24A Nomad",
+    "icao": "NOMA"
+  },
+  {
+    "id": "grumman-g-73-turbo-mallard",
+    "name": "Grumman G-73 Turbo Mallard",
+    "icao": "G73T"
+  },
+  {
+    "id": "gulfstream-aerospace-g-159-gulfstream-i",
+    "name": "Gulfstream Aerospace G-159 Gulfstream I",
+    "icao": "G159"
+  },
+  {
+    "id": "gulfstream-g280",
+    "name": "Gulfstream G280",
+    "icao": "G280"
+  },
+  {
+    "id": "gulfstream-g650",
+    "name": "Gulfstream G650",
+    "icao": "GLF6"
+  },
+  {
+    "id": "gulfstream-g700",
+    "name": "Gulfstream G700",
+    "icao": "GA7C"
+  },
+  {
+    "id": "gulfstream-iv",
+    "name": "Gulfstream IV",
+    "icao": "GLF4"
+  },
+  {
     "id": "gulfstream-rockwell-aero-commander",
     "name": "Gulfstream/Rockwell (Aero) Commander",
     "icao": "AC68"
@@ -638,5 +1083,245 @@
     "id": "gulfstream-rockwell-aero-turbo-commander",
     "name": "Gulfstream/Rockwell (Aero) Turbo Commander",
     "icao": "AC90"
+  },
+  {
+    "id": "gulfstream-v",
+    "name": "Gulfstream V",
+    "icao": "GLF5"
+  },
+  {
+    "id": "harbin-y-12",
+    "name": "Harbin Y-12",
+    "icao": "Y12"
+  },
+  {
+    "id": "hawker-400",
+    "name": "Hawker 400",
+    "icao": "BE40"
+  },
+  {
+    "id": "hawker-siddeley-hs-748",
+    "name": "Hawker Siddeley HS 748",
+    "icao": "A748"
+  },
+  {
+    "id": "honda-ha-420",
+    "name": "Honda HA-420",
+    "icao": "HDJT"
+  },
+  {
+    "id": "ilyushin-il-114",
+    "name": "Ilyushin Il-114",
+    "icao": "I114"
+  },
+  {
+    "id": "ilyushin-il-18",
+    "name": "Ilyushin Il-18",
+    "icao": "IL18"
+  },
+  {
+    "id": "ilyushin-il-62",
+    "name": "Ilyushin Il-62",
+    "icao": "IL62"
+  },
+  {
+    "id": "ilyushin-il-76",
+    "name": "Ilyushin Il-76",
+    "icao": "IL76"
+  },
+  {
+    "id": "ilyushin-il-86",
+    "name": "Ilyushin Il-86",
+    "icao": "IL86"
+  },
+  {
+    "id": "ilyushin-il-96",
+    "name": "Ilyushin Il-96",
+    "icao": "IL96"
+  },
+  {
+    "id": "israel-aircraft-industries-1124-westwind",
+    "name": "Israel Aircraft Industries 1124 Westwind",
+    "icao": "WW24"
+  },
+  {
+    "id": "learjet-35-36-c-21a",
+    "name": "Learjet 35 / 36 / C-21A",
+    "icao": "LJ35"
+  },
+  {
+    "id": "learjet-60",
+    "name": "Learjet 60",
+    "icao": "LJ60"
+  },
+  {
+    "id": "let-410",
+    "name": "LET 410",
+    "icao": "L410"
+  },
+  {
+    "id": "lockheed-c-5m-super-galaxy",
+    "name": "Lockheed C-5M Super Galaxy",
+    "icao": "C5M"
+  },
+  {
+    "id": "lockheed-l-1011-tristar",
+    "name": "Lockheed L-1011 Tristar",
+    "icao": "L101"
+  },
+  {
+    "id": "lockheed-l-182-282-382-l-100-hercules",
+    "name": "Lockheed L-182 / 282 / 382 (L-100) Hercules",
+    "icao": "C130"
+  },
+  {
+    "id": "lockheed-l-188-electra",
+    "name": "Lockheed L-188 Electra",
+    "icao": "L188"
+  },
+  {
+    "id": "lockheed-martin-c-130j-hercules",
+    "name": "Lockheed Martin C-130J Hercules",
+    "icao": "C30J"
+  },
+  {
+    "id": "mcdonnell-douglas-md-11",
+    "name": "McDonnell Douglas MD-11",
+    "icao": "MD11"
+  },
+  {
+    "id": "mcdonnell-douglas-md-11c",
+    "name": "McDonnell Douglas MD-11C",
+    "icao": "MD11"
+  },
+  {
+    "id": "mcdonnell-douglas-md-11f",
+    "name": "McDonnell Douglas MD-11F",
+    "icao": "MD11"
+  },
+  {
+    "id": "mcdonnell-douglas-md-81",
+    "name": "McDonnell Douglas MD-81",
+    "icao": "MD81"
+  },
+  {
+    "id": "mcdonnell-douglas-md-82",
+    "name": "McDonnell Douglas MD-82",
+    "icao": "MD82"
+  },
+  {
+    "id": "mcdonnell-douglas-md-83",
+    "name": "McDonnell Douglas MD-83",
+    "icao": "MD83"
+  },
+  {
+    "id": "mcdonnell-douglas-md-87",
+    "name": "McDonnell Douglas MD-87",
+    "icao": "MD87"
+  },
+  {
+    "id": "mcdonnell-douglas-md-88",
+    "name": "McDonnell Douglas MD-88",
+    "icao": "MD88"
+  },
+  {
+    "id": "mcdonnell-douglas-md-90",
+    "name": "McDonnell Douglas MD-90",
+    "icao": "MD90"
+  },
+  {
+    "id": "mitsubishi-mu-2",
+    "name": "Mitsubishi Mu-2",
+    "icao": "MU2"
+  },
+  {
+    "id": "namc-ys-11",
+    "name": "NAMC YS-11",
+    "icao": "YS11"
+  },
+  {
+    "id": "piaggio-p-180-avanti",
+    "name": "Piaggio P.180 Avanti",
+    "icao": "P180"
+  },
+  {
+    "id": "pilatus-pc-12",
+    "name": "Pilatus PC-12",
+    "icao": "PC12"
+  },
+  {
+    "id": "pilatus-pc-24",
+    "name": "Pilatus PC-24",
+    "icao": "PC24"
+  },
+  {
+    "id": "piper-cheyenne-2",
+    "name": "PIPER Cheyenne 2",
+    "icao": "PAY2"
+  },
+  {
+    "id": "reims-cessna-f406-caravan-ii",
+    "name": "Reims-Cessna F406 Caravan II",
+    "icao": "F406"
+  },
+  {
+    "id": "saab-2000",
+    "name": "Saab 2000",
+    "icao": "SB20"
+  },
+  {
+    "id": "saab-sf340a-b",
+    "name": "Saab SF340A/B",
+    "icao": "SF34"
+  },
+  {
+    "id": "shorts-sc-5-belfast",
+    "name": "Shorts SC-5 Belfast",
+    "icao": "BELF"
+  },
+  {
+    "id": "shorts-sc-7-skyvan",
+    "name": "Shorts SC-7 Skyvan",
+    "icao": "SC7"
+  },
+  {
+    "id": "shorts-sd-330",
+    "name": "Shorts SD.330",
+    "icao": "SH33"
+  },
+  {
+    "id": "shorts-sd-360",
+    "name": "Shorts SD.360",
+    "icao": "SH36"
+  },
+  {
+    "id": "sukhoi-superjet-100-95",
+    "name": "Sukhoi Superjet 100-95",
+    "icao": "SU95"
+  },
+  {
+    "id": "tupolev-tu-134",
+    "name": "Tupolev Tu-134",
+    "icao": "T134"
+  },
+  {
+    "id": "tupolev-tu-154",
+    "name": "Tupolev Tu-154",
+    "icao": "T154"
+  },
+  {
+    "id": "tupolev-tu-204-tu-214",
+    "name": "Tupolev Tu-204 / Tu-214",
+    "icao": "T204"
+  },
+  {
+    "id": "yakovlev-yak-40",
+    "name": "Yakovlev Yak-40",
+    "icao": "YK40"
+  },
+  {
+    "id": "yakovlev-yak-42",
+    "name": "Yakovlev Yak-42",
+    "icao": "YK42"
   }
 ]
