@@ -254,7 +254,7 @@ function validateAircraft() {
     // Duplicate ICAO
     if (aircraft.icao) {
       if (seenIcao.has(aircraft.icao)) {
-        error(
+        warn(
           'aircraft.json',
           index,
           'icao',
