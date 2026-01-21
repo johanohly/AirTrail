@@ -36,8 +36,26 @@ jobs:
           script: |
             const fs = require('fs');
 
-            const pullRequests = context.payload.workflow_run.pull_requests;
-            if (!pullRequests || pullRequests.length === 0) {
+            const workflowRun = context.payload.workflow_run;
+            let pullRequests = workflowRun.pull_requests || [];
+
+            if (pullRequests.length === 0) {
+              const headRepo = workflowRun.head_repository;
+              const headOwner = headRepo?.owner?.login;
+              const headBranch = workflowRun.head_branch;
+
+              if (headOwner && headBranch) {
+                const { data } = await github.rest.pulls.list({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  head: `${headOwner}:${headBranch}`,
+                  state: 'open',
+                });
+                pullRequests = data;
+              }
+            }
+
+            if (pullRequests.length === 0) {
               core.info('No pull request found.');
               return;
             }
