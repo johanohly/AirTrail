@@ -45,6 +45,7 @@ jobs:
         id: schema
         if: always()
         run: |
+          set -o pipefail
           if ! bun scripts/data/validate-data.js 2>&1 | tee validation-output.txt; then
             echo "schema_failed=true" >> $GITHUB_OUTPUT
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -63,6 +64,7 @@ jobs:
         id: icons
         if: always()
         run: |
+          set -o pipefail
           if ! bun scripts/data/validate-icons.js 2>&1 | tee icon-output.txt; then
             echo "icons_failed=true" >> $GITHUB_OUTPUT
             echo "" >> $GITHUB_STEP_SUMMARY
