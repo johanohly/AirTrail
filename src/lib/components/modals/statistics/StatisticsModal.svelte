@@ -179,6 +179,8 @@
   bind:open
   class="max-w-full h-full overflow-y-auto rounded-none!"
   dialogOnly
+  dialogNoPadding={Boolean(activeChart || activeContinent)}
+  drawerNoPadding={Boolean(activeChart || activeContinent)}
   closeOnEscape={false}
   closeButton={true}
 >
