@@ -7,7 +7,11 @@ import type { PlatformOptions } from '$lib/components/modals/settings/pages/impo
 import type { CreateFlight, Seat } from '$lib/db/types';
 import { api } from '$lib/trpc';
 import { distanceBetween, parseCsv } from '$lib/utils';
-import { estimateFlightDuration, parseLocal, toUtc } from '$lib/utils/datetime';
+import {
+  estimateFlightDuration,
+  parseLocalISO,
+  toUtc,
+} from '$lib/utils/datetime';
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -79,29 +83,20 @@ export const processJetLogFile = async (
 
     const departure = row.departure_time
       ? toUtc(
-          parseLocal(
-            `${row.date} ${row.departure_time}`,
-            'yyyy-MM-dd HH:mm',
-            from.tz,
-          ),
+          parseLocalISO(`${row.date}T${row.departure_time}`, from?.tz ?? 'UTC'),
         )
       : null;
     let arrival =
       row.arrival_time && row.arrival_date
         ? toUtc(
-            parseLocal(
-              `${row.arrival_date} ${row.arrival_time}`,
-              'yyyy-MM-dd HH:mm',
-              to.tz,
+            parseLocalISO(
+              `${row.arrival_date}T${row.arrival_time}`,
+              to?.tz ?? 'UTC',
             ),
           )
         : row.arrival_time
           ? toUtc(
-              parseLocal(
-                `${row.date} ${row.arrival_time}`,
-                'yyyy-MM-dd HH:mm',
-                to.tz,
-              ),
+              parseLocalISO(`${row.date}T${row.arrival_time}`, to?.tz ?? 'UTC'),
             )
           : null;
 
@@ -115,9 +110,11 @@ export const processJetLogFile = async (
     const duration =
       departure && arrival
         ? differenceInSeconds(arrival, departure)
-        : estimateFlightDuration(
-            distanceBetween([from.lon, from.lat], [to.lon, to.lat]) / 1000,
-          );
+        : from && to
+          ? estimateFlightDuration(
+              distanceBetween([from.lon, from.lat], [to.lon, to.lat]) / 1000,
+            )
+          : null;
 
     const seatClass = row.ticket_class ?? null;
 
@@ -151,16 +148,16 @@ export const processJetLogFile = async (
 
     if (!from) {
       if (!unknownAirports[row.origin]) unknownAirports[row.origin] = [];
-      unknownAirports[row.origin].push(flightIndex);
+      unknownAirports[row.origin]!.push(flightIndex);
     }
     if (!to) {
       if (!unknownAirports[row.destination])
         unknownAirports[row.destination] = [];
-      unknownAirports[row.destination].push(flightIndex);
+      unknownAirports[row.destination]!.push(flightIndex);
     }
     if (!airline && airlineCode) {
       if (!unknownAirlines[airlineCode]) unknownAirlines[airlineCode] = [];
-      unknownAirlines[airlineCode].push(flightIndex);
+      unknownAirlines[airlineCode]!.push(flightIndex);
     }
 
     flights.push({
