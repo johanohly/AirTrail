@@ -61,7 +61,7 @@
   },
   {
     "id": "airbus-a319-2",
-    "name": "Airbus A319",
+    "name": "Airbus A319neo",
     "icao": "A19N"
   },
   {
@@ -297,7 +297,7 @@
   {
     "id": "beechcraft-1900",
     "name": "Beechcraft 1900",
-    "icao": "BE19"
+    "icao": "B190"
   },
   {
     "id": "beechcraft-baron",
@@ -457,7 +457,7 @@
   {
     "id": "boeing-747sp",
     "name": "Boeing 747SP",
-    "icao": "N74S"
+    "icao": "B74S"
   },
   {
     "id": "boeing-747sr",
