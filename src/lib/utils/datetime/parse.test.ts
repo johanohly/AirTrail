@@ -94,6 +94,23 @@ describe('mergeTimeWithDate', () => {
     expect(result.getMinutes()).toBe(59);
   });
 
+  it('should not shift months for Asia/Amman dates', () => {
+    // Regression: date-fns parse with tz() can shift some Asia/Amman
+    // dates (e.g. 2016-04-30) into March, making arrivals appear
+    // earlier than departures in UTC.
+    const result = mergeTimeWithDate(
+      '2016-04-30T00:00:00.000Z',
+      '2:00 am',
+      'Asia/Amman',
+    );
+    expect(result).toBeInstanceOf(TZDate);
+    expect(result.getFullYear()).toBe(2016);
+    expect(result.getMonth() + 1).toBe(4);
+    expect(result.getDate()).toBe(30);
+    expect(result.getHours()).toBe(2);
+    expect(result.getMinutes()).toBe(0);
+  });
+
   it('should throw an error for invalid date format', () => {
     expect(() =>
       mergeTimeWithDate('10-10-2023', '10:30', 'America/New_York'),

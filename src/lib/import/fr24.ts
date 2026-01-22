@@ -1,5 +1,5 @@
 import { tz } from '@date-fns/tz/tz';
-import { addDays, isBefore, parse } from 'date-fns';
+import { addDays, isBefore } from 'date-fns';
 import { z } from 'zod';
 
 import { page } from '$app/state';
@@ -7,7 +7,7 @@ import type { PlatformOptions } from '$lib/components/modals/settings/pages/impo
 import type { Flight, CreateFlight, Seat } from '$lib/db/types';
 import { api } from '$lib/trpc';
 import { parseCsv } from '$lib/utils';
-import { toUtc } from '$lib/utils/datetime';
+import { parseLocalISO, toUtc } from '$lib/utils/datetime';
 
 const FR24_AIRPORT_REGEX = /\(([a-zA-Z]{3})\/(?<ICAO>[a-zA-Z]{4})\)/;
 const FR24_SEAT_TYPE_MAP: Record<string, Seat['seat']> = {
@@ -122,24 +122,10 @@ export const processFR24File = async (
     }
 
     const departure = row.dep_time
-      ? toUtc(
-          parse(
-            `${row.date} ${row.dep_time}`,
-            'yyyy-MM-dd HH:mm:ss',
-            new Date(),
-            { in: tz(from?.tz || 'UTC') },
-          ),
-        )
+      ? toUtc(parseLocalISO(`${row.date}T${row.dep_time}`, from?.tz || 'UTC'))
       : null;
     let arrival = row.arr_time
-      ? toUtc(
-          parse(
-            `${row.date} ${row.arr_time}`,
-            'yyyy-MM-dd HH:mm:ss',
-            new Date(),
-            { in: tz(to?.tz || 'UTC') },
-          ),
-        )
+      ? toUtc(parseLocalISO(`${row.date}T${row.arr_time}`, to?.tz || 'UTC'))
       : null;
     if (departure && arrival && isBefore(arrival, departure)) {
       // assume arrival is on the next day

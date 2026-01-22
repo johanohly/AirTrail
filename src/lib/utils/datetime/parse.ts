@@ -43,12 +43,9 @@ export const mergeTimeWithDate = (
     }
   }
 
-  const result = parse(
-    `${year}-${month}-${day} ${hours}:${minutes}`,
-    'yyyy-M-d H:m',
-    new Date(),
-    { in: tz(tzId) },
-  );
+  const pad = (value: number) => value.toString().padStart(2, '0');
+  const iso = `${year}-${pad(month)}-${pad(day)}T${pad(hours)}:${pad(minutes)}`;
+  const result = parseLocalISO(iso, tzId);
   if (!isValid(result)) {
     throw new Error('Invalid format');
   }
