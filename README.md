@@ -90,7 +90,7 @@ If you find an issue, please report it on the [issue tracker](https://github.com
 
 > [Airport Data](https://ourairports.com)
 
-> [Country Borders](https://gisco-services.ec.europa.eu/distribution/v2/countries/geojson/CNTR_RG_10M_2024_4326.geojson)
+> [Country Borders](https://gisco-services.ec.europa.eu/distribution/v2/countries/geojson/CNTR_RG_01M_2024_4326.geojson)
 
 > [Country Flags](https://flagpedia.net)
 

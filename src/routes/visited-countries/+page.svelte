@@ -1,10 +1,8 @@
 <script lang="ts">
   import { RefreshCw } from '@o7/icon/lucide';
-  import { bbox, featureCollection } from '@turf/turf';
   import maplibregl from 'maplibre-gl';
   import { mode } from 'mode-watcher';
   import {
-    type GeoJSON,
     MapLibre,
     Control,
     ControlGroup,
@@ -12,6 +10,9 @@
     GeolocateControl,
     AttributionControl,
     NavigationControl,
+    VectorTileSource,
+    FillLayer,
+    type LayerClickInfo,
   } from 'svelte-maplibre';
   import { toast } from 'svelte-sonner';
 
@@ -40,37 +41,29 @@
     countries.filter((c) => c.status === 'wishlist'),
   );
 
-  $effect(() => {
-    if (!map || !loaded || !layerLoaded) return;
-
-    map.setPaintProperty(
-      'countries',
-      'fill-color',
-      countries.length
-        ? [
-            'match',
-            ['get', 'ISO3_CODE'],
-            ...(livedCountries.length
-              ? [livedCountries.map((c) => c.alpha3), '#4ade80']
-              : []),
-            ...(visitedCountries.length
-              ? [visitedCountries.map((c) => c.alpha3), '#3C82F6']
-              : []),
-            ...(layoverCountries.length
-              ? [layoverCountries.map((c) => c.alpha3), '#66d9ef']
-              : []),
-            ...(wishlistCountries.length
-              ? [wishlistCountries.map((c) => c.alpha3), '#8b5cf6']
-              : []),
-            'rgba(0,0,0,0)',
-          ]
-        : 'rgba(0,0,0,0)',
-    );
-  });
+  const buildFillColor = (): maplibregl.ExpressionSpecification | string =>
+    countries.length
+      ? ([
+          'match',
+          ['get', 'ISO3_CODE'],
+          ...(livedCountries.length
+            ? [livedCountries.map((c) => c.alpha3), '#4ade80']
+            : []),
+          ...(visitedCountries.length
+            ? [visitedCountries.map((c) => c.alpha3), '#3C82F6']
+            : []),
+          ...(layoverCountries.length
+            ? [layoverCountries.map((c) => c.alpha3), '#66d9ef']
+            : []),
+          ...(wishlistCountries.length
+            ? [wishlistCountries.map((c) => c.alpha3), '#8b5cf6']
+            : []),
+          'rgba(0,0,0,0)',
+        ] as unknown as maplibregl.ExpressionSpecification)
+      : 'rgba(0,0,0,0)';
 
   let map: maplibregl.Map | undefined = $state(undefined);
   let loaded = $state(false);
-  let layerLoaded = $state(false);
   const style = $derived(
     mode.current === 'light'
       ? 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
@@ -84,80 +77,45 @@
     note: string | null;
   } | null = $state(null);
 
-  const load = async () => {
-    if (!map) return;
+  let firstLabelLayerId = $state<string | undefined>(undefined);
 
-    map.addSource('countries', {
-      type: 'geojson',
-      data: '/countries.geojson',
-    });
-
-    const firstLabelLayer = map
-      .getStyle()
-      .layers.find(
-        (l) => l.type === 'symbol' && l.layout && l.layout['text-field'],
-      )?.id;
-    map.addLayer(
-      {
-        id: 'countries',
-        type: 'fill',
-        source: 'countries',
-        paint: {
-          'fill-color': countries.length
-            ? [
-                'match',
-                ['get', 'ISO3_CODE'],
-                ...(livedCountries.length
-                  ? [livedCountries.map((c) => c.alpha3), '#4ade80']
-                  : []),
-                ...(visitedCountries.length
-                  ? [visitedCountries.map((c) => c.alpha3), '#3C82F6']
-                  : []),
-                ...(layoverCountries.length
-                  ? [layoverCountries.map((c) => c.alpha3), '#66d9ef']
-                  : []),
-                ...(wishlistCountries.length
-                  ? [wishlistCountries.map((c) => c.alpha3), '#8b5cf6']
-                  : []),
-                'rgba(0,0,0,0)',
-              ]
-            : 'rgba(0,0,0,0)',
-        },
-      },
-      firstLabelLayer,
-    );
-
-    layerLoaded = true;
-
-    await fitCountries();
-
-    map.on('mouseenter', 'countries', () => {
-      map.getCanvas().style.cursor = 'pointer';
-    });
-
-    map.on('mouseleave', 'countries', () => {
-      map.getCanvas().style.cursor = '';
-    });
-
-    map.on('click', 'countries', (e) => {
-      if (e.features?.length) {
-        const country = e.features[0];
-        const code = country?.properties?.['ISO3_CODE'];
-        const numeric = countryFromAlpha3(code)?.numeric;
-        if (numeric) {
-          const countryData = countries.find((c) => c.numeric === numeric);
-          editingInfo = {
-            id: numeric,
-            status: countryData?.status ?? null,
-            note: countryData?.note ?? null,
-          };
-          editing = true;
-        }
-      }
-    });
+  const updateLabelLayerId = (currentMap: maplibregl.Map) => {
+    const layers = currentMap.getStyle().layers ?? [];
+    firstLabelLayerId = layers.find(
+      (layer) =>
+        layer.type === 'symbol' && layer.layout && layer.layout['text-field'],
+    )?.id;
   };
 
-  let geoData: GeoJSON.FeatureCollection | null = null;
+  const load = async () => {
+    const currentMap = map;
+    if (!currentMap) return;
+
+    updateLabelLayerId(currentMap);
+    currentMap.on('style.load', () => updateLabelLayerId(currentMap));
+
+    await fitCountries();
+  };
+
+  const handleCountryClick = (event: LayerClickInfo) => {
+    if (event.features?.length) {
+      const country = event.features[0];
+      const code = country?.properties?.['ISO3_CODE'];
+      const numeric = countryFromAlpha3(code)?.numeric;
+      if (numeric) {
+        const countryData = countries.find((c) => c.numeric === numeric);
+        editingInfo = {
+          id: numeric,
+          status: countryData?.status ?? null,
+          note: countryData?.note ?? null,
+        };
+        editing = true;
+      }
+    }
+  };
+
+  type CountryBounds = Record<string, [number, number, number, number]>;
+  let countryBounds: CountryBounds | null = null;
   const fitCountries = async () => {
     const codes: string[] = [
       ...livedCountries,
@@ -168,17 +126,28 @@
 
     if (!map || !codes.length) return;
 
-    if (!geoData) {
-      const src = map.getSource('countries') as maplibregl.GeoJSONSource;
-      geoData = (await src.getData()) as GeoJSON.FeatureCollection;
+    if (!countryBounds) {
+      const response = await fetch('/countries-bounds.json');
+      countryBounds = (await response.json()) as CountryBounds;
     }
 
-    const features = geoData.features.filter((f) =>
-      codes.includes(f.properties?.ISO3_CODE),
-    );
-    if (!features.length) return;
+    let west = Infinity;
+    let south = Infinity;
+    let east = -Infinity;
+    let north = -Infinity;
 
-    const [west, south, east, north] = bbox(featureCollection(features));
+    for (const code of codes) {
+      const bounds = countryBounds[code];
+      if (!bounds) continue;
+      const [minX, minY, maxX, maxY] = bounds;
+      west = Math.min(west, minX);
+      south = Math.min(south, minY);
+      east = Math.max(east, maxX);
+      north = Math.max(north, maxY);
+    }
+
+    if (!Number.isFinite(west)) return;
+
     const bounds: [[number, number], [number, number]] = [
       [west, south],
       [east, north],
@@ -220,6 +189,19 @@
   <AttributionControl compact={true} />
   <NavigationControl />
   <GeolocateControl />
+
+  <VectorTileSource id="countries" url="pmtiles:///countries.pmtiles">
+    <FillLayer
+      id="countries"
+      sourceLayer="countries"
+      beforeId={firstLabelLayerId}
+      beforeLayerType="symbol"
+      hoverCursor="pointer"
+      interactive
+      paint={{ 'fill-color': buildFillColor() }}
+      onclick={handleCountryClick}
+    />
+  </VectorTileSource>
 
   <Control position="top-left">
     <ControlGroup>
