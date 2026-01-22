@@ -1,5 +1,5 @@
 import { tz, TZDate } from '@date-fns/tz';
-import { addDays, differenceInSeconds, isBefore, parse } from 'date-fns';
+import { addDays, differenceInSeconds, isBefore } from 'date-fns';
 import { z } from 'zod';
 
 import { page } from '$app/state';
@@ -7,7 +7,7 @@ import type { PlatformOptions } from '$lib/components/modals/settings/pages/impo
 import type { CreateFlight, Seat } from '$lib/db/types';
 import { api } from '$lib/trpc';
 import { parseCsv } from '$lib/utils';
-import { toUtc } from '$lib/utils/datetime';
+import { parseLocalISO, toUtc } from '$lib/utils/datetime';
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
 
@@ -38,9 +38,7 @@ const parseFlightyDateTime = (
   const dateTimeStr = actual || scheduled;
   if (!dateTimeStr) return null;
 
-  const parsed = parse(dateTimeStr, "yyyy-MM-dd'T'HH:mm", new Date(), {
-    in: tz(airportTz),
-  });
+  const parsed = parseLocalISO(dateTimeStr, airportTz);
 
   if (isNaN(parsed.getTime())) return null;
 
