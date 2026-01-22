@@ -55,9 +55,7 @@
 
 <div class="min-h-[80vh]">
   <!-- Header -->
-  <div
-    class="border-b border-zinc-200 dark:border-zinc-700 backdrop-blur-sm sticky top-0 z-10"
-  >
+  <div class="border-b border-zinc-200 dark:border-zinc-700">
     <div class="flex flex-col justify-center p-6">
       <Button
         variant="link"
