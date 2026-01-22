@@ -69,42 +69,61 @@
 
   let airports: Airport[] = $state([]);
   let loading = $state(false);
+  let requestId = 0;
+
+  const fetchAirports = async (query: string, currentRequestId: number) => {
+    const key = query.toLowerCase();
+    const results = await api.autocomplete.airport.query(query);
+    airportSearchCache.set(key, results);
+    if (currentRequestId === requestId && $inputValue === query) {
+      airports = results;
+      loading = false;
+    }
+  };
 
   $effect(() => {
-    if ($touchedInput && $inputValue !== '' && !loading) {
-      const key = $inputValue.toLowerCase();
+    if ($touchedInput && $inputValue !== '') {
+      const query = $inputValue;
+      const key = query.toLowerCase();
       const cached = airportSearchCache.get(key);
       if (cached) {
         airports = cached;
+        loading = false;
         return;
       }
+      requestId += 1;
+      const currentRequestId = requestId;
       loading = true;
       debounce(async () => {
-        airports = await api.autocomplete.airport.query($inputValue);
-        airportSearchCache.set(key, airports);
-        loading = false;
+        await fetchAirports(query, currentRequestId);
       });
-    } else if (!loading && ($inputValue === '' || !$open)) {
+    } else if ($inputValue === '' || !$open) {
       airports = [];
+      loading = false;
     }
   });
 
   // Ensure results are repopulated when the input is focused/opened with a prefilled value
   $effect(() => {
-    if ($open && !$touchedInput && $inputValue !== '' && !loading) {
-      const key = $inputValue.toLowerCase();
+    if ($open && !$touchedInput && $inputValue !== '') {
+      const query = $inputValue;
+      const key = query.toLowerCase();
       const cached = airportSearchCache.get(key);
       if (cached) {
         airports = cached;
+        loading = false;
         return;
       }
+      requestId += 1;
+      const currentRequestId = requestId;
       loading = true;
       (async () => {
         try {
-          airports = await api.autocomplete.airport.query($inputValue);
-          airportSearchCache.set(key, airports);
+          await fetchAirports(query, currentRequestId);
         } finally {
-          loading = false;
+          if (currentRequestId === requestId) {
+            loading = false;
+          }
         }
       })();
     }
