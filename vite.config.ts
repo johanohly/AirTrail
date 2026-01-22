@@ -4,14 +4,15 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 import { VitePWA, type VitePWAOptions } from 'vite-plugin-pwa';
 
-const pwaOptions: VitePWAOptions = {
+const pwaOptions = {
   injectRegister: 'auto',
   registerType: 'autoUpdate',
   includeAssets: [
     'favicon.png',
     'favicon.svg',
     'apple-touch-icon.png',
-    'countries.geojson',
+    'countries.pmtiles',
+    'countries-bounds.json',
   ],
   manifest: {
     name: 'AirTrail',
@@ -42,7 +43,7 @@ const pwaOptions: VitePWAOptions = {
   devOptions: {
     enabled: true,
   },
-};
+} satisfies Partial<VitePWAOptions>;
 
 export default defineConfig({
   plugins: [o7Icon(), tailwindcss(), sveltekit(), VitePWA(pwaOptions)],
