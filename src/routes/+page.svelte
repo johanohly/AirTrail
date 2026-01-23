@@ -9,6 +9,7 @@
     type TempFilters,
     type Route,
   } from '$lib/components/flight-filters/types';
+  import FlightsOnboarding from '$lib/components/onboarding/FlightsOnboarding.svelte';
   import { Map } from '$lib/components/map';
   import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
   import { openModalsState } from '$lib/state.svelte';
@@ -157,6 +158,7 @@
   };
 </script>
 
+<FlightsOnboarding flightsCount={flights.length} />
 <ListFlightsModal
   bind:open={openModalsState.listFlights}
   bind:filters

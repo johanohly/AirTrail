@@ -29,6 +29,11 @@
   import { Duration, nowIn } from '$lib/utils/datetime';
   import { round } from '$lib/utils/number';
 
+  type VisitedCountryList = VisitedCountry & {
+    numeric: number;
+    alpha3: string;
+  };
+
   let {
     open = $bindable<boolean>(),
     allFlights,
@@ -37,7 +42,7 @@
   }: {
     open?: boolean;
     allFlights: FlightData[];
-    visitedCountries?: VisitedCountry[];
+    visitedCountries?: VisitedCountryList[];
     disableUserSeatFiltering?: boolean;
   } = $props();
 
@@ -109,9 +114,12 @@
     if (!activeChart) return {} as Record<string, number>;
     if (activeChart in COUNTRY_CHARTS) {
       return countryStatusData;
-    } else {
-      return FLIGHT_CHARTS[activeChart].aggregate(flights, ctx);
     }
+    if (activeChart in FLIGHT_CHARTS) {
+      const flightChartKey = activeChart as keyof typeof FLIGHT_CHARTS;
+      return FLIGHT_CHARTS[flightChartKey].aggregate(flights, ctx);
+    }
+    return {} as Record<string, number>;
   });
 
   // Country statistics

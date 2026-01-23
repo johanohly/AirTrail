@@ -21,7 +21,7 @@
   import { Button } from '$lib/components/ui/button';
   import { Modal } from '$lib/components/ui/modal';
   import { Separator } from '$lib/components/ui/separator';
-  import { versionState } from '$lib/state.svelte';
+  import { openModalsState, versionState } from '$lib/state.svelte';
   import { cn } from '$lib/utils';
   import { isMediumScreen } from '$lib/utils/size';
   import { checkForNewVersions } from '$lib/utils/version';
@@ -40,7 +40,7 @@
     { title: 'Users', id: 'users' },
     { title: 'OAuth', id: 'oauth' },
   ] as const;
-  type TabId =
+  type SettingsTabId =
     | (typeof ACCOUNT_SETTINGS)[number]['id']
     | (typeof ADMIN_SETTINGS)[number]['id'];
 
@@ -50,10 +50,17 @@
     open: boolean;
   } = $props();
 
-  let activeTab: TabId = $state('general');
+  let activeTab: SettingsTabId = $state('general');
   $effect(() => {
     if (!open) {
       activeTab = 'general';
+      openModalsState.settingsTab = 'general';
+    }
+  });
+
+  $effect(() => {
+    if (open) {
+      activeTab = openModalsState.settingsTab;
     }
   });
 
