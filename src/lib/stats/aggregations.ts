@@ -33,8 +33,13 @@ export type AggregationOptions = {
   limit?: number; // if provided, return top N
 };
 
+export type VisitedCountryStats = Pick<
+  VisitedCountry,
+  'code' | 'status' | 'note'
+>;
+
 export function visitedCountryStatusDistribution(
-  visitedCountries: VisitedCountry[],
+  visitedCountries: VisitedCountryStats[],
 ): Record<string, number> {
   const counts = VisitedCountryStatus.reduce<Record<string, number>>(
     (acc, status) => {
@@ -49,7 +54,7 @@ export function visitedCountryStatusDistribution(
 }
 
 export function countriesByContinentDistribution(
-  visitedCountries: VisitedCountry[],
+  visitedCountries: VisitedCountryStats[],
 ): Record<string, { visited: number; total: number }> {
   const continentByNumeric = new Map<number, string>();
   const result: Record<string, { visited: number; total: number }> = {};
@@ -61,7 +66,7 @@ export function countriesByContinentDistribution(
       if (!result[country.continent]) {
         result[country.continent] = { visited: 0, total: 0 };
       }
-      result[country.continent].total++;
+      result[country.continent]!.total++;
     }
   }
 
@@ -84,7 +89,7 @@ export type CountryDetail = {
 };
 
 export function countriesByContinentDetails(
-  visitedCountries: VisitedCountry[],
+  visitedCountries: VisitedCountryStats[],
 ): Record<string, CountryDetail[]> {
   const visitedCodes: Set<number> = new Set();
   for (const country of visitedCountries) {
@@ -102,7 +107,7 @@ export function countriesByContinentDetails(
       result[country.continent] = [];
     }
 
-    result[country.continent].push({
+    result[country.continent]!.push({
       name: country.name,
       numeric: country.numeric,
       visited: visitedCodes.has(country.numeric),
@@ -110,7 +115,7 @@ export function countriesByContinentDetails(
   }
 
   for (const continent in result) {
-    result[continent].sort((a, b) => {
+    result[continent]!.sort((a, b) => {
       if (a.visited !== b.visited) {
         return a.visited ? -1 : 1; // visited first
       }
@@ -351,7 +356,9 @@ export const COUNTRY_CHARTS: Record<
   CountryChartKey,
   {
     title: string;
-    aggregate: (visitedCountries: VisitedCountry[]) => Record<string, number>;
+    aggregate: (
+      visitedCountries: VisitedCountryStats[],
+    ) => Record<string, number>;
   }
 > = {
   'visited-country-status': {
@@ -365,7 +372,7 @@ export const COUNTRY_BAR_CHARTS: Record<
   {
     title: string;
     aggregate: (
-      visitedCountries: VisitedCountry[],
+      visitedCountries: VisitedCountryStats[],
     ) => Record<string, { visited: number; total: number }>;
   }
 > = {

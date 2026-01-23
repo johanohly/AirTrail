@@ -48,6 +48,7 @@
     icon: Settings,
     id: 'settings-button',
     onClick: () => {
+      openModalsState.settingsTab = 'general';
       openModalsState.settings = true;
     },
   };

@@ -40,7 +40,7 @@ export type CreateFlight = Omit<Flight, 'id' | 'seats'> & {
 export type PublicShare = Selectable<public_share>;
 export type VisitedCountry = Selectable<visited_country>;
 
-export function wasVisited(country: VisitedCountry): boolean {
+export function wasVisited(country: Pick<VisitedCountry, 'status'>): boolean {
   return country.status === 'visited' || country.status === 'lived';
 }
 

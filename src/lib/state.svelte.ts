@@ -5,11 +5,32 @@ export const flightAddedState = $state({
   added: false,
 });
 
-export const openModalsState = $state({
+export type SettingsTabId =
+  | 'general'
+  | 'security'
+  | 'appearance'
+  | 'share'
+  | 'import'
+  | 'export'
+  | 'data'
+  | 'integrations'
+  | 'users'
+  | 'oauth';
+
+export type OpenModalsState = {
+  addFlight: boolean;
+  listFlights: boolean;
+  statistics: boolean;
+  settings: boolean;
+  settingsTab: SettingsTabId;
+};
+
+export const openModalsState = $state<OpenModalsState>({
   addFlight: false,
   listFlights: false,
   statistics: false,
   settings: false,
+  settingsTab: 'general',
 });
 
 export const appConfig = $state<{

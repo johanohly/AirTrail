@@ -20,7 +20,7 @@ export const visitedCountriesRouter = router({
   list: authedProcedure.query(async ({ ctx }) => {
     const list = await db
       .selectFrom('visitedCountry')
-      .select(['note', 'code', 'status'])
+      .select(['id', 'userId', 'note', 'code', 'status'])
       .where('userId', '=', ctx.user.id)
       .execute();
 
