@@ -82,10 +82,15 @@
   );
 
   $effect(() => {
-    if (flightAddedState.added) {
+    if (!flightAddedState.added) return;
+    if (!map) return;
+    if (!flights.length) return;
+
+    if (filteredFlights.length) {
       fitFlights();
-      flightAddedState.added = false;
     }
+
+    flightAddedState.added = false;
   });
 
   $effect(() => {
