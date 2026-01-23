@@ -45,16 +45,16 @@ export default function HomePage() {
           </Link>
           <Link
             className="flex h-14 w-full items-center justify-center rounded-2xl border border-transparent bg-white text-black text-sm shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)] transition duration-200 hover:shadow-lg sm:w-52 dark:border-neutral-600 dark:bg-fd-card dark:text-white"
-            href="https://github.com/johanohly/AirTrail"
+            href="https://demo.airtrail.johan.ohly.dk"
             rel="noopener noreferrer"
             target="_blank"
             onClick={() =>
-              posthog.capture('github_link_clicked', {
+              posthog.capture('demo_link_clicked', {
                 location: 'homepage_hero',
               })
             }
           >
-            GitHub
+            Demo
           </Link>
         </div>
       </div>
