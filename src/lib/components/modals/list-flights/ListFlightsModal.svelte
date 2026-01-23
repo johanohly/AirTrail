@@ -126,6 +126,9 @@
   let mobileEditFlight = $state<FlightData | null>(null);
   let mobileEditOpen = $state(false);
 
+  let modalResetToken = $state(0);
+  let lastMobileModalOpen = $state(false);
+
   const handleMobileEdit = (flight: { id: number }) => {
     const originalFlight = filteredFlights.find((f) => f.id === flight.id);
     if (originalFlight) {
@@ -143,6 +146,14 @@
   };
   let deleteFlightData = $state<DeleteFlight | null>(null);
   let deleteModalOpen = $state(false);
+
+  $effect(() => {
+    const isOpen = mobileEditOpen || deleteModalOpen;
+    if (lastMobileModalOpen && !isOpen) {
+      modalResetToken += 1;
+    }
+    lastMobileModalOpen = isOpen;
+  });
 
   const handleDelete = (flight: { id: number }) => {
     const originalFlight = filteredFlights.find((f) => f.id === flight.id);
@@ -270,6 +281,7 @@
         {flightsByYear}
         {selecting}
         bind:selectedFlights
+        resetToken={modalResetToken}
         onEdit={readonly ? undefined : handleMobileEdit}
         onDelete={readonly ? undefined : handleDelete}
       />
