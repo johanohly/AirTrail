@@ -1,5 +1,7 @@
-import { Card, Cards } from "fumadocs-ui/components/card";
-import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
+'use client';
+
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import {
   ChartPie,
   CloudDownload,
@@ -8,13 +10,14 @@ import {
   Moon,
   TabletSmartphone,
   Users,
-} from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import type React from "react";
-import Aurora from "@/components/Aurora";
-import DarkImg from "@/public/dark.png";
-import LightImg from "@/public/light.png";
+} from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import posthog from 'posthog-js';
+import type React from 'react';
+import Aurora from '@/components/Aurora';
+import DarkImg from '@/public/dark.png';
+import LightImg from '@/public/light.png';
 
 export default function HomePage() {
   return (
@@ -31,6 +34,12 @@ export default function HomePage() {
           <Link
             className="group relative flex h-14 w-full cursor-pointer items-center justify-center space-x-2 rounded-2xl bg-fd-primary p-px px-4 py-2 text-center font-semibold text-sm text-white no-underline shadow-zinc-900 transition duration-200 hover:shadow-2xl sm:w-52"
             href="/docs/overview/introduction"
+            onClick={() =>
+              posthog.capture('cta_clicked', {
+                cta_type: 'get_started',
+                location: 'homepage_hero',
+              })
+            }
           >
             Get Started
           </Link>
@@ -39,6 +48,11 @@ export default function HomePage() {
             href="https://github.com/johanohly/AirTrail"
             rel="noopener noreferrer"
             target="_blank"
+            onClick={() =>
+              posthog.capture('github_link_clicked', {
+                location: 'homepage_hero',
+              })
+            }
           >
             GitHub
           </Link>
@@ -71,7 +85,7 @@ export default function HomePage() {
             <div className="my-4">
               <DynamicCodeBlock
                 code={
-                  "bash <(curl -o- https://raw.githubusercontent.com/JohanOhly/AirTrail/main/scripts/install.sh)"
+                  'bash <(curl -o- https://raw.githubusercontent.com/JohanOhly/AirTrail/main/scripts/install.sh)'
                 }
                 lang="bash"
               />
@@ -79,17 +93,17 @@ export default function HomePage() {
           </div>
           <div className="step mb-6">
             <strong className="text-lg">
-              {" "}
-              Visit your new AirTrail instance!{" "}
+              {' '}
+              Visit your new AirTrail instance!{' '}
             </strong>
             <p className="text-muted-foreground">
-              AirTrail will be available at{" "}
+              AirTrail will be available at{' '}
               <Link
                 className="text-blue-500 underline"
-                href={"http://localhost:3000"}
+                href={'http://localhost:3000'}
               >
                 http://localhost:3000
-              </Link>{" "}
+              </Link>{' '}
               locally, at the address you specified during installation.
             </p>
           </div>
@@ -214,7 +228,7 @@ function StaggerCard({
   return (
     <div
       className="block rounded-lg border bg-fd-card text-fd-card-foreground shadow-md transition-colors"
-      style={{ padding: "clamp(1rem,calc(.125rem + 3vw),2.5rem)" }}
+      style={{ padding: 'clamp(1rem,calc(.125rem + 3vw),2.5rem)' }}
     >
       <div className="mb-4 flex items-center gap-3">
         <div className="not-prose w-fit rounded-md border bg-fd-muted p-1.5 text-fd-muted-foreground [&_svg]:size-5">
