@@ -158,7 +158,9 @@
   };
 </script>
 
-<FlightsOnboarding flightsCount={flights.length} />
+{#if !$rawFlights.isLoading}
+  <FlightsOnboarding flightsCount={flights.length} />
+{/if}
 <ListFlightsModal
   bind:open={openModalsState.listFlights}
   bind:filters
