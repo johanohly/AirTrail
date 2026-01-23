@@ -147,6 +147,15 @@
           <HelpTooltip
             text="If you set the departure date before searching, it will be considered when searching for flights."
           />
+        {:else}
+          <HelpTooltip>
+            {#snippet content()}
+              For more detailed results, configure the <a
+                href="https://airtrail.johan.ohly.dk/docs/integrations/aerodatabox"
+                target="_blank">AeroDataBox integration.</a
+              >
+            {/snippet}
+          </HelpTooltip>
         {/if}
       </Form.Label>
       <div class="grid grid-cols-[1fr_auto] gap-2">

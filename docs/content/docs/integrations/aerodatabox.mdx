@@ -2,33 +2,37 @@
 title: AeroDataBox
 ---
 
-AeroDataBox is an enhanced flight lookup provider that can replace the default **adsbdb** service used by AirTrail for flight number lookups.
+AeroDataBox is an alternative flight lookup provider for AirTrail flight number lookups.
 
 ## Why Use AeroDataBox?
 
-By default, AirTrail uses adsbdb for flight number lookups, which is free and requires no configuration. However, adsbdb has several limitations:
+AirTrail defaults to adsbdb (free, no setup) but it has limits:
 
 - Limited flight data coverage
 - No ability to search flights by date
 - Less reliable data for some routes and airlines
 
-AeroDataBox provides significant improvements:
+AeroDataBox adds:
 
-- **Much better flight data coverage** and accuracy
-- **Date search capability** - you can look up historical flights by specifying a date
+- **Broader flight data coverage** and accuracy
+- **Date search capability** - look up flights by date
+- **Departure and arrival times** for matching flights
+- **Aircraft and airline details** when AeroDataBox returns them
+- **AeroDataBox history limit** - results are typically available for flights within the last year
 
 AeroDataBox provides a free tier that should be enough for most users.
 Get an API key here: [https://rapidapi.com/aedbx-aedbx/api/aerodatabox](https://rapidapi.com/aedbx-aedbx/api/aerodatabox).
 
-## Date Search Feature
+## Date Search
 
-One of the key advantages of AeroDataBox is the ability to search for flights by date. When using AeroDataBox as your flight lookup provider, you can:
+With AeroDataBox enabled, you can:
 
-- Enter a flight number along with a specific date (uses the existing "Departure" field) to find historical flight information
+- Enter a flight number with a specific date (using the existing "Departure" field)
 - Look up flights that occurred weeks or months ago
 - Get more accurate departure and arrival times for past flights
+- See aircraft and airline details when AeroDataBox provides them
 
-This is particularly useful when logging flights retroactively or when you need to look up flight details from a previous trip.
+## Setup
 
 - Optional by default: The integration is disabled unless you provide an API key.
 - Where to set the key:
