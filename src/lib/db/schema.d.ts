@@ -64,6 +64,30 @@ export type flight = {
      * YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
      */
     arrival: string | null;
+    /**
+     * YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
+     */
+    departureScheduled: string | null;
+    /**
+     * YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
+     */
+    arrivalScheduled: string | null;
+    /**
+     * YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
+     */
+    takeoffScheduled: string | null;
+    /**
+     * YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
+     */
+    takeoffActual: string | null;
+    /**
+     * YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
+     */
+    landingScheduled: string | null;
+    /**
+     * YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
+     */
+    landingActual: string | null;
     duration: number | null;
     flightNumber: string | null;
     /**

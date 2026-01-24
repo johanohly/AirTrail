@@ -25,10 +25,23 @@ export class Duration {
 
   toString(includeDays: boolean = false): string {
     if (includeDays) {
-      return `${this.days}d ${this.hours}h ${this.minutes}m`;
+      const parts: string[] = [];
+      if (this.days > 0) {
+        parts.push(`${this.days}d`);
+      }
+      if (this.hours > 0) {
+        parts.push(`${this.hours}h`);
+      }
+      if (this.minutes > 0 || parts.length === 0) {
+        parts.push(`${this.minutes}m`);
+      }
+      return parts.join(' ');
     }
     const hours = this.days * 24 + this.hours;
-    return `${hours}h ${this.minutes}m`;
+    if (hours > 0) {
+      return `${hours}h ${this.minutes}m`;
+    }
+    return `${this.minutes}m`;
   }
 
   toHuman(): string {

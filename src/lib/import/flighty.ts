@@ -29,19 +29,13 @@ const FlightyFlight = z.object({
   notes: z.string().transform(nullTransformer),
 });
 
-/** Parses Flighty datetime (local airport time) and converts to UTC */
-const parseFlightyDateTime = (
-  actual: string | null,
-  scheduled: string | null,
+const parseFlightyTime = (
+  value: string | null,
   airportTz: string,
 ): TZDate | null => {
-  const dateTimeStr = actual || scheduled;
-  if (!dateTimeStr) return null;
-
-  const parsed = parseLocalISO(dateTimeStr, airportTz);
-
+  if (!value) return null;
+  const parsed = parseLocalISO(value, airportTz);
   if (isNaN(parsed.getTime())) return null;
-
   return toUtc(parsed);
 };
 
@@ -136,16 +130,25 @@ export const processFlightyFile = async (
     const from = mappedFrom ?? (await api.airport.getFromIata.query(row.from));
     const to = mappedTo ?? (await api.airport.getFromIata.query(row.to));
 
-    const departure = parseFlightyDateTime(
-      row.gate_departure_actual,
+    const departureScheduled = parseFlightyTime(
       row.gate_departure_scheduled,
       from?.tz ?? 'UTC',
     );
-    let arrival = parseFlightyDateTime(
-      row.gate_arrival_actual,
+    const departureActual = parseFlightyTime(
+      row.gate_departure_actual,
+      from?.tz ?? 'UTC',
+    );
+    const arrivalScheduled = parseFlightyTime(
       row.gate_arrival_scheduled,
       to?.tz ?? 'UTC',
     );
+    const arrivalActual = parseFlightyTime(
+      row.gate_arrival_actual,
+      to?.tz ?? 'UTC',
+    );
+
+    const departure = departureActual ?? departureScheduled;
+    let arrival = arrivalActual ?? arrivalScheduled;
 
     if (!departure || !arrival) {
       console.warn('Skipping flight due to missing datetime:', row);
@@ -204,6 +207,16 @@ export const processFlightyFile = async (
       to: to || null,
       departure: departure.toISOString(),
       arrival: arrival.toISOString(),
+      departureScheduled: departureScheduled
+        ? departureScheduled.toISOString()
+        : null,
+      arrivalScheduled: arrivalScheduled
+        ? arrivalScheduled.toISOString()
+        : null,
+      takeoffScheduled: null,
+      takeoffActual: null,
+      landingScheduled: null,
+      landingActual: null,
       duration,
       flightNumber,
       note: row.notes,

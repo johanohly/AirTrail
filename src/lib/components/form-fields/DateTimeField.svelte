@@ -11,6 +11,7 @@
   import { HelpTooltip } from '$lib/components/ui/tooltip';
   import { cn, toTitleCase } from '$lib/utils';
   import { dateValueFromISO } from '$lib/utils/datetime';
+  import { formatTimeValue, parseTimeValue } from '$lib/utils/datetime/time';
   import type { flightSchema } from '$lib/zod/flight';
 
   let {
@@ -21,40 +22,6 @@
     form: SuperForm<z.infer<typeof flightSchema>>;
   } = $props();
   const { form: formData, validate } = form;
-
-  const timePartsRegex = /^(\d{1,2})(?::|\.|)(\d{2})(?:\s?(am|pm))?$/i;
-  const parseTimeValue = (value: string) => {
-    const match = value.trim().match(timePartsRegex);
-    if (!match) return undefined;
-
-    const [, hourPart, minutePart, ampm] = match;
-    if (!hourPart || !minutePart) return undefined;
-
-    let hours = Number(hourPart);
-    const minutes = Number(minutePart);
-    if (Number.isNaN(hours) || Number.isNaN(minutes)) return undefined;
-
-    if (ampm) {
-      const period = ampm.toLowerCase();
-      if (period === 'pm' && hours < 12) {
-        hours += 12;
-      }
-      if (period === 'am' && hours === 12) {
-        hours = 0;
-      }
-    }
-
-    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-      return undefined;
-    }
-
-    return new Time(hours, minutes);
-  };
-
-  const formatTimeValue = (value: Time) => {
-    const pad = (part: number) => part.toString().padStart(2, '0');
-    return `${pad(value.hour)}:${pad(value.minute)}`;
-  };
 
   let dateValue: DateValue | undefined = $state(
     $formData[field] ? dateValueFromISO($formData[field]) : undefined,
@@ -111,12 +78,14 @@
           onValueChange={(v) => {
             if (v === undefined) {
               dateValue = undefined;
-              $formData[field] = null;
+              ($formData as Record<string, string | null>)[field] = null;
               validate(field);
               return;
             }
             dateValue = v;
-            $formData[field] = dateValue.toDate('UTC').toISOString();
+            ($formData as Record<string, string | null>)[field] = dateValue
+              .toDate('UTC')
+              .toISOString();
             validate(field);
           }}
           granularity="day"
@@ -162,14 +131,14 @@
                       onValueChange={(v) => {
                         if (v === undefined) {
                           dateValue = undefined;
-                          $formData[field] = null;
+                          ($formData as Record<string, string | null>)[field] =
+                            null;
                           validate(field);
                           return;
                         }
                         dateValue = v;
-                        $formData[field] = dateValue
-                          ?.toDate('UTC')
-                          .toISOString();
+                        ($formData as Record<string, string | null>)[field] =
+                          dateValue?.toDate('UTC').toISOString() ?? null;
                         validate(field);
                       }}
                     />
@@ -196,13 +165,15 @@
           onValueChange={(value) => {
             if (!value) {
               timeValue = undefined;
-              $formData[`${field}Time`] = null;
+              ($formData as Record<string, string | null>)[`${field}Time`] =
+                null;
               validate(`${field}Time`);
               return;
             }
 
             timeValue = value;
-            $formData[`${field}Time`] = formatTimeValue(value);
+            ($formData as Record<string, string | null>)[`${field}Time`] =
+              formatTimeValue(value);
             validate(`${field}Time`);
           }}
           granularity="minute"

@@ -14,7 +14,11 @@
   } from '$lib/components/ui/modal';
   import { trpc } from '$lib/trpc';
   import type { FlightData } from '$lib/utils';
-  import { formatAsTime, isUsingAmPm } from '$lib/utils/datetime';
+  import {
+    formatAsTime,
+    isUsingAmPm,
+    parseLocalizeISO,
+  } from '$lib/utils/datetime';
   import { flightSchema } from '$lib/zod/flight';
 
   let {
@@ -32,6 +36,11 @@
   // If their language uses 12-hour time format, we display the time in *a* 12-hour format
   // (not necessarily the user's locale, because our time validator doesn't support all languages).
   const displayLocale = isUsingAmPm() ? 'en-US' : 'fr-FR';
+
+  const toLocalTimeString = (iso: string | null, tzId: string | null) => {
+    if (!iso || !tzId) return null;
+    return formatAsTime(parseLocalizeISO(iso, tzId), displayLocale);
+  };
   const schemaFlight = {
     ...(flight.raw as unknown as Omit<
       typeof flight.raw,
@@ -49,6 +58,30 @@
     arrivalTime: flight.arrival
       ? formatAsTime(flight.arrival, displayLocale)
       : null,
+    departureScheduledTime: toLocalTimeString(
+      flight.raw.departureScheduled,
+      flight.from?.tz ?? null,
+    ),
+    arrivalScheduledTime: toLocalTimeString(
+      flight.raw.arrivalScheduled,
+      flight.to?.tz ?? null,
+    ),
+    takeoffScheduledTime: toLocalTimeString(
+      flight.raw.takeoffScheduled,
+      flight.from?.tz ?? null,
+    ),
+    takeoffActualTime: toLocalTimeString(
+      flight.raw.takeoffActual,
+      flight.from?.tz ?? null,
+    ),
+    landingScheduledTime: toLocalTimeString(
+      flight.raw.landingScheduled,
+      flight.to?.tz ?? null,
+    ),
+    landingActualTime: toLocalTimeString(
+      flight.raw.landingActual,
+      flight.to?.tz ?? null,
+    ),
   };
 
   const form = superForm(
