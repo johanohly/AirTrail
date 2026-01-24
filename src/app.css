@@ -43,7 +43,7 @@ layer(base);
   --color-card-foreground: var(--card-foreground);
 
   --color-surface-100: var(--background);
-  --color-surface-200: var(---muted);
+  --color-surface-200: var(--muted);
   --color-surface-300: var(--background);
   --color-surface-content: var(--card-foreground);
 
