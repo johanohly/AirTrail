@@ -50,6 +50,7 @@
       const parsed = parseTimeValue(timeString);
       if (!parsed) {
         timeValue = undefined;
+        ($formData as Record<string, string | null>)[`${field}Time`] = null;
         return;
       }
 
