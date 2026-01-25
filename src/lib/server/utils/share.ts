@@ -29,6 +29,12 @@ interface SanitizedFlight {
   aircraft?: Aircraft | null;
   departure?: string | null;
   arrival?: string | null;
+  departureScheduled?: string | null;
+  arrivalScheduled?: string | null;
+  takeoffScheduled?: string | null;
+  takeoffActual?: string | null;
+  landingScheduled?: string | null;
+  landingActual?: string | null;
   date?: string | null;
 }
 
@@ -277,6 +283,12 @@ function sanitizeFlightData(
     if (share.showTimes) {
       sanitized.departure = flight.departure;
       sanitized.arrival = flight.arrival;
+      sanitized.departureScheduled = flight.departureScheduled;
+      sanitized.arrivalScheduled = flight.arrivalScheduled;
+      sanitized.takeoffScheduled = flight.takeoffScheduled;
+      sanitized.takeoffActual = flight.takeoffActual;
+      sanitized.landingScheduled = flight.landingScheduled;
+      sanitized.landingActual = flight.landingActual;
     }
 
     if (share.showDates) {

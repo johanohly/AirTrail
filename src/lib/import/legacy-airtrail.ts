@@ -201,6 +201,17 @@ export const processLegacyAirTrailFile = async (
 
     flights.push({
       ...rawFlight,
+      // Legacy format doesn't support scheduled/actual datetime fields
+      departureScheduled: null,
+      arrivalScheduled: null,
+      takeoffScheduled: null,
+      takeoffActual: null,
+      landingScheduled: null,
+      landingActual: null,
+      departureTerminal: null,
+      departureGate: null,
+      arrivalTerminal: null,
+      arrivalGate: null,
       airline,
       aircraft: rawFlight.aircraft
         ? await api.aircraft.getByIcao.query(rawFlight.aircraft)

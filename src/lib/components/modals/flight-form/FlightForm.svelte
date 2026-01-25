@@ -5,6 +5,7 @@
   import FlightInformation from './FlightInformation.svelte';
   import FlightNumber from './FlightNumber.svelte';
   import SeatInformation from './SeatInformation.svelte';
+  import FlightTimetable from './FlightTimetable.svelte';
 
   import { AirportField, DateTimeField } from '$lib/components/form-fields';
   import { mergeTimeWithDate } from '$lib/utils/datetime';
@@ -19,6 +20,42 @@
   const { form: formData } = form;
 
   const MAX_DURATION_SECONDS = 24 * 60 * 60;
+
+  const timetableDateFields = [
+    'departureScheduled',
+    'arrivalScheduled',
+    'takeoffScheduled',
+    'takeoffActual',
+    'landingScheduled',
+    'landingActual',
+  ] as const;
+
+  const timetableTimeFields = [
+    'departureScheduledTime',
+    'arrivalScheduledTime',
+    'takeoffScheduledTime',
+    'takeoffActualTime',
+    'landingScheduledTime',
+    'landingActualTime',
+  ] as const;
+
+  const hasTimetableData = $derived.by(() => {
+    return (
+      timetableDateFields.some((field) => !!$formData[field]) ||
+      timetableTimeFields.some((field) => !!$formData[field])
+    );
+  });
+
+  let showTimetable = $state(false);
+  let prevHasTimetableData = $state(false);
+
+  // Auto-open timetable when data is populated (e.g., from flight lookup)
+  $effect(() => {
+    if (hasTimetableData && !prevHasTimetableData) {
+      showTimetable = true;
+    }
+    prevHasTimetableData = hasTimetableData;
+  });
 
   const durationWarning = $derived.by(() => {
     const { departure, departureTime, arrival, arrivalTime, from, to } =
@@ -62,10 +99,28 @@
         <FlightNumber {form} />
         <AirportField field="from" {form} />
         <AirportField field="to" {form} />
-        <DateTimeField field="departure" {form} />
-        <DateTimeField field="arrival" {form} />
+        {#if showTimetable}
+          <FlightTimetable {form} />
+          <button
+            type="button"
+            class="text-xs text-muted-foreground transition hover:text-foreground text-left"
+            onclick={() => (showTimetable = false)}
+          >
+            Use simple departure/arrival inputs
+          </button>
+        {:else}
+          <DateTimeField field="departure" {form} />
+          <DateTimeField field="arrival" {form} />
+          <button
+            type="button"
+            class="text-xs text-muted-foreground transition hover:text-foreground text-left"
+            onclick={() => (showTimetable = true)}
+          >
+            Add detailed timetable (taxi, takeoff, landing times...)
+          </button>
+        {/if}
         {#if durationWarning}
-          <p class="text-amber-600 dark:text-amber-500 text-sm font-medium">
+          <p class="text-yellow-500 text-sm font-medium">
             {durationWarning}
           </p>
         {/if}

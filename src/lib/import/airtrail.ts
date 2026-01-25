@@ -11,6 +11,8 @@ import {
   flightSeatInformationSchema,
 } from '$lib/zod/flight';
 
+const dateTimePrimitive = z.string().datetime({ offset: true }).nullable();
+
 const AirTrailFile = z.object({
   flights: z
     .object({
@@ -25,6 +27,12 @@ const AirTrailFile = z.object({
         .string()
         .datetime({ offset: true, message: 'Invalid datetime' })
         .nullable(),
+      departureScheduled: dateTimePrimitive,
+      arrivalScheduled: dateTimePrimitive,
+      takeoffScheduled: dateTimePrimitive,
+      takeoffActual: dateTimePrimitive,
+      landingScheduled: dateTimePrimitive,
+      landingActual: dateTimePrimitive,
       duration: z.number().int().positive().nullable(),
       airline: airlineSchema.omit({ id: true }).nullable(),
       aircraft: aircraftSchema.omit({ id: true }).nullable(),
@@ -183,6 +191,16 @@ export const processAirTrailFile = async (
 
     flights.push({
       ...rawFlight,
+      departureScheduled: rawFlight.departureScheduled ?? null,
+      arrivalScheduled: rawFlight.arrivalScheduled ?? null,
+      takeoffScheduled: rawFlight.takeoffScheduled ?? null,
+      takeoffActual: rawFlight.takeoffActual ?? null,
+      landingScheduled: rawFlight.landingScheduled ?? null,
+      landingActual: rawFlight.landingActual ?? null,
+      departureTerminal: rawFlight.departureTerminal ?? null,
+      departureGate: rawFlight.departureGate ?? null,
+      arrivalTerminal: rawFlight.arrivalTerminal ?? null,
+      arrivalGate: rawFlight.arrivalGate ?? null,
       from: from || null,
       to: to || null,
       airline,

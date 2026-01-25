@@ -49,6 +49,20 @@ export const validateAndSaveFlight = async (
     return { success: false, type: 'path', path, message } as const;
   };
 
+  const parseDateTimeField = (
+    date: string | null,
+    time: string | null,
+    tzId: string,
+    path: string,
+  ) => {
+    if (!date || !time) return { value: null as TZDate | null };
+    try {
+      return { value: mergeTimeWithDate(date, time, tzId) };
+    } catch {
+      return { error: pathError(path, 'Invalid time format') };
+    }
+  };
+
   const from = data.from;
   const to = data.to;
 
@@ -66,6 +80,33 @@ export const validateAndSaveFlight = async (
   } catch {
     return pathError('departureTime', 'Invalid time format');
   }
+
+  const departureScheduledResult = parseDateTimeField(
+    data.departureScheduled,
+    data.departureScheduledTime,
+    from.tz,
+    'departureScheduledTime',
+  );
+  if (departureScheduledResult.error) return departureScheduledResult.error;
+  const departureScheduled = departureScheduledResult.value;
+
+  const takeoffScheduledResult = parseDateTimeField(
+    data.takeoffScheduled,
+    data.takeoffScheduledTime,
+    from.tz,
+    'takeoffScheduledTime',
+  );
+  if (takeoffScheduledResult.error) return takeoffScheduledResult.error;
+  const takeoffScheduled = takeoffScheduledResult.value;
+
+  const takeoffActualResult = parseDateTimeField(
+    data.takeoffActual,
+    data.takeoffActualTime,
+    from.tz,
+    'takeoffActualTime',
+  );
+  if (takeoffActualResult.error) return takeoffActualResult.error;
+  const takeoffActual = takeoffActualResult.value;
 
   const arrivalDate = data.arrival
     ? parseLocalISO(data.arrival, to.tz)
@@ -91,6 +132,33 @@ export const validateAndSaveFlight = async (
     return pathError('arrivalTime', 'Invalid time format');
   }
 
+  const arrivalScheduledResult = parseDateTimeField(
+    data.arrivalScheduled,
+    data.arrivalScheduledTime,
+    to.tz,
+    'arrivalScheduledTime',
+  );
+  if (arrivalScheduledResult.error) return arrivalScheduledResult.error;
+  const arrivalScheduled = arrivalScheduledResult.value;
+
+  const landingScheduledResult = parseDateTimeField(
+    data.landingScheduled,
+    data.landingScheduledTime,
+    to.tz,
+    'landingScheduledTime',
+  );
+  if (landingScheduledResult.error) return landingScheduledResult.error;
+  const landingScheduled = landingScheduledResult.value;
+
+  const landingActualResult = parseDateTimeField(
+    data.landingActual,
+    data.landingActualTime,
+    to.tz,
+    'landingActualTime',
+  );
+  if (landingActualResult.error) return landingActualResult.error;
+  const landingActual = landingActualResult.value;
+
   if (arrival && departure && isBefore(arrival, departure)) {
     return pathError('arrival', 'Arrival must be after departure');
   }
@@ -107,8 +175,18 @@ export const validateAndSaveFlight = async (
     );
   }
 
-  const { flightNumber, aircraft, aircraftReg, airline, flightReason, note } =
-    data;
+  const {
+    flightNumber,
+    aircraft,
+    aircraftReg,
+    airline,
+    flightReason,
+    note,
+    departureTerminal,
+    departureGate,
+    arrivalTerminal,
+    arrivalGate,
+  } = data;
 
   const values = {
     from,
@@ -116,6 +194,24 @@ export const validateAndSaveFlight = async (
     duration,
     departure: departure ? toUtc(departure).toISOString() : null,
     arrival: arrival ? toUtc(arrival).toISOString() : null,
+    departureScheduled: departureScheduled
+      ? toUtc(departureScheduled).toISOString()
+      : null,
+    arrivalScheduled: arrivalScheduled
+      ? toUtc(arrivalScheduled).toISOString()
+      : null,
+    takeoffScheduled: takeoffScheduled
+      ? toUtc(takeoffScheduled).toISOString()
+      : null,
+    takeoffActual: takeoffActual ? toUtc(takeoffActual).toISOString() : null,
+    landingScheduled: landingScheduled
+      ? toUtc(landingScheduled).toISOString()
+      : null,
+    landingActual: landingActual ? toUtc(landingActual).toISOString() : null,
+    departureTerminal: departureTerminal ?? null,
+    departureGate: departureGate ?? null,
+    arrivalTerminal: arrivalTerminal ?? null,
+    arrivalGate: arrivalGate ?? null,
     date: format(departureDate, 'yyyy-MM-dd'),
     flightNumber,
     aircraft,

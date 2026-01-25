@@ -91,7 +91,24 @@ model flight {
   departure String?
   /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
   arrival   String?
+  /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
+  departure_scheduled String?
+  /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
+  arrival_scheduled String?
+  /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
+  takeoff_scheduled String?
+  /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
+  takeoff_actual String?
+  /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
+  landing_scheduled String?
+  /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
+  landing_actual String?
   duration  Int?
+
+  departure_terminal String?
+  departure_gate     String?
+  arrival_terminal   String?
+  arrival_gate       String?
 
   flight_number String?
   /// @kyselyType('leisure' | 'business' | 'crew' | 'other')

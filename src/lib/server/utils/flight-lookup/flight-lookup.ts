@@ -15,9 +15,15 @@ export type FlightLookupResultItem = {
   to: Airport;
   departure?: TZDate | null;
   arrival?: TZDate | null;
+  departureScheduled?: TZDate | null;
+  arrivalScheduled?: TZDate | null;
   airline?: Airline | null;
   aircraft?: Aircraft | null;
   aircraftReg?: string | null;
+  departureTerminal?: string | null;
+  departureGate?: string | null;
+  arrivalTerminal?: string | null;
+  arrivalGate?: string | null;
 };
 
 export type FlightLookupResult = FlightLookupResultItem[];

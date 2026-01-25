@@ -25,6 +25,8 @@ const timePrimitive = z
   }, 'Invalid 12-hour format')
   .nullable();
 
+const dateTimePrimitive = z.string().datetime({ offset: true });
+
 export const flightAirportsSchema = z.object({
   from: flightAirportSchema
     .nullable()
@@ -43,11 +45,23 @@ export const flightDateTimeSchema = z.object({
     .nullable()
     .refine((value) => value !== null, 'Select a departure date'),
   departureTime: timePrimitive,
+  departureScheduled: dateTimePrimitive.nullable(),
+  departureScheduledTime: timePrimitive,
   arrival: z
     .string()
     .datetime({ offset: true, message: 'Select an arrival date' })
     .nullable(),
   arrivalTime: timePrimitive,
+  arrivalScheduled: dateTimePrimitive.nullable(),
+  arrivalScheduledTime: timePrimitive,
+  takeoffScheduled: dateTimePrimitive.nullable(),
+  takeoffScheduledTime: timePrimitive,
+  takeoffActual: dateTimePrimitive.nullable(),
+  takeoffActualTime: timePrimitive,
+  landingScheduled: dateTimePrimitive.nullable(),
+  landingScheduledTime: timePrimitive,
+  landingActual: dateTimePrimitive.nullable(),
+  landingActualTime: timePrimitive,
 });
 
 export const flightSeatInformationSchema = z.object({
@@ -90,6 +104,11 @@ export const flightOptionalInformationSchema = z.object({
     .nullable(),
   flightReason: z.enum(FlightReasons).nullable(),
   note: z.string().max(1000, 'Note is too long').nullable(),
+  // TODO: Terminal/gate fields (populated via flight lookup, not editable in UI yet)
+  departureTerminal: z.string().max(10).nullable().optional(),
+  departureGate: z.string().max(10).nullable().optional(),
+  arrivalTerminal: z.string().max(10).nullable().optional(),
+  arrivalGate: z.string().max(10).nullable().optional(),
 });
 
 export const flightSchema = flightAirportsSchema

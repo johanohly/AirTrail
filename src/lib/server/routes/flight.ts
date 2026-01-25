@@ -37,6 +37,12 @@ export const flightRouter = router({
         departureTz: r.departure ? r.departure.timeZone : null,
         arrival: r.arrival ? r.arrival.toISOString() : null,
         arrivalTz: r.arrival ? r.arrival.timeZone : null,
+        departureScheduled: r.departureScheduled
+          ? r.departureScheduled.toISOString()
+          : null,
+        arrivalScheduled: r.arrivalScheduled
+          ? r.arrivalScheduled.toISOString()
+          : null,
       }));
     }),
   list: authedProcedure.query(async ({ ctx: { user } }) => {
