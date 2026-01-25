@@ -207,6 +207,10 @@ export const processLegacyAirTrailFile = async (
       takeoffActual: rawFlight.takeoffActual ?? null,
       landingScheduled: rawFlight.landingScheduled ?? null,
       landingActual: rawFlight.landingActual ?? null,
+      departureTerminal: null,
+      departureGate: null,
+      arrivalTerminal: null,
+      arrivalGate: null,
       airline,
       aircraft: rawFlight.aircraft
         ? await api.aircraft.getByIcao.query(rawFlight.aircraft)

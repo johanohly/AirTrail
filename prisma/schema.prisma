@@ -105,6 +105,11 @@ model flight {
   landing_actual String?
   duration  Int?
 
+  departure_terminal String?
+  departure_gate     String?
+  arrival_terminal   String?
+  arrival_gate       String?
+
   flight_number String?
   /// @kyselyType('leisure' | 'business' | 'crew' | 'other')
   flight_reason String?

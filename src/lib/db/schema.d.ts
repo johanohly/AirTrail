@@ -89,6 +89,10 @@ export type flight = {
      */
     landingActual: string | null;
     duration: number | null;
+    departureTerminal: string | null;
+    departureGate: string | null;
+    arrivalTerminal: string | null;
+    arrivalGate: string | null;
     flightNumber: string | null;
     /**
      * @kyselyType('leisure' | 'business' | 'crew' | 'other')

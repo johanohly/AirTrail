@@ -113,6 +113,30 @@ const mapFlightReason = (
   }
 };
 
+const buildNotes = (row: z.infer<typeof FlightyFlight>): string | null => {
+  const parts: string[] = [];
+
+  // Add original notes first
+  if (row.notes) {
+    parts.push(row.notes);
+  }
+
+  // Add PNR
+  if (row.pnr) {
+    parts.push(`PNR: ${row.pnr}`);
+  }
+
+  // Add canceled/diverted status
+  if (row.canceled === 'true') {
+    parts.push('CANCELED');
+  }
+  if (row.diverted_to) {
+    parts.push(`Diverted to: ${row.diverted_to}`);
+  }
+
+  return parts.length > 0 ? parts.join(' | ') : null;
+};
+
 export const processFlightyFile = async (
   input: string,
   options: PlatformOptions,
@@ -245,9 +269,13 @@ export const processFlightyFile = async (
         ? landingScheduled.toISOString()
         : null,
       landingActual: landingActual ? landingActual.toISOString() : null,
+      departureTerminal: row.dep_terminal,
+      departureGate: row.dep_gate,
+      arrivalTerminal: row.arr_terminal,
+      arrivalGate: row.arr_gate,
       duration,
       flightNumber,
-      note: row.notes,
+      note: buildNotes(row),
       airline,
       aircraft,
       aircraftReg: row.tail_number ? row.tail_number.substring(0, 10) : null,

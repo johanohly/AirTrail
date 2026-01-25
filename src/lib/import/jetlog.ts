@@ -172,6 +172,10 @@ export const processJetLogFile = async (
       takeoffActual: null,
       landingScheduled: null,
       landingActual: null,
+      departureTerminal: null,
+      departureGate: null,
+      arrivalTerminal: null,
+      arrivalGate: null,
       duration,
       flightNumber: row.flight_number
         ? row.flight_number.substring(0, 10) // limit to 10 characters
