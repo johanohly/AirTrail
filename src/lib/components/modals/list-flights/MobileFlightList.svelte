@@ -28,17 +28,25 @@
     flightsByYear,
     selecting = false,
     selectedFlights = $bindable<number[]>([]),
-    resetToken = 0,
     onEdit,
     onDelete,
   }: {
     flightsByYear: YearGroup[];
     selecting?: boolean;
     selectedFlights?: number[];
-    resetToken?: number;
     onEdit?: (flight: Flight) => void;
     onDelete?: (flight: Flight) => void;
   } = $props();
+
+  // Store refs to SwipeableFlightRow components for resetting
+  let swipeableRefs: Record<number, SwipeableFlightRow | undefined> = $state(
+    {},
+  );
+
+  // Expose a method to reset all swipeable rows
+  export const resetAllRows = () => {
+    Object.values(swipeableRefs).forEach((ref) => ref?.reset?.());
+  };
 
   const toggleSelection = (flightId: number) => {
     if (selectedFlights.includes(flightId)) {
@@ -62,32 +70,31 @@
           {@const isLastFlight = index === flights.length - 1}
           {@const isSelected = selecting && selectedFlights.includes(flight.id)}
           <div class="isolate">
-            {#key `${flight.id}-${resetToken}`}
-              <SwipeableFlightRow
-                disabled={selecting}
-                onEdit={() => onEdit?.(flight)}
-                onDelete={() => onDelete?.(flight)}
-              >
-                {#snippet children({ isInteracting })}
-                  <button
-                    type="button"
-                    class={cn(
-                      'w-full px-4 py-4 transition-colors',
-                      isSelected
-                        ? 'bg-destructive/10 hover:bg-destructive/15'
-                        : !isInteracting && 'hover:bg-hover active:bg-hover',
-                    )}
-                    onclick={() => {
-                      if (selecting) {
-                        toggleSelection(flight.id);
-                      }
-                    }}
-                  >
-                    <FlightCard {flight} />
-                  </button>
-                {/snippet}
-              </SwipeableFlightRow>
-            {/key}
+            <SwipeableFlightRow
+              bind:this={swipeableRefs[flight.id]}
+              disabled={selecting}
+              onEdit={() => onEdit?.(flight)}
+              onDelete={() => onDelete?.(flight)}
+            >
+              {#snippet children({ isInteracting })}
+                <button
+                  type="button"
+                  class={cn(
+                    'w-full px-4 py-4 transition-colors',
+                    isSelected
+                      ? 'bg-destructive/10 hover:bg-destructive/15'
+                      : !isInteracting && 'hover:bg-hover active:bg-hover',
+                  )}
+                  onclick={() => {
+                    if (selecting) {
+                      toggleSelection(flight.id);
+                    }
+                  }}
+                >
+                  <FlightCard {flight} />
+                </button>
+              {/snippet}
+            </SwipeableFlightRow>
             <!-- Separator outside swipeable content with its own stacking context -->
             {#if !(isLastFlight && isLastYear)}
               <div class="relative z-10 h-px bg-border"></div>

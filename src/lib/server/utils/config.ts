@@ -1,4 +1,3 @@
-import { sql } from 'kysely';
 import { z } from 'zod';
 
 import { env } from '$env/dynamic/private';
@@ -62,41 +61,51 @@ export class AppConfig {
   }
 
   async load() {
-    const parseResult = async () => {
-      const result = await db
-        .selectFrom('appConfig')
-        .select('config')
-        .executeTakeFirst();
-      if (!result?.config) {
-        return null;
-      }
+    const result = await db
+      .selectFrom('appConfig')
+      .select('config')
+      .executeTakeFirst();
 
-      return appConfigSchema.safeParse(result.config);
-    };
-    let parsed = await parseResult();
-    if (!parsed) {
+    if (!result?.config) {
       return null;
     }
 
+    let parsed = appConfigSchema.safeParse(result.config);
+
     if (!parsed.success) {
-      // insert missing fields
-      const keys = this.#extractAllKeys(appConfigSchema);
-      await db
-        .updateTable('appConfig')
-        .set({
-          config: buildFillMissingNullsExpr('config', keys),
-        })
-        .execute();
+      // Config is missing some fields - merge with defaults
+      const defaultConfig: FullAppConfig = {
+        oauth: {
+          enabled: false,
+          issuerUrl: null,
+          clientId: null,
+          clientSecret: null,
+          scope: null,
+          autoRegister: true,
+          autoLogin: false,
+          hidePasswordForm: false,
+          buttonText: 'Log in with SSO',
+        },
+        integrations: {
+          aeroDataBoxKey: null,
+        },
+        data: {
+          lastSynced: null,
+        },
+      };
 
-      parsed = await parseResult();
-      if (!parsed) {
-        return null;
-      }
+      // Merge: defaults first, then overlay existing values
+      const rawConfig = result.config as Record<string, any>;
+      const merged = deepMerge(defaultConfig, removeUndefined(rawConfig));
 
+      parsed = appConfigSchema.safeParse(merged);
       if (!parsed.success) {
         console.error('Invalid app config in database:', parsed.error.issues);
         process.exit(-1);
       }
+
+      // Write the complete merged config back to DB
+      await db.updateTable('appConfig').set('config', parsed.data).execute();
     }
 
     return parsed.data;
@@ -209,41 +218,3 @@ export class AppConfig {
 }
 
 export const appConfig = new AppConfig();
-
-function buildFillMissingNullsExpr(colName: string, paths: string[][]) {
-  let expr: any = sql.ref(colName);
-
-  // Ensure all unique parent objects exist, without overwriting
-  const parents = Array.from(
-    new Set(paths.map((p) => JSON.stringify(p.slice(0, -1)))),
-  )
-    .map((p) => JSON.parse(p) as string[])
-    .filter((p) => p.length > 0);
-
-  for (const parentPath of parents) {
-    const pp = sql.val(parentPath);
-    expr = sql`
-      CASE
-        WHEN (${expr} #> ${pp}::text[]) IS NULL
-          THEN jsonb_set(${expr}, ${pp}::text[], '{}'::jsonb, true)
-        ELSE ${expr}
-      END
-    `;
-  }
-
-  // For each full path, set to null iff missing
-  for (const path of paths) {
-    const p = sql.val(path);
-    expr = sql`jsonb_set(
-      ${expr},
-      ${p}::text[],
-      COALESCE(
-        ${expr} #> ${p}::text[],
-        'null'::jsonb
-      ),
-      true
-    )`;
-  }
-
-  return expr;
-}
