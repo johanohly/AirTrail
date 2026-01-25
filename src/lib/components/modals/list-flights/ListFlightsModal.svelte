@@ -126,8 +126,8 @@
   let mobileEditFlight = $state<FlightData | null>(null);
   let mobileEditOpen = $state(false);
 
-  let modalResetToken = $state(0);
-  let lastMobileModalOpen = $state(false);
+  // Reference to MobileFlightList for resetting swipeable rows
+  let mobileFlightListRef: MobileFlightList | undefined = $state();
 
   const handleMobileEdit = (flight: { id: number }) => {
     const originalFlight = filteredFlights.find((f) => f.id === flight.id);
@@ -147,12 +147,16 @@
   let deleteFlightData = $state<DeleteFlight | null>(null);
   let deleteModalOpen = $state(false);
 
+  // Track previous modal state to detect close transitions
+  let prevModalOpen = $state(false);
+
+  // Reset swipeable rows when modals close (transition from open -> closed)
   $effect(() => {
     const isOpen = mobileEditOpen || deleteModalOpen;
-    if (lastMobileModalOpen && !isOpen) {
-      modalResetToken += 1;
+    if (prevModalOpen && !isOpen) {
+      mobileFlightListRef?.resetAllRows();
     }
-    lastMobileModalOpen = isOpen;
+    prevModalOpen = isOpen;
   });
 
   const handleDelete = (flight: { id: number }) => {
@@ -278,10 +282,10 @@
       </div>
     {:else if !$isMediumScreen}
       <MobileFlightList
+        bind:this={mobileFlightListRef}
         {flightsByYear}
         {selecting}
         bind:selectedFlights
-        resetToken={modalResetToken}
         onEdit={readonly ? undefined : handleMobileEdit}
         onDelete={readonly ? undefined : handleDelete}
       />
@@ -410,11 +414,13 @@
 
   <!-- Mobile Edit Modal -->
   {#if mobileEditFlight}
-    <EditFlightModal
-      flight={mobileEditFlight}
-      bind:open={mobileEditOpen}
-      showTrigger={false}
-    />
+    {#key mobileEditFlight.id}
+      <EditFlightModal
+        flight={mobileEditFlight}
+        bind:open={mobileEditOpen}
+        showTrigger={false}
+      />
+    {/key}
   {/if}
 
   <!-- Delete Confirmation -->
