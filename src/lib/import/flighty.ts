@@ -18,6 +18,17 @@ const FlightyFlight = z.object({
   gate_departure_scheduled: z.string().transform(nullTransformer),
   gate_arrival_actual: z.string().transform(nullTransformer),
   gate_arrival_scheduled: z.string().transform(nullTransformer),
+  take_off_scheduled: z.string().transform(nullTransformer),
+  take_off_actual: z.string().transform(nullTransformer),
+  landing_scheduled: z.string().transform(nullTransformer),
+  landing_actual: z.string().transform(nullTransformer),
+  dep_terminal: z.string().transform(nullTransformer),
+  dep_gate: z.string().transform(nullTransformer),
+  arr_terminal: z.string().transform(nullTransformer),
+  arr_gate: z.string().transform(nullTransformer),
+  pnr: z.string().transform(nullTransformer),
+  canceled: z.string().transform(nullTransformer),
+  diverted_to: z.string().transform(nullTransformer),
   airline: z.string().transform(nullTransformer),
   flight: z.string().transform(nullTransformer),
   seat_type: z.string().transform(nullTransformer),
@@ -146,6 +157,19 @@ export const processFlightyFile = async (
       row.gate_arrival_actual,
       to?.tz ?? 'UTC',
     );
+    const takeoffScheduled = parseFlightyTime(
+      row.take_off_scheduled,
+      from?.tz ?? 'UTC',
+    );
+    const takeoffActual = parseFlightyTime(
+      row.take_off_actual,
+      from?.tz ?? 'UTC',
+    );
+    const landingScheduled = parseFlightyTime(
+      row.landing_scheduled,
+      to?.tz ?? 'UTC',
+    );
+    const landingActual = parseFlightyTime(row.landing_actual, to?.tz ?? 'UTC');
 
     const departure = departureActual ?? departureScheduled;
     let arrival = arrivalActual ?? arrivalScheduled;
@@ -213,10 +237,14 @@ export const processFlightyFile = async (
       arrivalScheduled: arrivalScheduled
         ? arrivalScheduled.toISOString()
         : null,
-      takeoffScheduled: null,
-      takeoffActual: null,
-      landingScheduled: null,
-      landingActual: null,
+      takeoffScheduled: takeoffScheduled
+        ? takeoffScheduled.toISOString()
+        : null,
+      takeoffActual: takeoffActual ? takeoffActual.toISOString() : null,
+      landingScheduled: landingScheduled
+        ? landingScheduled.toISOString()
+        : null,
+      landingActual: landingActual ? landingActual.toISOString() : null,
       duration,
       flightNumber,
       note: row.notes,
