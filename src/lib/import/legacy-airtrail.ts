@@ -201,12 +201,13 @@ export const processLegacyAirTrailFile = async (
 
     flights.push({
       ...rawFlight,
-      departureScheduled: rawFlight.departureScheduled ?? null,
-      arrivalScheduled: rawFlight.arrivalScheduled ?? null,
-      takeoffScheduled: rawFlight.takeoffScheduled ?? null,
-      takeoffActual: rawFlight.takeoffActual ?? null,
-      landingScheduled: rawFlight.landingScheduled ?? null,
-      landingActual: rawFlight.landingActual ?? null,
+      // Legacy format doesn't support scheduled/actual datetime fields
+      departureScheduled: null,
+      arrivalScheduled: null,
+      takeoffScheduled: null,
+      takeoffActual: null,
+      landingScheduled: null,
+      landingActual: null,
       departureTerminal: null,
       departureGate: null,
       arrivalTerminal: null,
