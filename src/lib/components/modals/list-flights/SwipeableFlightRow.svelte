@@ -35,6 +35,8 @@
   let positionHistory: { x: number; time: number }[] = [];
   let activePointerId: number | null = null;
   let currentVelocity = $state(0);
+  // Track when an action (edit/delete) has been triggered to prevent state corruption
+  let actionPending = $state(false);
 
   const LONG_PRESS_DURATION = 400;
   const MOVE_THRESHOLD = 10;
@@ -90,6 +92,16 @@
     actionsRevealed = false;
     lastZone = 'neutral';
     currentVelocity = 0;
+    isHorizontalSwipe = false;
+    isVerticalScroll = false;
+    hasMoved = false;
+  };
+
+  // Reset that also clears the action pending state (used when component is externally reset)
+  export const reset = () => {
+    if (!actionPending) return; // Only reset if there was a pending action
+    actionPending = false;
+    resetPosition();
   };
 
   const goToRevealed = () => {
@@ -122,13 +134,15 @@
 
   // Close revealed actions on scroll or click outside
   $effect(() => {
-    if (!actionsRevealed) return;
+    // Don't add listeners if an action is pending (modal is open)
+    if (!actionsRevealed || actionPending) return;
 
     const handleScroll = () => {
-      if (!isDragging) resetPosition();
+      if (!isDragging && !actionPending) resetPosition();
     };
     const handlePointerDownOutside = (e: PointerEvent) => {
-      if (!isDragging && rowElement && !rowElement.contains(e.target as Node)) {
+      const isOutside = rowElement && !rowElement.contains(e.target as Node);
+      if (!isDragging && !actionPending && isOutside) {
         resetPosition();
       }
     };
@@ -161,7 +175,7 @@
   };
 
   const handlePointerDown = (e: PointerEvent) => {
-    if (disabled) return;
+    if (disabled || actionPending) return;
     cleanupGlobalListeners();
 
     isDragging = true;
@@ -266,18 +280,25 @@
         resetPosition();
         break;
       case 'edit':
-        onEdit?.();
-        resetPosition();
+        triggerAction(onEdit);
         break;
       case 'delete':
-        onDelete?.();
-        resetPosition();
+        triggerAction(onDelete);
         break;
       case 'revealed':
         goToRevealed();
         break;
     }
     positionHistory = [];
+  };
+
+  // Trigger an action (edit/delete) with proper state management
+  // Don't reset position here - keep row revealed while modal is open
+  // The reset will happen when modal closes via external reset() call
+  const triggerAction = (action?: () => void) => {
+    if (!action || actionPending) return;
+    actionPending = true;
+    action();
   };
 
   const showDeleteIcon = $derived(
@@ -292,23 +313,21 @@
   const showRevealedButtons = $derived(currentZone === 'revealed');
 
   const handleEditClick = (e: MouseEvent) => {
-    if (hasMoved) {
+    if (hasMoved || actionPending) {
       e.preventDefault();
       e.stopPropagation();
       return;
     }
-    onEdit?.();
-    resetPosition();
+    triggerAction(onEdit);
   };
 
   const handleDeleteClick = (e: MouseEvent) => {
-    if (hasMoved) {
+    if (hasMoved || actionPending) {
       e.preventDefault();
       e.stopPropagation();
       return;
     }
-    onDelete?.();
-    resetPosition();
+    triggerAction(onDelete);
   };
 </script>
 
