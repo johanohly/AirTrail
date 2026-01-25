@@ -116,11 +116,11 @@
             class="text-xs text-muted-foreground transition hover:text-foreground text-left"
             onclick={() => (showTimetable = true)}
           >
-            Add advanced timetable (taxi, takeoff, landing times...)
+            Add detailed timetable (taxi, takeoff, landing times...)
           </button>
         {/if}
         {#if durationWarning}
-          <p class="text-amber-600 dark:text-amber-500 text-sm font-medium">
+          <p class="text-yellow-500 text-sm font-medium">
             {durationWarning}
           </p>
         {/if}
