@@ -81,13 +81,19 @@ export async function getFlightRoute(
   type AedbxFlight = {
     departure: {
       airport: { icao?: string; timeZone?: string };
+      terminal?: string;
+      gate?: string;
       scheduledTime?: { local: string };
       revisedTime?: { local: string };
+      actualTime?: { local: string };
     };
     arrival: {
       airport: { icao?: string; timeZone?: string };
+      terminal?: string;
+      gate?: string;
       scheduledTime?: { local: string };
       revisedTime?: { local: string };
+      actualTime?: { local: string };
     };
     airline?: { icao?: string };
     aircraft?: { reg?: string };
@@ -111,27 +117,46 @@ export async function getFlightRoute(
       continue;
     }
 
-    const departureTimeStr =
-      item.departure.revisedTime?.local ?? item.departure.scheduledTime?.local;
-    const arrivalTimeStr =
-      item.arrival.revisedTime?.local ?? item.arrival.scheduledTime?.local;
+    const parseTime = (timeStr: string | undefined, tzId: string) => {
+      if (!timeStr) return null;
+      return parse(timeStr, 'yyyy-MM-dd HH:mmxxx', new Date(), {
+        in: tz(tzId),
+      });
+    };
 
-    const departureTime = departureTimeStr
-      ? parse(departureTimeStr, 'yyyy-MM-dd HH:mmxxx', new Date(), {
-          in: tz(item.departure.airport.timeZone ?? fromAirport.tz),
-        })
-      : null;
-    const arrivalTime = arrivalTimeStr
-      ? parse(arrivalTimeStr, 'yyyy-MM-dd HH:mmxxx', new Date(), {
-          in: tz(item.arrival.airport.timeZone ?? toAirport.tz),
-        })
-      : null;
+    const depTz = item.departure.airport.timeZone ?? fromAirport.tz;
+    const arrTz = item.arrival.airport.timeZone ?? toAirport.tz;
+
+    // Actual time (best estimate of what actually happened)
+    const departureTimeStr =
+      item.departure.actualTime?.local ??
+      item.departure.revisedTime?.local ??
+      item.departure.scheduledTime?.local;
+    const arrivalTimeStr =
+      item.arrival.actualTime?.local ??
+      item.arrival.revisedTime?.local ??
+      item.arrival.scheduledTime?.local;
+
+    const departureTime = parseTime(departureTimeStr, depTz);
+    const arrivalTime = parseTime(arrivalTimeStr, arrTz);
+
+    // Scheduled time
+    const departureScheduled = parseTime(
+      item.departure.scheduledTime?.local,
+      depTz,
+    );
+    const arrivalScheduled = parseTime(
+      item.arrival.scheduledTime?.local,
+      arrTz,
+    );
 
     const flightInfo = {
       from: fromAirport,
       to: toAirport,
       departure: departureTime,
       arrival: arrivalTime,
+      departureScheduled,
+      arrivalScheduled,
       airline: item.airline?.icao
         ? await getAirlineByIcao(item.airline.icao)
         : null,
@@ -139,6 +164,10 @@ export async function getFlightRoute(
         ? await getAircraftFromReg(item.aircraft.reg)
         : null,
       aircraftReg: item.aircraft?.reg ?? null,
+      departureTerminal: item.departure.terminal ?? null,
+      departureGate: item.departure.gate ?? null,
+      arrivalTerminal: item.arrival.terminal ?? null,
+      arrivalGate: item.arrival.gate ?? null,
     };
 
     result.push(flightInfo);

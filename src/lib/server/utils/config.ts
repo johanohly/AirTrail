@@ -57,6 +57,7 @@ export class AppConfig {
     }
 
     this.#appConfig = newConfig;
+    this.configured = mapSetValues(this.#appConfig);
     return true;
   }
 

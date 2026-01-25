@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tz } from '@date-fns/tz';
+  import { tz, TZDate } from '@date-fns/tz';
   import { format, isToday, parseJSON } from 'date-fns';
   import { toast } from 'svelte-sonner';
   import type { SuperForm } from 'sveltekit-superforms';
@@ -9,7 +9,6 @@
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
   import { HelpTooltip } from '$lib/components/ui/tooltip';
-  import type { FlightLookupResultItem } from '$lib/server/utils/flight-lookup/flight-lookup';
   import { appConfig } from '$lib/state.svelte';
   import { api } from '$lib/trpc';
   import {
@@ -28,16 +27,23 @@
   } = $props();
   const { form: formData } = form;
 
-  let lookupResults: FlightLookupResultItem[] | null = $state(null);
+  // Result type after parsing - uses TZDate for timezone-aware dates
+  type LookupResult = Awaited<ReturnType<typeof api.flight.lookup.query>>[0] & {
+    departure: TZDate | null;
+    arrival: TZDate | null;
+    departureScheduled: TZDate | null;
+    arrivalScheduled: TZDate | null;
+  };
+
+  let lookupResults: LookupResult[] | null = $state(null);
   let isSearching = $state(false);
 
   function clearResults() {
     lookupResults = null;
   }
 
-  function applyLookupResult(result: FlightLookupResultItem) {
+  function applyLookupResult(result: LookupResult) {
     if (!result) return;
-    const { from, to, airline, aircraft, aircraftReg } = result;
 
     if (
       ($formData.from || $formData.to) &&
@@ -48,11 +54,11 @@
       return;
     }
 
-    $formData.from = from;
-    $formData.to = to;
-    $formData.airline = airline ?? null;
-    $formData.aircraft = aircraft ?? null;
-    $formData.aircraftReg = aircraftReg ?? null;
+    $formData.from = result.from;
+    $formData.to = result.to;
+    $formData.airline = result.airline ?? null;
+    $formData.aircraft = result.aircraft ?? null;
+    $formData.aircraftReg = result.aircraftReg ?? null;
 
     if (result.arrival && result.departure) {
       $formData.departure = format(
@@ -68,11 +74,39 @@
       $formData.arrivalTime = formatAsTime(result.arrival, displayLocale);
     }
 
+    // Apply scheduled times if different from actual
+    if (result.departureScheduled) {
+      $formData.departureScheduled = format(
+        result.departureScheduled,
+        "yyyy-MM-dd'T'00:00:00.000'Z'",
+      );
+      $formData.departureScheduledTime = formatAsTime(
+        result.departureScheduled,
+        displayLocale,
+      );
+    }
+    if (result.arrivalScheduled) {
+      $formData.arrivalScheduled = format(
+        result.arrivalScheduled,
+        "yyyy-MM-dd'T'00:00:00.000'Z'",
+      );
+      $formData.arrivalScheduledTime = formatAsTime(
+        result.arrivalScheduled,
+        displayLocale,
+      );
+    }
+
+    // Apply terminal/gate info
+    $formData.departureTerminal = result.departureTerminal ?? null;
+    $formData.departureGate = result.departureGate ?? null;
+    $formData.arrivalTerminal = result.arrivalTerminal ?? null;
+    $formData.arrivalGate = result.arrivalGate ?? null;
+
     clearResults();
     toast.success('Flight found');
   }
 
-  function getPrimaryDate(item: FlightLookupResultItem): Date | null {
+  function getPrimaryDate(item: LookupResult): Date | null {
     return item.departure ?? item.arrival ?? null;
   }
 
@@ -88,7 +122,7 @@
       .trim()
       .replace(/\s/g, '');
 
-    let results: FlightLookupResultItem[] = [];
+    let results: LookupResult[] = [];
     try {
       const tempResults = await api.flight.lookup.query({
         flightNumber: normalizedFlightNumber,
@@ -97,14 +131,22 @@
       results = tempResults.map((r) => ({
         ...r,
         departure: r.departure
-          ? parseJSON(r.departure, { in: tz(r.departureTz) })
+          ? parseJSON(r.departure, { in: tz(r.departureTz ?? 'UTC') })
           : null,
         arrival: r.arrival
-          ? parseJSON(r.arrival, { in: tz(r.arrivalTz) })
+          ? parseJSON(r.arrival, { in: tz(r.arrivalTz ?? 'UTC') })
+          : null,
+        departureScheduled: r.departureScheduled
+          ? parseJSON(r.departureScheduled, { in: tz(r.departureTz ?? 'UTC') })
+          : null,
+        arrivalScheduled: r.arrivalScheduled
+          ? parseJSON(r.arrivalScheduled, { in: tz(r.arrivalTz ?? 'UTC') })
           : null,
       }));
-    } catch (e) {
-      toast.error(e.message ?? 'Error looking up flight');
+    } catch (e: unknown) {
+      const message =
+        e instanceof Error ? e.message : 'Error looking up flight';
+      toast.error(message);
       isSearching = false;
       return;
     }
@@ -116,7 +158,7 @@
       return;
     }
 
-    if (results.length === 1) {
+    if (results.length === 1 && results[0]) {
       applyLookupResult(results[0]);
       return;
     }

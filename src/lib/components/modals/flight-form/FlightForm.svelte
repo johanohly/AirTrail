@@ -47,14 +47,14 @@
   });
 
   let showTimetable = $state(false);
-  let hasAutoOpened = $state(false);
+  let prevHasTimetableData = $state(false);
 
+  // Auto-open timetable when data is populated (e.g., from flight lookup)
   $effect(() => {
-    if (hasAutoOpened) return;
-    if (hasTimetableData) {
+    if (hasTimetableData && !prevHasTimetableData) {
       showTimetable = true;
     }
-    hasAutoOpened = true;
+    prevHasTimetableData = hasTimetableData;
   });
 
   const durationWarning = $derived.by(() => {

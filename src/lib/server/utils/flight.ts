@@ -175,8 +175,18 @@ export const validateAndSaveFlight = async (
     );
   }
 
-  const { flightNumber, aircraft, aircraftReg, airline, flightReason, note } =
-    data;
+  const {
+    flightNumber,
+    aircraft,
+    aircraftReg,
+    airline,
+    flightReason,
+    note,
+    departureTerminal,
+    departureGate,
+    arrivalTerminal,
+    arrivalGate,
+  } = data;
 
   const values = {
     from,
@@ -198,6 +208,10 @@ export const validateAndSaveFlight = async (
       ? toUtc(landingScheduled).toISOString()
       : null,
     landingActual: landingActual ? toUtc(landingActual).toISOString() : null,
+    departureTerminal: departureTerminal ?? null,
+    departureGate: departureGate ?? null,
+    arrivalTerminal: arrivalTerminal ?? null,
+    arrivalGate: arrivalGate ?? null,
     date: format(departureDate, 'yyyy-MM-dd'),
     flightNumber,
     aircraft,
