@@ -8,7 +8,7 @@
     X,
   } from '@o7/icon/lucide';
   import { AirplanemodeInactive } from '@o7/icon/material';
-  import { isBefore } from 'date-fns';
+  import { isBefore, isAfter } from 'date-fns';
 
   import DeleteFlightModal from './DeleteFlightModal.svelte';
   import MobileFlightList from './MobileFlightList.svelte';
@@ -35,6 +35,7 @@
     formatAsDateTime,
     formatAsMonth,
     isUsingAmPm,
+    parseLocalizeISO,
   } from '$lib/utils/datetime';
   import { isMediumScreen } from '$lib/utils/size';
 
@@ -65,6 +66,28 @@
         const depDate = f.departure;
         const arrDate = f.arrival;
 
+        // Compare actual vs scheduled times
+        const depScheduled =
+          f.raw.departureScheduled && f.from
+            ? parseLocalizeISO(f.raw.departureScheduled, f.from.tz)
+            : null;
+        const arrScheduled =
+          f.raw.arrivalScheduled && f.to
+            ? parseLocalizeISO(f.raw.arrivalScheduled, f.to.tz)
+            : null;
+
+        let depStatus: 'early' | 'late' | null = null;
+        if (depDate && depScheduled) {
+          if (isBefore(depDate, depScheduled)) depStatus = 'early';
+          else if (isAfter(depDate, depScheduled)) depStatus = 'late';
+        }
+
+        let arrStatus: 'early' | 'late' | null = null;
+        if (arrDate && arrScheduled) {
+          if (isBefore(arrDate, arrScheduled)) arrStatus = 'early';
+          else if (isAfter(arrDate, arrScheduled)) arrStatus = 'late';
+        }
+
         return {
           ...f,
           from: f.from,
@@ -79,6 +102,8 @@
               ? formatAsDate(f.date)
               : null,
           arrTime: arrDate ? formatAsDateTime(arrDate) : null,
+          depStatus,
+          arrStatus,
           seat: formatSeat(f),
         };
       })
@@ -434,12 +459,24 @@
 {#snippet flightTimes(flight)}
   <div class="flex items-center">
     <PlaneTakeoff size="16" class="mr-1" />
-    <p class="text-sm">{flight.depTime}</p>
+    <p
+      class={cn('text-sm', {
+        'text-green-600 dark:text-green-400': flight.depStatus === 'early',
+        'text-red-600 dark:text-red-400': flight.depStatus === 'late',
+      })}
+    >
+      {flight.depTime}
+    </p>
   </div>
   <div class="flex items-center">
     {#if flight.arrTime}
       <PlaneLanding size="16" class="mr-1" />
-      <p class="text-sm overflow-hidden text-ellipsis whitespace-nowrap">
+      <p
+        class={cn('text-sm overflow-hidden text-ellipsis whitespace-nowrap', {
+          'text-green-600 dark:text-green-400': flight.arrStatus === 'early',
+          'text-red-600 dark:text-red-400': flight.arrStatus === 'late',
+        })}
+      >
         {flight.arrTime}
       </p>
     {/if}
