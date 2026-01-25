@@ -74,8 +74,25 @@ export class AppConfig {
 
     if (!parsed.success) {
       // Config is missing some fields - merge with defaults
-      // Create a config with all defaults by parsing an empty object
-      const defaultConfig = appConfigSchema.parse({});
+      const defaultConfig: FullAppConfig = {
+        oauth: {
+          enabled: false,
+          issuerUrl: null,
+          clientId: null,
+          clientSecret: null,
+          scope: null,
+          autoRegister: true,
+          autoLogin: false,
+          hidePasswordForm: false,
+          buttonText: 'Log in with SSO',
+        },
+        integrations: {
+          aeroDataBoxKey: null,
+        },
+        data: {
+          lastSynced: null,
+        },
+      };
 
       // Merge: defaults first, then overlay existing values
       const rawConfig = result.config as Record<string, any>;
