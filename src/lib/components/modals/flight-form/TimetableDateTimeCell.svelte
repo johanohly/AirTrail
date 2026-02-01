@@ -143,11 +143,10 @@
     return value.toDate('UTC').toISOString().slice(0, 10);
   };
 
-  const shouldUseNativePicker = () => {
+  const isTouchDevice = $derived.by(() => {
     if (typeof window === 'undefined') return false;
-    if (!window.matchMedia?.('(pointer: coarse)').matches) return false;
-    return !!nativeInput?.showPicker;
-  };
+    return window.matchMedia?.('(pointer: coarse)').matches ?? false;
+  });
 
   let open = $state(false);
   let nativeInput = $state<HTMLInputElement | null>(null);
@@ -261,6 +260,16 @@
     }
   };
 
+  const handleNativePointerDown = () => {
+    if (!displayTime) {
+      applyDefaultDateTime();
+      // Sync value immediately so the native picker shows the defaults
+      if (nativeInput && dateValue && timeValue) {
+        nativeInput.value = `${getDateString(dateValue)}T${formatTimeValue(timeValue)}`;
+      }
+    }
+  };
+
   const handleTriggerClick = (
     event: MouseEvent,
     openPopover?: (event: MouseEvent) => void,
@@ -268,14 +277,7 @@
     if (!displayTime) {
       applyDefaultDateTime();
     }
-    if (!shouldUseNativePicker()) {
-      openPopover?.(event);
-      return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    open = false;
-    nativeInput?.showPicker?.();
+    openPopover?.(event);
   };
 </script>
 
@@ -283,7 +285,7 @@
   <Form.Field {form} name={dateField as any}>
     <Form.Control>
       {#snippet children({ props })}
-        <div>
+        <div class="relative">
           <Popover.Root bind:open>
             <Popover.Trigger>
               {#snippet child({ props })}
@@ -485,9 +487,14 @@
           <input
             bind:this={nativeInput}
             type="datetime-local"
-            class="sr-only"
+            class={cn(
+              'absolute inset-0 z-10 h-full w-full opacity-0',
+              isTouchDevice ? 'cursor-pointer' : 'pointer-events-none',
+            )}
+            tabindex={-1}
             value={nativeValue}
             {disabled}
+            onpointerdown={handleNativePointerDown}
             onchange={(event) =>
               handleNativeChange(
                 (event.currentTarget as HTMLInputElement).value,
