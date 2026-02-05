@@ -42,8 +42,7 @@ export const flightDateTimeSchema = z.object({
   departure: z
     .string()
     .datetime({ offset: true, message: 'Select a departure date' })
-    .nullable()
-    .refine((value) => value !== null, 'Select a departure date'),
+    .nullable(),
   departureTime: timePrimitive,
   departureScheduled: dateTimePrimitive.nullable(),
   departureScheduledTime: timePrimitive,
