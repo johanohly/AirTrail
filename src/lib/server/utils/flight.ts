@@ -66,19 +66,31 @@ export const validateAndSaveFlight = async (
   const from = data.from;
   const to = data.to;
 
-  const departureDate = parseISO(data.departure);
+  // Either departure or departureScheduled must be set
+  if (!data.departure && !data.departureScheduled) {
+    return pathError('departure', 'Select a departure date');
+  }
+
+  // Use departure if available, otherwise fall back to departureScheduled for the date field
+  const primaryDepartureDate = data.departure ?? data.departureScheduled;
+  const departureDate = parseISO(primaryDepartureDate!);
   if (isBeforeEpoch(departureDate)) {
     // Y2K38
-    return pathError('departure', 'Too far in the past');
+    return pathError(
+      data.departure ? 'departure' : 'departureScheduled',
+      'Too far in the past',
+    );
   }
 
   let departure: TZDate | undefined;
-  try {
-    departure = data.departureTime
-      ? mergeTimeWithDate(data.departure, data.departureTime, from.tz)
-      : undefined;
-  } catch {
-    return pathError('departureTime', 'Invalid time format');
+  if (data.departure) {
+    try {
+      departure = data.departureTime
+        ? mergeTimeWithDate(data.departure, data.departureTime, from.tz)
+        : undefined;
+    } catch {
+      return pathError('departureTime', 'Invalid time format');
+    }
   }
 
   const departureScheduledResult = parseDateTimeField(
