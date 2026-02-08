@@ -203,7 +203,12 @@
       <div class="grid grid-cols-[1fr_auto] gap-2">
         <Input
           bind:value={$formData.flightNumber}
-          oninput={() => (lookupResults = null)}
+          oninput={(e) => {
+            lookupResults = null;
+            $formData.flightNumber = e.target.value
+              .replace(/\s/g, '')
+              .toUpperCase();
+          }}
           {...props}
         />
         <Button
