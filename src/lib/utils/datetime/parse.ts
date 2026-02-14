@@ -2,10 +2,54 @@ import { tz, TZDate } from '@date-fns/tz';
 import { CalendarDateTime } from '@internationalized/date';
 import { isValid, parse, parseISO } from 'date-fns';
 
+import { formatAsTime } from './format';
+
 export const parseLocalISO = (iso: string, tzId: string) =>
   parseISO(iso, { in: tz(tzId) });
 export const parseLocalizeISO = (iso: string, toTz: string) =>
   new TZDate(parseISO(iso), toTz);
+
+/**
+ * Decompose a stored UTC ISO instant into a date anchor and a local time
+ * string, suitable for populating form fields backed by a day picker + time
+ * input.
+ *
+ * The returned `date` is a UTC-midnight ISO string representing the local
+ * calendar day (not the original instant), because date-picker components
+ * interpret the UTC date literally.
+ *
+ * @example
+ * // A flight departing 2025-01-15 at 02:00 in Tokyo (UTC+9) is stored as
+ * // 2025-01-14T17:00:00.000Z. Without this conversion the day picker would
+ * // show January 14 instead of the correct January 15.
+ * decomposeToLocal('2025-01-14T17:00:00.000Z', 'Asia/Tokyo', 'fr-FR')
+ * // => { date: '2025-01-15T00:00:00.000Z', time: '02:00' }
+ */
+export const decomposeToLocal = (
+  iso: string | null,
+  tzId: string | null,
+  locale: string,
+): { date: string | null; time: string | null } => {
+  if (!iso) return { date: null, time: null };
+
+  if (!tzId) {
+    const d = new Date(iso);
+    return {
+      date: new Date(
+        Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
+      ).toISOString(),
+      time: null,
+    };
+  }
+
+  const local = parseLocalizeISO(iso, tzId);
+  return {
+    date: new Date(
+      Date.UTC(local.getFullYear(), local.getMonth(), local.getDate()),
+    ).toISOString(),
+    time: formatAsTime(local, locale),
+  };
+};
 
 export const parseLocal = (
   date: string,
