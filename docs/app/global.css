@@ -55,9 +55,14 @@
 .hero-container {
   background:
     radial-gradient(
-      ellipse at 30% 80%,
-      var(--color-fd-primary-rgb, 59 130 246) / 0.06,
-      transparent 60%
+      ellipse at 20% 85%,
+      rgba(59, 130, 246, 0.08) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 60% 10%,
+      rgba(59, 130, 246, 0.04) 0%,
+      transparent 40%
     ),
     var(--color-fd-card);
 }
@@ -65,9 +70,14 @@
 .dark .hero-container {
   background:
     radial-gradient(
-      ellipse at 30% 80%,
-      var(--color-fd-primary-rgb, 59 130 246) / 0.1,
-      transparent 60%
+      ellipse at 20% 85%,
+      rgba(59, 130, 246, 0.15) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 60% 10%,
+      rgba(59, 130, 246, 0.08) 0%,
+      transparent 40%
     ),
     var(--color-fd-card);
 }
