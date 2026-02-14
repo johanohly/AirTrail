@@ -2,15 +2,17 @@ import { HomeLayout } from 'fumadocs-ui/layouts/home';
 import type React from 'react';
 import type { ReactNode } from 'react';
 
-import { baseOptions } from '@/app/layout.config';
+import { getBaseOptions } from '@/app/layout.config';
 
 type Props = {
   children: ReactNode;
 };
 
-export default function Layout({
+export default async function Layout({
   children,
-}: Readonly<Props>): React.ReactElement {
+}: Readonly<Props>): Promise<React.ReactElement> {
+  const baseOptions = await getBaseOptions();
+
   return (
     <HomeLayout
       {...baseOptions}
