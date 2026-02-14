@@ -1,50 +1,51 @@
-import type React from "react";
+import type React from 'react';
 
-const widths = ["0.5rem", "1rem", "1.5rem", "2rem", "2.5rem", "3rem", "4rem"];
-const heights = ["80%", "85%", "90%", "95%", "100%"];
+const widths = ['0.5rem', '1rem', '1.5rem', '2rem', '2.5rem', '3rem', '4rem'];
+const heights = ['80%', '85%', '90%', '95%', '100%'];
 const anims = [
-  ["0s", "4s"],
-  ["-3s", "7s"],
-  ["-2s", "8s"],
-  ["-3s", "9s"],
-  ["-2s", "10s"],
-  ["-4s", "11s"],
-  ["-6s", "12s"],
+  ['0s', '4s'],
+  ['-3s', '7s'],
+  ['-2s', '8s'],
+  ['-3s', '9s'],
+  ['-2s', '10s'],
+  ['-4s', '11s'],
+  ['-6s', '12s'],
 ];
 const opacity = [
-  "opacity-10",
-  "opacity-20",
-  "opacity-30",
-  "opacity-40",
-  "opacity-50",
-  "opacity-60",
-  "opacity-70",
-  "opacity-80",
-  "opacity-90",
-  "opacity-100",
+  'opacity-10',
+  'opacity-20',
+  'opacity-30',
+  'opacity-40',
+  'opacity-50',
+  'opacity-60',
+  'opacity-70',
+  'opacity-80',
+  'opacity-90',
+  'opacity-100',
 ];
-const margins = ["0", "0.3rem", "1rem"];
+const margins = ['0', '0.3rem', '1rem'];
 
 type AuroraProps = {
   className?: string;
   bands: number;
 };
 
-const Aurora: React.FC<AuroraProps> = ({ className = "", bands }) => (
+const Aurora: React.FC<AuroraProps> = ({ className = '', bands }) => (
   <>
     <style>
       {`
           .aurora {
             transform: perspective(300px) rotateX(-10deg) rotateY(-9deg);
             pointer-events: none;
-            position: fixed;
-            inset: 5rem 0 0 0;
-            z-index: -10;
+            position: absolute;
+            inset: 0;
+            z-index: 0;
             display: flex;
             align-items: center;
             width: 100%;
-            height: 300px;
-            filter: blur(1.5rem);
+            height: 100%;
+            filter: blur(2rem);
+            overflow: hidden;
           }
 
           @media (max-width: 60rem) {
@@ -60,7 +61,7 @@ const Aurora: React.FC<AuroraProps> = ({ className = "", bands }) => (
             will-change: transform;
             animation-name: aurora;
             animation-timing-function: ease-in-out;
-            animation-iteration-count: 20;
+            animation-iteration-count: infinite;
             flex-grow: 1;
             background-image: linear-gradient(
               0deg,
@@ -107,7 +108,7 @@ const Aurora: React.FC<AuroraProps> = ({ className = "", bands }) => (
             : bands - i < opacity.length
               ? bands - i
               : Math.floor(
-                  (Math.random() * opacity.length) / 2 + opacity.length / 2
+                  (Math.random() * opacity.length) / 2 + opacity.length / 2,
                 );
         const anim = Math.floor(Math.random() * anims.length);
         return (
