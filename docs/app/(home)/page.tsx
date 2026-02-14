@@ -176,7 +176,7 @@ function FeaturesSection() {
           <Users />
         </StaggerCard>
         <StaggerCard
-          description="Import flights from various sources including MyFlightRadar24, App in the Air and JetLog."
+          description="Import flights from various sources including MyFlightRadar24, App in the Air, JetLog, TripIt, Flighty and byAir."
           title="Import Flights"
         >
           <CloudDownload />

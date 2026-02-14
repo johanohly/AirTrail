@@ -5,6 +5,7 @@ import {
 import type { CreateFlight } from '$lib/db/types';
 import { processAirTrailFile } from '$lib/import/airtrail';
 import { processAITAFile } from '$lib/import/aita';
+import { processByAirFile } from '$lib/import/byair';
 import { processFlightyFile } from '$lib/import/flighty';
 import { processFR24File } from '$lib/import/fr24';
 import { processJetLogFile } from '$lib/import/jetlog';
@@ -57,6 +58,8 @@ const processors: Record<PlatformValue, Processor> = {
     withDefaultUnknownUsers(() => processTripItFile(content, options)),
   flighty: async (content, options) =>
     withDefaultUnknownUsers(() => processFlightyFile(content, options)),
+  byair: async (content, options) =>
+    withDefaultUnknownUsers(() => processByAirFile(content, options)),
 };
 
 export const processFile = async (
