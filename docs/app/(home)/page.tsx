@@ -28,66 +28,68 @@ export default function HomePage() {
   return (
     <div className="landing-page">
       {/* ── Hero Section ── */}
-      <section className="hero-container relative flex min-h-[560px] items-end overflow-hidden rounded-2xl border bg-fd-card md:min-h-[640px] lg:min-h-[700px]">
-        <FlightPath className="pointer-events-none z-[1] opacity-60 dark:opacity-40" />
+      <section className="hero-wrapper relative mb-16 lg:mb-24">
+        <div className="hero-container relative flex min-h-[560px] items-end rounded-2xl border bg-fd-card md:min-h-[640px] lg:min-h-[700px]">
+          <FlightPath className="pointer-events-none z-[1] opacity-60 dark:opacity-40" />
 
-        {/* Subtle grid overlay */}
-        <div className="hero-grid-overlay pointer-events-none absolute inset-0 z-[0]" />
+          {/* Subtle grid overlay */}
+          <div className="hero-grid-overlay pointer-events-none absolute inset-0 z-[0] rounded-2xl" />
 
-        {/* Content */}
-        <div className="relative z-[2] flex w-full flex-col p-6 md:p-10 lg:p-14">
-          <p className="landing-pill mb-6 w-fit rounded-full border border-fd-primary/30 px-3 py-1.5 font-medium text-fd-primary text-xs tracking-wide">
-            Open-source flight tracker
-          </p>
-          <h1 className="mb-4 max-w-3xl font-semibold text-3xl leading-[1.1] tracking-tight md:text-5xl xl:text-6xl">
-            Your flights.
-            <br />
-            Your <span className="text-fd-primary">story</span>.
-          </h1>
-          <p className="mb-8 max-w-xl text-fd-muted-foreground text-sm leading-relaxed md:text-base">
-            A modern, self-hosted personal flight tracking system. Map every
-            journey, analyze your travel patterns, and own your data.
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Link
-              className="landing-btn-primary inline-flex h-11 items-center justify-center rounded-full bg-fd-primary px-6 font-medium text-sm text-white tracking-tight transition-all hover:brightness-110 hover:shadow-lg hover:shadow-fd-primary/25"
-              href="/docs/overview/introduction"
-              onClick={() =>
-                posthog.capture('cta_clicked', {
-                  cta_type: 'get_started',
-                  location: 'homepage_hero',
-                })
-              }
-            >
-              Get Started
-            </Link>
-            <Link
-              className="inline-flex h-11 items-center justify-center rounded-full border bg-fd-secondary px-6 font-medium text-fd-secondary-foreground text-sm tracking-tight transition-colors hover:bg-fd-accent"
-              href="https://demo.airtrail.johan.ohly.dk"
-              rel="noopener noreferrer"
-              target="_blank"
-              onClick={() =>
-                posthog.capture('demo_link_clicked', {
-                  location: 'homepage_hero',
-                })
-              }
-            >
-              Live Demo
-            </Link>
+          {/* Content */}
+          <div className="relative z-[2] flex w-full flex-col p-6 md:p-10 lg:p-14">
+            <p className="landing-pill mb-6 w-fit rounded-full border border-fd-primary/30 px-3 py-1.5 font-medium text-fd-primary text-xs tracking-wide">
+              Open-source flight tracker
+            </p>
+            <h1 className="mb-4 max-w-3xl font-semibold text-3xl leading-[1.1] tracking-tight md:text-5xl xl:text-6xl">
+              Your flights.
+              <br />
+              Your <span className="text-fd-primary">story</span>.
+            </h1>
+            <p className="mb-8 max-w-xl text-fd-muted-foreground text-sm leading-relaxed md:text-base">
+              A modern, self-hosted personal flight tracking system. Map every
+              journey, analyze your travel patterns, and own your data.
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link
+                className="landing-btn-primary inline-flex h-11 items-center justify-center rounded-full bg-fd-primary px-6 font-medium text-sm text-white tracking-tight transition-all hover:brightness-110 hover:shadow-lg hover:shadow-fd-primary/25"
+                href="/docs/overview/introduction"
+                onClick={() =>
+                  posthog.capture('cta_clicked', {
+                    cta_type: 'get_started',
+                    location: 'homepage_hero',
+                  })
+                }
+              >
+                Get Started
+              </Link>
+              <Link
+                className="inline-flex h-11 items-center justify-center rounded-full border bg-fd-secondary px-6 font-medium text-fd-secondary-foreground text-sm tracking-tight transition-colors hover:bg-fd-accent"
+                href="https://demo.airtrail.johan.ohly.dk"
+                rel="noopener noreferrer"
+                target="_blank"
+                onClick={() =>
+                  posthog.capture('demo_link_clicked', {
+                    location: 'homepage_hero',
+                  })
+                }
+              >
+                Live Demo
+              </Link>
+            </div>
           </div>
         </div>
 
-        {/* Hero preview image, positioned at right on large screens */}
-        <div className="pointer-events-none absolute right-0 bottom-0 z-[1] hidden w-[55%] lg:block">
+        {/* Hero preview image -- overflows the card on desktop */}
+        <div className="pointer-events-none absolute right-6 -bottom-12 z-[3] hidden w-[55%] lg:block xl:right-10 xl:-bottom-16">
           <img
             src="/dark.png"
             alt="AirTrail preview"
-            className="hidden translate-x-[8%] translate-y-[12%] rounded-tl-xl border-t border-l shadow-2xl dark:block"
+            className="hidden rounded-xl border shadow-2xl dark:block"
           />
           <img
             src="/light.png"
             alt="AirTrail preview"
-            className="translate-x-[8%] translate-y-[12%] rounded-tl-xl border-t border-l shadow-2xl dark:hidden"
+            className="rounded-xl border shadow-2xl dark:hidden"
           />
         </div>
       </section>
@@ -123,24 +125,24 @@ export default function HomePage() {
           </p>
         </FadeInOnScroll>
 
-        <FadeInOnScroll delay={0}>
+        <FadeInOnScroll delay={0} className="h-full">
           <FeatureCard
             icon={<Map className="size-5" />}
             title="Interactive World Map"
-            description="Visualize every flight on a gorgeous, interactive globe. See your routes, airports, and travel patterns come alive."
+            description="Visualize every flight on an interactive globe. See your routes, airports, and travel patterns come alive."
           />
         </FadeInOnScroll>
 
-        <FadeInOnScroll delay={100}>
+        <FadeInOnScroll delay={100} className="h-full">
           <FeatureCard
             icon={<ChartPie className="size-5" />}
             title="Rich Statistics"
-            description="Distance traveled, time in the air, airports visited, airline breakdowns -- get deep insights into your flying history."
+            description="Distance traveled, time in the air, airports visited, airline breakdowns -- deep insights into your flying history."
             variant="accent"
           />
         </FadeInOnScroll>
 
-        <FadeInOnScroll delay={200}>
+        <FadeInOnScroll delay={200} className="h-full">
           <FeatureCard
             icon={<CloudDownload className="size-5" />}
             title="Import From Anywhere"
@@ -149,15 +151,15 @@ export default function HomePage() {
           />
         </FadeInOnScroll>
 
-        <FadeInOnScroll delay={300}>
+        <FadeInOnScroll delay={300} className="h-full">
           <FeatureCard
             icon={<Users className="size-5" />}
             title="Multi-User & Auth"
-            description="Manage multiple users, share flights, and secure everything with built-in authentication and OAuth support."
+            description="Multiple users, shared flights, built-in authentication and OAuth support to secure your data."
           />
         </FadeInOnScroll>
 
-        <FadeInOnScroll delay={150}>
+        <FadeInOnScroll delay={150} className="h-full">
           <FeatureCard
             icon={<History className="size-5" />}
             title="Complete Flight History"
@@ -165,7 +167,7 @@ export default function HomePage() {
           />
         </FadeInOnScroll>
 
-        <FadeInOnScroll delay={250}>
+        <FadeInOnScroll delay={250} className="h-full">
           <FeatureCard
             icon={<Moon className="size-5" />}
             title="Light & Dark Modes"
@@ -319,7 +321,7 @@ function FeatureCard({
   const isAccent = variant === 'accent';
   return (
     <div
-      className={`landing-card flex flex-col rounded-2xl border p-6 shadow-lg transition-shadow hover:shadow-xl ${
+      className={`landing-card flex h-full flex-col rounded-2xl border p-6 shadow-lg transition-shadow hover:shadow-xl ${
         isAccent
           ? 'landing-card-accent bg-fd-primary/[0.03] dark:bg-fd-primary/[0.06]'
           : 'bg-fd-card'

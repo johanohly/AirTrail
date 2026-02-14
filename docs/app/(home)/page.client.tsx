@@ -12,6 +12,10 @@ function cn(...classes: (string | false | undefined | null)[]) {
   return classes.filter(Boolean).join(' ');
 }
 
+// The flight route path - shared between the visible line, dots, and plane animation
+const FLIGHT_PATH =
+  'M100 480 C250 460, 380 220, 550 240 S780 380, 950 180 S1180 220, 1300 120';
+
 // Animated flight path SVG that traces across the hero
 export function FlightPath({ className }: { className?: string }) {
   const [mounted, setMounted] = useState(false);
@@ -34,7 +38,8 @@ export function FlightPath({ className }: { className?: string }) {
     >
       {/* Flight path curve */}
       <path
-        d="M-50 450 C200 420, 350 180, 550 200 S800 350, 950 150 S1200 250, 1450 100"
+        id="flightRoute"
+        d={FLIGHT_PATH}
         stroke="url(#flightGradient)"
         strokeWidth="2"
         strokeDasharray="8 6"
@@ -42,33 +47,56 @@ export function FlightPath({ className }: { className?: string }) {
         className="flight-path-line"
       />
 
-      {/* Departure dot */}
-      <circle cx="100" cy="435" r="4" className="fill-fd-primary/60" />
-      <circle cx="100" cy="435" r="8" className="fill-fd-primary/20" />
+      {/* Departure dot -- at the start of the path (100, 480) */}
+      <circle cx="100" cy="480" r="5" className="fill-fd-primary/60" />
+      <circle cx="100" cy="480" r="10" className="fill-fd-primary/15" />
 
-      {/* Waypoint dots */}
-      <circle cx="550" cy="200" r="3" className="fill-fd-primary/40" />
-      <circle cx="950" cy="150" r="3" className="fill-fd-primary/40" />
-
-      {/* Arrival dot (pulsing) */}
+      {/* Arrival dot -- at the end of the path (1300, 120), pulsing */}
       <circle
-        cx="1350"
-        cy="115"
-        r="4"
+        cx="1300"
+        cy="120"
+        r="5"
         className="fill-fd-primary flight-dot-pulse"
       />
       <circle
-        cx="1350"
-        cy="115"
-        r="10"
+        cx="1300"
+        cy="120"
+        r="12"
         className="fill-fd-primary/15 flight-dot-pulse"
       />
 
-      {/* Airplane icon at the midpoint */}
-      <g className="flight-plane" transform="translate(740, 270) rotate(-25)">
-        <path
-          d="M0 -2 L8 -1 L10 -6 L12 -6 L11 -1 L20 0 L20 2 L11 3 L12 8 L10 8 L8 3 L0 4 Z"
-          className="fill-fd-primary"
+      {/* Airplane that follows the path */}
+      {/* The outer <g> receives animateMotion; inner rotation corrects for
+          the SVG path pointing up (nose at -Y) vs animateMotion's 0° = +X */}
+      <g className="flight-plane-group" style={{ opacity: 0 }}>
+        <g transform="rotate(-90)">
+          <path
+            d="M0 -10 L2 -8 L2 -3 L8 2 L8 4 L2 1 L2 5 L4 7 L4 8.5 L0 7 L-4 8.5 L-4 7 L-2 5 L-2 1 L-8 4 L-8 2 L-2 -3 L-2 -8 Z"
+            className="fill-fd-primary"
+            transform="scale(1.4)"
+          />
+        </g>
+        {/* animateMotion moves the plane along the flight path */}
+        <animateMotion
+          dur="4s"
+          begin="0.5s"
+          fill="freeze"
+          rotate="auto"
+          keyPoints="0;1"
+          keyTimes="0;1"
+          calcMode="spline"
+          keySplines="0.25 0.1 0.25 1"
+        >
+          <mpath href="#flightRoute" />
+        </animateMotion>
+        {/* Show the plane when the animation starts */}
+        <animate
+          attributeName="opacity"
+          from="0"
+          to="1"
+          dur="0.3s"
+          begin="0.5s"
+          fill="freeze"
         />
       </g>
 
@@ -77,22 +105,22 @@ export function FlightPath({ className }: { className?: string }) {
           <stop
             offset="0%"
             stopColor="var(--color-fd-primary)"
-            stopOpacity="0.1"
+            stopOpacity="0.15"
           />
           <stop
-            offset="30%"
+            offset="20%"
             stopColor="var(--color-fd-primary)"
-            stopOpacity="0.6"
+            stopOpacity="0.5"
           />
           <stop
-            offset="70%"
+            offset="60%"
             stopColor="var(--color-fd-primary)"
-            stopOpacity="0.8"
+            stopOpacity="0.7"
           />
           <stop
             offset="100%"
             stopColor="var(--color-fd-primary)"
-            stopOpacity="0.3"
+            stopOpacity="0.4"
           />
         </linearGradient>
       </defs>
