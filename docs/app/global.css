@@ -122,7 +122,7 @@
   background: linear-gradient(
     135deg,
     transparent 40%,
-    var(--color-fd-primary) / 0.05 50%,
+    color-mix(in srgb, var(--color-fd-primary) 5%, transparent) 50%,
     transparent 60%
   );
   background-size: 200% 100%;
