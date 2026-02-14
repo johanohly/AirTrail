@@ -106,65 +106,71 @@ export default function HomePage() {
       </section>
 
       {/* ── Features Grid ── */}
-      <section className="mt-16 grid grid-cols-1 gap-5 md:mt-24 lg:grid-cols-2">
+      <section className="mt-16 md:mt-24">
         <FadeInOnScroll>
-          <h2 className="col-span-full mb-2 text-center font-medium text-2xl tracking-tight text-fd-primary lg:text-3xl">
+          <h2 className="mb-2 text-center font-medium text-2xl tracking-tight text-fd-primary lg:text-3xl">
             Everything you need.
           </h2>
-          <p className="col-span-full mb-8 text-center text-fd-muted-foreground text-sm">
+          <p className="mb-8 text-center text-fd-muted-foreground text-sm lg:mb-16">
             Built for aviation enthusiasts who care about their data.
           </p>
         </FadeInOnScroll>
 
-        <FadeInOnScroll delay={0} className="h-full">
-          <FeatureCard
-            icon={<Map className="size-5" />}
-            title="Interactive World Map"
-            description="Visualize every flight on an interactive globe. See your routes, airports, and travel patterns come alive."
-          />
-        </FadeInOnScroll>
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          {/* Left column -- offset upward on desktop */}
+          <div className="flex flex-col gap-5 lg:-translate-y-8">
+            <FadeInOnScroll>
+              <FeatureCard
+                icon={<Map className="size-5" />}
+                title="Interactive World Map"
+                description="Visualize every flight on an interactive globe. See your routes, airports, and travel patterns come alive."
+              />
+            </FadeInOnScroll>
 
-        <FadeInOnScroll delay={100} className="h-full">
-          <FeatureCard
-            icon={<ChartPie className="size-5" />}
-            title="Rich Statistics"
-            description="Distance traveled, time in the air, airports visited, airline breakdowns -- deep insights into your flying history."
-            variant="accent"
-          />
-        </FadeInOnScroll>
+            <FadeInOnScroll delay={150}>
+              <FeatureCard
+                icon={<CloudDownload className="size-5" />}
+                title="Import From Anywhere"
+                description="Bring in flights from MyFlightRadar24, App in the Air, JetLog, TripIt, Flighty, byAir, and more."
+              />
+            </FadeInOnScroll>
 
-        <FadeInOnScroll delay={200} className="h-full">
-          <FeatureCard
-            icon={<CloudDownload className="size-5" />}
-            title="Import From Anywhere"
-            description="Bring in flights from MyFlightRadar24, App in the Air, JetLog, TripIt, Flighty, byAir, and more."
-            variant="accent"
-          />
-        </FadeInOnScroll>
+            <FadeInOnScroll delay={200}>
+              <FeatureCard
+                icon={<History className="size-5" />}
+                title="Complete Flight History"
+                description="Every departure, every arrival. Searchable, filterable, and always at your fingertips."
+              />
+            </FadeInOnScroll>
+          </div>
 
-        <FadeInOnScroll delay={300} className="h-full">
-          <FeatureCard
-            icon={<Users className="size-5" />}
-            title="Multi-User & Auth"
-            description="Multiple users, shared flights, built-in authentication and OAuth support to secure your data."
-          />
-        </FadeInOnScroll>
+          {/* Right column -- naturally aligned */}
+          <div className="flex flex-col gap-5">
+            <FadeInOnScroll delay={100}>
+              <FeatureCard
+                icon={<ChartPie className="size-5" />}
+                title="Rich Statistics"
+                description="Distance traveled, time in the air, airports visited, airline breakdowns -- deep insights into your flying history."
+              />
+            </FadeInOnScroll>
 
-        <FadeInOnScroll delay={150} className="h-full">
-          <FeatureCard
-            icon={<History className="size-5" />}
-            title="Complete Flight History"
-            description="Every departure, every arrival. Searchable, filterable, and always at your fingertips."
-          />
-        </FadeInOnScroll>
+            <FadeInOnScroll delay={250}>
+              <FeatureCard
+                icon={<Users className="size-5" />}
+                title="Multi-User & Auth"
+                description="Multiple users, shared flights, built-in authentication and OAuth support to secure your data."
+              />
+            </FadeInOnScroll>
 
-        <FadeInOnScroll delay={250} className="h-full">
-          <FeatureCard
-            icon={<Moon className="size-5" />}
-            title="Light & Dark Modes"
-            description="Easy on the eyes at any hour. Automatically adapts or lets you choose your preferred theme."
-          />
-        </FadeInOnScroll>
+            <FadeInOnScroll delay={300}>
+              <FeatureCard
+                icon={<Moon className="size-5" />}
+                title="Light & Dark Modes"
+                description="Easy on the eyes at any hour. Automatically adapts or lets you choose your preferred theme."
+              />
+            </FadeInOnScroll>
+          </div>
+        </div>
       </section>
 
       {/* ── Aurora Divider ── */}
@@ -298,24 +304,11 @@ type FeatureCardProps = {
   icon: React.ReactNode;
   title: string;
   description: string;
-  variant?: 'default' | 'accent';
 };
 
-function FeatureCard({
-  icon,
-  title,
-  description,
-  variant = 'default',
-}: Readonly<FeatureCardProps>) {
-  const isAccent = variant === 'accent';
+function FeatureCard({ icon, title, description }: Readonly<FeatureCardProps>) {
   return (
-    <div
-      className={`landing-card flex h-full flex-col rounded-2xl border p-6 shadow-lg transition-shadow hover:shadow-xl ${
-        isAccent
-          ? 'landing-card-accent bg-fd-primary/[0.03] dark:bg-fd-primary/[0.06]'
-          : 'bg-fd-card'
-      }`}
-    >
+    <div className="landing-card flex flex-col rounded-2xl border bg-fd-card p-6 shadow-lg transition-shadow hover:shadow-xl">
       <div className="mb-4 flex items-center gap-3">
         <div className="flex size-9 items-center justify-center rounded-lg bg-fd-primary/10 text-fd-primary">
           {icon}
