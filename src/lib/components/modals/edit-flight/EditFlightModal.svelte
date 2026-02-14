@@ -14,11 +14,7 @@
   } from '$lib/components/ui/modal';
   import { trpc } from '$lib/trpc';
   import type { FlightData } from '$lib/utils';
-  import {
-    formatAsTime,
-    isUsingAmPm,
-    parseLocalizeISO,
-  } from '$lib/utils/datetime';
+  import { decomposeToLocal, isUsingAmPm } from '$lib/utils/datetime';
   import { flightSchema } from '$lib/zod/flight';
 
   let {
@@ -37,51 +33,67 @@
   // (not necessarily the user's locale, because our time validator doesn't support all languages).
   const displayLocale = isUsingAmPm() ? 'en-US' : 'fr-FR';
 
-  const toLocalTimeString = (iso: string | null, tzId: string | null) => {
-    if (!iso || !tzId) return null;
-    return formatAsTime(parseLocalizeISO(iso, tzId), displayLocale);
-  };
+  const fromTz = flight.from?.tz ?? null;
+  const toTz = flight.to?.tz ?? null;
+
+  const dep = decomposeToLocal(flight.raw.departure, fromTz, displayLocale);
+  const arr = decomposeToLocal(flight.raw.arrival, toTz, displayLocale);
+  const depSched = decomposeToLocal(
+    flight.raw.departureScheduled,
+    fromTz,
+    displayLocale,
+  );
+  const arrSched = decomposeToLocal(
+    flight.raw.arrivalScheduled,
+    toTz,
+    displayLocale,
+  );
+  const takeoffSched = decomposeToLocal(
+    flight.raw.takeoffScheduled,
+    fromTz,
+    displayLocale,
+  );
+  const takeoffAct = decomposeToLocal(
+    flight.raw.takeoffActual,
+    fromTz,
+    displayLocale,
+  );
+  const landingSched = decomposeToLocal(
+    flight.raw.landingScheduled,
+    toTz,
+    displayLocale,
+  );
+  const landingAct = decomposeToLocal(
+    flight.raw.landingActual,
+    toTz,
+    displayLocale,
+  );
+
   const schemaFlight = {
     ...(flight.raw as unknown as Omit<
       typeof flight.raw,
       'id' | 'userId' | 'date' | 'duration'
     >),
-    departure: flight.departure
-      ? flight.departure.toISOString()
-      : flight.raw.date
+    departure:
+      dep.date ??
+      (flight.raw.date
         ? new Date(flight.raw.date + 'T00:00:00Z').toISOString()
-        : null,
-    arrival: flight.arrival ? flight.arrival.toISOString() : null,
-    departureTime: flight.departure
-      ? formatAsTime(flight.departure, displayLocale)
-      : null,
-    arrivalTime: flight.arrival
-      ? formatAsTime(flight.arrival, displayLocale)
-      : null,
-    departureScheduledTime: toLocalTimeString(
-      flight.raw.departureScheduled,
-      flight.from?.tz ?? null,
-    ),
-    arrivalScheduledTime: toLocalTimeString(
-      flight.raw.arrivalScheduled,
-      flight.to?.tz ?? null,
-    ),
-    takeoffScheduledTime: toLocalTimeString(
-      flight.raw.takeoffScheduled,
-      flight.from?.tz ?? null,
-    ),
-    takeoffActualTime: toLocalTimeString(
-      flight.raw.takeoffActual,
-      flight.from?.tz ?? null,
-    ),
-    landingScheduledTime: toLocalTimeString(
-      flight.raw.landingScheduled,
-      flight.to?.tz ?? null,
-    ),
-    landingActualTime: toLocalTimeString(
-      flight.raw.landingActual,
-      flight.to?.tz ?? null,
-    ),
+        : null),
+    arrival: arr.date,
+    departureScheduled: depSched.date,
+    arrivalScheduled: arrSched.date,
+    takeoffScheduled: takeoffSched.date,
+    takeoffActual: takeoffAct.date,
+    landingScheduled: landingSched.date,
+    landingActual: landingAct.date,
+    departureTime: dep.time,
+    arrivalTime: arr.time,
+    departureScheduledTime: depSched.time,
+    arrivalScheduledTime: arrSched.time,
+    takeoffScheduledTime: takeoffSched.time,
+    takeoffActualTime: takeoffAct.time,
+    landingScheduledTime: landingSched.time,
+    landingActualTime: landingAct.time,
   };
 
   const form = superForm(
