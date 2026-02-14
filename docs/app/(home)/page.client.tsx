@@ -128,35 +128,88 @@ export function FlightPath({ className }: { className?: string }) {
   );
 }
 
-// Animated install command with typewriter effect
-export function InstallAnimation() {
-  const installCmd =
-    'bash <(curl -o- https://raw.githubusercontent.com/JohanOhly/AirTrail/main/scripts/install.sh)';
-  const tickTime = 40;
-  const [tick, setTick] = useState(0);
-  const [finished, setFinished] = useState(false);
+// Copy button helper
+function CopyButton({ text, className }: { text: string; className?: string }) {
+  const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    if (tick >= installCmd.length) {
-      setFinished(true);
-      return;
-    }
-    const timer = setTimeout(() => {
-      setTick((prev) => prev + 1);
-    }, tickTime);
-    return () => clearTimeout(timer);
-  }, [tick, installCmd.length]);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <div
-      className="group relative mt-6 w-full"
-      onMouseEnter={() => {
-        if (finished) {
-          setTick(0);
-          setFinished(false);
-        }
-      }}
+    <button
+      type="button"
+      onClick={handleCopy}
+      className={cn(
+        'inline-flex items-center justify-center rounded-md border bg-fd-secondary px-2 py-1 text-fd-muted-foreground text-xs transition-colors hover:bg-fd-accent hover:text-fd-foreground',
+        className ?? '',
+      )}
+      title="Copy to clipboard"
     >
+      {copied ? (
+        <svg
+          className="size-3.5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+        >
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      ) : (
+        <svg
+          className="size-3.5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
+// Install command with typewriter on first view, then static + copy button
+const INSTALL_CMD =
+  'bash <(curl -o- https://raw.githubusercontent.com/JohanOhly/AirTrail/main/scripts/install.sh)';
+
+export function InstallCommand() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [started, setStarted] = useState(false);
+  const [tick, setTick] = useState(0);
+  const finished = tick >= INSTALL_CMD.length;
+
+  // Start typing once visible
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setStarted(true);
+          observer.unobserve(element);
+        }
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  // Typewriter tick
+  useEffect(() => {
+    if (!started || finished) return;
+    const timer = setTimeout(() => setTick((prev) => prev + 1), 35);
+    return () => clearTimeout(timer);
+  }, [started, tick, finished]);
+
+  return (
+    <div ref={ref} className="relative mt-6 w-full">
       <pre className="overflow-x-auto rounded-xl border bg-fd-card text-sm shadow-lg">
         <div className="flex flex-row items-center gap-2 border-b px-4 py-2.5 text-fd-muted-foreground">
           <svg
@@ -173,36 +226,29 @@ export function InstallAnimation() {
             Terminal
           </span>
           <div className="grow" />
-          <div className="flex gap-1.5">
-            <div className="size-2.5 rounded-full bg-red-400/60" />
-            <div className="size-2.5 rounded-full bg-yellow-400/60" />
-            <div className="size-2.5 rounded-full bg-green-400/60" />
-          </div>
+          <CopyButton text={INSTALL_CMD} />
         </div>
         <code className="block p-4 text-fd-foreground">
-          <span className="text-fd-primary">$</span>{' '}
-          {installCmd.substring(0, tick)}
-          {!finished && (
+          <span className="select-none text-fd-primary">$ </span>
+          {started ? INSTALL_CMD.substring(0, tick) : ''}
+          {started && !finished && (
             <span className="inline-block h-4 w-[2px] animate-pulse bg-fd-primary align-middle" />
           )}
         </code>
       </pre>
-      {finished && (
-        <div className="install-success-popup absolute bottom-3 right-3">
-          <div className="overflow-hidden rounded-lg border bg-fd-background shadow-xl">
-            <div className="flex h-5 items-center gap-1 border-b bg-fd-muted px-3">
-              <div className="size-1.5 rounded-full bg-fd-muted-foreground/30" />
-              <div className="size-1.5 rounded-full bg-fd-muted-foreground/30" />
-              <div className="size-1.5 rounded-full bg-fd-muted-foreground/30" />
-            </div>
-            <div className="px-3 py-2 text-xs">
-              <span className="text-green-500">&#10003;</span> AirTrail is
-              running on <span className="text-fd-primary">localhost:3000</span>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
+  );
+}
+
+// Inline copy for a URL string
+export function CopyableUrl({ url }: { url: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <code className="rounded bg-fd-muted px-1.5 py-0.5 text-fd-foreground">
+        {url}
+      </code>
+      <CopyButton text={url} />
+    </span>
   );
 }
 

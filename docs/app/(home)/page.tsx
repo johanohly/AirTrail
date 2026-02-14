@@ -19,7 +19,8 @@ import type React from 'react';
 import Aurora from '@/components/Aurora';
 import {
   FlightPath,
-  InstallAnimation,
+  InstallCommand,
+  CopyableUrl,
   FadeInOnScroll,
   PreviewImage,
   HeroImage,
@@ -226,12 +227,10 @@ export default function HomePage() {
               <p className="mb-1 text-fd-muted-foreground text-xs">
                 Works on Linux systems with Docker preinstalled.
               </p>
-              <InstallAnimation />
+              <InstallCommand />
               <p className="mt-4 text-fd-muted-foreground text-xs">
                 After installation, AirTrail will be available at{' '}
-                <code className="rounded bg-fd-muted px-1.5 py-0.5 text-fd-foreground">
-                  http://localhost:3000
-                </code>
+                <CopyableUrl url="http://localhost:3000" />
               </p>
             </div>
           </FadeInOnScroll>
