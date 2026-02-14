@@ -205,7 +205,7 @@
           bind:value={$formData.flightNumber}
           oninput={(e) => {
             lookupResults = null;
-            $formData.flightNumber = e.target.value
+            $formData.flightNumber = e.currentTarget.value
               .replace(/\s/g, '')
               .toUpperCase();
           }}
