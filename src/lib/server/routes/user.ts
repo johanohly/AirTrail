@@ -2,11 +2,7 @@ import { TRPCError } from '@trpc/server';
 import { sql } from 'kysely';
 import { z } from 'zod';
 
-import {
-  authedProcedure,
-  publicProcedure,
-  router,
-} from '../trpc';
+import { authedProcedure, publicProcedure, router } from '../trpc';
 
 import { db } from '$lib/db';
 import { createApiKey } from '$lib/server/utils/auth';
