@@ -5,6 +5,7 @@ export type PlatformOptions = {
   airlineFromFlightNumber: boolean;
   airportMapping?: Record<string, Airport>;
   airlineMapping?: Record<string, Airline>;
+  userMapping?: Record<string, string>; // exported user id -> local user id
 };
 
 export const platforms = [

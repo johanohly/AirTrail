@@ -21,8 +21,8 @@
     onclose,
   }: {
     importedCount?: number;
-    unknownAirports?: Record<string, string[]>;
-    unknownAirlines?: Record<string, string[]>;
+    unknownAirports?: Record<string, number[]>;
+    unknownAirlines?: Record<string, number[]>;
     busy?: boolean;
     onreprocess?: (
       airportMapping: Record<string, Airport>,
@@ -36,6 +36,7 @@
 
   let airportMapping: Record<string, Airport> = $state({});
   let airlineMapping: Record<string, Airline> = $state({});
+
   const canReprocess = $derived(
     (Object.values(airportMapping).some(Boolean) ||
       Object.values(airlineMapping).some(Boolean)) &&
@@ -72,7 +73,6 @@
   <h3 class="text-sm font-medium">Import Status</h3>
 
   <Card class="p-4">
-    <!-- Success Section -->
     <div class="flex items-start gap-3">
       <Check
         class="text-green-600 dark:text-green-500 mt-0.5 shrink-0"
@@ -90,7 +90,6 @@
     {#if unknownAirportCodes.length || unknownAirlineCodes.length}
       <Separator class="my-4" />
 
-      <!-- Unknown Codes Section -->
       <div class="flex items-start gap-3">
         <CircleAlert
           class="text-amber-600 dark:text-amber-500 mt-0.5 shrink-0"
@@ -98,14 +97,14 @@
         />
         <div class="flex-1">
           <p class="font-medium text-sm">
-            {unknownAirportCodes.length + unknownAirlineCodes.length} Unknown {pluralize(
+            {unknownAirportCodes.length + unknownAirlineCodes.length} Unknown
+            {pluralize(
               unknownAirportCodes.length + unknownAirlineCodes.length,
               'Code',
             )}
           </p>
           <p class="text-sm text-muted-foreground mt-0.5">
-            The following codes were not found in our database. Match them to
-            existing entries or create new ones.
+            Match unknown airports and airlines, then re-import.
           </p>
         </div>
       </div>
@@ -137,6 +136,7 @@
               {/each}
             </div>
           {/if}
+
           {#if unknownAirlineCodes.length}
             <div class="space-y-2" class:mt-4={unknownAirportCodes.length}>
               <p class="text-xs font-medium text-muted-foreground uppercase">

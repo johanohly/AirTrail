@@ -100,14 +100,40 @@ export const processAirTrailFile = async (
   }, {});
   const users = await api.user.list.query();
 
+  const exportedUsers = data.users.map((exportedUser) => {
+    const mappedUserId =
+      options.userMapping?.[exportedUser.id] ??
+      users.find((user) => user.username === exportedUser.username)?.id ??
+      null;
+
+    return {
+      id: exportedUser.id,
+      username: exportedUser.username,
+      displayName: exportedUser.displayName,
+      mappedUserId,
+    };
+  });
+
   const unknownAirports: Record<string, number[]> = {};
   const unknownAirlines: Record<string, number[]> = {};
+  const unknownUsers: Record<string, number[]> = {};
   for (const rawFlight of data.flights) {
+    const flightIndex = flights.length;
+
     const seats = rawFlight.seats.map((seat) => {
       const dataUser = dataUsers?.[seat.userId ?? ''];
-      const user = dataUser
-        ? users.find((user) => user.username === dataUser?.username)
+      const mappedUserId = dataUser
+        ? exportedUsers.find((u) => u.id === dataUser.id)?.mappedUserId
         : null;
+      const user = mappedUserId
+        ? users.find((user) => user.id === mappedUserId)
+        : null;
+
+      if (dataUser && !user) {
+        const key = `${dataUser.id}|${dataUser.username}|${dataUser.displayName}`;
+        if (!unknownUsers[key]) unknownUsers[key] = [];
+        unknownUsers[key].push(flightIndex);
+      }
       /*
       1. If the user is known, no guest name is needed.
       2. If the user is unknown, but the guest name is known, use the guest name.
@@ -171,8 +197,6 @@ export const processAirTrailFile = async (
         : await api.aircraft.getByName.query(rawFlight.aircraft.name);
     }
 
-    const flightIndex = flights.length;
-
     if (!from) {
       if (!unknownAirports[rawFlight.from.icao])
         unknownAirports[rawFlight.from.icao] = [];
@@ -213,5 +237,7 @@ export const processAirTrailFile = async (
     flights,
     unknownAirports,
     unknownAirlines,
+    unknownUsers,
+    exportedUsers,
   };
 };

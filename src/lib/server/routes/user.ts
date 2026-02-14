@@ -2,12 +2,7 @@ import { TRPCError } from '@trpc/server';
 import { sql } from 'kysely';
 import { z } from 'zod';
 
-import {
-  adminProcedure,
-  authedProcedure,
-  publicProcedure,
-  router,
-} from '../trpc';
+import { authedProcedure, publicProcedure, router } from '../trpc';
 
 import { db } from '$lib/db';
 import { createApiKey } from '$lib/server/utils/auth';
@@ -54,7 +49,7 @@ export const userRouter = router({
       .executeTakeFirst();
     return result.numDeletedRows > 0;
   }),
-  list: adminProcedure.query(async () => {
+  list: authedProcedure.query(async () => {
     return db.selectFrom('user').selectAll().execute();
   }),
   listApiKeys: authedProcedure.query(async ({ ctx }) => {
