@@ -1,32 +1,196 @@
-@import "tailwindcss";
-@import "fumadocs-ui/css/dusk.css";
-@import "fumadocs-ui/css/preset.css";
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/dusk.css';
+@import 'fumadocs-ui/css/preset.css';
 
 @source '../node_modules/fumadocs-ui/dist/**/*.js';
 @source '../node_modules/fumadocs-openapi/dist/**/*.js';
 
+/* ── Light Theme ── */
 :root {
   --color-fd-primary: hsl(221.21 83.19% 53.33%);
-  --color-fd-secondary: hsl(0 0% 99.7%);
+  --color-fd-secondary: hsl(220 20% 97%);
   --color-fd-card: hsl(0 0% 99.7%);
-  --color-fd-accent: hsl(0 0% 94.1%);
+  --color-fd-accent: hsl(220 14% 94%);
 }
 
+/* ── Dark Theme ── */
 .dark {
-  --color-fd-secondary: hsl(240 12% 15%);
-  --color-fd-border: hsl(0 0% 15%);
-  --color-fd-card: hsl(240 20% 5%);
-  --color-fd-accent: hsl(0 0 12.9%);
+  --color-fd-secondary: hsl(225 15% 10%);
+  --color-fd-border: hsl(225 10% 16%);
+  --color-fd-card: hsl(230 20% 6%);
+  --color-fd-accent: hsl(225 10% 13%);
 }
 
+/* ── Nav Overrides ── */
 :root.light #nd-nav {
   background-color: white;
 }
 
-#nd-subnav a[data-active="true"] {
+#nd-subnav a[data-active='true'] {
   color: var(--color-fd-primary);
 }
 
 :root.light .fd-codeblock {
   background-color: var(--color-fd-secondary);
+}
+
+/* ═══════════════════════════════════════
+   Landing Page Styles
+   ═══════════════════════════════════════ */
+
+/* Hero grid overlay - subtle cartographic grid */
+.hero-grid-overlay {
+  background-image:
+    linear-gradient(to right, var(--color-fd-border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-fd-border) 1px, transparent 1px);
+  background-size: 80px 80px;
+  opacity: 0.3;
+}
+
+.dark .hero-grid-overlay {
+  opacity: 0.15;
+}
+
+/* Hero container gradient background */
+.hero-container {
+  background:
+    radial-gradient(
+      ellipse at 30% 80%,
+      var(--color-fd-primary-rgb, 59 130 246) / 0.06,
+      transparent 60%
+    ),
+    var(--color-fd-card);
+}
+
+.dark .hero-container {
+  background:
+    radial-gradient(
+      ellipse at 30% 80%,
+      var(--color-fd-primary-rgb, 59 130 246) / 0.1,
+      transparent 60%
+    ),
+    var(--color-fd-card);
+}
+
+/* Aurora section - contained within its card */
+.aurora-section .aurora {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  z-index: 0;
+  filter: blur(2rem);
+}
+
+/* Flight path dash animation */
+.flight-path-line {
+  stroke-dashoffset: 1000;
+  animation: flight-trace 4s ease-out forwards;
+}
+
+@keyframes flight-trace {
+  from {
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Airplane float animation */
+.flight-plane {
+  animation: plane-float 3s ease-in-out infinite;
+}
+
+@keyframes plane-float {
+  0%,
+  100% {
+    transform: translate(740px, 270px) rotate(-25deg);
+  }
+  50% {
+    transform: translate(742px, 266px) rotate(-27deg);
+  }
+}
+
+/* Arrival dot pulse */
+.flight-dot-pulse {
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes dot-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* Install success popup animation */
+.install-success-popup {
+  animation: popup-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes popup-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Landing card hover lift */
+.landing-card {
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.landing-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Landing pill subtle shimmer */
+.landing-pill {
+  background: linear-gradient(
+    135deg,
+    transparent 40%,
+    var(--color-fd-primary) / 0.05 50%,
+    transparent 60%
+  );
+  background-size: 200% 100%;
+  animation: pill-shimmer 3s ease-in-out infinite;
+}
+
+@keyframes pill-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Primary CTA button glow */
+.landing-btn-primary {
+  position: relative;
+}
+
+.landing-btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: var(--color-fd-primary);
+  opacity: 0;
+  filter: blur(12px);
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+.landing-btn-primary:hover::after {
+  opacity: 0.3;
 }
