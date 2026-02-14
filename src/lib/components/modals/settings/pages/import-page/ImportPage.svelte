@@ -27,8 +27,9 @@
 
   let importing = $state(false);
   let importedCount = $state(0);
-  let unknownAirports = $state<Record<string, string[]>>({});
-  let unknownAirlines = $state<Record<string, string[]>>({});
+  let unknownAirports = $state<Record<string, number[]>>({});
+  let unknownAirlines = $state<Record<string, number[]>>({});
+  let unknownUsers = $state<Record<string, number[]>>({});
 
   let platform = $state<(typeof platforms)[0]>(platforms[0]);
   let ownerOnly = $state(false);
@@ -98,6 +99,7 @@
 
     unknownAirports = result.unknownAirports;
     unknownAirlines = result.unknownAirlines;
+    unknownUsers = result.unknownUsers;
     importedCount = stats?.insertedFlights ?? 0;
     if (importedCount > 0) {
       toast.success(
@@ -114,6 +116,7 @@
   const handleReprocess = async (
     airportMapping: Record<string, Airport>,
     airlineMapping: Record<string, Airline>,
+    userMapping: Record<string, string>,
   ) => {
     if (!originalFile) return;
     importing = true;
@@ -123,6 +126,7 @@
         airlineFromFlightNumber: matchAirlineFromFlightNumber,
         airportMapping,
         airlineMapping,
+        userMapping,
       });
 
       const { flights } = result;
@@ -144,6 +148,7 @@
 
       unknownAirports = result.unknownAirports;
       unknownAirlines = result.unknownAirlines;
+      unknownUsers = result.unknownUsers;
     } catch (error) {
       toast.error('Failed to reprocess file');
       console.error(error);
@@ -155,6 +160,7 @@
   const closeAndReset = () => {
     unknownAirports = {};
     unknownAirlines = {};
+    unknownUsers = {};
     importedCount = 0;
     files = null;
     originalFile = null;
@@ -247,6 +253,7 @@
       {importedCount}
       {unknownAirports}
       {unknownAirlines}
+      {unknownUsers}
       busy={importing}
       onreprocess={handleReprocess}
       onclose={closeAndReset}
