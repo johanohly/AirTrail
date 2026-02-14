@@ -42,6 +42,18 @@
     lookupResults = null;
   }
 
+  function isFutureFlight(result: LookupResult): boolean {
+    const referenceDate =
+      result.departureScheduled ??
+      result.departure ??
+      result.arrivalScheduled ??
+      result.arrival ??
+      null;
+
+    if (!referenceDate) return false;
+    return referenceDate.getTime() > Date.now();
+  }
+
   function applyLookupResult(result: LookupResult) {
     if (!result) return;
 
@@ -60,7 +72,7 @@
     $formData.aircraft = result.aircraft ?? null;
     $formData.aircraftReg = result.aircraftReg ?? null;
 
-    if (result.arrival && result.departure) {
+    if (result.arrival && result.departure && !isFutureFlight(result)) {
       $formData.departure = format(
         result.departure,
         "yyyy-MM-dd'T'00:00:00.000'Z'",
@@ -74,24 +86,31 @@
       $formData.arrivalTime = formatAsTime(result.arrival, displayLocale);
     }
 
-    // Apply scheduled times if different from actual
-    if (result.departureScheduled) {
+    // Apply scheduled times. For future flights, fallback to lookup time when schedule is missing.
+    const departureScheduleSource =
+      result.departureScheduled ??
+      (isFutureFlight(result) ? result.departure : null);
+    if (departureScheduleSource) {
       $formData.departureScheduled = format(
-        result.departureScheduled,
+        departureScheduleSource,
         "yyyy-MM-dd'T'00:00:00.000'Z'",
       );
       $formData.departureScheduledTime = formatAsTime(
-        result.departureScheduled,
+        departureScheduleSource,
         displayLocale,
       );
     }
-    if (result.arrivalScheduled) {
+
+    const arrivalScheduleSource =
+      result.arrivalScheduled ??
+      (isFutureFlight(result) ? result.arrival : null);
+    if (arrivalScheduleSource) {
       $formData.arrivalScheduled = format(
-        result.arrivalScheduled,
+        arrivalScheduleSource,
         "yyyy-MM-dd'T'00:00:00.000'Z'",
       );
       $formData.arrivalScheduledTime = formatAsTime(
-        result.arrivalScheduled,
+        arrivalScheduleSource,
         displayLocale,
       );
     }
