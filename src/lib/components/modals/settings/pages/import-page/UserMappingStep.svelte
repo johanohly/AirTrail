@@ -3,6 +3,7 @@
 
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
+  import * as Select from '$lib/components/ui/select';
   import { api } from '$lib/trpc';
 
   let {
@@ -64,23 +65,36 @@
               </div>
             </div>
             <div class="flex-1">
-              <select
-                class="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                disabled={busy}
+              <Select.Root
+                type="single"
                 value={localMapping[exportedUser.id] ?? ''}
-                onchange={(event) =>
-                  setUserMapping(
-                    exportedUser.id,
-                    (event.currentTarget as HTMLSelectElement).value,
-                  )}
+                onValueChange={(value) =>
+                  setUserMapping(exportedUser.id, value ?? '')}
               >
-                <option value="">No mapping (import as guest)</option>
-                {#each users as user (user.id)}
-                  <option value={user.id}
-                    >{user.displayName} (@{user.username})</option
-                  >
-                {/each}
-              </select>
+                <Select.Trigger disabled={busy}>
+                  {#if localMapping[exportedUser.id]}
+                    {@const selectedUser = users.find(
+                      (user) => user.id === localMapping[exportedUser.id],
+                    )}
+                    {#if selectedUser}
+                      {selectedUser.displayName} (@{selectedUser.username})
+                    {:else}
+                      Select local user...
+                    {/if}
+                  {:else}
+                    No mapping (import as guest)
+                  {/if}
+                </Select.Trigger>
+                <Select.Content>
+                  <Select.Item value="" label="No mapping (import as guest)" />
+                  {#each users as user (user.id)}
+                    <Select.Item
+                      value={user.id}
+                      label={`${user.displayName} (@${user.username})`}
+                    />
+                  {/each}
+                </Select.Content>
+              </Select.Root>
             </div>
           </div>
         {/each}
