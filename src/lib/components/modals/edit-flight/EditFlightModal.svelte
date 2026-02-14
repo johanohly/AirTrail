@@ -33,8 +33,8 @@
   // (not necessarily the user's locale, because our time validator doesn't support all languages).
   const displayLocale = isUsingAmPm() ? 'en-US' : 'fr-FR';
 
-  const fromTz = flight.from?.tz ?? null;
-  const toTz = flight.to?.tz ?? null;
+  const fromTz = flight.from?.tz ?? 'UTC';
+  const toTz = flight.to?.tz ?? 'UTC';
 
   const dep = decomposeToLocal(flight.raw.departure, fromTz, displayLocale);
   const arr = decomposeToLocal(flight.raw.arrival, toTz, displayLocale);
