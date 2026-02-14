@@ -81,33 +81,6 @@
   filter: blur(2rem);
 }
 
-/* Flight path dash animation -- draws the dashed route */
-.flight-path-line {
-  stroke-dasharray: 2000;
-  stroke-dashoffset: 2000;
-  animation: flight-trace 3s ease-out 0.3s forwards;
-}
-
-@keyframes flight-trace {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-/* After the trace completes, switch to the visible dash pattern */
-.flight-path-line {
-  animation:
-    flight-trace 3s ease-out 0.3s forwards,
-    flight-dash-settle 0.01s 3.3s forwards;
-}
-
-@keyframes flight-dash-settle {
-  to {
-    stroke-dasharray: 8 6;
-    stroke-dashoffset: 0;
-  }
-}
-
 /* Arrival dot pulse */
 .flight-dot-pulse {
   animation: dot-pulse 2s ease-in-out infinite;

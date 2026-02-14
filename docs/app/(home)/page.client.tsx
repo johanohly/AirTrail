@@ -16,13 +16,107 @@ function cn(...classes: (string | false | undefined | null)[]) {
 const FLIGHT_PATH =
   'M100 480 C250 460, 380 220, 550 240 S780 380, 950 180 S1180 220, 1300 120';
 
+// Cubic bezier easing (matching the old animateMotion feel)
+function cubicBezier(
+  t: number,
+  p1x: number,
+  p1y: number,
+  p2x: number,
+  p2y: number,
+): number {
+  // Newton-Raphson to find t for x, then evaluate y
+  let guessT = t;
+  for (let i = 0; i < 8; i++) {
+    const x =
+      3 * p1x * guessT * (1 - guessT) ** 2 +
+      3 * p2x * guessT ** 2 * (1 - guessT) +
+      guessT ** 3;
+    const dx =
+      3 * p1x * (1 - guessT) ** 2 -
+      6 * p1x * guessT * (1 - guessT) +
+      6 * p2x * guessT * (1 - guessT) -
+      3 * p2x * guessT ** 2 +
+      3 * guessT ** 2;
+    if (Math.abs(x - t) < 0.0001) break;
+    guessT -= (x - t) / dx;
+  }
+  return (
+    3 * p1y * guessT * (1 - guessT) ** 2 +
+    3 * p2y * guessT ** 2 * (1 - guessT) +
+    guessT ** 3
+  );
+}
+
 // Animated flight path SVG that traces across the hero
 export function FlightPath({ className }: { className?: string }) {
   const [mounted, setMounted] = useState(false);
+  const routeRef = useRef<SVGPathElement>(null);
+  const trailRef = useRef<SVGPathElement>(null);
+  const planeRef = useRef<SVGGElement>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 300);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Drive plane + trail from same JS animation loop
+  useEffect(() => {
+    const route = routeRef.current;
+    const trail = trailRef.current;
+    const plane = planeRef.current;
+    if (!route || !trail || !plane) return;
+
+    const totalLength = route.getTotalLength();
+    trail.style.strokeDasharray = `${totalLength}`;
+    trail.style.strokeDashoffset = `${totalLength}`;
+
+    const duration = 4000; // ms
+    const delay = 500; // ms
+    let startTime: number | null = null;
+    let rafId: number;
+
+    const animate = (timestamp: number) => {
+      if (startTime === null) startTime = timestamp;
+      const elapsed = timestamp - startTime - delay;
+
+      if (elapsed < 0) {
+        // Still in delay period
+        rafId = requestAnimationFrame(animate);
+        return;
+      }
+
+      const linearProgress = Math.min(elapsed / duration, 1);
+      const easedProgress = cubicBezier(linearProgress, 0.25, 0.1, 0.25, 1);
+      const currentLength = easedProgress * totalLength;
+
+      // Trail: reveal up to currentLength
+      trail.style.strokeDashoffset = `${totalLength - currentLength}`;
+
+      // Plane: position + rotation along path
+      const point = route.getPointAtLength(currentLength);
+      // Look ahead for direction, but near the end look behind to avoid snapping to 0°
+      const nearby =
+        currentLength < totalLength - 1
+          ? route.getPointAtLength(currentLength + 1)
+          : route.getPointAtLength(currentLength - 1);
+      const sign = currentLength < totalLength - 1 ? 1 : -1;
+      const angle =
+        Math.atan2(sign * (nearby.y - point.y), sign * (nearby.x - point.x)) *
+        (180 / Math.PI);
+
+      plane.setAttribute(
+        'transform',
+        `translate(${point.x}, ${point.y}) rotate(${angle})`,
+      );
+      plane.style.opacity = '1';
+
+      if (linearProgress < 1) {
+        rafId = requestAnimationFrame(animate);
+      }
+    };
+
+    rafId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafId);
   }, []);
 
   return (
@@ -36,22 +130,32 @@ export function FlightPath({ className }: { className?: string }) {
       )}
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Flight path curve */}
+      {/* Dashed route -- the planned path, visible immediately at low opacity */}
       <path
-        id="flightRoute"
+        ref={routeRef}
+        d={FLIGHT_PATH}
+        stroke="url(#flightGradient)"
+        strokeWidth="1.5"
+        strokeDasharray="8 6"
+        fill="none"
+        opacity="0.3"
+      />
+
+      {/* Solid trail -- drawn in by JS in sync with the plane */}
+      <path
+        ref={trailRef}
         d={FLIGHT_PATH}
         stroke="url(#flightGradient)"
         strokeWidth="2"
-        strokeDasharray="8 6"
+        strokeLinecap="round"
         fill="none"
-        className="flight-path-line"
       />
 
-      {/* Departure dot -- at the start of the path (100, 480) */}
+      {/* Departure dot */}
       <circle cx="100" cy="480" r="5" className="fill-fd-primary/60" />
       <circle cx="100" cy="480" r="10" className="fill-fd-primary/15" />
 
-      {/* Arrival dot -- at the end of the path (1300, 120), pulsing */}
+      {/* Arrival dot (pulsing) */}
       <circle
         cx="1300"
         cy="120"
@@ -65,38 +169,12 @@ export function FlightPath({ className }: { className?: string }) {
         className="fill-fd-primary/15 flight-dot-pulse"
       />
 
-      {/* Airplane that follows the path */}
-      {/* The outer <g> receives animateMotion; inner rotation corrects for
-          the SVG path pointing up (nose at -Y) vs animateMotion's 0° = +X */}
-      <g className="flight-plane-group" style={{ opacity: 0 }}>
-        <g transform="rotate(90)">
-          <path
-            d="M0 -10 L2 -8 L2 -3 L8 2 L8 4 L2 1 L2 5 L4 7 L4 8.5 L0 7 L-4 8.5 L-4 7 L-2 5 L-2 1 L-8 4 L-8 2 L-2 -3 L-2 -8 Z"
-            className="fill-fd-primary"
-            transform="scale(1.4)"
-          />
-        </g>
-        {/* animateMotion moves the plane along the flight path */}
-        <animateMotion
-          dur="4s"
-          begin="0.5s"
-          fill="freeze"
-          rotate="auto"
-          keyPoints="0;1"
-          keyTimes="0;1"
-          calcMode="spline"
-          keySplines="0.25 0.1 0.25 1"
-        >
-          <mpath href="#flightRoute" />
-        </animateMotion>
-        {/* Show the plane when the animation starts */}
-        <animate
-          attributeName="opacity"
-          from="0"
-          to="1"
-          dur="0.3s"
-          begin="0.5s"
-          fill="freeze"
+      {/* Airplane -- positioned by JS, rotated to face direction of travel */}
+      <g ref={planeRef} style={{ opacity: 0 }}>
+        <path
+          d="M0 -10 L2 -8 L2 -3 L8 2 L8 4 L2 1 L2 5 L4 7 L4 8.5 L0 7 L-4 8.5 L-4 7 L-2 5 L-2 1 L-8 4 L-8 2 L-2 -3 L-2 -8 Z"
+          className="fill-fd-primary"
+          transform="scale(1.4) rotate(90)"
         />
       </g>
 
