@@ -3,7 +3,8 @@ import { differenceInSeconds, format } from 'date-fns';
 import { page } from '$app/state';
 import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type { Airline, CreateFlight } from '$lib/db/types';
-import { api } from '$lib/trpc';
+import { getAirlineByIata } from '$lib/utils/data/airlines';
+import { getAirportByIata } from '$lib/utils/data/airports/cache';
 import { parseLocalISO } from '$lib/utils/datetime';
 
 // Basic ICS line unfolding: lines beginning with space/tab are continuations
@@ -175,8 +176,8 @@ export const processTripItFile = async (
 
     const mappedFrom = options.airportMapping?.[fromCode];
     const mappedTo = options.airportMapping?.[toCode];
-    const from = mappedFrom ?? (await api.airport.getFromIata.query(fromCode));
-    const to = mappedTo ?? (await api.airport.getFromIata.query(toCode));
+    const from = mappedFrom ?? (await getAirportByIata(fromCode));
+    const to = mappedTo ?? (await getAirportByIata(toCode));
 
     const airlineIata = flightNumber.replace(/\d+.*/, '');
     const mappedAirline = airlineIata
@@ -184,7 +185,7 @@ export const processTripItFile = async (
       : undefined;
     let airline: Airline | null = mappedAirline || null;
     if (!airline && options.airlineFromFlightNumber && airlineIata) {
-      airline = (await api.airline.getByIata.query(airlineIata)) ?? null;
+      airline = (await getAirlineByIata(airlineIata)) ?? null;
     }
 
     const flightIndex = flights.length;

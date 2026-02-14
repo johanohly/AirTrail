@@ -3,7 +3,8 @@ import { differenceInSeconds, format } from 'date-fns';
 import { page } from '$app/state';
 import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type { Airline, CreateFlight, SeatClasses } from '$lib/db/types';
-import { api } from '$lib/trpc';
+import { getAirlineByIata } from '$lib/utils/data/airlines';
+import { getAirportByIata } from '$lib/utils/data/airports/cache';
 import { parseLocalISO } from '$lib/utils/datetime';
 
 const AITA_SEAT_CLASS_MAP: Record<string, (typeof SeatClasses)[number]> = {
@@ -60,10 +61,8 @@ export const processAITAFile = async (
         : undefined;
       const mappedTo = rawTo ? options.airportMapping?.[rawTo] : undefined;
       const from =
-        mappedFrom ||
-        (rawFrom ? await api.airport.getFromIata.query(rawFrom) : null);
-      const to =
-        mappedTo || (rawTo ? await api.airport.getFromIata.query(rawTo) : null);
+        mappedFrom || (rawFrom ? await getAirportByIata(rawFrom) : null);
+      const to = mappedTo || (rawTo ? await getAirportByIata(rawTo) : null);
 
       const departure = rawDeparture
         ? parseLocalISO(rawDeparture, 'UTC')
@@ -81,7 +80,7 @@ export const processAITAFile = async (
         : undefined;
       let airline: Airline | null = mappedAirline || null;
       if (!airline && options.airlineFromFlightNumber && airlineIata) {
-        airline = (await api.airline.getByIata.query(airlineIata)) ?? null;
+        airline = (await getAirlineByIata(airlineIata)) ?? null;
       }
 
       const seatNumber = rawSeat && rawSeat !== 'None' ? rawSeat : null;

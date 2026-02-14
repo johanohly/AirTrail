@@ -15,7 +15,10 @@
   } from '$lib/components/ui/modal';
   import { trpc } from '$lib/trpc';
   import { aircraftSchema } from '$lib/zod/aircraft';
-  import { aircraftSearchCache } from '$lib/utils/data/aircraft';
+  import {
+    aircraftSearchCache,
+    clearAircraftLookupCaches,
+  } from '$lib/utils/data/aircraft';
 
   let { open = $bindable(false), withoutTrigger } = $props();
 
@@ -29,6 +32,7 @@
           if (form.message.type === 'success') {
             trpc.aircraft.list.utils.invalidate();
             aircraftSearchCache.clear();
+            clearAircraftLookupCaches();
             open = false;
             return void toast.success(form.message.text);
           }
