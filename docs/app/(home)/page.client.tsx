@@ -12,7 +12,6 @@ function cn(...classes: (string | false | undefined | null)[]) {
   return classes.filter(Boolean).join(' ');
 }
 
-// The flight route path - shared between the visible line, dots, and plane animation
 const FLIGHT_PATH =
   'M100 480 C250 460, 380 220, 550 240 S780 380, 950 180 S1180 220, 1300 120';
 
@@ -80,7 +79,6 @@ export function FlightPath({ className }: { className?: string }) {
       const elapsed = timestamp - startTime - delay;
 
       if (elapsed < 0) {
-        // Still in delay period
         rafId = requestAnimationFrame(animate);
         return;
       }
@@ -94,7 +92,6 @@ export function FlightPath({ className }: { className?: string }) {
 
       // Plane: position + rotation along path
       const point = route.getPointAtLength(currentLength);
-      // Look ahead for direction, but near the end look behind to avoid snapping to 0°
       const nearby =
         currentLength < totalLength - 1
           ? route.getPointAtLength(currentLength + 1)
