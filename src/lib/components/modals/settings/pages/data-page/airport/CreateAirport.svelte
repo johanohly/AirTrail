@@ -15,7 +15,10 @@
     ModalFooter,
   } from '$lib/components/ui/modal';
   import type { Airport } from '$lib/db/types';
-  import { airportSearchCache } from '$lib/utils/data/airports/cache';
+  import {
+    airportSearchCache,
+    clearAirportLookupCaches,
+  } from '$lib/utils/data/airports/cache';
   import { airportSchema } from '$lib/zod/airport';
 
   let {
@@ -38,6 +41,7 @@
           if (form.message.type === 'success') {
             open = false;
             airportSearchCache.clear();
+            clearAirportLookupCaches();
             onAirportCreate?.({ ...form.data, custom: true });
             return void toast.success(form.message.text);
           }

@@ -5,8 +5,9 @@ import { z } from 'zod';
 import { page } from '$app/state';
 import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type { CreateFlight, Seat } from '$lib/db/types';
-import { api } from '$lib/trpc';
 import { parseCsv } from '$lib/utils';
+import { getAirlineByIata, getAirlineByIcao } from '$lib/utils/data/airlines';
+import { getAirportByIata } from '$lib/utils/data/airports/cache';
 import { parseLocalISO, toUtc } from '$lib/utils/datetime';
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
@@ -139,8 +140,8 @@ export const processByAirFile = async (
 
     const mappedFrom = options.airportMapping?.[fromCode];
     const mappedTo = options.airportMapping?.[toCode];
-    const from = mappedFrom ?? (await api.airport.getFromIata.query(fromCode));
-    const to = mappedTo ?? (await api.airport.getFromIata.query(toCode));
+    const from = mappedFrom ?? (await getAirportByIata(fromCode));
+    const to = mappedTo ?? (await getAirportByIata(toCode));
 
     const departure = parseByAirTime(
       row.flight_date,
@@ -175,10 +176,10 @@ export const processByAirFile = async (
         const mappedAirline = options.airlineMapping?.[airlineCode];
         airline = mappedAirline || null;
         if (!airline) {
-          airline = (await api.airline.getByIata.query(airlineCode)) ?? null;
+          airline = (await getAirlineByIata(airlineCode)) ?? null;
         }
         if (!airline) {
-          airline = (await api.airline.getByIcao.query(airlineCode)) ?? null;
+          airline = (await getAirlineByIcao(airlineCode)) ?? null;
         }
       }
     }

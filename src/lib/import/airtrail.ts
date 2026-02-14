@@ -3,6 +3,9 @@ import { z } from 'zod';
 import { page } from '$app/state';
 import type { CreateFlight } from '$lib/db/types';
 import { api } from '$lib/trpc';
+import { getAircraftByIcao, getAircraftByName } from '$lib/utils/data/aircraft';
+import { getAirlineByIcao, getAirlineByName } from '$lib/utils/data/airlines';
+import { getAirportByIcao } from '$lib/utils/data/airports/cache';
 import { aircraftSchema } from '$lib/zod/aircraft';
 import { airlineSchema } from '$lib/zod/airline';
 import { flightAirportSchema } from '$lib/zod/airport';
@@ -173,10 +176,8 @@ export const processAirTrailFile = async (
 
     const mappedFrom = options.airportMapping?.[rawFlight.from.icao];
     const mappedTo = options.airportMapping?.[rawFlight.to.icao];
-    const from =
-      mappedFrom ?? (await api.airport.getFromIcao.query(rawFlight.from.icao));
-    const to =
-      mappedTo ?? (await api.airport.getFromIcao.query(rawFlight.to.icao));
+    const from = mappedFrom ?? (await getAirportByIcao(rawFlight.from.icao));
+    const to = mappedTo ?? (await getAirportByIcao(rawFlight.to.icao));
 
     let airline = null;
     if (rawFlight.airline) {
@@ -186,15 +187,15 @@ export const processAirTrailFile = async (
       airline =
         mappedAirline ||
         (rawFlight.airline.icao
-          ? await api.airline.getByIcao.query(rawFlight.airline.icao)
-          : await api.airline.getByName.query(rawFlight.airline.name));
+          ? await getAirlineByIcao(rawFlight.airline.icao)
+          : await getAirlineByName(rawFlight.airline.name));
     }
 
     let aircraft = null;
     if (rawFlight.aircraft) {
       aircraft = rawFlight.aircraft.icao
-        ? await api.aircraft.getByIcao.query(rawFlight.aircraft.icao)
-        : await api.aircraft.getByName.query(rawFlight.aircraft.name);
+        ? await getAircraftByIcao(rawFlight.aircraft.icao)
+        : await getAircraftByName(rawFlight.aircraft.name);
     }
 
     if (!from) {
