@@ -191,3 +191,32 @@
 .landing-btn-primary:hover::after {
   opacity: 0.3;
 }
+
+/* Lightbox overlay */
+.lightbox-overlay {
+  animation: lightbox-in 0.25s ease-out;
+}
+
+.lightbox-image {
+  animation: lightbox-image-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes lightbox-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lightbox-image-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

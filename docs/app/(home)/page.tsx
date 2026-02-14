@@ -22,6 +22,7 @@ import {
   InstallAnimation,
   FadeInOnScroll,
   PreviewImage,
+  HeroImage,
 } from './page.client';
 
 export default function HomePage() {
@@ -35,17 +36,17 @@ export default function HomePage() {
           {/* Subtle grid overlay */}
           <div className="hero-grid-overlay pointer-events-none absolute inset-0 z-[0] rounded-2xl" />
 
-          {/* Content */}
-          <div className="relative z-[2] flex w-full flex-col p-6 md:p-10 lg:p-14">
+          {/* Content -- constrained to left half on lg+ to avoid overlapping the image */}
+          <div className="relative z-[2] flex w-full flex-col p-6 md:p-10 lg:w-[50%] lg:p-14">
             <p className="landing-pill mb-6 w-fit rounded-full border border-fd-primary/30 px-3 py-1.5 font-medium text-fd-primary text-xs tracking-wide">
               Open-source flight tracker
             </p>
-            <h1 className="mb-4 max-w-3xl font-semibold text-3xl leading-[1.1] tracking-tight md:text-5xl xl:text-6xl">
+            <h1 className="mb-4 font-semibold text-3xl leading-[1.1] tracking-tight md:text-5xl xl:text-6xl">
               Your flights.
               <br />
               Your <span className="text-fd-primary">story</span>.
             </h1>
-            <p className="mb-8 max-w-xl text-fd-muted-foreground text-sm leading-relaxed md:text-base">
+            <p className="mb-8 text-fd-muted-foreground text-sm leading-relaxed md:text-base">
               A modern, self-hosted personal flight tracking system. Map every
               journey, analyze your travel patterns, and own your data.
             </p>
@@ -80,18 +81,7 @@ export default function HomePage() {
         </div>
 
         {/* Hero preview image -- overflows the card on desktop */}
-        <div className="pointer-events-none absolute right-6 -bottom-12 z-[3] hidden w-[55%] lg:block xl:right-10 xl:-bottom-16">
-          <img
-            src="/dark.png"
-            alt="AirTrail preview"
-            className="hidden rounded-xl border shadow-2xl dark:block"
-          />
-          <img
-            src="/light.png"
-            alt="AirTrail preview"
-            className="rounded-xl border shadow-2xl dark:hidden"
-          />
-        </div>
+        <HeroImage className="absolute right-6 -bottom-12 z-[3] hidden w-[50%] lg:block xl:right-10 xl:-bottom-16" />
       </section>
 
       {/* Mobile-only preview image */}

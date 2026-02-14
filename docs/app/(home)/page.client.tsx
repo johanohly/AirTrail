@@ -69,7 +69,7 @@ export function FlightPath({ className }: { className?: string }) {
       {/* The outer <g> receives animateMotion; inner rotation corrects for
           the SVG path pointing up (nose at -Y) vs animateMotion's 0° = +X */}
       <g className="flight-plane-group" style={{ opacity: 0 }}>
-        <g transform="rotate(-90)">
+        <g transform="rotate(90)">
           <path
             d="M0 -10 L2 -8 L2 -3 L8 2 L8 4 L2 1 L2 5 L4 7 L4 8.5 L0 7 L-4 8.5 L-4 7 L-2 5 L-2 1 L-8 4 L-8 2 L-2 -3 L-2 -8 Z"
             className="fill-fd-primary"
@@ -252,36 +252,91 @@ export function FadeInOnScroll({
   );
 }
 
-// Preview image switcher (dark/light)
-export function PreviewImage(props: ComponentProps<'div'>) {
-  const [loaded, setLoaded] = useState(false);
+// Lightbox overlay for enlarged image
+function ImageLightbox({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handleKey);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
 
   return (
     <div
-      {...props}
-      className={cn(
-        'relative overflow-hidden rounded-xl border shadow-2xl',
-        props.className ?? '',
-      )}
+      className="lightbox-overlay fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-black/80 p-4 backdrop-blur-sm md:p-8"
+      onClick={onClose}
     >
       <img
         src="/dark.png"
         alt="AirTrail screenshot"
-        className={cn(
-          'hidden w-full transition-all duration-700 dark:block',
-          loaded ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]',
-        )}
-        onLoad={() => setLoaded(true)}
+        className="lightbox-image hidden max-h-[90vh] max-w-full rounded-lg shadow-2xl dark:block"
       />
       <img
         src="/light.png"
         alt="AirTrail screenshot"
-        className={cn(
-          'w-full transition-all duration-700 dark:hidden',
-          loaded ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]',
-        )}
-        onLoad={() => setLoaded(true)}
+        className="lightbox-image max-h-[90vh] max-w-full rounded-lg shadow-2xl dark:hidden"
       />
     </div>
+  );
+}
+
+// Preview image (mobile full-width) -- click to enlarge
+export function PreviewImage(props: ComponentProps<'div'>) {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  return (
+    <>
+      <div
+        {...props}
+        className={cn(
+          'relative cursor-zoom-in overflow-hidden rounded-xl border shadow-2xl',
+          props.className ?? '',
+        )}
+        onClick={() => setLightboxOpen(true)}
+      >
+        <img
+          src="/dark.png"
+          alt="AirTrail screenshot"
+          className="hidden w-full dark:block"
+        />
+        <img
+          src="/light.png"
+          alt="AirTrail screenshot"
+          className="w-full dark:hidden"
+        />
+      </div>
+      {lightboxOpen && <ImageLightbox onClose={() => setLightboxOpen(false)} />}
+    </>
+  );
+}
+
+// Hero image (desktop, absolute-positioned in hero) -- click to enlarge
+export function HeroImage({ className }: { className?: string }) {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  return (
+    <>
+      <div
+        className={cn('cursor-zoom-in pointer-events-auto', className ?? '')}
+        onClick={() => setLightboxOpen(true)}
+      >
+        <img
+          src="/dark.png"
+          alt="AirTrail preview"
+          className="hidden rounded-xl border shadow-2xl dark:block"
+        />
+        <img
+          src="/light.png"
+          alt="AirTrail preview"
+          className="rounded-xl border shadow-2xl dark:hidden"
+        />
+      </div>
+      {lightboxOpen && <ImageLightbox onClose={() => setLightboxOpen(false)} />}
+    </>
   );
 }
