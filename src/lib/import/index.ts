@@ -19,6 +19,12 @@ type ProcessResult = {
   unknownAirports: Record<string, number[]>; // code -> flight indices
   unknownAirlines: Record<string, number[]>; // code -> flight indices
   unknownUsers: Record<string, number[]>; // encoded user key -> flight indices
+  exportedUsers: {
+    id: string;
+    username: string;
+    displayName: string;
+    mappedUserId: string | null;
+  }[];
 };
 
 type Processor = (
@@ -33,6 +39,7 @@ const withDefaultUnknownUsers = async (
   return {
     ...res,
     unknownUsers: {},
+    exportedUsers: [],
   };
 };
 

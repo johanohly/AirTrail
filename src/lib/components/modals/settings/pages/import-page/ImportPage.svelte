@@ -30,6 +30,14 @@
   let unknownAirports = $state<Record<string, number[]>>({});
   let unknownAirlines = $state<Record<string, number[]>>({});
   let unknownUsers = $state<Record<string, number[]>>({});
+  let exportedUsers = $state<
+    {
+      id: string;
+      username: string;
+      displayName: string;
+      mappedUserId: string | null;
+    }[]
+  >([]);
 
   let platform = $state<(typeof platforms)[0]>(platforms[0]);
   let ownerOnly = $state(false);
@@ -100,6 +108,7 @@
     unknownAirports = result.unknownAirports;
     unknownAirlines = result.unknownAirlines;
     unknownUsers = result.unknownUsers;
+    exportedUsers = result.exportedUsers;
     importedCount = stats?.insertedFlights ?? 0;
     if (importedCount > 0) {
       toast.success(
@@ -149,6 +158,7 @@
       unknownAirports = result.unknownAirports;
       unknownAirlines = result.unknownAirlines;
       unknownUsers = result.unknownUsers;
+      exportedUsers = result.exportedUsers;
     } catch (error) {
       toast.error('Failed to reprocess file');
       console.error(error);
@@ -161,6 +171,7 @@
     unknownAirports = {};
     unknownAirlines = {};
     unknownUsers = {};
+    exportedUsers = [];
     importedCount = 0;
     files = null;
     originalFile = null;
@@ -254,6 +265,7 @@
       {unknownAirports}
       {unknownAirlines}
       {unknownUsers}
+      {exportedUsers}
       busy={importing}
       onreprocess={handleReprocess}
       onclose={closeAndReset}

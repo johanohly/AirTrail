@@ -100,6 +100,20 @@ export const processAirTrailFile = async (
   }, {});
   const users = await api.user.list.query();
 
+  const exportedUsers = data.users.map((exportedUser) => {
+    const mappedUserId =
+      options.userMapping?.[exportedUser.id] ??
+      users.find((user) => user.username === exportedUser.username)?.id ??
+      null;
+
+    return {
+      id: exportedUser.id,
+      username: exportedUser.username,
+      displayName: exportedUser.displayName,
+      mappedUserId,
+    };
+  });
+
   const unknownAirports: Record<string, number[]> = {};
   const unknownAirlines: Record<string, number[]> = {};
   const unknownUsers: Record<string, number[]> = {};
@@ -109,13 +123,11 @@ export const processAirTrailFile = async (
     const seats = rawFlight.seats.map((seat) => {
       const dataUser = dataUsers?.[seat.userId ?? ''];
       const mappedUserId = dataUser
-        ? options.userMapping?.[dataUser.id]
-        : undefined;
+        ? exportedUsers.find((u) => u.id === dataUser.id)?.mappedUserId
+        : null;
       const user = mappedUserId
         ? users.find((user) => user.id === mappedUserId)
-        : dataUser
-          ? users.find((user) => user.username === dataUser?.username)
-          : null;
+        : null;
 
       if (dataUser && !user) {
         const key = `${dataUser.id}|${dataUser.username}|${dataUser.displayName}`;
@@ -226,5 +238,6 @@ export const processAirTrailFile = async (
     unknownAirports,
     unknownAirlines,
     unknownUsers,
+    exportedUsers,
   };
 };

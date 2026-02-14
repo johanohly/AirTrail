@@ -18,6 +18,7 @@
     unknownAirports = {},
     unknownAirlines = {},
     unknownUsers = {},
+    exportedUsers = [],
     busy = false,
     onreprocess,
     onclose,
@@ -26,6 +27,12 @@
     unknownAirports?: Record<string, number[]>;
     unknownAirlines?: Record<string, number[]>;
     unknownUsers?: Record<string, number[]>;
+    exportedUsers?: {
+      id: string;
+      username: string;
+      displayName: string;
+      mappedUserId: string | null;
+    }[];
     busy?: boolean;
     onreprocess?: (
       airportMapping: Record<string, Airport>,
@@ -38,12 +45,28 @@
   const unknownAirportCodes = $derived(Object.keys(unknownAirports));
   const unknownAirlineCodes = $derived(Object.keys(unknownAirlines));
   const unknownUserKeys = $derived(Object.keys(unknownUsers));
+  const exportedUserEntries = $derived(
+    exportedUsers.length
+      ? exportedUsers
+      : unknownUserKeys
+          .map((key) => decodeUnknownUser(key))
+          .map((u) => ({
+            ...u,
+            mappedUserId: null,
+          })),
+  );
 
   const usersPromise = api.user.list.query();
 
   let airportMapping: Record<string, Airport> = $state({});
   let airlineMapping: Record<string, Airline> = $state({});
-  let userMapping: Record<string, string> = $state({});
+  let userMapping: Record<string, string> = $state(
+    Object.fromEntries(
+      exportedUsers
+        .filter((user) => user.mappedUserId)
+        .map((user) => [user.id, user.mappedUserId!]),
+    ),
+  );
   const canReprocess = $derived(
     (Object.values(airportMapping).some(Boolean) ||
       Object.values(airlineMapping).some(Boolean) ||
@@ -113,7 +136,7 @@
       </div>
     </div>
 
-    {#if unknownAirportCodes.length || unknownAirlineCodes.length || unknownUserKeys.length}
+    {#if unknownAirportCodes.length || unknownAirlineCodes.length || exportedUserEntries.length}
       <Separator class="my-4" />
 
       <div class="flex items-start gap-3">
@@ -125,11 +148,11 @@
           <p class="font-medium text-sm">
             {unknownAirportCodes.length +
               unknownAirlineCodes.length +
-              unknownUserKeys.length}
+              exportedUserEntries.length}
             Unknown {pluralize(
               unknownAirportCodes.length +
                 unknownAirlineCodes.length +
-                unknownUserKeys.length,
+                exportedUserEntries.length,
               'Mapping',
             )}
           </p>
@@ -191,18 +214,17 @@
               {/each}
             </div>
           {/if}
-          {#if unknownUserKeys.length}
+          {#if exportedUserEntries.length}
             <div
               class="space-y-2"
               class:mt-4={unknownAirportCodes.length ||
                 unknownAirlineCodes.length}
             >
               <p class="text-xs font-medium text-muted-foreground uppercase">
-                Users ({unknownUserKeys.length})
+                Users ({exportedUserEntries.length})
               </p>
               {#await usersPromise then users}
-                {#each unknownUserKeys as key (key)}
-                  {@const unknownUser = decodeUnknownUser(key)}
+                {#each exportedUserEntries as unknownUser (unknownUser.id)}
                   <div class="flex items-center gap-3">
                     <div class="w-40 shrink-0">
                       <div class="text-sm font-medium">
@@ -257,8 +279,8 @@
               <span class="mx-1">•</span>
             {/if}
             {#if mappedUserCount > 0}
-              {mappedUserCount} of {unknownUserKeys.length}
-              {pluralize(unknownUserKeys.length, 'user')} mapped
+              {mappedUserCount} of {exportedUserEntries.length}
+              {pluralize(exportedUserEntries.length, 'user')} mapped
             {/if}
           </p>
         </div>
