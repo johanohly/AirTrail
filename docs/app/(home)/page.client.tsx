@@ -47,7 +47,7 @@ function cubicBezier(
 }
 
 // Animated flight path SVG that traces across the hero
-export function FlightPath({ className }: { className?: string }) {
+export function FlightPath({ className }: Readonly<{ className?: string }>) {
   const [mounted, setMounted] = useState(false);
   const routeRef = useRef<SVGPathElement>(null);
   const trailRef = useRef<SVGPathElement>(null);
@@ -75,7 +75,7 @@ export function FlightPath({ className }: { className?: string }) {
     let rafId: number;
 
     const animate = (timestamp: number) => {
-      if (startTime === null) startTime = timestamp;
+      startTime ??= timestamp;
       const elapsed = timestamp - startTime - delay;
 
       if (elapsed < 0) {
@@ -204,7 +204,10 @@ export function FlightPath({ className }: { className?: string }) {
 }
 
 // Copy button helper
-function CopyButton({ text, className }: { text: string; className?: string }) {
+function CopyButton({
+  text,
+  className,
+}: Readonly<{ text: string; className?: string }>) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -316,7 +319,7 @@ export function InstallCommand() {
 }
 
 // Inline copy for a URL string
-export function CopyableUrl({ url }: { url: string }) {
+export function CopyableUrl({ url }: Readonly<{ url: string }>) {
   return (
     <span className="inline-flex items-center gap-1.5">
       <code className="rounded bg-fd-muted px-1.5 py-0.5 text-fd-foreground">
@@ -332,11 +335,11 @@ export function FadeInOnScroll({
   children,
   className,
   delay = 0,
-}: {
+}: Readonly<{
   children: ReactNode;
   className?: string;
   delay?: number;
-}) {
+}>) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -374,7 +377,7 @@ export function FadeInOnScroll({
 }
 
 // Lightbox overlay for enlarged image
-function ImageLightbox({ onClose }: { onClose: () => void }) {
+function ImageLightbox({ onClose }: Readonly<{ onClose: () => void }>) {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -389,8 +392,13 @@ function ImageLightbox({ onClose }: { onClose: () => void }) {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       className="lightbox-overlay fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-black/80 p-4 backdrop-blur-sm md:p-8"
       onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') onClose();
+      }}
     >
       <img
         src="/dark.png"
@@ -407,18 +415,23 @@ function ImageLightbox({ onClose }: { onClose: () => void }) {
 }
 
 // Preview image (mobile full-width) -- click to enlarge
-export function PreviewImage(props: ComponentProps<'div'>) {
+export function PreviewImage(props: Readonly<ComponentProps<'div'>>) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   return (
     <>
       <div
         {...props}
+        role="button"
+        tabIndex={0}
         className={cn(
           'relative cursor-zoom-in overflow-hidden rounded-xl border shadow-2xl',
           props.className ?? '',
         )}
         onClick={() => setLightboxOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') setLightboxOpen(true);
+        }}
       >
         <img
           src="/dark.png"
@@ -437,14 +450,19 @@ export function PreviewImage(props: ComponentProps<'div'>) {
 }
 
 // Hero image (desktop, absolute-positioned in hero) -- click to enlarge
-export function HeroImage({ className }: { className?: string }) {
+export function HeroImage({ className }: Readonly<{ className?: string }>) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   return (
     <>
       <div
+        role="button"
+        tabIndex={0}
         className={cn('cursor-zoom-in pointer-events-auto', className ?? '')}
         onClick={() => setLightboxOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') setLightboxOpen(true);
+        }}
       >
         <img
           src="/dark.png"

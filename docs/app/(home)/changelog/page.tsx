@@ -21,19 +21,19 @@ function processReleaseBody(body: string): string {
 
   // PR / issue URLs → [#number](url)
   // Only match bare URLs (not already inside markdown links)
-  result = result.replace(
+  result = result.replaceAll(
     /(?<!\]\()https:\/\/github\.com\/[^/]+\/[^/]+\/(?:pull|issues)\/(\d+)/g,
     (url, num) => `[#${num}](${url})`,
   );
 
   // Compare URLs → [`v1...v2`](url)
-  result = result.replace(
+  result = result.replaceAll(
     /(?<!\]\()https:\/\/github\.com\/[^/]+\/[^/]+\/compare\/([^\s)]+)/g,
     (url, range) => `[\`${range}\`](${url})`,
   );
 
   // User profile URLs → [@username](url)
-  result = result.replace(
+  result = result.replaceAll(
     /(?<!\]\()https:\/\/github\.com\/([a-zA-Z0-9-]+)(?=[)\s,]|$)/g,
     (url, username) => `[@${username}](${url})`,
   );

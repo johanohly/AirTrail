@@ -9,7 +9,7 @@ function formatStars(count: number): string {
   return count >= 1000 ? `${(count / 1000).toFixed(1)}k` : `${count}`;
 }
 
-function GitHubIcon({ className }: { className?: string }) {
+function GitHubIcon({ className }: Readonly<{ className?: string }>) {
   return (
     <svg
       viewBox="0 0 16 16"
@@ -22,7 +22,9 @@ function GitHubIcon({ className }: { className?: string }) {
   );
 }
 
-export function GithubStars({ defaultCount }: { defaultCount?: number }) {
+export function GithubStars({
+  defaultCount,
+}: Readonly<{ defaultCount?: number }>) {
   const [stars, setStars] = useState<string>(
     defaultCount ? formatStars(defaultCount) : '',
   );
