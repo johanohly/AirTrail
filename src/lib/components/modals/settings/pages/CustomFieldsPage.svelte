@@ -484,9 +484,7 @@
           })}
           <Card
             level="2"
-            class={`p-3 flex items-center gap-3 transition-colors ${
-              $sortable.isDragging ? 'opacity-60' : ''
-            } ${$sortable.isDropTarget ? 'ring-1 ring-primary/50 bg-primary/5' : ''}`}
+            class="p-3 flex items-center gap-3"
             {@attach sortable.ref}
           >
             <button
