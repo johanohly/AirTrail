@@ -10,7 +10,8 @@
   import { Input } from '$lib/components/ui/input';
   import { Switch } from '$lib/components/ui/switch';
   import { Modal, ModalBody, ModalHeader } from '$lib/components/ui/modal';
-  import DragDropProvider, {
+  import {
+    DragDropProvider,
     KeyboardSensor,
     PointerSensor,
   } from '@dnd-kit-svelte/svelte';
