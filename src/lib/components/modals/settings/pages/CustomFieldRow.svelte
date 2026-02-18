@@ -38,7 +38,11 @@
   });
 </script>
 
-<Card level="2" class="p-3 flex items-center gap-3" {@attach sortable.ref}>
+<Card
+  level="2"
+  class={`p-3 flex items-center gap-3 border border-border bg-card ${$sortable.isDragging ? 'opacity-80' : ''} ${$sortable.isDropTarget ? 'ring-1 ring-primary/40' : ''}`}
+  {@attach sortable.ref}
+>
   <button
     type="button"
     class="text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"

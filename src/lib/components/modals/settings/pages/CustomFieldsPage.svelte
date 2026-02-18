@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Plus, X } from '@o7/icon/lucide';
+  import { Plus, SlidersHorizontal } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
 
   import CustomFieldRow from './CustomFieldRow.svelte';
@@ -9,7 +9,11 @@
   import { Card } from '$lib/components/ui/card';
   import { Input } from '$lib/components/ui/input';
   import { Switch } from '$lib/components/ui/switch';
-  import { Modal, ModalBody, ModalHeader } from '$lib/components/ui/modal';
+  import {
+    Modal,
+    ModalBody,
+    ModalBreadcrumbHeader,
+  } from '$lib/components/ui/modal';
   import {
     DragDropProvider,
     KeyboardSensor,
@@ -486,19 +490,11 @@
 
 <Modal bind:open={editModalOpen} class="max-w-lg" closeOnOutsideClick={false}>
   {#if editing}
-    <ModalHeader>
-      <div class="flex w-full items-center justify-between gap-2">
-        <h2 class="text-lg font-medium">Custom fields</h2>
-        <button
-          type="button"
-          class="text-muted-foreground hover:bg-hover rounded-full p-2 transition-all duration-75"
-          aria-label="Close"
-          onclick={closeModal}
-        >
-          <X size={18} />
-        </button>
-      </div>
-    </ModalHeader>
+    <ModalBreadcrumbHeader
+      section="Settings"
+      title={editing.id ? 'Edit custom field' : 'Add custom field'}
+      icon={SlidersHorizontal}
+    />
     <ModalBody>
       <div class="space-y-4">
         <label class="text-sm font-medium" for="custom-field-label">Label</label
