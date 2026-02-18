@@ -42,6 +42,71 @@ const valueInputSchema = z.object({
   value: z.any().nullable(),
 });
 
+const ensureDefinitionIsValid = (
+  input: z.infer<typeof definitionInputSchema>,
+) => {
+  const options = input.options ?? [];
+
+  if (input.fieldType === 'select' && options.length === 0) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'Select fields require at least one option',
+    });
+  }
+
+  if (input.defaultValue != null) {
+    if (input.fieldType === 'text' && typeof input.defaultValue !== 'string') {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Default value must be a string for text fields',
+      });
+    }
+
+    if (
+      input.fieldType === 'number' &&
+      typeof input.defaultValue !== 'number'
+    ) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Default value must be a number for number fields',
+      });
+    }
+
+    if (
+      input.fieldType === 'boolean' &&
+      typeof input.defaultValue !== 'boolean'
+    ) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Default value must be a boolean for boolean fields',
+      });
+    }
+
+    if (input.fieldType === 'date' && typeof input.defaultValue !== 'string') {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Default value must be a string for date fields',
+      });
+    }
+
+    if (input.fieldType === 'select') {
+      if (typeof input.defaultValue !== 'string') {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Default value must be a string for select fields',
+        });
+      }
+
+      if (!options.includes(input.defaultValue)) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Default value must be one of the select options',
+        });
+      }
+    }
+  }
+};
+
 async function assertEntityAccess(
   entityType: EntityType,
   entityId: string,
@@ -107,6 +172,8 @@ export const customFieldRouter = router({
   createDefinition: adminProcedure
     .input(definitionInputSchema)
     .mutation(async ({ input }) => {
+      ensureDefinitionIsValid(input);
+
       return await db
         .insertInto('customFieldDefinition')
         .values({
@@ -129,6 +196,8 @@ export const customFieldRouter = router({
   updateDefinition: adminProcedure
     .input(definitionInputSchema.extend({ id: z.number().int() }))
     .mutation(async ({ input }) => {
+      ensureDefinitionIsValid(input);
+
       return await db
         .updateTable('customFieldDefinition')
         .set({
@@ -200,7 +269,7 @@ export const customFieldRouter = router({
 
       const defs = await db
         .selectFrom('customFieldDefinition')
-        .select(['id', 'fieldType', 'required', 'validationJson'])
+        .select(['id', 'fieldType', 'required', 'options', 'validationJson'])
         .where('entityType', '=', input.entityType)
         .where('active', '=', true)
         .execute();
@@ -240,6 +309,54 @@ export const customFieldRouter = router({
         }
 
         if (value == null) continue;
+
+        if (def.fieldType === 'text' && typeof value !== 'string') {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Text custom field requires a string value (fieldId=${def.id})`,
+          });
+        }
+
+        if (def.fieldType === 'number' && typeof value !== 'number') {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Number custom field requires a numeric value (fieldId=${def.id})`,
+          });
+        }
+
+        if (def.fieldType === 'boolean' && typeof value !== 'boolean') {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Boolean custom field requires a boolean value (fieldId=${def.id})`,
+          });
+        }
+
+        if (def.fieldType === 'date' && typeof value !== 'string') {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `Date custom field requires a string value (fieldId=${def.id})`,
+          });
+        }
+
+        if (def.fieldType === 'select') {
+          if (typeof value !== 'string') {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: `Select custom field requires a string value (fieldId=${def.id})`,
+            });
+          }
+
+          const options = Array.isArray(def.options)
+            ? def.options.filter((x): x is string => typeof x === 'string')
+            : [];
+
+          if (!options.includes(value)) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: `Select custom field value must be one of its options (fieldId=${def.id})`,
+            });
+          }
+        }
 
         const validation =
           def.validationJson && typeof def.validationJson === 'object'

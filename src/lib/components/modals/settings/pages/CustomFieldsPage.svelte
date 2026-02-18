@@ -1,5 +1,7 @@
 <script lang="ts">
   import {
+    ChevronDown,
+    ChevronUp,
     GripVertical,
     Plus,
     SlidersHorizontal,
@@ -63,7 +65,11 @@
     active: boolean;
     order: number;
     optionsText: string;
-    defaultValueText: string;
+    defaultText: string;
+    defaultNumber: string;
+    defaultBoolean: boolean;
+    defaultDate: string;
+    defaultSelect: string;
     validationRegex: string;
     validationMin: string;
     validationMax: string;
@@ -74,6 +80,7 @@
   let editModalOpen = $state(false);
   let autoKey = $state(false);
   let draggingId = $state<number | null>(null);
+  let dropTargetId = $state<number | null>(null);
 
   const parseValidation = (value: unknown): Validation => {
     if (!value || typeof value !== 'object') return {};
@@ -112,7 +119,11 @@
       active: true,
       order: 0,
       optionsText: '',
-      defaultValueText: '',
+      defaultText: '',
+      defaultNumber: '',
+      defaultBoolean: false,
+      defaultDate: '',
+      defaultSelect: '',
       validationRegex: '',
       validationMin: '',
       validationMax: '',
@@ -126,6 +137,8 @@
   const openEdit = (item: DefinitionItem) => {
     const validation = parseValidation(item.validationJson);
 
+    const options = normalizeOptions(item.options);
+
     editing = {
       id: item.id,
       key: item.key,
@@ -135,9 +148,29 @@
       required: item.required,
       active: item.active,
       order: item.order,
-      optionsText: normalizeOptions(item.options).join('\n'),
-      defaultValueText:
-        item.defaultValue == null ? '' : JSON.stringify(item.defaultValue),
+      optionsText: options.join('\n'),
+      defaultText:
+        typeof item.defaultValue === 'string' && item.fieldType === 'text'
+          ? item.defaultValue
+          : '',
+      defaultNumber:
+        typeof item.defaultValue === 'number' && item.fieldType === 'number'
+          ? String(item.defaultValue)
+          : '',
+      defaultBoolean:
+        typeof item.defaultValue === 'boolean' && item.fieldType === 'boolean'
+          ? item.defaultValue
+          : false,
+      defaultDate:
+        typeof item.defaultValue === 'string' && item.fieldType === 'date'
+          ? item.defaultValue
+          : '',
+      defaultSelect:
+        typeof item.defaultValue === 'string' &&
+        item.fieldType === 'select' &&
+        options.includes(item.defaultValue)
+          ? item.defaultValue
+          : '',
       validationRegex: validation.regex ?? '',
       validationMin:
         typeof validation.min === 'number' ? String(validation.min) : '',
@@ -160,6 +193,37 @@
     editModalOpen = false;
     editing = null;
     autoKey = false;
+  };
+
+  const getDefaultValue = () => {
+    if (!editing) return null;
+
+    if (editing.fieldType === 'text') {
+      return editing.defaultText.trim() || null;
+    }
+
+    if (editing.fieldType === 'number') {
+      if (!editing.defaultNumber.trim()) return null;
+      const parsed = Number(editing.defaultNumber);
+      if (Number.isNaN(parsed)) {
+        throw new Error('Default value must be a valid number');
+      }
+      return parsed;
+    }
+
+    if (editing.fieldType === 'boolean') {
+      return editing.defaultBoolean;
+    }
+
+    if (editing.fieldType === 'date') {
+      return editing.defaultDate || null;
+    }
+
+    if (editing.fieldType === 'select') {
+      return editing.defaultSelect || null;
+    }
+
+    return null;
   };
 
   const onLabelInput = (value: string) => {
@@ -188,13 +252,11 @@
     if (!editing) return;
 
     let defaultValue: unknown = null;
-    if (editing.defaultValueText.trim()) {
-      try {
-        defaultValue = JSON.parse(editing.defaultValueText);
-      } catch {
-        toast.error('Default value must be valid JSON');
-        return;
-      }
+    try {
+      defaultValue = getDefaultValue();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Invalid default value');
+      return;
     }
 
     const validationJson: Validation = {};
@@ -221,6 +283,48 @@
       }
     }
 
+    if (
+      typeof validationJson.min === 'number' &&
+      typeof validationJson.max === 'number' &&
+      validationJson.min > validationJson.max
+    ) {
+      toast.error('Min value cannot be greater than max value');
+      return;
+    }
+
+    if (
+      typeof validationJson.minLength === 'number' &&
+      typeof validationJson.maxLength === 'number' &&
+      validationJson.minLength > validationJson.maxLength
+    ) {
+      toast.error('Min length cannot be greater than max length');
+      return;
+    }
+
+    const options =
+      editing.fieldType === 'select'
+        ? editing.optionsText
+            .split('\n')
+            .map((x) => x.trim())
+            .filter(Boolean)
+        : undefined;
+
+    if (editing.fieldType === 'select' && (!options || options.length === 0)) {
+      toast.error('Select fields require at least one option');
+      return;
+    }
+
+    if (
+      editing.fieldType === 'select' &&
+      defaultValue != null &&
+      typeof defaultValue === 'string' &&
+      options &&
+      !options.includes(defaultValue)
+    ) {
+      toast.error('Default option must match one of the listed options');
+      return;
+    }
+
     const payload = {
       entityType: 'flight' as const,
       key: editing.key.trim(),
@@ -230,13 +334,7 @@
       required: editing.required,
       active: editing.active,
       order: editing.order,
-      options:
-        editing.fieldType === 'select'
-          ? editing.optionsText
-              .split('\n')
-              .map((x) => x.trim())
-              .filter(Boolean)
-          : undefined,
+      options,
       defaultValue,
       validationJson: Object.keys(validationJson).length
         ? validationJson
@@ -293,6 +391,24 @@
         : null,
   });
 
+  const persistOrder = async (list: DefinitionItem[]) => {
+    for (let i = 0; i < list.length; i++) {
+      const item = list[i];
+      const nextOrder = i;
+      if (!item || item.order === nextOrder) continue;
+
+      await api.customField.updateDefinition.mutate({
+        id: item.id,
+        ...toDefinitionPayload(item, nextOrder),
+      });
+    }
+
+    trpc.customField.listDefinitions.utils.invalidate({
+      entityType: 'flight',
+      includeInactive: true,
+    });
+  };
+
   const moveField = async (targetId: number) => {
     if (draggingId == null || draggingId === targetId) return;
 
@@ -305,27 +421,33 @@
     list.splice(toIndex, 0, moved);
 
     try {
-      for (let i = 0; i < list.length; i++) {
-        const item = list[i];
-        const nextOrder = i;
-        if (!item || item.order === nextOrder) continue;
-
-        await api.customField.updateDefinition.mutate({
-          id: item.id,
-          ...toDefinitionPayload(item, nextOrder),
-        });
-      }
-
-      trpc.customField.listDefinitions.utils.invalidate({
-        entityType: 'flight',
-        includeInactive: true,
-      });
+      await persistOrder(list);
       toast.success('Custom fields reordered');
     } catch (e) {
       toast.error('Failed to reorder custom fields');
       console.error(e);
     } finally {
       draggingId = null;
+      dropTargetId = null;
+    }
+  };
+
+  const moveByDelta = async (id: number, delta: number) => {
+    const list = [...($definitionsQuery.data ?? [])] as DefinitionItem[];
+    const index = list.findIndex((item) => item.id === id);
+    if (index < 0) return;
+
+    const nextIndex = Math.max(0, Math.min(list.length - 1, index + delta));
+    if (nextIndex === index) return;
+
+    const [moved] = list.splice(index, 1);
+    list.splice(nextIndex, 0, moved);
+
+    try {
+      await persistOrder(list);
+    } catch (e) {
+      toast.error('Failed to reorder custom fields');
+      console.error(e);
     }
   };
 
@@ -356,28 +478,65 @@
   {/snippet}
 
   {#if $definitionsQuery.data?.length}
+    <p class="mb-2 text-xs text-muted-foreground">
+      Drag the handle to reorder fields, or use the up/down arrows.
+    </p>
     <div class="space-y-2">
       {#each $definitionsQuery.data as item (item.id)}
         <Card
           level="2"
-          class="p-3 flex items-center gap-3"
+          class={`p-3 flex items-center gap-3 transition-colors ${
+            dropTargetId === item.id
+              ? 'ring-1 ring-primary/50 bg-primary/5'
+              : ''
+          } ${draggingId === item.id ? 'opacity-60' : ''}`}
           ondragover={(e) => e.preventDefault()}
-          ondrop={() => moveField(item.id)}
+          ondragenter={() => {
+            if (draggingId != null) dropTargetId = item.id;
+          }}
+          ondragleave={() => {
+            if (dropTargetId === item.id) dropTargetId = null;
+          }}
+          ondrop={() => {
+            dropTargetId = null;
+            moveField(item.id);
+          }}
         >
-          <button
-            type="button"
-            class="text-muted-foreground hover:text-foreground"
-            draggable="true"
-            ondragstart={() => {
-              draggingId = item.id;
-            }}
-            ondragend={() => {
-              draggingId = null;
-            }}
-            aria-label="Drag to reorder"
-          >
-            <GripVertical size={16} />
-          </button>
+          <div class="flex items-center gap-1 text-muted-foreground">
+            <button
+              type="button"
+              class="hover:text-foreground cursor-grab active:cursor-grabbing"
+              draggable="true"
+              ondragstart={() => {
+                draggingId = item.id;
+              }}
+              ondragend={() => {
+                draggingId = null;
+                dropTargetId = null;
+              }}
+              aria-label="Drag to reorder"
+            >
+              <GripVertical size={16} />
+            </button>
+            <div class="hidden sm:flex flex-col gap-0.5">
+              <button
+                type="button"
+                class="hover:text-foreground"
+                onclick={() => moveByDelta(item.id, -1)}
+                aria-label="Move up"
+              >
+                <ChevronUp size={12} />
+              </button>
+              <button
+                type="button"
+                class="hover:text-foreground"
+                onclick={() => moveByDelta(item.id, 1)}
+                aria-label="Move down"
+              >
+                <ChevronDown size={12} />
+              </button>
+            </div>
+          </div>
 
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
@@ -434,8 +593,16 @@
         <Select.Root
           type="single"
           value={editing.fieldType}
-          onValueChange={(v) =>
-            (editing!.fieldType = (v as FieldType) ?? 'text')}
+          onValueChange={(v) => {
+            if (!editing) return;
+
+            const nextType = (v as FieldType) ?? 'text';
+            editing.fieldType = nextType;
+
+            if (nextType !== 'select') {
+              editing.defaultSelect = '';
+            }
+          }}
         >
           <Select.Trigger>{toTitleCase(editing.fieldType)}</Select.Trigger>
           <Select.Content>
@@ -494,11 +661,42 @@
           ></textarea>
         {/if}
 
-        <label class="text-sm font-medium">Default value (JSON)</label>
-        <Input
-          bind:value={editing.defaultValueText}
-          placeholder={'e.g. "ABC123" or 42 or true'}
-        />
+        <label class="text-sm font-medium">Default value</label>
+        {#if editing.fieldType === 'text'}
+          <Input bind:value={editing.defaultText} placeholder="e.g. SK-12345" />
+        {:else if editing.fieldType === 'number'}
+          <Input
+            type="number"
+            bind:value={editing.defaultNumber}
+            placeholder="e.g. 42"
+          />
+        {:else if editing.fieldType === 'boolean'}
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" bind:checked={editing.defaultBoolean} />
+            Enabled by default
+          </label>
+        {:else if editing.fieldType === 'date'}
+          <Input type="date" bind:value={editing.defaultDate} />
+        {:else if editing.fieldType === 'select'}
+          {@const selectOptions = editing.optionsText
+            .split('\n')
+            .map((x) => x.trim())
+            .filter(Boolean)}
+          <Select.Root
+            type="single"
+            value={editing.defaultSelect}
+            onValueChange={(v) => (editing!.defaultSelect = v ?? '')}
+          >
+            <Select.Trigger>
+              {editing.defaultSelect || 'Select default option'}
+            </Select.Trigger>
+            <Select.Content>
+              {#each selectOptions as option (option)}
+                <Select.Item value={option} label={option} />
+              {/each}
+            </Select.Content>
+          </Select.Root>
+        {/if}
 
         <div class="grid grid-cols-2 gap-3">
           <label class="flex items-center gap-2 text-sm">
