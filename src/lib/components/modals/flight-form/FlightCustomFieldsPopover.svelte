@@ -2,10 +2,9 @@
   import { SlidersHorizontal } from '@o7/icon/lucide';
 
   import { Button } from '$lib/components/ui/button';
-  import { Input } from '$lib/components/ui/input';
   import { Modal, ModalBody, ModalHeader } from '$lib/components/ui/modal';
-  import { Switch } from '$lib/components/ui/switch';
-  import * as Select from '$lib/components/ui/select';
+
+  import CustomFieldInput from './CustomFieldInput.svelte';
 
   type Definition = {
     id: number;
@@ -28,14 +27,13 @@
 
   let open = $state(false);
 
-  const getOptions = (value: unknown): string[] => {
-    return Array.isArray(value)
+  const getOptions = (value: unknown): string[] =>
+    Array.isArray(value)
       ? value.filter((x): x is string => typeof x === 'string')
       : [];
-  };
 
-  const setValue = (id: number, value: unknown) => {
-    values = { ...values, [id]: value };
+  const setValue = (id: number, val: unknown) => {
+    values = { ...values, [id]: val };
   };
 </script>
 
@@ -53,74 +51,22 @@
     <h2 class="text-lg font-medium">Custom fields</h2>
   </ModalHeader>
   <ModalBody>
-    <div class="space-y-3">
+    <div class="grid gap-4">
       {#if definitions.length === 0}
         <p class="text-sm text-muted-foreground">
           No custom fields configured.
         </p>
       {:else}
         {#each definitions as field (field.id)}
-          <div class="space-y-1">
-            <label class="text-xs text-muted-foreground">
-              {field.label}{field.required ? ' *' : ''}
-            </label>
-
-            {#if field.fieldType === 'text'}
-              <Input
-                value={(values[field.id] as string) ?? ''}
-                oninput={(e) =>
-                  setValue(field.id, e.currentTarget.value || null)}
-              />
-            {:else if field.fieldType === 'textarea'}
-              <textarea
-                class="min-h-20 w-full rounded-md border bg-background p-2 text-sm"
-                value={(values[field.id] as string) ?? ''}
-                oninput={(e) =>
-                  setValue(field.id, e.currentTarget.value || null)}
-              ></textarea>
-            {:else if field.fieldType === 'number'}
-              <Input
-                type="number"
-                value={values[field.id] == null ? '' : String(values[field.id])}
-                oninput={(e) => {
-                  const raw = e.currentTarget.value;
-                  const parsed = Number(raw);
-                  setValue(
-                    field.id,
-                    raw === '' || Number.isNaN(parsed) ? null : parsed,
-                  );
-                }}
-              />
-            {:else if field.fieldType === 'boolean'}
-              <Switch
-                checked={Boolean(values[field.id])}
-                onCheckedChange={(checked) => setValue(field.id, checked)}
-              />
-            {:else if field.fieldType === 'date'}
-              <Input
-                type="date"
-                value={(values[field.id] as string) ?? ''}
-                oninput={(e) =>
-                  setValue(field.id, e.currentTarget.value || null)}
-              />
-            {:else if field.fieldType === 'select'}
-              {@const options = getOptions(field.options)}
-              <Select.Root
-                type="single"
-                value={(values[field.id] as string) ?? ''}
-                onValueChange={(v) => setValue(field.id, v || null)}
-              >
-                <Select.Trigger>
-                  {(values[field.id] as string) ?? 'Select option'}
-                </Select.Trigger>
-                <Select.Content>
-                  {#each options as option (option)}
-                    <Select.Item value={option} label={option} />
-                  {/each}
-                </Select.Content>
-              </Select.Root>
-            {/if}
-          </div>
+          <CustomFieldInput
+            id="cf-{field.id}"
+            label={field.label}
+            fieldType={field.fieldType}
+            required={field.required}
+            options={getOptions(field.options)}
+            value={values[field.id] ?? null}
+            onchange={(val) => setValue(field.id, val)}
+          />
         {/each}
       {/if}
     </div>

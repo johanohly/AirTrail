@@ -109,6 +109,38 @@ export const itemToEditing = (item: DefinitionItem): EditingState => {
 export const isTextLike = (fieldType: string) =>
   fieldType === 'text' || fieldType === 'textarea';
 
+/** Read the current default as a raw value for use in CustomFieldInput. */
+export const getPreviewValue = (editing: EditingState): unknown => {
+  if (isTextLike(editing.fieldType)) return editing.defaultText || null;
+  if (editing.fieldType === 'number') {
+    if (!editing.defaultNumber) return null;
+    const n = Number(editing.defaultNumber);
+    return Number.isNaN(n) ? null : n;
+  }
+  if (editing.fieldType === 'boolean') return editing.defaultBoolean;
+  if (editing.fieldType === 'date') return editing.defaultDate || null;
+  if (editing.fieldType === 'select') return editing.defaultSelect || null;
+  return null;
+};
+
+/** Write a raw value from CustomFieldInput back into the editing state. */
+export const setPreviewValue = (
+  editing: EditingState,
+  value: unknown,
+): void => {
+  if (isTextLike(editing.fieldType)) {
+    editing.defaultText = typeof value === 'string' ? value : '';
+  } else if (editing.fieldType === 'number') {
+    editing.defaultNumber = typeof value === 'number' ? String(value) : '';
+  } else if (editing.fieldType === 'boolean') {
+    editing.defaultBoolean = Boolean(value);
+  } else if (editing.fieldType === 'date') {
+    editing.defaultDate = typeof value === 'string' ? value : '';
+  } else if (editing.fieldType === 'select') {
+    editing.defaultSelect = typeof value === 'string' ? value : '';
+  }
+};
+
 export const getDefaultValue = (editing: EditingState): unknown => {
   if (isTextLike(editing.fieldType)) {
     return editing.defaultText.trim() || null;

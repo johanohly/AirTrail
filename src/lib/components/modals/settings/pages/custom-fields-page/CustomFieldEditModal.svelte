@@ -2,6 +2,7 @@
   import { SlidersHorizontal } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
 
+  import { CustomFieldInput } from '$lib/components/modals/flight-form';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Switch } from '$lib/components/ui/switch';
@@ -23,8 +24,10 @@
   import {
     buildPayload,
     createBlankEditing,
+    getPreviewValue,
     isTextLike,
     itemToEditing,
+    setPreviewValue,
     toKey,
     validatePayload,
   } from './helpers';
@@ -308,74 +311,21 @@
             the default.
           </p>
           <div class="rounded-md border border-dashed bg-muted/30 p-4">
-            <div class="grid gap-1">
-              <label
-                class="text-xs text-muted-foreground"
-                for="custom-field-preview"
-              >
-                {editing.label || 'Untitled field'}{editing.required
-                  ? ' *'
-                  : ''}
-              </label>
-
-              {#if editing.fieldType === 'text'}
-                <Input
-                  id="custom-field-preview"
-                  bind:value={editing.defaultText}
-                  placeholder="Enter value..."
-                />
-              {:else if editing.fieldType === 'textarea'}
-                <textarea
-                  id="custom-field-preview"
-                  class="min-h-20 w-full rounded-md border bg-background p-2 text-sm"
-                  bind:value={editing.defaultText}
-                  placeholder="Enter value..."
-                ></textarea>
-              {:else if editing.fieldType === 'number'}
-                <Input
-                  id="custom-field-preview"
-                  type="number"
-                  bind:value={editing.defaultNumber}
-                  placeholder="Enter value..."
-                />
-              {:else if editing.fieldType === 'boolean'}
-                <Switch
-                  id="custom-field-preview"
-                  bind:checked={editing.defaultBoolean}
-                />
-              {:else if editing.fieldType === 'date'}
-                <Input
-                  id="custom-field-preview"
-                  type="date"
-                  bind:value={editing.defaultDate}
-                />
-              {:else if editing.fieldType === 'select'}
-                {@const selectOptions = editing.optionsText
-                  .split('\n')
-                  .map((x) => x.trim())
-                  .filter(Boolean)}
-                <Select.Root
-                  type="single"
-                  value={editing.defaultSelect}
-                  onValueChange={(v) => (editing!.defaultSelect = v ?? '')}
-                >
-                  <Select.Trigger id="custom-field-preview">
-                    {editing.defaultSelect || 'Select option'}
-                  </Select.Trigger>
-                  <Select.Content>
-                    {#each selectOptions as option (option)}
-                      <Select.Item value={option} label={option} />
-                    {/each}
-                  </Select.Content>
-                </Select.Root>
-              {/if}
-
-              {#if editing.description}
-                <p class="text-muted-foreground text-xs">
-                  {editing.description}
-                </p>
-              {/if}
-            </div>
+            <CustomFieldInput
+              id="custom-field-preview"
+              label={editing.label || 'Untitled field'}
+              fieldType={editing.fieldType}
+              required={editing.required}
+              options={editing.fieldType === 'select'
+                ? editing.optionsText
+                    .split('\n')
+                    .map((x) => x.trim())
+                    .filter(Boolean)
+                : []}
+              description={editing.description}
+              value={getPreviewValue(editing)}
+              onchange={(val) => setPreviewValue(editing, val)}
+            />
           </div>
         </div>
 
