@@ -1,29 +1,20 @@
 <script lang="ts">
-  import {
-    GripVertical,
-    Plus,
-    SlidersHorizontal,
-    SquarePen,
-    X,
-  } from '@o7/icon/lucide';
+  import { Plus, X } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
 
+  import CustomFieldRow from './CustomFieldRow.svelte';
   import { PageHeader } from './index';
 
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { Input } from '$lib/components/ui/input';
   import { Switch } from '$lib/components/ui/switch';
-  import {
-    Modal,
-    ModalBody,
-    ModalBreadcrumbHeader,
-  } from '$lib/components/ui/modal';
+  import { Modal, ModalBody, ModalHeader } from '$lib/components/ui/modal';
   import DragDropProvider, {
     KeyboardSensor,
     PointerSensor,
   } from '@dnd-kit-svelte/svelte';
-  import { useSortable } from '@dnd-kit-svelte/svelte/sortable';
+  // useSortable moved into CustomFieldRow.svelte
   import * as Select from '$lib/components/ui/select';
   import { HelpTooltip } from '$lib/components/ui/tooltip';
   import { api, trpc } from '$lib/trpc';
@@ -83,7 +74,7 @@
 
   let editModalOpen = $state(false);
   let autoKey = $state(false);
-  let draggingId = $state<number | null>(null);
+  const sortableGroupId = 'custom-fields';
 
   const parseValidation = (value: unknown): Validation => {
     if (!value || typeof value !== 'object') return {};
@@ -430,7 +421,7 @@
       toast.error('Failed to reorder custom fields');
       console.error(e);
     } finally {
-      draggingId = null;
+      // no-op
     }
   };
 
@@ -439,7 +430,6 @@
     const targetId = Number(event?.operation?.target?.id);
 
     if (!Number.isFinite(fromId) || !Number.isFinite(targetId)) {
-      draggingId = null;
       return;
     }
 
@@ -476,57 +466,13 @@
     <DragDropProvider sensors={[PointerSensor, KeyboardSensor]} {onDragEnd}>
       <div class="space-y-2">
         {#each $definitionsQuery.data as item, index (item.id)}
-          {@const sortable = useSortable({
-            id: item.id,
-            index,
-            group: 'custom-fields',
-            type: 'custom-field',
-          })}
-          <Card
-            level="2"
-            class="p-3 flex items-center gap-3"
-            {@attach sortable.ref}
-          >
-            <button
-              type="button"
-              class="text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
-              aria-label="Drag to reorder"
-              {@attach sortable.handleRef}
-              onpointerdown={() => {
-                draggingId = item.id;
-              }}
-            >
-              <GripVertical size={16} />
-            </button>
-
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2">
-                <p class="font-medium truncate">{item.label}</p>
-                {#if !item.active}
-                  <span class="text-xs text-muted-foreground">(inactive)</span>
-                {/if}
-              </div>
-              <p class="text-sm text-muted-foreground">
-                {toTitleCase(item.fieldType)}{item.required
-                  ? ' • Required'
-                  : ''}
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="icon"
-              onclick={() => openEdit(item)}
-            >
-              <SquarePen size={14} />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onclick={() => remove(item.id)}
-            >
-              <X size={14} />
-            </Button>
-          </Card>
+          <CustomFieldRow
+            {item}
+            {index}
+            group={sortableGroupId}
+            onEdit={openEdit}
+            onRemove={remove}
+          />
         {/each}
       </div>
     </DragDropProvider>
@@ -539,11 +485,19 @@
 
 <Modal bind:open={editModalOpen} class="max-w-lg" closeOnOutsideClick={false}>
   {#if editing}
-    <ModalBreadcrumbHeader
-      section="Settings"
-      title={editing.id ? 'Edit custom field' : 'Add custom field'}
-      icon={SlidersHorizontal}
-    />
+    <ModalHeader>
+      <div class="flex w-full items-center justify-between gap-2">
+        <h2 class="text-lg font-medium">Custom fields</h2>
+        <button
+          type="button"
+          class="text-muted-foreground hover:bg-hover rounded-full p-2 transition-all duration-75"
+          aria-label="Close"
+          onclick={closeModal}
+        >
+          <X size={18} />
+        </button>
+      </div>
+    </ModalHeader>
     <ModalBody>
       <div class="space-y-4">
         <label class="text-sm font-medium">Label</label>
