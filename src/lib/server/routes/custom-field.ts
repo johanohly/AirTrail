@@ -7,7 +7,17 @@ import { adminProcedure, authedProcedure, router } from '$lib/server/trpc';
 
 type EntityType = 'flight';
 const entityTypeSchema = z.enum(['flight']);
-const fieldTypeSchema = z.enum(['text', 'number', 'boolean', 'date', 'select']);
+const fieldTypeSchema = z.enum([
+  'text',
+  'textarea',
+  'number',
+  'boolean',
+  'date',
+  'select',
+]);
+
+/** Field types that store string values and share text validation rules. */
+const TEXT_LIKE_TYPES = new Set(['text', 'textarea']);
 
 const validationSchema = z
   .object({
@@ -55,7 +65,10 @@ const ensureDefinitionIsValid = (
   }
 
   if (input.defaultValue != null) {
-    if (input.fieldType === 'text' && typeof input.defaultValue !== 'string') {
+    if (
+      TEXT_LIKE_TYPES.has(input.fieldType) &&
+      typeof input.defaultValue !== 'string'
+    ) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
         message: 'Default value must be a string for text fields',
@@ -333,7 +346,7 @@ export const customFieldRouter = router({
 
         if (value == null) continue;
 
-        if (def.fieldType === 'text' && typeof value !== 'string') {
+        if (TEXT_LIKE_TYPES.has(def.fieldType) && typeof value !== 'string') {
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message: `Text custom field requires a string value (fieldId=${def.id})`,
@@ -393,7 +406,7 @@ export const customFieldRouter = router({
             : null;
 
         if (
-          def.fieldType === 'text' &&
+          TEXT_LIKE_TYPES.has(def.fieldType) &&
           typeof value === 'string' &&
           validation
         ) {

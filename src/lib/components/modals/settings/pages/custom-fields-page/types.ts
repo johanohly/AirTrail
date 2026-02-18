@@ -1,4 +1,19 @@
-export type FieldType = 'text' | 'number' | 'boolean' | 'date' | 'select';
+export type FieldType =
+  | 'text'
+  | 'textarea'
+  | 'number'
+  | 'boolean'
+  | 'date'
+  | 'select';
+
+export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
+  text: 'Short text',
+  textarea: 'Long text',
+  number: 'Number',
+  boolean: 'Boolean',
+  date: 'Date',
+  select: 'Select',
+};
 
 export type DefinitionItem = {
   id: number;

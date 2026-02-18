@@ -4,9 +4,8 @@
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { useSortable } from '@dnd-kit-svelte/svelte/sortable';
-  import { toTitleCase } from '$lib/utils';
 
-  import type { DefinitionItem } from './types';
+  import { FIELD_TYPE_LABELS, type DefinitionItem } from './types';
 
   let {
     item,
@@ -54,7 +53,7 @@
       {/if}
     </div>
     <p class="text-sm text-muted-foreground">
-      {toTitleCase(item.fieldType)}{item.required ? ' • Required' : ''}
+      {FIELD_TYPE_LABELS[item.fieldType]}{item.required ? ' • Required' : ''}
     </p>
   </div>
   <Button variant="outline" size="icon" onclick={() => onEdit(item)}>

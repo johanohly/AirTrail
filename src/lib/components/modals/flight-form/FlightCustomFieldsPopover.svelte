@@ -11,7 +11,7 @@
     id: number;
     key: string;
     label: string;
-    fieldType: 'text' | 'number' | 'boolean' | 'date' | 'select';
+    fieldType: 'text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select';
     required: boolean;
     options: unknown;
   };
@@ -71,6 +71,13 @@
                 oninput={(e) =>
                   setValue(field.id, e.currentTarget.value || null)}
               />
+            {:else if field.fieldType === 'textarea'}
+              <textarea
+                class="min-h-20 w-full rounded-md border bg-background p-2 text-sm"
+                value={(values[field.id] as string) ?? ''}
+                oninput={(e) =>
+                  setValue(field.id, e.currentTarget.value || null)}
+              ></textarea>
             {:else if field.fieldType === 'number'}
               <Input
                 type="number"

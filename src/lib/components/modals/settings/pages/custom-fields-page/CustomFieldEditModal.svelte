@@ -13,12 +13,17 @@
   import * as Select from '$lib/components/ui/select';
   import { HelpTooltip } from '$lib/components/ui/tooltip';
   import { api, trpc } from '$lib/trpc';
-  import { toTitleCase } from '$lib/utils';
 
-  import type { DefinitionItem, EditingState, FieldType } from './types';
+  import {
+    FIELD_TYPE_LABELS,
+    type DefinitionItem,
+    type EditingState,
+    type FieldType,
+  } from './types';
   import {
     buildPayload,
     createBlankEditing,
+    isTextLike,
     itemToEditing,
     toKey,
     validatePayload,
@@ -174,10 +179,11 @@
             }}
           >
             <Select.Trigger id="custom-field-type-trigger"
-              >{toTitleCase(editing.fieldType)}</Select.Trigger
+              >{FIELD_TYPE_LABELS[editing.fieldType]}</Select.Trigger
             >
             <Select.Content>
-              <Select.Item value="text" label="Text" />
+              <Select.Item value="text" label="Short text" />
+              <Select.Item value="textarea" label="Long text" />
               <Select.Item value="number" label="Number" />
               <Select.Item value="boolean" label="Boolean" />
               <Select.Item value="date" label="Date" />
@@ -186,7 +192,7 @@
           </Select.Root>
         </div>
 
-        {#if editing.fieldType === 'text'}
+        {#if isTextLike(editing.fieldType)}
           <div class="grid gap-1">
             <label
               class="text-sm font-medium flex items-center gap-1"
@@ -275,6 +281,13 @@
               bind:value={editing.defaultText}
               placeholder="e.g. SK-12345"
             />
+          {:else if editing.fieldType === 'textarea'}
+            <textarea
+              id="custom-field-default"
+              class="min-h-20 w-full rounded-md border bg-background p-2 text-sm"
+              bind:value={editing.defaultText}
+              placeholder="Default long text..."
+            ></textarea>
           {:else if editing.fieldType === 'number'}
             <Input
               id="custom-field-default"

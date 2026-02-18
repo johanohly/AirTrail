@@ -63,9 +63,9 @@ export type custom_field_definition = {
     label: string;
     description: string | null;
     /**
-     * @kyselyType('text' | 'number' | 'boolean' | 'date' | 'select')
+     * @kyselyType('text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select')
      */
-    fieldType: 'text' | 'number' | 'boolean' | 'date' | 'select';
+    fieldType: 'text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select';
     required: Generated<boolean>;
     active: Generated<boolean>;
     order: Generated<number>;

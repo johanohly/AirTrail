@@ -223,7 +223,7 @@ model custom_field_definition {
   label       String
   description String?
 
-  /// @kyselyType('text' | 'number' | 'boolean' | 'date' | 'select')
+  /// @kyselyType('text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select')
   field_type String
 
   required        Boolean @default(false)

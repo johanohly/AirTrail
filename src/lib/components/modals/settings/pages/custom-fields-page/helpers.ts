@@ -68,7 +68,8 @@ export const itemToEditing = (item: DefinitionItem): EditingState => {
     order: item.order,
     optionsText: options.join('\n'),
     defaultText:
-      typeof item.defaultValue === 'string' && item.fieldType === 'text'
+      typeof item.defaultValue === 'string' &&
+      (item.fieldType === 'text' || item.fieldType === 'textarea')
         ? item.defaultValue
         : '',
     defaultNumber:
@@ -105,8 +106,11 @@ export const itemToEditing = (item: DefinitionItem): EditingState => {
   };
 };
 
+export const isTextLike = (fieldType: string) =>
+  fieldType === 'text' || fieldType === 'textarea';
+
 export const getDefaultValue = (editing: EditingState): unknown => {
-  if (editing.fieldType === 'text') {
+  if (isTextLike(editing.fieldType)) {
     return editing.defaultText.trim() || null;
   }
 
@@ -138,7 +142,7 @@ export const buildPayload = (editing: EditingState) => {
   const defaultValue = getDefaultValue(editing);
   const validationJson: Validation = {};
 
-  if (editing.fieldType === 'text') {
+  if (isTextLike(editing.fieldType)) {
     if (editing.validationRegex.trim()) {
       validationJson.regex = editing.validationRegex.trim();
     }

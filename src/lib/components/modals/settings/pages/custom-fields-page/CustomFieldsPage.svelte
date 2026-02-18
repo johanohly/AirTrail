@@ -4,7 +4,7 @@
 
   import CustomFieldEditModal from './CustomFieldEditModal.svelte';
   import CustomFieldRow from './CustomFieldRow.svelte';
-  import type { DefinitionItem } from './types';
+  import { FIELD_TYPE_LABELS, type DefinitionItem } from './types';
   import { PageHeader } from '../index';
 
   import { Button } from '$lib/components/ui/button';
@@ -16,7 +16,6 @@
     PointerSensor,
   } from '@dnd-kit-svelte/svelte';
   import { api, trpc } from '$lib/trpc';
-  import { toTitleCase } from '$lib/utils';
 
   const definitionsQuery = trpc.customField.listDefinitions.query({
     entityType: 'flight',
@@ -142,9 +141,9 @@
                 {/if}
               </div>
               <p class="text-sm text-muted-foreground">
-                {toTitleCase(activeDragItem.fieldType)}{activeDragItem.required
-                  ? ' • Required'
-                  : ''}
+                {FIELD_TYPE_LABELS[
+                  activeDragItem.fieldType
+                ]}{activeDragItem.required ? ' • Required' : ''}
               </p>
             </div>
 
