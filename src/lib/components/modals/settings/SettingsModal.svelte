@@ -12,6 +12,7 @@
     OAuthPage,
     SecurityPage,
     DataPage,
+    CustomFieldsPage,
     IntegrationsPage,
   } from './pages';
 
@@ -36,6 +37,7 @@
   ] as const;
   const ADMIN_SETTINGS = [
     { title: 'Data', id: 'data' },
+    { title: 'Custom fields', id: 'custom-fields' },
     { title: 'Integrations', id: 'integrations' },
     { title: 'Users', id: 'users' },
     { title: 'OAuth', id: 'oauth' },
@@ -179,6 +181,8 @@
           <ExportPage />
         {:else if activeTab === 'data'}
           <DataPage />
+        {:else if activeTab === 'custom-fields'}
+          <CustomFieldsPage />
         {:else if activeTab === 'integrations'}
           <IntegrationsPage />
         {:else if activeTab === 'users'}

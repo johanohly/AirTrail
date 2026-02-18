@@ -6,6 +6,7 @@ import { aircraftRouter } from '$lib/server/routes/aircraft';
 import { airlineRouter } from '$lib/server/routes/airline';
 import { airportRouter } from '$lib/server/routes/airport';
 import { autocompleteRouter } from '$lib/server/routes/autocomplete';
+import { customFieldRouter } from '$lib/server/routes/custom-field';
 import { flightRouter } from '$lib/server/routes/flight';
 import { oauthRouter } from '$lib/server/routes/oauth';
 import { shareRouter } from '$lib/server/routes/share';
@@ -18,6 +19,7 @@ export const appRouter = router({
   airline: airlineRouter,
   airport: airportRouter,
   flight: flightRouter,
+  customField: customFieldRouter,
   oauth: oauthRouter,
   autocomplete: autocompleteRouter,
   share: shareRouter,

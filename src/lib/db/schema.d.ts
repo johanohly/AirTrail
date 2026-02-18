@@ -53,6 +53,40 @@ export type app_config = {
     id: Generated<number>;
     config: Generated<unknown>;
 };
+export type custom_field_definition = {
+    id: Generated<number>;
+    /**
+     * @kyselyType('flight')
+     */
+    entityType: 'flight';
+    key: string;
+    label: string;
+    description: string | null;
+    /**
+     * @kyselyType('text' | 'number' | 'boolean' | 'date' | 'select')
+     */
+    fieldType: 'text' | 'number' | 'boolean' | 'date' | 'select';
+    required: Generated<boolean>;
+    active: Generated<boolean>;
+    order: Generated<number>;
+    defaultValue: unknown | null;
+    options: unknown | null;
+    validationJson: unknown | null;
+    createdAt: Generated<Timestamp>;
+    updatedAt: Timestamp;
+};
+export type custom_field_value = {
+    id: Generated<number>;
+    fieldId: number;
+    /**
+     * @kyselyType('flight')
+     */
+    entityType: 'flight';
+    entityId: string;
+    value: unknown;
+    createdAt: Generated<Timestamp>;
+    updatedAt: Timestamp;
+};
 export type flight = {
     id: Generated<number>;
     date: string;
@@ -180,6 +214,8 @@ export type DB = {
     airport: airport;
     apiKey: api_key;
     appConfig: app_config;
+    customFieldDefinition: custom_field_definition;
+    customFieldValue: custom_field_value;
     flight: flight;
     publicShare: public_share;
     seat: seat;

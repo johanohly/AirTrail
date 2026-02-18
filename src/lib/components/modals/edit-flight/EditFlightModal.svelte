@@ -4,7 +4,10 @@
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
 
-  import { FlightForm } from '$lib/components/modals/flight-form';
+  import {
+    FlightCustomFieldsPopover,
+    FlightForm,
+  } from '$lib/components/modals/flight-form';
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
   import {
@@ -12,7 +15,7 @@
     ModalBreadcrumbHeader,
     ModalFooter,
   } from '$lib/components/ui/modal';
-  import { trpc } from '$lib/trpc';
+  import { api, trpc } from '$lib/trpc';
   import type { FlightData } from '$lib/utils';
   import { decomposeToLocal, isUsingAmPm } from '$lib/utils/datetime';
   import { flightSchema } from '$lib/zod/flight';
@@ -32,6 +35,50 @@
   // If their language uses 12-hour time format, we display the time in *a* 12-hour format
   // (not necessarily the user's locale, because our time validator doesn't support all languages).
   const displayLocale = isUsingAmPm() ? 'en-US' : 'fr-FR';
+
+  const getErrorText = (error: unknown) => {
+    if (!error || typeof error !== 'object') {
+      return typeof error === 'string' ? error : '';
+    }
+
+    const candidate = error as {
+      message?: string;
+      data?: { code?: string };
+      shape?: { message?: string };
+      cause?: { message?: string };
+    };
+
+    return (
+      candidate.message ||
+      candidate.shape?.message ||
+      candidate.cause?.message ||
+      candidate.data?.code ||
+      ''
+    );
+  };
+
+  const customFieldDefinitions = trpc.customField.listDefinitions.query({
+    entityType: 'flight',
+  });
+  let customFieldValues = $state<Record<number, unknown>>({});
+
+  $effect(() => {
+    if (!open) return;
+
+    (async () => {
+      try {
+        const values = await api.customField.getEntityValues.query({
+          entityType: 'flight',
+          entityId: String(flight.id),
+        });
+        customFieldValues = Object.fromEntries(
+          values.map((v) => [v.fieldId, v.value]),
+        );
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+  });
 
   const fromTz = flight.from?.tz ?? 'UTC';
   const toTz = flight.to?.tz ?? 'UTC';
@@ -105,9 +152,30 @@
       onSubmit() {
         $formData.id = flight.id;
       },
-      onUpdate({ form }) {
+      async onUpdate({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
+            try {
+              await api.customField.setEntityValues.mutate({
+                entityType: 'flight',
+                entityId: String(flight.id),
+                values: Object.entries(customFieldValues)
+                  .map(([fieldId, value]) => ({
+                    fieldId: Number(fieldId),
+                    value: value ?? null,
+                  }))
+                  .filter((item) => Number.isFinite(item.fieldId)),
+              });
+            } catch (e) {
+              console.error(e);
+              const message = getErrorText(e);
+              toast.error(
+                message
+                  ? `Flight updated, but failed to save custom fields: ${message}`
+                  : 'Flight updated, but failed to save custom fields',
+              );
+            }
+
             trpc.flight.list.utils.invalidate();
             toast.success(form.message.text);
             open = false;
@@ -141,7 +209,13 @@
   <form method="POST" action="/api/flight/save/form" use:enhance>
     <FlightForm {form} />
     <ModalFooter>
-      <Form.Button size="sm">Save</Form.Button>
+      <div class="flex w-full items-center justify-between">
+        <FlightCustomFieldsPopover
+          definitions={$customFieldDefinitions.data ?? []}
+          bind:values={customFieldValues}
+        />
+        <Form.Button size="sm">Save</Form.Button>
+      </div>
     </ModalFooter>
   </form>
 </Modal>

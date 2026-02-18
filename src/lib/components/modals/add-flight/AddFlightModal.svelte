@@ -11,23 +11,78 @@
     ModalBreadcrumbHeader,
     ModalFooter,
   } from '$lib/components/ui/modal';
-  import { FlightForm } from '$lib/components/modals/flight-form';
+  import {
+    FlightCustomFieldsPopover,
+    FlightForm,
+  } from '$lib/components/modals/flight-form';
   import { flightAddedState } from '$lib/state.svelte';
-  import { trpc } from '$lib/trpc';
+  import { api, trpc } from '$lib/trpc';
   import { flightSchema } from '$lib/zod/flight';
 
   let { open = $bindable() }: { open: boolean } = $props();
+
+  const getErrorText = (error: unknown) => {
+    if (!error || typeof error !== 'object') {
+      return typeof error === 'string' ? error : '';
+    }
+
+    const candidate = error as {
+      message?: string;
+      data?: { code?: string };
+      shape?: { message?: string };
+      cause?: { message?: string };
+    };
+
+    return (
+      candidate.message ||
+      candidate.shape?.message ||
+      candidate.cause?.message ||
+      candidate.data?.code ||
+      ''
+    );
+  };
+
+  const customFieldDefinitions = trpc.customField.listDefinitions.query({
+    entityType: 'flight',
+  });
+  let customFieldValues = $state<Record<number, unknown>>({});
 
   const form = superForm(
     defaults<Infer<typeof flightSchema>>(zod(flightSchema)),
     {
       dataType: 'json',
       validators: zod(flightSchema),
-      onUpdated({ form }) {
+      async onUpdated({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
+            const flightId = form.message.id;
+
+            if (flightId && Object.keys(customFieldValues).length) {
+              try {
+                await api.customField.setEntityValues.mutate({
+                  entityType: 'flight',
+                  entityId: String(flightId),
+                  values: Object.entries(customFieldValues)
+                    .map(([fieldId, value]) => ({
+                      fieldId: Number(fieldId),
+                      value: value ?? null,
+                    }))
+                    .filter((item) => Number.isFinite(item.fieldId)),
+                });
+              } catch (e) {
+                console.error(e);
+                const message = getErrorText(e);
+                toast.error(
+                  message
+                    ? `Flight saved, but failed to save custom fields: ${message}`
+                    : 'Flight saved, but failed to save custom fields',
+                );
+              }
+            }
+
             trpc.flight.list.utils.invalidate();
             open = false;
+            customFieldValues = {};
             flightAddedState.added = true;
             return void toast.success(form.message.text);
           }
@@ -50,7 +105,13 @@
   <form method="POST" action="/api/flight/save/form" use:enhance>
     <FlightForm {form} />
     <ModalFooter>
-      <Form.Button size="sm">Add Flight</Form.Button>
+      <div class="flex w-full items-center justify-between">
+        <FlightCustomFieldsPopover
+          definitions={$customFieldDefinitions.data ?? []}
+          bind:values={customFieldValues}
+        />
+        <Form.Button size="sm">Add Flight</Form.Button>
+      </div>
     </ModalFooter>
   </form>
 </Modal>

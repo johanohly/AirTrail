@@ -13,6 +13,7 @@ export type SettingsTabId =
   | 'import'
   | 'export'
   | 'data'
+  | 'custom-fields'
   | 'integrations'
   | 'users'
   | 'oauth';

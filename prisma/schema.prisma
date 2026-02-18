@@ -213,3 +213,49 @@ model public_share {
   @@index([slug])
   @@index([user_id])
 }
+
+model custom_field_definition {
+  id Int @id @default(autoincrement())
+
+  /// @kyselyType('flight')
+  entity_type String
+  key         String
+  label       String
+  description String?
+
+  /// @kyselyType('text' | 'number' | 'boolean' | 'date' | 'select')
+  field_type String
+
+  required        Boolean @default(false)
+  active          Boolean @default(true)
+  order           Int     @default(0)
+  default_value   Json?
+  options         Json?
+  validation_json Json?
+
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+
+  values custom_field_value[]
+
+  @@unique([entity_type, key])
+  @@index([entity_type, active, order])
+}
+
+model custom_field_value {
+  id Int @id @default(autoincrement())
+
+  field_id Int
+  field    custom_field_definition @relation(fields: [field_id], references: [id], onDelete: Cascade)
+
+  /// @kyselyType('flight')
+  entity_type String
+  entity_id   String
+  value       Json
+
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+
+  @@unique([field_id, entity_type, entity_id])
+  @@index([entity_type, entity_id])
+}
