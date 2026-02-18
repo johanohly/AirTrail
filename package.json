@@ -38,6 +38,7 @@
     "@deck.gl/core": "~9.2.5",
     "@deck.gl/layers": "~9.2.5",
     "@deck.gl/mapbox": "~9.2.5",
+    "@dnd-kit-svelte/svelte": "^0.1.6",
     "@formkit/auto-animate": "^0.9.0",
     "@humanspeak/svelte-virtual-list": "^0.3.6",
     "@internationalized/date": "^3.10.1",

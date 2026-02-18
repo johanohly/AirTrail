@@ -8,6 +8,7 @@
     ModalBody,
     ModalBreadcrumbHeader,
   } from '$lib/components/ui/modal';
+  import { Switch } from '$lib/components/ui/switch';
   import * as Select from '$lib/components/ui/select';
 
   type Definition = {
@@ -90,14 +91,15 @@
                 }}
               />
             {:else if field.fieldType === 'boolean'}
-              <label class="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
+              <div
+                class="flex items-center justify-between rounded-md border px-3 py-2"
+              >
+                <span class="text-sm">Enabled</span>
+                <Switch
                   checked={Boolean(values[field.id])}
-                  onchange={(e) => setValue(field.id, e.currentTarget.checked)}
+                  onCheckedChange={(checked) => setValue(field.id, checked)}
                 />
-                Enabled
-              </label>
+              </div>
             {:else if field.fieldType === 'date'}
               <Input
                 type="date"

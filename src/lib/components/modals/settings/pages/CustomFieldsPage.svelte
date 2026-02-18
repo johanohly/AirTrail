@@ -1,7 +1,5 @@
 <script lang="ts">
   import {
-    ChevronDown,
-    ChevronUp,
     GripVertical,
     Plus,
     SlidersHorizontal,
@@ -15,11 +13,17 @@
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { Input } from '$lib/components/ui/input';
+  import { Switch } from '$lib/components/ui/switch';
   import {
     Modal,
     ModalBody,
     ModalBreadcrumbHeader,
   } from '$lib/components/ui/modal';
+  import DragDropProvider, {
+    KeyboardSensor,
+    PointerSensor,
+  } from '@dnd-kit-svelte/svelte';
+  import { useSortable } from '@dnd-kit-svelte/svelte/sortable';
   import * as Select from '$lib/components/ui/select';
   import { HelpTooltip } from '$lib/components/ui/tooltip';
   import { api, trpc } from '$lib/trpc';
@@ -80,7 +84,6 @@
   let editModalOpen = $state(false);
   let autoKey = $state(false);
   let draggingId = $state<number | null>(null);
-  let dropTargetId = $state<number | null>(null);
 
   const parseValidation = (value: unknown): Validation => {
     if (!value || typeof value !== 'object') return {};
@@ -117,7 +120,7 @@
       fieldType: 'text',
       required: false,
       active: true,
-      order: 0,
+      order: $definitionsQuery.data?.length ?? 0,
       optionsText: '',
       defaultText: '',
       defaultNumber: '',
@@ -409,11 +412,11 @@
     });
   };
 
-  const moveField = async (targetId: number) => {
-    if (draggingId == null || draggingId === targetId) return;
+  const moveField = async (fromId: number, targetId: number) => {
+    if (fromId === targetId) return;
 
     const list = [...($definitionsQuery.data ?? [])] as DefinitionItem[];
-    const fromIndex = list.findIndex((item) => item.id === draggingId);
+    const fromIndex = list.findIndex((item) => item.id === fromId);
     const toIndex = list.findIndex((item) => item.id === targetId);
     if (fromIndex < 0 || toIndex < 0) return;
 
@@ -428,27 +431,19 @@
       console.error(e);
     } finally {
       draggingId = null;
-      dropTargetId = null;
     }
   };
 
-  const moveByDelta = async (id: number, delta: number) => {
-    const list = [...($definitionsQuery.data ?? [])] as DefinitionItem[];
-    const index = list.findIndex((item) => item.id === id);
-    if (index < 0) return;
+  const onDragEnd = async (event: any) => {
+    const fromId = Number(event?.operation?.source?.id);
+    const targetId = Number(event?.operation?.target?.id);
 
-    const nextIndex = Math.max(0, Math.min(list.length - 1, index + delta));
-    if (nextIndex === index) return;
-
-    const [moved] = list.splice(index, 1);
-    list.splice(nextIndex, 0, moved);
-
-    try {
-      await persistOrder(list);
-    } catch (e) {
-      toast.error('Failed to reorder custom fields');
-      console.error(e);
+    if (!Number.isFinite(fromId) || !Number.isFinite(targetId)) {
+      draggingId = null;
+      return;
     }
+
+    await moveField(fromId, targetId);
   };
 
   const remove = async (id: number) => {
@@ -478,87 +473,65 @@
   {/snippet}
 
   {#if $definitionsQuery.data?.length}
-    <p class="mb-2 text-xs text-muted-foreground">
-      Drag the handle to reorder fields, or use the up/down arrows.
-    </p>
-    <div class="space-y-2">
-      {#each $definitionsQuery.data as item (item.id)}
-        <Card
-          level="2"
-          class={`p-3 flex items-center gap-3 transition-colors ${
-            dropTargetId === item.id
-              ? 'ring-1 ring-primary/50 bg-primary/5'
-              : ''
-          } ${draggingId === item.id ? 'opacity-60' : ''}`}
-          ondragover={(e) => e.preventDefault()}
-          ondragenter={() => {
-            if (draggingId != null) dropTargetId = item.id;
-          }}
-          ondragleave={() => {
-            if (dropTargetId === item.id) dropTargetId = null;
-          }}
-          ondrop={() => {
-            dropTargetId = null;
-            moveField(item.id);
-          }}
-        >
-          <div class="flex items-center gap-1 text-muted-foreground">
+    <DragDropProvider sensors={[PointerSensor, KeyboardSensor]} {onDragEnd}>
+      <div class="space-y-2">
+        {#each $definitionsQuery.data as item, index (item.id)}
+          {@const sortable = useSortable({
+            id: item.id,
+            index,
+            group: 'custom-fields',
+            type: 'custom-field',
+          })}
+          <Card
+            level="2"
+            class={`p-3 flex items-center gap-3 transition-colors ${
+              $sortable.isDragging ? 'opacity-60' : ''
+            } ${$sortable.isDropTarget ? 'ring-1 ring-primary/50 bg-primary/5' : ''}`}
+            {@attach sortable.ref}
+          >
             <button
               type="button"
-              class="hover:text-foreground cursor-grab active:cursor-grabbing"
-              draggable="true"
-              ondragstart={() => {
+              class="text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
+              aria-label="Drag to reorder"
+              {@attach sortable.handleRef}
+              onpointerdown={() => {
                 draggingId = item.id;
               }}
-              ondragend={() => {
-                draggingId = null;
-                dropTargetId = null;
-              }}
-              aria-label="Drag to reorder"
             >
               <GripVertical size={16} />
             </button>
-            <div class="hidden sm:flex flex-col gap-0.5">
-              <button
-                type="button"
-                class="hover:text-foreground"
-                onclick={() => moveByDelta(item.id, -1)}
-                aria-label="Move up"
-              >
-                <ChevronUp size={12} />
-              </button>
-              <button
-                type="button"
-                class="hover:text-foreground"
-                onclick={() => moveByDelta(item.id, 1)}
-                aria-label="Move down"
-              >
-                <ChevronDown size={12} />
-              </button>
-            </div>
-          </div>
 
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <p class="font-medium truncate">{item.label}</p>
-              <span class="text-xs text-muted-foreground">{item.key}</span>
-              {#if !item.active}
-                <span class="text-xs text-muted-foreground">(inactive)</span>
-              {/if}
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <p class="font-medium truncate">{item.label}</p>
+                {#if !item.active}
+                  <span class="text-xs text-muted-foreground">(inactive)</span>
+                {/if}
+              </div>
+              <p class="text-sm text-muted-foreground">
+                {toTitleCase(item.fieldType)}{item.required
+                  ? ' • Required'
+                  : ''}
+              </p>
             </div>
-            <p class="text-sm text-muted-foreground">
-              {toTitleCase(item.fieldType)}{item.required ? ' • Required' : ''}
-            </p>
-          </div>
-          <Button variant="outline" size="icon" onclick={() => openEdit(item)}>
-            <SquarePen size={14} />
-          </Button>
-          <Button variant="outline" size="icon" onclick={() => remove(item.id)}>
-            <X size={14} />
-          </Button>
-        </Card>
-      {/each}
-    </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onclick={() => openEdit(item)}
+            >
+              <SquarePen size={14} />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onclick={() => remove(item.id)}
+            >
+              <X size={14} />
+            </Button>
+          </Card>
+        {/each}
+      </div>
+    </DragDropProvider>
   {:else}
     <Card class="p-6 text-sm text-muted-foreground">
       No custom fields configured yet.
@@ -619,8 +592,7 @@
             <label class="text-sm font-medium flex items-center gap-1">
               Regex
               <HelpTooltip
-                side="right"
-                content="Optional JavaScript-style regex pattern used to validate text values."
+                text="Optional JavaScript-style regex pattern used to validate text values."
               />
             </label>
             <Input
@@ -671,10 +643,12 @@
             placeholder="e.g. 42"
           />
         {:else if editing.fieldType === 'boolean'}
-          <label class="flex items-center gap-2 text-sm">
-            <input type="checkbox" bind:checked={editing.defaultBoolean} />
-            Enabled by default
-          </label>
+          <div
+            class="flex items-center justify-between rounded-md border px-3 py-2"
+          >
+            <span class="text-sm">Enabled by default</span>
+            <Switch bind:checked={editing.defaultBoolean} />
+          </div>
         {:else if editing.fieldType === 'date'}
           <Input type="date" bind:value={editing.defaultDate} />
         {:else if editing.fieldType === 'select'}
@@ -699,16 +673,19 @@
         {/if}
 
         <div class="grid grid-cols-2 gap-3">
-          <label class="flex items-center gap-2 text-sm">
-            <input type="checkbox" bind:checked={editing.required} /> Required
-          </label>
-          <label class="flex items-center gap-2 text-sm">
-            <input type="checkbox" bind:checked={editing.active} /> Active
-          </label>
+          <div
+            class="flex items-center justify-between rounded-md border px-3 py-2"
+          >
+            <span class="text-sm">Required</span>
+            <Switch bind:checked={editing.required} />
+          </div>
+          <div
+            class="flex items-center justify-between rounded-md border px-3 py-2"
+          >
+            <span class="text-sm">Active</span>
+            <Switch bind:checked={editing.active} />
+          </div>
         </div>
-
-        <label class="text-sm font-medium">Order</label>
-        <Input type="number" bind:value={editing.order} />
 
         <label class="text-sm font-medium">Description</label>
         <Input
