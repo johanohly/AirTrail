@@ -692,9 +692,7 @@
             placeholder="e.g. 42"
           />
         {:else if editing.fieldType === 'boolean'}
-          <div
-            class="flex items-center justify-between rounded-md border px-3 py-2"
-          >
+          <div class="space-y-2 rounded-md border px-3 py-2">
             <label class="text-sm" for="custom-field-default-boolean"
               >Enabled by default</label
             >
@@ -731,18 +729,14 @@
         {/if}
 
         <div class="grid grid-cols-2 gap-3">
-          <div
-            class="flex items-center justify-between rounded-md border px-3 py-2"
-          >
+          <div class="space-y-2 rounded-md border px-3 py-2">
             <label class="text-sm" for="custom-field-required">Required</label>
             <Switch
               id="custom-field-required"
               bind:checked={editing.required}
             />
           </div>
-          <div
-            class="flex items-center justify-between rounded-md border px-3 py-2"
-          >
+          <div class="space-y-2 rounded-md border px-3 py-2">
             <label class="text-sm" for="custom-field-active">Active</label>
             <Switch id="custom-field-active" bind:checked={editing.active} />
           </div>
