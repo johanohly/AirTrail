@@ -15,6 +15,7 @@
     KeyboardSensor,
     PointerSensor,
   } from '@dnd-kit-svelte/svelte';
+  import { isSortable } from '@dnd-kit-svelte/svelte/sortable';
   import { confirmation } from '$lib/components/helpers';
   import { api, trpc } from '$lib/trpc';
 
@@ -45,53 +46,29 @@
   };
 
   const onDragEnd = async (event: any) => {
-    console.log('[reorder] onDragEnd event keys:', Object.keys(event ?? {}));
-    console.log('[reorder] operation:', {
-      source: event?.operation?.source,
-      target: event?.operation?.target,
-    });
-
-    const fromId = Number(event?.operation?.source?.id);
-    const targetId = Number(event?.operation?.target?.id);
-
-    console.log('[reorder] fromId:', fromId, 'targetId:', targetId);
     activeDragId = null;
 
-    if (
-      !Number.isFinite(fromId) ||
-      !Number.isFinite(targetId) ||
-      fromId === targetId
-    ) {
-      console.log('[reorder] early return — invalid or same ids');
-      return;
-    }
+    const { source } = event.operation;
+    if (event.canceled || !source || !isSortable(source)) return;
+
+    const fromIndex = source.sortable.initialIndex;
+    const toIndex = source.sortable.index;
+    if (fromIndex === toIndex) return;
 
     const list = [...($definitionsQuery.data ?? [])] as DefinitionItem[];
-    const fromIndex = list.findIndex((item) => item.id === fromId);
-    const toIndex = list.findIndex((item) => item.id === targetId);
-    console.log('[reorder] fromIndex:', fromIndex, 'toIndex:', toIndex);
-    if (fromIndex < 0 || toIndex < 0) {
-      console.log('[reorder] early return — index not found');
-      return;
-    }
-
     const [moved] = list.splice(fromIndex, 1);
     list.splice(toIndex, 0, moved);
 
-    const orderedIds = list.map((item) => item.id);
-    console.log('[reorder] sending orderedIds:', orderedIds);
-
     try {
-      const result = await api.customField.reorderDefinitions.mutate({
+      await api.customField.reorderDefinitions.mutate({
         entityType: 'flight',
-        orderedIds,
+        orderedIds: list.map((item) => item.id),
       });
-      console.log('[reorder] mutate result:', result);
       invalidate();
       toast.success('Custom fields reordered');
     } catch (e) {
-      console.error('[reorder] mutate error:', e);
       toast.error('Failed to reorder custom fields');
+      console.error(e);
     }
   };
 
