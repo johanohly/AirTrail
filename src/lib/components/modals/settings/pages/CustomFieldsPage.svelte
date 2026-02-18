@@ -16,6 +16,7 @@
   } from '$lib/components/ui/modal';
   import {
     DragDropProvider,
+    DragOverlay,
     KeyboardSensor,
     PointerSensor,
   } from '@dnd-kit-svelte/svelte';
@@ -80,6 +81,11 @@
   let editModalOpen = $state(false);
   let autoKey = $state(false);
   const sortableGroupId = 'custom-fields';
+  let activeDragId = $state<number | null>(null);
+
+  const activeDragItem = $derived(
+    ($definitionsQuery.data ?? []).find((item) => item.id === activeDragId),
+  );
 
   const parseValidation = (value: unknown): Validation => {
     if (!value || typeof value !== 'object') return {};
@@ -430,9 +436,16 @@
     }
   };
 
+  const onDragStart = (event: any) => {
+    const id = Number(event?.operation?.source?.id);
+    activeDragId = Number.isFinite(id) ? id : null;
+  };
+
   const onDragEnd = async (event: any) => {
     const fromId = Number(event?.operation?.source?.id);
     const targetId = Number(event?.operation?.target?.id);
+
+    activeDragId = null;
 
     if (!Number.isFinite(fromId) || !Number.isFinite(targetId)) {
       return;
@@ -468,7 +481,11 @@
   {/snippet}
 
   {#if $definitionsQuery.data?.length}
-    <DragDropProvider sensors={[PointerSensor, KeyboardSensor]} {onDragEnd}>
+    <DragDropProvider
+      sensors={[PointerSensor, KeyboardSensor]}
+      {onDragStart}
+      {onDragEnd}
+    >
       <div class="space-y-2">
         {#each $definitionsQuery.data as item, index (item.id)}
           <CustomFieldRow
@@ -480,6 +497,27 @@
           />
         {/each}
       </div>
+
+      <DragOverlay>
+        {#if activeDragItem}
+          <Card
+            level="2"
+            class="w-full p-3 border border-border bg-card shadow-xs"
+          >
+            <div class="flex items-center gap-2">
+              <p class="font-medium truncate">{activeDragItem.label}</p>
+              {#if !activeDragItem.active}
+                <span class="text-xs text-muted-foreground">(inactive)</span>
+              {/if}
+            </div>
+            <p class="text-sm text-muted-foreground">
+              {toTitleCase(activeDragItem.fieldType)}{activeDragItem.required
+                ? ' • Required'
+                : ''}
+            </p>
+          </Card>
+        {/if}
+      </DragOverlay>
     </DragDropProvider>
   {:else}
     <Card class="p-6 text-sm text-muted-foreground">
