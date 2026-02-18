@@ -85,15 +85,10 @@
                 }}
               />
             {:else if field.fieldType === 'boolean'}
-              <div
-                class="flex items-center justify-between rounded-md border px-3 py-2"
-              >
-                <span class="text-sm">Enabled</span>
-                <Switch
-                  checked={Boolean(values[field.id])}
-                  onCheckedChange={(checked) => setValue(field.id, checked)}
-                />
-              </div>
+              <Switch
+                checked={Boolean(values[field.id])}
+                onCheckedChange={(checked) => setValue(field.id, checked)}
+              />
             {:else if field.fieldType === 'date'}
               <Input
                 type="date"
