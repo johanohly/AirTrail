@@ -1,13 +1,9 @@
 <script lang="ts">
-  import { SlidersHorizontal } from '@o7/icon/lucide';
+  import { SlidersHorizontal, X } from '@o7/icon/lucide';
 
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
-  import {
-    Modal,
-    ModalBody,
-    ModalBreadcrumbHeader,
-  } from '$lib/components/ui/modal';
+  import { Modal, ModalBody, ModalHeader } from '$lib/components/ui/modal';
   import { Switch } from '$lib/components/ui/switch';
   import * as Select from '$lib/components/ui/select';
 
@@ -53,11 +49,19 @@
 </Button>
 
 <Modal bind:open class="max-w-md" closeOnOutsideClick={false}>
-  <ModalBreadcrumbHeader
-    section="Flight"
-    title="Custom fields"
-    icon={SlidersHorizontal}
-  />
+  <ModalHeader>
+    <div class="flex w-full items-center justify-between gap-2">
+      <h2 class="text-lg font-medium">Custom fields</h2>
+      <button
+        type="button"
+        class="text-muted-foreground hover:bg-hover rounded-full p-2 transition-all duration-75"
+        aria-label="Close"
+        onclick={() => (open = false)}
+      >
+        <X size={18} />
+      </button>
+    </div>
+  </ModalHeader>
   <ModalBody>
     <div class="space-y-3">
       {#if definitions.length === 0}
