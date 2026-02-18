@@ -6,15 +6,7 @@
   import { useSortable } from '@dnd-kit-svelte/svelte/sortable';
   import { toTitleCase } from '$lib/utils';
 
-  type FieldType = 'text' | 'number' | 'boolean' | 'date' | 'select';
-
-  type DefinitionItem = {
-    id: number;
-    label: string;
-    fieldType: FieldType;
-    required: boolean;
-    active: boolean;
-  };
+  import type { DefinitionItem } from './types';
 
   let {
     item,

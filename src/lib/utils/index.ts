@@ -1,4 +1,5 @@
 export { cn, flyAndScale, postViaForm } from './other';
+export { getErrorText } from './error';
 export { parseCsv } from './csv';
 export { readFile } from './file';
 export {

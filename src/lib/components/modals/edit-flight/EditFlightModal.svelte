@@ -16,7 +16,7 @@
     ModalFooter,
   } from '$lib/components/ui/modal';
   import { api, trpc } from '$lib/trpc';
-  import type { FlightData } from '$lib/utils';
+  import { getErrorText, type FlightData } from '$lib/utils';
   import { decomposeToLocal, isUsingAmPm } from '$lib/utils/datetime';
   import { flightSchema } from '$lib/zod/flight';
 
@@ -35,27 +35,6 @@
   // If their language uses 12-hour time format, we display the time in *a* 12-hour format
   // (not necessarily the user's locale, because our time validator doesn't support all languages).
   const displayLocale = isUsingAmPm() ? 'en-US' : 'fr-FR';
-
-  const getErrorText = (error: unknown) => {
-    if (!error || typeof error !== 'object') {
-      return typeof error === 'string' ? error : '';
-    }
-
-    const candidate = error as {
-      message?: string;
-      data?: { code?: string };
-      shape?: { message?: string };
-      cause?: { message?: string };
-    };
-
-    return (
-      candidate.message ||
-      candidate.shape?.message ||
-      candidate.cause?.message ||
-      candidate.data?.code ||
-      ''
-    );
-  };
 
   const customFieldDefinitions = trpc.customField.listDefinitions.query({
     entityType: 'flight',

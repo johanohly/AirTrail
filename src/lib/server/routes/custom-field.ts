@@ -188,6 +188,7 @@ export const customFieldRouter = router({
           options: input.options ?? null,
           defaultValue: input.defaultValue ?? null,
           validationJson: input.validationJson ?? null,
+          updatedAt: new Date(),
         })
         .returningAll()
         .executeTakeFirstOrThrow();
@@ -212,10 +213,32 @@ export const customFieldRouter = router({
           options: input.options ?? null,
           defaultValue: input.defaultValue ?? null,
           validationJson: input.validationJson ?? null,
+          updatedAt: new Date(),
         })
         .where('id', '=', input.id)
         .returningAll()
         .executeTakeFirstOrThrow();
+    }),
+
+  reorderDefinitions: adminProcedure
+    .input(
+      z.object({
+        entityType: entityTypeSchema,
+        orderedIds: z.array(z.number().int()),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      await db.transaction().execute(async (trx) => {
+        for (let i = 0; i < input.orderedIds.length; i++) {
+          await trx
+            .updateTable('customFieldDefinition')
+            .set({ order: i, updatedAt: new Date() })
+            .where('id', '=', input.orderedIds[i]!)
+            .where('entityType', '=', input.entityType)
+            .execute();
+        }
+      });
+      return true;
     }),
 
   deleteDefinition: adminProcedure
@@ -442,6 +465,8 @@ export const customFieldRouter = router({
 
           const jsonValue = JSON.stringify(item.value);
 
+          const now = new Date();
+
           await trx
             .insertInto('customFieldValue')
             .values({
@@ -449,10 +474,12 @@ export const customFieldRouter = router({
               entityType: input.entityType,
               entityId: input.entityId,
               value: sql`${jsonValue}::jsonb`,
+              updatedAt: now,
             })
             .onConflict((oc) =>
               oc.columns(['fieldId', 'entityType', 'entityId']).doUpdateSet({
                 value: sql`${jsonValue}::jsonb`,
+                updatedAt: now,
               }),
             )
             .execute();

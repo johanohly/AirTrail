@@ -17,30 +17,10 @@
   } from '$lib/components/modals/flight-form';
   import { flightAddedState } from '$lib/state.svelte';
   import { api, trpc } from '$lib/trpc';
+  import { getErrorText } from '$lib/utils';
   import { flightSchema } from '$lib/zod/flight';
 
   let { open = $bindable() }: { open: boolean } = $props();
-
-  const getErrorText = (error: unknown) => {
-    if (!error || typeof error !== 'object') {
-      return typeof error === 'string' ? error : '';
-    }
-
-    const candidate = error as {
-      message?: string;
-      data?: { code?: string };
-      shape?: { message?: string };
-      cause?: { message?: string };
-    };
-
-    return (
-      candidate.message ||
-      candidate.shape?.message ||
-      candidate.cause?.message ||
-      candidate.data?.code ||
-      ''
-    );
-  };
 
   const customFieldDefinitions = trpc.customField.listDefinitions.query({
     entityType: 'flight',
