@@ -40,8 +40,10 @@
 
 <Card
   level="2"
-  class={`p-3 flex items-center gap-3 border border-border bg-card ${sortable.isDragging.current ? 'opacity-85' : ''} ${sortable.isDropTarget.current ? 'ring-1 ring-primary/40' : ''}`}
+  class="w-full p-3 flex items-center gap-3 border border-border bg-card"
   {@attach sortable.ref}
+  {@attach sortable.sourceRef}
+  {@attach sortable.targetRef}
 >
   <button
     type="button"
