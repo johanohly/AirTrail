@@ -15,6 +15,7 @@
     KeyboardSensor,
     PointerSensor,
   } from '@dnd-kit-svelte/svelte';
+  import { confirmation } from '$lib/components/helpers';
   import { api, trpc } from '$lib/trpc';
 
   const definitionsQuery = trpc.customField.listDefinitions.query({
@@ -44,7 +45,11 @@
   };
 
   const onDragEnd = async (event: any) => {
-    console.log('[reorder] onDragEnd event:', JSON.stringify(event, null, 2));
+    console.log('[reorder] onDragEnd event keys:', Object.keys(event ?? {}));
+    console.log('[reorder] operation:', {
+      source: event?.operation?.source,
+      target: event?.operation?.target,
+    });
 
     const fromId = Number(event?.operation?.source?.id);
     const targetId = Number(event?.operation?.target?.id);
@@ -91,7 +96,12 @@
   };
 
   const remove = async (id: number) => {
-    if (!confirm('Are you sure you want to remove this custom field?')) return;
+    const confirmed = await confirmation.show({
+      title: 'Remove custom field',
+      description:
+        'Are you sure you want to remove this custom field? Any existing values will be deleted.',
+    });
+    if (!confirmed) return;
 
     try {
       await api.customField.deleteDefinition.mutate(id);
