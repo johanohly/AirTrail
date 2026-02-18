@@ -548,8 +548,8 @@
 <Modal bind:open={editModalOpen} class="max-w-lg" closeOnOutsideClick={false}>
   {#if editing}
     <ModalBreadcrumbHeader
-      section="Settings"
-      title={editing.id ? 'Edit custom field' : 'Add custom field'}
+      section="Custom fields"
+      title={editing.id ? 'Edit field' : 'Add field'}
       icon={SlidersHorizontal}
     />
     <ModalBody>
