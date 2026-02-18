@@ -501,21 +501,24 @@
     </ModalHeader>
     <ModalBody>
       <div class="space-y-4">
-        <label class="text-sm font-medium">Label</label>
+        <label class="text-sm font-medium" for="custom-field-label">Label</label
+        >
         <Input
+          id="custom-field-label"
           value={editing.label}
           oninput={(e) => onLabelInput(e.currentTarget.value)}
           placeholder="e.g. Booking reference"
         />
 
-        <label class="text-sm font-medium">Key</label>
+        <label class="text-sm font-medium" for="custom-field-key">Key</label>
         <Input
+          id="custom-field-key"
           value={editing.key}
           oninput={(e) => onKeyInput(e.currentTarget.value)}
           placeholder="e.g. booking_reference"
         />
 
-        <label class="text-sm font-medium">Type</label>
+        <p class="text-sm font-medium">Type</p>
         <Select.Root
           type="single"
           value={editing.fieldType}
@@ -542,13 +545,17 @@
 
         {#if editing.fieldType === 'text'}
           <div class="space-y-2">
-            <label class="text-sm font-medium flex items-center gap-1">
+            <label
+              class="text-sm font-medium flex items-center gap-1"
+              for="custom-field-validation-regex"
+            >
               Regex
               <HelpTooltip
                 text="Optional JavaScript-style regex pattern used to validate text values."
               />
             </label>
             <Input
+              id="custom-field-validation-regex"
               bind:value={editing.validationRegex}
               placeholder="e.g. ^[A-Z]{2}-\\d{4}$"
             />
@@ -556,41 +563,73 @@
 
           <div class="grid grid-cols-2 gap-3">
             <div class="space-y-1">
-              <label class="text-sm font-medium">Min length</label>
-              <Input type="number" bind:value={editing.validationMinLength} />
+              <label class="text-sm font-medium" for="custom-field-min-length"
+                >Min length</label
+              >
+              <Input
+                id="custom-field-min-length"
+                type="number"
+                bind:value={editing.validationMinLength}
+              />
             </div>
             <div class="space-y-1">
-              <label class="text-sm font-medium">Max length</label>
-              <Input type="number" bind:value={editing.validationMaxLength} />
+              <label class="text-sm font-medium" for="custom-field-max-length"
+                >Max length</label
+              >
+              <Input
+                id="custom-field-max-length"
+                type="number"
+                bind:value={editing.validationMaxLength}
+              />
             </div>
           </div>
         {:else if editing.fieldType === 'number'}
           <div class="grid grid-cols-2 gap-3">
             <div class="space-y-1">
-              <label class="text-sm font-medium">Min value</label>
-              <Input type="number" bind:value={editing.validationMin} />
+              <label class="text-sm font-medium" for="custom-field-min-value"
+                >Min value</label
+              >
+              <Input
+                id="custom-field-min-value"
+                type="number"
+                bind:value={editing.validationMin}
+              />
             </div>
             <div class="space-y-1">
-              <label class="text-sm font-medium">Max value</label>
-              <Input type="number" bind:value={editing.validationMax} />
+              <label class="text-sm font-medium" for="custom-field-max-value"
+                >Max value</label
+              >
+              <Input
+                id="custom-field-max-value"
+                type="number"
+                bind:value={editing.validationMax}
+              />
             </div>
           </div>
         {/if}
 
         {#if editing.fieldType === 'select'}
-          <label class="text-sm font-medium">Options (one per line)</label>
+          <label class="text-sm font-medium" for="custom-field-options"
+            >Options (one per line)</label
+          >
           <textarea
+            id="custom-field-options"
             class="min-h-24 w-full rounded-md border bg-background p-2 text-sm"
             bind:value={editing.optionsText}
             placeholder={'Economy\nBusiness\nFirst'}
           ></textarea>
         {/if}
 
-        <label class="text-sm font-medium">Default value</label>
+        <p class="text-sm font-medium">Default value</p>
         {#if editing.fieldType === 'text'}
-          <Input bind:value={editing.defaultText} placeholder="e.g. SK-12345" />
+          <Input
+            id="custom-field-default-text"
+            bind:value={editing.defaultText}
+            placeholder="e.g. SK-12345"
+          />
         {:else if editing.fieldType === 'number'}
           <Input
+            id="custom-field-default-number"
             type="number"
             bind:value={editing.defaultNumber}
             placeholder="e.g. 42"
@@ -599,11 +638,20 @@
           <div
             class="flex items-center justify-between rounded-md border px-3 py-2"
           >
-            <span class="text-sm">Enabled by default</span>
-            <Switch bind:checked={editing.defaultBoolean} />
+            <label class="text-sm" for="custom-field-default-boolean"
+              >Enabled by default</label
+            >
+            <Switch
+              id="custom-field-default-boolean"
+              bind:checked={editing.defaultBoolean}
+            />
           </div>
         {:else if editing.fieldType === 'date'}
-          <Input type="date" bind:value={editing.defaultDate} />
+          <Input
+            id="custom-field-default-date"
+            type="date"
+            bind:value={editing.defaultDate}
+          />
         {:else if editing.fieldType === 'select'}
           {@const selectOptions = editing.optionsText
             .split('\n')
@@ -614,7 +662,7 @@
             value={editing.defaultSelect}
             onValueChange={(v) => (editing!.defaultSelect = v ?? '')}
           >
-            <Select.Trigger>
+            <Select.Trigger id="custom-field-default-select">
               {editing.defaultSelect || 'Select default option'}
             </Select.Trigger>
             <Select.Content>
@@ -629,19 +677,25 @@
           <div
             class="flex items-center justify-between rounded-md border px-3 py-2"
           >
-            <span class="text-sm">Required</span>
-            <Switch bind:checked={editing.required} />
+            <label class="text-sm" for="custom-field-required">Required</label>
+            <Switch
+              id="custom-field-required"
+              bind:checked={editing.required}
+            />
           </div>
           <div
             class="flex items-center justify-between rounded-md border px-3 py-2"
           >
-            <span class="text-sm">Active</span>
-            <Switch bind:checked={editing.active} />
+            <label class="text-sm" for="custom-field-active">Active</label>
+            <Switch id="custom-field-active" bind:checked={editing.active} />
           </div>
         </div>
 
-        <label class="text-sm font-medium">Description</label>
+        <label class="text-sm font-medium" for="custom-field-description"
+          >Description</label
+        >
         <Input
+          id="custom-field-description"
           bind:value={editing.description}
           placeholder="Optional helper text"
         />
