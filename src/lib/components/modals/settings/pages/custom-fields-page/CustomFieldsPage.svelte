@@ -44,9 +44,12 @@
   };
 
   const onDragEnd = async (event: any) => {
+    console.log('[reorder] onDragEnd event:', JSON.stringify(event, null, 2));
+
     const fromId = Number(event?.operation?.source?.id);
     const targetId = Number(event?.operation?.target?.id);
 
+    console.log('[reorder] fromId:', fromId, 'targetId:', targetId);
     activeDragId = null;
 
     if (
@@ -54,31 +57,42 @@
       !Number.isFinite(targetId) ||
       fromId === targetId
     ) {
+      console.log('[reorder] early return — invalid or same ids');
       return;
     }
 
     const list = [...($definitionsQuery.data ?? [])] as DefinitionItem[];
     const fromIndex = list.findIndex((item) => item.id === fromId);
     const toIndex = list.findIndex((item) => item.id === targetId);
-    if (fromIndex < 0 || toIndex < 0) return;
+    console.log('[reorder] fromIndex:', fromIndex, 'toIndex:', toIndex);
+    if (fromIndex < 0 || toIndex < 0) {
+      console.log('[reorder] early return — index not found');
+      return;
+    }
 
     const [moved] = list.splice(fromIndex, 1);
     list.splice(toIndex, 0, moved);
 
+    const orderedIds = list.map((item) => item.id);
+    console.log('[reorder] sending orderedIds:', orderedIds);
+
     try {
-      await api.customField.reorderDefinitions.mutate({
+      const result = await api.customField.reorderDefinitions.mutate({
         entityType: 'flight',
-        orderedIds: list.map((item) => item.id),
+        orderedIds,
       });
+      console.log('[reorder] mutate result:', result);
       invalidate();
       toast.success('Custom fields reordered');
     } catch (e) {
+      console.error('[reorder] mutate error:', e);
       toast.error('Failed to reorder custom fields');
-      console.error(e);
     }
   };
 
   const remove = async (id: number) => {
+    if (!confirm('Are you sure you want to remove this custom field?')) return;
+
     try {
       await api.customField.deleteDefinition.mutate(id);
       invalidate();
@@ -100,7 +114,7 @@
 >
   {#snippet headerRight()}
     <Button onclick={() => editModal?.openCreate()}>
-      <Plus size={14} class="mr-1" />
+      <Plus size={14} class="mr-1 shrink-0" />
       Add Field
     </Button>
   {/snippet}

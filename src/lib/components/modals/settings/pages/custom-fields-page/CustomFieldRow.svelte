@@ -59,7 +59,12 @@
   <Button variant="outline" size="icon" onclick={() => onEdit(item)}>
     <SquarePen size={14} />
   </Button>
-  <Button variant="outline" size="icon" onclick={() => onRemove(item.id)}>
-    <X size={14} />
+  <Button
+    variant="outline"
+    size="icon"
+    class="shrink-0"
+    onclick={() => onRemove(item.id)}
+  >
+    <X size={14} class="shrink-0" />
   </Button>
 </Card>
