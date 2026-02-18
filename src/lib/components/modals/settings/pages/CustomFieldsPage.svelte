@@ -514,7 +514,9 @@
           placeholder="e.g. booking_reference"
         />
 
-        <p class="text-sm font-medium">Type</p>
+        <label class="text-sm font-medium" for="custom-field-type-trigger"
+          >Type</label
+        >
         <Select.Root
           type="single"
           value={editing.fieldType}
@@ -529,7 +531,9 @@
             }
           }}
         >
-          <Select.Trigger>{toTitleCase(editing.fieldType)}</Select.Trigger>
+          <Select.Trigger id="custom-field-type-trigger"
+            >{toTitleCase(editing.fieldType)}</Select.Trigger
+          >
           <Select.Content>
             <Select.Item value="text" label="Text" />
             <Select.Item value="number" label="Number" />
