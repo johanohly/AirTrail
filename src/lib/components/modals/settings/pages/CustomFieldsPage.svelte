@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { Plus, SlidersHorizontal } from '@o7/icon/lucide';
+  import {
+    GripVertical,
+    Plus,
+    SlidersHorizontal,
+    SquarePen,
+    X,
+  } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
 
   import CustomFieldRow from './CustomFieldRow.svelte';
@@ -502,19 +508,32 @@
         {#if activeDragItem}
           <Card
             level="2"
-            class="w-full p-3 border border-border bg-card shadow-xs"
+            class="w-full p-3 flex items-center gap-3 border border-border bg-card shadow-xs"
           >
-            <div class="flex items-center gap-2">
-              <p class="font-medium truncate">{activeDragItem.label}</p>
-              {#if !activeDragItem.active}
-                <span class="text-xs text-muted-foreground">(inactive)</span>
-              {/if}
+            <div class="text-muted-foreground">
+              <GripVertical size={16} />
             </div>
-            <p class="text-sm text-muted-foreground">
-              {toTitleCase(activeDragItem.fieldType)}{activeDragItem.required
-                ? ' • Required'
-                : ''}
-            </p>
+
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <p class="font-medium truncate">{activeDragItem.label}</p>
+                {#if !activeDragItem.active}
+                  <span class="text-xs text-muted-foreground">(inactive)</span>
+                {/if}
+              </div>
+              <p class="text-sm text-muted-foreground">
+                {toTitleCase(activeDragItem.fieldType)}{activeDragItem.required
+                  ? ' • Required'
+                  : ''}
+              </p>
+            </div>
+
+            <Button variant="outline" size="icon" disabled>
+              <SquarePen size={14} />
+            </Button>
+            <Button variant="outline" size="icon" disabled>
+              <X size={14} />
+            </Button>
           </Card>
         {/if}
       </DragOverlay>
