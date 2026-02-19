@@ -191,6 +191,9 @@
               <Select.Item value="boolean" label="Boolean" />
               <Select.Item value="date" label="Date" />
               <Select.Item value="select" label="Select" />
+              <Select.Item value="airport" label="Airport" />
+              <Select.Item value="airline" label="Airline" />
+              <Select.Item value="aircraft" label="Aircraft" />
             </Select.Content>
           </Select.Root>
         </div>

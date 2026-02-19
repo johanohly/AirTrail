@@ -4,7 +4,10 @@ export type FieldType =
   | 'number'
   | 'boolean'
   | 'date'
-  | 'select';
+  | 'select'
+  | 'airport'
+  | 'airline'
+  | 'aircraft';
 
 export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   text: 'Short text',
@@ -13,6 +16,9 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   boolean: 'Boolean',
   date: 'Date',
   select: 'Select',
+  airport: 'Airport',
+  airline: 'Airline',
+  aircraft: 'Aircraft',
 };
 
 export type DefinitionItem = {

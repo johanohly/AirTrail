@@ -1,8 +1,13 @@
 <script lang="ts">
+  import AircraftPicker from '$lib/components/form-fields/AircraftPicker.svelte';
+  import AirlinePicker from '$lib/components/form-fields/AirlinePicker.svelte';
+  import AirportPicker from '$lib/components/form-fields/AirportPicker.svelte';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import { Switch } from '$lib/components/ui/switch';
   import * as Select from '$lib/components/ui/select';
+  import type { Aircraft, Airline, Airport } from '$lib/db/types';
+  import { api } from '$lib/trpc';
 
   type FieldType =
     | 'text'
@@ -10,7 +15,12 @@
     | 'number'
     | 'boolean'
     | 'date'
-    | 'select';
+    | 'select'
+    | 'airport'
+    | 'airline'
+    | 'aircraft';
+
+  const ENTITY_TYPES = new Set(['airport', 'airline', 'aircraft']);
 
   let {
     id,
@@ -47,6 +57,52 @@
   const set = (v: unknown) => {
     value = v;
     onchange?.(v);
+  };
+
+  // Entity picker state: resolve numeric ID → full object for the picker
+  let entityObj = $state<Airport | Airline | Aircraft | null>(null);
+  let resolvedId = $state<number | null>(null);
+
+  $effect(() => {
+    if (!ENTITY_TYPES.has(fieldType)) return;
+
+    const numId = typeof value === 'number' ? value : null;
+
+    // Already resolved this ID
+    if (numId === resolvedId && entityObj) return;
+
+    if (numId == null) {
+      entityObj = null;
+      resolvedId = null;
+      return;
+    }
+
+    resolvedId = numId;
+    (async () => {
+      try {
+        if (fieldType === 'airport') {
+          entityObj = await api.airport.get.query(numId);
+        } else if (fieldType === 'airline') {
+          entityObj = await api.airline.get.query(numId);
+        } else if (fieldType === 'aircraft') {
+          entityObj = await api.aircraft.get.query(numId);
+        }
+      } catch {
+        entityObj = null;
+      }
+    })();
+  });
+
+  const onEntityChange = (entity: { id: number } | null) => {
+    if (entity) {
+      entityObj = entity as Airport | Airline | Aircraft;
+      resolvedId = entity.id;
+      set(entity.id);
+    } else {
+      entityObj = null;
+      resolvedId = null;
+      set(null);
+    }
   };
 </script>
 
@@ -109,6 +165,24 @@
         {/each}
       </Select.Content>
     </Select.Root>
+  {:else if fieldType === 'airport'}
+    <AirportPicker
+      value={entityObj as Airport | null}
+      compact
+      onchange={(v) => onEntityChange(v)}
+    />
+  {:else if fieldType === 'airline'}
+    <AirlinePicker
+      value={entityObj as Airline | null}
+      compact
+      onchange={(v) => onEntityChange(v)}
+    />
+  {:else if fieldType === 'aircraft'}
+    <AircraftPicker
+      value={entityObj as Aircraft | null}
+      compact
+      onchange={(v) => onEntityChange(v)}
+    />
   {/if}
 
   {#if error}

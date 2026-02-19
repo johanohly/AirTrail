@@ -65,7 +65,7 @@ export type custom_field_definition = {
     /**
      * @kyselyType('text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select')
      */
-    fieldType: 'text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select';
+    fieldType: 'text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select' | 'airport' | 'airline' | 'aircraft';
     required: Generated<boolean>;
     active: Generated<boolean>;
     order: Generated<number>;

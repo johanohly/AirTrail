@@ -16,6 +16,7 @@ type Validation = {
 };
 
 const TEXT_LIKE = new Set(['text', 'textarea']);
+const ENTITY_TYPES = new Set(['airport', 'airline', 'aircraft']);
 
 const parseValidation = (raw: unknown): Validation | null => {
   if (!raw || typeof raw !== 'object') return null;
@@ -81,6 +82,11 @@ export const validateCustomFields = (
         errors[def.id] = 'Must be one of the available options';
         continue;
       }
+    }
+
+    if (ENTITY_TYPES.has(def.fieldType) && typeof value !== 'number') {
+      errors[def.id] = 'Must select a valid option';
+      continue;
     }
 
     // Validation rules

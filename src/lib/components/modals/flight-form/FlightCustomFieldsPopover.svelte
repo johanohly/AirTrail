@@ -12,7 +12,16 @@
     id: number;
     key: string;
     label: string;
-    fieldType: 'text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select';
+    fieldType:
+      | 'text'
+      | 'textarea'
+      | 'number'
+      | 'boolean'
+      | 'date'
+      | 'select'
+      | 'airport'
+      | 'airline'
+      | 'aircraft';
     required: boolean;
     options: unknown;
     validationJson: unknown;
