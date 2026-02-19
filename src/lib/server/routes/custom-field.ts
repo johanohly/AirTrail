@@ -123,6 +123,16 @@ const ensureDefinitionIsValid = (
         });
       }
     }
+
+    if (
+      ENTITY_TYPES.has(input.fieldType) &&
+      typeof input.defaultValue !== 'number'
+    ) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Default value must be a numeric ID for entity fields',
+      });
+    }
   }
 };
 
@@ -193,6 +203,19 @@ export const customFieldRouter = router({
     .mutation(async ({ input }) => {
       ensureDefinitionIsValid(input);
 
+      const defaultValue =
+        input.defaultValue != null
+          ? sql`${JSON.stringify(input.defaultValue)}::jsonb`
+          : null;
+      const validationJson =
+        input.validationJson != null
+          ? sql`${JSON.stringify(input.validationJson)}::jsonb`
+          : null;
+      const options =
+        input.options != null
+          ? sql`${JSON.stringify(input.options)}::jsonb`
+          : null;
+
       return await db
         .insertInto('customFieldDefinition')
         .values({
@@ -204,9 +227,9 @@ export const customFieldRouter = router({
           required: input.required,
           active: input.active,
           order: input.order,
-          options: input.options ?? null,
-          defaultValue: input.defaultValue ?? null,
-          validationJson: input.validationJson ?? null,
+          options,
+          defaultValue,
+          validationJson,
           updatedAt: new Date(),
         })
         .returningAll()
@@ -217,6 +240,19 @@ export const customFieldRouter = router({
     .input(definitionInputSchema.extend({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       ensureDefinitionIsValid(input);
+
+      const defaultValue =
+        input.defaultValue != null
+          ? sql`${JSON.stringify(input.defaultValue)}::jsonb`
+          : null;
+      const validationJson =
+        input.validationJson != null
+          ? sql`${JSON.stringify(input.validationJson)}::jsonb`
+          : null;
+      const options =
+        input.options != null
+          ? sql`${JSON.stringify(input.options)}::jsonb`
+          : null;
 
       return await db
         .updateTable('customFieldDefinition')
@@ -229,9 +265,9 @@ export const customFieldRouter = router({
           required: input.required,
           active: input.active,
           order: input.order,
-          options: input.options ?? null,
-          defaultValue: input.defaultValue ?? null,
-          validationJson: input.validationJson ?? null,
+          options,
+          defaultValue,
+          validationJson,
           updatedAt: new Date(),
         })
         .where('id', '=', input.id)

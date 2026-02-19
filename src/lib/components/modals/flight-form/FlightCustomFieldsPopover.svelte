@@ -24,6 +24,7 @@
       | 'aircraft';
     required: boolean;
     options: unknown;
+    defaultValue: unknown;
     validationJson: unknown;
   };
 
@@ -40,6 +41,23 @@
   let open = $state(false);
   let errors = $state<Record<number, string>>({});
   let snapshot = $state<Record<number, unknown>>({});
+  /**
+   * Seed default values into the values record for any field
+   * that doesn't already have a value set.
+   */
+  export function applyDefaults() {
+    let changed = false;
+    const next = { ...values };
+    for (const def of definitions) {
+      if (def.defaultValue != null && !(def.id in next)) {
+        next[def.id] = def.defaultValue;
+        changed = true;
+      }
+    }
+    if (changed) {
+      values = next;
+    }
+  }
 
   const errorCount = $derived(Object.keys(errors).length);
 

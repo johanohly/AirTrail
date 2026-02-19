@@ -59,6 +59,7 @@ export type EditingState = {
   defaultBoolean: boolean;
   defaultDate: string;
   defaultSelect: string;
+  defaultEntity: number | null;
   validationRegex: string;
   validationMin: string;
   validationMax: string;

@@ -46,6 +46,7 @@ export const createBlankEditing = (order: number): EditingState => ({
   defaultBoolean: false,
   defaultDate: '',
   defaultSelect: '',
+  defaultEntity: null,
   validationRegex: '',
   validationMin: '',
   validationMax: '',
@@ -90,6 +91,10 @@ export const itemToEditing = (item: DefinitionItem): EditingState => {
       options.includes(item.defaultValue)
         ? item.defaultValue
         : '',
+    defaultEntity:
+      typeof item.defaultValue === 'number' && isEntityType(item.fieldType)
+        ? item.defaultValue
+        : null,
     validationRegex: validation.regex ?? '',
     validationMin:
       typeof validation.min === 'number' ? String(validation.min) : '',
@@ -109,6 +114,11 @@ export const itemToEditing = (item: DefinitionItem): EditingState => {
 export const isTextLike = (fieldType: string) =>
   fieldType === 'text' || fieldType === 'textarea';
 
+export const isEntityType = (fieldType: string) =>
+  fieldType === 'airport' ||
+  fieldType === 'airline' ||
+  fieldType === 'aircraft';
+
 /** Read the current default as a raw value for use in CustomFieldInput. */
 export const getPreviewValue = (editing: EditingState): unknown => {
   if (isTextLike(editing.fieldType)) return editing.defaultText || null;
@@ -120,6 +130,7 @@ export const getPreviewValue = (editing: EditingState): unknown => {
   if (editing.fieldType === 'boolean') return editing.defaultBoolean;
   if (editing.fieldType === 'date') return editing.defaultDate || null;
   if (editing.fieldType === 'select') return editing.defaultSelect || null;
+  if (isEntityType(editing.fieldType)) return editing.defaultEntity;
   return null;
 };
 
@@ -138,6 +149,8 @@ export const setPreviewValue = (
     editing.defaultDate = typeof value === 'string' ? value : '';
   } else if (editing.fieldType === 'select') {
     editing.defaultSelect = typeof value === 'string' ? value : '';
+  } else if (isEntityType(editing.fieldType)) {
+    editing.defaultEntity = typeof value === 'number' ? value : null;
   }
 };
 
@@ -165,6 +178,10 @@ export const getDefaultValue = (editing: EditingState): unknown => {
 
   if (editing.fieldType === 'select') {
     return editing.defaultSelect || null;
+  }
+
+  if (isEntityType(editing.fieldType)) {
+    return editing.defaultEntity;
   }
 
   return null;
