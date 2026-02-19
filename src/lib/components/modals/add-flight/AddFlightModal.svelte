@@ -71,7 +71,7 @@
       },
     },
   );
-  const { form: formData, enhance } = form;
+  const { form: formData, enhance, submitting } = form;
 
   $effect(() => {
     if ($formData.seats[0] && $formData.seats[0].userId === '<USER_ID>') {
@@ -90,7 +90,7 @@
           definitions={$customFieldDefinitions.data ?? []}
           bind:values={customFieldValues}
         />
-        <Form.Button size="sm">Add Flight</Form.Button>
+        <Form.Button size="sm" loading={$submitting}>Add Flight</Form.Button>
       </div>
     </ModalFooter>
   </form>

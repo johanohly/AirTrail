@@ -5,6 +5,7 @@
   import { Modal, ModalBody, ModalHeader } from '$lib/components/ui/modal';
 
   import CustomFieldInput from './CustomFieldInput.svelte';
+  import { isMediumScreen, isSmallScreen } from '$lib/utils/size';
 
   type Definition = {
     id: number;
@@ -38,17 +39,21 @@
 </script>
 
 <Button
+  size="sm"
   variant="outline"
-  size="icon"
+  class={$isSmallScreen ? '' : 'size-8 px-0'}
   disabled={disabled || !definitions.length}
   onclick={() => (open = true)}
 >
   <SlidersHorizontal size={16} />
+  {#if $isSmallScreen}
+    Custom Fields
+  {/if}
 </Button>
 
 <Modal bind:open class="max-w-md" closeOnOutsideClick={false}>
   <ModalHeader>
-    <h2 class="text-lg font-medium">Custom fields</h2>
+    <h2 class="text-lg font-medium">Custom Fields</h2>
   </ModalHeader>
   <ModalBody>
     <div class="grid gap-4">

@@ -96,7 +96,7 @@
 </script>
 
 <PageHeader
-  title="Custom fields"
+  title="Custom Fields"
   subtitle="Define optional structured fields for flight records."
 >
   {#snippet headerRight()}

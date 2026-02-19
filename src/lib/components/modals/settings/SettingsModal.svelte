@@ -37,7 +37,7 @@
   ] as const;
   const ADMIN_SETTINGS = [
     { title: 'Data', id: 'data' },
-    { title: 'Custom fields', id: 'custom-fields' },
+    { title: 'Custom Fields', id: 'custom-fields' },
     { title: 'Integrations', id: 'integrations' },
     { title: 'Users', id: 'users' },
     { title: 'OAuth', id: 'oauth' },
