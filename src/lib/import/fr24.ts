@@ -5,8 +5,10 @@ import { z } from 'zod';
 import { page } from '$app/state';
 import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type { Flight, CreateFlight, Seat } from '$lib/db/types';
-import { api } from '$lib/trpc';
 import { parseCsv } from '$lib/utils';
+import { getAircraftByIcao } from '$lib/utils/data/aircraft';
+import { getAirlineByIcao } from '$lib/utils/data/airlines';
+import { getAirportByIcao } from '$lib/utils/data/airports/cache';
 import { parseLocalISO, toUtc } from '$lib/utils/datetime';
 
 const FR24_AIRPORT_REGEX = /\(([a-zA-Z]{3})\/(?<ICAO>[a-zA-Z]{4})\)/;
@@ -113,8 +115,8 @@ export const processFR24File = async (
 
     const mappedFrom = options.airportMapping?.[fromCode];
     const mappedTo = options.airportMapping?.[toCode];
-    const from = mappedFrom ?? (await api.airport.getFromIcao.query(fromCode));
-    const to = mappedTo ?? (await api.airport.getFromIcao.query(toCode));
+    const from = mappedFrom ?? (await getAirportByIcao(fromCode));
+    const to = mappedTo ?? (await getAirportByIcao(toCode));
 
     if (row.dep_time === '00:00:00' && row.arr_time === '00:00:00') {
       row.dep_time = null;
@@ -151,14 +153,10 @@ export const processFR24File = async (
       : undefined;
     const airline =
       mappedAirline ||
-      (rawAirline
-        ? (await api.airline.getByIcao.query(rawAirline)) || null
-        : null);
+      (rawAirline ? (await getAirlineByIcao(rawAirline)) || null : null);
 
     const rawAircraft = row.aircraft ? extractAircraftICAO(row.aircraft) : null;
-    const aircraft = rawAircraft
-      ? await api.aircraft.getByIcao.query(rawAircraft)
-      : null;
+    const aircraft = rawAircraft ? await getAircraftByIcao(rawAircraft) : null;
     if (!aircraft && rawAircraft) {
       console.warn(`Unknown aircraft ICAO code: ${rawAircraft}`);
     }

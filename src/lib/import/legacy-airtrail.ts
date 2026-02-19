@@ -9,6 +9,9 @@ import {
   SeatTypes,
 } from '$lib/db/types';
 import { api } from '$lib/trpc';
+import { getAircraftByIcao } from '$lib/utils/data/aircraft';
+import { getAirlineByIcao } from '$lib/utils/data/airlines';
+import { getAirportByIcao } from '$lib/utils/data/airports/cache';
 
 const AirTrailFile = z.object({
   flights: z
@@ -169,16 +172,13 @@ export const processLegacyAirTrailFile = async (
 
     const mappedFrom = options.airportMapping?.[rawFlight.from.code];
     const mappedTo = options.airportMapping?.[rawFlight.to.code];
-    const from =
-      mappedFrom ?? (await api.airport.getFromIcao.query(rawFlight.from.code));
-    const to =
-      mappedTo ?? (await api.airport.getFromIcao.query(rawFlight.to.code));
+    const from = mappedFrom ?? (await getAirportByIcao(rawFlight.from.code));
+    const to = mappedTo ?? (await getAirportByIcao(rawFlight.to.code));
 
     let airline = null;
     if (rawFlight.airline) {
       const mappedAirline = options.airlineMapping?.[rawFlight.airline];
-      airline =
-        mappedAirline || (await api.airline.getByIcao.query(rawFlight.airline));
+      airline = mappedAirline || (await getAirlineByIcao(rawFlight.airline));
     }
 
     const flightIndex = flights.length;
@@ -214,7 +214,7 @@ export const processLegacyAirTrailFile = async (
       arrivalGate: null,
       airline,
       aircraft: rawFlight.aircraft
-        ? await api.aircraft.getByIcao.query(rawFlight.aircraft)
+        ? await getAircraftByIcao(rawFlight.aircraft)
         : null,
       from: from || null,
       to: to || null,

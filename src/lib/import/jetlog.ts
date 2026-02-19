@@ -5,8 +5,10 @@ import { z } from 'zod';
 import { page } from '$app/state';
 import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type { CreateFlight, Seat } from '$lib/db/types';
-import { api } from '$lib/trpc';
 import { distanceBetween, parseCsv } from '$lib/utils';
+import { getAircraftByIcao } from '$lib/utils/data/aircraft';
+import { getAirlineByIata, getAirlineByIcao } from '$lib/utils/data/airlines';
+import { getAirportByIcao } from '$lib/utils/data/airports/cache';
 import {
   estimateFlightDuration,
   parseLocalISO,
@@ -76,10 +78,8 @@ export const processJetLogFile = async (
   for (const row of data) {
     const mappedFrom = options.airportMapping?.[row.origin];
     const mappedTo = options.airportMapping?.[row.destination];
-    const from =
-      mappedFrom ?? (await api.airport.getFromIcao.query(row.origin));
-    const to =
-      mappedTo ?? (await api.airport.getFromIcao.query(row.destination));
+    const from = mappedFrom ?? (await getAirportByIcao(row.origin));
+    const to = mappedTo ?? (await getAirportByIcao(row.destination));
 
     const departure = row.departure_time
       ? toUtc(
@@ -126,14 +126,14 @@ export const processJetLogFile = async (
 
     if (!airline && row.airline) {
       airlineCode = row.airline.trim().toUpperCase();
-      airline = (await api.airline.getByIcao.query(airlineCode)) ?? null;
+      airline = (await getAirlineByIcao(airlineCode)) ?? null;
     }
 
     if (!airline && options.airlineFromFlightNumber && row.flight_number) {
       const airlineIata = /([A-Za-z]{2})\d*/.exec(row.flight_number)?.[1];
       if (airlineIata) {
         airlineCode = airlineIata;
-        airline = (await api.airline.getByIata.query(airlineIata)) ?? null;
+        airline = (await getAirlineByIata(airlineIata)) ?? null;
       }
     }
 
@@ -141,7 +141,7 @@ export const processJetLogFile = async (
     if (row.airplane) {
       const aircraftIcao =
         row.airplane.match(/\((.{4})\)/)?.[1] ?? row.airplane;
-      aircraft = (await api.aircraft.getByIcao.query(aircraftIcao)) ?? null;
+      aircraft = (await getAircraftByIcao(aircraftIcao)) ?? null;
     }
 
     const flightIndex = flights.length;

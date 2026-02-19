@@ -16,7 +16,10 @@
     ModalBreadcrumbHeader,
   } from '$lib/components/ui/modal';
   import { trpc } from '$lib/trpc';
-  import { airlineSearchCache } from '$lib/utils/data/airlines';
+  import {
+    airlineSearchCache,
+    clearAirlineLookupCaches,
+  } from '$lib/utils/data/airlines';
   import { airlineSchema } from '$lib/zod/airline';
 
   let { open = $bindable(false), withoutTrigger } = $props();
@@ -60,6 +63,7 @@
             pendingIconFile = null;
             trpc.airline.list.utils.invalidate();
             airlineSearchCache.clear();
+            clearAirlineLookupCaches();
             open = false;
             return void toast.success(form.message.text);
           }

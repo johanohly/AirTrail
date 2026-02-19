@@ -60,6 +60,16 @@ export const platforms = [
     },
   },
   {
+    name: 'byAir',
+    value: 'byair',
+    description: 'CSV export from byAir flight tracker.',
+    extensions: ['.csv'],
+    options: {
+      filterOwner: true,
+      airlineFromFlightNumber: true,
+    },
+  },
+  {
     name: 'AirTrail',
     value: 'airtrail',
     description: 'JSON export from AirTrail (re-import your data).',

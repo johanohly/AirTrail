@@ -5,8 +5,10 @@ import { z } from 'zod';
 import { page } from '$app/state';
 import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type { CreateFlight, Seat } from '$lib/db/types';
-import { api } from '$lib/trpc';
 import { parseCsv } from '$lib/utils';
+import { getAircraftByName } from '$lib/utils/data/aircraft';
+import { getAirlineByIata, getAirlineByIcao } from '$lib/utils/data/airlines';
+import { getAirportByIata } from '$lib/utils/data/airports/cache';
 import { parseLocalISO, toUtc } from '$lib/utils/datetime';
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
@@ -162,8 +164,8 @@ export const processFlightyFile = async (
   for (const row of data) {
     const mappedFrom = options.airportMapping?.[row.from];
     const mappedTo = options.airportMapping?.[row.to];
-    const from = mappedFrom ?? (await api.airport.getFromIata.query(row.from));
-    const to = mappedTo ?? (await api.airport.getFromIata.query(row.to));
+    const from = mappedFrom ?? (await getAirportByIata(row.from));
+    const to = mappedTo ?? (await getAirportByIata(row.to));
 
     const departureScheduled = parseFlightyTime(
       row.gate_departure_scheduled,
@@ -216,15 +218,15 @@ export const processFlightyFile = async (
       const mappedAirline = options.airlineMapping?.[airlineIcao];
       airline = mappedAirline || null;
       if (!airline) {
-        airline = (await api.airline.getByIcao.query(airlineIcao)) ?? null;
+        airline = (await getAirlineByIcao(airlineIcao)) ?? null;
       }
       if (!airline) {
-        airline = (await api.airline.getByIata.query(airlineIcao)) ?? null;
+        airline = (await getAirlineByIata(airlineIcao)) ?? null;
       }
     }
 
     const aircraft = row.aircraft_type_name
-      ? await api.aircraft.getByName.query(row.aircraft_type_name)
+      ? await getAircraftByName(row.aircraft_type_name)
       : null;
 
     const flightNumber =
