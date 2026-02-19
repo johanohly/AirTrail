@@ -8,19 +8,14 @@
   import * as Select from '$lib/components/ui/select';
   import type { Aircraft, Airline, Airport } from '$lib/db/types';
   import { api } from '$lib/trpc';
+  import {
+    isEntityType,
+    normalizeOptions,
+    type FieldType,
+  } from '$lib/utils/custom-fields';
 
-  type FieldType =
-    | 'text'
-    | 'textarea'
-    | 'number'
-    | 'boolean'
-    | 'date'
-    | 'select'
-    | 'airport'
-    | 'airline'
-    | 'aircraft';
-
-  const ENTITY_TYPES = new Set(['airport', 'airline', 'aircraft']);
+  // Module-level cache: avoids re-fetching the same entity on every mount
+  const entityCache = new Map<string, Airport | Airline | Aircraft>();
 
   let {
     id,
@@ -48,11 +43,7 @@
     id ?? `cf-${label.replace(/\s+/g, '-').toLowerCase()}`,
   );
 
-  const resolvedOptions = $derived(
-    Array.isArray(options)
-      ? options.filter((x): x is string => typeof x === 'string')
-      : [],
-  );
+  const resolvedOptions = $derived(normalizeOptions(options));
 
   const set = (v: unknown) => {
     value = v;
@@ -64,7 +55,7 @@
   let resolvedId = $state<number | null>(null);
 
   $effect(() => {
-    if (!ENTITY_TYPES.has(fieldType)) return;
+    if (!isEntityType(fieldType)) return;
 
     const numId = typeof value === 'number' ? value : null;
 
@@ -78,14 +69,26 @@
     }
 
     resolvedId = numId;
+    const cacheKey = `${fieldType}-${numId}`;
+    const cached = entityCache.get(cacheKey);
+    if (cached) {
+      entityObj = cached;
+      return;
+    }
+
     (async () => {
       try {
+        let result: Airport | Airline | Aircraft | null = null;
         if (fieldType === 'airport') {
-          entityObj = await api.airport.get.query(numId);
+          result = await api.airport.get.query(numId);
         } else if (fieldType === 'airline') {
-          entityObj = await api.airline.get.query(numId);
+          result = await api.airline.get.query(numId);
         } else if (fieldType === 'aircraft') {
-          entityObj = await api.aircraft.get.query(numId);
+          result = await api.aircraft.get.query(numId);
+        }
+        if (result) {
+          entityCache.set(cacheKey, result);
+          entityObj = result;
         }
       } catch {
         entityObj = null;
@@ -95,7 +98,9 @@
 
   const onEntityChange = (entity: { id: number } | null) => {
     if (entity) {
-      entityObj = entity as Airport | Airline | Aircraft;
+      const obj = entity as Airport | Airline | Aircraft;
+      entityCache.set(`${fieldType}-${entity.id}`, obj);
+      entityObj = obj;
       resolvedId = entity.id;
       set(entity.id);
     } else {

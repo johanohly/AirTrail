@@ -29,13 +29,6 @@
   let customFieldsPopover =
     $state<ReturnType<typeof FlightCustomFieldsPopover>>();
 
-  // Seed default values once definitions are loaded
-  $effect(() => {
-    if ($customFieldDefinitions.data?.length) {
-      customFieldsPopover?.applyDefaults();
-    }
-  });
-
   const form = superForm(
     defaults<Infer<typeof flightSchema>>(zod(flightSchema)),
     {

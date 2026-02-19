@@ -1,11 +1,9 @@
-type Definition = {
-  id: number;
-  label: string;
-  fieldType: string;
-  required: boolean;
-  options: unknown;
-  validationJson: unknown;
-};
+import {
+  isEntityType,
+  isTextLike,
+  normalizeOptions,
+  type CustomFieldDefinition,
+} from '$lib/utils/custom-fields';
 
 type Validation = {
   regex?: string;
@@ -15,25 +13,20 @@ type Validation = {
   maxLength?: number;
 };
 
-const TEXT_LIKE = new Set(['text', 'textarea']);
-const ENTITY_TYPES = new Set(['airport', 'airline', 'aircraft']);
-
 const parseValidation = (raw: unknown): Validation | null => {
   if (!raw || typeof raw !== 'object') return null;
   return raw as Validation;
 };
-
-const getOptions = (raw: unknown): string[] =>
-  Array.isArray(raw)
-    ? raw.filter((x): x is string => typeof x === 'string')
-    : [];
 
 /**
  * Validate custom field values against their definitions.
  * Returns a map of fieldId → error message. Empty map means valid.
  */
 export const validateCustomFields = (
-  definitions: Definition[],
+  definitions: Pick<
+    CustomFieldDefinition,
+    'id' | 'label' | 'fieldType' | 'required' | 'options' | 'validationJson'
+  >[],
   values: Record<number, unknown>,
 ): Record<number, string> => {
   const errors: Record<number, string> = {};
@@ -52,7 +45,7 @@ export const validateCustomFields = (
     if (isEmpty) continue;
 
     // Type checks
-    if (TEXT_LIKE.has(def.fieldType) && typeof value !== 'string') {
+    if (isTextLike(def.fieldType) && typeof value !== 'string') {
       errors[def.id] = 'Must be text';
       continue;
     }
@@ -77,14 +70,14 @@ export const validateCustomFields = (
         errors[def.id] = 'Must select an option';
         continue;
       }
-      const options = getOptions(def.options);
+      const options = normalizeOptions(def.options);
       if (!options.includes(value)) {
         errors[def.id] = 'Must be one of the available options';
         continue;
       }
     }
 
-    if (ENTITY_TYPES.has(def.fieldType) && typeof value !== 'number') {
+    if (isEntityType(def.fieldType) && typeof value !== 'number') {
       errors[def.id] = 'Must select a valid option';
       continue;
     }
@@ -93,7 +86,7 @@ export const validateCustomFields = (
     const validation = parseValidation(def.validationJson);
     if (!validation) continue;
 
-    if (TEXT_LIKE.has(def.fieldType) && typeof value === 'string') {
+    if (isTextLike(def.fieldType) && typeof value === 'string') {
       if (validation.regex) {
         try {
           const re = new RegExp(validation.regex);

@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server';
+import type { RawBuilder } from 'kysely';
 import { sql } from 'kysely';
 import { z } from 'zod';
 
@@ -7,6 +8,10 @@ import { adminProcedure, authedProcedure, router } from '$lib/server/trpc';
 
 type EntityType = 'flight';
 const entityTypeSchema = z.enum(['flight']);
+
+/** Convert a JS value to a Kysely `::jsonb` expression, or null. */
+const toJsonb = (value: unknown): RawBuilder<unknown> | null =>
+  value != null ? sql`${JSON.stringify(value)}::jsonb` : null;
 const fieldTypeSchema = z.enum([
   'text',
   'textarea',
@@ -203,19 +208,6 @@ export const customFieldRouter = router({
     .mutation(async ({ input }) => {
       ensureDefinitionIsValid(input);
 
-      const defaultValue =
-        input.defaultValue != null
-          ? sql`${JSON.stringify(input.defaultValue)}::jsonb`
-          : null;
-      const validationJson =
-        input.validationJson != null
-          ? sql`${JSON.stringify(input.validationJson)}::jsonb`
-          : null;
-      const options =
-        input.options != null
-          ? sql`${JSON.stringify(input.options)}::jsonb`
-          : null;
-
       return await db
         .insertInto('customFieldDefinition')
         .values({
@@ -227,9 +219,9 @@ export const customFieldRouter = router({
           required: input.required,
           active: input.active,
           order: input.order,
-          options,
-          defaultValue,
-          validationJson,
+          options: toJsonb(input.options),
+          defaultValue: toJsonb(input.defaultValue),
+          validationJson: toJsonb(input.validationJson),
           updatedAt: new Date(),
         })
         .returningAll()
@@ -240,19 +232,6 @@ export const customFieldRouter = router({
     .input(definitionInputSchema.extend({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       ensureDefinitionIsValid(input);
-
-      const defaultValue =
-        input.defaultValue != null
-          ? sql`${JSON.stringify(input.defaultValue)}::jsonb`
-          : null;
-      const validationJson =
-        input.validationJson != null
-          ? sql`${JSON.stringify(input.validationJson)}::jsonb`
-          : null;
-      const options =
-        input.options != null
-          ? sql`${JSON.stringify(input.options)}::jsonb`
-          : null;
 
       return await db
         .updateTable('customFieldDefinition')
@@ -265,9 +244,9 @@ export const customFieldRouter = router({
           required: input.required,
           active: input.active,
           order: input.order,
-          options,
-          defaultValue,
-          validationJson,
+          options: toJsonb(input.options),
+          defaultValue: toJsonb(input.defaultValue),
+          validationJson: toJsonb(input.validationJson),
           updatedAt: new Date(),
         })
         .where('id', '=', input.id)
@@ -297,11 +276,12 @@ export const customFieldRouter = router({
     }),
 
   deleteDefinition: adminProcedure
-    .input(z.number().int())
+    .input(z.object({ id: z.number().int(), entityType: entityTypeSchema }))
     .mutation(async ({ input }) => {
       await db
         .deleteFrom('customFieldDefinition')
-        .where('id', '=', input)
+        .where('id', '=', input.id)
+        .where('entityType', '=', input.entityType)
         .execute();
       return true;
     }),

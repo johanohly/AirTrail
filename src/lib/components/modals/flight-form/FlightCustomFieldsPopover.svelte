@@ -6,34 +6,18 @@
 
   import CustomFieldInput from './CustomFieldInput.svelte';
   import { validateCustomFields } from './validate-custom-fields';
+  import {
+    normalizeOptions,
+    type CustomFieldDefinition,
+  } from '$lib/utils/custom-fields';
   import { isSmallScreen } from '$lib/utils/size';
-
-  type Definition = {
-    id: number;
-    key: string;
-    label: string;
-    fieldType:
-      | 'text'
-      | 'textarea'
-      | 'number'
-      | 'boolean'
-      | 'date'
-      | 'select'
-      | 'airport'
-      | 'airline'
-      | 'aircraft';
-    required: boolean;
-    options: unknown;
-    defaultValue: unknown;
-    validationJson: unknown;
-  };
 
   let {
     definitions = [],
     values = $bindable<Record<number, unknown>>({}),
     disabled = false,
   }: {
-    definitions?: Definition[];
+    definitions?: CustomFieldDefinition[];
     values?: Record<number, unknown>;
     disabled?: boolean;
   } = $props();
@@ -41,11 +25,11 @@
   let open = $state(false);
   let errors = $state<Record<number, string>>({});
   let snapshot = $state<Record<number, unknown>>({});
-  /**
-   * Seed default values into the values record for any field
-   * that doesn't already have a value set.
-   */
-  export function applyDefaults() {
+  // Seed default values whenever definitions or values change.
+  // Only fills in fields that don't already have a value set.
+  $effect(() => {
+    if (!definitions.length) return;
+
     let changed = false;
     const next = { ...values };
     for (const def of definitions) {
@@ -57,14 +41,9 @@
     if (changed) {
       values = next;
     }
-  }
+  });
 
   const errorCount = $derived(Object.keys(errors).length);
-
-  const getOptions = (value: unknown): string[] =>
-    Array.isArray(value)
-      ? value.filter((x): x is string => typeof x === 'string')
-      : [];
 
   const setValue = (id: number, val: unknown) => {
     values = { ...values, [id]: val };
@@ -132,7 +111,7 @@
             label={field.label}
             fieldType={field.fieldType}
             required={field.required}
-            options={getOptions(field.options)}
+            options={normalizeOptions(field.options)}
             error={errors[field.id] ?? ''}
             value={values[field.id] ?? null}
             onchange={(val) => setValue(field.id, val)}

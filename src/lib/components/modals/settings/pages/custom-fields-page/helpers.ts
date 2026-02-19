@@ -1,9 +1,11 @@
-import type {
-  DefinitionItem,
-  EditingState,
-  FieldType,
-  Validation,
-} from './types';
+import {
+  isEntityType,
+  isTextLike,
+  normalizeOptions,
+} from '$lib/utils/custom-fields';
+import type { DefinitionItem, EditingState, Validation } from './types';
+
+export { isTextLike, isEntityType, normalizeOptions };
 
 export const parseValidation = (value: unknown): Validation => {
   if (!value || typeof value !== 'object') return {};
@@ -17,11 +19,6 @@ export const parseValidation = (value: unknown): Validation => {
     maxLength: typeof v.maxLength === 'number' ? v.maxLength : undefined,
   };
 };
-
-export const normalizeOptions = (value: unknown): string[] =>
-  Array.isArray(value)
-    ? value.filter((x): x is string => typeof x === 'string')
-    : [];
 
 export const toKey = (value: string) =>
   value
@@ -41,12 +38,7 @@ export const createBlankEditing = (order: number): EditingState => ({
   active: true,
   order,
   optionsText: '',
-  defaultText: '',
-  defaultNumber: '',
-  defaultBoolean: false,
-  defaultDate: '',
-  defaultSelect: '',
-  defaultEntity: null,
+  defaultValue: null,
   validationRegex: '',
   validationMin: '',
   validationMax: '',
@@ -56,7 +48,6 @@ export const createBlankEditing = (order: number): EditingState => ({
 
 export const itemToEditing = (item: DefinitionItem): EditingState => {
   const validation = parseValidation(item.validationJson);
-  const options = normalizeOptions(item.options);
 
   return {
     id: item.id,
@@ -67,34 +58,8 @@ export const itemToEditing = (item: DefinitionItem): EditingState => {
     required: item.required,
     active: item.active,
     order: item.order,
-    optionsText: options.join('\n'),
-    defaultText:
-      typeof item.defaultValue === 'string' &&
-      (item.fieldType === 'text' || item.fieldType === 'textarea')
-        ? item.defaultValue
-        : '',
-    defaultNumber:
-      typeof item.defaultValue === 'number' && item.fieldType === 'number'
-        ? String(item.defaultValue)
-        : '',
-    defaultBoolean:
-      typeof item.defaultValue === 'boolean' && item.fieldType === 'boolean'
-        ? item.defaultValue
-        : false,
-    defaultDate:
-      typeof item.defaultValue === 'string' && item.fieldType === 'date'
-        ? item.defaultValue
-        : '',
-    defaultSelect:
-      typeof item.defaultValue === 'string' &&
-      item.fieldType === 'select' &&
-      options.includes(item.defaultValue)
-        ? item.defaultValue
-        : '',
-    defaultEntity:
-      typeof item.defaultValue === 'number' && isEntityType(item.fieldType)
-        ? item.defaultValue
-        : null,
+    optionsText: normalizeOptions(item.options).join('\n'),
+    defaultValue: item.defaultValue ?? null,
     validationRegex: validation.regex ?? '',
     validationMin:
       typeof validation.min === 'number' ? String(validation.min) : '',
@@ -111,27 +76,9 @@ export const itemToEditing = (item: DefinitionItem): EditingState => {
   };
 };
 
-export const isTextLike = (fieldType: string) =>
-  fieldType === 'text' || fieldType === 'textarea';
-
-export const isEntityType = (fieldType: string) =>
-  fieldType === 'airport' ||
-  fieldType === 'airline' ||
-  fieldType === 'aircraft';
-
 /** Read the current default as a raw value for use in CustomFieldInput. */
 export const getPreviewValue = (editing: EditingState): unknown => {
-  if (isTextLike(editing.fieldType)) return editing.defaultText || null;
-  if (editing.fieldType === 'number') {
-    if (!editing.defaultNumber) return null;
-    const n = Number(editing.defaultNumber);
-    return Number.isNaN(n) ? null : n;
-  }
-  if (editing.fieldType === 'boolean') return editing.defaultBoolean;
-  if (editing.fieldType === 'date') return editing.defaultDate || null;
-  if (editing.fieldType === 'select') return editing.defaultSelect || null;
-  if (isEntityType(editing.fieldType)) return editing.defaultEntity;
-  return null;
+  return editing.defaultValue;
 };
 
 /** Write a raw value from CustomFieldInput back into the editing state. */
@@ -139,49 +86,43 @@ export const setPreviewValue = (
   editing: EditingState,
   value: unknown,
 ): void => {
-  if (isTextLike(editing.fieldType)) {
-    editing.defaultText = typeof value === 'string' ? value : '';
-  } else if (editing.fieldType === 'number') {
-    editing.defaultNumber = typeof value === 'number' ? String(value) : '';
-  } else if (editing.fieldType === 'boolean') {
-    editing.defaultBoolean = Boolean(value);
-  } else if (editing.fieldType === 'date') {
-    editing.defaultDate = typeof value === 'string' ? value : '';
-  } else if (editing.fieldType === 'select') {
-    editing.defaultSelect = typeof value === 'string' ? value : '';
-  } else if (isEntityType(editing.fieldType)) {
-    editing.defaultEntity = typeof value === 'number' ? value : null;
-  }
+  editing.defaultValue = value;
 };
 
+/** Normalize the default value for the payload sent to the server. */
 export const getDefaultValue = (editing: EditingState): unknown => {
-  if (isTextLike(editing.fieldType)) {
-    return editing.defaultText.trim() || null;
+  const { defaultValue, fieldType } = editing;
+
+  if (defaultValue == null) return null;
+
+  if (isTextLike(fieldType)) {
+    return typeof defaultValue === 'string' && defaultValue.trim()
+      ? defaultValue.trim()
+      : null;
   }
 
-  if (editing.fieldType === 'number') {
-    if (!editing.defaultNumber.trim()) return null;
-    const parsed = Number(editing.defaultNumber);
-    if (Number.isNaN(parsed)) {
-      throw new Error('Default value must be a valid number');
-    }
-    return parsed;
+  if (fieldType === 'number') {
+    return typeof defaultValue === 'number' ? defaultValue : null;
   }
 
-  if (editing.fieldType === 'boolean') {
-    return editing.defaultBoolean;
+  if (fieldType === 'boolean') {
+    return typeof defaultValue === 'boolean' ? defaultValue : null;
   }
 
-  if (editing.fieldType === 'date') {
-    return editing.defaultDate || null;
+  if (fieldType === 'date') {
+    return typeof defaultValue === 'string' && defaultValue
+      ? defaultValue
+      : null;
   }
 
-  if (editing.fieldType === 'select') {
-    return editing.defaultSelect || null;
+  if (fieldType === 'select') {
+    return typeof defaultValue === 'string' && defaultValue
+      ? defaultValue
+      : null;
   }
 
-  if (isEntityType(editing.fieldType)) {
-    return editing.defaultEntity;
+  if (isEntityType(fieldType)) {
+    return typeof defaultValue === 'number' ? defaultValue : null;
   }
 
   return null;

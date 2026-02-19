@@ -81,7 +81,10 @@
     if (!confirmed) return;
 
     try {
-      await api.customField.deleteDefinition.mutate(id);
+      await api.customField.deleteDefinition.mutate({
+        id,
+        entityType: 'flight',
+      });
       invalidate();
       toast.success('Custom field removed');
     } catch (e) {

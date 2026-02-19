@@ -55,8 +55,6 @@
         customFieldValues = Object.fromEntries(
           values.map((v) => [v.fieldId, v.value]),
         );
-        // Fill in defaults for any fields not already saved
-        customFieldsPopover?.applyDefaults();
       } catch (e) {
         console.error(e);
       }

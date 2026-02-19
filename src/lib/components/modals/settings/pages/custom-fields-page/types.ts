@@ -1,40 +1,8 @@
-export type FieldType =
-  | 'text'
-  | 'textarea'
-  | 'number'
-  | 'boolean'
-  | 'date'
-  | 'select'
-  | 'airport'
-  | 'airline'
-  | 'aircraft';
-
-export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
-  text: 'Short text',
-  textarea: 'Long text',
-  number: 'Number',
-  boolean: 'Boolean',
-  date: 'Date',
-  select: 'Select',
-  airport: 'Airport',
-  airline: 'Airline',
-  aircraft: 'Aircraft',
-};
-
-export type DefinitionItem = {
-  id: number;
-  entityType: 'flight';
-  key: string;
-  label: string;
-  description: string | null;
-  fieldType: FieldType;
-  required: boolean;
-  active: boolean;
-  order: number;
-  options: unknown;
-  defaultValue: unknown;
-  validationJson: unknown;
-};
+export type {
+  FieldType,
+  CustomFieldDefinition as DefinitionItem,
+} from '$lib/utils/custom-fields';
+export { FIELD_TYPE_LABELS } from '$lib/utils/custom-fields';
 
 export type Validation = {
   regex?: string;
@@ -49,17 +17,12 @@ export type EditingState = {
   key: string;
   label: string;
   description: string;
-  fieldType: FieldType;
+  fieldType: import('$lib/utils/custom-fields').FieldType;
   required: boolean;
   active: boolean;
   order: number;
   optionsText: string;
-  defaultText: string;
-  defaultNumber: string;
-  defaultBoolean: boolean;
-  defaultDate: string;
-  defaultSelect: string;
-  defaultEntity: number | null;
+  defaultValue: unknown;
   validationRegex: string;
   validationMin: string;
   validationMax: string;
