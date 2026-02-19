@@ -31,8 +31,9 @@
   let errors = $state<Record<number, string>>({});
   let snapshot = $state<Record<number, unknown>>({});
 
-  /** Seed default values for fields that don't already have a value set. */
-  function applyDefaults() {
+  // Seed default values whenever definitions or values change.
+  // Only fills in fields that don't already have a value set.
+  $effect(() => {
     if (!definitions.length) return;
 
     let changed = false;
@@ -46,7 +47,7 @@
     if (changed) {
       values = next;
     }
-  }
+  });
 
   const errorCount = $derived(Object.keys(errors).length);
 
@@ -72,7 +73,6 @@
    * If invalid, opens the modal and shows per-field errors.
    */
   export function validate(): boolean {
-    applyDefaults();
     errors = validateCustomFields(definitions, values);
     if (errorCount > 0) {
       snapshot = { ...values };
@@ -93,7 +93,6 @@
       : ''}
   disabled={disabled || !definitions.length}
   onclick={() => {
-    applyDefaults();
     snapshot = { ...values };
     open = true;
   }}
