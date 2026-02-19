@@ -39,9 +39,8 @@
 </script>
 
 <Button
-  size="sm"
+  size={$isSmallScreen ? 'sm' : 'icon-sm'}
   variant="outline"
-  class={$isSmallScreen ? '' : 'size-8 px-0'}
   disabled={disabled || !definitions.length}
   onclick={() => (open = true)}
 >
