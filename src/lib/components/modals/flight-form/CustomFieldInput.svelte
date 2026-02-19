@@ -20,6 +20,7 @@
     options = [],
     description = '',
     value = $bindable<unknown>(null),
+    error = '',
     onchange,
   }: {
     id?: string;
@@ -29,6 +30,7 @@
     options?: string[];
     description?: string;
     value?: unknown;
+    error?: string;
     onchange?: (value: unknown) => void;
   } = $props();
 
@@ -109,7 +111,9 @@
     </Select.Root>
   {/if}
 
-  {#if description}
+  {#if error}
+    <p class="text-destructive text-sm font-medium">{error}</p>
+  {:else if description}
     <p class="text-muted-foreground text-xs">{description}</p>
   {/if}
 </div>

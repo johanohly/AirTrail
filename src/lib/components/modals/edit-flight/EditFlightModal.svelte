@@ -40,6 +40,8 @@
     entityType: 'flight',
   });
   let customFieldValues = $state<Record<number, unknown>>({});
+  let customFieldsPopover =
+    $state<ReturnType<typeof FlightCustomFieldsPopover>>();
 
   $effect(() => {
     if (!open) return;
@@ -128,8 +130,11 @@
       dataType: 'json',
       id: Math.random().toString(36).substring(7),
       validators: zod(flightSchema),
-      onSubmit() {
+      onSubmit({ cancel }) {
         $formData.id = flight.id;
+        if (!customFieldsPopover?.validate()) {
+          cancel();
+        }
       },
       async onUpdate({ form }) {
         if (form.message) {
@@ -190,6 +195,7 @@
     <ModalFooter>
       <div class="flex w-full items-center justify-between">
         <FlightCustomFieldsPopover
+          bind:this={customFieldsPopover}
           definitions={$customFieldDefinitions.data ?? []}
           bind:values={customFieldValues}
         />

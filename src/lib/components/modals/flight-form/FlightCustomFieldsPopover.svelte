@@ -5,7 +5,8 @@
   import { Modal, ModalBody, ModalHeader } from '$lib/components/ui/modal';
 
   import CustomFieldInput from './CustomFieldInput.svelte';
-  import { isMediumScreen, isSmallScreen } from '$lib/utils/size';
+  import { validateCustomFields } from './validate-custom-fields';
+  import { isSmallScreen } from '$lib/utils/size';
 
   type Definition = {
     id: number;
@@ -14,6 +15,7 @@
     fieldType: 'text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select';
     required: boolean;
     options: unknown;
+    validationJson: unknown;
   };
 
   let {
@@ -27,6 +29,9 @@
   } = $props();
 
   let open = $state(false);
+  let errors = $state<Record<number, string>>({});
+
+  const errorCount = $derived(Object.keys(errors).length);
 
   const getOptions = (value: unknown): string[] =>
     Array.isArray(value)
@@ -35,18 +40,46 @@
 
   const setValue = (id: number, val: unknown) => {
     values = { ...values, [id]: val };
+    // Clear error for this field on change
+    if (errors[id]) {
+      const { [id]: _, ...rest } = errors;
+      errors = rest;
+    }
   };
+
+  /**
+   * Validate all custom field values. Returns true if valid.
+   * If invalid, opens the popover and shows per-field errors.
+   */
+  export function validate(): boolean {
+    errors = validateCustomFields(definitions, values);
+    if (errorCount > 0) {
+      open = true;
+      return false;
+    }
+    return true;
+  }
 </script>
 
 <Button
   size={$isSmallScreen ? 'sm' : 'icon-sm'}
   variant="outline"
+  class={errorCount > 0
+    ? 'relative overflow-visible border-destructive text-destructive'
+    : ''}
   disabled={disabled || !definitions.length}
   onclick={() => (open = true)}
 >
   <SlidersHorizontal size={16} />
   {#if $isSmallScreen}
     Custom Fields
+  {/if}
+  {#if errorCount > 0}
+    <span
+      class="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground"
+    >
+      !
+    </span>
   {/if}
 </Button>
 
@@ -68,6 +101,7 @@
             fieldType={field.fieldType}
             required={field.required}
             options={getOptions(field.options)}
+            error={errors[field.id] ?? ''}
             value={values[field.id] ?? null}
             onchange={(val) => setValue(field.id, val)}
           />

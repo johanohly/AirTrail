@@ -26,12 +26,19 @@
     entityType: 'flight',
   });
   let customFieldValues = $state<Record<number, unknown>>({});
+  let customFieldsPopover =
+    $state<ReturnType<typeof FlightCustomFieldsPopover>>();
 
   const form = superForm(
     defaults<Infer<typeof flightSchema>>(zod(flightSchema)),
     {
       dataType: 'json',
       validators: zod(flightSchema),
+      onSubmit({ cancel }) {
+        if (!customFieldsPopover?.validate()) {
+          cancel();
+        }
+      },
       async onUpdated({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
@@ -87,6 +94,7 @@
     <ModalFooter>
       <div class="flex w-full items-center justify-between">
         <FlightCustomFieldsPopover
+          bind:this={customFieldsPopover}
           definitions={$customFieldDefinitions.data ?? []}
           bind:values={customFieldValues}
         />
