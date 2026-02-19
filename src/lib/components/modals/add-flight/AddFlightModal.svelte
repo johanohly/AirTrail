@@ -5,16 +5,16 @@
   import { zod } from 'sveltekit-superforms/adapters';
 
   import { page } from '$app/state';
+  import {
+    FlightCustomFieldsModal,
+    FlightForm,
+  } from '$lib/components/modals/flight-form';
   import * as Form from '$lib/components/ui/form';
   import {
     Modal,
     ModalBreadcrumbHeader,
     ModalFooter,
   } from '$lib/components/ui/modal';
-  import {
-    FlightCustomFieldsPopover,
-    FlightForm,
-  } from '$lib/components/modals/flight-form';
   import { flightAddedState } from '$lib/state.svelte';
   import { api, trpc } from '$lib/trpc';
   import { getErrorText } from '$lib/utils';
@@ -26,8 +26,7 @@
     entityType: 'flight',
   });
   let customFieldValues = $state<Record<number, unknown>>({});
-  let customFieldsPopover =
-    $state<ReturnType<typeof FlightCustomFieldsPopover>>();
+  let customFieldsModal = $state<ReturnType<typeof FlightCustomFieldsModal>>();
 
   const form = superForm(
     defaults<Infer<typeof flightSchema>>(zod(flightSchema)),
@@ -35,7 +34,7 @@
       dataType: 'json',
       validators: zod(flightSchema),
       onSubmit({ cancel }) {
-        if (!customFieldsPopover?.validate()) {
+        if (!customFieldsModal?.validate()) {
           cancel();
         }
       },
@@ -93,8 +92,8 @@
     <FlightForm {form} />
     <ModalFooter>
       <div class="flex w-full items-center justify-between">
-        <FlightCustomFieldsPopover
-          bind:this={customFieldsPopover}
+        <FlightCustomFieldsModal
+          bind:this={customFieldsModal}
           definitions={$customFieldDefinitions.data ?? []}
           bind:values={customFieldValues}
         />

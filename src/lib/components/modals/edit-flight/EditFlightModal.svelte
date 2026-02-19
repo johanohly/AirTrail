@@ -5,7 +5,7 @@
   import { zod } from 'sveltekit-superforms/adapters';
 
   import {
-    FlightCustomFieldsPopover,
+    FlightCustomFieldsModal,
     FlightForm,
   } from '$lib/components/modals/flight-form';
   import { Button } from '$lib/components/ui/button';
@@ -40,8 +40,9 @@
     entityType: 'flight',
   });
   let customFieldValues = $state<Record<number, unknown>>({});
-  let customFieldsPopover =
-    $state<ReturnType<typeof FlightCustomFieldsPopover>>();
+  /** Field IDs that have values saved in the database for this flight. */
+  let savedFieldIds = $state<Set<number>>(new Set());
+  let customFieldsModal = $state<ReturnType<typeof FlightCustomFieldsModal>>();
 
   $effect(() => {
     if (!open) return;
@@ -55,6 +56,7 @@
         customFieldValues = Object.fromEntries(
           values.map((v) => [v.fieldId, v.value]),
         );
+        savedFieldIds = new Set(values.map((v) => v.fieldId));
       } catch (e) {
         console.error(e);
       }
@@ -132,7 +134,7 @@
       validators: zod(flightSchema),
       onSubmit({ cancel }) {
         $formData.id = flight.id;
-        if (!customFieldsPopover?.validate()) {
+        if (!customFieldsModal?.validate()) {
           cancel();
         }
       },
@@ -194,10 +196,11 @@
     <FlightForm {form} />
     <ModalFooter>
       <div class="flex w-full items-center justify-between">
-        <FlightCustomFieldsPopover
-          bind:this={customFieldsPopover}
+        <FlightCustomFieldsModal
+          bind:this={customFieldsModal}
           definitions={$customFieldDefinitions.data ?? []}
           bind:values={customFieldValues}
+          {savedFieldIds}
         />
         <Form.Button size="sm">Save</Form.Button>
       </div>

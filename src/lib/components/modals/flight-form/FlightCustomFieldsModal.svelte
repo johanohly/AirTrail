@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { SlidersHorizontal } from '@o7/icon/lucide';
-
-  import { Button } from '$lib/components/ui/button';
-  import { Modal, ModalBody, ModalHeader } from '$lib/components/ui/modal';
+  import { Info, SlidersHorizontal } from '@o7/icon/lucide';
 
   import CustomFieldInput from './CustomFieldInput.svelte';
   import { validateCustomFields } from './validate-custom-fields';
+
+  import * as Alert from '$lib/components/ui/alert';
+  import { Button } from '$lib/components/ui/button';
+  import { Modal, ModalBody, ModalHeader } from '$lib/components/ui/modal';
   import {
     normalizeOptions,
     type CustomFieldDefinition,
@@ -16,10 +17,14 @@
     definitions = [],
     values = $bindable<Record<number, unknown>>({}),
     disabled = false,
+    savedFieldIds,
   }: {
     definitions?: CustomFieldDefinition[];
     values?: Record<number, unknown>;
     disabled?: boolean;
+    /** Field IDs that have values saved in the database. When provided,
+     *  fields with defaults that aren't in this set are flagged as unsaved. */
+    savedFieldIds?: Set<number>;
   } = $props();
 
   let open = $state(false);
@@ -45,6 +50,14 @@
 
   const errorCount = $derived(Object.keys(errors).length);
 
+  /** True when there are defaulted field values that aren't yet saved on this entity. */
+  const hasUnsavedDefaults = $derived.by(() => {
+    if (!savedFieldIds) return false;
+    return definitions.some(
+      (def) => def.defaultValue != null && !savedFieldIds.has(def.id),
+    );
+  });
+
   const setValue = (id: number, val: unknown) => {
     values = { ...values, [id]: val };
     // Clear error for this field on change
@@ -56,7 +69,7 @@
 
   /**
    * Validate all custom field values. Returns true if valid.
-   * If invalid, opens the popover and shows per-field errors.
+   * If invalid, opens the modal and shows per-field errors.
    */
   export function validate(): boolean {
     errors = validateCustomFields(definitions, values);
@@ -74,7 +87,9 @@
   variant="outline"
   class={errorCount > 0
     ? 'relative overflow-visible border-destructive text-destructive'
-    : ''}
+    : hasUnsavedDefaults
+      ? 'relative overflow-visible border-amber-500 text-amber-600 dark:text-amber-400'
+      : ''}
   disabled={disabled || !definitions.length}
   onclick={() => {
     snapshot = { ...values };
@@ -91,6 +106,12 @@
     >
       !
     </span>
+  {:else if hasUnsavedDefaults}
+    <span
+      class="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white"
+    >
+      !
+    </span>
   {/if}
 </Button>
 
@@ -100,6 +121,15 @@
   </ModalHeader>
   <ModalBody>
     <div class="grid gap-4">
+      {#if hasUnsavedDefaults}
+        <Alert.Root variant="warning">
+          <Info />
+          <Alert.Description>
+            Some fields below are showing default values that haven't been saved
+            on this flight yet. Saving the flight will apply these defaults.
+          </Alert.Description>
+        </Alert.Root>
+      {/if}
       {#if definitions.length === 0}
         <p class="text-sm text-muted-foreground">
           No custom fields configured.
