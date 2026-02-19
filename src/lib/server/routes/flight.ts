@@ -167,6 +167,47 @@ export const flightRouter = router({
             .execute()
         : [];
 
+    // Collect entity IDs referenced by entity-type custom fields
+    const airportIds = new Set<number>();
+    const airlineIds = new Set<number>();
+    const aircraftIds = new Set<number>();
+    for (const row of cfValueRows) {
+      if (typeof row.value !== 'number') continue;
+      if (row.fieldType === 'airport') airportIds.add(row.value);
+      else if (row.fieldType === 'airline') airlineIds.add(row.value);
+      else if (row.fieldType === 'aircraft') aircraftIds.add(row.value);
+    }
+
+    // Batch-fetch referenced entities
+    const [cfAirports, cfAirlines, cfAircrafts] = await Promise.all([
+      airportIds.size > 0
+        ? db
+            .selectFrom('airport')
+            .selectAll()
+            .where('id', 'in', [...airportIds])
+            .execute()
+        : [],
+      airlineIds.size > 0
+        ? db
+            .selectFrom('airline')
+            .selectAll()
+            .where('id', 'in', [...airlineIds])
+            .execute()
+        : [],
+      aircraftIds.size > 0
+        ? db
+            .selectFrom('aircraft')
+            .selectAll()
+            .where('id', 'in', [...aircraftIds])
+            .execute()
+        : [],
+    ]);
+    const entityLookup = {
+      airport: new Map(cfAirports.map((a) => [a.id, omit(a, ['id'])])),
+      airline: new Map(cfAirlines.map((a) => [a.id, omit(a, ['id'])])),
+      aircraft: new Map(cfAircrafts.map((a) => [a.id, omit(a, ['id'])])),
+    } as Record<string, Map<number, object>>;
+
     const cfByFlight = new Map<string, Record<string, unknown>>();
     for (const row of cfValueRows) {
       let map = cfByFlight.get(row.entityId);
@@ -174,7 +215,13 @@ export const flightRouter = router({
         map = {};
         cfByFlight.set(row.entityId, map);
       }
-      map[row.key] = row.value;
+      // Expand entity-type values to their full objects
+      const lookup = entityLookup[row.fieldType];
+      if (typeof row.value === 'number' && lookup) {
+        map[row.key] = lookup.get(row.value) ?? row.value;
+      } else {
+        map[row.key] = row.value;
+      }
     }
 
     const flights = res.map((flight) => ({
