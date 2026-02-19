@@ -30,6 +30,7 @@
 
   let open = $state(false);
   let errors = $state<Record<number, string>>({});
+  let snapshot = $state<Record<number, unknown>>({});
 
   const errorCount = $derived(Object.keys(errors).length);
 
@@ -54,6 +55,7 @@
   export function validate(): boolean {
     errors = validateCustomFields(definitions, values);
     if (errorCount > 0) {
+      snapshot = { ...values };
       open = true;
       return false;
     }
@@ -68,7 +70,10 @@
     ? 'relative overflow-visible border-destructive text-destructive'
     : ''}
   disabled={disabled || !definitions.length}
-  onclick={() => (open = true)}
+  onclick={() => {
+    snapshot = { ...values };
+    open = true;
+  }}
 >
   <SlidersHorizontal size={16} />
   {#if $isSmallScreen}
@@ -84,7 +89,7 @@
 </Button>
 
 <Modal bind:open class="max-w-md" closeOnOutsideClick={false}>
-  <ModalHeader>
+  <ModalHeader class="pb-0">
     <h2 class="text-lg font-medium">Custom Fields</h2>
   </ModalHeader>
   <ModalBody>
@@ -109,4 +114,18 @@
       {/if}
     </div>
   </ModalBody>
+  <div class="flex justify-end gap-2 px-6 pb-4">
+    <Button
+      size="sm"
+      variant="outline"
+      onclick={() => {
+        values = { ...snapshot };
+        errors = {};
+        open = false;
+      }}
+    >
+      Cancel
+    </Button>
+    <Button size="sm" onclick={() => (open = false)}>Save</Button>
+  </div>
 </Modal>
