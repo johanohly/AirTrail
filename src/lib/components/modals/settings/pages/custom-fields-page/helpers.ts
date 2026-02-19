@@ -136,20 +136,24 @@ export const buildPayload = (editing: EditingState) => {
     if (editing.validationRegex.trim()) {
       validationJson.regex = editing.validationRegex.trim();
     }
-    if (editing.validationMinLength.trim()) {
-      validationJson.minLength = Number(editing.validationMinLength);
+    const minLen = Number(editing.validationMinLength);
+    if (editing.validationMinLength.trim() && Number.isFinite(minLen)) {
+      validationJson.minLength = minLen;
     }
-    if (editing.validationMaxLength.trim()) {
-      validationJson.maxLength = Number(editing.validationMaxLength);
+    const maxLen = Number(editing.validationMaxLength);
+    if (editing.validationMaxLength.trim() && Number.isFinite(maxLen)) {
+      validationJson.maxLength = maxLen;
     }
   }
 
   if (editing.fieldType === 'number') {
-    if (editing.validationMin.trim()) {
-      validationJson.min = Number(editing.validationMin);
+    const min = Number(editing.validationMin);
+    if (editing.validationMin.trim() && Number.isFinite(min)) {
+      validationJson.min = min;
     }
-    if (editing.validationMax.trim()) {
-      validationJson.max = Number(editing.validationMax);
+    const max = Number(editing.validationMax);
+    if (editing.validationMax.trim() && Number.isFinite(max)) {
+      validationJson.max = max;
     }
   }
 

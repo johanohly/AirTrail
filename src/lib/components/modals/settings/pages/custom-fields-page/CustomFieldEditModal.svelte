@@ -177,7 +177,7 @@
               editing.fieldType = nextType;
 
               if (nextType !== 'select') {
-                editing.defaultSelect = '';
+                editing.defaultValue = null;
               }
             }}
           >

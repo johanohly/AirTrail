@@ -250,6 +250,7 @@ export const customFieldRouter = router({
           updatedAt: new Date(),
         })
         .where('id', '=', input.id)
+        .where('entityType', '=', input.entityType)
         .returningAll()
         .executeTakeFirstOrThrow();
     }),
@@ -258,7 +259,7 @@ export const customFieldRouter = router({
     .input(
       z.object({
         entityType: entityTypeSchema,
-        orderedIds: z.array(z.number().int()),
+        orderedIds: z.array(z.number().int()).max(100),
       }),
     )
     .mutation(async ({ input }) => {
@@ -440,11 +441,19 @@ export const customFieldRouter = router({
           validation
         ) {
           if (validation.regex) {
-            const re = new RegExp(validation.regex);
-            if (!re.test(value)) {
+            try {
+              const re = new RegExp(validation.regex);
+              if (!re.test(value)) {
+                throw new TRPCError({
+                  code: 'BAD_REQUEST',
+                  message: `Custom field does not match regex (fieldId=${def.id})`,
+                });
+              }
+            } catch (e) {
+              if (e instanceof TRPCError) throw e;
               throw new TRPCError({
                 code: 'BAD_REQUEST',
-                message: `Custom field does not match regex (fieldId=${def.id})`,
+                message: `Custom field has invalid regex pattern (fieldId=${def.id})`,
               });
             }
           }
