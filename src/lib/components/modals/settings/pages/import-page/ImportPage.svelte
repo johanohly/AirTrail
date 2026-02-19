@@ -7,6 +7,9 @@
 
   import { platforms } from './';
 
+  import { Info } from '@o7/icon/lucide';
+
+  import * as Alert from '$lib/components/ui/alert';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { processFile } from '$lib/import';
@@ -270,6 +273,15 @@
         <PlatformTabs bind:platform />
       </Card>
     </div>
+    {#if platform.value === 'airtrail'}
+      <Alert.Root variant="info" class="mt-2">
+        <Info />
+        <Alert.Description>
+          Custom field values are included in the export for reference, but are
+          not restored during import.
+        </Alert.Description>
+      </Alert.Root>
+    {/if}
     <div class="mt-4 flex justify-end">
       <Button onclick={() => (step = 2)}>Next</Button>
     </div>

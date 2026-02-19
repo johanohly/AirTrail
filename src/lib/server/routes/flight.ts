@@ -153,6 +153,30 @@ export const flightRouter = router({
       .select(['id', 'displayName', 'username'])
       .execute();
     const res = await listFlights(user.id);
+    const flightIds = res.map((f) => f.id);
+
+    // Batch-load custom field values for all flights
+    const cfValueRows =
+      flightIds.length > 0
+        ? await db
+            .selectFrom('customFieldValue as v')
+            .innerJoin('customFieldDefinition as d', 'd.id', 'v.fieldId')
+            .select(['v.entityId', 'd.key', 'd.fieldType', 'v.value'])
+            .where('v.entityType', '=', 'flight')
+            .where('v.entityId', 'in', flightIds.map(String))
+            .execute()
+        : [];
+
+    const cfByFlight = new Map<string, Record<string, unknown>>();
+    for (const row of cfValueRows) {
+      let map = cfByFlight.get(row.entityId);
+      if (!map) {
+        map = {};
+        cfByFlight.set(row.entityId, map);
+      }
+      map[row.key] = row.value;
+    }
+
     const flights = res.map((flight) => ({
       ...omit(flight, ['id', 'fromId', 'toId', 'airlineId', 'aircraftId']),
       from: flight.from ? omit(flight.from, ['id']) : null,
@@ -160,6 +184,9 @@ export const flightRouter = router({
       airline: flight.airline ? omit(flight.airline, ['id']) : null,
       aircraft: flight.aircraft ? omit(flight.aircraft, ['id']) : null,
       seats: flight.seats.map((seat) => omit(seat, ['id', 'flightId'])),
+      ...(cfByFlight.has(String(flight.id))
+        ? { customFields: cfByFlight.get(String(flight.id)) }
+        : {}),
     }));
     return JSON.stringify(
       {
