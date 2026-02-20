@@ -71,6 +71,7 @@ const ensureDefinitionIsValid = (
   input: z.infer<typeof definitionInputSchema>,
 ) => {
   const options = input.options ?? [];
+  const validation = input.validationJson ?? null;
 
   if (input.fieldType === 'select' && options.length === 0) {
     throw new TRPCError({
@@ -142,6 +143,46 @@ const ensureDefinitionIsValid = (
         message: 'Default value must be a numeric ID for entity fields',
       });
     }
+  }
+
+  if (!validation) return;
+
+  if (TEXT_LIKE_TYPES.has(input.fieldType)) {
+    if (validation.regex) {
+      try {
+        // Validate regex at definition-save time to avoid blocking future flight saves.
+        // eslint-disable-next-line no-new
+        new RegExp(validation.regex);
+      } catch {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Regex pattern is invalid',
+        });
+      }
+    }
+
+    if (
+      typeof validation.minLength === 'number' &&
+      typeof validation.maxLength === 'number' &&
+      validation.minLength > validation.maxLength
+    ) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Min length cannot be greater than max length',
+      });
+    }
+  }
+
+  if (
+    input.fieldType === 'number' &&
+    typeof validation.min === 'number' &&
+    typeof validation.max === 'number' &&
+    validation.min > validation.max
+  ) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'Min value cannot be greater than max value',
+    });
   }
 };
 
@@ -329,15 +370,12 @@ export const customFieldRouter = router({
     )
     .mutation(async ({ ctx: { user }, input }) => {
       await assertEntityAccess(input.entityType, input.entityId, user);
-      const valuesByFieldId = Object.fromEntries(
-        input.values.map((item) => [String(item.fieldId), item.value ?? null]),
-      );
       try {
         await db.transaction().execute(async (trx) => {
           await persistEntityCustomFields(trx, {
             entityType: input.entityType,
             entityId: input.entityId,
-            values: valuesByFieldId,
+            values: input.values,
           });
         });
       } catch (e) {

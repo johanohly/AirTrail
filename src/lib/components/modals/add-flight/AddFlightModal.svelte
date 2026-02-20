@@ -27,13 +27,28 @@
   let customFieldValues = $state<Record<number, unknown>>({});
   let customFieldsModal = $state<ReturnType<typeof FlightCustomFieldsModal>>();
 
+  const toCustomFieldsPayload = (): Record<string, unknown> => {
+    const defs = $customFieldDefinitions.data ?? [];
+    const keyById = new Map(defs.map((d) => [d.id, d.key]));
+    const payload: Record<string, unknown> = {};
+
+    for (const [id, value] of Object.entries(customFieldValues)) {
+      const key = keyById.get(Number(id));
+      if (key) {
+        payload[key] = value;
+      }
+    }
+
+    return payload;
+  };
+
   const form = superForm(
     defaults<Infer<typeof flightSchema>>(zod(flightSchema)),
     {
       dataType: 'json',
       validators: zod(flightSchema),
       onSubmit({ cancel }) {
-        $formData.customFields = customFieldValues as Record<string, unknown>;
+        $formData.customFields = toCustomFieldsPayload();
         if (!customFieldsModal?.validate()) {
           cancel();
         }

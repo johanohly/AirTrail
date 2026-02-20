@@ -37,8 +37,12 @@ export class CustomFieldValidationError extends Error {
   }
 }
 
+type NormalizedIncomingEntry =
+  | { fieldId: number; value: unknown | null }
+  | { key: string; value: unknown | null };
+
 const normalizeIncomingEntries = (values: IncomingValues) => {
-  const normalized: Array<{ key: string; value: unknown | null }> = [];
+  const normalized: NormalizedIncomingEntry[] = [];
 
   if (!values) return normalized;
 
@@ -52,7 +56,7 @@ const normalizeIncomingEntries = (values: IncomingValues) => {
         continue;
       }
       normalized.push({
-        key: String(entry.fieldId),
+        fieldId: Number(entry.fieldId),
         value: entry.value ?? null,
       });
     }
@@ -211,15 +215,22 @@ export const persistEntityCustomFields = async (
 
   const incomingByFieldId = new Map<number, unknown | null>();
   for (const entry of normalizeIncomingEntries(values)) {
-    const asId = Number(entry.key);
-    if (Number.isFinite(asId) && defsById.has(asId)) {
-      incomingByFieldId.set(asId, entry.value);
+    if ('fieldId' in entry) {
+      if (defsById.has(entry.fieldId)) {
+        incomingByFieldId.set(entry.fieldId, entry.value);
+      }
       continue;
     }
 
     const byKey = defsByKey.get(entry.key);
     if (byKey) {
       incomingByFieldId.set(byKey.id, entry.value);
+      continue;
+    }
+
+    const asId = Number(entry.key);
+    if (Number.isFinite(asId) && defsById.has(asId)) {
+      incomingByFieldId.set(asId, entry.value);
     }
   }
 

@@ -44,6 +44,21 @@
   let savedFieldIds = $state<Set<number>>(new Set());
   let customFieldsModal = $state<ReturnType<typeof FlightCustomFieldsModal>>();
 
+  const toCustomFieldsPayload = (): Record<string, unknown> => {
+    const defs = $customFieldDefinitions.data ?? [];
+    const keyById = new Map(defs.map((d) => [d.id, d.key]));
+    const payload: Record<string, unknown> = {};
+
+    for (const [id, value] of Object.entries(customFieldValues)) {
+      const key = keyById.get(Number(id));
+      if (key) {
+        payload[key] = value;
+      }
+    }
+
+    return payload;
+  };
+
   $effect(() => {
     if (!open) return;
 
@@ -134,7 +149,7 @@
       validators: zod(flightSchema),
       onSubmit({ cancel }) {
         $formData.id = flight.id;
-        $formData.customFields = customFieldValues as Record<string, unknown>;
+        $formData.customFields = toCustomFieldsPayload();
         if (!customFieldsModal?.validate()) {
           cancel();
         }
