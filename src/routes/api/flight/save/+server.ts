@@ -35,6 +35,7 @@ const defaultFlight = {
   aircraftReg: null,
   flightReason: null,
   note: null,
+  customFields: {},
 };
 
 const defaultSeat = {
@@ -69,7 +70,12 @@ export const POST: RequestHandler = async ({ request }) => {
   const filled = {
     ...defaultFlight,
     ...body,
-    seats: body.seats.map((s) => ({ ...defaultSeat, ...s })),
+    seats: Array.isArray(body.seats)
+      ? body.seats.map((s: unknown) => ({
+          ...defaultSeat,
+          ...(s && typeof s === 'object' ? s : {}),
+        }))
+      : [],
   };
   const flight = {
     ...filled,

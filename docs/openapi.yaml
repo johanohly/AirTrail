@@ -41,7 +41,7 @@ paths:
         '500':
           '$ref': '#/components/responses/500'
       security:
-        - bearerAuth: [ ]
+        - bearerAuth: []
   /flight/get/{id}:
     get:
       tags:
@@ -89,7 +89,7 @@ paths:
         '500':
           '$ref': '#/components/responses/500'
       security:
-        - bearerAuth: [ ]
+        - bearerAuth: []
   /flight/save:
     post:
       tags:
@@ -150,7 +150,7 @@ paths:
         '500':
           '$ref': '#/components/responses/500'
       security:
-        - bearerAuth: [ ]
+        - bearerAuth: []
   /flight/delete:
     post:
       tags:
@@ -195,7 +195,7 @@ paths:
         '500':
           '$ref': '#/components/responses/500'
       security:
-        - bearerAuth: [ ]
+        - bearerAuth: []
 
 components:
   securitySchemes:
@@ -211,6 +211,21 @@ components:
         success:
           type: boolean
           example: true
+    CustomFieldsInput:
+      type: object
+      description: 'Custom field values keyed by custom field key. Values must match the configured field type.'
+      additionalProperties:
+        oneOf:
+          - type: string
+          - type: number
+          - type: boolean
+          - type: object
+          - type: array
+          - type: 'null'
+      example:
+        booking_reference: 'ABC123'
+        delay_minutes: 15
+        vip: false
     Airport:
       type: object
       required:
@@ -312,7 +327,7 @@ components:
           format: date
           example: '2021-09-01T23:00:00.000+00:00'
         arrival:
-          type: [ string, 'null' ]
+          type: [string, 'null']
           description: 'The arrival time in UTC, in ISO 8601 format.'
           format: date
           example: '2021-09-02T10:00:00.000+00:00'
@@ -331,15 +346,15 @@ components:
               - seatClass
             properties:
               userId:
-                type: [ string, 'null' ]
+                type: [string, 'null']
                 example: 'user1'
                 description: 'The ID of the user whose seat it is.'
               guestName:
-                type: [ string, 'null' ]
+                type: [string, 'null']
                 default: null
                 description: 'The name of the guest if the seat is not assigned to a user.'
               seat:
-                type: [ string, 'null' ]
+                type: [string, 'null']
                 description: 'The seat type.'
                 enum:
                   - 'aisle'
@@ -350,11 +365,11 @@ components:
                   - 'jumpseat'
                   - 'other'
               seatNumber:
-                type: [ string, 'null' ]
+                type: [string, 'null']
                 description: 'The seat number.'
                 example: '1A'
               seatClass:
-                type: [ string, 'null' ]
+                type: [string, 'null']
                 description: 'The class of the seat.'
                 enum:
                   - 'economy'
@@ -363,23 +378,23 @@ components:
                   - 'first'
                   - 'private'
         airline:
-          type: [ string, 'null' ]
+          type: [string, 'null']
           description: 'The ICAO code of the airline.'
           example: 'BAW'
         flightNumber:
-          type: [ string, 'null' ]
+          type: [string, 'null']
           description: 'The flight number.'
           example: 'BA178'
         aircraft:
-          type: [ string, 'null' ]
+          type: [string, 'null']
           description: 'The ICAO code of the aircraft.'
           example: 'A388'
         aircraftReg:
-          type: [ string, 'null' ]
+          type: [string, 'null']
           description: 'The registration of the aircraft.'
           example: 'G-VIIL'
         flightReason:
-          type: [ string, 'null' ]
+          type: [string, 'null']
           description: 'The reason for the flight.'
           enum:
             - 'leisure'
@@ -387,7 +402,7 @@ components:
             - 'crew'
             - 'other'
         notes:
-          type: [ string, 'null' ]
+          type: [string, 'null']
           description: 'Additional notes about the flight.'
           example: 'This is a test flight.'
     CreateFlight:
@@ -494,6 +509,8 @@ components:
           type: string
           description: 'Additional notes about the flight.'
           example: 'This is a test flight.'
+        customFields:
+          '$ref': '#/components/schemas/CustomFieldsInput'
     UpdateFlight:
       description: 'Partial updates are not supported. All fields must be provided.'
       type: object
@@ -600,6 +617,8 @@ components:
           type: string
           description: 'Additional notes about the flight.'
           example: 'This is a test flight.'
+        customFields:
+          '$ref': '#/components/schemas/CustomFieldsInput'
   responses:
     200:
       description: 'Success'

@@ -50,6 +50,26 @@ Required fields are validated before the flight can be saved. If any required cu
 
 Text fields support optional validation rules (min/max length, regex pattern). Number fields support min/max value constraints.
 
+## API usage
+
+Custom fields are part of the flight save endpoint (`POST /flight/save`).
+Pass a `customFields` object keyed by field key:
+
+```json
+{
+  "from": "KJFK",
+  "to": "EGLL",
+  "departure": "2026-02-20",
+  "seats": [{ "userId": "<USER_ID>" }],
+  "customFields": {
+    "booking_reference": "ABC123",
+    "delay_minutes": 15
+  }
+}
+```
+
+Required custom fields are enforced server-side for both create and update requests.
+
 ## Export and import
 
 Custom field values are included in the **JSON export**. Entity-type fields (airport, airline, aircraft) are expanded to their full objects, matching the format used for the flight's own airport and airline data.

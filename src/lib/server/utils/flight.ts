@@ -6,14 +6,20 @@ import { z } from 'zod';
 import { db } from '$lib/db';
 import {
   createFlightPrimitive,
+  createFlightPrimitiveWithConnection,
   createManyFlightsPrimitive,
   getFlightPrimitive,
   listFlightBaseQuery,
   listFlightPrimitive,
   updateFlightPrimitive,
+  updateFlightPrimitiveWithConnection,
 } from '$lib/db/queries';
 import type { DB } from '$lib/db/schema';
 import type { CreateFlight, Flight, User } from '$lib/db/types';
+import {
+  CustomFieldValidationError,
+  persistEntityCustomFields,
+} from '$lib/server/utils/custom-fields';
 import { distanceBetween } from '$lib/utils';
 import {
   estimateFlightDuration,
@@ -198,6 +204,7 @@ export const validateAndSaveFlight = async (
     departureGate,
     arrivalTerminal,
     arrivalGate,
+    customFields = {},
   } = data;
 
   const values = {
@@ -247,8 +254,22 @@ export const validateAndSaveFlight = async (
     }
 
     try {
-      await updateFlight(updateId, values);
-    } catch {
+      await db.transaction().execute(async (trx) => {
+        await updateFlightPrimitiveWithConnection(trx, updateId, values);
+        await persistEntityCustomFields(trx, {
+          entityType: 'flight',
+          entityId: String(updateId),
+          values: customFields,
+        });
+      });
+    } catch (e) {
+      if (e instanceof CustomFieldValidationError) {
+        return {
+          success: false,
+          type: 'error',
+          message: e.message,
+        };
+      }
       return {
         success: false,
         type: 'error',
@@ -261,8 +282,26 @@ export const validateAndSaveFlight = async (
 
   let flightId: number;
   try {
-    flightId = await createFlight(values);
-  } catch (_) {
+    flightId = await db.transaction().execute(async (trx) => {
+      const createdFlightId = await createFlightPrimitiveWithConnection(
+        trx,
+        values,
+      );
+      await persistEntityCustomFields(trx, {
+        entityType: 'flight',
+        entityId: String(createdFlightId),
+        values: customFields,
+      });
+      return createdFlightId;
+    });
+  } catch (e) {
+    if (e instanceof CustomFieldValidationError) {
+      return {
+        success: false,
+        type: 'error',
+        message: e.message,
+      };
+    }
     return {
       success: false,
       type: 'error',

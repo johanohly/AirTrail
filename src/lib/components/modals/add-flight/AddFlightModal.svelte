@@ -16,8 +16,7 @@
     ModalFooter,
   } from '$lib/components/ui/modal';
   import { flightAddedState } from '$lib/state.svelte';
-  import { api, trpc } from '$lib/trpc';
-  import { getErrorText } from '$lib/utils';
+  import { trpc } from '$lib/trpc';
   import { flightSchema } from '$lib/zod/flight';
 
   let { open = $bindable() }: { open: boolean } = $props();
@@ -34,44 +33,19 @@
       dataType: 'json',
       validators: zod(flightSchema),
       onSubmit({ cancel }) {
+        $formData.customFields = customFieldValues as Record<string, unknown>;
         if (!customFieldsModal?.validate()) {
           cancel();
         }
       },
-      async onUpdated({ form }) {
+      onUpdated({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
-            const flightId = form.message.id;
-            let customFieldsFailureMessage: string | null = null;
-
-            if (flightId && Object.keys(customFieldValues).length) {
-              try {
-                await api.customField.setEntityValues.mutate({
-                  entityType: 'flight',
-                  entityId: String(flightId),
-                  values: Object.entries(customFieldValues)
-                    .map(([fieldId, value]) => ({
-                      fieldId: Number(fieldId),
-                      value: value ?? null,
-                    }))
-                    .filter((item) => Number.isFinite(item.fieldId)),
-                });
-              } catch (e) {
-                console.error(e);
-                const message = getErrorText(e);
-                customFieldsFailureMessage = message
-                  ? `Flight saved, but failed to save custom fields: ${message}`
-                  : 'Flight saved, but failed to save custom fields';
-              }
-            }
-
             trpc.flight.list.utils.invalidate();
             open = false;
             customFieldValues = {};
             flightAddedState.added = true;
-            return void (customFieldsFailureMessage
-              ? toast.error(customFieldsFailureMessage)
-              : toast.success(form.message.text));
+            return void toast.success(form.message.text);
           }
           toast.error(form.message.text);
         }

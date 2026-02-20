@@ -16,7 +16,7 @@
     ModalFooter,
   } from '$lib/components/ui/modal';
   import { api, trpc } from '$lib/trpc';
-  import { getErrorText, type FlightData } from '$lib/utils';
+  import { type FlightData } from '$lib/utils';
   import { decomposeToLocal, isUsingAmPm } from '$lib/utils/datetime';
   import { flightSchema } from '$lib/zod/flight';
 
@@ -134,39 +134,16 @@
       validators: zod(flightSchema),
       onSubmit({ cancel }) {
         $formData.id = flight.id;
+        $formData.customFields = customFieldValues as Record<string, unknown>;
         if (!customFieldsModal?.validate()) {
           cancel();
         }
       },
-      async onUpdate({ form }) {
+      onUpdate({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
-            let customFieldsFailureMessage: string | null = null;
-            try {
-              await api.customField.setEntityValues.mutate({
-                entityType: 'flight',
-                entityId: String(flight.id),
-                values: Object.entries(customFieldValues)
-                  .map(([fieldId, value]) => ({
-                    fieldId: Number(fieldId),
-                    value: value ?? null,
-                  }))
-                  .filter((item) => Number.isFinite(item.fieldId)),
-              });
-            } catch (e) {
-              console.error(e);
-              const message = getErrorText(e);
-              customFieldsFailureMessage = message
-                ? `Flight updated, but failed to save custom fields: ${message}`
-                : 'Flight updated, but failed to save custom fields';
-            }
-
             trpc.flight.list.utils.invalidate();
-            if (customFieldsFailureMessage) {
-              toast.error(customFieldsFailureMessage);
-            } else {
-              toast.success(form.message.text);
-            }
+            toast.success(form.message.text);
             open = false;
             return;
           }

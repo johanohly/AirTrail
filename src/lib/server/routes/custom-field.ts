@@ -4,6 +4,10 @@ import { sql } from 'kysely';
 import { z } from 'zod';
 
 import { db } from '$lib/db';
+import {
+  CustomFieldValidationError,
+  persistEntityCustomFields,
+} from '$lib/server/utils/custom-fields';
 import { adminProcedure, authedProcedure, router } from '$lib/server/trpc';
 
 type EntityType = 'flight';
@@ -325,218 +329,26 @@ export const customFieldRouter = router({
     )
     .mutation(async ({ ctx: { user }, input }) => {
       await assertEntityAccess(input.entityType, input.entityId, user);
-
-      const defs = await db
-        .selectFrom('customFieldDefinition')
-        .select(['id', 'fieldType', 'required', 'options', 'validationJson'])
-        .where('entityType', '=', input.entityType)
-        .where('active', '=', true)
-        .execute();
-
-      const defsById = new Map(defs.map((d) => [d.id, d]));
-      const existing = await db
-        .selectFrom('customFieldValue')
-        .select(['fieldId', 'value'])
-        .where('entityType', '=', input.entityType)
-        .where('entityId', '=', input.entityId)
-        .execute();
-
-      const mergedValues = new Map<number, unknown>(
-        existing.map((row) => [row.fieldId, row.value]),
+      const valuesByFieldId = Object.fromEntries(
+        input.values.map((item) => [String(item.fieldId), item.value ?? null]),
       );
-
-      for (const item of input.values) {
-        if (!defsById.has(item.fieldId)) continue;
-        if (item.value === null || item.value === '') {
-          mergedValues.delete(item.fieldId);
-        } else {
-          mergedValues.set(item.fieldId, item.value);
+      try {
+        await db.transaction().execute(async (trx) => {
+          await persistEntityCustomFields(trx, {
+            entityType: input.entityType,
+            entityId: input.entityId,
+            values: valuesByFieldId,
+          });
+        });
+      } catch (e) {
+        if (e instanceof CustomFieldValidationError) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: e.message,
+          });
         }
+        throw e;
       }
-
-      for (const def of defs) {
-        const value = mergedValues.get(def.id);
-
-        if (
-          def.required &&
-          (value === undefined || value === null || value === '')
-        ) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `Required custom field is missing (fieldId=${def.id})`,
-          });
-        }
-
-        if (value == null) continue;
-
-        if (TEXT_LIKE_TYPES.has(def.fieldType) && typeof value !== 'string') {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `Text custom field requires a string value (fieldId=${def.id})`,
-          });
-        }
-
-        if (def.fieldType === 'number' && typeof value !== 'number') {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `Number custom field requires a numeric value (fieldId=${def.id})`,
-          });
-        }
-
-        if (def.fieldType === 'boolean' && typeof value !== 'boolean') {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `Boolean custom field requires a boolean value (fieldId=${def.id})`,
-          });
-        }
-
-        if (def.fieldType === 'date' && typeof value !== 'string') {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `Date custom field requires a string value (fieldId=${def.id})`,
-          });
-        }
-
-        if (def.fieldType === 'select') {
-          if (typeof value !== 'string') {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: `Select custom field requires a string value (fieldId=${def.id})`,
-            });
-          }
-
-          const options = Array.isArray(def.options)
-            ? def.options.filter((x): x is string => typeof x === 'string')
-            : [];
-
-          if (!options.includes(value)) {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: `Select custom field value must be one of its options (fieldId=${def.id})`,
-            });
-          }
-        }
-
-        if (ENTITY_TYPES.has(def.fieldType) && typeof value !== 'number') {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `${def.fieldType} custom field requires a numeric ID (fieldId=${def.id})`,
-          });
-        }
-
-        const validation =
-          def.validationJson && typeof def.validationJson === 'object'
-            ? (def.validationJson as {
-                regex?: string;
-                min?: number;
-                max?: number;
-                minLength?: number;
-                maxLength?: number;
-              })
-            : null;
-
-        if (
-          TEXT_LIKE_TYPES.has(def.fieldType) &&
-          typeof value === 'string' &&
-          validation
-        ) {
-          if (validation.regex) {
-            try {
-              const re = new RegExp(validation.regex);
-              if (!re.test(value)) {
-                throw new TRPCError({
-                  code: 'BAD_REQUEST',
-                  message: `Custom field does not match regex (fieldId=${def.id})`,
-                });
-              }
-            } catch (e) {
-              if (e instanceof TRPCError) throw e;
-              throw new TRPCError({
-                code: 'BAD_REQUEST',
-                message: `Custom field has invalid regex pattern (fieldId=${def.id})`,
-              });
-            }
-          }
-
-          if (
-            typeof validation.minLength === 'number' &&
-            value.length < validation.minLength
-          ) {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: `Custom field shorter than minimum length (fieldId=${def.id})`,
-            });
-          }
-
-          if (
-            typeof validation.maxLength === 'number' &&
-            value.length > validation.maxLength
-          ) {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: `Custom field longer than maximum length (fieldId=${def.id})`,
-            });
-          }
-        }
-
-        if (
-          def.fieldType === 'number' &&
-          typeof value === 'number' &&
-          validation
-        ) {
-          if (typeof validation.min === 'number' && value < validation.min) {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: `Custom field lower than minimum value (fieldId=${def.id})`,
-            });
-          }
-
-          if (typeof validation.max === 'number' && value > validation.max) {
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: `Custom field higher than maximum value (fieldId=${def.id})`,
-            });
-          }
-        }
-      }
-
-      await db.transaction().execute(async (trx) => {
-        for (const item of input.values) {
-          if (!defsById.has(item.fieldId)) continue;
-
-          if (item.value === null || item.value === '') {
-            await trx
-              .deleteFrom('customFieldValue')
-              .where('fieldId', '=', item.fieldId)
-              .where('entityType', '=', input.entityType)
-              .where('entityId', '=', input.entityId)
-              .execute();
-            continue;
-          }
-
-          const jsonValue = JSON.stringify(item.value);
-
-          const now = new Date();
-
-          await trx
-            .insertInto('customFieldValue')
-            .values({
-              fieldId: item.fieldId,
-              entityType: input.entityType,
-              entityId: input.entityId,
-              value: sql`${jsonValue}::jsonb`,
-              updatedAt: now,
-            })
-            .onConflict((oc) =>
-              oc.columns(['fieldId', 'entityType', 'entityId']).doUpdateSet({
-                value: sql`${jsonValue}::jsonb`,
-                updatedAt: now,
-              }),
-            )
-            .execute();
-        }
-      });
-
       return true;
     }),
 });
