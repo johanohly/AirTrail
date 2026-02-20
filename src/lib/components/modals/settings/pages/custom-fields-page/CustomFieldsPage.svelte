@@ -1,14 +1,4 @@
 <script lang="ts">
-  import { GripVertical, Plus, SquarePen, X } from '@o7/icon/lucide';
-  import { toast } from 'svelte-sonner';
-
-  import CustomFieldEditModal from './CustomFieldEditModal.svelte';
-  import CustomFieldRow from './CustomFieldRow.svelte';
-  import { FIELD_TYPE_LABELS, type DefinitionItem } from './types';
-  import { PageHeader } from '../index';
-
-  import { Button } from '$lib/components/ui/button';
-  import { Card } from '$lib/components/ui/card';
   import {
     DragDropProvider,
     DragOverlay,
@@ -16,7 +6,18 @@
     PointerSensor,
   } from '@dnd-kit-svelte/svelte';
   import { isSortable } from '@dnd-kit-svelte/svelte/sortable';
+  import { GripVertical, Plus, SquarePen, Trash2 } from '@o7/icon/lucide';
+  import { toast } from 'svelte-sonner';
+
+  import { PageHeader } from '../index';
+
+  import CustomFieldEditModal from './CustomFieldEditModal.svelte';
+  import CustomFieldRow from './CustomFieldRow.svelte';
+  import { FIELD_TYPE_LABELS, type DefinitionItem } from './types';
+
   import { confirmation } from '$lib/components/helpers';
+  import { Button } from '$lib/components/ui/button';
+  import { Card } from '$lib/components/ui/card';
   import { api, trpc } from '$lib/trpc';
 
   const definitionsQuery = trpc.customField.listDefinitions.query({
@@ -104,8 +105,8 @@
 >
   {#snippet headerRight()}
     <Button onclick={() => editModal?.openCreate()}>
-      <Plus size={14} class="mr-1 shrink-0" />
-      Add Field
+      <Plus size={16} class="mr-1 shrink-0" />
+      Add
     </Button>
   {/snippet}
 
@@ -152,10 +153,10 @@
             </div>
 
             <Button variant="outline" size="icon" disabled>
-              <SquarePen size={14} />
+              <SquarePen size={16} />
             </Button>
             <Button variant="outline" size="icon" disabled>
-              <X size={14} />
+              <Trash2 size={16} />
             </Button>
           </Card>
         {/if}

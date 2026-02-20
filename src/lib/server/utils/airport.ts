@@ -28,6 +28,18 @@ export const getAirportByIcao = async (
   );
 };
 
+export const getAirportByIata = async (
+  input: string,
+): Promise<Airport | null> => {
+  return (
+    (await db
+      .selectFrom('airport')
+      .selectAll()
+      .where('iata', 'ilike', input)
+      .executeTakeFirst()) ?? null
+  );
+};
+
 export const findAirports = async (input: string): Promise<Airport[]> => {
   return await findAirportsPrimitive(db, input);
 };

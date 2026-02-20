@@ -415,11 +415,11 @@ components:
       properties:
         from:
           type: string
-          description: 'The ICAO code of the departure airport.'
+          description: 'The departure airport code (ICAO or IATA).'
           example: 'KJFK'
         to:
           type: string
-          description: 'The ICAO code of the arrival airport.'
+          description: 'The arrival airport code (ICAO or IATA).'
           example: 'EGLL'
         departure:
           type: string
@@ -526,11 +526,11 @@ components:
           description: 'The ID of the flight to update.'
         from:
           type: string
-          description: 'The ICAO code of the departure airport.'
+          description: 'The departure airport code (ICAO or IATA).'
           example: 'KJFK'
         to:
           type: string
-          description: 'The ICAO code of the arrival airport.'
+          description: 'The arrival airport code (ICAO or IATA).'
           example: 'EGLL'
         departure:
           type: string

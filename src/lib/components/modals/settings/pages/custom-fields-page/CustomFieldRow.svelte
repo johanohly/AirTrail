@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { GripVertical, SquarePen, X } from '@o7/icon/lucide';
+  import { useSortable } from '@dnd-kit-svelte/svelte/sortable';
+  import { GripVertical, SquarePen, Trash2 } from '@o7/icon/lucide';
+
+  import { FIELD_TYPE_LABELS, type DefinitionItem } from './types';
 
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
-  import { useSortable } from '@dnd-kit-svelte/svelte/sortable';
-
-  import { FIELD_TYPE_LABELS, type DefinitionItem } from './types';
 
   let {
     item,
@@ -57,7 +57,7 @@
     </p>
   </div>
   <Button variant="outline" size="icon" onclick={() => onEdit(item)}>
-    <SquarePen size={14} />
+    <SquarePen size={16} />
   </Button>
   <Button
     variant="outline"
@@ -65,6 +65,6 @@
     class="shrink-0"
     onclick={() => onRemove(item.id)}
   >
-    <X size={14} class="shrink-0" />
+    <Trash2 size={16} class="shrink-0" />
   </Button>
 </Card>
