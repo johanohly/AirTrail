@@ -42,6 +42,7 @@
         if (form.message) {
           if (form.message.type === 'success') {
             const flightId = form.message.id;
+            let customFieldsFailureMessage: string | null = null;
 
             if (flightId && Object.keys(customFieldValues).length) {
               try {
@@ -58,11 +59,9 @@
               } catch (e) {
                 console.error(e);
                 const message = getErrorText(e);
-                toast.error(
-                  message
-                    ? `Flight saved, but failed to save custom fields: ${message}`
-                    : 'Flight saved, but failed to save custom fields',
-                );
+                customFieldsFailureMessage = message
+                  ? `Flight saved, but failed to save custom fields: ${message}`
+                  : 'Flight saved, but failed to save custom fields';
               }
             }
 
@@ -70,7 +69,9 @@
             open = false;
             customFieldValues = {};
             flightAddedState.added = true;
-            return void toast.success(form.message.text);
+            return void (customFieldsFailureMessage
+              ? toast.error(customFieldsFailureMessage)
+              : toast.success(form.message.text));
           }
           toast.error(form.message.text);
         }

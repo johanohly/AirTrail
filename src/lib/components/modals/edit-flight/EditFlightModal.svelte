@@ -141,6 +141,7 @@
       async onUpdate({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
+            let customFieldsFailureMessage: string | null = null;
             try {
               await api.customField.setEntityValues.mutate({
                 entityType: 'flight',
@@ -155,15 +156,17 @@
             } catch (e) {
               console.error(e);
               const message = getErrorText(e);
-              toast.error(
-                message
-                  ? `Flight updated, but failed to save custom fields: ${message}`
-                  : 'Flight updated, but failed to save custom fields',
-              );
+              customFieldsFailureMessage = message
+                ? `Flight updated, but failed to save custom fields: ${message}`
+                : 'Flight updated, but failed to save custom fields';
             }
 
             trpc.flight.list.utils.invalidate();
-            toast.success(form.message.text);
+            if (customFieldsFailureMessage) {
+              toast.error(customFieldsFailureMessage);
+            } else {
+              toast.success(form.message.text);
+            }
             open = false;
             return;
           }
