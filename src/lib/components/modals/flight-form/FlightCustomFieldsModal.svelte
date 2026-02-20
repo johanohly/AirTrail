@@ -140,6 +140,7 @@
           <CustomFieldInput
             id="cf-{field.id}"
             label={field.label}
+            description={field.description ?? ''}
             fieldType={field.fieldType}
             required={field.required}
             options={normalizeOptions(field.options)}
