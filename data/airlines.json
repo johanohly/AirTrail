@@ -52,7 +52,7 @@
     "id": "abakan-air",
     "name": "Abakan Air",
     "icao": "NKP",
-    "iata": "S5",
+    "iata": "S5*",
     "defunct": false
   },
   {
@@ -178,7 +178,7 @@
     "id": "aero-flightops-uk",
     "name": "Aero FlightOps UK",
     "icao": "UKA",
-    "iata": "FO",
+    "iata": "FO*",
     "defunct": false
   },
   {
@@ -276,7 +276,7 @@
     "id": "aerolineas-sosa",
     "name": "Aerolineas Sosa",
     "icao": "NSO",
-    "iata": "P4",
+    "iata": "P4*",
     "defunct": false
   },
   {
@@ -906,7 +906,7 @@
     "id": "air-falcon",
     "name": "Air Falcon",
     "icao": "FPK",
-    "iata": "FS",
+    "iata": "FS*",
     "defunct": false
   },
   {
@@ -934,7 +934,7 @@
     "id": "air-georgian",
     "name": "Air Georgian",
     "icao": "GGN",
-    "iata": "ZX",
+    "iata": "ZX*",
     "defunct": true
   },
   {
@@ -1473,7 +1473,7 @@
     "id": "airbus-transport-international",
     "name": "Airbus Transport International",
     "icao": "BGA",
-    "iata": "4Y",
+    "iata": "4Y*",
     "defunct": false
   },
   {
@@ -1522,7 +1522,7 @@
     "id": "airfast-indonesia",
     "name": "Airfast Indonesia",
     "icao": "AFE",
-    "iata": "FS",
+    "iata": "FS*",
     "defunct": false
   },
   {
@@ -1592,7 +1592,7 @@
     "id": "airmaster",
     "name": "AirMaster",
     "icao": "RMX",
-    "iata": "MR",
+    "iata": "MR*",
     "defunct": false
   },
   {
@@ -1844,7 +1844,7 @@
     "id": "alfa-airlines",
     "name": "Alfa Airlines",
     "icao": "AAJ",
-    "iata": "5E",
+    "iata": "5E*",
     "defunct": false
   },
   {
@@ -1879,7 +1879,7 @@
     "id": "alitalia",
     "name": "Alitalia",
     "icao": "AZA",
-    "iata": "AZ",
+    "iata": "AZ*",
     "defunct": true
   },
   {
@@ -1963,7 +1963,7 @@
     "id": "alpavia",
     "name": "AlpAvia",
     "icao": "APP",
-    "iata": "AL",
+    "iata": "AL*",
     "defunct": false
   },
   {
@@ -1984,7 +1984,7 @@
     "id": "alphasky",
     "name": "AlphaSky",
     "icao": "JAG",
-    "iata": "AS",
+    "iata": "AS*",
     "defunct": false
   },
   {
@@ -2012,7 +2012,7 @@
     "id": "alrosa",
     "name": "Alrosa",
     "icao": "DRU",
-    "iata": "6R",
+    "iata": "6R*",
     "defunct": false
   },
   {
@@ -2103,7 +2103,7 @@
     "id": "ameriflight",
     "name": "Ameriflight",
     "icao": "AMF",
-    "iata": "A8",
+    "iata": "A8*",
     "defunct": false
   },
   {
@@ -2313,7 +2313,7 @@
     "id": "asia-cargo-airlines",
     "name": "Asia Cargo Airlines",
     "icao": "TMG",
-    "iata": "GM",
+    "iata": "GM*",
     "defunct": false
   },
   {
@@ -2341,7 +2341,7 @@
     "id": "asian-express-airlines",
     "name": "Asian Express Airlines",
     "icao": "TXP",
-    "iata": "RS",
+    "iata": "RS*",
     "defunct": false
   },
   {
@@ -2705,7 +2705,7 @@
     "id": "aviastar-tu",
     "name": "Aviastar-TU",
     "icao": "TUP",
-    "iata": "4B",
+    "iata": "4B*",
     "defunct": false
   },
   {
@@ -2852,7 +2852,7 @@
     "id": "azimuth",
     "name": "Azimuth",
     "icao": "AZO",
-    "iata": "A4",
+    "iata": "A4*",
     "defunct": false
   },
   {
@@ -3307,7 +3307,7 @@
     "id": "bluebird-airways",
     "name": "Bluebird Airways",
     "icao": "BBG",
-    "iata": "BZ",
+    "iata": "BZ*",
     "defunct": false
   },
   {
@@ -3433,7 +3433,7 @@
     "id": "bridges-air-cargo",
     "name": "Bridges Air Cargo",
     "icao": "BRD",
-    "iata": "5B",
+    "iata": "5B*",
     "defunct": false
   },
   {
@@ -3580,7 +3580,7 @@
     "id": "business-aviation-asia",
     "name": "Business Aviation Asia",
     "icao": "UNA",
-    "iata": "UN",
+    "iata": "UN*",
     "defunct": false
   },
   {
@@ -3832,7 +3832,7 @@
     "id": "cargo-three",
     "name": "Cargo Three",
     "icao": "CTW",
-    "iata": "C3",
+    "iata": "C3*",
     "defunct": false
   },
   {
@@ -3888,7 +3888,7 @@
     "id": "caspian-airlines",
     "name": "Caspian Airlines",
     "icao": "CPN",
-    "iata": "RV",
+    "iata": "RV*",
     "defunct": false
   },
   {
@@ -4231,7 +4231,7 @@
     "id": "chrono-jet",
     "name": "Chrono Jet",
     "icao": "MBK",
-    "iata": "MB",
+    "iata": "MB*",
     "defunct": false
   },
   {
@@ -4539,7 +4539,7 @@
     "id": "cristalux",
     "name": "Cristalux",
     "icao": "AUZ",
-    "iata": "7Z",
+    "iata": "7Z*",
     "defunct": false
   },
   {
@@ -4560,7 +4560,7 @@
     "id": "cronos-airlines",
     "name": "Cronos Airlines",
     "icao": "CRA",
-    "iata": "C8",
+    "iata": "C8*",
     "defunct": false
   },
   {
@@ -4938,7 +4938,7 @@
     "id": "dronamics-europe-airlines",
     "name": "Dronamics Europe Airlines",
     "icao": "DXE",
-    "iata": "OY",
+    "iata": "OY*",
     "defunct": false
   },
   {
@@ -4973,7 +4973,7 @@
     "id": "e-cargo-airlines",
     "name": "E-Cargo Airlines",
     "icao": "ERF",
-    "iata": "RF",
+    "iata": "RF*",
     "defunct": false
   },
   {
@@ -5267,7 +5267,7 @@
     "id": "elite-airways",
     "name": "Elite Airways",
     "icao": "MNU",
-    "iata": "7Q",
+    "iata": "7Q*",
     "defunct": false
   },
   {
@@ -5449,7 +5449,7 @@
     "id": "estelar",
     "name": "Estelar",
     "icao": "ETR",
-    "iata": "ES",
+    "iata": "ES*",
     "defunct": false
   },
   {
@@ -5491,7 +5491,7 @@
     "id": "euro-asia-air",
     "name": "Euro-Asia Air",
     "icao": "EAK",
-    "iata": "5B",
+    "iata": "5B*",
     "defunct": false
   },
   {
@@ -5736,7 +5736,7 @@
     "id": "fanjet-express",
     "name": "Fanjet Express",
     "icao": "FJE",
-    "iata": "7F",
+    "iata": "7F*",
     "defunct": false
   },
   {
@@ -5764,7 +5764,7 @@
     "id": "federal-air",
     "name": "Federal Air",
     "icao": "FDR",
-    "iata": "C8",
+    "iata": "C8*",
     "defunct": false
   },
   {
@@ -6086,14 +6086,14 @@
     "id": "fly-khiva",
     "name": "Fly Khiva",
     "icao": "FKH",
-    "iata": "D3",
+    "iata": "D3*",
     "defunct": false
   },
   {
     "id": "fly-khiva-2",
     "name": "Fly Khiva",
     "icao": "KFH",
-    "iata": "D3",
+    "iata": "D3*",
     "defunct": false
   },
   {
@@ -6156,7 +6156,7 @@
     "id": "fly4-airlines",
     "name": "Fly4 Airlines",
     "icao": "FFA",
-    "iata": "F4",
+    "iata": "F4*",
     "defunct": false
   },
   {
@@ -6317,7 +6317,7 @@
     "id": "flypelican",
     "name": "FlyPelican",
     "icao": "FRE",
-    "iata": "FP",
+    "iata": "FP*",
     "defunct": false
   },
   {
@@ -6443,7 +6443,7 @@
     "id": "freedom-airline-express-2",
     "name": "Freedom Airline Express",
     "icao": "SMK",
-    "iata": "4K",
+    "iata": "4K*",
     "defunct": false
   },
   {
@@ -6611,7 +6611,7 @@
     "id": "geosky",
     "name": "Geosky",
     "icao": "GEL",
-    "iata": "D4",
+    "iata": "D4*",
     "defunct": false
   },
   {
@@ -6688,7 +6688,7 @@
     "id": "getjet-airlines",
     "name": "Getjet Airlines",
     "icao": "GJT",
-    "iata": "GW",
+    "iata": "GW*",
     "defunct": false
   },
   {
@@ -6807,7 +6807,7 @@
     "id": "go2sky",
     "name": "Go2Sky",
     "icao": "RLX",
-    "iata": "6G",
+    "iata": "6G*",
     "defunct": false
   },
   {
@@ -6940,7 +6940,7 @@
     "id": "gulf-and-caribbean-cargo",
     "name": "Gulf and Caribbean Cargo",
     "icao": "TSU",
-    "iata": "IF",
+    "iata": "IF*",
     "defunct": false
   },
   {
@@ -7185,7 +7185,7 @@
     "id": "hermes-airlines",
     "name": "Hermes Airlines",
     "icao": "HRM",
-    "iata": "H3",
+    "iata": "H3*",
     "defunct": false
   },
   {
@@ -7213,7 +7213,7 @@
     "id": "hi-fly-malta",
     "name": "Hi Fly Malta",
     "icao": "HFM",
-    "iata": "3L",
+    "iata": "3L*",
     "defunct": false
   },
   {
@@ -7815,7 +7815,7 @@
     "id": "jet-charter",
     "name": "Jet Charter",
     "icao": "JCT",
-    "iata": "N2",
+    "iata": "N2*",
     "defunct": false
   },
   {
@@ -7857,7 +7857,7 @@
     "id": "jet-linx-aviation",
     "name": "Jet Linx Aviation",
     "icao": "JTL",
-    "iata": "JL",
+    "iata": "JL*",
     "defunct": false
   },
   {
@@ -7885,7 +7885,7 @@
     "id": "jet-sky-airways",
     "name": "Jet Sky Airways",
     "icao": "JTK",
-    "iata": "JK",
+    "iata": "JK*",
     "defunct": false
   },
   {
@@ -8263,7 +8263,7 @@
     "id": "k-mile-air",
     "name": "K-Mile Air",
     "icao": "KMI",
-    "iata": "8K",
+    "iata": "8K*",
     "defunct": false
   },
   {
@@ -8347,7 +8347,7 @@
     "id": "kelowna-flightcraft-air",
     "name": "Kelowna Flightcraft Air",
     "icao": "KFA",
-    "iata": "FK",
+    "iata": "FK*",
     "defunct": false
   },
   {
@@ -8459,7 +8459,7 @@
     "id": "komiaviatrans",
     "name": "Komiaviatrans",
     "icao": "KMA",
-    "iata": "KO",
+    "iata": "KO*",
     "defunct": false
   },
   {
@@ -9005,21 +9005,21 @@
     "id": "mae-aircraft-management",
     "name": "MAE Aircraft Management",
     "icao": "MEN",
-    "iata": "MA",
+    "iata": "MA*",
     "defunct": false
   },
   {
     "id": "maersk",
     "name": "Maersk",
     "icao": "SRR",
-    "iata": "DJ",
+    "iata": "DJ*",
     "defunct": false
   },
   {
     "id": "magnicharters",
     "name": "Magnicharters",
     "icao": "GMT",
-    "iata": "UJ",
+    "iata": "UJ*",
     "defunct": false
   },
   {
@@ -9096,7 +9096,7 @@
     "id": "manasik-aviation",
     "name": "Manasik Aviation",
     "icao": "MNM",
-    "iata": "XN",
+    "iata": "XN*",
     "defunct": false
   },
   {
@@ -9292,7 +9292,7 @@
     "id": "mel-air",
     "name": "Mel Air",
     "icao": "MDO",
-    "iata": "5M",
+    "iata": "5M*",
     "defunct": false
   },
   {
@@ -9306,7 +9306,7 @@
     "id": "mercury-air-cargo",
     "name": "Mercury Air Cargo",
     "icao": "MEC",
-    "iata": "4X",
+    "iata": "4X*",
     "defunct": false
   },
   {
@@ -9460,7 +9460,7 @@
     "id": "mng-airlines",
     "name": "MNG Airlines",
     "icao": "MNB",
-    "iata": "MB",
+    "iata": "MB*",
     "defunct": false
   },
   {
@@ -9495,7 +9495,7 @@
     "id": "monarch-airlines",
     "name": "Monarch Airlines",
     "icao": "MON",
-    "iata": "ZB",
+    "iata": "ZB*",
     "defunct": true
   },
   {
@@ -9635,7 +9635,7 @@
     "id": "national-air-charters",
     "name": "National Air Charters",
     "icao": "JYA",
-    "iata": "JY",
+    "iata": "JY*",
     "defunct": false
   },
   {
@@ -9796,7 +9796,7 @@
     "id": "new-way-cargo-airlines",
     "name": "New Way Cargo Airlines",
     "icao": "NWY",
-    "iata": "NU",
+    "iata": "NU*",
     "defunct": false
   },
   {
@@ -9859,7 +9859,7 @@
     "id": "niki",
     "name": "Niki",
     "icao": "NLY",
-    "iata": "HG",
+    "iata": "HG*",
     "defunct": true
   },
   {
@@ -10020,7 +10020,7 @@
     "id": "north-western-cargo-international-airlines",
     "name": "North-Western Cargo International Airlines",
     "icao": "CNW",
-    "iata": "CO",
+    "iata": "CO*",
     "defunct": false
   },
   {
@@ -10048,7 +10048,7 @@
     "id": "northern-air-cargo",
     "name": "Northern Air Cargo",
     "icao": "NAC",
-    "iata": "NC",
+    "iata": "NC*",
     "defunct": false
   },
   {
@@ -10244,7 +10244,7 @@
     "id": "one-air",
     "name": "One Air",
     "icao": "HGO",
-    "iata": "HC",
+    "iata": "HC*",
     "defunct": false
   },
   {
@@ -10272,7 +10272,7 @@
     "id": "origin-air",
     "name": "Origin Air",
     "icao": "OGN",
-    "iata": "OG",
+    "iata": "OG*",
     "defunct": false
   },
   {
@@ -10398,7 +10398,7 @@
     "id": "palau-express-airlines",
     "name": "Palau Express Airlines",
     "icao": "PXC",
-    "iata": "P9",
+    "iata": "P9*",
     "defunct": false
   },
   {
@@ -10559,7 +10559,7 @@
     "id": "perimeter-aviation",
     "name": "Perimeter Aviation",
     "icao": "PAG",
-    "iata": "YP",
+    "iata": "YP*",
     "defunct": false
   },
   {
@@ -10622,7 +10622,7 @@
     "id": "phoenix-air",
     "name": "Phoenix Air",
     "icao": "GRB",
-    "iata": "PH",
+    "iata": "PH*",
     "defunct": false
   },
   {
@@ -10937,7 +10937,7 @@
     "id": "privilege-style",
     "name": "Privilege Style",
     "icao": "PVG",
-    "iata": "P6",
+    "iata": "P6*",
     "defunct": false
   },
   {
@@ -11021,7 +11021,7 @@
     "id": "qatar-executive",
     "name": "Qatar Executive",
     "icao": "QQE",
-    "iata": "QE",
+    "iata": "QE*",
     "defunct": false
   },
   {
@@ -11105,7 +11105,7 @@
     "id": "raf-avia",
     "name": "RAF-Avia",
     "icao": "MTL",
-    "iata": "MT",
+    "iata": "MT*",
     "defunct": false
   },
   {
@@ -11364,7 +11364,7 @@
     "id": "romcargo-airlines",
     "name": "ROMCargo Airlines",
     "icao": "RCR",
-    "iata": "NJ",
+    "iata": "NJ*",
     "defunct": false
   },
   {
@@ -11602,7 +11602,7 @@
     "id": "safari-express-cargo",
     "name": "Safari Express Cargo",
     "icao": "SXY",
-    "iata": "ZF",
+    "iata": "ZF*",
     "defunct": false
   },
   {
@@ -11700,7 +11700,7 @@
     "id": "sas-connect",
     "name": "SAS Connect",
     "icao": "SZS",
-    "iata": "SL",
+    "iata": "SL*",
     "defunct": false
   },
   {
@@ -11952,7 +11952,7 @@
     "id": "siam-general-aviation",
     "name": "Siam General Aviation",
     "icao": "SGN",
-    "iata": "5E",
+    "iata": "5E*",
     "defunct": false
   },
   {
@@ -11980,7 +11980,7 @@
     "id": "sierra-pacific-airlines",
     "name": "Sierra Pacific Airlines",
     "icao": "SPA",
-    "iata": "SI",
+    "iata": "SI*",
     "defunct": false
   },
   {
@@ -12001,7 +12001,7 @@
     "id": "silk-way-airlines",
     "name": "Silk Way Airlines",
     "icao": "AZQ",
-    "iata": "ZP",
+    "iata": "ZP*",
     "defunct": false
   },
   {
@@ -12099,7 +12099,7 @@
     "id": "sirius-aero",
     "name": "Sirius Aero",
     "icao": "CIG",
-    "iata": "SA",
+    "iata": "SA*",
     "defunct": false
   },
   {
@@ -12148,7 +12148,7 @@
     "id": "sky-cana",
     "name": "Sky Cana",
     "icao": "SNA",
-    "iata": "RD",
+    "iata": "RD*",
     "defunct": false
   },
   {
@@ -12176,7 +12176,7 @@
     "id": "sky-jet-mg",
     "name": "Sky Jet M.G.",
     "icao": "LIZ",
-    "iata": "DU",
+    "iata": "DU*",
     "defunct": false
   },
   {
@@ -12218,14 +12218,14 @@
     "id": "sky-shuttle-helicopters",
     "name": "Sky Shuttle Helicopters",
     "icao": "HHK",
-    "iata": "A7",
+    "iata": "A7*",
     "defunct": false
   },
   {
     "id": "sky-vision-airlines",
     "name": "Sky Vision Airlines",
     "icao": "SVI",
-    "iata": "SE",
+    "iata": "SE*",
     "defunct": false
   },
   {
@@ -12274,7 +12274,7 @@
     "id": "skyhigh-dominicana",
     "name": "SKYhigh Dominicana",
     "icao": "SHH",
-    "iata": "DO",
+    "iata": "DO*",
     "defunct": false
   },
   {
@@ -12372,7 +12372,7 @@
     "id": "skyvalue-airways",
     "name": "Skyvalue Airways",
     "icao": "DYN",
-    "iata": "4A",
+    "iata": "4A*",
     "defunct": false
   },
   {
@@ -12505,7 +12505,7 @@
     "id": "smartlynx-malta",
     "name": "SmartLynx Malta",
     "icao": "LYX",
-    "iata": "2N",
+    "iata": "2N*",
     "defunct": false
   },
   {
@@ -12575,7 +12575,7 @@
     "id": "solinair",
     "name": "Solinair",
     "icao": "SOP",
-    "iata": "ZS",
+    "iata": "ZS*",
     "defunct": false
   },
   {
@@ -12827,7 +12827,7 @@
     "id": "star-air",
     "name": "Star Air",
     "icao": "SDG",
-    "iata": "S5",
+    "iata": "S5*",
     "defunct": false
   },
   {
@@ -12855,7 +12855,7 @@
     "id": "star-peru",
     "name": "Star Peru",
     "icao": "SRU",
-    "iata": "2I",
+    "iata": "2I*",
     "defunct": false
   },
   {
@@ -13296,7 +13296,7 @@
     "id": "tab-cargo",
     "name": "TAB Cargo",
     "icao": "BOL",
-    "iata": "2L",
+    "iata": "2L*",
     "defunct": false
   },
   {
@@ -13345,7 +13345,7 @@
     "id": "tagairlines",
     "name": "TagAirlines",
     "icao": "TGU",
-    "iata": "5U",
+    "iata": "5U*",
     "defunct": false
   },
   {
@@ -13499,7 +13499,7 @@
     "id": "tez-jet-airlines",
     "name": "Tez Jet Airlines",
     "icao": "TEZ",
-    "iata": "K9",
+    "iata": "K9*",
     "defunct": false
   },
   {
@@ -13590,7 +13590,7 @@
     "id": "tianjin-air-cargo",
     "name": "Tianjin Air Cargo",
     "icao": "CTJ",
-    "iata": "HT",
+    "iata": "HT*",
     "defunct": false
   },
   {
@@ -13639,7 +13639,7 @@
     "id": "titan-airways-malta",
     "name": "Titan Airways Malta",
     "icao": "TMT",
-    "iata": "TM",
+    "iata": "TM*",
     "defunct": false
   },
   {
@@ -13723,7 +13723,7 @@
     "id": "transaero",
     "name": "Transaero",
     "icao": "TSO",
-    "iata": "UN",
+    "iata": "UN*",
     "defunct": true
   },
   {
@@ -13828,7 +13828,7 @@
     "id": "tropic-ocean-airways",
     "name": "Tropic Ocean Airways",
     "icao": "FTO",
-    "iata": "TI",
+    "iata": "TI*",
     "defunct": false
   },
   {
@@ -14367,7 +14367,7 @@
     "id": "usa-jet-airlines",
     "name": "USA Jet Airlines",
     "icao": "JUS",
-    "iata": "UJ",
+    "iata": "UJ*",
     "defunct": false
   },
   {
@@ -14451,7 +14451,7 @@
     "id": "venezolana",
     "name": "Venezolana",
     "icao": "VNE",
-    "iata": "WW",
+    "iata": "WW*",
     "defunct": false
   },
   {
@@ -14563,7 +14563,7 @@
     "id": "vistajet",
     "name": "VistaJet",
     "icao": "VJH",
-    "iata": "H5",
+    "iata": "H5*",
     "defunct": false
   },
   {
@@ -14661,7 +14661,7 @@
     "id": "voyageur-airways",
     "name": "Voyageur Airways",
     "icao": "VAL",
-    "iata": "VC",
+    "iata": "VC*",
     "defunct": false
   },
   {
@@ -14689,7 +14689,7 @@
     "id": "warbelows-air-ventures",
     "name": "Warbelows Air Ventures",
     "icao": "WAV",
-    "iata": "4W",
+    "iata": "4W*",
     "defunct": false
   },
   {
@@ -14724,14 +14724,14 @@
     "id": "west-air-2",
     "name": "West Air",
     "icao": "CHB",
-    "iata": "PN",
+    "iata": "PN*",
     "defunct": false
   },
   {
     "id": "west-air-sweden",
     "name": "West Air Sweden",
     "icao": "SWN",
-    "iata": "T2",
+    "iata": "T2*",
     "defunct": false
   },
   {
@@ -14773,7 +14773,7 @@
     "id": "western-air",
     "name": "Western Air",
     "icao": "WST",
-    "iata": "WU",
+    "iata": "WU*",
     "defunct": false
   },
   {
@@ -14787,7 +14787,7 @@
     "id": "western-aircraft",
     "name": "Western Aircraft",
     "icao": "STT",
-    "iata": "ST",
+    "iata": "ST*",
     "defunct": false
   },
   {
@@ -14976,7 +14976,7 @@
     "id": "wright-air-service",
     "name": "Wright Air Service",
     "icao": "WRF",
-    "iata": "8V",
+    "iata": "8V*",
     "defunct": false
   },
   {
@@ -15081,7 +15081,7 @@
     "id": "z-air",
     "name": "Z Air",
     "icao": "EZR",
-    "iata": "7Z",
+    "iata": "7Z*",
     "defunct": false
   },
   {
@@ -15102,7 +15102,7 @@
     "id": "zambia-airways",
     "name": "Zambia Airways",
     "icao": "AZB",
-    "iata": "ZN",
+    "iata": "ZN*",
     "defunct": false
   },
   {
@@ -15165,7 +15165,7 @@
     "id": "zimex-aviation-austria",
     "name": "Zimex Aviation Austria",
     "icao": "AZD",
-    "iata": "ZX",
+    "iata": "ZX*",
     "defunct": false
   },
   {
@@ -15179,7 +15179,7 @@
     "id": "zooom",
     "name": "Zooom",
     "icao": "ZOM",
-    "iata": "ZO",
+    "iata": "ZO*",
     "defunct": false
   },
   {

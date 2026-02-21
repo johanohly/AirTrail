@@ -13,10 +13,10 @@ export const airlineSchema = z.object({
     .nullable(),
   iata: z
     .string({ message: 'Set an IATA code' })
-    .max(2, 'IATA code must be 2 characters or less')
+    .max(3, 'IATA code must be a 2-letter code, optionally followed by *')
     .regex(
-      /^[A-Z0-9]+$/,
-      'IATA code must contain only uppercase letters and numbers',
+      /^[A-Z0-9]{2}\*?$/,
+      'IATA code must be 2 uppercase letters/numbers, optionally followed by * for controlled duplicates',
     )
     .nullable(),
   iconPath: z.string().nullable().optional(),

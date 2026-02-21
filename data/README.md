@@ -21,13 +21,21 @@ List of airlines in `airlines.json`, list of aircraft models in `aircraft.json` 
 }
 ```
 
-| Field     | Type           | Required | Description                            |
-| --------- | -------------- | -------- | -------------------------------------- |
-| `id`      | string         | Yes      | URL-friendly slug (lowercase, hyphens) |
-| `name`    | string         | Yes      | Display name                           |
-| `icao`    | string         | Yes      | 3-letter ICAO code                     |
-| `iata`    | string \| null | Yes      | 2-letter IATA code                     |
-| `defunct` | boolean        | Yes      | `true` if airline no longer operates   |
+| Field     | Type           | Required | Description                                    |
+| --------- | -------------- | -------- | ---------------------------------------------- |
+| `id`      | string         | Yes      | URL-friendly slug (lowercase, hyphens)         |
+| `name`    | string         | Yes      | Display name                                   |
+| `icao`    | string         | Yes      | 3-letter ICAO code                             |
+| `iata`    | string \| null | Yes      | 2-letter IATA code (see controlled duplicates) |
+| `defunct` | boolean        | Yes      | `true` if airline no longer operates           |
+
+#### Controlled duplicate IATA codes
+
+Some IATA codes are shared by two or more airlines that operate different, non-overlapping services (e.g. a scheduled carrier and a charter/cargo operator). IATA refers to these as **"Controlled Duplicates"** and marks them with an asterisk (`*`) in their [official directory](https://www.iata.org/en/publications/directories/code-search/).
+
+We follow the same convention: when multiple airlines share an IATA code, the **primary holder** keeps the bare 2-letter code (e.g. `JL` for Japan Airlines) and the controlled duplicate(s) receive a `*` suffix (e.g. `JL*` for Jet Linx Aviation).
+
+Airlines with a `*`-suffixed IATA code are **excluded from flight number matching** — when importing flights, only the bare code is used to resolve the airline from a flight number.
 
 ### aircraft.json
 

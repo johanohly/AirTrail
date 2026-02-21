@@ -3,8 +3,8 @@
 /**
  * Validates airline and aircraft JSON data files.
  * - Schema validation (required fields, types)
- * - Duplicate detection (IDs, ICAO codes)
- * - Format validation (slug format for IDs, ICAO/IATA formats)
+ * - Duplicate detection (IDs, ICAO codes, IATA codes)
+ * - Format validation (slug format for IDs, ICAO/IATA formats, controlled duplicate IATA codes)
  *
  * Usage:
  *   bun scripts/data/validate-data.js
@@ -22,7 +22,7 @@ const DATA_DIR = join(import.meta.dirname, '../../data');
 const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ICAO_AIRLINE_REGEX = /^[A-Z]{3}$/;
 const ICAO_AIRCRAFT_REGEX = /^[A-Z0-9]{2,4}$/;
-const IATA_REGEX = /^[A-Z0-9]{2}$/;
+const IATA_REGEX = /^[A-Z0-9]{2}\*?$/;
 
 const errors = [];
 const warnings = [];
@@ -116,13 +116,13 @@ function validateAirlines() {
       );
     }
 
-    // IATA format
+    // IATA format (2 uppercase alphanumeric, optionally followed by * for controlled duplicates)
     if (airline.iata && !IATA_REGEX.test(airline.iata)) {
       error(
         'airlines.json',
         index,
         'iata',
-        `${loc}: Invalid IATA format '${airline.iata}'. Must be 2 uppercase alphanumeric`,
+        `${loc}: Invalid IATA format '${airline.iata}'. Must be 2 uppercase alphanumeric, optionally followed by * for controlled duplicates`,
       );
     }
 
@@ -155,10 +155,14 @@ function validateAirlines() {
       }
     }
 
-    // Duplicate IATA (only warn, IATA codes are reused)
+    // Duplicate IATA detection
+    // Bare codes (e.g. "JL") must be unique — error if two airlines share the same bare code.
+    // Starred codes (e.g. "JL*") are controlled duplicates of the bare code, so "JL" + "JL*" is expected.
+    // Two identical starred codes (e.g. two "FS*") are still flagged as warnings.
     if (airline.iata) {
       if (seenIata.has(airline.iata)) {
-        warn(
+        const level = airline.iata.endsWith('*') ? warn : error;
+        level(
           'airlines.json',
           index,
           'iata',
