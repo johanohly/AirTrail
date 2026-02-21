@@ -92,8 +92,10 @@ const checkValueType = (def: Definition, value: unknown): string | null => {
   if (TEXT_LIKE_TYPES.has(def.fieldType) && typeof value !== 'string') {
     return 'must be text';
   }
-  if (def.fieldType === 'number' && typeof value !== 'number') {
-    return 'must be a number';
+  if (def.fieldType === 'number') {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return 'must be a number';
+    }
   }
   if (def.fieldType === 'boolean' && typeof value !== 'boolean') {
     return 'must be true or false';

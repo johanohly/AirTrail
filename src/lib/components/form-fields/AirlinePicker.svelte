@@ -79,11 +79,15 @@
         airlines = cached;
         return;
       }
-      loading = true;
+      const query = $inputValue;
       debounce(async () => {
-        airlines = await api.autocomplete.airline.query($inputValue);
-        airlineSearchCache.set(key, airlines);
-        loading = false;
+        loading = true;
+        try {
+          airlines = await api.autocomplete.airline.query(query);
+          airlineSearchCache.set(key, airlines);
+        } finally {
+          loading = false;
+        }
       });
     } else if (!loading && ($inputValue === '' || !$open)) {
       airlines = [];

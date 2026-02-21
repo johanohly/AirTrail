@@ -47,7 +47,7 @@ const buildCfByFlight = (
   for (const row of rows) {
     let map = cfByFlight.get(row.entityId);
     if (!map) {
-      map = {};
+      map = Object.create(null) as Record<string, unknown>;
       cfByFlight.set(row.entityId, map);
     }
     const lookup = entityLookup[row.fieldType];

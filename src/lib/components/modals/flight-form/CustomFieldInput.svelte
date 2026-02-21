@@ -76,22 +76,25 @@
       return;
     }
 
+    const fetchId = numId;
     (async () => {
       try {
         let result: Airport | Airline | Aircraft | null = null;
         if (fieldType === 'airport') {
-          result = await api.airport.get.query(numId);
+          result = await api.airport.get.query(fetchId);
         } else if (fieldType === 'airline') {
-          result = await api.airline.get.query(numId);
+          result = await api.airline.get.query(fetchId);
         } else if (fieldType === 'aircraft') {
-          result = await api.aircraft.get.query(numId);
+          result = await api.aircraft.get.query(fetchId);
         }
+        // Only apply if this is still the latest request
+        if (resolvedId !== fetchId) return;
         if (result) {
           entityCache.set(cacheKey, result);
           entityObj = result;
         }
       } catch {
-        entityObj = null;
+        if (resolvedId === fetchId) entityObj = null;
       }
     })();
   });

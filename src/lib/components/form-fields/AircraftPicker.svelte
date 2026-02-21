@@ -76,11 +76,15 @@
         results = cached;
         return;
       }
-      loading = true;
+      const query = $inputValue;
       debounce(async () => {
-        results = await api.autocomplete.aircraft.query($inputValue);
-        aircraftSearchCache.set(key, results);
-        loading = false;
+        loading = true;
+        try {
+          results = await api.autocomplete.aircraft.query(query);
+          aircraftSearchCache.set(key, results);
+        } finally {
+          loading = false;
+        }
       });
     } else if (!loading && ($inputValue === '' || !$open)) {
       results = [];
