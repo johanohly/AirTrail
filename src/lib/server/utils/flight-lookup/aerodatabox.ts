@@ -10,9 +10,9 @@ import {
 
 import type { FlightLookupOptions, FlightLookupResult } from './flight-lookup';
 
-import type { Aircraft } from '$lib/db/types';
+import type { Aircraft, Airline } from '$lib/db/types';
 import { getAircraftByIcao } from '$lib/server/utils/aircraft';
-import { getAirlineByIcao } from '$lib/server/utils/airline';
+import { getAirlineByIcao, getAirlineByIata } from '$lib/server/utils/airline';
 import { getAirportByIcao } from '$lib/server/utils/airport';
 import { appConfig } from '$lib/server/utils/config';
 import { RequestRateLimiter } from '$lib/utils/ratelimiter';
@@ -95,7 +95,7 @@ export async function getFlightRoute(
       revisedTime?: { local: string };
       actualTime?: { local: string };
     };
-    airline?: { icao?: string };
+    airline?: { iata?: string; icao?: string };
     aircraft?: { reg?: string };
   };
 
@@ -150,6 +150,14 @@ export async function getFlightRoute(
       arrTz,
     );
 
+    let airline: Airline | null = null;
+    if (item.airline?.icao) {
+      airline = await getAirlineByIcao(item.airline.icao);
+    }
+    if (item.airline?.iata && !airline) {
+      airline = await getAirlineByIata(item.airline.iata);
+    }
+
     const flightInfo = {
       from: fromAirport,
       to: toAirport,
@@ -157,9 +165,7 @@ export async function getFlightRoute(
       arrival: arrivalTime,
       departureScheduled,
       arrivalScheduled,
-      airline: item.airline?.icao
-        ? await getAirlineByIcao(item.airline.icao)
-        : null,
+      airline,
       aircraft: item.aircraft?.reg
         ? await getAircraftFromReg(item.aircraft.reg)
         : null,
