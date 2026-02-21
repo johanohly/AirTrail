@@ -74,6 +74,23 @@ export const updateAirline = async (data: Airline) => {
 export const validateAndSaveAirline = async (
   airline: z.infer<typeof airlineSchema>,
 ): Promise<ErrorActionResult> => {
+  // Warn if saving a bare (non-*) IATA code that already belongs to another airline
+  if (airline.iata && !airline.iata.endsWith('*')) {
+    const conflict = await db
+      .selectFrom('airline')
+      .select(['id', 'name', 'iata'])
+      .where('iata', 'ilike', airline.iata)
+      .where('id', '!=', airline.id ?? -1)
+      .executeTakeFirst();
+    if (conflict) {
+      return {
+        success: false,
+        type: 'error',
+        message: `IATA code "${airline.iata}" is already used by ${conflict.name}. Automatic airline matching from flight numbers won't work with duplicate IATA codes. Use "${airline.iata}*" to mark this as a controlled duplicate.`,
+      };
+    }
+  }
+
   const existingAirline = airline.id ? await getAirline(airline.id) : null;
 
   if (existingAirline) {

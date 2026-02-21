@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { Info } from '@o7/icon/lucide';
   import type { Infer, SuperForm } from 'sveltekit-superforms';
 
+  import * as Alert from '$lib/components/ui/alert';
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
   import { HelpTooltip } from '$lib/components/ui/tooltip';
@@ -9,6 +11,10 @@
   const { form }: { form: SuperForm<Infer<typeof airlineSchema>> } = $props();
 
   const { form: formData } = form;
+
+  const isControlledDuplicate = $derived(
+    $formData.iata?.endsWith('*') ?? false,
+  );
 </script>
 
 <Form.Field {form} name="name" class="flex flex-col">
@@ -63,12 +69,22 @@
       />
       <Form.Description>
         The IATA airline designation code (2 letters). Used for display and when
-        importing flights.
+        importing flights. Append <code>*</code> for controlled duplicates.
         <HelpTooltip
-          text="Examples: AA for American Airlines, DL for Delta Air Lines, etc."
+          text="Examples: AA for American Airlines, DL for Delta Air Lines. Add * (e.g. JL*) if this airline shares its IATA code with another airline (controlled duplicate)."
         />
       </Form.Description>
     {/snippet}
   </Form.Control>
   <Form.FieldErrors />
+  {#if isControlledDuplicate}
+    <Alert.Root variant="info">
+      <Info />
+      <Alert.Description>
+        This IATA code is marked as a controlled duplicate. Airlines with a
+        <code>*</code> suffix are excluded from automatic airline matching when importing
+        flights by flight number.
+      </Alert.Description>
+    </Alert.Root>
+  {/if}
 </Form.Field>
