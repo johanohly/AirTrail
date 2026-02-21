@@ -103,7 +103,6 @@ export const flightOptionalInformationSchema = z.object({
     .nullable(),
   flightReason: z.enum(FlightReasons).nullable(),
   note: z.string().max(1000, 'Note is too long').nullable(),
-  // TODO: Terminal/gate fields (populated via flight lookup, not editable in UI yet)
   departureTerminal: z.string().max(10).nullable().optional(),
   departureGate: z.string().max(10).nullable().optional(),
   arrivalTerminal: z.string().max(10).nullable().optional(),

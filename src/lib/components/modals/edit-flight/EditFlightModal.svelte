@@ -7,6 +7,7 @@
   import {
     FlightCustomFieldsModal,
     FlightForm,
+    FlightTerminalGateModal,
   } from '$lib/components/modals/flight-form';
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
@@ -191,12 +192,15 @@
     <FlightForm {form} />
     <ModalFooter>
       <div class="flex w-full items-center justify-between">
-        <FlightCustomFieldsModal
-          bind:this={customFieldsModal}
-          definitions={$customFieldDefinitions.data ?? []}
-          bind:values={customFieldValues}
-          {savedFieldIds}
-        />
+        <div class="flex items-center gap-2">
+          <FlightTerminalGateModal {form} />
+          <FlightCustomFieldsModal
+            bind:this={customFieldsModal}
+            definitions={$customFieldDefinitions.data ?? []}
+            bind:values={customFieldValues}
+            {savedFieldIds}
+          />
+        </div>
         <Form.Button size="sm" loading={$submitting}>Save</Form.Button>
       </div>
     </ModalFooter>
