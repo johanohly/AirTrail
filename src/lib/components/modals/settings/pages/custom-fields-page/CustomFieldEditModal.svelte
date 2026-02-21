@@ -212,7 +212,7 @@
             <Input
               id="custom-field-validation-regex"
               bind:value={editing.validationRegex}
-              placeholder="e.g. ^[A-Z]{2}-\\d{4}$"
+              placeholder={'e.g. ^[A-Z0-9]{6}$'}
             />
           </div>
 
