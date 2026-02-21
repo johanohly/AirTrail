@@ -67,123 +67,78 @@ const valueInputSchema = z.object({
   value: z.any().nullable(),
 });
 
-const ensureDefinitionIsValid = (
-  input: z.infer<typeof definitionInputSchema>,
-) => {
-  const options = input.options ?? [];
-  const validation = input.validationJson ?? null;
+const badRequest = (message: string): never => {
+  throw new TRPCError({ code: 'BAD_REQUEST', message });
+};
 
-  if (input.fieldType === 'select' && options.length === 0) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: 'Select fields require at least one option',
-    });
+type DefinitionInput = z.infer<typeof definitionInputSchema>;
+
+const EXPECTED_DEFAULT_TYPES: Record<string, string> = {
+  text: 'string',
+  textarea: 'string',
+  number: 'number',
+  boolean: 'boolean',
+  date: 'string',
+  select: 'string',
+  airport: 'number',
+  airline: 'number',
+  aircraft: 'number',
+};
+
+const ensureDefaultValueIsValid = (input: DefinitionInput) => {
+  if (input.defaultValue == null) return;
+
+  const expected = EXPECTED_DEFAULT_TYPES[input.fieldType];
+  if (expected && typeof input.defaultValue !== expected) {
+    badRequest(
+      `Default value must be a ${expected} for ${input.fieldType} fields`,
+    );
   }
 
-  if (input.defaultValue != null) {
-    if (
-      TEXT_LIKE_TYPES.has(input.fieldType) &&
-      typeof input.defaultValue !== 'string'
-    ) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Default value must be a string for text fields',
-      });
-    }
-
-    if (
-      input.fieldType === 'number' &&
-      typeof input.defaultValue !== 'number'
-    ) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Default value must be a number for number fields',
-      });
-    }
-
-    if (
-      input.fieldType === 'boolean' &&
-      typeof input.defaultValue !== 'boolean'
-    ) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Default value must be a boolean for boolean fields',
-      });
-    }
-
-    if (input.fieldType === 'date' && typeof input.defaultValue !== 'string') {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Default value must be a string for date fields',
-      });
-    }
-
-    if (input.fieldType === 'select') {
-      if (typeof input.defaultValue !== 'string') {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Default value must be a string for select fields',
-        });
-      }
-
-      if (!options.includes(input.defaultValue)) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Default value must be one of the select options',
-        });
-      }
-    }
-
-    if (
-      ENTITY_TYPES.has(input.fieldType) &&
-      typeof input.defaultValue !== 'number'
-    ) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Default value must be a numeric ID for entity fields',
-      });
+  if (input.fieldType === 'select') {
+    const options = input.options ?? [];
+    if (!options.includes(input.defaultValue as string)) {
+      badRequest('Default value must be one of the select options');
     }
   }
+};
 
+const ensureValidationRulesAreValid = (input: DefinitionInput) => {
+  const validation = input.validationJson;
   if (!validation) return;
 
-  if (TEXT_LIKE_TYPES.has(input.fieldType)) {
-    if (validation.regex) {
-      try {
-        // Validate regex at definition-save time to avoid blocking future flight saves.
-        // eslint-disable-next-line no-new
-        new RegExp(validation.regex);
-      } catch {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Regex pattern is invalid',
-        });
-      }
-    }
-
-    if (
-      typeof validation.minLength === 'number' &&
-      typeof validation.maxLength === 'number' &&
-      validation.minLength > validation.maxLength
-    ) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Min length cannot be greater than max length',
-      });
+  if (TEXT_LIKE_TYPES.has(input.fieldType) && validation.regex) {
+    try {
+      // Validate regex at definition-save time to avoid blocking future flight saves.
+      new RegExp(validation.regex);
+    } catch {
+      badRequest('Regex pattern is invalid');
     }
   }
 
   if (
-    input.fieldType === 'number' &&
+    typeof validation.minLength === 'number' &&
+    typeof validation.maxLength === 'number' &&
+    validation.minLength > validation.maxLength
+  ) {
+    badRequest('Min length cannot be greater than max length');
+  }
+
+  if (
     typeof validation.min === 'number' &&
     typeof validation.max === 'number' &&
     validation.min > validation.max
   ) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: 'Min value cannot be greater than max value',
-    });
+    badRequest('Min value cannot be greater than max value');
   }
+};
+
+const ensureDefinitionIsValid = (input: DefinitionInput) => {
+  if (input.fieldType === 'select' && (input.options ?? []).length === 0) {
+    badRequest('Select fields require at least one option');
+  }
+  ensureDefaultValueIsValid(input);
+  ensureValidationRulesAreValid(input);
 };
 
 async function assertEntityAccess(

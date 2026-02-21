@@ -88,87 +88,187 @@ type Definition = {
   validationJson: unknown;
 };
 
-const validateValue = (def: Definition, value: unknown): string | null => {
-  if (def.required && (value === undefined || value === null || value === '')) {
-    return `Custom field "${def.label}" is required`;
-  }
-
-  if (value == null) return null;
-
+const checkValueType = (def: Definition, value: unknown): string | null => {
   if (TEXT_LIKE_TYPES.has(def.fieldType) && typeof value !== 'string') {
-    return `Custom field "${def.label}" must be text`;
+    return 'must be text';
   }
-
   if (def.fieldType === 'number' && typeof value !== 'number') {
-    return `Custom field "${def.label}" must be a number`;
+    return 'must be a number';
   }
-
   if (def.fieldType === 'boolean' && typeof value !== 'boolean') {
-    return `Custom field "${def.label}" must be true or false`;
+    return 'must be true or false';
   }
-
   if (def.fieldType === 'date' && typeof value !== 'string') {
-    return `Custom field "${def.label}" must be a date string`;
+    return 'must be a date string';
   }
-
   if (def.fieldType === 'select') {
-    if (typeof value !== 'string') {
-      return `Custom field "${def.label}" must be one of its options`;
-    }
-
+    if (typeof value !== 'string') return 'must be one of its options';
     const options = Array.isArray(def.options)
       ? def.options.filter((x): x is string => typeof x === 'string')
       : [];
-    if (!options.includes(value)) {
-      return `Custom field "${def.label}" must be one of its options`;
+    if (!options.includes(value)) return 'must be one of its options';
+  }
+  if (ENTITY_TYPES.has(def.fieldType) && typeof value !== 'number') {
+    return 'must use a numeric ID';
+  }
+  return null;
+};
+
+const checkTextValidation = (
+  value: string,
+  validation: Validation,
+): string | null => {
+  if (validation.regex) {
+    try {
+      const re = new RegExp(validation.regex);
+      if (!re.test(value)) return 'does not match its pattern';
+    } catch {
+      return 'has an invalid regex pattern';
     }
   }
-
-  if (ENTITY_TYPES.has(def.fieldType) && typeof value !== 'number') {
-    return `Custom field "${def.label}" must use a numeric ID`;
+  if (
+    typeof validation.minLength === 'number' &&
+    value.length < validation.minLength
+  ) {
+    return 'is shorter than minimum length';
   }
+  if (
+    typeof validation.maxLength === 'number' &&
+    value.length > validation.maxLength
+  ) {
+    return 'is longer than maximum length';
+  }
+  return null;
+};
 
+const checkNumberValidation = (
+  value: number,
+  validation: Validation,
+): string | null => {
+  if (typeof validation.min === 'number' && value < validation.min) {
+    return 'is lower than minimum value';
+  }
+  if (typeof validation.max === 'number' && value > validation.max) {
+    return 'is higher than maximum value';
+  }
+  return null;
+};
+
+const checkValidation = (def: Definition, value: unknown): string | null => {
   const validation = getValidation(def.validationJson);
   if (!validation) return null;
 
   if (TEXT_LIKE_TYPES.has(def.fieldType) && typeof value === 'string') {
-    if (validation.regex) {
-      try {
-        const re = new RegExp(validation.regex);
-        if (!re.test(value)) {
-          return `Custom field "${def.label}" does not match its pattern`;
-        }
-      } catch {
-        return `Custom field "${def.label}" has an invalid regex pattern`;
-      }
-    }
-
-    if (
-      typeof validation.minLength === 'number' &&
-      value.length < validation.minLength
-    ) {
-      return `Custom field "${def.label}" is shorter than minimum length`;
-    }
-
-    if (
-      typeof validation.maxLength === 'number' &&
-      value.length > validation.maxLength
-    ) {
-      return `Custom field "${def.label}" is longer than maximum length`;
-    }
+    return checkTextValidation(value, validation);
   }
-
   if (def.fieldType === 'number' && typeof value === 'number') {
-    if (typeof validation.min === 'number' && value < validation.min) {
-      return `Custom field "${def.label}" is lower than minimum value`;
-    }
-
-    if (typeof validation.max === 'number' && value > validation.max) {
-      return `Custom field "${def.label}" is higher than maximum value`;
-    }
+    return checkNumberValidation(value, validation);
   }
+  return null;
+};
+
+const validateValue = (def: Definition, value: unknown): string | null => {
+  const isEmpty = value === undefined || value === null || value === '';
+
+  if (def.required && isEmpty) return `Custom field "${def.label}" is required`;
+  if (value == null) return null;
+
+  const typeError = checkValueType(def, value);
+  if (typeError) return `Custom field "${def.label}" ${typeError}`;
+
+  const validationError = checkValidation(def, value);
+  if (validationError) return `Custom field "${def.label}" ${validationError}`;
 
   return null;
+};
+
+/** Resolve incoming entries (by fieldId or key) to a map of fieldId → value. */
+const resolveIncomingValues = (
+  values: IncomingValues,
+  defsById: Map<number, Definition>,
+  defsByKey: Map<string, Definition>,
+): Map<number, unknown | null> => {
+  const result = new Map<number, unknown | null>();
+  for (const entry of normalizeIncomingEntries(values)) {
+    const fieldId = resolveFieldId(entry, defsById, defsByKey);
+    if (fieldId != null) result.set(fieldId, entry.value);
+  }
+  return result;
+};
+
+const resolveFieldId = (
+  entry: NormalizedIncomingEntry,
+  defsById: Map<number, Definition>,
+  defsByKey: Map<string, Definition>,
+): number | null => {
+  if ('fieldId' in entry) {
+    return defsById.has(entry.fieldId) ? entry.fieldId : null;
+  }
+  const byKey = defsByKey.get(entry.key);
+  if (byKey) return byKey.id;
+
+  const asId = Number(entry.key);
+  return Number.isFinite(asId) && defsById.has(asId) ? asId : null;
+};
+
+/**
+ * Merge existing, default, and incoming values into a single map
+ * representing the final state for validation.
+ */
+const mergeValues = (
+  existingValues: Map<number, unknown>,
+  defaults: Map<number, unknown>,
+  incoming: Map<number, unknown | null>,
+): Map<number, unknown> => {
+  const merged = new Map<number, unknown>(existingValues);
+  for (const [fieldId, value] of defaults) {
+    merged.set(fieldId, value);
+  }
+  for (const [fieldId, value] of incoming) {
+    if (value === null || value === '') {
+      merged.delete(fieldId);
+    } else {
+      merged.set(fieldId, value);
+    }
+  }
+  return merged;
+};
+
+/** Write or delete a single custom field value row. */
+const persistEntry = async (
+  db: Kysely<DB>,
+  entityType: EntityType,
+  entityId: string,
+  fieldId: number,
+  value: unknown | null,
+) => {
+  if (value === null || value === '') {
+    await db
+      .deleteFrom('customFieldValue')
+      .where('fieldId', '=', fieldId)
+      .where('entityType', '=', entityType)
+      .where('entityId', '=', entityId)
+      .execute();
+    return;
+  }
+
+  const now = new Date();
+  await db
+    .insertInto('customFieldValue')
+    .values({
+      fieldId,
+      entityType,
+      entityId,
+      value: toJsonb(value),
+      updatedAt: now,
+    })
+    .onConflict((oc) =>
+      oc.columns(['fieldId', 'entityType', 'entityId']).doUpdateSet({
+        value: toJsonb(value),
+        updatedAt: now,
+      }),
+    )
+    .execute();
 };
 
 export const persistEntityCustomFields = async (
@@ -213,26 +313,7 @@ export const persistEntityCustomFields = async (
     existingRows.map((row) => [row.fieldId, row.value]),
   );
 
-  const incomingByFieldId = new Map<number, unknown | null>();
-  for (const entry of normalizeIncomingEntries(values)) {
-    if ('fieldId' in entry) {
-      if (defsById.has(entry.fieldId)) {
-        incomingByFieldId.set(entry.fieldId, entry.value);
-      }
-      continue;
-    }
-
-    const byKey = defsByKey.get(entry.key);
-    if (byKey) {
-      incomingByFieldId.set(byKey.id, entry.value);
-      continue;
-    }
-
-    const asId = Number(entry.key);
-    if (Number.isFinite(asId) && defsById.has(asId)) {
-      incomingByFieldId.set(asId, entry.value);
-    }
-  }
+  const incomingByFieldId = resolveIncomingValues(values, defsById, defsByKey);
 
   // Auto-apply defaults for fields that are missing both saved and incoming values.
   const defaultsToPersist = new Map<number, unknown>();
@@ -246,61 +327,23 @@ export const persistEntityCustomFields = async (
     }
   }
 
-  const mergedValues = new Map<number, unknown>(existingValues);
-  for (const [fieldId, value] of defaultsToPersist) {
-    mergedValues.set(fieldId, value);
-  }
-  for (const [fieldId, value] of incomingByFieldId) {
-    if (value === null || value === '') {
-      mergedValues.delete(fieldId);
-    } else {
-      mergedValues.set(fieldId, value);
-    }
-  }
+  const mergedValues = mergeValues(
+    existingValues,
+    defaultsToPersist,
+    incomingByFieldId,
+  );
 
   for (const def of defs) {
     const message = validateValue(def, mergedValues.get(def.id));
-    if (message) {
-      throw new CustomFieldValidationError(message);
-    }
+    if (message) throw new CustomFieldValidationError(message);
   }
 
-  const entriesToPersist = new Map<number, unknown | null>();
-  for (const [fieldId, value] of defaultsToPersist) {
-    entriesToPersist.set(fieldId, value);
-  }
+  const entriesToPersist = new Map<number, unknown | null>(defaultsToPersist);
   for (const [fieldId, value] of incomingByFieldId) {
     entriesToPersist.set(fieldId, value);
   }
 
   for (const [fieldId, value] of entriesToPersist) {
-    if (value === null || value === '') {
-      await db
-        .deleteFrom('customFieldValue')
-        .where('fieldId', '=', fieldId)
-        .where('entityType', '=', entityType)
-        .where('entityId', '=', entityId)
-        .execute();
-      continue;
-    }
-
-    const now = new Date();
-
-    await db
-      .insertInto('customFieldValue')
-      .values({
-        fieldId,
-        entityType,
-        entityId,
-        value: toJsonb(value),
-        updatedAt: now,
-      })
-      .onConflict((oc) =>
-        oc.columns(['fieldId', 'entityType', 'entityId']).doUpdateSet({
-          value: toJsonb(value),
-          updatedAt: now,
-        }),
-      )
-      .execute();
+    await persistEntry(db, entityType, entityId, fieldId, value);
   }
 };

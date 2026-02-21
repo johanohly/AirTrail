@@ -15,6 +15,51 @@ import { getFlightRoute } from '$lib/server/utils/flight-lookup/flight-lookup';
 import { generateCsv } from '$lib/utils/csv';
 import { omit } from '$lib/utils/other';
 
+type CfValueRow = {
+  entityId: string;
+  key: string;
+  fieldType: string;
+  value: unknown;
+};
+
+const ENTITY_FIELD_TYPES = ['airport', 'airline', 'aircraft'] as const;
+
+const collectEntityIds = (rows: CfValueRow[]) => {
+  const ids = {
+    airport: new Set<number>(),
+    airline: new Set<number>(),
+    aircraft: new Set<number>(),
+  };
+  for (const row of rows) {
+    if (typeof row.value !== 'number') continue;
+    if (row.fieldType === 'airport') ids.airport.add(row.value);
+    else if (row.fieldType === 'airline') ids.airline.add(row.value);
+    else if (row.fieldType === 'aircraft') ids.aircraft.add(row.value);
+  }
+  return ids;
+};
+
+const buildCfByFlight = (
+  rows: CfValueRow[],
+  entityLookup: Record<string, Map<number, object>>,
+) => {
+  const cfByFlight = new Map<string, Record<string, unknown>>();
+  for (const row of rows) {
+    let map = cfByFlight.get(row.entityId);
+    if (!map) {
+      map = {};
+      cfByFlight.set(row.entityId, map);
+    }
+    const lookup = entityLookup[row.fieldType];
+    if (typeof row.value === 'number' && lookup) {
+      map[row.key] = lookup.get(row.value) ?? row.value;
+    } else {
+      map[row.key] = row.value;
+    }
+  }
+  return cfByFlight;
+};
+
 export const flightRouter = router({
   lookup: authedProcedure
     .input(
@@ -156,7 +201,7 @@ export const flightRouter = router({
     const flightIds = res.map((f) => f.id);
 
     // Batch-load custom field values for all flights
-    const cfValueRows =
+    const cfValueRows: CfValueRow[] =
       flightIds.length > 0
         ? await db
             .selectFrom('customFieldValue as v')
@@ -167,40 +212,25 @@ export const flightRouter = router({
             .execute()
         : [];
 
-    // Collect entity IDs referenced by entity-type custom fields
-    const airportIds = new Set<number>();
-    const airlineIds = new Set<number>();
-    const aircraftIds = new Set<number>();
-    for (const row of cfValueRows) {
-      if (typeof row.value !== 'number') continue;
-      if (row.fieldType === 'airport') airportIds.add(row.value);
-      else if (row.fieldType === 'airline') airlineIds.add(row.value);
-      else if (row.fieldType === 'aircraft') aircraftIds.add(row.value);
-    }
+    const entityIds = collectEntityIds(cfValueRows);
 
     // Batch-fetch referenced entities
+    const fetchEntity = (
+      table: 'airport' | 'airline' | 'aircraft',
+      ids: Set<number>,
+    ) =>
+      ids.size > 0
+        ? db
+            .selectFrom(table)
+            .selectAll()
+            .where('id', 'in', [...ids])
+            .execute()
+        : Promise.resolve([]);
+
     const [cfAirports, cfAirlines, cfAircrafts] = await Promise.all([
-      airportIds.size > 0
-        ? db
-            .selectFrom('airport')
-            .selectAll()
-            .where('id', 'in', [...airportIds])
-            .execute()
-        : [],
-      airlineIds.size > 0
-        ? db
-            .selectFrom('airline')
-            .selectAll()
-            .where('id', 'in', [...airlineIds])
-            .execute()
-        : [],
-      aircraftIds.size > 0
-        ? db
-            .selectFrom('aircraft')
-            .selectAll()
-            .where('id', 'in', [...aircraftIds])
-            .execute()
-        : [],
+      fetchEntity('airport', entityIds.airport),
+      fetchEntity('airline', entityIds.airline),
+      fetchEntity('aircraft', entityIds.aircraft),
     ]);
     const entityLookup = {
       airport: new Map(cfAirports.map((a) => [a.id, omit(a, ['id'])])),
@@ -208,21 +238,7 @@ export const flightRouter = router({
       aircraft: new Map(cfAircrafts.map((a) => [a.id, omit(a, ['id'])])),
     } as Record<string, Map<number, object>>;
 
-    const cfByFlight = new Map<string, Record<string, unknown>>();
-    for (const row of cfValueRows) {
-      let map = cfByFlight.get(row.entityId);
-      if (!map) {
-        map = {};
-        cfByFlight.set(row.entityId, map);
-      }
-      // Expand entity-type values to their full objects
-      const lookup = entityLookup[row.fieldType];
-      if (typeof row.value === 'number' && lookup) {
-        map[row.key] = lookup.get(row.value) ?? row.value;
-      } else {
-        map[row.key] = row.value;
-      }
-    }
+    const cfByFlight = buildCfByFlight(cfValueRows, entityLookup);
 
     const flights = res.map((flight) => ({
       ...omit(flight, ['id', 'fromId', 'toId', 'airlineId', 'aircraftId']),
@@ -235,14 +251,7 @@ export const flightRouter = router({
         ? { customFields: cfByFlight.get(String(flight.id)) }
         : {}),
     }));
-    return JSON.stringify(
-      {
-        users,
-        flights,
-      },
-      null,
-      2,
-    );
+    return JSON.stringify({ users, flights }, null, 2);
   }),
   exportCsv: authedProcedure.query(async ({ ctx: { user } }) => {
     const res = await listFlights(user.id);

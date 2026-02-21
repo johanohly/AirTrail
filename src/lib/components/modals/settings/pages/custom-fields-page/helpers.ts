@@ -1,11 +1,15 @@
-import {
+export {
   isEntityType,
   isTextLike,
   normalizeOptions,
 } from '$lib/utils/custom-fields';
 import type { DefinitionItem, EditingState, Validation } from './types';
 
-export { isTextLike, isEntityType, normalizeOptions };
+import {
+  isEntityType,
+  isTextLike,
+  normalizeOptions,
+} from '$lib/utils/custom-fields';
 
 export const parseValidation = (value: unknown): Validation => {
   if (!value || typeof value !== 'object') return {};
@@ -24,10 +28,10 @@ export const toKey = (value: string) =>
   value
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9\s_-]/g, '')
-    .replace(/[\s-]+/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_+|_+$/g, '');
+    .replaceAll(/[^a-z0-9\s_-]/g, '')
+    .replaceAll(/[\s-]+/g, '_')
+    .replaceAll(/_+/g, '_')
+    .replaceAll(/^_+|_+$/g, '');
 
 export const createBlankEditing = (order: number): EditingState => ({
   key: '',
@@ -128,35 +132,35 @@ export const getDefaultValue = (editing: EditingState): unknown => {
   return null;
 };
 
-export const buildPayload = (editing: EditingState) => {
-  const defaultValue = getDefaultValue(editing);
-  const validationJson: Validation = {};
+/** Parse a trimmed string into a finite number, or return undefined. */
+const parseFinite = (raw: string): number | undefined => {
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  const n = Number(trimmed);
+  return Number.isFinite(n) ? n : undefined;
+};
+
+const buildValidationJson = (editing: EditingState): Validation | null => {
+  const v: Validation = {};
 
   if (isTextLike(editing.fieldType)) {
-    if (editing.validationRegex.trim()) {
-      validationJson.regex = editing.validationRegex.trim();
-    }
-    const minLen = Number(editing.validationMinLength);
-    if (editing.validationMinLength.trim() && Number.isFinite(minLen)) {
-      validationJson.minLength = minLen;
-    }
-    const maxLen = Number(editing.validationMaxLength);
-    if (editing.validationMaxLength.trim() && Number.isFinite(maxLen)) {
-      validationJson.maxLength = maxLen;
-    }
+    const regex = editing.validationRegex.trim();
+    if (regex) v.regex = regex;
+    v.minLength = parseFinite(editing.validationMinLength);
+    v.maxLength = parseFinite(editing.validationMaxLength);
   }
 
   if (editing.fieldType === 'number') {
-    const min = Number(editing.validationMin);
-    if (editing.validationMin.trim() && Number.isFinite(min)) {
-      validationJson.min = min;
-    }
-    const max = Number(editing.validationMax);
-    if (editing.validationMax.trim() && Number.isFinite(max)) {
-      validationJson.max = max;
-    }
+    v.min = parseFinite(editing.validationMin);
+    v.max = parseFinite(editing.validationMax);
   }
 
+  // Strip undefined keys and return null if empty
+  const entries = Object.entries(v).filter(([, val]) => val !== undefined);
+  return entries.length > 0 ? Object.fromEntries(entries) : null;
+};
+
+export const buildPayload = (editing: EditingState) => {
   const options =
     editing.fieldType === 'select'
       ? editing.optionsText
@@ -175,8 +179,8 @@ export const buildPayload = (editing: EditingState) => {
     active: editing.active,
     order: editing.order,
     options,
-    defaultValue,
-    validationJson: Object.keys(validationJson).length ? validationJson : null,
+    defaultValue: getDefaultValue(editing),
+    validationJson: buildValidationJson(editing),
   };
 };
 
