@@ -31,9 +31,6 @@ const fieldTypeSchema = z.enum([
 /** Field types that store string values and share text validation rules. */
 const TEXT_LIKE_TYPES = new Set(['text', 'textarea']);
 
-/** Field types that store a numeric entity ID (foreign key). */
-const ENTITY_TYPES = new Set(['airport', 'airline', 'aircraft']);
-
 const validationSchema = z
   .object({
     regex: z.string().optional(),

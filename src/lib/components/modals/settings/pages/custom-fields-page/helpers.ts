@@ -31,7 +31,7 @@ export const toKey = (value: string) =>
     .replaceAll(/[^a-z0-9\s_-]/g, '')
     .replaceAll(/[\s-]+/g, '_')
     .replaceAll(/_+/g, '_')
-    .replaceAll(/^_+|_+$/g, '');
+    .replaceAll(/(?:^_+)|(?:_+$)/g, '');
 
 export const createBlankEditing = (order: number): EditingState => ({
   key: '',
