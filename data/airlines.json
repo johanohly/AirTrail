@@ -934,7 +934,7 @@
     "id": "air-georgian",
     "name": "Air Georgian",
     "icao": "GGN",
-    "iata": "ZX",
+    "iata": "ZX*",
     "defunct": true
   },
   {
