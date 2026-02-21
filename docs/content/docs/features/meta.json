@@ -1,3 +1,10 @@
 {
-  "items": ["add-flight", "statistics", "import", "export", "oauth"]
+  "items": [
+    "add-flight",
+    "custom-fields",
+    "statistics",
+    "import",
+    "export",
+    "oauth"
+  ]
 }

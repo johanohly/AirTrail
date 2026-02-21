@@ -1,0 +1,83 @@
+---
+title: Custom Fields
+---
+
+Custom fields let you track additional data on your flights beyond what AirTrail provides out of the box.
+They are configured globally by an admin and apply to all flights.
+
+## Managing custom fields
+
+To manage custom fields, go to **Settings > Custom Fields**. From here you can create, edit, reorder, and delete field definitions.
+
+Each field definition has the following properties:
+
+- **Key**: A unique identifier used internally (lowercase letters, numbers, and underscores).
+- **Label**: The display name shown in the UI.
+- **Type**: The kind of data the field stores (see [Field types](#field-types) below).
+- **Required**: Whether the field must be filled in before saving a flight.
+- **Default value**: An optional value that is pre-filled when editing a flight that doesn't have a saved value for the field.
+
+## Field types
+
+| Type       | Description                              | Stored value             |
+| ---------- | ---------------------------------------- | ------------------------ |
+| Short text | Single-line text input                   | String                   |
+| Long text  | Multi-line textarea                      | String                   |
+| Number     | Numeric input                            | Number                   |
+| Boolean    | Toggle switch                            | `true` / `false`         |
+| Date       | Date picker                              | Date string (YYYY-MM-DD) |
+| Select     | Dropdown from a list of options          | String (selected option) |
+| Airport    | Airport picker (same as the flight form) | Airport object           |
+| Airline    | Airline picker                           | Airline object           |
+| Aircraft   | Aircraft picker                          | Aircraft object          |
+
+## Using custom fields
+
+When adding or editing a flight, click the **sliders icon** next to the Save button to open the custom fields modal.
+Any fields with default values are pre-filled automatically.
+
+### Unsaved defaults
+
+When editing an existing flight, if new custom fields have been added since the flight was created, the modal shows an amber badge on the trigger button and a warning inside:
+
+> Some fields below are showing default values that haven't been saved on this flight yet. Saving the flight will apply these defaults.
+
+This ensures you're aware that saving the flight will persist those default values.
+
+## Validation
+
+Required fields are validated before the flight can be saved. If any required custom fields are empty, the modal opens automatically with per-field error messages.
+
+Text fields support optional validation rules (min/max length, regex pattern). Number fields support min/max value constraints.
+
+## API usage
+
+Custom fields are part of the flight save endpoint (`POST /flight/save`).
+Pass a `customFields` object keyed by field key:
+
+```json
+{
+  "from": "KJFK",
+  "to": "EGLL",
+  "departure": "2026-02-20",
+  "seats": [{ "userId": "<USER_ID>" }],
+  "customFields": {
+    "booking_reference": "ABC123",
+    "delay_minutes": 15
+  }
+}
+```
+
+Required custom fields are enforced server-side for both create and update requests.
+
+## Export and import
+
+Custom field values are included in the **JSON export**. Entity-type fields (airport, airline, aircraft) are expanded to their full objects, matching the format used for the flight's own airport and airline data.
+
+<Callout>
+  Custom field values are exported for reference but are **not restored** when
+  re-importing into AirTrail. The field definitions and their values would need
+  to be recreated manually after an import.
+</Callout>
+
+Custom fields are not included in the CSV export.

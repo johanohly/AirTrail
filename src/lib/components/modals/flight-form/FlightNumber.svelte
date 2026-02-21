@@ -202,7 +202,7 @@
 <Form.Field {form} name="flightNumber">
   <Form.Control>
     {#snippet children({ props })}
-      <Form.Label class="flex gap-1">
+      <Form.Label class="flex gap-2">
         Flight Number
         {#if appConfig.configured?.integrations.aeroDataBoxKey}
           <HelpTooltip

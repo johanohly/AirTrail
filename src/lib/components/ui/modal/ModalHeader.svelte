@@ -4,14 +4,20 @@
 
   import { getModalContext } from './Modal.svelte';
 
-  let { children }: { children: Snippet } = $props();
+  import { cn } from '$lib/utils';
+
+  let { children, class: className }: { children: Snippet; class?: string } =
+    $props();
 
   const ctx = getModalContext();
   ctx.registerHeader();
 </script>
 
 <div
-  class="flex items-start gap-2 px-6 py-3 md:items-center md:justify-between"
+  class={cn(
+    'flex items-start gap-2 px-6 py-3 md:items-center md:justify-between',
+    className,
+  )}
 >
   {@render children()}
   <button

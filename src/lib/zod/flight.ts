@@ -110,7 +110,13 @@ export const flightOptionalInformationSchema = z.object({
   arrivalGate: z.string().max(10).nullable().optional(),
 });
 
+export const flightCustomFieldsSchema = z.object({
+  // Map of custom field key/fieldId -> value.
+  customFields: z.record(z.string(), z.unknown()).default({}),
+});
+
 export const flightSchema = flightAirportsSchema
   .merge(flightDateTimeSchema)
   .merge(flightOptionalInformationSchema)
-  .merge(flightSeatInformationSchema);
+  .merge(flightSeatInformationSchema)
+  .merge(flightCustomFieldsSchema);

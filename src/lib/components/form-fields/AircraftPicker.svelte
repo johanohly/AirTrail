@@ -5,26 +5,23 @@
   import { writable } from 'svelte/store';
   import { fly } from 'svelte/transition';
 
-  import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
-  import type { Airline } from '$lib/db/types';
+  import type { Aircraft } from '$lib/db/types';
   import { api } from '$lib/trpc';
-  import { cn, toTitleCase } from '$lib/utils';
-  import { airlineSearchCache } from '$lib/utils/data/airlines';
+  import { cn } from '$lib/utils';
+  import { aircraftSearchCache } from '$lib/utils/data/aircraft';
 
   let {
     value = $bindable(null),
-    placeholder = 'Search airline by name or code',
+    placeholder = 'Search aircraft by name or code',
     disabled = false,
     compact = false,
     onchange,
-    onCreateNew,
   }: {
-    value?: Airline | null;
+    value?: Aircraft | null;
     placeholder?: string;
     disabled?: boolean;
     compact?: boolean;
-    onchange?: (airline: Airline | null) => void;
-    onCreateNew?: () => void;
+    onchange?: (aircraft: Aircraft | null) => void;
   } = $props();
 
   const selected = writable(
@@ -45,7 +42,7 @@
   const {
     elements: { menu, input, option },
     states: { open, inputValue, touchedInput },
-  } = createCombobox<Airline>({
+  } = createCombobox<Aircraft>({
     forceVisible: true,
     selected,
     onSelectedChange: ({ next }) => {
@@ -68,29 +65,29 @@
     debounceTimer = setTimeout(callback, 450);
   };
 
-  let airlines: Airline[] = $state([]);
+  let results: Aircraft[] = $state([]);
   let loading = $state(false);
 
   $effect(() => {
     if ($touchedInput && $inputValue !== '' && !loading) {
       const key = $inputValue.toLowerCase();
-      const cached = airlineSearchCache.get(key);
+      const cached = aircraftSearchCache.get(key);
       if (cached) {
-        airlines = cached;
+        results = cached;
         return;
       }
       const query = $inputValue;
       debounce(async () => {
         loading = true;
         try {
-          airlines = await api.autocomplete.airline.query(query);
-          airlineSearchCache.set(key, airlines);
+          results = await api.autocomplete.aircraft.query(query);
+          aircraftSearchCache.set(key, results);
         } finally {
           loading = false;
         }
       });
     } else if (!loading && ($inputValue === '' || !$open)) {
-      airlines = [];
+      results = [];
     }
   });
 
@@ -98,16 +95,16 @@
   $effect(() => {
     if ($open && !$touchedInput && $inputValue !== '' && !loading) {
       const key = $inputValue.toLowerCase();
-      const cached = airlineSearchCache.get(key);
+      const cached = aircraftSearchCache.get(key);
       if (cached) {
-        airlines = cached;
+        results = cached;
         return;
       }
       loading = true;
       (async () => {
         try {
-          airlines = await api.autocomplete.airline.query($inputValue);
-          airlineSearchCache.set(key, airlines);
+          results = await api.autocomplete.aircraft.query($inputValue);
+          aircraftSearchCache.set(key, results);
         } finally {
           loading = false;
         }
@@ -121,7 +118,7 @@
     <input
       use:melt={$input}
       {placeholder}
-      class="pr-10 border-input bg-background selection:bg-primary dark:bg-input/30 selection:text-primary-foreground ring-offset-background placeholder:text-muted-foreground shadow-xs flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base outline-none transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
+      class="pr-16 border-input bg-background selection:bg-primary dark:bg-input/30 selection:text-primary-foreground ring-offset-background placeholder:text-muted-foreground shadow-xs flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base outline-none transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
     />
     {#if $open && $selected}
       <button
@@ -163,37 +160,32 @@
         tabindex="0"
         use:autoAnimate
       >
-        {#each airlines as airline (airline.id)}
+        {#each results as entry (entry.id)}
           <li
             use:melt={$option({
-              value: airline,
-              label: airline.name,
+              value: entry,
+              label: entry.name,
             })}
             class={cn(
               'relative cursor-pointer scroll-my-2 rounded-md p-2 dark:bg-dark-1 border data-highlighted:bg-zinc-300 dark:data-highlighted:bg-dark-2',
             )}
           >
-            <div class="flex items-center gap-2 overflow-hidden">
-              <AirlineIcon {airline} size={compact ? 20 : 36} />
-              <div class="flex flex-col overflow-hidden">
-                <span class={cn('truncate', { 'text-sm font-medium': compact })}
-                  >{toTitleCase(airline.name)}</span
-                >
-                <p
-                  class={cn('text-sm text-muted-foreground', {
-                    'text-xs': compact,
-                  })}
-                >
-                  {#if airline.iata}
-                    <span>IATA</span>
-                    <b class="mr-2">{airline.iata}</b>
-                  {/if}
-                  {#if airline.icao}
-                    <span>ICAO</span>
-                    <b>{airline.icao}</b>
-                  {/if}
-                </p>
-              </div>
+            <div class="flex flex-col overflow-hidden">
+              <span class={cn('truncate', { 'text-sm font-medium': compact })}
+                >{entry.name}</span
+              >
+              <p
+                class={cn('text-sm text-muted-foreground', {
+                  'text-xs': compact,
+                })}
+              >
+                {#if entry.icao}
+                  <span>ICAO</span>
+                  <b>{entry.icao}</b>
+                {:else}
+                  No ICAO
+                {/if}
+              </p>
             </div>
           </li>
         {:else}
@@ -202,27 +194,16 @@
               class="relative cursor-default scroll-my-2 rounded-md p-2 bg-popover dark:bg-dark-1 border text-sm text-muted-foreground"
             >
               {#if loading}
-                {compact ? 'Searching...' : 'Searching airlines...'}
+                {compact ? 'Searching...' : 'Searching aircraft...'}
               {:else}
                 {compact ? 'Type to search' : 'Start typing to search...'}
               {/if}
             </li>
-          {:else if onCreateNew}
-            <button
-              onclick={() => {
-                open.set(false);
-                onCreateNew?.();
-              }}
-              class="flex flex-col relative cursor-pointer scroll-my-2 rounded-md p-2 bg-popover dark:bg-dark-1 border text-left hover:bg-accent transition-colors"
-            >
-              <span class="text-sm">No results found</span>
-              <span class="text-xs opacity-75">Create a new airline?</span>
-            </button>
           {:else}
             <li
               class="relative cursor-default scroll-my-2 rounded-md p-2 bg-popover dark:bg-dark-1 border text-sm text-muted-foreground"
             >
-              No {compact ? 'results' : 'airlines found'}
+              No {compact ? 'results' : 'aircraft found'}
             </li>
           {/if}
         {/each}

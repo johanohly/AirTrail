@@ -8,4 +8,5 @@ export { default as ExportPage } from './ExportPage.svelte';
 export { default as SharePage } from './SharePage.svelte';
 export { default as OAuthPage } from './OAuthPage.svelte';
 export { default as DataPage } from './data-page/DataPage.svelte';
+export { default as CustomFieldsPage } from './custom-fields-page/CustomFieldsPage.svelte';
 export { default as IntegrationsPage } from './IntegrationsPage.svelte';

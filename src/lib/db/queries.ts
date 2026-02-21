@@ -88,37 +88,9 @@ export const createFlightPrimitive = async (
   db: Kysely<DB>,
   data: CreateFlight,
 ) => {
-  return await db.transaction().execute(async (trx) => {
-    const { seats, from, to, aircraft, airline, ...flightData } = data;
-    const fromId = from?.id ?? null;
-    const toId = to?.id ?? null;
-    const aircraftId = aircraft?.id ?? null;
-    const airlineId = airline?.id ?? null;
-
-    const resp = await trx
-      .insertInto('flight')
-      .values({
-        ...flightData,
-        fromId,
-        toId,
-        aircraftId,
-        airlineId,
-      })
-      .returning('id')
-      .executeTakeFirstOrThrow();
-
-    const seatData = seats.map((seat) => ({
-      flightId: resp.id,
-      userId: seat.userId,
-      guestName: seat.guestName,
-      seat: seat.seat,
-      seatNumber: seat.seatNumber,
-      seatClass: seat.seatClass,
-    }));
-
-    await trx.insertInto('seat').values(seatData).executeTakeFirstOrThrow();
-    return resp.id;
-  });
+  return await db
+    .transaction()
+    .execute(async (trx) => createFlightPrimitiveWithConnection(trx, data));
 };
 
 export const updateFlightPrimitive = async (
@@ -126,40 +98,89 @@ export const updateFlightPrimitive = async (
   id: number,
   data: CreateFlight,
 ) => {
-  await db.transaction().execute(async (trx) => {
-    const { seats, from, to, aircraft, airline, ...flightData } = data;
-    const fromId = from.id;
-    const toId = to.id;
-    const aircraftId = aircraft?.id ?? null;
-    const airlineId = airline?.id ?? null;
+  await db
+    .transaction()
+    .execute(async (trx) => updateFlightPrimitiveWithConnection(trx, id, data));
+};
 
-    await trx
-      .updateTable('flight')
-      .set({
-        ...flightData,
-        fromId,
-        toId,
-        aircraftId,
-        airlineId,
-      })
-      .where('id', '=', id)
-      .executeTakeFirstOrThrow();
+export const createFlightPrimitiveWithConnection = async (
+  db: Kysely<DB>,
+  data: CreateFlight,
+) => {
+  const { seats, from, to, aircraft, airline, ...flightData } = data;
+  const fromId = from?.id ?? null;
+  const toId = to?.id ?? null;
+  const aircraftId = aircraft?.id ?? null;
+  const airlineId = airline?.id ?? null;
 
-    if (seats.length) {
-      await trx.deleteFrom('seat').where('flightId', '=', id).execute();
+  const resp = await db
+    .insertInto('flight')
+    .values({
+      ...flightData,
+      fromId,
+      toId,
+      aircraftId,
+      airlineId,
+    })
+    .returning('id')
+    .executeTakeFirstOrThrow();
 
-      const seatData = seats.map((seat) => ({
-        flightId: id,
-        userId: seat.userId,
-        guestName: seat.guestName,
-        seat: seat.seat,
-        seatNumber: seat.seatNumber,
-        seatClass: seat.seatClass,
-      }));
+  const seatData = seats.map((seat) => ({
+    flightId: resp.id,
+    userId: seat.userId,
+    guestName: seat.guestName,
+    seat: seat.seat,
+    seatNumber: seat.seatNumber,
+    seatClass: seat.seatClass,
+  }));
 
-      await trx.insertInto('seat').values(seatData).executeTakeFirstOrThrow();
-    }
-  });
+  await db.insertInto('seat').values(seatData).executeTakeFirstOrThrow();
+  return resp.id;
+};
+
+export const updateFlightPrimitiveWithConnection = async (
+  db: Kysely<DB>,
+  id: number,
+  data: CreateFlight,
+) => {
+  const { seats, from, to, aircraft, airline, ...flightData } = data;
+  if (!from || !to) {
+    throw new Error('Both departure and arrival airports are required');
+  }
+  if (!Number.isFinite(from.id) || !Number.isFinite(to.id)) {
+    throw new Error('Both departure and arrival airports must have IDs');
+  }
+  const fromId = Number(from.id);
+  const toId = Number(to.id);
+  const aircraftId = aircraft?.id ?? null;
+  const airlineId = airline?.id ?? null;
+
+  await db
+    .updateTable('flight')
+    .set({
+      ...flightData,
+      fromId,
+      toId,
+      aircraftId,
+      airlineId,
+    })
+    .where('id', '=', id)
+    .executeTakeFirstOrThrow();
+
+  if (!seats.length) return;
+
+  await db.deleteFrom('seat').where('flightId', '=', id).execute();
+
+  const seatData = seats.map((seat) => ({
+    flightId: id,
+    userId: seat.userId,
+    guestName: seat.guestName,
+    seat: seat.seat,
+    seatNumber: seat.seatNumber,
+    seatClass: seat.seatClass,
+  }));
+
+  await db.insertInto('seat').values(seatData).executeTakeFirstOrThrow();
 };
 
 export const createManyFlightsPrimitive = async (

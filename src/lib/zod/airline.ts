@@ -20,4 +20,5 @@ export const airlineSchema = z.object({
     )
     .nullable(),
   iconPath: z.string().nullable().optional(),
+  sourceId: z.string().nullable().optional(),
 });

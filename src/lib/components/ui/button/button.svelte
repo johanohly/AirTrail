@@ -28,6 +28,7 @@
         sm: 'h-8 rounded-md px-3 text-xs',
         lg: 'h-10 rounded-md px-8',
         icon: 'size-9',
+        'icon-sm': 'size-8',
       },
     },
     defaultVariants: {
@@ -41,10 +42,13 @@
     WithElementRef<HTMLAnchorAttributes> & {
       variant?: ButtonVariant;
       size?: ButtonSize;
+      loading?: boolean;
     };
 </script>
 
 <script lang="ts">
+  import { LoaderCircle } from '@o7/icon/lucide';
+
   import { cn } from '$lib/utils';
 
   let {
@@ -54,6 +58,7 @@
     ref = $bindable(null),
     href = undefined,
     type = 'button',
+    loading = false,
     children,
     ...restProps
   }: ButtonProps = $props();
@@ -96,10 +101,20 @@
   <button
     bind:this={ref}
     onclick={createRipple}
-    class={cn(buttonVariants({ variant, size, className }))}
+    class={cn(
+      buttonVariants({
+        variant: loading ? 'outline' : variant,
+        size,
+        className,
+      }),
+    )}
     {type}
     {...restProps}
+    disabled={loading || restProps.disabled}
   >
+    {#if loading}
+      <LoaderCircle size={16} class="animate-spin" />
+    {/if}
     {@render children?.()}
     {#each ripples as { diameter, left, top, id }}
       <span
