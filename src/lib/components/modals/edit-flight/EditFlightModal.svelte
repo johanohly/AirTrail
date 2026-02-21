@@ -4,6 +4,8 @@
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
 
+  import { page } from '$app/state';
+
   import {
     FlightCustomFieldsModal,
     FlightForm,
@@ -16,6 +18,7 @@
     ModalBreadcrumbHeader,
     ModalFooter,
   } from '$lib/components/ui/modal';
+  import { openModalsState } from '$lib/state.svelte';
   import { api, trpc } from '$lib/trpc';
   import { type FlightData } from '$lib/utils';
   import { decomposeToLocal, isUsingAmPm } from '$lib/utils/datetime';
@@ -199,6 +202,22 @@
             definitions={$customFieldDefinitions.data ?? []}
             bind:values={customFieldValues}
             {savedFieldIds}
+            onOpenSettings={page.data.user?.role !== 'user'
+              ? () => {
+                  open = false;
+                  // Wait for both popstates (custom fields modal + this modal)
+                  // to settle before opening settings.
+                  let remaining = 2;
+                  const onPopstate = () => {
+                    if (--remaining === 0) {
+                      window.removeEventListener('popstate', onPopstate);
+                      openModalsState.settingsTab = 'custom-fields';
+                      openModalsState.settings = true;
+                    }
+                  };
+                  window.addEventListener('popstate', onPopstate);
+                }
+              : undefined}
           />
         </div>
         <Form.Button size="sm" loading={$submitting}>Save</Form.Button>

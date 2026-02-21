@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Info, SlidersHorizontal } from '@o7/icon/lucide';
+  import { Info, Settings, SlidersHorizontal } from '@o7/icon/lucide';
 
   import CustomFieldInput from './CustomFieldInput.svelte';
   import { validateCustomFields } from './validate-custom-fields';
@@ -18,6 +18,7 @@
     values = $bindable<Record<number, unknown>>({}),
     disabled = false,
     savedFieldIds,
+    onOpenSettings,
   }: {
     definitions?: CustomFieldDefinition[];
     values?: Record<number, unknown>;
@@ -25,6 +26,8 @@
     /** Field IDs that have values saved in the database. When provided,
      *  fields with defaults that aren't in this set are flagged as unsaved. */
     savedFieldIds?: Set<number>;
+    /** Called when the user wants to configure custom fields in settings. */
+    onOpenSettings?: () => void;
   } = $props();
 
   let open = $state(false);
@@ -91,7 +94,7 @@
     : hasUnsavedDefaults
       ? 'relative overflow-visible border-amber-500 text-amber-600 dark:text-amber-400'
       : ''}
-  disabled={disabled || !definitions.length}
+  {disabled}
   onclick={() => {
     snapshot = { ...values };
     open = true;
@@ -132,9 +135,33 @@
         </Alert.Root>
       {/if}
       {#if definitions.length === 0}
-        <p class="text-sm text-muted-foreground">
-          No custom fields configured.
-        </p>
+        <div class="flex flex-col items-center gap-3 py-4 text-center">
+          <SlidersHorizontal size={32} class="text-muted-foreground/50" />
+          <div class="space-y-1">
+            <p class="text-sm font-medium">No custom fields yet</p>
+            <p class="text-sm text-muted-foreground">
+              {#if onOpenSettings}
+                Track extra details on your flights like ticket price, booking
+                reference, or frequent flyer points.
+              {:else}
+                An administrator can configure custom fields in settings.
+              {/if}
+            </p>
+          </div>
+          {#if onOpenSettings}
+            <Button
+              size="sm"
+              variant="outline"
+              onclick={() => {
+                open = false;
+                onOpenSettings();
+              }}
+            >
+              <Settings size={14} />
+              Configure in Settings
+            </Button>
+          {/if}
+        </div>
       {:else}
         {#each definitions as field (field.id)}
           <CustomFieldInput
@@ -152,18 +179,20 @@
       {/if}
     </div>
   </ModalBody>
-  <div class="flex justify-end gap-2 px-6 pb-4">
-    <Button
-      size="sm"
-      variant="outline"
-      onclick={() => {
-        values = { ...snapshot };
-        errors = {};
-        open = false;
-      }}
-    >
-      Cancel
-    </Button>
-    <Button size="sm" onclick={() => (open = false)}>Save</Button>
-  </div>
+  {#if definitions.length > 0}
+    <div class="flex justify-end gap-2 px-6 pb-4">
+      <Button
+        size="sm"
+        variant="outline"
+        onclick={() => {
+          values = { ...snapshot };
+          errors = {};
+          open = false;
+        }}
+      >
+        Cancel
+      </Button>
+      <Button size="sm" onclick={() => (open = false)}>Save</Button>
+    </div>
+  {/if}
 </Modal>

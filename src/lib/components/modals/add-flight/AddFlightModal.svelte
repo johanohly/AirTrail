@@ -16,7 +16,7 @@
     ModalBreadcrumbHeader,
     ModalFooter,
   } from '$lib/components/ui/modal';
-  import { flightAddedState } from '$lib/state.svelte';
+  import { flightAddedState, openModalsState } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
   import { flightSchema } from '$lib/zod/flight';
 
@@ -89,6 +89,22 @@
             bind:this={customFieldsModal}
             definitions={$customFieldDefinitions.data ?? []}
             bind:values={customFieldValues}
+            onOpenSettings={page.data.user?.role !== 'user'
+              ? () => {
+                  open = false;
+                  // Wait for both popstates (custom fields modal + this modal)
+                  // to settle before opening settings.
+                  let remaining = 2;
+                  const onPopstate = () => {
+                    if (--remaining === 0) {
+                      window.removeEventListener('popstate', onPopstate);
+                      openModalsState.settingsTab = 'custom-fields';
+                      openModalsState.settings = true;
+                    }
+                  };
+                  window.addEventListener('popstate', onPopstate);
+                }
+              : undefined}
           />
         </div>
         <Form.Button size="sm" loading={$submitting}>Add Flight</Form.Button>
