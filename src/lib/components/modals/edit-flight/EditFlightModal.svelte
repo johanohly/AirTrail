@@ -167,7 +167,7 @@
       },
     },
   );
-  const { form: formData, enhance } = form;
+  const { form: formData, enhance, submitting } = form;
 </script>
 
 {#if showTrigger}
@@ -197,7 +197,7 @@
           bind:values={customFieldValues}
           {savedFieldIds}
         />
-        <Form.Button size="sm">Save</Form.Button>
+        <Form.Button size="sm" loading={$submitting}>Save</Form.Button>
       </div>
     </ModalFooter>
   </form>
