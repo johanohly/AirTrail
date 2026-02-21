@@ -931,6 +931,13 @@
     "defunct": false
   },
   {
+    "id": "air-georgian",
+    "name": "Air Georgian",
+    "icao": "GGN",
+    "iata": "ZX",
+    "defunct": true
+  },
+  {
     "id": "air-ghana",
     "name": "Air Ghana",
     "icao": "GHN",
@@ -8167,6 +8174,13 @@
     "icao": "JNK",
     "iata": null,
     "defunct": false
+  },
+  {
+    "id": "joon",
+    "name": "Joon",
+    "icao": "JON",
+    "iata": "JN",
+    "defunct": true
   },
   {
     "id": "jordan-air-force",
