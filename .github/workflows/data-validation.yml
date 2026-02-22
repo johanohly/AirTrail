@@ -97,7 +97,7 @@ jobs:
       - name: Generate change summary
         id: changes
         run: |
-          BASE_SHA=${{ github.event.pull_request.base.sha }}
+          BASE_SHA=$(git merge-base ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
           HEAD_SHA=${{ github.event.pull_request.head.sha }}
 
           count_entries() {
