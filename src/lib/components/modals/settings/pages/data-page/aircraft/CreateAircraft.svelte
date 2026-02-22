@@ -14,13 +14,13 @@
     ModalBreadcrumbHeader,
   } from '$lib/components/ui/modal';
   import { trpc } from '$lib/trpc';
-  import { aircraftSchema } from '$lib/zod/aircraft';
   import {
     aircraftSearchCache,
     clearAircraftLookupCaches,
   } from '$lib/utils/data/aircraft';
+  import { aircraftSchema } from '$lib/zod/aircraft';
 
-  let { open = $bindable(false), withoutTrigger } = $props();
+  let { open = $bindable(false), withoutTrigger = false } = $props();
 
   const form = superForm(
     defaults<Infer<typeof aircraftSchema>>(zod(aircraftSchema)),
@@ -46,7 +46,7 @@
 
 {#if !withoutTrigger}
   <Button variant="outline" onclick={() => (open = true)}>
-    <Plus size={16} class="shrink-0 mr-2" />
+    <Plus size={16} class="shrink-0" />
     Create
   </Button>
 {/if}

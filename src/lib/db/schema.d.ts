@@ -63,7 +63,7 @@ export type custom_field_definition = {
     label: string;
     description: string | null;
     /**
-     * @kyselyType('text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select')
+     * @kyselyType('text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select' | 'airport' | 'airline' | 'aircraft')
      */
     fieldType: 'text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select' | 'airport' | 'airline' | 'aircraft';
     required: Generated<boolean>;

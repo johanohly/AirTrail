@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FileSpreadsheet, FileJson } from '@o7/icon/lucide';
+  import { FileSpreadsheet, FileBraces } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
 
   import { PageHeader } from '.';
@@ -58,7 +58,7 @@
           'cursor-pointer py-12 border-2 border-dashed rounded-l-none flex flex-col items-center hover:bg-card-hover dark:hover:bg-dark-2',
         )}
       >
-        <FileJson size={64} />
+        <FileBraces size={64} />
         <span class="text-muted-foreground">.json</span>
       </Card>
     </button>

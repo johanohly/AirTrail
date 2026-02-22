@@ -21,12 +21,12 @@
     type TempFilters,
   } from '$lib/components/flight-filters/types';
   import * as Popover from '$lib/components/ui/popover';
+  import { flightAddedState } from '$lib/state.svelte';
   import {
     calculateBounds,
     prepareFlightArcData,
     type FlightData,
   } from '$lib/utils';
-  import { flightAddedState } from '$lib/state.svelte';
 
   const { GlobeControl } = maplibregl;
 
