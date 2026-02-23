@@ -133,8 +133,8 @@ export const getDefaultValue = (editing: EditingState): unknown => {
 };
 
 /** Parse a trimmed string into a finite number, or return undefined. */
-const parseFinite = (raw: string): number | undefined => {
-  const trimmed = raw.trim();
+const parseFinite = (raw: string | number): number | undefined => {
+  const trimmed = String(raw).trim();
   if (!trimmed) return undefined;
   const n = Number(trimmed);
   return Number.isFinite(n) ? n : undefined;
