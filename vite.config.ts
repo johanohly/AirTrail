@@ -6,6 +6,9 @@ import { VitePWA, type VitePWAOptions } from 'vite-plugin-pwa';
 
 const pwaOptions = {
   injectRegister: 'auto',
+  workbox: {
+    maximumFileSizeToCacheInBytes: 3000000,
+  },
   registerType: 'autoUpdate',
   includeAssets: [
     'favicon.png',
