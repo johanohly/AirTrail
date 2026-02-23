@@ -33,7 +33,7 @@ async function migrate() {
     await client.query(CREATE_TABLE);
 
     const { rows: applied } = await client.query(
-      'SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL',
+      'SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL',
     );
     const appliedSet = new Set(applied.map((r) => r.migration_name));
 
