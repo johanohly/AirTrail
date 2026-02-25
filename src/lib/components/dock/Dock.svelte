@@ -39,6 +39,9 @@
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     use:motion
+    role="toolbar"
+    aria-label="Navigation"
+    tabindex={0}
     onmousemove={(e) => handleMouseMove(e)}
     onmouseleave={handleMouseLeave}
     class={dockClass}

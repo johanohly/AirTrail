@@ -65,7 +65,10 @@
   ];
 </script>
 
-<div class="z-10 absolute bottom-6 left-1/2 translate-x-[-50%]">
+<nav
+  aria-label="Main navigation"
+  class="z-10 absolute bottom-6 left-1/2 translate-x-[-50%]"
+>
   <div class="flex gap-4">
     {#if page.url.pathname !== '/'}
       <div transition:flyAndScale>
@@ -87,4 +90,4 @@
       <DockTooltipItem item={settingsItem} />
     </Dock>
   </div>
-</div>
+</nav>

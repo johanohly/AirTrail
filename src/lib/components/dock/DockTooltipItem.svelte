@@ -21,10 +21,12 @@
       href={item.href}
       target={item.href.startsWith('http') ? '_blank' : '_self'}
       referrerpolicy="no-referrer"
+      aria-label={item.label}
     >
       <Tooltip.Root delayDuration={0}>
         <Tooltip.Trigger
           data-testid={item.testId}
+          aria-label={item.label}
           class="hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 transition-all duration-200 rounded-full p-3 mx-0"
         >
           <svelte:component this={item.icon} />
@@ -40,6 +42,7 @@
         id={item.id}
         data-testid={item.testId}
         onclick={onClick}
+        aria-label={item.label}
         class="hover:bg-zinc-200/80 dark:hover:bg-zinc-800/80 transition-all duration-200 rounded-full p-3 mx-0"
       >
         <svelte:component this={item.icon} />

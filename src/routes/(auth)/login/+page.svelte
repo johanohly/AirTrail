@@ -96,7 +96,7 @@
       const resp = await api.oauth.authorize.query(redirect);
       window.location.href = resp.url;
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err instanceof Error ? err.message : 'OAuth login failed');
       oauthLoading = false;
     }
   };

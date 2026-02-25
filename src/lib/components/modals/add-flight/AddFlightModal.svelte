@@ -71,8 +71,13 @@
   const { form: formData, enhance, submitting } = form;
 
   $effect(() => {
-    if ($formData.seats[0] && $formData.seats[0].userId === '<USER_ID>') {
-      $formData.seats[0].userId = page.data.user?.id ?? null;
+    const userId = page.data.user?.id;
+    if (
+      userId &&
+      $formData.seats[0] &&
+      $formData.seats[0].userId === '<USER_ID>'
+    ) {
+      $formData.seats[0].userId = userId;
     }
   });
 </script>
