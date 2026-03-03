@@ -78,7 +78,10 @@ async function migrate() {
   }
 }
 
-migrate().catch((err) => {
+try {
+  await migrate();
+} catch (err) {
   console.error(err.message);
   process.exit(1);
+}
 });
