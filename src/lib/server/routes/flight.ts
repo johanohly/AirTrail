@@ -10,6 +10,7 @@ import {
   createManyFlights,
   deleteFlight,
   listFlights,
+  validateFlightDates,
 } from '$lib/server/utils/flight';
 import { getFlightRoute } from '$lib/server/utils/flight-lookup/flight-lookup';
 import { generateCsv } from '$lib/utils/csv';
@@ -176,6 +177,10 @@ export const flightRouter = router({
   create: authedProcedure
     .input(z.custom<CreateFlight>())
     .mutation(async ({ input }) => {
+      const dateError = validateFlightDates(input);
+      if (dateError) {
+        throw new Error(dateError);
+      }
       await createFlight(input);
     }),
   createMany: authedProcedure
@@ -186,6 +191,12 @@ export const flightRouter = router({
       }),
     )
     .mutation(async ({ ctx: { user }, input }) => {
+      for (const flight of input.flights) {
+        const dateError = validateFlightDates(flight);
+        if (dateError) {
+          throw new Error(dateError);
+        }
+      }
       return await createManyFlights(
         input.flights,
         user.id,

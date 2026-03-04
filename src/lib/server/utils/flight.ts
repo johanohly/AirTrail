@@ -31,6 +31,48 @@ import {
 import type { ErrorActionResult } from '$lib/utils/forms';
 import type { flightSchema } from '$lib/zod/flight';
 
+const assertDateOrder = (
+  start: Date | null | undefined,
+  end: Date | null | undefined,
+): boolean => {
+  if (!start || !end) return true;
+  return !isBefore(end, start);
+};
+
+export const validateFlightDates = (flight: CreateFlight): string | null => {
+  const pairs: [string | null, string | null, string][] = [
+    [flight.departure, flight.arrival, 'Arrival must be after departure'],
+    [
+      flight.departureScheduled,
+      flight.arrivalScheduled,
+      'Scheduled arrival must be after scheduled departure',
+    ],
+    [
+      flight.takeoffScheduled,
+      flight.landingScheduled,
+      'Scheduled landing must be after scheduled takeoff',
+    ],
+    [
+      flight.takeoffActual,
+      flight.landingActual,
+      'Actual landing must be after actual takeoff',
+    ],
+  ];
+
+  for (const [start, end, message] of pairs) {
+    if (
+      !assertDateOrder(
+        start ? parseISO(start) : null,
+        end ? parseISO(end) : null,
+      )
+    ) {
+      return message;
+    }
+  }
+
+  return null;
+};
+
 export const listFlightsQuery = (userId: string) => {
   return listFlightBaseQuery(db, userId);
 };
@@ -177,8 +219,29 @@ export const validateAndSaveFlight = async (
   if (landingActualResult.error) return landingActualResult.error;
   const landingActual = landingActualResult.value;
 
-  if (arrival && departure && isBefore(arrival, departure)) {
+  if (!assertDateOrder(departure, arrival)) {
     return pathError('arrival', 'Arrival must be after departure');
+  }
+
+  if (!assertDateOrder(departureScheduled, arrivalScheduled)) {
+    return pathError(
+      'arrivalScheduled',
+      'Scheduled arrival must be after scheduled departure',
+    );
+  }
+
+  if (!assertDateOrder(takeoffScheduled, landingScheduled)) {
+    return pathError(
+      'landingScheduled',
+      'Scheduled landing must be after scheduled takeoff',
+    );
+  }
+
+  if (!assertDateOrder(takeoffActual, landingActual)) {
+    return pathError(
+      'landingActual',
+      'Actual landing must be after actual takeoff',
+    );
   }
 
   let duration: number | null = null;
