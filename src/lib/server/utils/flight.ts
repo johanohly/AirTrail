@@ -181,6 +181,39 @@ export const validateAndSaveFlight = async (
     return pathError('arrival', 'Arrival must be after departure');
   }
 
+  if (
+    departureScheduled &&
+    arrivalScheduled &&
+    isBefore(arrivalScheduled, departureScheduled)
+  ) {
+    return pathError(
+      'arrivalScheduled',
+      'Scheduled arrival must be after scheduled departure',
+    );
+  }
+
+  if (
+    takeoffScheduled &&
+    landingScheduled &&
+    isBefore(landingScheduled, takeoffScheduled)
+  ) {
+    return pathError(
+      'landingScheduled',
+      'Scheduled landing must be after scheduled takeoff',
+    );
+  }
+
+  if (
+    takeoffActual &&
+    landingActual &&
+    isBefore(landingActual, takeoffActual)
+  ) {
+    return pathError(
+      'landingActual',
+      'Actual landing must be after actual takeoff',
+    );
+  }
+
   let duration: number | null = null;
   if (departure && arrival) {
     duration = differenceInSeconds(arrival, departure);
