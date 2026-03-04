@@ -15195,5 +15195,17 @@
     "icao": "MZT",
     "iata": null,
     "defunct": false
+  },{
+    "id": "binter-canarias",
+    "name": "Binter Canarias",
+    "icao": "IBB",
+    "iata": "NT",
+    "defunct": false
+  },{
+    "id": "volotea",
+    "name": "Volotea",
+    "icao": "VOE",
+    "iata": "V7",
+    "defunct": false
   }
 ]
