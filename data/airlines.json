@@ -13993,6 +13993,13 @@
     "defunct": false
   },
   {
+    "id": "uep-airways",
+    "name": "Uep Airways",
+    "icao": "UEP",
+    "iata": null,
+    "defunct": false
+  },
+  {
     "id": "ug-jet",
     "name": "UG Jet",
     "icao": "UGJ",
@@ -15193,13 +15200,6 @@
     "id": "zyb-lily-jet",
     "name": "ZYB Lily Jet",
     "icao": "MZT",
-    "iata": null,
-    "defunct": false
-  },
-  {
-    "id": "uep-airways",
-    "name": "Uep Airways",
-    "icao": "UEP",
     "iata": null,
     "defunct": false
   }
