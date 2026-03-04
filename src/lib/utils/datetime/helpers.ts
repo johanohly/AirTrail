@@ -30,23 +30,18 @@ export const isUsingAmPm = () => {
   return hour <= 12;
 };
 
+/**
+ * Returns the first day of the week as a JS getDay() value (0=Sun, 1=Mon, ..., 6=Sat),
+ * based on the user's locale. Defaults to Monday (1) if unavailable.
+ */
 export const getStartOfWeekDay = () => {
-  const locale = navigator.language || 'en-US';
+  const localeIdentifier = navigator.language || 'en-US';
+  const locale = new Intl.Locale(localeIdentifier);
 
-  const formatter = new Intl.DateTimeFormat(locale, {
-    weekday: 'long',
-    timeZone: 'UTC',
-  });
+  // weekInfo uses ISO day numbering (1=Mon, ..., 7=Sun)
+  const isoDay =
+    locale.getWeekInfo?.().firstDay ?? locale.weekInfo?.firstDay ?? 1;
 
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date(Date.UTC(2021, 7, 1 + i)); // Aug 1, 2021 is a Sunday
-    return formatter.format(date);
-  });
-
-  const firstDay = weekDays[0];
-
-  if (/mon/i.test(firstDay)) return 'Monday';
-  if (/sun/i.test(firstDay)) return 'Sunday';
-
-  return 'Monday';
+  // Convert ISO (1-7, 7=Sun) to JS getDay() (0-6, 0=Sun)
+  return isoDay % 7;
 };

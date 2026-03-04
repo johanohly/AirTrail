@@ -36,7 +36,7 @@ test.describe('Onboarding', () => {
       }),
     ).toBeVisible();
 
-    await page.getByRole('button', { name: /add flight/i }).click();
+    await page.getByText('Add flight', { exact: true }).click();
 
     await expect(
       page.getByRole('heading', { level: 3, name: /new flight/i }),
