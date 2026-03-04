@@ -24,7 +24,7 @@
     const data = flights;
     if (!data) return;
 
-    const firstDay = getStartOfWeekDay() === 'Monday' ? 1 : 0;
+    const firstDay = getStartOfWeekDay();
 
     const weekdays = Array.from({ length: 7 }, (_, i) => (i + firstDay) % 7);
 
@@ -48,7 +48,7 @@
     y="flights"
     yNice={2}
     padding={{ left: 16, bottom: 16 }}
-    tooltip={{ mode: 'bisect-x' }}
+    tooltip={{ mode: 'band' }}
   >
     <Svg>
       <Axis
