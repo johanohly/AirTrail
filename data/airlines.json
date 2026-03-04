@@ -13993,13 +13993,6 @@
     "defunct": false
   },
   {
-    "id": "uep-airways",
-    "name": "Uep Airways",
-    "icao": "UEP",
-    "iata": null,
-    "defunct": false
-  },
-  {
     "id": "ug-jet",
     "name": "UG Jet",
     "icao": "UGJ",
