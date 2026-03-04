@@ -5,20 +5,12 @@ import { authedProcedure, router } from '../trpc';
 
 import { db } from '$lib/db';
 import type { CreateFlight } from '$lib/db/types';
-
-const validateFlightDateOrder = (flight: CreateFlight): string | null => {
-  if (flight.departure && flight.arrival) {
-    if (new Date(flight.arrival) < new Date(flight.departure)) {
-      return 'Arrival must be after departure';
-    }
-  }
-  return null;
-};
 import {
   createFlight,
   createManyFlights,
   deleteFlight,
   listFlights,
+  validateFlightDates,
 } from '$lib/server/utils/flight';
 import { getFlightRoute } from '$lib/server/utils/flight-lookup/flight-lookup';
 import { generateCsv } from '$lib/utils/csv';
@@ -185,7 +177,7 @@ export const flightRouter = router({
   create: authedProcedure
     .input(z.custom<CreateFlight>())
     .mutation(async ({ input }) => {
-      const dateError = validateFlightDateOrder(input);
+      const dateError = validateFlightDates(input);
       if (dateError) {
         throw new Error(dateError);
       }
@@ -200,7 +192,7 @@ export const flightRouter = router({
     )
     .mutation(async ({ ctx: { user }, input }) => {
       for (const flight of input.flights) {
-        const dateError = validateFlightDateOrder(flight);
+        const dateError = validateFlightDates(flight);
         if (dateError) {
           throw new Error(dateError);
         }
