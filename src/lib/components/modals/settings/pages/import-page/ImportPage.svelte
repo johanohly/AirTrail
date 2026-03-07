@@ -77,12 +77,7 @@
   };
 
   const canImport = $derived(!!files?.[0] && !fileError);
-  const invalidator = {
-    onSuccess: () => {
-      trpc.flight.list.utils.invalidate();
-    },
-  };
-  const createMany = trpc.flight.createMany.mutation(invalidator);
+  const createMany = trpc.flight.createMany.mutation();
 
   const executeImport = async (mapping?: {
     airportMapping?: Record<string, Airport>;
@@ -120,6 +115,7 @@
       });
       inserted += stats?.insertedFlights ?? 0;
     }
+    trpc.flight.list.utils.invalidate();
 
     unknownAirports = result.unknownAirports;
     unknownAirlines = result.unknownAirlines;
