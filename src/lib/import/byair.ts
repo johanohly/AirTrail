@@ -155,7 +155,11 @@ export const processByAirFile = async (
     );
 
     let adjustedArrival = arrival;
-    if (departure && adjustedArrival && isBefore(adjustedArrival, departure)) {
+    while (
+      departure &&
+      adjustedArrival &&
+      isBefore(adjustedArrival, departure)
+    ) {
       adjustedArrival = addDays(adjustedArrival, 1, { in: tz('UTC') });
     }
 

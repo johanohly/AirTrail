@@ -77,12 +77,7 @@
   };
 
   const canImport = $derived(!!files?.[0] && !fileError);
-  const invalidator = {
-    onSuccess: () => {
-      trpc.flight.list.utils.invalidate();
-    },
-  };
-  const createMany = trpc.flight.createMany.mutation(invalidator);
+  const createMany = trpc.flight.createMany.mutation();
 
   const executeImport = async (mapping?: {
     airportMapping?: Record<string, Airport>;
@@ -109,17 +104,24 @@
       return;
     }
 
-    const stats = await $createMany.mutateAsync({
-      flights,
-      dedupe: dedupeImportedFlights,
-    });
+    // Send flights in batches to avoid exceeding the server body size limit
+    const BATCH_SIZE = 50;
+    let inserted = 0;
+    for (let i = 0; i < flights.length; i += BATCH_SIZE) {
+      const batch = flights.slice(i, i + BATCH_SIZE);
+      const stats = await $createMany.mutateAsync({
+        flights: batch,
+        dedupe: dedupeImportedFlights,
+      });
+      inserted += stats?.insertedFlights ?? 0;
+    }
+    trpc.flight.list.utils.invalidate();
 
     unknownAirports = result.unknownAirports;
     unknownAirlines = result.unknownAirlines;
     unknownUsers = result.unknownUsers;
     exportedUsers = result.exportedUsers;
 
-    const inserted = stats?.insertedFlights ?? 0;
     importedCount = mapping ? importedCount + inserted : inserted;
     if (inserted > 0) {
       toast.success(`Imported ${inserted} ${pluralize(inserted, 'flight')}`);

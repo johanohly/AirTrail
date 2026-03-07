@@ -205,7 +205,7 @@ export const processFlightyFile = async (
       continue;
     }
 
-    if (isBefore(arrival, departure)) {
+    while (isBefore(arrival, departure)) {
       arrival = addDays(arrival, 1, { in: tz('UTC') });
     }
 

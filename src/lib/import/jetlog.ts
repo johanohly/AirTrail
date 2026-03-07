@@ -100,9 +100,9 @@ export const processJetLogFile = async (
             )
           : null;
 
-    // If arrival time appears to be before departure time (e.g., overnight flight with no explicit arrival_date),
-    // assume arrival is on the next day.
-    if (departure && arrival && isBefore(arrival, departure)) {
+    // If arrival time appears to be before departure time (e.g., overnight flight or large timezone difference),
+    // keep adding days until arrival is after departure.
+    while (departure && arrival && isBefore(arrival, departure)) {
       arrival = addDays(arrival, 1, { in: tz('UTC') });
     }
 
