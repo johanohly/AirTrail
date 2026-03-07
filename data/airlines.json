@@ -6622,6 +6622,13 @@
     "defunct": false
   },
   {
+    "id": "germania",
+    "name": "Germania",
+    "icao": "GMI",
+    "iata": "ST*",
+    "defunct": true
+  },
+  {
     "id": "germanwings",
     "name": "Germanwings",
     "icao": "GWI",
