@@ -20,19 +20,35 @@
 
   const displayLocale = isUsingAmPm() ? 'en-US' : 'fr-FR';
 
+  type FlightFormData = z.infer<typeof flightSchema>;
+  type TimetableTab = 'scheduled' | 'actual';
+
   let {
     form,
+    onLookupApplied = () => {},
   }: {
     form: SuperForm<z.infer<typeof flightSchema>>;
+    onLookupApplied?: (preferredTab: TimetableTab) => void;
   } = $props();
   const { form: formData } = form;
 
   // Result type after parsing - uses TZDate for timezone-aware dates
-  type LookupResult = Awaited<ReturnType<typeof api.flight.lookup.query>>[0] & {
+  type LookupResult = {
+    from: FlightFormData['from'];
+    to: FlightFormData['to'];
     departure: TZDate | null;
     arrival: TZDate | null;
     departureScheduled: TZDate | null;
     arrivalScheduled: TZDate | null;
+    departureTz?: string | null;
+    arrivalTz?: string | null;
+    airline: FlightFormData['airline'];
+    aircraft: FlightFormData['aircraft'];
+    aircraftReg?: FlightFormData['aircraftReg'];
+    departureTerminal?: FlightFormData['departureTerminal'];
+    departureGate?: FlightFormData['departureGate'];
+    arrivalTerminal?: FlightFormData['arrivalTerminal'];
+    arrivalGate?: FlightFormData['arrivalGate'];
   };
 
   let lookupResults: LookupResult[] | null = $state(null);
@@ -52,6 +68,24 @@
 
     if (!referenceDate) return false;
     return referenceDate.getTime() > Date.now();
+  }
+
+  function getPreferredTimetableTab(result: LookupResult): TimetableTab | null {
+    const futureFlight = isFutureFlight(result);
+    const hasActualTimes = !!(
+      result.departure &&
+      result.arrival &&
+      !futureFlight
+    );
+    const hasScheduledTimes = !!(
+      result.departureScheduled ||
+      result.arrivalScheduled ||
+      (futureFlight && (result.departure || result.arrival))
+    );
+
+    if (hasActualTimes) return 'actual';
+    if (hasScheduledTimes) return 'scheduled';
+    return null;
   }
 
   function applyLookupResult(result: LookupResult) {
@@ -120,6 +154,12 @@
     $formData.departureGate = result.departureGate ?? null;
     $formData.arrivalTerminal = result.arrivalTerminal ?? null;
     $formData.arrivalGate = result.arrivalGate ?? null;
+
+    const preferredTimetableTab = getPreferredTimetableTab(result);
+
+    if (preferredTimetableTab) {
+      onLookupApplied(preferredTimetableTab);
+    }
 
     clearResults();
     toast.success('Flight found');

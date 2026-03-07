@@ -1,6 +1,6 @@
 <script lang="ts">
   import { differenceInSeconds } from 'date-fns';
-  import type { Infer, SuperForm } from 'sveltekit-superforms';
+  import type { SuperForm } from 'sveltekit-superforms';
 
   import FlightInformation from './FlightInformation.svelte';
   import FlightNumber from './FlightNumber.svelte';
@@ -9,15 +9,15 @@
 
   import { AirportField, DateTimeField } from '$lib/components/form-fields';
   import { mergeTimeWithDate } from '$lib/utils/datetime';
-  import type { flightSchema } from '$lib/zod/flight';
 
   let {
     form,
   }: {
-    form: SuperForm<Infer<typeof flightSchema>>;
+    form: SuperForm<any>;
   } = $props();
 
   const { form: formData } = form;
+  type TimetableTab = 'scheduled' | 'actual';
 
   const MAX_DURATION_SECONDS = 24 * 60 * 60;
 
@@ -48,6 +48,14 @@
 
   let showTimetable = $state(false);
   let prevHasTimetableData = $state(false);
+  let preferredMobileTab = $state<TimetableTab>('actual');
+  let preferredMobileTabVersion = $state(0);
+
+  function handleLookupApplied(tab: TimetableTab) {
+    preferredMobileTab = tab;
+    preferredMobileTabVersion += 1;
+    showTimetable = true;
+  }
 
   // Auto-open timetable when data is populated (e.g., from flight lookup)
   $effect(() => {
@@ -96,11 +104,15 @@
   >
     <div class="order-1 px-6 md:order-none md:px-0">
       <div class="flex flex-col gap-4 py-4 md:py-0">
-        <FlightNumber {form} />
+        <FlightNumber {form} onLookupApplied={handleLookupApplied} />
         <AirportField field="from" {form} />
         <AirportField field="to" {form} />
         {#if showTimetable}
-          <FlightTimetable {form} />
+          <FlightTimetable
+            {form}
+            {preferredMobileTab}
+            {preferredMobileTabVersion}
+          />
           <button
             type="button"
             class="text-xs text-muted-foreground transition hover:text-foreground text-left"

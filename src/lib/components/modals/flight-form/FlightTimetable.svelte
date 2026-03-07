@@ -13,14 +13,25 @@
 
   let {
     form,
+    preferredMobileTab = 'actual',
+    preferredMobileTabVersion = 0,
   }: {
     form: SuperForm<z.infer<typeof flightSchema>>;
+    preferredMobileTab?: 'scheduled' | 'actual';
+    preferredMobileTabVersion?: number;
   } = $props();
 
   const { form: formData } = form as SuperForm<any>;
   const formValues = $derived.by(() => $formData as Record<string, any>);
 
   let mobileTab: 'scheduled' | 'actual' = $state('actual');
+  let appliedPreferenceVersion = $state(0);
+  $effect(() => {
+    if (preferredMobileTabVersion > appliedPreferenceVersion) {
+      mobileTab = preferredMobileTab;
+      appliedPreferenceVersion = preferredMobileTabVersion;
+    }
+  });
 
   const fallbackTimezone =
     typeof Intl !== 'undefined'
