@@ -104,18 +104,29 @@
       return;
     }
 
+    // Exclude flights with unknown airports/airlines so they aren't
+    // inserted with null references (which would cause duplicates when
+    // the user maps the unknowns and re-imports).
+    const unknownIndices = new Set([
+      ...Object.values(result.unknownAirports).flat(),
+      ...Object.values(result.unknownAirlines).flat(),
+    ]);
+    const flightsToImport = flights.filter((_, i) => !unknownIndices.has(i));
+
     // Send flights in batches to avoid exceeding the server body size limit
     const BATCH_SIZE = 50;
     let inserted = 0;
-    for (let i = 0; i < flights.length; i += BATCH_SIZE) {
-      const batch = flights.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < flightsToImport.length; i += BATCH_SIZE) {
+      const batch = flightsToImport.slice(i, i + BATCH_SIZE);
       const stats = await $createMany.mutateAsync({
         flights: batch,
         dedupe: dedupeImportedFlights,
       });
       inserted += stats?.insertedFlights ?? 0;
     }
-    trpc.flight.list.utils.invalidate();
+    if (flightsToImport.length > 0) {
+      trpc.flight.list.utils.invalidate();
+    }
 
     unknownAirports = result.unknownAirports;
     unknownAirlines = result.unknownAirlines;
