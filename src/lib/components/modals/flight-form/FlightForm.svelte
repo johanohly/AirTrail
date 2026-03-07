@@ -4,16 +4,17 @@
 
   import FlightInformation from './FlightInformation.svelte';
   import FlightNumber from './FlightNumber.svelte';
-  import SeatInformation from './SeatInformation.svelte';
   import FlightTimetable from './FlightTimetable.svelte';
+  import SeatInformation from './SeatInformation.svelte';
 
   import { AirportField, DateTimeField } from '$lib/components/form-fields';
   import { mergeTimeWithDate } from '$lib/utils/datetime';
+  import type { FlightFormData } from '$lib/zod/flight';
 
   let {
     form,
   }: {
-    form: SuperForm<any>;
+    form: SuperForm<FlightFormData>;
   } = $props();
 
   const { form: formData } = form;
