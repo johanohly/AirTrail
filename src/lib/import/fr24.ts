@@ -129,8 +129,8 @@ export const processFR24File = async (
     let arrival = row.arr_time
       ? toUtc(parseLocalISO(`${row.date}T${row.arr_time}`, to?.tz || 'UTC'))
       : null;
-    if (departure && arrival && isBefore(arrival, departure)) {
-      // assume arrival is on the next day
+    while (departure && arrival && isBefore(arrival, departure)) {
+      // arrival is before departure in UTC, so it must be on a later day
       arrival = addDays(arrival, 1, { in: tz('UTC') });
     }
 
