@@ -119,3 +119,5 @@ export const flightSchema = flightAirportsSchema
   .merge(flightOptionalInformationSchema)
   .merge(flightSeatInformationSchema)
   .merge(flightCustomFieldsSchema);
+
+export type FlightFormData = z.infer<typeof flightSchema>;

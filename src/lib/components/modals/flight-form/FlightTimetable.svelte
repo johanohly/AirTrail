@@ -2,25 +2,35 @@
   import type { TZDate } from '@date-fns/tz';
   import { differenceInSeconds } from 'date-fns';
   import type { SuperForm } from 'sveltekit-superforms';
-  import { z } from 'zod';
 
   import TimetableDateTimeCell from './TimetableDateTimeCell.svelte';
 
   import { Label } from '$lib/components/ui/label';
   import * as Tabs from '$lib/components/ui/tabs';
   import { Duration, mergeTimeWithDate } from '$lib/utils/datetime';
-  import type { flightSchema } from '$lib/zod/flight';
+  import type { FlightFormData } from '$lib/zod/flight';
 
   let {
     form,
+    preferredMobileTab = 'actual',
+    preferredMobileTabVersion = 0,
   }: {
-    form: SuperForm<z.infer<typeof flightSchema>>;
+    form: SuperForm<FlightFormData>;
+    preferredMobileTab?: 'scheduled' | 'actual';
+    preferredMobileTabVersion?: number;
   } = $props();
 
-  const { form: formData } = form as SuperForm<any>;
-  const formValues = $derived.by(() => $formData as Record<string, any>);
+  const { form: formData } = form;
+  const formValues = $derived.by(() => $formData);
 
   let mobileTab: 'scheduled' | 'actual' = $state('actual');
+  let appliedPreferenceVersion = $state(0);
+  $effect(() => {
+    if (preferredMobileTabVersion > appliedPreferenceVersion) {
+      mobileTab = preferredMobileTab;
+      appliedPreferenceVersion = preferredMobileTabVersion;
+    }
+  });
 
   const fallbackTimezone =
     typeof Intl !== 'undefined'
