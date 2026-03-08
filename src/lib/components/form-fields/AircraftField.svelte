@@ -7,6 +7,8 @@
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
 
+  import { page } from '$app/state';
+
   import * as Form from '$lib/components/ui/form';
   import type { Aircraft } from '$lib/db/types';
   import { api } from '$lib/trpc';
@@ -123,6 +125,8 @@
     }
   });
 
+  const isAdmin = $derived(page.data.user?.role !== 'user');
+
   let createAircraft = $state(false);
 </script>
 
@@ -197,18 +201,25 @@
                 Start typing to search...
               {/if}
             </li>
-          {:else}
+          {:else if isAdmin}
             <button
               onclick={() => {
                 open.set(false);
                 createAircraft = true;
               }}
               class="flex flex-col relative cursor-pointer scroll-my-2 rounded-md p-2
-        bg-popover dark:bg-dark-1 border text-left"
+          bg-popover dark:bg-dark-1 border text-left"
             >
               <span>No results found</span>
               <span class="text-sm opacity-75">Create a new aircraft?</span>
             </button>
+          {:else}
+            <li
+              class="relative cursor-pointer scroll-my-2 rounded-md p-2
+          bg-popover dark:bg-dark-1 border"
+            >
+              No aircraft found
+            </li>
           {/if}
         {/each}
       </div>
@@ -217,4 +228,6 @@
   <Form.FieldErrors />
 </Form.Field>
 
-<CreateAircraft bind:open={createAircraft} withoutTrigger />
+{#if isAdmin}
+  <CreateAircraft bind:open={createAircraft} withoutTrigger />
+{/if}

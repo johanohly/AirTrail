@@ -1,6 +1,8 @@
 <script lang="ts">
   import { Check, CircleAlert, ExternalLink } from '@o7/icon/lucide';
 
+  import { page } from '$app/state';
+
   import AirlinePicker from '$lib/components/form-fields/AirlinePicker.svelte';
   import AirportPicker from '$lib/components/form-fields/AirportPicker.svelte';
   import CreateAirline from '$lib/components/modals/settings/pages/data-page/airline/CreateAirline.svelte';
@@ -44,6 +46,8 @@
   );
   const mappedAirportCount = $derived(Object.keys(airportMapping).length);
   const mappedAirlineCount = $derived(Object.keys(airlineMapping).length);
+
+  const isAdmin = $derived(page.data.user?.role !== 'user');
 
   let createAirport = $state(false);
   let createAirline = $state(false);
@@ -127,7 +131,9 @@
                     <AirportPicker
                       placeholder="Search for airport..."
                       onchange={(airport) => setAirportMapping(code, airport)}
-                      onCreateNew={() => (createAirport = true)}
+                      onCreateNew={isAdmin
+                        ? () => (createAirport = true)
+                        : undefined}
                       disabled={busy}
                       compact
                     />
@@ -153,7 +159,9 @@
                     <AirlinePicker
                       placeholder="Search for airline..."
                       onchange={(airline) => setAirlineMapping(code, airline)}
-                      onCreateNew={() => (createAirline = true)}
+                      onCreateNew={isAdmin
+                        ? () => (createAirline = true)
+                        : undefined}
                       disabled={busy}
                       compact
                     />
@@ -212,5 +220,7 @@
   </Card>
 </div>
 
-<CreateAirport bind:open={createAirport} withoutTrigger />
-<CreateAirline bind:open={createAirline} withoutTrigger />
+{#if isAdmin}
+  <CreateAirport bind:open={createAirport} withoutTrigger />
+  <CreateAirline bind:open={createAirline} withoutTrigger />
+{/if}
