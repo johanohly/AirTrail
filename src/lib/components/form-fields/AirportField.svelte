@@ -2,6 +2,8 @@
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
 
+  import { page } from '$app/state';
+
   import AirportPicker from './AirportPicker.svelte';
 
   import CreateAirport from '$lib/components/modals/settings/pages/data-page/airport/CreateAirport.svelte';
@@ -18,6 +20,8 @@
   } = $props();
   const { form: formData } = form;
 
+  const isAdmin = $derived(page.data.user?.role !== 'user');
+
   let createAirport = $state(false);
 </script>
 
@@ -28,7 +32,7 @@
       <AirportPicker
         bind:value={$formData[field]}
         placeholder="Choose an airport"
-        onCreateNew={() => (createAirport = true)}
+        onCreateNew={isAdmin ? () => (createAirport = true) : undefined}
       />
       <input hidden bind:value={$formData[field]} name={props.name} />
     {/snippet}
@@ -36,4 +40,6 @@
   <Form.FieldErrors />
 </Form.Field>
 
-<CreateAirport bind:open={createAirport} withoutTrigger />
+{#if isAdmin}
+  <CreateAirport bind:open={createAirport} withoutTrigger />
+{/if}
