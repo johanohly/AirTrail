@@ -275,9 +275,7 @@
         <FlightsPerMonth flights={completedFlights} />
         <FlightsPerWeekday flights={completedFlights} />
       </div>
-      <h3 class="text-2xl font-bold tracking-tight pt-4">
-        Country Statistics
-      </h3>
+      <h3 class="text-2xl font-bold tracking-tight pt-4">Country Statistics</h3>
       <div class="grid gap-4 pb-2 md:grid-cols-2 xl:grid-cols-3">
         <div
           class="cursor-pointer"
