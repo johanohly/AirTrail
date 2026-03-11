@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { CalendarDate } from '@internationalized/date';
+  import { untrack } from 'svelte';
   import DateFilter from './DateFilter.svelte';
   import SelectFilter from './SelectFilter.svelte';
 
@@ -8,6 +10,7 @@
     type TempFilters,
   } from '$lib/components/flight-filters/types';
   import { Button } from '$lib/components/ui/button';
+  import * as Select from '$lib/components/ui/select';
   import type { Airline, Airport } from '$lib/db/types';
   import type { FlightData } from '$lib/utils';
   import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
@@ -152,6 +155,72 @@
   const aircraftRegs = $derived.by(() =>
     getAircraftRegistrationsByFrequency(flights),
   );
+
+  const years = $derived.by(() => {
+    const yearsSet = new Set<string>();
+    flights.forEach((f) => {
+      if (f.date) {
+        yearsSet.add(f.date.getFullYear().toString());
+      }
+    });
+    return Array.from(yearsSet).sort((a, b) => b.localeCompare(a));
+  });
+
+  const yearOptions = $derived(years.map((y) => ({ value: y, label: y })));
+
+  let yearValues = $state<string[]>([]);
+  const currentYearFromFilter = $derived.by(() => {
+    const f = filters.fromDate;
+    const t = filters.toDate;
+    if (
+      f &&
+      t &&
+      f.year === t.year &&
+      f.month === 1 &&
+      f.day === 1 &&
+      t.month === 12 &&
+      t.day === 31
+    ) {
+      return f.year.toString();
+    }
+    return null;
+  });
+
+  $effect(() => {
+    const year = currentYearFromFilter;
+    untrack(() => {
+      if (year) {
+        if (yearValues[0] !== year) {
+          yearValues = [year];
+        }
+      } else if (yearValues.length > 0) {
+        yearValues = [];
+      }
+    });
+  });
+
+  $effect(() => {
+    const y = yearValues[0];
+    if (y) {
+      const year = parseInt(y);
+      const newFrom = new CalendarDate(year, 1, 1);
+      const newTo = new CalendarDate(year, 12, 31);
+      if (
+        !filters.fromDate ||
+        !filters.toDate ||
+        filters.fromDate.compare(newFrom) !== 0 ||
+        filters.toDate.compare(newTo) !== 0
+      ) {
+        filters.fromDate = newFrom;
+        filters.toDate = newTo;
+      }
+    } else {
+      if (currentYearFromFilter) {
+        filters.fromDate = undefined;
+        filters.toDate = undefined;
+      }
+    }
+  });
 </script>
 
 {#if !hasTempFilters}
@@ -172,6 +241,15 @@
     options={arrivalAirports}
   />
 {/if}
+<SelectFilter
+  bind:filterValues={yearValues}
+  title="Year"
+  placeholder="Select Year"
+  triggerIcon="calendar"
+  disabled={!years.length}
+  options={yearOptions}
+  multiple={false}
+/>
 <DateFilter
   bind:date={filters.fromDate}
   title="From"

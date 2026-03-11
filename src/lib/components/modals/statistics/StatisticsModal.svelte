@@ -16,7 +16,8 @@
   import { page } from '$app/state';
   import { Button } from '$lib/components/ui/button';
   import { Modal } from '$lib/components/ui/modal';
-  import * as Select from '$lib/components/ui/select';
+  import Filters from '$lib/components/flight-filters/Filters.svelte';
+  import type { FlightFilters } from '$lib/components/flight-filters/types';
   import { type VisitedCountry, wasVisited } from '$lib/db/types';
   import {
     COUNTRY_BAR_CHARTS,
@@ -36,48 +37,38 @@
 
   let {
     open = $bindable<boolean>(),
-    allFlights,
+    flights,
+    filteredFlights,
+    filters = $bindable(),
     visitedCountries = [],
     disableUserSeatFiltering = false,
   }: {
     open?: boolean;
-    allFlights: FlightData[];
+    flights: FlightData[];
+    filteredFlights: FlightData[];
+    filters: FlightFilters;
     visitedCountries?: VisitedCountryList[];
     disableUserSeatFiltering?: boolean;
   } = $props();
 
-  let selectedYear = $state('all');
-
-  const years = $derived.by(() => {
-    const years = new Set<string>();
-    allFlights.forEach((f) => {
-      if (f.date) {
-        years.add(f.date.getFullYear().toString());
-      }
-    });
-    return Array.from(years).sort((a, b) => b.localeCompare(a));
-  });
-
   // Only show completed flights
-  const flights = $derived.by(() =>
-    allFlights.filter(
+  const completedFlights = $derived.by(() =>
+    filteredFlights.filter(
       (f) =>
-        (!f.date ||
-          isBefore(f.arrival ? f.arrival : f.date, nowIn(f.to?.tz || 'UTC'))) &&
-        (selectedYear === 'all' ||
-          f.date?.getFullYear().toString() === selectedYear),
+        !f.date ||
+        isBefore(f.arrival ? f.arrival : f.date, nowIn(f.to?.tz || 'UTC')),
     ),
   );
 
   let isMetric = $derived.by(() => page.data.user?.unit === 'metric');
   let totalDuration = $derived.by(() =>
     Duration.fromSeconds(
-      flights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
+      completedFlights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
     ),
   );
-  let flightCount = $derived(flights.length);
+  let flightCount = $derived(completedFlights.length);
   let totalDistance = $derived(
-    flights.reduce((acc, curr) => (acc += curr.distance ?? 0), 0),
+    completedFlights.reduce((acc, curr) => (acc += curr.distance ?? 0), 0),
   );
   let totalDurationParts = $derived({
     days: totalDuration.days,
@@ -86,21 +77,15 @@
   });
   let airports = $derived(
     new Set(
-      flights
+      completedFlights
         .filter((f) => f.from && f.to)
         .flatMap((f) => [f.from!.name, f.to!.name]),
     ).size,
   );
   let countriesCount = $derived(
-    selectedYear === 'all'
-      ? visitedCountries.filter(
-          (c) => c.status === 'visited' || c.status === 'lived',
-        ).length
-      : new Set(
-          flights
-            .filter((f) => f.from && f.to)
-            .flatMap((f) => [f.from!.country, f.to!.country]),
-        ).size,
+    visitedCountries.filter(
+      (c) => c.status === 'visited' || c.status === 'lived',
+    ).length,
   );
   let earthCircumnavigations = $derived(totalDistance / 40075);
 
@@ -117,7 +102,7 @@
     }
     if (activeChart in FLIGHT_CHARTS) {
       const flightChartKey = activeChart as keyof typeof FLIGHT_CHARTS;
-      return FLIGHT_CHARTS[flightChartKey].aggregate(flights, ctx);
+      return FLIGHT_CHARTS[flightChartKey].aggregate(completedFlights, ctx);
     }
     return {} as Record<string, number>;
   });
@@ -202,7 +187,7 @@
     <ChartDrillDown
       chartKey={activeChart}
       data={activeChartData}
-      {flights}
+      flights={completedFlights}
       onBack={() => (activeChart = null)}
     />
   {:else}
@@ -211,19 +196,9 @@
         class="flex flex-col sm:flex-row items-start sm:items-center justify-between pr-2 sm:pr-4 md:pr-8"
       >
         <h2 class="text-3xl font-bold tracking-tight">Statistics</h2>
-        <div class="mt-3 sm:mt-0">
-          <Select.Root type="single" bind:value={selectedYear}>
-            <Select.Trigger class="w-[180px]">
-              {selectedYear === 'all' ? 'All Time' : selectedYear}
-            </Select.Trigger>
-            <Select.Content>
-              <Select.Item value="all" label="All Time" />
-              {#each years as year}
-                <Select.Item value={year} label={year} />
-              {/each}
-            </Select.Content>
-          </Select.Root>
-        </div>
+      </div>
+      <div class="flex gap-2 overflow-x-auto pb-2 px-1">
+        <Filters bind:filters {flights} />
       </div>
       <div class="grid gap-4 pb-2 md:grid-cols-2 lg:grid-cols-5">
         <StatsCard class="py-4 px-8">
@@ -292,32 +267,30 @@
       </div>
       <h3 class="text-2xl font-bold tracking-tight pt-4">Flight Statistics</h3>
       <PieCharts
-        {flights}
+        flights={completedFlights}
         onOpenChart={(key) => (activeChart = key)}
         {disableUserSeatFiltering}
       />
       <div class="flex flex-col md:flex-row gap-4">
-        <FlightsPerMonth {flights} />
-        <FlightsPerWeekday {flights} />
+        <FlightsPerMonth flights={completedFlights} />
+        <FlightsPerWeekday flights={completedFlights} />
       </div>
-      {#if selectedYear === 'all'}
-        <h3 class="text-2xl font-bold tracking-tight pt-4">
-          Country Statistics
-        </h3>
-        <div class="grid gap-4 pb-2 md:grid-cols-2 xl:grid-cols-3">
-          <div
-            class="cursor-pointer"
-            onclick={() => (activeChart = 'visited-country-status')}
-          >
-            <PieChart title="Visited Country Status" data={countryStatusData} />
-          </div>
+      <h3 class="text-2xl font-bold tracking-tight pt-4">
+        Country Statistics
+      </h3>
+      <div class="grid gap-4 pb-2 md:grid-cols-2 xl:grid-cols-3">
+        <div
+          class="cursor-pointer"
+          onclick={() => (activeChart = 'visited-country-status')}
+        >
+          <PieChart title="Visited Country Status" data={countryStatusData} />
         </div>
-        <BarChart
-          title="Countries by Continent"
-          data={countriesByContinentData}
-          onBarClick={(continent) => (activeContinent = continent)}
-        />
-      {/if}
+      </div>
+      <BarChart
+        title="Countries by Continent"
+        data={countriesByContinentData}
+        onBarClick={(continent) => (activeContinent = continent)}
+      />
     </div>
   {/if}
 </Modal>
