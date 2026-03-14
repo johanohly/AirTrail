@@ -3087,6 +3087,13 @@
     "defunct": false
   },
   {
+    "id": "belair-airlines",
+    "name": "Belair Airlines",
+    "icao": "BHP",
+    "iata": "4T*",
+    "defunct": true
+  },
+  {
     "id": "belavia",
     "name": "Belavia",
     "icao": "BRU",
