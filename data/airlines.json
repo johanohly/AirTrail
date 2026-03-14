@@ -12705,6 +12705,20 @@
     "defunct": false
   },
   {
+    "id": "spanair",
+    "name": "Spanair",
+    "icao": "JKK",
+    "iata": "JK*",
+    "defunct": true
+  },
+  {
+    "id": "spantax",
+    "name": "Spantax",
+    "icao": "BXS",
+    "iata": "BX*",
+    "defunct": true
+  },
+  {
     "id": "sparfell-luftfahrt",
     "name": "Sparfell Luftfahrt",
     "icao": "LDX",
