@@ -7119,6 +7119,13 @@
     "defunct": false
   },
   {
+    "id": "heli-union",
+    "name": "Héli-Union",
+    "icao": "HLU",
+    "iata": null,
+    "defunct": false
+  },
+  {
     "id": "helicol",
     "name": "Helicol",
     "icao": "HEL",
@@ -7332,13 +7339,6 @@
     "id": "htm-helicopter-travel-munich",
     "name": "HTM Helicopter Travel Munich",
     "icao": "HTM",
-    "iata": null,
-    "defunct": false
-  },
-  {
-    "id": "heli-union",
-    "name": "Héli-Union",
-    "icao": "HLU",
     "iata": null,
     "defunct": false
   },
