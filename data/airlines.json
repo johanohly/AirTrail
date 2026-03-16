@@ -595,6 +595,13 @@
     "defunct": false
   },
   {
+    "id": "air-atlanta",
+    "name": "Air Atlanta",
+    "icao": "CRB",
+    "iata": "CC*",
+    "defunct": true
+  },
+  {
     "id": "air-atlanta-europe",
     "name": "Air Atlanta Europe",
     "icao": "AAE",
