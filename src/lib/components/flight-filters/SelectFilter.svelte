@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Check, Funnel, Plane, PlaneLanding, PlaneTakeoff } from '@o7/icon';
+  import { Calendar } from '@o7/icon/lucide';
   import { Airlines } from '@o7/icon/material';
 
   import { Badge } from '$lib/components/ui/badge';
@@ -18,6 +19,7 @@
     itemIcon,
     disabled,
     options,
+    multiple = true,
   }: {
     filterValues: string[];
     title: string;
@@ -26,6 +28,7 @@
     itemIcon?: Snippet<[string]>;
     disabled: boolean;
     options: { value: string; label: string; shortLabel?: string }[];
+    multiple?: boolean;
   } = $props();
 
   let open = $state(false);
@@ -45,13 +48,18 @@
   }
 
   function handleSelect(currentValue: string) {
-    if (Array.isArray(filterValues) && filterValues.includes(currentValue)) {
-      filterValues = filterValues.filter((v) => v !== currentValue);
+    if (multiple) {
+      if (Array.isArray(filterValues) && filterValues.includes(currentValue)) {
+        filterValues = filterValues.filter((v) => v !== currentValue);
+      } else {
+        filterValues = [
+          ...(Array.isArray(filterValues) ? filterValues : []),
+          currentValue,
+        ];
+      }
     } else {
-      filterValues = [
-        ...(Array.isArray(filterValues) ? filterValues : []),
-        currentValue,
-      ];
+      filterValues = [currentValue];
+      open = false;
     }
   }
 </script>
@@ -96,6 +104,8 @@
           <PlaneLanding size={16} class="mr-2" />
         {:else if triggerIcon == 'airline'}
           <Airlines size={20} class="mr-2" />
+        {:else if triggerIcon == 'calendar'}
+          <Calendar size={16} class="mr-2" />
         {:else}
           <Funnel size={16} class="mr-2" />
         {/if}

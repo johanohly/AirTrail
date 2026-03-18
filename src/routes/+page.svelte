@@ -171,7 +171,9 @@
 />
 <StatisticsModal
   bind:open={openModalsState.statistics}
-  allFlights={filteredFlights}
+  {flights}
+  {filteredFlights}
+  bind:filters
   visitedCountries={visitedCountriesData}
 />
 
