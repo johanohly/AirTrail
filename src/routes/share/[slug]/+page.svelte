@@ -3,6 +3,10 @@
   import { AirplanemodeInactive } from '@o7/icon/material/solid';
 
   import { page } from '$app/state';
+  import {
+    defaultFilters,
+    type FlightFilters,
+  } from '$lib/components/flight-filters/types';
   import { Map } from '$lib/components/map';
   import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
   import { trpc } from '$lib/trpc';
@@ -21,6 +25,7 @@
 
   let showFlightList = $state(false);
   let showStatistics = $state(false);
+  let filters: FlightFilters = $state(defaultFilters);
 
   const shareSettings = $derived($shareQuery.data?.settings);
 </script>
@@ -104,7 +109,10 @@
   {#if shareSettings.showStats}
     <StatisticsModal
       bind:open={showStatistics}
-      allFlights={flights}
+      {flights}
+      filteredFlights={flights}
+      {filters}
+      showFilters={false}
       disableUserSeatFiltering={true}
     />
   {/if}

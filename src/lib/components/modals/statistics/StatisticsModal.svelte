@@ -41,6 +41,7 @@
     filteredFlights,
     filters = $bindable(),
     visitedCountries = [],
+    showFilters = true,
     disableUserSeatFiltering = false,
   }: {
     open?: boolean;
@@ -48,6 +49,7 @@
     filteredFlights: FlightData[];
     filters: FlightFilters;
     visitedCountries?: VisitedCountryList[];
+    showFilters?: boolean;
     disableUserSeatFiltering?: boolean;
   } = $props();
 
@@ -197,9 +199,11 @@
       >
         <h2 class="text-3xl font-bold tracking-tight">Statistics</h2>
       </div>
-      <div class="flex gap-2 overflow-x-auto pb-2 px-1">
-        <Filters bind:filters {flights} />
-      </div>
+      {#if showFilters}
+        <div class="flex gap-2 overflow-x-auto pb-2 px-1">
+          <Filters bind:filters {flights} />
+        </div>
+      {/if}
       <div class="grid gap-4 pb-2 md:grid-cols-2 lg:grid-cols-5">
         <StatsCard class="py-4 px-8">
           <h3 class="text-sm font-medium">Flights</h3>
