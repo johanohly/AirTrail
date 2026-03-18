@@ -595,6 +595,13 @@
     "defunct": false
   },
   {
+    "id": "air-atlanta",
+    "name": "Air Atlanta",
+    "icao": "CRB",
+    "iata": "CC*",
+    "defunct": true
+  },
+  {
     "id": "air-atlanta-europe",
     "name": "Air Atlanta Europe",
     "icao": "AAE",
@@ -3085,6 +3092,13 @@
     "icao": "BBX",
     "iata": null,
     "defunct": false
+  },
+  {
+    "id": "belair-airlines",
+    "name": "Belair Airlines",
+    "icao": "BHP",
+    "iata": "4T*",
+    "defunct": true
   },
   {
     "id": "belavia",
@@ -7112,6 +7126,13 @@
     "defunct": false
   },
   {
+    "id": "heli-union",
+    "name": "Héli-Union",
+    "icao": "HLU",
+    "iata": null,
+    "defunct": false
+  },
+  {
     "id": "helicol",
     "name": "Helicol",
     "icao": "HEL",
@@ -7325,13 +7346,6 @@
     "id": "htm-helicopter-travel-munich",
     "name": "HTM Helicopter Travel Munich",
     "icao": "HTM",
-    "iata": null,
-    "defunct": false
-  },
-  {
-    "id": "hu00e9li-union",
-    "name": "H\\u00e9li-Union",
-    "icao": "HLU",
     "iata": null,
     "defunct": false
   },
@@ -12703,6 +12717,20 @@
     "icao": "DGP",
     "iata": null,
     "defunct": false
+  },
+  {
+    "id": "spanair",
+    "name": "Spanair",
+    "icao": "JKK",
+    "iata": "JK*",
+    "defunct": true
+  },
+  {
+    "id": "spantax",
+    "name": "Spantax",
+    "icao": "BXS",
+    "iata": "BX*",
+    "defunct": true
   },
   {
     "id": "sparfell-luftfahrt",
