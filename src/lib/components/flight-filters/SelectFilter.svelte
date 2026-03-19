@@ -138,7 +138,23 @@
   </Popover.Trigger>
   <Popover.Content class="max-w-[400px] p-0" align="start" side="bottom">
     <Command.Root>
-      <Command.Input {placeholder} />
+      <div class="flex items-center border-b">
+        <div class="flex-1 [&_[data-command-input-wrapper]]:border-b-0">
+          <Command.Input {placeholder} />
+        </div>
+        {#if filterValues.length > 0}
+          <Button
+            variant="secondary"
+            size="sm"
+            class="mr-2 h-6 px-2 text-xs"
+            onclick={() => {
+              filterValues = [];
+            }}
+          >
+            Clear
+          </Button>
+        {/if}
+      </div>
       <Command.List>
         <Command.Viewport>
           <Command.Empty>No results found.</Command.Empty>
@@ -160,18 +176,6 @@
               </Command.Item>
             {/each}
           </Command.Group>
-          {#if filterValues.length > 0}
-            <Command.Separator />
-            <Command.Item
-              class="justify-center text-center"
-              value="clear"
-              onSelect={() => {
-                filterValues = [];
-              }}
-            >
-              Clear filters
-            </Command.Item>
-          {/if}
         </Command.Viewport>
       </Command.List>
     </Command.Root>

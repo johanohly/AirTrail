@@ -112,7 +112,7 @@
               : undefined}
           />
         </div>
-        <Form.Button size="sm" loading={$submitting}>Add Flight</Form.Button>
+        <Form.Button size="sm" loading={$submitting}>Add flight</Form.Button>
       </div>
     </ModalFooter>
   </form>

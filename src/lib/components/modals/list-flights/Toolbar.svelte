@@ -7,9 +7,12 @@
     SquareDashedMousePointer,
     X,
   } from '@o7/icon/lucide';
+  import { Plus } from '@o7/icon/lucide';
+  import { Portal } from 'bits-ui';
   import { toast } from 'svelte-sonner';
 
   import Filters from '$lib/components/flight-filters/Filters.svelte';
+  import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
   import type {
     FlightFilters,
     TempFilters,
@@ -18,7 +21,7 @@
   import { Button } from '$lib/components/ui/button';
   import * as Popover from '$lib/components/ui/popover';
   import { api, trpc } from '$lib/trpc';
-  import { cn, type FlightData } from '$lib/utils';
+  import type { FlightData } from '$lib/utils';
 
   let {
     flights = $bindable(),
@@ -30,6 +33,8 @@
     selecting = $bindable(),
     selectedFlights = $bindable(),
     hasTempFilters = false,
+    onAddFlight,
+    modalOpen = true,
   }: {
     flights: FlightData[];
     filters: FlightFilters;
@@ -40,6 +45,8 @@
     selecting: boolean;
     selectedFlights: number[];
     hasTempFilters?: boolean;
+    onAddFlight?: () => void;
+    modalOpen?: boolean;
   } = $props();
 
   let pages = $derived.by(() => {
@@ -76,8 +83,9 @@
   };
 </script>
 
-<div class="flex justify-between items-center">
-  <div class="flex gap-2">
+<!-- Top bar: filters + Select (desktop only) -->
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <div class="flex flex-wrap items-center gap-2">
     {#if hasTempFilters}
       <Button
         variant="outline"
@@ -92,7 +100,7 @@
         Show All Flights
       </Button>
     {/if}
-    <div class="flex gap-2 max-xl:hidden">
+    <div class="hidden gap-2 xl:flex">
       <Filters bind:flights bind:filters bind:tempFilters {hasTempFilters} />
     </div>
     <Popover.Root bind:open>
@@ -115,90 +123,171 @@
       </Popover.Content>
     </Popover.Root>
   </div>
-  <div class="flex gap-2">
-    <div class="flex items-center gap-2">
-      <span class="hidden sm:block text-sm">
-        <NumberFlow value={showingFrom} />
-        -
-        <NumberFlow value={showingTo} />
-        of
-        <NumberFlow value={numOfFlights} />
-      </span>
-      <div class="flex sm:gap-2">
-        <Button
-          onclick={() => {
-            page = Math.max(1, page - 1);
-          }}
-          disabled={page === 1}
-          variant="outline"
-          size="sm"
-          class="max-sm:rounded-r-none max-sm:border-r-0"
-        >
-          <ChevronLeft size={16} />
-        </Button>
-        <div
-          class={cn('sm:hidden py-1 px-2 flex items-center border', {
-            'opacity-50': (page === 1 && page === pages) || pages === 0,
-          })}
-        >
-          <span class="text-sm whitespace-nowrap">
-            <NumberFlow value={page} />
-            of
-            <NumberFlow value={pages} />
-          </span>
-        </div>
-        <Button
-          onclick={() => {
-            page = Math.min(pages, page + 1);
-          }}
-          disabled={page === pages || pages === 0}
-          variant="outline"
-          size="sm"
-          class="max-sm:rounded-l-none max-sm:border-l-0"
-        >
-          <ChevronRight size={16} />
-        </Button>
-      </div>
-    </div>
-    {#if selecting}
-      <Confirm
-        onConfirm={deleteSelectedFlights}
-        title="Delete selected flights"
-        description="Are you sure you want to delete the selected flights? This will permanently delete the flights as well as their seats."
-        confirmText="Delete"
-      >
-        {#snippet triggerContent({ props })}
-          <Button
-            variant="destructiveOutline"
-            size="sm"
-            class="gap-2"
-            {...props}
-            disabled={selectedFlights.length === 0}
-          >
-            <X size={16} />
-            <span class="max-sm:hidden">Delete</span>
-          </Button>
-        {/snippet}
-      </Confirm>
-    {/if}
+
+  <div
+    class={`ml-auto hidden items-center gap-2 sm:flex ${selecting ? 'pointer-events-none opacity-0' : ''}`}
+  >
     <Button
       onclick={() => {
-        selecting = !selecting;
+        selecting = true;
         selectedFlights = [];
       }}
       disabled={flights.length === 0}
-      class="gap-2"
+      class="gap-2 px-3.5"
       variant="outline"
       size="sm"
     >
       <SquareDashedMousePointer size={16} />
-      <span class="max-sm:hidden">
-        {#if selecting}
-          Cancel
-        {:else}
-          Select
-        {/if}
-      </span>
+      Select
     </Button>
   </div>
 </div>
+
+<!-- Fixed bottom toolbar (always present when flights exist) -->
+{#if numOfFlights > 0}
+  <Portal>
+    <div
+      class={`pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-5 transition-opacity duration-150 ${modalOpen ? 'opacity-100' : 'opacity-0'}`}
+    >
+      <div class="pointer-events-auto w-full max-w-[768px]">
+        <div
+          class="overflow-hidden rounded-xl border bg-background [filter:drop-shadow(0_5px_8px_rgba(34,42,53,0.12))]"
+        >
+          <AnimatedSizeContainer
+            height
+            transition={{ type: 'spring', duration: 0.35, bounce: 0.08 }}
+          >
+            <div class="grid">
+              <!-- Idle state: pagination -->
+              <div
+                class={`col-start-1 row-start-1 transition-[opacity,transform] duration-100 ${selecting ? 'pointer-events-none h-0 overflow-hidden opacity-0' : 'px-4 py-3.5'}`}
+              >
+                <!-- Row 1: "Viewing X-Y of Z flights" + Previous/Next -->
+                <div
+                  class="flex items-center justify-between gap-2 text-sm leading-6 text-muted-foreground"
+                >
+                  <div>
+                    <span class="hidden sm:inline-block">Viewing</span>
+                    {' '}
+                    {#if numOfFlights > 0}
+                      <span class="font-medium text-foreground tabular-nums">
+                        <NumberFlow value={showingFrom} />-<NumberFlow
+                          value={showingTo}
+                        />
+                      </span>
+                      {' '}of{' '}
+                    {/if}
+                    <span class="font-medium text-foreground tabular-nums">
+                      <NumberFlow value={numOfFlights} />
+                    </span>
+                    {' '}{numOfFlights === 1 ? 'flight' : 'flights'}
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <Button
+                      onclick={() => {
+                        page = Math.max(1, page - 1);
+                      }}
+                      disabled={page === 1}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      onclick={() => {
+                        page = Math.min(pages, page + 1);
+                      }}
+                      disabled={page === pages || pages === 0}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+                <!-- Row 2 (mobile only): Create + Select -->
+                <div class="flex items-center gap-2 pt-3 sm:hidden">
+                  {#if onAddFlight}
+                    <Button
+                      onclick={onAddFlight}
+                      class="flex-1 gap-2 text-center"
+                      size="sm"
+                    >
+                      <Plus size={16} />
+                      Add flight
+                    </Button>
+                  {/if}
+                  <Button
+                    onclick={() => {
+                      selecting = true;
+                      selectedFlights = [];
+                    }}
+                    disabled={flights.length === 0}
+                    class="gap-2 px-3.5"
+                    variant="outline"
+                    size="sm"
+                  >
+                    <SquareDashedMousePointer size={16} />
+                    Select
+                  </Button>
+                </div>
+              </div>
+
+              <!-- Select state -->
+              <div
+                class={`col-start-1 row-start-1 transition-[opacity,transform] duration-100 ${!selecting ? 'pointer-events-none h-0 overflow-hidden opacity-0' : 'px-4 py-3.5'}`}
+              >
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onclick={() => {
+                        selecting = false;
+                        selectedFlights = [];
+                      }}
+                      class="rounded-md p-1.5 transition-colors duration-75 hover:bg-accent active:bg-accent"
+                    >
+                      <X class="size-4" />
+                    </button>
+                    <span
+                      class="whitespace-nowrap text-sm font-medium text-muted-foreground"
+                    >
+                      <strong class="font-semibold text-foreground">
+                        <NumberFlow value={selectedFlights.length} />
+                      </strong>
+                      {' '}selected
+                    </span>
+                  </div>
+
+                  <div
+                    class={`flex items-center gap-1.5 transition-[transform,opacity] duration-150 ${selectedFlights.length === 0 ? 'pointer-events-none translate-y-[50%] opacity-0' : 'translate-y-0 opacity-100'}`}
+                  >
+                    <Confirm
+                      onConfirm={deleteSelectedFlights}
+                      title="Delete selected flights"
+                      description="Are you sure you want to delete the selected flights? This will permanently delete the flights as well as their seats."
+                      confirmText="Delete"
+                    >
+                      {#snippet triggerContent({ props })}
+                        <Button
+                          variant="destructiveOutline"
+                          size="sm"
+                          class="gap-1.5 px-2.5 text-xs"
+                          {...props}
+                          disabled={selectedFlights.length === 0}
+                        >
+                          <X size={14} />
+                          Delete
+                        </Button>
+                      {/snippet}
+                    </Confirm>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </AnimatedSizeContainer>
+        </div>
+      </div>
+    </div>
+  </Portal>
+{/if}

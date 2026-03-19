@@ -7,10 +7,10 @@
     PlaneLanding,
     X,
   } from '@o7/icon/lucide';
-  import { AirplanemodeInactive } from '@o7/icon/material';
   import { isBefore, isAfter } from 'date-fns';
 
   import DeleteFlightModal from './DeleteFlightModal.svelte';
+  import EmptyFlightsState from './EmptyFlightsState.svelte';
   import MobileFlightList from './MobileFlightList.svelte';
   import Toolbar from './Toolbar.svelte';
 
@@ -19,13 +19,14 @@
     FlightFilters,
     TempFilters,
   } from '$lib/components/flight-filters/types';
-  import { EditFlightModal } from '$lib/components/modals';
+  import { AddFlightModal, EditFlightModal } from '$lib/components/modals';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { Modal } from '$lib/components/ui/modal';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { LabelledSeparator, Separator } from '$lib/components/ui/separator';
   import * as Tooltip from '$lib/components/ui/tooltip';
+  import { flightAddedState } from '$lib/state.svelte';
   import { cn, type FlightData } from '$lib/utils';
   import { formatAircraft } from '$lib/utils/data/aircraft';
   import { formatSeat } from '$lib/utils/data/data';
@@ -147,6 +148,15 @@
   let selecting = $state(false);
   let selectedFlights = $state<number[]>([]);
 
+  // Add flight state
+  let addFlightOpen = $state(false);
+
+  $effect(() => {
+    if (flightAddedState.added && addFlightOpen) {
+      addFlightOpen = false;
+    }
+  });
+
   // Mobile edit state
   let mobileEditFlight = $state<FlightData | null>(null);
   let mobileEditOpen = $state(false);
@@ -210,6 +220,12 @@
       (tempFilters.airportsEither.length > 0 || tempFilters.routes.length > 0),
   );
 
+  const clearTempFilters = () => {
+    if (!tempFilters) return;
+    tempFilters.airportsEither = [];
+    tempFilters.routes = [];
+  };
+
   const tempFilterAirport = $derived.by(() => {
     if (!tempFilters?.airportsEither.length) return null;
     const airportId = tempFilters.airportsEither[0]!;
@@ -230,7 +246,7 @@
           f.to?.id.toString() === route.b) ||
         (f.from?.id.toString() === route.b && f.to?.id.toString() === route.a),
     );
-    if (!flight) return null;
+    if (!flight?.from || !flight.to) return null;
     return {
       from: flight.from,
       to: flight.to,
@@ -298,13 +314,24 @@
           {flightsPerPage}
           {hasTempFilters}
           numOfFlights={filteredFlights.length}
+          modalOpen={open}
+          onAddFlight={() => {
+            addFlightOpen = true;
+          }}
         />
       {/if}
     </div>
     {#if flightsByYear.length === 0}
-      <div class="h-full flex items-center justify-center">
-        <AirplanemodeInactive class="text-muted-foreground size-[20dvw]" />
-      </div>
+      <EmptyFlightsState
+        {flights}
+        {hasTempFilters}
+        onShowAllFlights={hasTempFilters ? clearTempFilters : undefined}
+        onAddFlight={readonly
+          ? undefined
+          : () => {
+              addFlightOpen = true;
+            }}
+      />
     {:else if !$isMediumScreen}
       <MobileFlightList
         bind:this={mobileFlightListRef}
@@ -314,6 +341,7 @@
         onEdit={readonly ? undefined : handleMobileEdit}
         onDelete={readonly ? undefined : handleDelete}
       />
+      <div class="h-[90px]"></div>
     {:else}
       <ScrollArea type="hover">
         <div class="hidden md:block">
@@ -433,9 +461,13 @@
             </div>
           {/each}
         </div>
+        <div class="h-[90px]"></div>
       </ScrollArea>
     {/if}
   </div>
+
+  <!-- Add Flight Modal -->
+  <AddFlightModal bind:open={addFlightOpen} />
 
   <!-- Mobile Edit Modal -->
   {#if mobileEditFlight}
@@ -487,7 +519,7 @@
 {#snippet seatAndAirline(flight)}
   {#if flight.seat || flight.airline}
     <Tooltip.AutoTooltip
-      text={flight.seat ?? flight.airline.name}
+      text={flight.seat ?? flight.airline?.name ?? ''}
       class="text-sm truncate"
     />
   {:else}
