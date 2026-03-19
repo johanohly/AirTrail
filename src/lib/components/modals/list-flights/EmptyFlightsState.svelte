@@ -185,11 +185,7 @@
       </Button>
     {/if}
     {#if hasTempFilters && onShowAllFlights}
-      <Button
-        variant="outline"
-        class="gap-2"
-        onclick={onShowAllFlights}
-      >
+      <Button variant="outline" class="gap-2" onclick={onShowAllFlights}>
         <PlaneTakeoff size={16} />
         Show all flights
       </Button>
