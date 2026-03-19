@@ -90,14 +90,10 @@ test.describe('Delete Flight', () => {
           timeout: 10000,
         });
 
-        // Wait a bit for the list to update
-        await page.waitForTimeout(1000);
-
-        // The flight should be removed from the list
-        const flightText = modal.getByText(/JFK.*LHR|LHR.*JFK|BA100/i);
-        if ((await flightText.count()) > 0) {
-          await expect(flightText).not.toBeVisible({ timeout: 5000 });
-        }
+        // The flight should be removed — empty state should appear
+        await expect(modal.getByText(/no flights yet/i)).toBeVisible({
+          timeout: 5000,
+        });
       },
       { page, assertClosed: false },
     );
