@@ -55,6 +55,17 @@ layer(base);
   --font-sans:
     Public Sans, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
     'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+  --animate-infinite-scroll-y: infinite-scroll-y 12s linear infinite;
+}
+
+@keyframes infinite-scroll-y {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(var(--scroll, -50%));
+  }
 }
 
 @utility container {
