@@ -252,6 +252,10 @@
         ],
       });
       map.addControl(layer);
+      // Prevent the deck.gl overlay from rendering above map controls
+      if (layer._container) {
+        layer._container.style.zIndex = '-1';
+      }
     }
   });
 
