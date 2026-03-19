@@ -473,3 +473,61 @@ a.maplibregl-ctrl-logo::before {
   background-color: hsla(var(--primary) / 20%) !important;
   border-radius: 100% !important;
 }
+
+.globe-pulse {
+  position: absolute;
+  bottom: anchor(center);
+  left: anchor(center);
+  translate: -50% 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transition:
+    opacity 0.4s,
+    filter 0.4s;
+}
+
+.globe-pulse-ring {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--primary);
+  border-radius: 50%;
+  opacity: 0;
+  animation: globe-pulse-expand 2s ease-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+.globe-pulse-ring:nth-child(2) {
+  animation-delay: calc(var(--delay, 0s) + 0.5s);
+}
+
+.globe-pulse-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--primary);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 3px var(--background),
+    0 0 0 5px var(--primary);
+}
+
+@keyframes globe-pulse-expand {
+  0% {
+    transform: scale(0.3);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+@supports not (anchor-name: --test) {
+  .globe-pulse {
+    display: none;
+  }
+}

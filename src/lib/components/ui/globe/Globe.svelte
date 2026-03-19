@@ -1,5 +1,6 @@
 <script lang="ts">
   import createGlobe from 'cobe';
+  import type { Marker } from 'cobe';
   import { mode } from 'mode-watcher';
   import { onMount } from 'svelte';
   import { spring } from 'svelte/motion';
@@ -44,26 +45,23 @@
   let pointerInteractionMovement = 0;
   let canvas: HTMLCanvasElement;
 
+  const markers: (Marker & { delay: number })[] = [
+    { location: [14.5995, 120.9842], size: 0.025, id: 'manila', delay: 0 },
+    { location: [19.076, 72.8777], size: 0.025, id: 'mumbai', delay: 0.3 },
+    { location: [23.8103, 90.4125], size: 0.025, id: 'dhaka', delay: 0.6 },
+    { location: [30.0444, 31.2357], size: 0.025, id: 'cairo', delay: 0.9 },
+    { location: [39.9042, 116.4074], size: 0.025, id: 'beijing', delay: 1.2 },
+    { location: [-23.5505, -46.6333], size: 0.025, id: 'saopaulo', delay: 1.5 },
+    { location: [19.4326, -99.1332], size: 0.025, id: 'mexico', delay: 1.8 },
+    { location: [40.7128, -74.006], size: 0.025, id: 'nyc', delay: 2.1 },
+    { location: [34.6937, 135.5022], size: 0.025, id: 'osaka', delay: 2.4 },
+    { location: [41.0082, 28.9784], size: 0.025, id: 'istanbul', delay: 2.7 },
+  ];
+
   let phi = 0;
   let width = 0;
   let onResize = () => {
     width = canvas.offsetWidth;
-  };
-  let onRender = (state: any) => {
-    if (!pointerInteracting) {
-      phi += 0.005;
-    }
-    state.phi = phi + $x;
-    state.width = width * 2;
-    state.height = width * 2;
-
-    const theme = getThemeOptions();
-    state.dark = theme.dark;
-    state.diffuse = theme.diffuse;
-    state.mapBrightness = theme.mapBrightness;
-    state.baseColor = theme.baseColor;
-    state.markerColor = theme.markerColor;
-    state.glowColor = theme.glowColor;
   };
   onMount(() => {
     window.addEventListener('resize', onResize);
@@ -76,29 +74,34 @@
       theta: 0.3,
       mapSamples: 16000,
       ...getThemeOptions(),
-      markers: [
-        { location: [14.5995, 120.9842], size: 0.03 },
-        { location: [19.076, 72.8777], size: 0.03 },
-        { location: [23.8103, 90.4125], size: 0.05 },
-        { location: [30.0444, 31.2357], size: 0.07 },
-        { location: [39.9042, 116.4074], size: 0.08 },
-        { location: [-23.5505, -46.6333], size: 0.05 },
-        { location: [19.4326, -99.1332], size: 0.04 },
-        { location: [40.7128, -74.006], size: 0.1 },
-        { location: [34.6937, 135.5022], size: 0.05 },
-        { location: [41.0082, 28.9784], size: 0.06 },
-      ],
-      onRender: onRender,
+      markerElevation: 0,
+      markers,
     });
 
+    let frameId: number;
+    function animate() {
+      if (!pointerInteracting) {
+        phi += 0.005;
+      }
+      globe.update({
+        phi: phi + $x,
+        width: width * 2,
+        height: width * 2,
+        ...getThemeOptions(),
+      });
+      frameId = requestAnimationFrame(animate);
+    }
+    frameId = requestAnimationFrame(animate);
+
     return () => {
+      cancelAnimationFrame(frameId);
       window.removeEventListener('resize', onResize);
       globe.destroy();
     };
   });
 </script>
 
-<main class={cn('aspect-square h-full max-h-[50%] 2xl:max-h-[80%]', className)}>
+<main class={cn('aspect-square h-full max-h-[50dvw] max-w-[50dvw]', className)}>
   <canvas
     class="h-full w-full contain-[layout_paint_size]"
     bind:this={canvas}
@@ -122,4 +125,14 @@
       }
     }}
   />
+  {#each markers as marker (marker.id)}
+    <div
+      class="globe-pulse"
+      style="position-anchor: --cobe-{marker.id}; opacity: var(--cobe-visible-{marker.id}, 0); filter: blur(calc((1 - var(--cobe-visible-{marker.id}, 0)) * 8px)); --delay: {marker.delay}s;"
+    >
+      <span class="globe-pulse-ring"></span>
+      <span class="globe-pulse-ring"></span>
+      <span class="globe-pulse-dot"></span>
+    </div>
+  {/each}
 </main>
