@@ -16,7 +16,7 @@
   import { page } from '$app/state';
   import { Button } from '$lib/components/ui/button';
   import { Modal } from '$lib/components/ui/modal';
-  import Filters from '$lib/components/flight-filters/Filters.svelte';
+  import ResponsiveFilters from '$lib/components/flight-filters/ResponsiveFilters.svelte';
   import type { FlightFilters } from '$lib/components/flight-filters/types';
   import { type VisitedCountry, wasVisited } from '$lib/db/types';
   import {
@@ -200,9 +200,7 @@
         <h2 class="text-3xl font-bold tracking-tight">Statistics</h2>
       </div>
       {#if showFilters}
-        <div class="flex gap-2 overflow-x-auto pb-2 px-1">
-          <Filters bind:filters {flights} />
-        </div>
+        <ResponsiveFilters {flights} bind:filters />
       {/if}
       <div class="grid gap-4 pb-2 md:grid-cols-2 lg:grid-cols-5">
         <StatsCard class="py-4 px-8">
