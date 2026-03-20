@@ -3,7 +3,6 @@
   import {
     ChevronLeft,
     ChevronRight,
-    Funnel,
     SquareDashedMousePointer,
     X,
   } from '@o7/icon/lucide';
@@ -11,15 +10,14 @@
   import { Portal } from 'bits-ui';
   import { toast } from 'svelte-sonner';
 
-  import Filters from '$lib/components/flight-filters/Filters.svelte';
   import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
   import type {
     FlightFilters,
     TempFilters,
   } from '$lib/components/flight-filters/types';
+  import ResponsiveFilters from '$lib/components/flight-filters/ResponsiveFilters.svelte';
   import { Confirm } from '$lib/components/helpers';
   import { Button } from '$lib/components/ui/button';
-  import * as Popover from '$lib/components/ui/popover';
   import { api, trpc } from '$lib/trpc';
   import type { FlightData } from '$lib/utils';
 
@@ -66,8 +64,6 @@
     }
   });
 
-  let open = $state(false);
-
   const deleteSelectedFlights = async () => {
     const toastId = toast.loading('Deleting flights');
     try {
@@ -100,28 +96,12 @@
         Show All Flights
       </Button>
     {/if}
-    <div class="hidden gap-2 xl:flex">
-      <Filters bind:flights bind:filters bind:tempFilters {hasTempFilters} />
-    </div>
-    <Popover.Root bind:open>
-      <Popover.Trigger>
-        {#snippet child({ props })}
-          <Button
-            variant="outline"
-            size="sm"
-            class="gap-2 xl:hidden"
-            {...props}
-            disabled={flights.length === 0}
-          >
-            <Funnel size={16} />
-            <span class="max-sm:hidden">Filters</span>
-          </Button>
-        {/snippet}
-      </Popover.Trigger>
-      <Popover.Content class="flex flex-col grow-0 gap-2 w-fit">
-        <Filters bind:flights bind:filters bind:tempFilters {hasTempFilters} />
-      </Popover.Content>
-    </Popover.Root>
+    <ResponsiveFilters
+      {flights}
+      bind:filters
+      bind:tempFilters
+      {hasTempFilters}
+    />
   </div>
 
   <div
