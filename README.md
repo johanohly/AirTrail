@@ -98,11 +98,13 @@ If you find an issue, please report it on the [issue tracker](https://github.com
 
 ### Airline Icons
 
-The airline icon list ([`static/airlines`](static/airlines)) is based on [Soaring Symbols](https://github.com/anhthang/soaring-symbols) by Anh Thang, licensed under the MIT License.
+The airline icon list ([`static/airlines`](static/airlines)) is based on [Soaring Symbols](https://github.com/anhthang/soaring-symbols) by Anh Thang.
+
+Airline logos/icons are provided for identification and reference purposes only. AirTrail does not claim ownership of any trademarks or copyrighted materials in those logos. All logos remain the intellectual property of their respective airlines.
 
 ### Logo
 
 The logo is from Lucide, which is a free icon pack that can be found [here](https://www.lucide.dev/).
 
-> Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT). All other copyright (
-> c) for Lucide are held by Lucide Contributors 2022.
+> Copyright (c) for portions of Lucide are held by Cole Bemis 2013-present as part of Feather (MIT). All other copyright (
+> c) for Lucide are held by Lucide Contributors 2026.

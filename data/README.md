@@ -7,6 +7,10 @@ This is the default content in new AirTrail installations, and existing installa
 
 List of airlines in `airlines.json`, list of aircraft models in `aircraft.json` and airline icons in `icons/airlines/`.
 
+### Airline Icons
+
+Airline logos/icons in `icons/airlines/` are provided for informational and reference purposes only. AirTrail does not claim ownership of any trademarks or copyrighted materials in those logos. All logos remain the intellectual property of their respective airlines.
+
 ## Schema
 
 ### airlines.json
