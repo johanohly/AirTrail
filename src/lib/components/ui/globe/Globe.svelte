@@ -64,6 +64,15 @@
     width = canvas.offsetWidth;
   };
   onMount(() => {
+    const testCanvas = document.createElement('canvas');
+    if (
+      !testCanvas.getContext('webgl2') &&
+      !testCanvas.getContext('webgl') &&
+      !testCanvas.getContext('experimental-webgl')
+    ) {
+      return;
+    }
+
     window.addEventListener('resize', onResize);
     onResize();
     const globe = createGlobe(canvas, {
