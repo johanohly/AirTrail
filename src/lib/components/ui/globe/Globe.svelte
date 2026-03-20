@@ -64,6 +64,8 @@
     width = canvas.offsetWidth;
   };
   onMount(() => {
+    if (navigator.webdriver) return;
+
     const testCanvas = document.createElement('canvas');
     if (
       !testCanvas.getContext('webgl2') &&
