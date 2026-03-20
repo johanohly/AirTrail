@@ -2,6 +2,7 @@
   import { Funnel, Fullscreen, Undo2 } from '@o7/icon/lucide';
   import maplibregl from 'maplibre-gl';
   import { mode } from 'mode-watcher';
+  import { onMount } from 'svelte';
   import {
     AttributionControl,
     Control,
@@ -12,7 +13,10 @@
     NavigationControl,
   } from 'svelte-maplibre';
 
+  import { browser } from '$app/environment';
+
   import { AirportsArcsLayer } from '.';
+  import MapFallback from './MapFallback.svelte';
 
   import Filters from '$lib/components/flight-filters/Filters.svelte';
   import {
@@ -43,11 +47,24 @@
   } = $props();
 
   let map: maplibregl.Map | undefined = $state(undefined);
+  let canRenderMap = $state(!browser);
   const style = $derived(
     mode.current === 'light'
       ? 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
       : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
   );
+
+  const supportsWebGL = () => {
+    if (!browser) return true;
+
+    const canvas = document.createElement('canvas');
+
+    return !!(
+      canvas.getContext('webgl2') ||
+      canvas.getContext('webgl') ||
+      canvas.getContext('experimental-webgl')
+    );
+  };
 
   const flightArcs = $derived.by(() => {
     return prepareFlightArcData(filteredFlights);
@@ -110,63 +127,75 @@
       previousFilteredCount = currentCount;
     }
   });
+
+  onMount(() => {
+    canRenderMap = supportsWebGL();
+  });
 </script>
 
-<MapLibre
-  onload={() => {
-    map?.touchPitch.disable();
-    fitFlights();
-  }}
-  bind:map
-  {style}
-  diffStyleUpdates
-  class="relative h-full"
-  attributionControl={false}
->
-  <AttributionControl compact={true} />
-  <NavigationControl />
-  <GeolocateControl />
-  {#if flights.length}
-    <Control position="top-left">
-      <ControlGroup>
-        <ControlButton onclick={fitFlights} title="Show all flights">
-          <Fullscreen size={20} />
-        </ControlButton>
-        {#if filters}
-          <Popover.Root>
-            <Popover.Trigger>
-              <ControlButton title="Filter flights">
-                <Funnel size={18} />
-              </ControlButton>
-            </Popover.Trigger>
-            <Popover.Content
-              side="right"
-              class="flex flex-col grow-0 gap-2 w-fit"
-            >
-              <Filters bind:flights bind:filters bind:tempFilters />
-            </Popover.Content>
-          </Popover.Root>
-        {/if}
-      </ControlGroup>
-    </Control>
-    <Control position="top-left">
-      {#if showClear}
-        <div
-          class="maplibregl-ctrl-group bg-destructive! hover:bg-destructive/80!"
-          data-clear-ctrl
-        >
-          <ControlButton
-            onclick={() => {
-              filters = defaultFilters;
-            }}
-            title="Clear filters"
-          >
-            <Undo2 size={20} />
+{#if canRenderMap}
+  <MapLibre
+    onload={() => {
+      map?.touchPitch.disable();
+      fitFlights();
+    }}
+    bind:map
+    {style}
+    diffStyleUpdates
+    class="relative h-full"
+    attributionControl={false}
+  >
+    <AttributionControl compact={true} />
+    <NavigationControl />
+    <GeolocateControl />
+    {#if flights.length}
+      <Control position="top-left">
+        <ControlGroup>
+          <ControlButton onclick={fitFlights} title="Show all flights">
+            <Fullscreen size={20} />
           </ControlButton>
-        </div>
-      {/if}
-    </Control>
-  {/if}
+          {#if filters}
+            <Popover.Root>
+              <Popover.Trigger>
+                <ControlButton title="Filter flights">
+                  <Funnel size={18} />
+                </ControlButton>
+              </Popover.Trigger>
+              <Popover.Content
+                side="right"
+                class="flex flex-col grow-0 gap-2 w-fit"
+              >
+                <Filters bind:flights bind:filters bind:tempFilters />
+              </Popover.Content>
+            </Popover.Root>
+          {/if}
+        </ControlGroup>
+      </Control>
+      <Control position="top-left">
+        {#if showClear}
+          <div
+            class="maplibregl-ctrl-group bg-destructive! hover:bg-destructive/80!"
+            data-clear-ctrl
+          >
+            <ControlButton
+              onclick={() => {
+                filters = defaultFilters;
+              }}
+              title="Clear filters"
+            >
+              <Undo2 size={20} />
+            </ControlButton>
+          </div>
+        {/if}
+      </Control>
+    {/if}
 
-  <AirportsArcsLayer flights={filteredFlights} {flightArcs} bind:tempFilters />
-</MapLibre>
+    <AirportsArcsLayer
+      flights={filteredFlights}
+      {flightArcs}
+      bind:tempFilters
+    />
+  </MapLibre>
+{:else}
+  <MapFallback {flights} {filteredFlights} />
+{/if}
