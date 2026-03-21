@@ -51,7 +51,7 @@ function createPrompt() {
   });
 }
 
-async function promptPassword(rl, message) {
+async function promptPassword(message) {
   // Disable echo for password input
   process.stdout.write(message);
   const password = await new Promise((resolve) => {
@@ -165,7 +165,6 @@ async function resetPassword() {
       rl.close();
 
       const password = await promptPassword(
-        null,
         `New password for "${user.username}": `,
       );
       if (!password || password.length < 8) {
@@ -173,7 +172,7 @@ async function resetPassword() {
         process.exit(1);
       }
 
-      const confirm = await promptPassword(null, 'Confirm password: ');
+      const confirm = await promptPassword('Confirm password: ');
       if (password !== confirm) {
         console.error('Error: Passwords do not match.');
         process.exit(1);
