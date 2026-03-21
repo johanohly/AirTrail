@@ -1,0 +1,89 @@
+---
+title: Admin CLI
+---
+
+The AirTrail Docker image comes with a built-in administrative CLI (`airtrail-admin`) for managing your instance directly from the command line. This is useful for tasks like resetting passwords when you're locked out of the web interface, or managing user roles.
+
+## Usage
+
+Run commands inside a running AirTrail container using `docker exec`:
+
+```bash
+docker exec -it <container-name> airtrail-admin <command>
+```
+
+<Callout>
+  Replace `<container-name>` with your AirTrail container name. If you used the default Docker Compose setup, this is typically `airtrail`.
+</Callout>
+
+For a list of available commands, run:
+
+```bash
+docker exec -it airtrail airtrail-admin help
+```
+
+## Commands
+
+### list-users
+
+Lists all users with their roles and account details.
+
+```bash
+docker exec -it airtrail airtrail-admin list-users
+```
+
+Example output:
+
+```
+Users (3):
+
+  Username  Display Name  Role   OAuth  ID
+  --------  ------------  -----  -----  ---------------
+  alice     Alice Smith   owner  no     abc123def456ghi
+  bob       Bob Jones     admin  yes    jkl789mno012pqr
+  charlie   Charlie Lee   user   no     stu345vwx678yza
+```
+
+### reset-password
+
+Interactively reset any user's password. You will be prompted for the username and new password.
+
+```bash
+docker exec -it airtrail airtrail-admin reset-password
+```
+
+<Callout type="warn">
+  The `-it` flags are required for interactive commands, as they need access to
+  your terminal for input.
+</Callout>
+
+The password must be at least 8 characters long. Input is hidden and you will be asked to confirm the new password.
+
+### grant-admin
+
+Promote a regular user to the admin role. You will be prompted for the username.
+
+```bash
+docker exec -it airtrail airtrail-admin grant-admin
+```
+
+<Callout>
+  The owner role cannot be changed. This command only works on users with the
+  `user` role.
+</Callout>
+
+### revoke-admin
+
+Demote an admin back to a regular user. You will be prompted for the username.
+
+```bash
+docker exec -it airtrail airtrail-admin revoke-admin
+```
+
+### version
+
+Print the current AirTrail version.
+
+```bash
+docker exec -it airtrail airtrail-admin version
+```

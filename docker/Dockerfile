@@ -25,8 +25,12 @@ COPY --from=build /app/package.json .
 COPY --from=build /app/prisma/migrations ./prisma/migrations
 
 COPY ./docker/migrate.js /app/docker/
+COPY ./docker/admin.js /app/docker/
 COPY ./docker/entrypoint.sh /app/bin/
-RUN chmod +x /app/bin/entrypoint.sh
+COPY ./docker/airtrail-admin /app/bin/
+RUN chmod +x /app/bin/entrypoint.sh /app/bin/airtrail-admin
+
+ENV PATH="${PATH}:/app/bin"
 
 USER node
 EXPOSE 3000/tcp
