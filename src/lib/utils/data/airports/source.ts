@@ -143,13 +143,37 @@ export const updateAirports = async () => {
     `.execute(db);
   }
 
-  for (let i = 0; i < removedAirports.length; i += BATCH_SIZE) {
+  // Don't delete airports that are referenced by flights (ON DELETE SET NULL
+  // would silently orphan the flight's airport association).
+  const removedIds = removedAirports.map((a) => a.id);
+  const referencedIds =
+    removedAirports.length > 0
+      ? new Set(
+          (
+            await db
+              .selectFrom('flight')
+              .select('fromId')
+              .where('fromId', 'in', removedIds)
+              .union(
+                db
+                  .selectFrom('flight')
+                  .select('toId as fromId')
+                  .where('toId', 'in', removedIds),
+              )
+              .execute()
+          ).map((r) => r.fromId),
+        )
+      : new Set<number | null>();
+
+  const safeToRemove = removedAirports.filter((a) => !referencedIds.has(a.id));
+
+  for (let i = 0; i < safeToRemove.length; i += BATCH_SIZE) {
     await db
       .deleteFrom('airport')
       .where(
         'id',
         'in',
-        removedAirports.slice(i, i + BATCH_SIZE).map((a) => a.id),
+        safeToRemove.slice(i, i + BATCH_SIZE).map((a) => a.id),
       )
       .execute();
   }
@@ -157,7 +181,8 @@ export const updateAirports = async () => {
   return {
     created: newAirports.length,
     updated: updatedAirports.length,
-    removed: removedAirports.length,
+    removed: safeToRemove.length,
+    retained: removedAirports.length - safeToRemove.length,
     time: Date.now() - start,
   };
 };
@@ -192,34 +217,89 @@ export const fetchAirports = async (): Promise<InsertAirport[]> => {
     dataMap.set(key, airport.id);
   }
 
-  return data
-    .map((airport) => {
-      const icao = createAirportCode(airport, dataMap);
-      const tz =
-        TIMEZONE_OVERRIDES[icao] ??
-        find(airport.latitude_deg, airport.longitude_deg)[0];
-      if (!tz) {
-        console.error(
-          `Could not find timezone for ${airport.latitude_deg}, ${airport.longitude_deg}`,
-        );
-        return null; // Exclude invalid entries
-      }
+  const airports: InsertAirport[] = [];
+  const keywordsByIndex: (string | null)[] = [];
 
-      return {
-        icao,
-        iata: airport.iata_code === '' ? null : airport.iata_code,
-        type: airport.type,
-        name: airport.name,
-        municipality: airport.municipality || null,
-        lat: airport.latitude_deg,
-        lon: airport.longitude_deg,
-        continent: airport.continent,
-        country: airport.iso_country,
-        tz,
-        custom: false,
-      };
-    })
-    .filter((airport) => airport !== null);
+  for (const airport of data) {
+    const icao = createAirportCode(airport, dataMap);
+    const tz =
+      TIMEZONE_OVERRIDES[icao] ??
+      find(airport.latitude_deg, airport.longitude_deg)[0];
+    if (!tz) {
+      console.error(
+        `Could not find timezone for ${airport.latitude_deg}, ${airport.longitude_deg}`,
+      );
+      continue;
+    }
+
+    airports.push({
+      icao,
+      iata: airport.iata_code === '' ? null : airport.iata_code,
+      type: airport.type,
+      name: airport.name,
+      municipality: airport.municipality || null,
+      lat: airport.latitude_deg,
+      lon: airport.longitude_deg,
+      continent: airport.continent,
+      country: airport.iso_country,
+      tz,
+      custom: false,
+    });
+    keywordsByIndex.push(airport.keywords);
+  }
+
+  fillCodesFromKeywords(airports, keywordsByIndex);
+
+  return airports;
+};
+
+/**
+ * For airports missing an ICAO or IATA code, attempt to extract one from the
+ * OurAirports `keywords` field. Keywords often contain historical codes for
+ * closed airports (e.g. "TXL, EDDT" for Berlin-Tegel).
+ *
+ * Only extracts from keywords matching the pattern "IATA, ICAO, ..."
+ * (3-letter code followed by 4-letter code as the first two tokens).
+ *
+ * A keyword code is only used if no other airport in the list already has it.
+ */
+const fillCodesFromKeywords = (
+  airports: InsertAirport[],
+  keywordsByIndex: (string | null)[],
+) => {
+  const ICAO_RE = /^[A-Z]{4}$/;
+  const IATA_RE = /^[A-Z]{3}$/;
+
+  const usedIcao = new Set(airports.map((a) => a.icao));
+  const usedIata = new Set(airports.filter((a) => a.iata).map((a) => a.iata!));
+
+  for (let i = 0; i < airports.length; i++) {
+    const airport = airports[i]!;
+    const keywords = keywordsByIndex[i];
+    if (!keywords) continue;
+
+    const hasProperIcao = ICAO_RE.test(airport.icao);
+    const hasIata = airport.iata !== null;
+
+    if (hasProperIcao && hasIata) continue;
+
+    const tokens = keywords.split(',').map((t) => t.trim());
+    if (tokens.length < 2) continue;
+
+    const [iataToken, icaoToken] = tokens;
+    if (!iataToken || !icaoToken) continue;
+    if (!IATA_RE.test(iataToken) || !ICAO_RE.test(icaoToken)) continue;
+
+    if (!hasProperIcao && !usedIcao.has(icaoToken)) {
+      usedIcao.add(icaoToken);
+      airport.icao = icaoToken;
+    }
+
+    if (!hasIata && !usedIata.has(iataToken)) {
+      usedIata.add(iataToken);
+      airport.iata = iataToken;
+    }
+  }
 };
 
 type InsertAirport = Omit<Airport, 'id'>;
