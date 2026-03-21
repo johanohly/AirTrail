@@ -20,12 +20,14 @@
   const { data, children } = $props();
 
   $effect(() => {
-    appConfig.config = data.appConfig.config;
-    appConfig.configured = data.appConfig.configured;
-    appConfig.envConfigured = data.appConfig.envConfigured;
+    if (data.appConfig) {
+      appConfig.config = data.appConfig.config;
+      appConfig.configured = data.appConfig.configured;
+      appConfig.envConfigured = data.appConfig.envConfigured;
+    }
   });
 
-  const queryClient = trpc.hydrateFromServer(data.trpc);
+  const queryClient = data.trpc ? trpc.hydrateFromServer(data.trpc) : undefined;
 </script>
 
 <ModeWatcher />
@@ -37,17 +39,23 @@
   <NewVersionAnnouncement />
 {/if}
 
-<QueryClientProvider client={queryClient}>
-  <TooltipProvider>
-    <SettingsModal bind:open={openModalsState.settings} />
-    <AddFlightModal bind:open={openModalsState.addFlight} />
+{#if queryClient}
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <SettingsModal bind:open={openModalsState.settings} />
+      <AddFlightModal bind:open={openModalsState.addFlight} />
 
-    <main class="h-full" data-vaul-drawer-wrapper>
-      {@render children()}
-    </main>
+      <main class="h-full" data-vaul-drawer-wrapper>
+        {@render children()}
+      </main>
 
-    {#if data.user && !page.error && !['/login', '/setup'].includes(page.url.pathname)}
-      <NavigationDock />
-    {/if}
-  </TooltipProvider>
-</QueryClientProvider>
+      {#if data.user && !page.error && !['/login', '/setup'].includes(page.url.pathname)}
+        <NavigationDock />
+      {/if}
+    </TooltipProvider>
+  </QueryClientProvider>
+{:else}
+  <main class="h-full">
+    {@render children()}
+  </main>
+{/if}
