@@ -89,10 +89,15 @@
 
 <Modal bind:open class="max-w-2xl" drawerNoPadding>
   <AnimatedSizeContainer
-    height
-    class="!overflow-y-clip !overflow-x-visible max-md:max-h-[calc(100dvh-200px)] max-md:px-6 max-md:py-3"
+    height={$isMediumScreen}
+    class={cn(
+      'max-md:px-6 max-md:py-3',
+      $isMediumScreen ? '!overflow-x-visible' : '!overflow-visible',
+    )}
   >
-    <div class="flex flex-col gap-6">
+    <div
+      class="flex flex-col gap-6 max-md:max-h-[calc(100dvh-200px)] max-md:overflow-y-auto"
+    >
       <div class="space-y-0.5">
         <h2 class="text-2xl font-bold tracking-tight">Settings</h2>
         <p class="text-muted-foreground">
