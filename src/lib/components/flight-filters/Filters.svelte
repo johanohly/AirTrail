@@ -12,7 +12,11 @@
   import { Button } from '$lib/components/ui/button';
   import * as Select from '$lib/components/ui/select';
   import type { Airline, Airport } from '$lib/db/types';
-  import type { FlightData } from '$lib/utils';
+  import {
+    getSeatPassengerLabel,
+    getSeatPassengerToken,
+    type FlightData,
+  } from '$lib/utils';
   import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
 
   let {
@@ -33,6 +37,7 @@
       filters.arrivalAirports.length ||
       filters.fromDate ||
       filters.toDate ||
+      filters.passengers.length ||
       filters.airline.length ||
       filters.aircraft.length ||
       filters.aircraftRegs.length,
@@ -96,6 +101,35 @@
   });
 
   const airline = $derived(airlineData.options);
+
+  const passengerOptions = $derived.by(() => {
+    if (!flights) return [];
+
+    const options = new Map<
+      string,
+      { value: string; label: string; count: number }
+    >();
+
+    for (const flight of flights) {
+      for (const seat of flight.seats) {
+        const value = getSeatPassengerToken(seat);
+        const label = getSeatPassengerLabel(seat);
+
+        if (!value || !label) continue;
+
+        const existing = options.get(value);
+        if (existing) {
+          existing.count++;
+        } else {
+          options.set(value, { value, label, count: 1 });
+        }
+      }
+    }
+
+    return Array.from(options.values())
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+      .map(({ value, label }) => ({ value, label }));
+  });
 
   const getAircraftByFrequency = (flights: FlightData[]) => {
     if (!flights) return [];
@@ -261,6 +295,14 @@
   title="To"
   iconDirection="down"
   disabled={flights.length === 0}
+/>
+<SelectFilter
+  bind:filterValues={filters.passengers}
+  title="Passenger"
+  placeholder="Search passengers"
+  triggerIcon="user"
+  disabled={!passengerOptions.length}
+  options={passengerOptions}
 />
 <SelectFilter
   bind:filterValues={filters.airline}

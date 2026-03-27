@@ -21,15 +21,20 @@
   } from '$lib/components/flight-filters/types';
   import { AddFlightModal, EditFlightModal } from '$lib/components/modals';
   import { Button } from '$lib/components/ui/button';
+  import { Badge } from '$lib/components/ui/badge';
   import { Card } from '$lib/components/ui/card';
   import { Modal } from '$lib/components/ui/modal';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { LabelledSeparator, Separator } from '$lib/components/ui/separator';
   import * as Tooltip from '$lib/components/ui/tooltip';
-  import { flightAddedState } from '$lib/state.svelte';
-  import { cn, type FlightData } from '$lib/utils';
+  import { flightAddedState, flightScopeState } from '$lib/state.svelte';
+  import {
+    cn,
+    formatSeatForUser,
+    getFlightPassengerLabels,
+    type FlightData,
+  } from '$lib/utils';
   import { formatAircraft } from '$lib/utils/data/aircraft';
-  import { formatSeat } from '$lib/utils/data/data';
   import {
     Duration,
     formatAsDate,
@@ -48,6 +53,8 @@
     filteredFlights,
     deleteFlight,
     readonly = false,
+    seatUserId,
+    showPassengerDetails = false,
   }: {
     open?: boolean;
     filters?: FlightFilters;
@@ -56,6 +63,8 @@
     filteredFlights: FlightData[];
     deleteFlight?: (id: number) => Promise<void>;
     readonly?: boolean;
+    seatUserId?: string;
+    showPassengerDetails?: boolean;
   } = $props();
 
   const formattedFlights = $derived.by(() => {
@@ -105,7 +114,8 @@
           arrTime: arrDate ? formatAsDateTime(arrDate) : null,
           depStatus,
           arrStatus,
-          seat: formatSeat(f),
+          seat: formatSeatForUser(f, seatUserId),
+          passengers: showPassengerDetails ? getFlightPassengerLabels(f) : [],
         };
       })
       .sort((a, b) => {
@@ -303,7 +313,7 @@
         <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
       {/if}
 
-      {#if filters && !readonly}
+      {#if filters}
         <Toolbar
           bind:filters
           bind:tempFilters
@@ -315,9 +325,11 @@
           {hasTempFilters}
           numOfFlights={filteredFlights.length}
           modalOpen={open}
-          onAddFlight={() => {
-            addFlightOpen = true;
-          }}
+          onAddFlight={readonly
+            ? undefined
+            : () => {
+                addFlightOpen = true;
+              }}
         />
       {/if}
     </div>
@@ -336,10 +348,11 @@
       <MobileFlightList
         bind:this={mobileFlightListRef}
         {flightsByYear}
-        {selecting}
+        selecting={readonly ? false : selecting}
         bind:selectedFlights
         onEdit={readonly ? undefined : handleMobileEdit}
         onDelete={readonly ? undefined : handleDelete}
+        {readonly}
       />
       <div class="h-[90px]"></div>
     {:else}
@@ -355,108 +368,124 @@
                 </h3>
               </LabelledSeparator>
             {/if}
-            <div class="space-y-2" use:autoAnimate>
+            <div
+              class={cn('space-y-2', {
+                'space-y-4 pt-1': showPassengerDetails,
+              })}
+              use:autoAnimate
+            >
               {#each flights as flight (flight.id)}
-                <Card
-                  onclick={() => {
-                    if (selecting) {
-                      if (selectedFlights.includes(flight.id)) {
-                        selectedFlights = selectedFlights.filter(
-                          (id) => id !== flight.id,
-                        );
-                      } else {
-                        selectedFlights = [...selectedFlights, flight.id];
+                <div class="relative">
+                  {#if showPassengerDetails && flight.passengers.length}
+                    {@render passengerBadge(flight.passengers)}
+                  {/if}
+                  <Card
+                    onclick={() => {
+                      if (!readonly && selecting) {
+                        if (selectedFlights.includes(flight.id)) {
+                          selectedFlights = selectedFlights.filter(
+                            (id) => id !== flight.id,
+                          );
+                        } else {
+                          selectedFlights = [...selectedFlights, flight.id];
+                        }
                       }
-                    }
-                  }}
-                  level="2"
-                  class={cn('flex items-center p-3', {
-                    'cursor-pointer border-zinc-600 border-dotted border-2':
-                      selecting,
-                    'border-destructive border-solid':
-                      selecting && selectedFlights.includes(flight.id),
-                  })}
-                >
-                  <div
-                    class="flex items-stretch md:items-center max-md:flex-col-reverse max-md:content-start flex-1 h-full min-w-0"
+                    }}
+                    level="2"
+                    class={cn('flex items-center p-3', {
+                      'cursor-pointer border-zinc-600 border-dotted border-2':
+                        !readonly && selecting,
+                      'border-destructive border-solid':
+                        !readonly &&
+                        selecting &&
+                        selectedFlights.includes(flight.id),
+                    })}
                   >
-                    {#if flight.month}
-                      <div
-                        class="max-md:hidden flex justify-center shrink-0 w-11"
-                      >
-                        <AirlineIcon
-                          airline={flight.airline}
-                          size={36}
-                          fallback="plane"
+                    <div
+                      class="flex items-stretch md:items-center max-md:flex-col-reverse max-md:content-start flex-1 h-full min-w-0"
+                    >
+                      {#if flight.month}
+                        <div
+                          class="max-md:hidden flex justify-center shrink-0 w-11"
+                        >
+                          <AirlineIcon
+                            airline={flight.airline}
+                            size={36}
+                            fallback="plane"
+                          />
+                        </div>
+                        <Separator
+                          orientation="vertical"
+                          class="max-md:hidden h-10 mx-3"
                         />
-                      </div>
-                      <Separator
-                        orientation="vertical"
-                        class="max-md:hidden h-10 mx-3"
-                      />
-                      <div
-                        class={cn(
-                          'max-md:hidden flex flex-col shrink-0',
-                          isUsingAmPm() ? 'w-36' : 'w-32',
-                        )}
-                      >
-                        {@render flightTimes(flight)}
-                      </div>
-                      <div class="px-4 flex md:hidden">
                         <div
                           class={cn(
-                            'flex flex-col shrink-0',
+                            'max-md:hidden flex flex-col shrink-0',
                             isUsingAmPm() ? 'w-36' : 'w-32',
                           )}
                         >
                           {@render flightTimes(flight)}
                         </div>
-                        <div class="hidden sm:flex flex-col">
-                          {@render seatAndAirline(flight)}
-                        </div>
-                        {#if !readonly}
-                          <div class="flex justify-end w-full">
-                            {@render actions(flight)}
+                        <div class="px-4 flex md:hidden">
+                          <div
+                            class={cn(
+                              'flex flex-col shrink-0',
+                              isUsingAmPm() ? 'w-36' : 'w-32',
+                            )}
+                          >
+                            {@render flightTimes(flight)}
                           </div>
-                        {/if}
+                          <div class="hidden sm:flex flex-col">
+                            {@render seatAndAirline(flight)}
+                          </div>
+                          {#if !readonly}
+                            <div class="flex justify-end w-full">
+                              {@render actions(flight)}
+                            </div>
+                          {/if}
+                        </div>
+                        <Separator class="my-4 md:hidden" />
+                      {/if}
+                      <div class="max-lg:hidden flex flex-col w-48 shrink-0">
+                        {@render seatAndAirline(flight)}
                       </div>
-                      <Separator class="my-4 md:hidden" />
-                    {/if}
-                    <div class="max-lg:hidden flex flex-col w-48 shrink-0">
-                      {@render seatAndAirline(flight)}
-                    </div>
-                    <div class="max-xl:hidden flex flex-col w-48 shrink-0">
-                      {@render flightAndTailNumber(flight)}
-                    </div>
-                    <div class="flex flex-1 px-12 md:px-16">
-                      <div class="w-full grid grid-cols-[auto_1fr_auto] gap-3">
-                        {@render airport(flight.from)}
-                        <div class="h-full flex flex-col justify-center">
-                          <div class="relative">
-                            <div
-                              class="relative w-full h-px border-b border-dashed border-dark-2 dark:border-zinc-500"
-                            >
+                      <div class="max-xl:hidden flex flex-col w-48 shrink-0">
+                        {@render flightAndTailNumber(flight)}
+                      </div>
+                      <div class="flex flex-1 px-12 md:px-16">
+                        <div
+                          class="w-full grid grid-cols-[auto_1fr_auto] gap-3"
+                        >
+                          {@render airport(flight.from)}
+                          <div class="h-full flex flex-col justify-center">
+                            <div class="relative">
                               <div
-                                class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-1 bg-card dark:bg-dark-2 text-dark-2 dark:text-zinc-500"
+                                class="relative w-full h-px border-b border-dashed border-dark-2 dark:border-zinc-500"
                               >
-                                <div class="flex flex-col items-center">
-                                  <Plane size="20" />
-                                  <span class="text-xs">{flight.duration}</span>
+                                <div
+                                  class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-1 bg-card dark:bg-dark-2 text-dark-2 dark:text-zinc-500"
+                                >
+                                  <div class="flex flex-col items-center">
+                                    <Plane size="20" />
+                                    <span class="text-xs"
+                                      >{flight.duration}</span
+                                    >
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           </div>
+                          {@render airport(flight.to)}
                         </div>
-                        {@render airport(flight.to)}
                       </div>
+                      {#if !readonly}
+                        <div class="hidden md:flex">
+                          {@render actions(flight)}
+                        </div>
+                      {/if}
                     </div>
-                    {#if !readonly}
-                      <div class="hidden md:flex">
-                        {@render actions(flight)}
-                      </div>
-                    {/if}
-                  </div>
-                </Card>
+                  </Card>
+                </div>
               {/each}
             </div>
           {/each}
@@ -569,6 +598,27 @@
       <X size="24" />
     </Button>
   </div>
+{/snippet}
+
+{#snippet passengerBadge(passengers: string[])}
+  {@const label =
+    passengers.length > 1
+      ? `${passengers[0]} +${passengers.length - 1}`
+      : passengers[0]}
+  {@const needsTooltip = passengers.length > 1}
+  <Badge
+    variant="secondary"
+    class="absolute right-3 -top-2.5 z-10 max-w-32 truncate text-[11px] shadow-sm"
+  >
+    {#if needsTooltip}
+      <Tooltip.Root disableHoverableContent delayDuration={0}>
+        <Tooltip.Trigger class="truncate">{label}</Tooltip.Trigger>
+        <Tooltip.Content>{passengers.join(', ')}</Tooltip.Content>
+      </Tooltip.Root>
+    {:else}
+      {label}
+    {/if}
+  </Badge>
 {/snippet}
 
 {#snippet airport(airport)}

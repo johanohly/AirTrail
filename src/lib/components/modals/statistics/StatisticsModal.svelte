@@ -14,7 +14,9 @@
 
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
+  import AdminScopeBanner from '$lib/components/admin/AdminScopeBanner.svelte';
   import { Button } from '$lib/components/ui/button';
+  import { flightScopeState } from '$lib/state.svelte';
   import { Modal } from '$lib/components/ui/modal';
   import ResponsiveFilters from '$lib/components/flight-filters/ResponsiveFilters.svelte';
   import type { FlightFilters } from '$lib/components/flight-filters/types';
@@ -42,7 +44,8 @@
     filters = $bindable(),
     visitedCountries = [],
     showFilters = true,
-    disableUserSeatFiltering = false,
+    seatUserId,
+    showCountryStats = true,
   }: {
     open?: boolean;
     flights: FlightData[];
@@ -50,8 +53,11 @@
     filters: FlightFilters;
     visitedCountries?: VisitedCountryList[];
     showFilters?: boolean;
-    disableUserSeatFiltering?: boolean;
+    seatUserId?: string;
+    showCountryStats?: boolean;
   } = $props();
+
+  const showScopeBanner = $derived(flightScopeState.scope !== 'mine');
 
   // Only show completed flights
   const completedFlights = $derived.by(() =>
@@ -94,8 +100,7 @@
   // Expanded chart state
   let activeChart: ChartKey | null = $state(null);
   let activeContinent: string | null = $state(null);
-  const user = $derived(page.data.user);
-  const ctx = $derived.by(() => ({ userId: user?.id }));
+  const ctx = $derived.by(() => ({ userId: seatUserId }));
 
   const activeChartData = $derived.by(() => {
     if (!activeChart) return {} as Record<string, number>;
@@ -199,6 +204,9 @@
       >
         <h2 class="text-3xl font-bold tracking-tight">Statistics</h2>
       </div>
+      {#if showScopeBanner}
+        <AdminScopeBanner />
+      {/if}
       {#if showFilters}
         <ResponsiveFilters {flights} bind:filters />
       {/if}
@@ -246,51 +254,57 @@
             <NumberFlow value={airports} />
           </span>
         </StatsCard>
-        <StatsCard class="py-4 px-8">
-          <div class="flex items-center justify-between gap-4">
-            <div class="flex flex-col">
-              <h3 class="text-sm font-medium">Countries</h3>
-              <span class="text-2xl font-bold">
-                <NumberFlow value={countriesCount} />
-              </span>
+        {#if showCountryStats}
+          <StatsCard class="py-4 px-8">
+            <div class="flex items-center justify-between gap-4">
+              <div class="flex flex-col">
+                <h3 class="text-sm font-medium">Countries</h3>
+                <span class="text-2xl font-bold">
+                  <NumberFlow value={countriesCount} />
+                </span>
+              </div>
+              {#if countriesCount === 0}
+                <Button
+                  href={resolve('/visited-countries')}
+                  variant="secondary"
+                  size="sm"
+                >
+                  <Plus size={16} />
+                  Add
+                </Button>
+              {/if}
             </div>
-            {#if countriesCount === 0}
-              <Button
-                href={resolve('/visited-countries')}
-                variant="secondary"
-                size="sm"
-              >
-                <Plus size={16} />
-                Add
-              </Button>
-            {/if}
-          </div>
-        </StatsCard>
+          </StatsCard>
+        {/if}
       </div>
       <h3 class="text-2xl font-bold tracking-tight pt-4">Flight Statistics</h3>
       <PieCharts
         flights={completedFlights}
         onOpenChart={(key) => (activeChart = key)}
-        {disableUserSeatFiltering}
+        {seatUserId}
       />
       <div class="flex flex-col md:flex-row gap-4">
         <FlightsPerMonth flights={completedFlights} />
         <FlightsPerWeekday flights={completedFlights} />
       </div>
-      <h3 class="text-2xl font-bold tracking-tight pt-4">Country Statistics</h3>
-      <div class="grid gap-4 pb-2 md:grid-cols-2 xl:grid-cols-3">
-        <div
-          class="cursor-pointer"
-          onclick={() => (activeChart = 'visited-country-status')}
-        >
-          <PieChart title="Visited Country Status" data={countryStatusData} />
+      {#if showCountryStats}
+        <h3 class="text-2xl font-bold tracking-tight pt-4">
+          Country Statistics
+        </h3>
+        <div class="grid gap-4 pb-2 md:grid-cols-2 xl:grid-cols-3">
+          <div
+            class="cursor-pointer"
+            onclick={() => (activeChart = 'visited-country-status')}
+          >
+            <PieChart title="Visited Country Status" data={countryStatusData} />
+          </div>
         </div>
-      </div>
-      <BarChart
-        title="Countries by Continent"
-        data={countriesByContinentData}
-        onBarClick={(continent) => (activeContinent = continent)}
-      />
+        <BarChart
+          title="Countries by Continent"
+          data={countriesByContinentData}
+          onBarClick={(continent) => (activeContinent = continent)}
+        />
+      {/if}
     </div>
   {/if}
 </Modal>

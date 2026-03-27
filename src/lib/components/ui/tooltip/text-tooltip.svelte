@@ -17,7 +17,7 @@
   } = $props();
 </script>
 
-<Tooltip.Root disableHoverableContent={true} {...rootProps}>
+<Tooltip.Root disableHoverableContent {...rootProps}>
   <Tooltip.Trigger>
     {#snippet child({ props })}
       <div {...props} class="inline-flex">

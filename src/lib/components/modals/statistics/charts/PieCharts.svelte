@@ -1,25 +1,21 @@
 <script lang="ts">
   import PieChart from './PieChart.svelte';
 
-  import { page } from '$app/state';
   import { FLIGHT_CHARTS, type FlightChartKey } from '$lib/stats/aggregations';
   import { type FlightData } from '$lib/utils';
 
   let {
     flights,
     onOpenChart,
-    disableUserSeatFiltering = false,
+    seatUserId,
   }: {
     flights: FlightData[];
     onOpenChart?: (key: FlightChartKey) => void;
-    // Seat user override
-    disableUserSeatFiltering?: boolean;
+    seatUserId?: string;
   } = $props();
 
-  const user = $derived(page.data.user);
-
   const ctx = $derived.by(() => ({
-    userId: disableUserSeatFiltering ? undefined : user?.id,
+    userId: seatUserId,
   }));
 
   const seatDistribution = $derived.by(() =>

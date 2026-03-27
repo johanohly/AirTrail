@@ -9,6 +9,7 @@ import {
   createFlightPrimitiveWithConnection,
   createManyFlightsPrimitive,
   getFlightPrimitive,
+  listAllFlightsPrimitive,
   listFlightBaseQuery,
   listFlightPrimitive,
   updateFlightPrimitive,
@@ -81,6 +82,10 @@ export const listFlights = async (userId: string) => {
   return await listFlightPrimitive(db, userId);
 };
 
+export const listAllFlights = async () => {
+  return await listAllFlightsPrimitive(db);
+};
+
 export const getFlight = async (id: number) => {
   return await getFlightPrimitive(db, id);
 };
@@ -92,6 +97,9 @@ export const createFlight = async (data: CreateFlight) => {
 export const validateAndSaveFlight = async (
   user: User,
   data: z.infer<typeof flightSchema>,
+  options?: {
+    bypassSeatCheck?: boolean;
+  },
 ): Promise<ErrorActionResult & { id?: number }> => {
   const pathError = (path: string, message: string) => {
     return { success: false, type: 'path', path, message } as const;
@@ -307,7 +315,10 @@ export const validateAndSaveFlight = async (
   const updateId = data.id;
   if (updateId) {
     const flight = await getFlight(updateId);
-    if (!flight?.seats.some((seat) => seat.userId === user.id)) {
+    if (
+      !options?.bypassSeatCheck &&
+      !flight?.seats.some((seat) => seat.userId === user.id)
+    ) {
       return {
         success: false,
         type: 'httpError',

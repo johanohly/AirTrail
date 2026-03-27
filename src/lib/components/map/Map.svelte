@@ -18,7 +18,9 @@
   import { AirportsArcsLayer } from '.';
   import MapFallback from './MapFallback.svelte';
 
+  import AdminScopeBanner from '$lib/components/admin/AdminScopeBanner.svelte';
   import Filters from '$lib/components/flight-filters/Filters.svelte';
+  import { flightScopeState } from '$lib/state.svelte';
   import {
     defaultFilters,
     type FlightFilters,
@@ -45,6 +47,8 @@
     filters?: FlightFilters;
     tempFilters?: TempFilters;
   } = $props();
+
+  const showScopeBanner = $derived(flightScopeState.scope !== 'mine');
 
   let map: maplibregl.Map | undefined = $state(undefined);
   let canRenderMap = $state(!browser);
@@ -132,6 +136,14 @@
     canRenderMap = supportsWebGL();
   });
 </script>
+
+{#if showScopeBanner}
+  <div
+    class="absolute top-3 left-1/2 -translate-x-1/2 z-10 w-[min(400px,calc(100%-2rem))]"
+  >
+    <AdminScopeBanner />
+  </div>
+{/if}
 
 {#if canRenderMap}
   <MapLibre

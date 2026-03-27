@@ -161,11 +161,31 @@ export function seatDistribution(
     'jumpseat',
     'other',
   ];
+
+  if (!ctx.userId) {
+    const seats = flights.flatMap((flight) => flight.seats);
+    const counts = categories.reduce<Record<string, number>>(
+      (acc, category) => {
+        acc[toTitleCase(category)] = seats.filter(
+          (seat) => seat.seat === category,
+        ).length;
+        return acc;
+      },
+      {},
+    );
+
+    const totalClassified = Object.values(counts).reduce((a, b) => a + b, 0);
+    const noData = seats.length - totalClassified;
+    if (noData > 0) {
+      counts['No Data'] = noData;
+    }
+
+    return sortAndLimit(counts, options);
+  }
+
   const counts = categories.reduce<Record<string, number>>((acc, category) => {
     acc[toTitleCase(category)] = flights.filter((f) =>
-      f.seats.some(
-        (v) => (v.userId === ctx.userId || !ctx.userId) && v.seat === category,
-      ),
+      f.seats.some((v) => v.userId === ctx.userId && v.seat === category),
     ).length;
     return acc;
   }, {});
@@ -185,12 +205,31 @@ export function seatClassDistribution(
   options?: AggregationOptions,
 ): Record<string, number> {
   const categories = ['economy', 'economy+', 'business', 'first', 'private'];
+
+  if (!ctx.userId) {
+    const seats = flights.flatMap((flight) => flight.seats);
+    const counts = categories.reduce<Record<string, number>>(
+      (acc, category) => {
+        acc[toTitleCase(category)] = seats.filter(
+          (seat) => seat.seatClass === category,
+        ).length;
+        return acc;
+      },
+      {},
+    );
+
+    const totalClassified = Object.values(counts).reduce((a, b) => a + b, 0);
+    const noData = seats.length - totalClassified;
+    if (noData > 0) {
+      counts['No Data'] = noData;
+    }
+
+    return sortAndLimit(counts, options);
+  }
+
   const counts = categories.reduce<Record<string, number>>((acc, category) => {
     acc[toTitleCase(category)] = flights.filter((f) =>
-      f.seats.some(
-        (v) =>
-          (v.userId === ctx.userId || !ctx.userId) && v.seatClass === category,
-      ),
+      f.seats.some((v) => v.userId === ctx.userId && v.seatClass === category),
     ).length;
     return acc;
   }, {});
