@@ -19,18 +19,25 @@ export type Airline = Selectable<airline>;
 export type Airport = Selectable<airport>;
 export type CreateAirport = Insertable<airport>;
 export type Seat = Selectable<seat>;
+export type FlightSeat = Seat & {
+  user: Pick<User, 'id' | 'displayName' | 'username'> | null;
+};
 export type Flight = Omit<
   Selectable<flight>,
   'fromId' | 'toId' | 'aircraftId' | 'airlineId'
 > & {
   from: Airport | null;
   to: Airport | null;
-  seats: Seat[];
+  seats: FlightSeat[];
   aircraft: Aircraft | null;
   airline: Airline | null;
 };
 type CreateFlightAirport = Partial<Airport>;
-export type CreateFlight = Omit<Flight, 'id' | 'seats'> & {
+type FlightRecord = Omit<
+  Selectable<flight>,
+  'id' | 'fromId' | 'toId' | 'aircraftId' | 'airlineId'
+>;
+export type CreateFlight = FlightRecord & {
   from: CreateFlightAirport | null;
   to: CreateFlightAirport | null;
   aircraft: Aircraft | null;

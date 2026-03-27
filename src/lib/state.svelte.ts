@@ -44,6 +44,21 @@ export const appConfig = $state<{
   envConfigured: null,
 });
 
+export type FlightScope = 'mine' | 'user' | 'all';
+
+export const flightScopeState = $state<{
+  scope: FlightScope;
+  userId: string | undefined;
+}>({
+  scope: 'mine',
+  userId: undefined,
+});
+
+export const setFlightScope = (scope: FlightScope, userId?: string) => {
+  flightScopeState.scope = scope;
+  flightScopeState.userId = userId;
+};
+
 export const versionState = $state<{
   currentVersion: string;
   latestVersion: string | null;

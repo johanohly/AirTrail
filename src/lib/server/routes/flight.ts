@@ -1,4 +1,5 @@
 import { parseISO } from 'date-fns';
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 import { authedProcedure, router } from '../trpc';
@@ -7,6 +8,7 @@ import { db } from '$lib/db';
 import type { CreateFlight } from '$lib/db/types';
 import {
   createFlight,
+  listAllFlights,
   createManyFlights,
   deleteFlight,
   listFlights,
@@ -24,6 +26,13 @@ type CfValueRow = {
 };
 
 const ENTITY_FIELD_TYPES = ['airport', 'airline', 'aircraft'] as const;
+
+const flightListInput = z
+  .object({
+    scope: z.enum(['mine', 'user', 'all']).default('mine'),
+    userId: z.string().optional(),
+  })
+  .optional();
 
 const collectEntityIds = (rows: CfValueRow[]) => {
   const ids = {
@@ -91,9 +100,32 @@ export const flightRouter = router({
           : null,
       }));
     }),
-  list: authedProcedure.query(async ({ ctx: { user } }) => {
-    return await listFlights(user.id);
-  }),
+  list: authedProcedure
+    .input(flightListInput)
+    .query(async ({ ctx: { user }, input }) => {
+      const scope = input?.scope ?? 'mine';
+
+      if (scope === 'mine') {
+        return await listFlights(user.id);
+      }
+
+      if (user.role === 'user') {
+        throw new TRPCError({ code: 'FORBIDDEN' });
+      }
+
+      if (scope === 'user') {
+        if (!input?.userId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'A user is required for this scope',
+          });
+        }
+
+        return await listFlights(input.userId);
+      }
+
+      return await listAllFlights();
+    }),
   delete: authedProcedure
     .input(z.number())
     .mutation(async ({ ctx: { user }, input }) => {
@@ -103,7 +135,10 @@ export const flightRouter = router({
         .where('flightId', '=', input)
         .execute();
 
-      if (!seats.some((seat) => seat.userId === user.id)) {
+      if (
+        user.role === 'user' &&
+        !seats.some((seat) => seat.userId === user.id)
+      ) {
         throw new Error('You do not have a seat on this flight');
       }
 
@@ -125,7 +160,7 @@ export const flightRouter = router({
         .execute();
       const flightIds = result.map((r) => r.flightId);
 
-      if (flightIds.length !== input.length) {
+      if (user.role === 'user' && flightIds.length !== input.length) {
         throw new Error('You do not have a seat on all flights');
       }
 

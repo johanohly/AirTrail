@@ -113,7 +113,7 @@
       filteredFlights={flights}
       {filters}
       showFilters={false}
-      disableUserSeatFiltering={true}
+      showCountryStats={false}
     />
   {/if}
 {:else if shareSettings}

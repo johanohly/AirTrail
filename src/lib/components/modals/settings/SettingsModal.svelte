@@ -110,7 +110,7 @@
       </div>
       <Separator />
       <div class="flex flex-col gap-8 md:flex-row md:gap-16">
-        <aside class="flex md:flex-col md:-mx-4 md:w-1/5 overflow-x-auto">
+        <aside class="flex overflow-x-auto md:w-1/5 md:flex-col">
           <SettingsTabContainer>
             {#each ACCOUNT_SETTINGS as setting}
               {@const isActive = activeTab === setting.id}
@@ -119,7 +119,7 @@
                 onclick={() => (activeTab = setting.id)}
                 variant="ghost"
                 class={cn(
-                  'relative justify-start transition-all duration-200 font-medium',
+                  'relative justify-start pl-5 transition-all duration-200 font-medium',
                   isActive
                     ? 'text-primary bg-primary/10 hover:bg-primary/15'
                     : 'text-muted-foreground hover:text-foreground hover:bg-card-hover',
@@ -152,7 +152,7 @@
                   onclick={() => (activeTab = setting.id)}
                   variant="ghost"
                   class={cn(
-                    'relative justify-start transition-all duration-200 font-medium',
+                    'relative justify-start pl-5 transition-all duration-200 font-medium',
                     isActive
                       ? 'text-primary bg-primary/10 hover:bg-primary/15'
                       : 'text-muted-foreground hover:text-foreground hover:bg-card-hover',

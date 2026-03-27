@@ -17,6 +17,7 @@
     flightNumber: string | null;
     date: TZDate | null;
     month: string | null;
+    passengers?: string[];
   };
 
   type YearGroup = {
@@ -30,12 +31,14 @@
     selectedFlights = $bindable<number[]>([]),
     onEdit,
     onDelete,
+    readonly = false,
   }: {
     flightsByYear: YearGroup[];
     selecting?: boolean;
     selectedFlights?: number[];
     onEdit?: (flight: Flight) => void;
     onDelete?: (flight: Flight) => void;
+    readonly?: boolean;
   } = $props();
 
   // Store refs to SwipeableFlightRow components for resetting
@@ -68,13 +71,14 @@
       <div use:autoAnimate>
         {#each flights as flight, index (flight.id)}
           {@const isLastFlight = index === flights.length - 1}
-          {@const isSelected = selecting && selectedFlights.includes(flight.id)}
+          {@const isSelected =
+            !readonly && selecting && selectedFlights.includes(flight.id)}
           <div class="isolate">
             <SwipeableFlightRow
               bind:this={swipeableRefs[flight.id]}
-              disabled={selecting}
-              onEdit={() => onEdit?.(flight)}
-              onDelete={() => onDelete?.(flight)}
+              disabled={selecting || readonly}
+              onEdit={readonly ? undefined : () => onEdit?.(flight)}
+              onDelete={readonly ? undefined : () => onDelete?.(flight)}
             >
               {#snippet children({ isInteracting })}
                 <button
@@ -86,7 +90,7 @@
                       : !isInteracting && 'hover:bg-hover active:bg-hover',
                   )}
                   onclick={() => {
-                    if (selecting) {
+                    if (!readonly && selecting) {
                       toggleSelection(flight.id);
                     }
                   }}

@@ -2,7 +2,7 @@ import { TZDate } from '@date-fns/tz';
 import { isAfter } from 'date-fns';
 
 import { page } from '$app/state';
-import type { Airport, Flight } from '$lib/db/types';
+import type { Airport, Flight, FlightSeat } from '$lib/db/types';
 import { distanceBetween, toTitleCase } from '$lib/utils';
 import { nowIn, parseLocalISO, parseLocalizeISO } from '$lib/utils/datetime';
 
@@ -186,12 +186,22 @@ const formatSimpleFlight = (f: FlightData) => {
 };
 
 export const formatSeat = (f: FlightData) => {
+  const userId = page.data.user?.id;
+  return formatSeatForUser(f, userId);
+};
+
+export const formatSeatForUser = (
+  f: FlightData,
+  userId: string | null | undefined,
+) => {
   const t = (s: string) => toTitleCase(s);
 
-  const userId = page.data.user?.id;
-  if (!userId) return null;
-
-  const s = f.seats.find((seat) => seat.userId === userId);
+  let s;
+  if (userId) {
+    s = f.seats.find((seat) => seat.userId === userId);
+  } else if (f.seats.length === 1) {
+    s = f.seats[0];
+  }
   if (!s) return null;
 
   if (s.seat && s.seatNumber && s.seatClass) {
@@ -210,4 +220,26 @@ export const formatSeat = (f: FlightData) => {
     return t(s.seat);
   }
   return null;
+};
+
+export const getSeatPassengerLabel = (seat: FlightSeat) => {
+  return seat.user?.displayName ?? seat.guestName ?? null;
+};
+
+export const getSeatPassengerToken = (seat: FlightSeat) => {
+  if (seat.userId) {
+    return `user:${seat.userId}`;
+  }
+
+  if (seat.guestName) {
+    return `guest:${seat.guestName}`;
+  }
+
+  return null;
+};
+
+export const getFlightPassengerLabels = (flight: FlightData) => {
+  return flight.seats
+    .map((seat) => getSeatPassengerLabel(seat))
+    .filter((value): value is string => Boolean(value));
 };

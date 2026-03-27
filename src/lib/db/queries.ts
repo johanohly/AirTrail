@@ -6,8 +6,8 @@ import type { CreateFlight } from './types';
 
 const airports = (
   db: Kysely<DB>,
-  from: Expression<number>,
-  to: Expression<number>,
+  from: Expression<number | null>,
+  to: Expression<number | null>,
 ) => {
   return [
     jsonObjectFrom(
@@ -19,20 +19,37 @@ const airports = (
   ];
 };
 
-const aircraft = (db: Kysely<DB>, id: Expression<number>) => {
+const aircraft = (db: Kysely<DB>, id: Expression<number | null>) => {
   return jsonObjectFrom(
     db.selectFrom('aircraft').selectAll().where('aircraft.id', '=', id),
   ).as('aircraft');
 };
 
-const airline = (db: Kysely<DB>, id: Expression<number>) => {
+const airline = (db: Kysely<DB>, id: Expression<number | null>) => {
   return jsonObjectFrom(
     db.selectFrom('airline').selectAll().where('airline.id', '=', id),
   ).as('airline');
 };
 
-export const listFlightBaseQuery = (db: Kysely<DB>, userId: string) => {
-  return db
+const seats = (db: Kysely<DB>, flightId: Expression<number>) => {
+  return jsonArrayFrom(
+    db
+      .selectFrom('seat')
+      .selectAll('seat')
+      .select(({ ref }) => [
+        jsonObjectFrom(
+          db
+            .selectFrom('user')
+            .select(['user.id', 'user.displayName', 'user.username'])
+            .whereRef('user.id', '=', ref('seat.userId')),
+        ).as('user'),
+      ])
+      .whereRef('seat.flightId', '=', flightId),
+  ).as('seats');
+};
+
+export const listFlightBaseQuery = (db: Kysely<DB>, userId?: string) => {
+  let query = db
     .selectFrom('flight')
     .selectAll('flight')
     .select((eb) =>
@@ -40,29 +57,33 @@ export const listFlightBaseQuery = (db: Kysely<DB>, userId: string) => {
     )
     .select(({ ref }) => [aircraft(db, ref('flight.aircraftId'))])
     .select(({ ref }) => [airline(db, ref('flight.airlineId'))])
-    .select((eb) => [
-      jsonArrayFrom(
-        eb
-          .selectFrom('seat')
-          .selectAll()
-          .whereRef('seat.flightId', '=', 'flight.id'),
-      ).as('seats'),
-    ])
-    .where((eb) =>
-      eb.exists(
-        eb
-          .selectFrom('seat')
-          .select('seat.id')
-          .whereRef('seat.flightId', '=', 'flight.id')
-          .where('seat.userId', '=', userId),
-      ),
-    );
+    .select((eb) => [seats(db, eb.ref('flight.id'))]);
+
+  if (!userId) {
+    return query;
+  }
+
+  query = query.where((eb) =>
+    eb.exists(
+      eb
+        .selectFrom('seat')
+        .select('seat.id')
+        .whereRef('seat.flightId', '=', 'flight.id')
+        .where('seat.userId', '=', userId),
+    ),
+  );
+
+  return query;
 };
 
 export const listFlightPrimitive = async (db: Kysely<DB>, userId: string) => {
   const listQuery = listFlightBaseQuery(db, userId);
 
   return await listQuery.execute();
+};
+
+export const listAllFlightsPrimitive = async (db: Kysely<DB>) => {
+  return await listFlightBaseQuery(db).execute();
 };
 
 export const getFlightPrimitive = async (db: Kysely<DB>, id: number) => {
@@ -72,14 +93,7 @@ export const getFlightPrimitive = async (db: Kysely<DB>, id: number) => {
     .select(({ ref }) => airports(db, ref('flight.fromId'), ref('flight.toId')))
     .select(({ ref }) => [aircraft(db, ref('flight.aircraftId'))])
     .select(({ ref }) => [airline(db, ref('flight.airlineId'))])
-    .select((eb) =>
-      jsonArrayFrom(
-        eb
-          .selectFrom('seat')
-          .selectAll()
-          .whereRef('seat.flightId', '=', 'flight.id'),
-      ).as('seats'),
-    )
+    .select((eb) => [seats(db, eb.ref('flight.id'))])
     .where('id', '=', id)
     .executeTakeFirst();
 };

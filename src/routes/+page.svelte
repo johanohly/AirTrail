@@ -1,5 +1,7 @@
 <script lang="ts">
   import { isAfter, isBefore } from 'date-fns';
+  import { page } from '$app/state';
+  import { writable } from 'svelte/store';
   import { toast } from 'svelte-sonner';
 
   import {
@@ -12,11 +14,32 @@
   import FlightsOnboarding from '$lib/components/onboarding/FlightsOnboarding.svelte';
   import { Map } from '$lib/components/map';
   import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
-  import { openModalsState } from '$lib/state.svelte';
+  import { flightScopeState, openModalsState } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
-  import { prepareFlightData, type FlightData } from '$lib/utils';
+  import {
+    getSeatPassengerToken,
+    prepareFlightData,
+    type FlightData,
+  } from '$lib/utils';
 
-  const rawFlights = trpc.flight.list.query();
+  const user = $derived(page.data.user);
+
+  const flightListInput = writable<{
+    scope: 'mine' | 'user' | 'all';
+    userId?: string;
+  }>({
+    scope: 'mine',
+  });
+
+  $effect(() => {
+    flightListInput.set({
+      scope: flightScopeState.scope,
+      userId:
+        flightScopeState.scope === 'user' ? flightScopeState.userId : undefined,
+    });
+  });
+
+  const rawFlights = trpc.flight.list.query(flightListInput);
   const rawVisitedCountries = trpc.visitedCountries.list.query();
 
   const flights = $derived.by(() => {
@@ -35,6 +58,15 @@
 
   let filters: FlightFilters = $state(defaultFilters);
   let tempFilters: TempFilters = $state(defaultTempFilters);
+
+  const effectiveSeatUserId = $derived.by(() => {
+    if (flightScopeState.scope === 'all') return undefined;
+    if (flightScopeState.scope === 'user') return flightScopeState.userId;
+    return user?.id;
+  });
+
+  const showPassengerDetails = $derived(flightScopeState.scope !== 'mine');
+  const showCountryStats = $derived(flightScopeState.scope === 'mine');
 
   $effect(() => {
     if (!openModalsState.listFlights) {
@@ -115,6 +147,16 @@
       }
 
       if (
+        filters.passengers.length &&
+        !f.seats.some((seat) => {
+          const token = getSeatPassengerToken(seat);
+          return token ? filters.passengers.includes(token) : false;
+        })
+      ) {
+        return false;
+      }
+
+      if (
         filters.airline.length &&
         !filters.airline.includes(f.airline?.name || '')
       ) {
@@ -168,13 +210,17 @@
   {flights}
   {filteredFlights}
   {deleteFlight}
+  seatUserId={effectiveSeatUserId}
+  {showPassengerDetails}
 />
 <StatisticsModal
   bind:open={openModalsState.statistics}
   {flights}
   {filteredFlights}
   bind:filters
-  visitedCountries={visitedCountriesData}
+  visitedCountries={showCountryStats ? visitedCountriesData : []}
+  seatUserId={effectiveSeatUserId}
+  {showCountryStats}
 />
 
 <Map bind:filters bind:tempFilters {flights} {filteredFlights} />

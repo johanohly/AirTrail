@@ -1,5 +1,12 @@
 <script lang="ts">
-  import { Check, Funnel, Plane, PlaneLanding, PlaneTakeoff } from '@o7/icon';
+  import {
+    Check,
+    Funnel,
+    Plane,
+    PlaneLanding,
+    PlaneTakeoff,
+    UsersRound,
+  } from '@o7/icon';
   import { Calendar } from '@o7/icon/lucide';
   import { Airlines } from '@o7/icon/material';
 
@@ -106,6 +113,8 @@
           <Airlines size={20} class="mr-2" />
         {:else if triggerIcon == 'calendar'}
           <Calendar size={16} class="mr-2" />
+        {:else if triggerIcon == 'user'}
+          <UsersRound size={16} class="mr-2" />
         {:else}
           <Funnel size={16} class="mr-2" />
         {/if}

@@ -19,6 +19,8 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     return actionResult('error', 'Not logged in', 401);
   }
 
-  const result = await validateAndSaveFlight(user, form.data);
+  const result = await validateAndSaveFlight(user, form.data, {
+    bypassSeatCheck: user.role !== 'user',
+  });
   return handleErrorActionResult(form, result);
 };

@@ -3,6 +3,7 @@
 
   import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
   import RouteArrow from '$lib/components/display/RouteArrow.svelte';
+  import { Badge } from '$lib/components/ui/badge';
   import type { Airline, Airport } from '$lib/db/types';
   import { formatAsDate } from '$lib/utils/datetime';
 
@@ -12,6 +13,7 @@
     airline: Airline | null;
     flightNumber?: string | null;
     date?: TZDate | null;
+    passengers?: string[];
   };
 
   let {
@@ -74,6 +76,13 @@
           <span class="text-[15px] text-muted-foreground">
             {getFlightNumber(flight)}
           </span>
+        {/if}
+        {#if flight.passengers?.length}
+          <Badge variant="outline" class="max-w-[120px] truncate self-end">
+            {flight.passengers[0]}{flight.passengers.length > 1
+              ? ` +${flight.passengers.length - 1}`
+              : ''}
+          </Badge>
         {:else if flight.airline}
           <span class="text-sm text-muted-foreground truncate max-w-[120px]">
             {flight.airline.name}

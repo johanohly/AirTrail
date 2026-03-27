@@ -146,7 +146,9 @@ export const POST: RequestHandler = async ({ request }) => {
     data.seats[0].userId = user.id;
   }
 
-  const result = await validateAndSaveFlight(user, data);
+  const result = await validateAndSaveFlight(user, data, {
+    bypassSeatCheck: user.role !== 'user',
+  });
   if (!result.success) {
     // @ts-expect-error - this should be valid
     return apiError(result.message, result.status || 500);
