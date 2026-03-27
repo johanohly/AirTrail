@@ -315,15 +315,23 @@ export const validateAndSaveFlight = async (
   const updateId = data.id;
   if (updateId) {
     const flight = await getFlight(updateId);
+    if (!flight) {
+      return {
+        success: false,
+        type: 'httpError',
+        status: 404,
+        message: 'Flight not found',
+      };
+    }
     if (
       !options?.bypassSeatCheck &&
-      !flight?.seats.some((seat) => seat.userId === user.id)
+      !flight.seats.some((seat) => seat.userId === user.id)
     ) {
       return {
         success: false,
         type: 'httpError',
         status: 403,
-        message: 'Flight not found or you do not have a seat on this flight',
+        message: 'You do not have a seat on this flight',
       };
     }
 
