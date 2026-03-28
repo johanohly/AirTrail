@@ -354,7 +354,7 @@
         onDelete={readonly ? undefined : handleDelete}
         {readonly}
       />
-      <div class="h-[90px]"></div>
+      <div class="h-[130px] sm:h-[90px]"></div>
     {:else}
       <ScrollArea type="hover">
         <div class="hidden md:block">
