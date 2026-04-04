@@ -57,6 +57,7 @@
   let id = getId('deckgl-layer');
   let hoveredAirport: VisitedAirport | undefined = $state.raw(undefined);
   let hoveredArc: FlightArc | undefined = $state.raw(undefined);
+  const clickable = $derived(tempFilters !== undefined);
 
   const context = getMapContext();
   const { map, loaded } = $derived(context);
@@ -274,9 +275,9 @@
   <Popup openOn="hover" anchor="top-left" offset={20}>
     {#snippet children({ data })}
       {#if data?.country}
-        <AirportPopup {data} />
+        <AirportPopup {data} {clickable} />
       {:else if data?.from}
-        <ArcPopup {data} />
+        <ArcPopup {data} {clickable} />
       {/if}
     {/snippet}
   </Popup>
