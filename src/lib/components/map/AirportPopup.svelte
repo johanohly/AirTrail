@@ -5,7 +5,7 @@
   import { formatAsDate } from '$lib/utils/datetime';
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let { data }: { data: any } = $props();
+  let { data, clickable }: { data: any; clickable: boolean } = $props();
 </script>
 
 <div class="min-w-[18rem]">
@@ -65,8 +65,10 @@
       </h4>
     {/if}
   </div>
-  <div class="h-px bg-muted my-2" />
-  <div class="px-3 pb-2">
-    <p class="text-xs text-muted-foreground text-center">Click to view all</p>
-  </div>
+  {#if clickable}
+    <div class="h-px bg-muted my-2" />
+    <div class="px-3 pb-2">
+      <p class="text-xs text-muted-foreground text-center">Click to view all</p>
+    </div>
+  {/if}
 </div>
