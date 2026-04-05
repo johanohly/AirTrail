@@ -53,6 +53,7 @@
 
   let lookupResults: LookupResult[] | null = $state(null);
   let isSearching = $state(false);
+  let isApplying = $state(false);
 
   function clearResults() {
     lookupResults = null;
@@ -88,7 +89,7 @@
     return null;
   }
 
-  function applyLookupResult(result: LookupResult) {
+  async function applyLookupResult(result: LookupResult) {
     if (!result) return;
 
     if (
@@ -100,10 +101,23 @@
       return;
     }
 
+    let aircraft = result.aircraft ?? null;
+    if (!aircraft && result.aircraftReg) {
+      isApplying = true;
+      try {
+        aircraft = await api.flight.lookupAircraftByReg.query(
+          result.aircraftReg,
+        );
+      } catch {
+        // ignore, this field is not required
+      }
+      isApplying = false;
+    }
+
     $formData.from = result.from;
     $formData.to = result.to;
     $formData.airline = result.airline ?? null;
-    $formData.aircraft = result.aircraft ?? null;
+    $formData.aircraft = aircraft;
     $formData.aircraftReg = result.aircraftReg ?? null;
 
     if (result.arrival && result.departure && !isFutureFlight(result)) {
@@ -272,7 +286,7 @@
         />
         <Button
           onclick={lookupFlight}
-          disabled={!$formData.flightNumber || isSearching}
+          disabled={!$formData.flightNumber || isSearching || isApplying}
           variant="secondary"
           class="h-full"
           >{isSearching ? 'Searching...' : 'Search'}
@@ -289,7 +303,7 @@
       class="flex items-center justify-between text-sm text-muted-foreground"
     >
       <span>Select your flight</span>
-      <Button variant="ghost" size="sm" onclick={clearResults}>Clear</Button>
+      <Button variant="ghost" size="sm" onclick={clearResults} disabled={isApplying}>Clear</Button>
     </div>
 
     <div class="space-y-1.5">
@@ -298,6 +312,7 @@
         {@const isFlightToday = primaryDate && isToday(primaryDate)}
         <button
           onclick={() => applyLookupResult(r)}
+          disabled={isApplying}
           class="group w-full rounded-lg border bg-card p-3 text-left transition-all hover:border-primary hover:shadow-sm active:scale-[0.98] {isFlightToday
             ? 'border-primary/40 bg-primary/5'
             : ''}"

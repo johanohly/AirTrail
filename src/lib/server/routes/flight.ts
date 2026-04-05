@@ -14,6 +14,7 @@ import {
   listFlights,
   validateFlightDates,
 } from '$lib/server/utils/flight';
+import { getAircraftFromReg } from '$lib/server/utils/flight-lookup/aerodatabox';
 import { getFlightRoute } from '$lib/server/utils/flight-lookup/flight-lookup';
 import { generateCsv } from '$lib/utils/csv';
 import { omit } from '$lib/utils/other';
@@ -85,6 +86,11 @@ export const flightRouter = router({
         input.date ? { date: parseISO(input.date.split('T')[0]) } : undefined,
       );
 
+      const [onlyFlight] = results;
+      if (results.length === 1 && onlyFlight?.aircraftReg) {
+        onlyFlight.aircraft = await getAircraftFromReg(onlyFlight.aircraftReg);
+      }
+
       // The below mess is required to maintain timezone through serialization
       return results.map((r) => ({
         ...r,
@@ -99,6 +105,11 @@ export const flightRouter = router({
           ? r.arrivalScheduled.toISOString()
           : null,
       }));
+    }),
+  lookupAircraftByReg: authedProcedure
+    .input(z.string())
+    .query(async ({ input }) => {
+      return await getAircraftFromReg(input);
     }),
   list: authedProcedure
     .input(flightListInput)

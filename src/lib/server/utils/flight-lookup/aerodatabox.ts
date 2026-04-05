@@ -166,9 +166,7 @@ export async function getFlightRoute(
       departureScheduled,
       arrivalScheduled,
       airline,
-      aircraft: item.aircraft?.reg
-        ? await getAircraftFromReg(item.aircraft.reg)
-        : null,
+      aircraft: null,
       aircraftReg: item.aircraft?.reg ?? null,
       departureTerminal: item.departure.terminal ?? null,
       departureGate: item.departure.gate ?? null,
@@ -182,7 +180,9 @@ export async function getFlightRoute(
   return result;
 }
 
-async function getAircraftFromReg(reg: string): Promise<Aircraft | null> {
+export async function getAircraftFromReg(
+  reg: string,
+): Promise<Aircraft | null> {
   await rateLimiter.checkRequest();
 
   const config = await appConfig.get();
