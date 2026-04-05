@@ -303,7 +303,12 @@
       class="flex items-center justify-between text-sm text-muted-foreground"
     >
       <span>Select your flight</span>
-      <Button variant="ghost" size="sm" onclick={clearResults} disabled={isApplying}>Clear</Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onclick={clearResults}
+        disabled={isApplying}>Clear</Button
+      >
     </div>
 
     <div class="space-y-1.5">
