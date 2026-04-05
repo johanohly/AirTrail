@@ -163,12 +163,18 @@
 </script>
 
 <svelte:window
-  onkeydown={(e) => {
-    if (e.key !== 'Escape') return;
+  onpopstate={() => {
+    if (!open) return;
     if (activeContinent) {
       activeContinent = null;
     } else if (activeChart) {
       activeChart = null;
+    }
+  }}
+  onkeydown={(e) => {
+    if (e.key !== 'Escape') return;
+    if (activeContinent || activeChart) {
+      history.back();
     } else if (open) {
       open = false;
     }
@@ -188,14 +194,14 @@
     <BarChartDrillDown
       continent={activeContinent}
       countries={countriesByContinentDetailsData[activeContinent] || []}
-      onBack={() => (activeContinent = null)}
+      onBack={() => history.back()}
     />
   {:else if activeChart}
     <ChartDrillDown
       chartKey={activeChart}
       data={activeChartData}
       flights={completedFlights}
-      onBack={() => (activeChart = null)}
+      onBack={() => history.back()}
     />
   {:else}
     <div class="space-y-4">
@@ -280,7 +286,10 @@
       <h3 class="text-2xl font-bold tracking-tight pt-4">Flight Statistics</h3>
       <PieCharts
         flights={completedFlights}
-        onOpenChart={(key) => (activeChart = key)}
+        onOpenChart={(key) => {
+          activeChart = key;
+          history.pushState(null, '');
+        }}
         {seatUserId}
       />
       <div class="flex flex-col md:flex-row gap-4">
@@ -294,7 +303,10 @@
         <div class="grid gap-4 pb-2 md:grid-cols-2 xl:grid-cols-3">
           <div
             class="cursor-pointer"
-            onclick={() => (activeChart = 'visited-country-status')}
+            onclick={() => {
+              activeChart = 'visited-country-status';
+              history.pushState(null, '');
+            }}
           >
             <PieChart title="Visited Country Status" data={countryStatusData} />
           </div>
@@ -302,7 +314,10 @@
         <BarChart
           title="Countries by Continent"
           data={countriesByContinentData}
-          onBarClick={(continent) => (activeContinent = continent)}
+          onBarClick={(continent) => {
+            activeContinent = continent;
+            history.pushState(null, '');
+          }}
         />
       {/if}
     </div>
