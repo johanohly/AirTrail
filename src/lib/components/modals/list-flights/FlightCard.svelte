@@ -72,20 +72,15 @@
             {formatDate(flight)}
           </span>
         {/if}
-        {#if getFlightNumber(flight)}
-          <span class="text-[15px] text-muted-foreground">
-            {getFlightNumber(flight)}
-          </span>
-        {/if}
         {#if flight.passengers?.length}
           <Badge variant="outline" class="max-w-[120px] truncate self-end">
             {flight.passengers[0]}{flight.passengers.length > 1
               ? ` +${flight.passengers.length - 1}`
               : ''}
           </Badge>
-        {:else if flight.airline}
-          <span class="text-sm text-muted-foreground truncate max-w-[120px]">
-            {flight.airline.name}
+        {:else if getFlightNumber(flight)}
+          <span class="text-[15px] text-muted-foreground">
+            {getFlightNumber(flight)}
           </span>
         {/if}
       </div>
