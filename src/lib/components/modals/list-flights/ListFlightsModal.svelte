@@ -328,7 +328,10 @@
           {flightsPerPage}
           {hasTempFilters}
           numOfFlights={filteredFlights.length}
-          modalOpen={open}
+          modalOpen={open &&
+            !addFlightOpen &&
+            !mobileEditOpen &&
+            !deleteModalOpen}
           onAddFlight={readonly
             ? undefined
             : () => {
