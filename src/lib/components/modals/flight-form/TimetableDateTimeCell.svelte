@@ -3,13 +3,14 @@
   import { differenceInCalendarDays, differenceInSeconds } from 'date-fns';
   import { type DateValue, parseDate, Time } from '@internationalized/date';
   import { CalendarDays } from '@o7/icon/lucide';
-  import { DateField, TimeField } from 'bits-ui';
+  import { DateField } from 'bits-ui';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
 
   import { Calendar } from '$lib/components/ui/calendar';
   import * as Form from '$lib/components/ui/form';
   import * as Popover from '$lib/components/ui/popover';
+  import { TimeInput } from '$lib/components/ui/time-input';
   import { cn } from '$lib/utils';
   import {
     dateValueFromISO,
@@ -157,6 +158,13 @@
   let timeValue: Time | undefined = $state(
     getValue(timeField) ? parseTimeValue(getValue(timeField)!) : undefined,
   );
+
+  const clearTimeValue = () => {
+    if (!timeValue && !getValue(timeField)) return;
+    timeValue = undefined;
+    setValue(timeField, null);
+    validateField(timeField);
+  };
 
   $effect(() => {
     const dateString = getValue(dateField);
@@ -423,14 +431,12 @@
                   <span class="text-xs font-semibold text-muted-foreground">
                     {label} time
                   </span>
-                  <TimeField.Root
+                  <TimeInput
                     bind:value={
                       () => timeValue,
                       (value) => {
                         if (!value) {
-                          timeValue = undefined;
-                          setValue(timeField, null);
-                          validateField(timeField);
+                          clearTimeValue();
                           return;
                         }
 
@@ -440,41 +446,13 @@
                         validateField(timeField);
                       }
                     }
-                    granularity="minute"
                     locale={navigator.language}
-                  >
-                    <div class="flex w-full flex-col gap-1.5">
-                      <TimeField.Input
-                        class={cn(
-                          'border-input bg-background selection:bg-primary dark:bg-input/30 selection:text-primary-foreground ring-offset-background placeholder:text-muted-foreground shadow-xs flex h-9 w-full min-w-0 rounded-md border px-3 py-[6px] text-base outline-none transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
-                          'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
-                          'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
-                        )}
-                      >
-                        {#snippet children({ segments })}
-                          {#each segments as { part, value }}
-                            <div class="inline-block select-none">
-                              {#if part === 'literal'}
-                                <TimeField.Segment
-                                  {part}
-                                  class="text-muted-foreground"
-                                >
-                                  {value}
-                                </TimeField.Segment>
-                              {:else}
-                                <TimeField.Segment
-                                  {part}
-                                  class="rounded-md px-1 hover:bg-muted focus:bg-muted focus:text-foreground focus-visible:ring-0! focus-visible:ring-offset-0! aria-[valuetext=Empty]:text-muted-foreground"
-                                >
-                                  {value}
-                                </TimeField.Segment>
-                              {/if}
-                            </div>
-                          {/each}
-                        {/snippet}
-                      </TimeField.Input>
-                    </div>
-                  </TimeField.Root>
+                    class={cn(
+                      'border-input bg-background selection:bg-primary dark:bg-input/30 selection:text-primary-foreground ring-offset-background placeholder:text-muted-foreground shadow-xs flex h-9 w-full min-w-0 rounded-md border px-3 py-[6px] text-base outline-none transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
+                      'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
+                      'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
+                    )}
+                  />
                 </div>
               </div>
             </Popover.Content>
