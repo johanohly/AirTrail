@@ -106,12 +106,16 @@
             ? Duration.fromSeconds(f.duration).toString()
             : '',
           month: f.date ? formatAsMonth(f.date) : null,
-          depTime: depDate
-            ? formatAsDateTime(depDate)
-            : f.date
-              ? formatAsDate(f.date)
+          depTime:
+            (depDate ?? depScheduled)
+              ? formatAsDateTime((depDate ?? depScheduled)!)
+              : f.date
+                ? formatAsDate(f.date)
+                : null,
+          arrTime:
+            (arrDate ?? arrScheduled)
+              ? formatAsDateTime((arrDate ?? arrScheduled)!)
               : null,
-          arrTime: arrDate ? formatAsDateTime(arrDate) : null,
           depStatus,
           arrStatus,
           seat: formatSeatForUser(f, seatUserId),
