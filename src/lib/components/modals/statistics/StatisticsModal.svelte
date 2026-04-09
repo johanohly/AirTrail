@@ -100,6 +100,7 @@
   // Expanded chart state
   let activeChart: ChartKey | null = $state(null);
   let activeContinent: string | null = $state(null);
+  let wasOpen = $state(false);
   const ctx = $derived.by(() => ({ userId: seatUserId }));
 
   const activeChartData = $derived.by(() => {
@@ -128,6 +129,16 @@
   );
 
   $effect(() => {
+    const closedFromDrilldown =
+      wasOpen && !open && (activeChart || activeContinent);
+    wasOpen = open;
+
+    if (closedFromDrilldown) {
+      activeChart = null;
+      activeContinent = null;
+      history.back();
+    }
+
     if (open) {
       setTimeout(() => {
         flightCount = flights.length;
