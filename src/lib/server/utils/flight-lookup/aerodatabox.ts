@@ -18,7 +18,7 @@ import { appConfig } from '$lib/server/utils/config';
 import { RequestRateLimiter } from '$lib/utils/ratelimiter';
 
 const BASE_URL = 'https://aerodatabox.p.rapidapi.com';
-const rateLimiter = new RequestRateLimiter();
+const rateLimiter = new RequestRateLimiter(1, 1, 2, 1, 1000);
 
 function sanitizeFlightNumber(fn: string): string {
   // Remove spaces and dashes, uppercase (e.g., "SK 728" -> "SK728")
@@ -166,9 +166,7 @@ export async function getFlightRoute(
       departureScheduled,
       arrivalScheduled,
       airline,
-      aircraft: item.aircraft?.reg
-        ? await getAircraftFromReg(item.aircraft.reg)
-        : null,
+      aircraft: null,
       aircraftReg: item.aircraft?.reg ?? null,
       departureTerminal: item.departure.terminal ?? null,
       departureGate: item.departure.gate ?? null,
@@ -182,7 +180,11 @@ export async function getFlightRoute(
   return result;
 }
 
-async function getAircraftFromReg(reg: string): Promise<Aircraft | null> {
+export async function getAircraftFromReg(
+  reg: string,
+): Promise<Aircraft | null> {
+  await rateLimiter.checkRequest();
+
   const config = await appConfig.get();
   const apiKey = config?.integrations?.aeroDataBoxKey ?? null;
   if (!apiKey) {
