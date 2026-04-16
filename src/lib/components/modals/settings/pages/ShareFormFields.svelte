@@ -167,7 +167,7 @@
         {#snippet children({ props })}
           <Checkbox bind:checked={$formData.showAircraft} {...props} />
           <Form.Label class="text-sm font-normal"
-            >Show Aircraft Types</Form.Label
+            >Show Aircraft Types and Tail Numbers</Form.Label
           >
         {/snippet}
       </Form.Control>
