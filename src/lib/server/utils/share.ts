@@ -241,7 +241,7 @@ async function getFilteredFlightsForShare(share: PublicShare) {
  * Sanitize flight data based on privacy settings
  * Sends complete objects to frontend instead of individual field properties
  */
-function sanitizeFlightData(
+export function sanitizeFlightData(
   flights: Awaited<ReturnType<typeof getFilteredFlightsForShare>>,
   share: PublicShare,
 ): SanitizedFlight[] {
@@ -263,7 +263,7 @@ function sanitizeFlightData(
       to: flight.to!, // Always include complete to airport
       duration: flight.duration,
       flightReason: flight.flightReason,
-      aircraftReg: flight.aircraftReg,
+      aircraftReg: share.showAircraft ? flight.aircraftReg : null,
       seats: userSeats,
     };
 
