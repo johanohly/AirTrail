@@ -14,6 +14,7 @@ const pwaOptions = {
     'favicon.png',
     'favicon.svg',
     'apple-touch-icon.png',
+    'airport-overlay.pmtiles',
     'countries.pmtiles',
     'countries-bounds.json',
   ],
@@ -49,5 +50,8 @@ const pwaOptions = {
 } satisfies Partial<VitePWAOptions>;
 
 export default defineConfig({
+  resolve: {
+    dedupe: ['maplibre-gl'],
+  },
   plugins: [o7Icon(), tailwindcss(), sveltekit(), VitePWA(pwaOptions)],
 });

@@ -1,0 +1,8 @@
+{
+  "name": "airtrail-airport-overlay-ubicloud",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@clack/prompts": "^1.2.0"
+  }
+}

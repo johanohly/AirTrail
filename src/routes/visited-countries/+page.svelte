@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { browser } from '$app/environment';
+  import { base } from '$app/paths';
   import { RefreshCw } from '@o7/icon/lucide';
   import maplibregl from 'maplibre-gl';
   import { mode } from 'mode-watcher';
@@ -22,9 +24,19 @@
     SetupVisitedCountries,
   } from '$lib/components/modals';
   import type { VisitedCountryStatus } from '$lib/db/types';
+  import {
+    getAppMapImages,
+    getConfiguredAppMapStyleUrl,
+  } from '$lib/map/app-style';
+  import { registerPmtilesProtocol } from '$lib/map/pmtiles';
+  import { appConfig } from '$lib/state.svelte';
   import { api, trpc } from '$lib/trpc';
   import { pluralize } from '$lib/utils';
   import { countryFromAlpha3 } from '$lib/utils/data/countries';
+
+  if (browser) {
+    registerPmtilesProtocol();
+  }
 
   const countriesResult = trpc.visitedCountries.list.query();
   const countries = $derived.by(() => $countriesResult.data || []);
@@ -65,10 +77,9 @@
   let map: maplibregl.Map | undefined = $state(undefined);
   let loaded = $state(false);
   const style = $derived(
-    mode.current === 'light'
-      ? 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
-      : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    getConfiguredAppMapStyleUrl(mode.current, appConfig.config?.map),
   );
+  const images = $derived(getAppMapImages(base));
 
   let editing = $state(false);
   let editingInfo: {
@@ -178,6 +189,7 @@
 
 <MapLibre
   {style}
+  {images}
   projection={{ type: 'globe' }}
   diffStyleUpdates
   zoom={2}

@@ -2,7 +2,7 @@
   import { Funnel, Fullscreen, Undo2 } from '@o7/icon/lucide';
   import maplibregl from 'maplibre-gl';
   import { mode } from 'mode-watcher';
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import {
     AttributionControl,
     Control,
@@ -14,13 +14,19 @@
   } from 'svelte-maplibre';
 
   import { browser } from '$app/environment';
+  import { base } from '$app/paths';
 
   import { AirportsArcsLayer } from '.';
   import MapFallback from './MapFallback.svelte';
 
   import AdminScopeBanner from '$lib/components/admin/AdminScopeBanner.svelte';
   import Filters from '$lib/components/flight-filters/Filters.svelte';
-  import { flightScopeState } from '$lib/state.svelte';
+  import {
+    getAppMapImages,
+    getConfiguredAppMapStyleUrl,
+  } from '$lib/map/app-style';
+  import { registerPmtilesProtocol } from '$lib/map/pmtiles';
+  import { appConfig, flightScopeState } from '$lib/state.svelte';
   import {
     defaultFilters,
     type FlightFilters,
@@ -35,6 +41,9 @@
   } from '$lib/utils';
 
   const { GlobeControl } = maplibregl;
+  const unregisterPmtiles = browser ? registerPmtilesProtocol() : null;
+
+  onDestroy(() => unregisterPmtiles?.());
 
   let {
     flights,
@@ -53,10 +62,9 @@
   let map: maplibregl.Map | undefined = $state(undefined);
   let canRenderMap = $state(!browser);
   const style = $derived(
-    mode.current === 'light'
-      ? 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
-      : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    getConfiguredAppMapStyleUrl(mode.current, appConfig.config?.map),
   );
+  const images = $derived(getAppMapImages(base));
 
   const supportsWebGL = () => {
     if (!browser) return true;
@@ -153,6 +161,7 @@
     }}
     bind:map
     {style}
+    {images}
     diffStyleUpdates
     class="relative h-full"
     attributionControl={false}

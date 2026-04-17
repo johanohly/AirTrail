@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { getDefaultAppMapStyleUrl } from '$lib/map/app-style';
+
 export const oauthConfigSchema = z.object({
   enabled: z.boolean().default(false),
   issuerUrl: z.string().nullable(),
@@ -16,6 +18,17 @@ export const integrationsConfigSchema = z.object({
   aeroDataBoxKey: z.string().nullable(),
 });
 
+export const mapConfigSchema = z.object({
+  lightStyleUrl: z
+    .string()
+    .trim()
+    .transform((v) => v || getDefaultAppMapStyleUrl('light')),
+  darkStyleUrl: z
+    .string()
+    .trim()
+    .transform((v) => v || getDefaultAppMapStyleUrl('dark')),
+});
+
 export const dataConfigSchema = z.object({
   lastSynced: z.string().nullable(),
 });
@@ -23,6 +36,7 @@ export const dataConfigSchema = z.object({
 export const appConfigSchema = z.object({
   oauth: oauthConfigSchema,
   integrations: integrationsConfigSchema,
+  map: mapConfigSchema,
   data: dataConfigSchema,
 });
 

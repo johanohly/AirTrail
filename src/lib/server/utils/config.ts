@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/db';
+import { getDefaultAppMapStyleUrl } from '$lib/map/app-style';
 import { type DeepBoolean, deepSetAllValues } from '$lib/utils';
 import { deepMerge, removeUndefined, mapSetValues } from '$lib/utils/other';
 import { appConfigSchema, clientAppConfigSchema } from '$lib/zod/config';
@@ -89,6 +90,10 @@ export class AppConfig {
         },
         integrations: {
           aeroDataBoxKey: null,
+        },
+        map: {
+          lightStyleUrl: getDefaultAppMapStyleUrl('light'),
+          darkStyleUrl: getDefaultAppMapStyleUrl('dark'),
         },
         data: {
           lastSynced: null,
