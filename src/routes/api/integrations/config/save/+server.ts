@@ -17,9 +17,12 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   }
 
   const currentConfig = (await appConfig.get())?.integrations;
-  let { aeroDataBoxKey } = form.data;
+  let { aeroDataBoxKey, openAipKey } = form.data;
   if (typeof aeroDataBoxKey === 'string' && aeroDataBoxKey.trim() === '') {
     aeroDataBoxKey = null;
+  }
+  if (typeof openAipKey === 'string' && openAipKey.trim() === '') {
+    openAipKey = null;
   }
 
   if (
@@ -33,7 +36,20 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     });
   }
 
-  const success = await appConfig.set({ integrations: { aeroDataBoxKey } });
+  if (
+    currentConfig &&
+    openAipKey !== currentConfig.openAipKey &&
+    appConfig.envConfigured?.integrations?.openAipKey
+  ) {
+    return error(500, {
+      message:
+        'This config field is controlled by the .env file and cannot be changed here.',
+    });
+  }
+
+  const success = await appConfig.set({
+    integrations: { aeroDataBoxKey, openAipKey },
+  });
 
   if (!success) {
     form.message = {

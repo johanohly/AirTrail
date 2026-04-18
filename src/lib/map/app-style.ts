@@ -3,6 +3,10 @@ import {
   getAirportGatePillImageId,
 } from '$lib/map/airport-style';
 import { normalizeCartoTheme } from '$lib/map/carto';
+import {
+  getOpenAipPatternImages,
+  getOpenAipSymbolImages,
+} from '$lib/map/openaip';
 import type { CustomImageSpec } from 'svelte-maplibre';
 
 type AppMapConfig = {
@@ -28,7 +32,12 @@ export const getConfiguredAppMapStyleUrl = (
   return config?.lightStyleUrl || getDefaultAppMapStyleUrl(normalizedTheme);
 };
 
-export const getAppMapImages = (base = ''): CustomImageSpec[] => {
+export const getAppMapImages = (
+  base = '',
+  theme = 'light',
+): CustomImageSpec[] => {
+  const normalizedTheme = normalizeCartoTheme(theme);
+
   return [
     {
       id: getAirportGatePillImageId('light'),
@@ -44,5 +53,7 @@ export const getAppMapImages = (base = ''): CustomImageSpec[] => {
         pixelRatio: 2,
       },
     },
+    ...getOpenAipPatternImages(),
+    ...getOpenAipSymbolImages(normalizedTheme),
   ];
 };

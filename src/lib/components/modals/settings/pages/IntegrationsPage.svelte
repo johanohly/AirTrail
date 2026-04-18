@@ -16,7 +16,7 @@
 
   const form = superForm(
     defaults<Infer<typeof integrationsConfigSchema>>(
-      { aeroDataBoxKey: null },
+      { aeroDataBoxKey: null, openAipKey: null },
       zod(integrationsConfigSchema),
     ),
     {
@@ -37,6 +37,7 @@
   const { form: formData, enhance } = form;
 
   let savedKey: string | null = $state(null);
+  let savedOpenAipKey: string | null = $state(null);
 
   onMount(async () => {
     try {
@@ -44,7 +45,9 @@
       if (res.ok) {
         const data = await res.json();
         savedKey = data.aeroDataBoxKey ?? null;
+        savedOpenAipKey = data.openAipKey ?? null;
         $formData.aeroDataBoxKey = savedKey ?? '';
+        $formData.openAipKey = savedOpenAipKey ?? '';
       }
     } catch (e) {
       // ignore
@@ -54,7 +57,9 @@
   const changes = $derived.by(() => {
     const current = $formData.aeroDataBoxKey ?? '';
     const base = savedKey ?? '';
-    return current !== base;
+    const currentOpenAip = $formData.openAipKey ?? '';
+    const baseOpenAip = savedOpenAipKey ?? '';
+    return current !== base || currentOpenAip !== baseOpenAip;
   });
 </script>
 
@@ -102,6 +107,39 @@
         <Form.FieldErrors />
       </Form.Field>
     </Locked>
+
+    <Locked
+      locked={appConfig.envConfigured?.integrations?.openAipKey ?? false}
+      tooltip={lockedTooltip}
+    >
+      <Form.Field {form} name="openAipKey">
+        <Form.Control>
+          {#snippet children({ props })}
+            <Form.Label>
+              OpenAIP API Key
+              <a
+                href="https://www.openaip.net/docs"
+                target="_blank"
+                title="More info"
+              >
+                <Info class="text-primary inline-block" size={15} />
+              </a>
+            </Form.Label>
+            <Form.Description>
+              API key for the OpenAIP public API, used to proxy optional
+              aeronautical overlay tiles on the main map.
+            </Form.Description>
+            <Input
+              bind:value={$formData.openAipKey}
+              {...props}
+              placeholder="Enter your OpenAIP API key"
+            />
+          {/snippet}
+        </Form.Control>
+        <Form.FieldErrors />
+      </Form.Field>
+    </Locked>
+
     <Form.Button disabled={!changes}>Save</Form.Button>
   </form>
 </PageHeader>

@@ -16,6 +16,7 @@ export const oauthConfigSchema = z.object({
 
 export const integrationsConfigSchema = z.object({
   aeroDataBoxKey: z.string().nullable(),
+  openAipKey: z.string().nullable(),
 });
 
 export const mapConfigSchema = z.object({
@@ -44,5 +45,6 @@ export const clientAppConfigSchema = appConfigSchema.extend({
   oauth: appConfigSchema.shape.oauth.omit({ clientSecret: true }),
   integrations: appConfigSchema.shape.integrations.omit({
     aeroDataBoxKey: true,
+    openAipKey: true,
   }),
 });

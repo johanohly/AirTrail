@@ -12,6 +12,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 
   const config = await appConfig.get();
   const aeroDataBoxKey = config?.integrations?.aeroDataBoxKey ?? null;
+  const openAipKey = config?.integrations?.openAipKey ?? null;
 
-  return json({ aeroDataBoxKey });
+  return json({ aeroDataBoxKey, openAipKey });
 };

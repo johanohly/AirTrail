@@ -90,6 +90,7 @@ export class AppConfig {
         },
         integrations: {
           aeroDataBoxKey: null,
+          openAipKey: null,
         },
         map: {
           lightStyleUrl: getDefaultAppMapStyleUrl('light'),
