@@ -1,0 +1,47 @@
+---
+title: OpenAIP
+---
+
+OpenAIP provides the optional aeronautical overlay on the main map: airspaces, airports, navaids, and reporting points.
+
+## Why Use OpenAIP?
+
+AirTrail's map works fine without OpenAIP, but enabling it adds:
+
+- **Airspaces**: class A/B/C/D, TMA, CTR, restricted, prohibited, danger zones
+- **Airspace labels**: identifiers and vertical limits drawn over the polygons
+- **Airports**: runway-accurate symbols for paved, unpaved, military, heliports, gliding sites, etc.
+- **Navaids**: VOR, VOR/DME, VORTAC, NDB, TACAN, DME compass roses
+- **Reporting points**: compulsory and on-request VFR reporting points
+
+Each category can be toggled independently from the **layers** button in the top-left of the map.
+
+## Setup
+
+- Optional by default: the overlay is hidden for everyone until an API key is provided.
+- Where to set the key:
+  - In the app (admins only): Settings → Integrations → "OpenAIP API Key".
+  - Or via environment variable: set `INTEGRATIONS_OPEN_AIP_KEY` and restart the server.
+- Get a key: sign in at [https://www.openaip.net/](https://www.openaip.net/) and generate a client ID under your account's API settings.
+- Server‑side only usage: the API key is kept on the server and never exposed to regular users.
+- Admin visibility only: the key is only ever sent to the frontend when requested by an authenticated admin (used to prefill the field in Settings). Requests by non‑admins are rejected.
+- Proxied tile requests: vector tiles are fetched by the AirTrail server, which adds the API key before calling OpenAIP. The browser never talks to OpenAIP directly.
+
+### What happens without a key?
+
+- The layers popover hides the OpenAIP section for regular users.
+- Admins see a placeholder with a shortcut to the integration settings.
+- The rest of the map continues to work normally.
+
+## Customizing what's shown
+
+Open the **layers** popover (top-left of the map) to:
+
+- Toggle the whole overlay on or off with the master switch
+- Tap individual category tiles (airspaces, labels, airports, navaids, reporting points) to add or remove them
+
+Your selections are saved per browser, so they persist across reloads and don't affect other users.
+
+## Attribution
+
+OpenAIP data is licensed under CC BY-NC-SA. The overlay is intended for situational awareness only and is **not** a substitute for official aeronautical charts or briefings.

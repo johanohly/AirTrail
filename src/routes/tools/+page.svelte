@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CopyMinus, Database, Map } from '@o7/icon/lucide';
+  import { CopyMinus, Database } from '@o7/icon/lucide';
 
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
@@ -31,18 +31,6 @@
         <p class="text-sm font-medium leading-none">Remove Duplicates</p>
         <p class="text-muted-foreground text-sm">
           Find and remove duplicate flights.
-        </p>
-      </div>
-    </a>
-    <a
-      href="/tools/airport-style"
-      class="flex items-center space-x-4 rounded-md border p-4 transition-colors hover:bg-card-hover"
-    >
-      <Map />
-      <div class="space-y-1">
-        <p class="text-sm font-medium leading-none">Airport Style</p>
-        <p class="text-muted-foreground text-sm">
-          Preview the owned airport overlay on top of the CARTO basemap at CPH.
         </p>
       </div>
     </a>

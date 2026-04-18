@@ -11,17 +11,6 @@ export const supportsMapWebGL = () => {
   );
 };
 
-export const loadBooleanMapPreference = (storageKey: string) => {
-  return localStorage.getItem(storageKey) === 'true';
-};
-
-export const storeBooleanMapPreference = (
-  storageKey: string,
-  value: boolean,
-) => {
-  localStorage.setItem(storageKey, value ? 'true' : 'false');
-};
-
 export const applyStyleLayerVisibility = (
   map: maplibregl.Map,
   layerIds: string[],

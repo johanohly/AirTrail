@@ -17,6 +17,7 @@
   import { base } from '$app/paths';
 
   import { AirportsArcsLayer } from '.';
+  import MapAppearanceControl from './MapAppearanceControl.svelte';
   import MapFallback from './MapFallback.svelte';
   import OpenAipOverlay from './OpenAipOverlay.svelte';
 
@@ -28,19 +29,18 @@
     getConfiguredAppMapStyleUrl,
   } from '$lib/map/app-style';
   import {
+    initMapPreferences,
+    mapPreferences,
+  } from '$lib/map/map-preferences.svelte';
+  import {
     getOpenAipOverlayLayers,
-    OPENAIP_DEFAULT_ENABLED_GROUPS,
-    OPENAIP_OVERLAY_STORAGE_KEY,
     OPENAIP_TILE_URL_TEMPLATE,
-    type OpenAipOverlayGroup,
     type OpenAipTheme,
   } from '$lib/map/openaip';
   import { registerPmtilesProtocol } from '$lib/map/pmtiles';
   import {
     bindRuntimeMapImages,
     bindStyleLayerVisibility,
-    loadBooleanMapPreference,
-    storeBooleanMapPreference,
     supportsMapWebGL,
   } from '$lib/map/runtime';
   import { appConfig, flightScopeState } from '$lib/state.svelte';
@@ -67,21 +67,17 @@
     filteredFlights,
     filters = $bindable(),
     tempFilters = $bindable(),
-    openAipGroups = $bindable([...OPENAIP_DEFAULT_ENABLED_GROUPS]),
   }: {
     flights: FlightData[];
     filteredFlights: FlightData[];
     filters?: FlightFilters;
     tempFilters?: TempFilters;
-    openAipGroups?: OpenAipOverlayGroup[];
   } = $props();
 
   const showScopeBanner = $derived(flightScopeState.scope !== 'mine');
 
   let map: maplibregl.Map | undefined = $state(undefined);
   let canRenderMap = $state(!browser);
-  let openAipEnabled = $state(false);
-  let openAipPreferenceLoaded = $state(false);
   const style = $derived(
     getConfiguredAppMapStyleUrl(mode.current, appConfig.config?.map),
   );
@@ -89,11 +85,14 @@
   const openAipTheme = $derived(
     (mode.current === 'dark' ? 'dark' : 'light') as OpenAipTheme,
   );
-  const showOpenAipToggle = $derived(
+  const openAipConfigured = $derived(
     !!appConfig.configured?.integrations?.openAipKey,
   );
+  const openAipActive = $derived(
+    openAipConfigured && mapPreferences.openAipEnabled,
+  );
   const openAipLayers = $derived(
-    getOpenAipOverlayLayers(openAipGroups, openAipTheme),
+    getOpenAipOverlayLayers(mapPreferences.openAipGroups, openAipTheme),
   );
   const usingDefaultAppStyle = $derived(
     style === getDefaultAppMapStyleUrl(mode.current),
@@ -168,28 +167,14 @@
   });
 
   $effect(() => {
-    if (showOpenAipToggle) {
-      return;
-    }
-
-    openAipEnabled = false;
-  });
-
-  $effect(() => {
-    if (!browser || !openAipPreferenceLoaded) {
-      return;
-    }
-
-    storeBooleanMapPreference(OPENAIP_OVERLAY_STORAGE_KEY, openAipEnabled);
-  });
-
-  $effect(() => {
     if (!map) {
       return;
     }
 
+    const openAipAirportsActive =
+      openAipActive && mapPreferences.openAipGroups.includes('airports');
     const visibility =
-      openAipEnabled && usingDefaultAppStyle ? 'none' : 'visible';
+      openAipAirportsActive && usingDefaultAppStyle ? 'none' : 'visible';
 
     return bindStyleLayerVisibility(
       map,
@@ -208,8 +193,7 @@
 
   onMount(() => {
     canRenderMap = supportsMapWebGL();
-    openAipEnabled = loadBooleanMapPreference(OPENAIP_OVERLAY_STORAGE_KEY);
-    openAipPreferenceLoaded = true;
+    initMapPreferences();
   });
 </script>
 
@@ -236,27 +220,11 @@
     <AttributionControl compact={true} />
     <NavigationControl />
     <GeolocateControl />
-    {#if showOpenAipToggle}
-      <Control position="top-left">
-        <ControlGroup>
-          <ControlButton
-            onclick={() => {
-              openAipEnabled = !openAipEnabled;
-            }}
-            title={openAipEnabled
-              ? 'Hide OpenAIP airspaces overlay'
-              : 'Show OpenAIP airspaces overlay'}
-          >
-            <span
-              class="text-[11px] font-semibold tracking-wide"
-              class:text-primary={openAipEnabled}
-            >
-              AIP
-            </span>
-          </ControlButton>
-        </ControlGroup>
-      </Control>
-    {/if}
+    <Control position="top-left">
+      <ControlGroup>
+        <MapAppearanceControl {openAipConfigured} />
+      </ControlGroup>
+    </Control>
     {#if flights.length}
       <Control position="top-left">
         <ControlGroup>
@@ -299,7 +267,7 @@
       </Control>
     {/if}
 
-    {#if openAipEnabled && showOpenAipToggle}
+    {#if openAipActive}
       <OpenAipOverlay
         tileUrlTemplate={openAipTileUrlTemplate}
         layers={openAipLayers}

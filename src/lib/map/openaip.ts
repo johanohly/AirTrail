@@ -27,7 +27,6 @@ const OPENAIP_SYMBOL_SVGS = import.meta.glob(
 export const OPENAIP_TILE_ROUTE_PATH = '/api/map-styles/openaip/tiles';
 export const OPENAIP_TILE_URL_TEMPLATE = `${OPENAIP_TILE_ROUTE_PATH}/{z}/{x}/{y}`;
 export const OPENAIP_AIRSPACE_SOURCE_ID = 'openaip-airspaces';
-export const OPENAIP_OVERLAY_STORAGE_KEY = 'airtrail:map:openaip-overlay';
 
 export const OPENAIP_OVERLAY_GROUPS = [
   'airspaces',

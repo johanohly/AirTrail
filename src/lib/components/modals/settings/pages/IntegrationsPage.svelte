@@ -118,7 +118,7 @@
             <Form.Label>
               OpenAIP API Key
               <a
-                href="https://www.openaip.net/docs"
+                href="https://airtrail.johan.ohly.dk/docs/integrations/openaip"
                 target="_blank"
                 title="More info"
               >
