@@ -72,6 +72,7 @@ export const prepareFlightArcData = (data: FlightData[]) => {
       flights: ReturnType<typeof formatSimpleFlight>[];
       airlines: number[];
       exclusivelyFuture: boolean;
+      frequency: number;
     };
   } = {};
 
@@ -89,6 +90,7 @@ export const prepareFlightArcData = (data: FlightData[]) => {
         flights: [],
         airlines: [],
         exclusivelyFuture: false,
+        frequency: 1,
       };
     }
 
@@ -109,7 +111,21 @@ export const prepareFlightArcData = (data: FlightData[]) => {
     }
   });
 
-  return Object.values(routeMap);
+  const routes = Object.values(routeMap);
+
+  const MIN_FREQUENCY = 1;
+  const MAX_FREQUENCY = 3;
+  const counts = routes.map((r) => r.flights.length);
+  const rawMin = counts.length ? Math.min(...counts) : 0;
+  const rawMax = counts.length ? Math.max(...counts) : 0;
+  const span = rawMax - rawMin || 1;
+
+  routes.forEach((r) => {
+    const normalised = (r.flights.length - rawMin) / span;
+    r.frequency = normalised * (MAX_FREQUENCY - MIN_FREQUENCY) + MIN_FREQUENCY;
+  });
+
+  return routes;
 };
 
 export const prepareVisitedAirports = (data: FlightData[]) => {

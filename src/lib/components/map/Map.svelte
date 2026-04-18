@@ -2,7 +2,7 @@
   import { Funnel, Fullscreen, Undo2 } from '@o7/icon/lucide';
   import maplibregl from 'maplibre-gl';
   import { mode } from 'mode-watcher';
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import {
     AttributionControl,
     Control,
@@ -14,13 +14,36 @@
   } from 'svelte-maplibre';
 
   import { browser } from '$app/environment';
+  import { base } from '$app/paths';
 
   import { AirportsArcsLayer } from '.';
+  import MapAppearanceControl from './MapAppearanceControl.svelte';
   import MapFallback from './MapFallback.svelte';
+  import OpenAipOverlay from './OpenAipOverlay.svelte';
 
   import AdminScopeBanner from '$lib/components/admin/AdminScopeBanner.svelte';
   import Filters from '$lib/components/flight-filters/Filters.svelte';
-  import { flightScopeState } from '$lib/state.svelte';
+  import {
+    getDefaultAppMapStyleUrl,
+    getAppMapImages,
+    getConfiguredAppMapStyleUrl,
+  } from '$lib/map/app-style';
+  import {
+    initMapPreferences,
+    mapPreferences,
+  } from '$lib/map/map-preferences.svelte';
+  import {
+    getOpenAipOverlayLayers,
+    OPENAIP_TILE_URL_TEMPLATE,
+    type OpenAipTheme,
+  } from '$lib/map/openaip';
+  import { registerPmtilesProtocol } from '$lib/map/pmtiles';
+  import {
+    bindRuntimeMapImages,
+    bindStyleLayerVisibility,
+    supportsMapWebGL,
+  } from '$lib/map/runtime';
+  import { appConfig, flightScopeState } from '$lib/state.svelte';
   import {
     defaultFilters,
     type FlightFilters,
@@ -35,6 +58,9 @@
   } from '$lib/utils';
 
   const { GlobeControl } = maplibregl;
+  const unregisterPmtiles = browser ? registerPmtilesProtocol() : null;
+
+  onDestroy(() => unregisterPmtiles?.());
 
   let {
     flights,
@@ -53,22 +79,30 @@
   let map: maplibregl.Map | undefined = $state(undefined);
   let canRenderMap = $state(!browser);
   const style = $derived(
-    mode.current === 'light'
-      ? 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
-      : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    getConfiguredAppMapStyleUrl(mode.current, appConfig.config?.map),
   );
-
-  const supportsWebGL = () => {
-    if (!browser) return true;
-
-    const canvas = document.createElement('canvas');
-
-    return !!(
-      canvas.getContext('webgl2') ||
-      canvas.getContext('webgl') ||
-      canvas.getContext('experimental-webgl')
-    );
-  };
+  const images = $derived(getAppMapImages(base, mode.current));
+  const openAipTheme = $derived(
+    (mode.current === 'dark' ? 'dark' : 'light') as OpenAipTheme,
+  );
+  const openAipConfigured = $derived(
+    !!appConfig.configured?.integrations?.openAipKey,
+  );
+  const openAipActive = $derived(
+    openAipConfigured && mapPreferences.openAipEnabled,
+  );
+  const openAipLayers = $derived(
+    getOpenAipOverlayLayers(mapPreferences.openAipGroups, openAipTheme),
+  );
+  const usingDefaultAppStyle = $derived(
+    style === getDefaultAppMapStyleUrl(mode.current),
+  );
+  const openAipTileUrlTemplate = $derived(
+    browser
+      ? `${window.location.origin}${base}${OPENAIP_TILE_URL_TEMPLATE}`
+      : `${base}${OPENAIP_TILE_URL_TEMPLATE}`,
+  );
+  const hiddenAirportLabelLayerIds = ['airport-overlay-name-label'];
 
   const flightArcs = $derived.by(() => {
     return prepareFlightArcData(filteredFlights);
@@ -132,8 +166,34 @@
     }
   });
 
+  $effect(() => {
+    if (!map) {
+      return;
+    }
+
+    const openAipAirportsActive =
+      openAipActive && mapPreferences.openAipGroups.includes('airports');
+    const visibility =
+      openAipAirportsActive && usingDefaultAppStyle ? 'none' : 'visible';
+
+    return bindStyleLayerVisibility(
+      map,
+      hiddenAirportLabelLayerIds,
+      visibility,
+    );
+  });
+
+  $effect(() => {
+    if (!map) {
+      return;
+    }
+
+    return bindRuntimeMapImages(map, images);
+  });
+
   onMount(() => {
-    canRenderMap = supportsWebGL();
+    canRenderMap = supportsMapWebGL();
+    initMapPreferences();
   });
 </script>
 
@@ -160,6 +220,11 @@
     <AttributionControl compact={true} />
     <NavigationControl />
     <GeolocateControl />
+    <Control position="top-left">
+      <ControlGroup>
+        <MapAppearanceControl {openAipConfigured} />
+      </ControlGroup>
+    </Control>
     {#if flights.length}
       <Control position="top-left">
         <ControlGroup>
@@ -200,6 +265,13 @@
           </div>
         {/if}
       </Control>
+    {/if}
+
+    {#if openAipActive}
+      <OpenAipOverlay
+        tileUrlTemplate={openAipTileUrlTemplate}
+        layers={openAipLayers}
+      />
     {/if}
 
     <AirportsArcsLayer

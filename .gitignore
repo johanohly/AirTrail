@@ -1,5 +1,7 @@
 .env
 
+/static/airport-overlay.pmtiles
+
 /build
 
 /test-results/

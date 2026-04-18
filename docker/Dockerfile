@@ -1,3 +1,5 @@
+FROM johly/airtrail-airport-overlay:2026.4.18@sha256:3c2395defd27d9f45a92e0da1ab5f453c382a23d6c676ca4e7e490aa647d75e5 AS airport_overlay
+
 FROM oven/bun:debian AS base
 WORKDIR /app
 
@@ -21,6 +23,7 @@ FROM node:22-slim AS release
 WORKDIR /app
 COPY --from=install /temp/prod/node_modules node_modules
 COPY --from=build /app/build build
+COPY --from=airport_overlay /airport-overlay.pmtiles /app/build/client/airport-overlay.pmtiles
 COPY --from=build /app/package.json .
 COPY --from=build /app/prisma/migrations ./prisma/migrations
 

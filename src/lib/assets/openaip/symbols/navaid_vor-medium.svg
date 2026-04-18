@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="15px" height="14px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-miterlimit:1.41421;">
+    <g id="Page-1" transform="matrix(0.0123762,0,0,0.0123762,0,0)">
+        <path id="Oval-3" d="M611.5,650c65.998,0 119.5,-53.726 119.5,-120c0,-66.274 -53.502,-120 -119.5,-120c-65.998,0 -119.5,53.726 -119.5,120c0,66.274 53.502,120 119.5,120Z" style="fill:#000;"/>
+        <g id="Polygon-1" transform="matrix(-3.82857e-16,-1,1,-3.82857e-16,81,1141)">
+            <path d="M611,-60l510.955,295l0,590l-510.955,295l-510.955,-295l0,-590l510.955,-295Z" style="fill:#dfdfdf;fill-opacity:0;stroke-width:100px;stroke:#000;"/>
+        </g>
+    </g>
+</svg>

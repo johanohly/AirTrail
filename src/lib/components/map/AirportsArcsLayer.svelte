@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { PickingInfo, Color } from '@deck.gl/core';
+  import type { Layer, PickingInfo, Color } from '@deck.gl/core';
   import { ArcLayer, ScatterplotLayer } from '@deck.gl/layers';
   import { MapboxOverlay } from '@deck.gl/mapbox';
   import { onDestroy } from 'svelte';
@@ -18,6 +18,7 @@
     normalizeRoute,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
+  import { mapPreferences } from '$lib/map/map-preferences.svelte';
   import { openModalsState } from '$lib/state.svelte';
   import {
     type FlightData,
@@ -188,28 +189,62 @@
     };
   };
 
-  const airportOptions = $derived({
-    id: 'scatterplot-layer',
-    data: visitedAirports,
-    getPosition: (airport: VisitedAirport) => [airport.lon, airport.lat],
-    getRadius: (airport: VisitedAirport) =>
-      airport.frequency * ($isMediumScreen ? 50_000 : 100_000),
-    radiusMaxPixels: 100,
-    lineWidthUnits: 'pixels',
-    getLineWidth: 1,
-    pickable: true,
-    onHover: handleAirportHover,
-    onClick: handleAirportClick,
-    getFillColor: getAirportFillColor(),
-    getLineColor: getAirportLineColor(),
-    updateTriggers: {
-      getFillColor: [hoveredArc, hoveredAirport],
-      getLineColor: [hoveredArc, hoveredAirport],
-    },
-    stroked: true,
+  const AIRPORT_CIRCLE_SIZE = {
+    small: { scale: 0.4, maxPixels: 45 },
+    medium: { scale: 0.7, maxPixels: 70 },
+    large: { scale: 1, maxPixels: 100 },
+  } as const;
+
+  const UNIFORM_ARC_WIDTH = {
+    thin: 1,
+    normal: 2,
+    thick: 4,
+  } as const;
+
+  const FREQUENCY_ARC_MULTIPLIER = {
+    thin: 0.8,
+    normal: 1.5,
+    thick: 2.5,
+  } as const;
+
+  const getArcWidth = (d: FlightArc) => {
+    if (mapPreferences.arcThickness === 'byFrequency') {
+      return (
+        d.frequency * FREQUENCY_ARC_MULTIPLIER[mapPreferences.arcThicknessScale]
+      );
+    }
+    return UNIFORM_ARC_WIDTH[mapPreferences.arcThicknessScale];
+  };
+
+  const airportOptions = $derived.by(() => {
+    const mode = mapPreferences.airportCircles;
+    const preset =
+      mode === 'off' ? AIRPORT_CIRCLE_SIZE.large : AIRPORT_CIRCLE_SIZE[mode];
+    const baseUnits = $isMediumScreen ? 50_000 : 100_000;
+    return {
+      id: 'scatterplot-layer',
+      data: visitedAirports,
+      getPosition: (airport: VisitedAirport) => [airport.lon, airport.lat],
+      getRadius: (airport: VisitedAirport) =>
+        airport.frequency * baseUnits * preset.scale,
+      radiusMaxPixels: preset.maxPixels,
+      lineWidthUnits: 'pixels',
+      getLineWidth: 1,
+      pickable: true,
+      onHover: handleAirportHover,
+      onClick: handleAirportClick,
+      getFillColor: getAirportFillColor(),
+      getLineColor: getAirportLineColor(),
+      updateTriggers: {
+        getFillColor: [hoveredArc, hoveredAirport],
+        getLineColor: [hoveredArc, hoveredAirport],
+        getRadius: [mode, $isMediumScreen],
+      },
+      stroked: true,
+    };
   });
 
-  const arcOptions = $derived({
+  const arcOptions = $derived.by(() => ({
     id: 'arc-layer',
     data: flightArcs,
     getSourcePosition: (data: FlightArc) => [data.from.lon, data.from.lat],
@@ -219,11 +254,12 @@
     updateTriggers: {
       getSourceColor: [hoveredArc, hoveredAirport],
       getTargetColor: [hoveredArc, hoveredAirport],
+      getWidth: [mapPreferences.arcThickness, mapPreferences.arcThicknessScale],
     },
-    getWidth: 2,
+    getWidth: getArcWidth,
     getHeight: 0,
     greatCircle: true,
-  });
+  }));
 
   // Actual interactivity is recorded from this (invisible) arc, while the visible arc is for display
   // This allows for a larger hover area while keeping the visual arc thin
@@ -242,15 +278,21 @@
     greatCircle: true,
   });
 
+  const buildLayers = () => {
+    const layers: Layer[] = [];
+    if (mapPreferences.airportCircles !== 'off') {
+      layers.push(new ScatterplotLayer<VisitedAirport>(airportOptions));
+    }
+    layers.push(new ArcLayer(arcOptions));
+    layers.push(new ArcLayer(ghostArcOptions));
+    return layers;
+  };
+
   $effect(() => {
     if (loaded && map && !layer) {
       layer = new MapboxOverlay({
         id,
-        layers: [
-          new ScatterplotLayer<VisitedAirport>(airportOptions),
-          new ArcLayer(arcOptions),
-          new ArcLayer(ghostArcOptions),
-        ],
+        layers: buildLayers(),
       });
       map.addControl(layer);
       // Prevent the deck.gl overlay from rendering above map controls
@@ -262,11 +304,7 @@
 
   $effect(() => {
     layer?.setProps({
-      layers: [
-        new ScatterplotLayer<VisitedAirport>(airportOptions),
-        new ArcLayer(arcOptions),
-        new ArcLayer(ghostArcOptions),
-      ],
+      layers: buildLayers(),
     });
   });
 </script>

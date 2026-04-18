@@ -1,7 +1,10 @@
 <script lang="ts">
+  import { browser } from '$app/environment';
+  import { base } from '$app/paths';
   import { MapPin } from '@o7/icon/lucide';
   import maplibregl, { type LngLatLike } from 'maplibre-gl';
   import { mode } from 'mode-watcher';
+  import { onDestroy } from 'svelte';
   import {
     AttributionControl,
     FullscreenControl,
@@ -17,6 +20,12 @@
   import * as Select from '$lib/components/ui/select';
   import { COUNTRIES } from '$lib/data/countries';
   import { Continents, ContinentMap } from '$lib/db/types';
+  import {
+    getAppMapImages,
+    getConfiguredAppMapStyleUrl,
+  } from '$lib/map/app-style';
+  import { registerPmtilesProtocol } from '$lib/map/pmtiles';
+  import { appConfig } from '$lib/state.svelte';
   import { cn } from '$lib/utils';
   import { countryFromAlpha2 } from '$lib/utils/data/countries';
   import type { airportSchema } from '$lib/zod/airport';
@@ -24,13 +33,15 @@
   const { form }: { form: SuperForm<Infer<typeof airportSchema>> } = $props();
 
   const { form: formData, errors } = form;
+  const unregisterPmtiles = browser ? registerPmtilesProtocol() : null;
+
+  onDestroy(() => unregisterPmtiles?.());
 
   let map: maplibregl.Map | undefined = $state(undefined);
   const style = $derived(
-    mode.current === 'light'
-      ? 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
-      : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    getConfiguredAppMapStyleUrl(mode.current, appConfig.config?.map),
   );
+  const images = $derived(getAppMapImages(base, mode.current));
 
   let marker: LngLatLike | null = $state(
     !$formData.lon && !$formData.lat
@@ -64,6 +75,7 @@
   bind:map
   onclick={markLocation}
   {style}
+  {images}
   diffStyleUpdates
   cooperativeGestures
   class="relative aspect-9/16 max-h-[70vh] w-full sm:aspect-video sm:max-h-full"
