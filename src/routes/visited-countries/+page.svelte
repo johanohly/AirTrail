@@ -4,6 +4,7 @@
   import { RefreshCw } from '@o7/icon/lucide';
   import maplibregl from 'maplibre-gl';
   import { mode } from 'mode-watcher';
+  import { onDestroy } from 'svelte';
   import {
     MapLibre,
     Control,
@@ -34,9 +35,9 @@
   import { pluralize } from '$lib/utils';
   import { countryFromAlpha3 } from '$lib/utils/data/countries';
 
-  if (browser) {
-    registerPmtilesProtocol();
-  }
+  const unregisterPmtiles = browser ? registerPmtilesProtocol() : null;
+
+  onDestroy(() => unregisterPmtiles?.());
 
   const countriesResult = trpc.visitedCountries.list.query();
   const countries = $derived.by(() => $countriesResult.data || []);

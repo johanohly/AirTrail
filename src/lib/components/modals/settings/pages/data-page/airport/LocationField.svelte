@@ -41,7 +41,7 @@
   const style = $derived(
     getConfiguredAppMapStyleUrl(mode.current, appConfig.config?.map),
   );
-  const images = $derived(getAppMapImages(base));
+  const images = $derived(getAppMapImages(base, mode.current));
 
   let marker: LngLatLike | null = $state(
     !$formData.lon && !$formData.lat

@@ -62,7 +62,13 @@ const parseArgs = (argv) => {
       continue;
     }
 
-    const [flag, rawValue] = arg.split('=', 2);
+    const separatorIndex = arg.indexOf('=');
+    if (separatorIndex === -1) {
+      throw new Error(`Expected --flag=value format, received '${arg}'`);
+    }
+
+    const flag = arg.slice(0, separatorIndex);
+    const rawValue = arg.slice(separatorIndex + 1);
     if (!rawValue) {
       throw new Error(`Expected --flag=value format, received '${arg}'`);
     }

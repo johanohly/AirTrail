@@ -267,6 +267,12 @@ const createOpenAipSvgStyleImage = (
   let data = new Uint8Array(width * height * 4);
   let needsUpdate = false;
   let objectUrl: string | null = null;
+  const revokeObjectUrl = () => {
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl);
+      objectUrl = null;
+    }
+  };
 
   return {
     width,
@@ -308,11 +314,9 @@ const createOpenAipSvgStyleImage = (
         data = new Uint8Array(imageData.data);
         needsUpdate = true;
         map.triggerRepaint();
-        if (objectUrl) {
-          URL.revokeObjectURL(objectUrl);
-          objectUrl = null;
-        }
+        revokeObjectUrl();
       };
+      image.onerror = () => revokeObjectUrl();
 
       objectUrl = URL.createObjectURL(
         new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }),
@@ -328,10 +332,7 @@ const createOpenAipSvgStyleImage = (
       return true;
     },
     onRemove() {
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-        objectUrl = null;
-      }
+      revokeObjectUrl();
     },
   };
 };

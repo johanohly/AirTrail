@@ -24,7 +24,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
       form.data[key] !== currentConfig[key] &&
       appConfig.envConfigured?.map?.[key]
     ) {
-      return error(500, {
+      return error(403, {
         message:
           'This config field is controlled by the .env file and cannot be changed here.',
       });

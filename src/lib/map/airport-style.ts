@@ -1,10 +1,3 @@
-import {
-  AIRPORT_OVERLAY_CENTER,
-  AIRPORT_OVERLAY_DEFAULT_ZOOM,
-  AIRPORT_OVERLAY_MAXZOOM,
-  AIRPORT_OVERLAY_PMTILES_PATH,
-  AIRPORT_OVERLAY_SOURCE_ID,
-} from '$lib/map/airport-overlay';
 import { normalizeCartoTheme } from '$lib/map/carto';
 
 export const AIRPORT_STYLE_ROUTE_PATH = '/api/map-styles/airport/style.json';
@@ -13,7 +6,7 @@ export const getAirportGatePillImageId = (theme: string) =>
     ? 'airport-gate-pill-dark'
     : 'airport-gate-pill-light';
 
-const AIRPORT_SOURCE = AIRPORT_OVERLAY_SOURCE_ID;
+const AIRPORT_SOURCE = 'airport-overlay';
 const AIRPORT_FILL = '#ededed';
 const AIRPORT_FILL_DARK = '#e4e4e4';
 const AIRPORT_OUTLINE = '#d0d0d0';
@@ -656,8 +649,7 @@ export const buildPmtilesAirportStyle = (
     ...(rewrittenStyle.sources ?? {}),
     [AIRPORT_SOURCE]: {
       type: 'vector',
-      url: `pmtiles://${AIRPORT_OVERLAY_PMTILES_PATH}`,
-      maxzoom: AIRPORT_OVERLAY_MAXZOOM,
+      url: 'pmtiles:///airport-overlay.pmtiles',
     },
   };
 
