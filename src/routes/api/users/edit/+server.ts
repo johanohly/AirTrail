@@ -36,7 +36,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   }
 
   if (updatedFields.username) {
-    const exists = await usernameExists(updatedFields.username);
+    const exists = await usernameExists(updatedFields.username, user.id);
     if (exists) {
       setError(form, 'username', 'Username already exists');
       return actionResult('failure', { form });

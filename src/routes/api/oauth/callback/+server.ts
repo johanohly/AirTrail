@@ -7,7 +7,7 @@ import type { RequestHandler } from './$types';
 
 import { db, type User } from '$lib/db';
 import { lucia } from '$lib/server/auth';
-import { createSession } from '$lib/server/utils/auth';
+import { createSession, getUser } from '$lib/server/utils/auth';
 import { appConfig } from '$lib/server/utils/config';
 import { getOAuthProfile } from '$lib/server/utils/oauth';
 
@@ -74,23 +74,18 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
 
   // Case 3: User has not logged in via OAuth before, but has an account (we assume the username is owned by the user)
   if (!user && profile.preferred_username) {
-    const usernameUser = await db
-      .selectFrom('user')
-      .selectAll()
-      .where('username', '=', profile.preferred_username)
-      .executeTakeFirst();
+    const usernameUser = await getUser(profile.preferred_username);
     if (usernameUser) {
-      if (usernameUser.oauthId) {
-        throw new Error(
-          'Username already taken, and is linked to another account',
-        );
+      if (usernameUser.oauthId !== profile.sub) {
+        user = await db
+          .updateTable('user')
+          .set('oauthId', profile.sub)
+          .where('id', '=', usernameUser.id)
+          .returningAll()
+          .executeTakeFirst();
+      } else {
+        user = usernameUser;
       }
-      user = await db
-        .updateTable('user')
-        .set('oauthId', profile.sub)
-        .where('id', '=', usernameUser.id)
-        .returningAll()
-        .executeTakeFirst();
     }
   }
 
