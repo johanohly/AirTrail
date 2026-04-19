@@ -22,8 +22,26 @@ paths:
       tags:
         - 'Flight'
       summary: 'List flights'
-      description: 'List all your flights.'
+      description: "List flights visible to the authenticated API key. Regular users can only list their own flights. Admins and owners can also request a specific user's flights or all flights."
       operationId: 'list-flights'
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          description: 'Which flights to return. `mine` is the default. `user` and `all` require an admin or owner API key.'
+          schema:
+            type: string
+            enum:
+              - 'mine'
+              - 'user'
+              - 'all'
+            default: 'mine'
+        - name: userId
+          in: query
+          required: false
+          description: 'The user ID whose flights should be returned when `scope=user`.'
+          schema:
+            type: string
       responses:
         '200':
           description: 'A list of flights'
@@ -36,8 +54,23 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Flight'
+        '400':
+          description: 'Invalid query parameters'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 'Invalid scope'
         '401':
           '$ref': '#/components/responses/401'
+        '403':
+          '$ref': '#/components/responses/403'
         '500':
           '$ref': '#/components/responses/500'
       security:
