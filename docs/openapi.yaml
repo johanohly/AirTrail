@@ -322,15 +322,25 @@ components:
           description: 'The arrival airport.'
           $ref: '#/components/schemas/Airport'
         departure:
-          type: string
-          description: 'The departure time in UTC, in ISO 8601 format.'
-          format: date
+          type: [string, 'null']
+          description: 'The stored departure instant in UTC when an exact date/time is known. For partial dates this may be null, and `date` + `datePrecision` carry the canonical date.'
           example: '2021-09-01T23:00:00.000+00:00'
         arrival:
           type: [string, 'null']
-          description: 'The arrival time in UTC, in ISO 8601 format.'
-          format: date
+          description: 'The stored arrival instant in UTC when an exact date/time is known. For partial dates this may be null.'
           example: '2021-09-02T10:00:00.000+00:00'
+        date:
+          type: string
+          description: 'Canonical flight date anchor. Exact dates use YYYY-MM-DD, month-only dates use the first day of the month, and year-only dates use January 1st of that year.'
+          example: '2021-09-02'
+        datePrecision:
+          type: string
+          description: 'How precise the canonical `date` value is.'
+          enum:
+            - 'day'
+            - 'month'
+            - 'year'
+          example: 'day'
         seats:
           type: array
           minItems: 1
@@ -423,18 +433,32 @@ components:
           example: 'EGLL'
         departure:
           type: string
-          description: 'The departure date, in ISO 8601 format.'
-          format: date
+          description: 'The departure date anchor. Accepts either a date-only string (`YYYY-MM-DD`) or a full ISO 8601 datetime. For partial dates, send January 1st for year-only flights and the first day of the month for month-only flights.'
           example: '2022-01-01'
+        datePrecision:
+          type: string
+          description: 'How precise the provided departure/arrival dates are.'
+          enum:
+            - 'day'
+            - 'month'
+            - 'year'
+          default: 'day'
+        departureMonthKnown:
+          type: boolean
+          description: 'Save-endpoint helper flag. Required with `datePrecision=month` to indicate the departure month is intentionally set. Leave false for year-only flights.'
+          default: false
         departureTime:
           type: string
           description: 'The departure time in local airport time. 24- and 12-hour formats are supported.'
           example: '11:30'
         arrival:
           type: string
-          description: 'The arrival date, in ISO 8601 format.'
-          format: date
+          description: 'The arrival date anchor. Accepts either a date-only string (`YYYY-MM-DD`) or a full ISO 8601 datetime. For partial dates, use the same anchoring strategy as `departure`.'
           example: '2022-01-01'
+        arrivalMonthKnown:
+          type: boolean
+          description: 'Save-endpoint helper flag. With `datePrecision=month`, set true only when the arrival month is intentionally set.'
+          default: false
         arrivalTime:
           type: string
           description: 'The arrival time in local airport time. 24- and 12-hour formats are supported.'
@@ -534,18 +558,32 @@ components:
           example: 'EGLL'
         departure:
           type: string
-          description: 'The departure date, in ISO 8601 format.'
-          format: date
+          description: 'The departure date anchor. Accepts either a date-only string (`YYYY-MM-DD`) or a full ISO 8601 datetime. For partial dates, send January 1st for year-only flights and the first day of the month for month-only flights.'
           example: '2022-01-01'
+        datePrecision:
+          type: string
+          description: 'How precise the provided departure/arrival dates are.'
+          enum:
+            - 'day'
+            - 'month'
+            - 'year'
+          default: 'day'
+        departureMonthKnown:
+          type: boolean
+          description: 'Save-endpoint helper flag. Required with `datePrecision=month` to indicate the departure month is intentionally set. Leave false for year-only flights.'
+          default: false
         departureTime:
           type: string
           description: 'The departure time in local airport time. 24- and 12-hour formats are supported.'
           example: '11:30'
         arrival:
           type: string
-          description: 'The arrival date, in ISO 8601 format.'
-          format: date
+          description: 'The arrival date anchor. Accepts either a date-only string (`YYYY-MM-DD`) or a full ISO 8601 datetime. For partial dates, use the same anchoring strategy as `departure`.'
           example: '2022-01-01'
+        arrivalMonthKnown:
+          type: boolean
+          description: 'Save-endpoint helper flag. With `datePrecision=month`, set true only when the arrival month is intentionally set.'
+          default: false
         arrivalTime:
           type: string
           description: 'The arrival time in local airport time. 24- and 12-hour formats are supported.'

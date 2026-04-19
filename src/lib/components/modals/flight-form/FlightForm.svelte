@@ -48,15 +48,72 @@
   });
 
   let showTimetable = $state(false);
+  let partialDateMode = $state($formData.datePrecision !== 'day');
   let prevHasTimetableData = $state(false);
   let preferredMobileTab = $state<TimetableTab>('actual');
   let preferredMobileTabVersion = $state(0);
+
+  const clearDetailedTimetable = () => {
+    formData.update((current) => ({
+      ...current,
+      departureTime: null,
+      arrivalTime: null,
+      departureScheduled: null,
+      departureScheduledTime: null,
+      arrivalScheduled: null,
+      arrivalScheduledTime: null,
+      takeoffScheduled: null,
+      takeoffScheduledTime: null,
+      takeoffActual: null,
+      takeoffActualTime: null,
+      landingScheduled: null,
+      landingScheduledTime: null,
+      landingActual: null,
+      landingActualTime: null,
+    }));
+  };
+
+  const enablePartialDateMode = () => {
+    partialDateMode = true;
+    showTimetable = false;
+    formData.update((current) => ({
+      ...current,
+      datePrecision: current.departure ? 'month' : 'year',
+      departureMonthKnown: !!current.departure,
+      arrivalMonthKnown: !!current.arrival,
+    }));
+    clearDetailedTimetable();
+  };
+
+  const disablePartialDateMode = () => {
+    partialDateMode = false;
+    formData.update((current) => ({
+      ...current,
+      datePrecision: 'day',
+      departureMonthKnown: false,
+      arrivalMonthKnown: false,
+    }));
+  };
 
   function handleLookupApplied(tab: TimetableTab) {
     preferredMobileTab = tab;
     preferredMobileTabVersion += 1;
     showTimetable = true;
+    partialDateMode = false;
   }
+
+  $effect(() => {
+    if (!partialDateMode) return;
+
+    const precision =
+      $formData.departureMonthKnown || $formData.arrivalMonthKnown
+        ? 'month'
+        : 'year';
+
+    if ($formData.datePrecision !== precision) {
+      $formData.datePrecision = precision;
+    }
+  });
 
   // Auto-open timetable when data is populated (e.g., from flight lookup)
   $effect(() => {
@@ -108,7 +165,7 @@
         <FlightNumber {form} onLookupApplied={handleLookupApplied} />
         <AirportField field="from" {form} />
         <AirportField field="to" {form} />
-        {#if showTimetable}
+        {#if showTimetable && !partialDateMode}
           <FlightTimetable
             {form}
             {preferredMobileTab}
@@ -122,15 +179,30 @@
             Use simple departure/arrival inputs
           </button>
         {:else}
-          <DateTimeField field="departure" {form} />
-          <DateTimeField field="arrival" {form} />
-          <button
-            type="button"
-            class="text-xs text-muted-foreground transition hover:text-foreground text-left"
-            onclick={() => (showTimetable = true)}
-          >
-            Add detailed timetable (taxi, takeoff, landing times...)
-          </button>
+          <DateTimeField
+            field="departure"
+            {form}
+            {partialDateMode}
+            onEnablePartialDateMode={enablePartialDateMode}
+          />
+          <DateTimeField field="arrival" {form} {partialDateMode} />
+          {#if partialDateMode}
+            <button
+              type="button"
+              class="text-xs text-muted-foreground transition hover:text-foreground text-left"
+              onclick={disablePartialDateMode}
+            >
+              Use full departure/arrival datetimes
+            </button>
+          {:else}
+            <button
+              type="button"
+              class="text-xs text-muted-foreground transition hover:text-foreground text-left"
+              onclick={() => (showTimetable = true)}
+            >
+              Add detailed timetable (taxi, takeoff, landing times...)
+            </button>
+          {/if}
         {/if}
         {#if durationWarning}
           <p class="text-yellow-500 text-sm font-medium">

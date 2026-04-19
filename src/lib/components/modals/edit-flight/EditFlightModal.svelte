@@ -123,6 +123,9 @@
       typeof flight.raw,
       'id' | 'userId' | 'date' | 'duration'
     >),
+    departureMonthKnown: flight.raw.datePrecision === 'month',
+    arrivalMonthKnown:
+      flight.raw.datePrecision === 'month' && !!flight.raw.arrival,
     departure:
       dep.date ??
       (flight.raw.date

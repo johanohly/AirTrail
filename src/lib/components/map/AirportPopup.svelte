@@ -55,7 +55,12 @@
         <h4 class="font-thin">{flight.route}</h4>
         <h4 class="font-thin">
           {flight.date
-            ? formatAsFlightDate(flight.date, flight.datePrecision ?? 'day', true, true)
+            ? formatAsFlightDate(
+                flight.date,
+                flight.datePrecision ?? 'day',
+                true,
+                true,
+              )
             : ''}
         </h4>
         <h4 class="font-thin">{flight.airline.name}</h4>

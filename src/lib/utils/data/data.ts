@@ -36,11 +36,12 @@ export const prepareFlightData = (data: Flight[]): FlightData[] => {
         flight.datePrecision,
         flight.from?.tz ?? 'UTC',
       );
+      const hasExactDateTime = flight.datePrecision === 'day';
 
       const departure =
-        flight.departure && flight.from
+        hasExactDateTime && flight.departure && flight.from
           ? parseLocalizeISO(flight.departure, flight.from.tz)
-          : flight.departure
+          : hasExactDateTime && flight.departure
             ? parseLocalizeISO(flight.departure, 'UTC')
             : null;
 
@@ -51,9 +52,9 @@ export const prepareFlightData = (data: Flight[]): FlightData[] => {
         dateEnd,
         departure,
         arrival:
-          flight.arrival && flight.to
+          hasExactDateTime && flight.arrival && flight.to
             ? parseLocalizeISO(flight.arrival, flight.to.tz)
-            : flight.arrival
+            : hasExactDateTime && flight.arrival
               ? parseLocalizeISO(flight.arrival, 'UTC')
               : null,
         distance:

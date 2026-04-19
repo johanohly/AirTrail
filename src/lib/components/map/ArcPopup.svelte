@@ -63,11 +63,16 @@
     .sort( (a, b) => (a.date && b.date ? b.date.getTime() - a.date.getTime() : 0), ) as flight}
     <div class="grid grid-cols-[repeat(3,1fr)]">
       <h4 class="font-thin">{flight.route}</h4>
-        <h4 class="font-thin">
-          {flight.date
-            ? formatAsFlightDate(flight.date, flight.datePrecision ?? 'day', true, true)
-            : ''}
-        </h4>
+      <h4 class="font-thin">
+        {flight.date
+          ? formatAsFlightDate(
+              flight.date,
+              flight.datePrecision ?? 'day',
+              true,
+              true,
+            )
+          : ''}
+      </h4>
       <h4 class="font-thin">{flight.airline.name}</h4>
     </div>
   {/each}

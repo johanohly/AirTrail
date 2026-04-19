@@ -45,6 +45,8 @@ export const flightAirportsSchema = z.object({
 
 export const flightDateTimeSchema = z.object({
   datePrecision: z.enum(FlightDatePrecisions).default('day'),
+  departureMonthKnown: z.boolean().default(false),
+  arrivalMonthKnown: z.boolean().default(false),
   departure: z
     .string()
     .datetime({ offset: true, message: 'Select a departure date' })

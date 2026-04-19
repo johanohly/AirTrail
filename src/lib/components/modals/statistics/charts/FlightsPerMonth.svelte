@@ -4,14 +4,12 @@
     Area,
     Axis,
     Chart,
-    ChartClipPath,
     LinearGradient,
     Points,
     Spline,
     Svg,
     Tooltip,
   } from 'layerchart';
-  import { cubicInOut } from 'svelte/easing';
 
   import { MONTHS, SHORT_MONTHS } from '$lib/data/datetime';
   import type { FlightData } from '$lib/utils';

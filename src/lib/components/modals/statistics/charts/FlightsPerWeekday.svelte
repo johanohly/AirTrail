@@ -4,17 +4,18 @@
     Area,
     Axis,
     Chart,
-    ChartClipPath,
     LinearGradient,
     Points,
     Spline,
     Svg,
     Tooltip,
   } from 'layerchart';
-  import { cubicInOut } from 'svelte/easing';
 
   import type { FlightData } from '$lib/utils';
-  import { getStartOfWeekDay, supportsWeekdayBreakdown } from '$lib/utils/datetime';
+  import {
+    getStartOfWeekDay,
+    supportsWeekdayBreakdown,
+  } from '$lib/utils/datetime';
 
   let { flights }: { flights: FlightData[] } = $props();
 

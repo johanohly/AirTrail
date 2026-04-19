@@ -94,9 +94,7 @@ export const getFlightDateRange = (
   };
 };
 
-export const supportsMonthBreakdown = (
-  datePrecision: FlightDatePrecision,
-) => {
+export const supportsMonthBreakdown = (datePrecision: FlightDatePrecision) => {
   return datePrecision !== 'year';
 };
 

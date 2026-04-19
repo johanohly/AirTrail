@@ -155,7 +155,11 @@
         (!f.dateStart ||
           isAfter(
             f.dateStart,
-            getFilterBoundary(filters.toDate, f.dateStart.timeZone ?? 'UTC', true),
+            getFilterBoundary(
+              filters.toDate,
+              f.dateStart.timeZone ?? 'UTC',
+              true,
+            ),
           ))
       ) {
         return false;

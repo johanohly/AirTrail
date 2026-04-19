@@ -1,15 +1,21 @@
 <script lang="ts">
   import { type DateValue, parseDate, Time } from '@internationalized/date';
-  import { CalendarDays } from '@o7/icon/lucide';
+  import { CalendarDays, CalendarMinus } from '@o7/icon/lucide';
   import { DateField } from 'bits-ui';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
 
+  import { MONTHS } from '$lib/data/datetime';
+  import { Button } from '$lib/components/ui/button';
   import { Calendar } from '$lib/components/ui/calendar';
   import * as Form from '$lib/components/ui/form';
+  import { Input } from '$lib/components/ui/input';
+  import { Label } from '$lib/components/ui/label';
   import * as Popover from '$lib/components/ui/popover';
+  import * as Select from '$lib/components/ui/select';
   import { TimeInput } from '$lib/components/ui/time-input';
   import { HelpTooltip } from '$lib/components/ui/tooltip';
+  import * as Tooltip from '$lib/components/ui/tooltip';
   import { cn, toTitleCase } from '$lib/utils';
   import { dateValueFromISO } from '$lib/utils/datetime';
   import { formatTimeValue, parseTimeValue } from '$lib/utils/datetime/time';
@@ -18,14 +24,29 @@
   let {
     field,
     form,
+    partialDateMode = false,
+    onEnablePartialDateMode,
   }: {
     field: 'departure' | 'arrival';
     form: SuperForm<z.infer<typeof flightSchema>>;
+    partialDateMode?: boolean;
+    onEnablePartialDateMode?: () => void;
   } = $props();
-  const { form: formData, validate } = form;
+  const { form: formData, validate, errors } = form;
+  const yearInputId = `${field}-partial-year`;
+  const monthSelectId = `${field}-partial-month`;
+
+  const monthKnownField =
+    field === 'departure' ? 'departureMonthKnown' : 'arrivalMonthKnown';
 
   const setValue = (
-    key: 'departure' | 'arrival' | 'departureTime' | 'arrivalTime',
+    key:
+      | 'departure'
+      | 'arrival'
+      | 'departureTime'
+      | 'arrivalTime'
+      | 'departureMonthKnown'
+      | 'arrivalMonthKnown',
     value: string | null,
   ) => {
     formData.update((current) => ({
@@ -34,9 +55,28 @@
     }));
   };
 
+  const setMonthKnown = (value: boolean) => {
+    formData.update((current) => ({
+      ...current,
+      [monthKnownField]: value,
+    }));
+  };
+
+  const buildPartialIso = (year: string, month: string) => {
+    if (!/^\d{4}$/.test(year)) return null;
+    return new Date(
+      Date.UTC(Number(year), month ? Number(month) - 1 : 0, 1),
+    ).toISOString();
+  };
+
   let dateValue: DateValue | undefined = $state(
     $formData[field] ? dateValueFromISO($formData[field]) : undefined,
   );
+
+  let partialYear = $state('');
+  let partialMonth = $state('');
+  let lastSyncedPartialDate = $state<string | null>(null);
+  let lastSyncedMonthKnown = $state<boolean | null>(null);
 
   let timeValue: Time | undefined = $state(
     $formData[`${field}Time`]
@@ -83,127 +123,240 @@
       timeValue = undefined;
     }
   });
+
+  $effect(() => {
+    const dateString = $formData[field];
+    const monthKnown = $formData[monthKnownField];
+
+    if (
+      dateString === lastSyncedPartialDate &&
+      monthKnown === lastSyncedMonthKnown
+    ) {
+      return;
+    }
+
+    lastSyncedPartialDate = dateString;
+    lastSyncedMonthKnown = monthKnown;
+
+    if (!dateString) {
+      return;
+    }
+
+    const date = dateValueFromISO(dateString);
+    partialYear = date.year.toString();
+    partialMonth = monthKnown ? date.month.toString().padStart(2, '0') : '';
+  });
+
+  const syncPartialDate = () => {
+    const iso = buildPartialIso(partialYear, partialMonth);
+    setValue(field, iso);
+    setMonthKnown(!!partialMonth);
+  };
 </script>
 
-<div class="grid gap-2 grid-cols-[3fr_2fr] items-start">
+{#if partialDateMode}
   <Form.Field {form} name={field}>
     <Form.Control>
       {#snippet children({ props })}
-        <Form.Label>
-          {toTitleCase(field)}{field === 'departure' ? ' *' : ''}
-        </Form.Label>
-        <DateField.Root
-          value={dateValue}
-          onValueChange={(v) => {
-            if (v === undefined) {
-              dateValue = undefined;
-              setValue(field, null);
-              validate(field);
-              return;
-            }
-            dateValue = v;
-            setValue(field, dateValue.toDate('UTC').toISOString());
-            validate(field);
-          }}
-          granularity="day"
-          minValue={parseDate('1970-01-01')}
-          locale={navigator.language}
+        <div
+          class="grid gap-2 grid-cols-[minmax(96px,1fr)_minmax(0,1.4fr)] items-start"
         >
-          <div class="flex w-full flex-col gap-1.5">
-            <DateField.Input
-              class={cn(
-                'border-input bg-background selection:bg-primary dark:bg-input/30 selection:text-primary-foreground ring-offset-background placeholder:text-muted-foreground shadow-xs flex h-9 w-full min-w-0 rounded-md border px-3 py-[6px] text-base outline-none transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
-                'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
-                'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
-              )}
-            >
-              {#snippet children({ segments })}
-                {#each segments as { part, value }}
-                  <div class="inline-block select-none">
-                    {#if part === 'literal'}
-                      <DateField.Segment {part} class="text-muted-foreground">
-                        {value}
-                      </DateField.Segment>
-                    {:else}
-                      <DateField.Segment
-                        {part}
-                        class="rounded-md px-1 hover:bg-muted focus:bg-muted focus:text-foreground focus-visible:ring-0! focus-visible:ring-offset-0! aria-[valuetext=Empty]:text-muted-foreground"
-                      >
-                        {value}
-                      </DateField.Segment>
-                    {/if}
-                  </div>
-                {/each}
-                <Popover.Root>
-                  <Popover.Trigger
-                    {...props}
-                    class="ml-auto inline-flex items-center justify-center text-muted-foreground transition-all hover:text-foreground active:text-foreground"
-                  >
-                    <CalendarDays size={16} />
-                  </Popover.Trigger>
-                  <Popover.Content class="p-0">
-                    <Calendar
-                      type="single"
-                      value={dateValue}
-                      onValueChange={(v) => {
-                        if (v === undefined) {
-                          dateValue = undefined;
-                          setValue(field, null);
-                          validate(field);
-                          return;
-                        }
-                        dateValue = v;
-                        setValue(
-                          field,
-                          dateValue?.toDate('UTC').toISOString() ?? null,
-                        );
-                        validate(field);
-                      }}
-                    />
-                  </Popover.Content>
-                </Popover.Root>
-              {/snippet}
-            </DateField.Input>
-          </div>
-        </DateField.Root>
+          <Label for={yearInputId}>
+            {toTitleCase(field)}{field === 'departure' ? ' *' : ''}
+          </Label>
+          <Label for={monthSelectId}>Month</Label>
+        </div>
+        <div
+          class="grid gap-2 grid-cols-[minmax(96px,1fr)_minmax(0,1.4fr)] items-start"
+        >
+          <Input
+            id={yearInputId}
+            bind:value={partialYear}
+            placeholder="Year"
+            inputmode="numeric"
+            maxlength={4}
+            aria-invalid={$errors[field] ? 'true' : undefined}
+            oninput={(event) => {
+              partialYear = event.currentTarget.value
+                .replace(/\D/g, '')
+                .slice(0, 4);
+              syncPartialDate();
+            }}
+            onblur={() => validate(field)}
+          />
+          <Select.Root
+            type="single"
+            value={partialMonth || undefined}
+            allowDeselect
+            onValueChange={(value) => {
+              partialMonth = value ?? '';
+              syncPartialDate();
+              validate(field);
+            }}
+          >
+            <Select.Trigger id={monthSelectId}>
+              {partialMonth ? MONTHS[Number(partialMonth) - 1] : 'Select month'}
+            </Select.Trigger>
+            <Select.Content>
+              {#each MONTHS as month, index}
+                <Select.Item
+                  value={(index + 1).toString().padStart(2, '0')}
+                  label={month}
+                />
+              {/each}
+            </Select.Content>
+          </Select.Root>
+        </div>
         <input hidden bind:value={$formData[field]} name={props.name} />
       {/snippet}
     </Form.Control>
     <Form.FieldErrors />
   </Form.Field>
-  <Form.Field {form} name={`${field}Time`}>
-    <Form.Control>
-      {#snippet children({ props })}
-        <Form.Label class="flex items-center gap-2">
-          Time
-          <HelpTooltip text="Local airport time." />
-        </Form.Label>
-        <TimeInput
-          value={timeValue}
-          onValueChange={(value) => {
-            if (!value) {
-              clearTimeValue();
-              return;
-            }
+{:else}
+  <div class="grid gap-2 grid-cols-[3fr_2fr] items-start">
+    <Form.Field {form} name={field}>
+      <Form.Control>
+        {#snippet children({ props })}
+          <div class="flex h-5 items-center justify-between gap-2">
+            <Form.Label class="leading-5">
+              {toTitleCase(field)}{field === 'departure' ? ' *' : ''}
+            </Form.Label>
+            {#if field === 'departure' && onEnablePartialDateMode}
+              <Tooltip.Root delayDuration={0} disableHoverableContent>
+                <Tooltip.Trigger>
+                  {#snippet child({ props: tooltipProps })}
+                    <Button
+                      {...tooltipProps}
+                      variant="ghost"
+                      size="icon-sm"
+                      class="size-5 p-0 text-muted-foreground hover:bg-accent"
+                      onclick={onEnablePartialDateMode}
+                    >
+                      <CalendarMinus size={14} />
+                    </Button>
+                  {/snippet}
+                </Tooltip.Trigger>
+                <Tooltip.Portal>
+                  <Tooltip.Content>Use partial date</Tooltip.Content>
+                </Tooltip.Portal>
+              </Tooltip.Root>
+            {/if}
+          </div>
+          <DateField.Root
+            value={dateValue}
+            onValueChange={(v) => {
+              if (v === undefined) {
+                dateValue = undefined;
+                setValue(field, null);
+                validate(field);
+                return;
+              }
+              dateValue = v;
+              setValue(field, dateValue.toDate('UTC').toISOString());
+              setMonthKnown(false);
+              validate(field);
+            }}
+            granularity="day"
+            minValue={parseDate('1970-01-01')}
+            locale={navigator.language}
+          >
+            <div class="flex w-full flex-col gap-1.5">
+              <DateField.Input
+                class={cn(
+                  'border-input bg-background selection:bg-primary dark:bg-input/30 selection:text-primary-foreground ring-offset-background placeholder:text-muted-foreground shadow-xs flex h-9 w-full min-w-0 rounded-md border px-3 py-[6px] text-base outline-none transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
+                  'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
+                  'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
+                )}
+              >
+                {#snippet children({ segments })}
+                  {#each segments as { part, value }}
+                    <div class="inline-block select-none">
+                      {#if part === 'literal'}
+                        <DateField.Segment {part} class="text-muted-foreground">
+                          {value}
+                        </DateField.Segment>
+                      {:else}
+                        <DateField.Segment
+                          {part}
+                          class="rounded-md px-1 hover:bg-muted focus:bg-muted focus:text-foreground focus-visible:ring-0! focus-visible:ring-offset-0! aria-[valuetext=Empty]:text-muted-foreground"
+                        >
+                          {value}
+                        </DateField.Segment>
+                      {/if}
+                    </div>
+                  {/each}
+                  <Popover.Root>
+                    <Popover.Trigger
+                      {...props}
+                      class="ml-auto inline-flex items-center justify-center text-muted-foreground transition-all hover:text-foreground active:text-foreground"
+                    >
+                      <CalendarDays size={16} />
+                    </Popover.Trigger>
+                    <Popover.Content class="p-0">
+                      <Calendar
+                        type="single"
+                        value={dateValue}
+                        onValueChange={(v) => {
+                          if (v === undefined) {
+                            dateValue = undefined;
+                            setValue(field, null);
+                            validate(field);
+                            return;
+                          }
+                          dateValue = v;
+                          setValue(
+                            field,
+                            dateValue?.toDate('UTC').toISOString() ?? null,
+                          );
+                          setMonthKnown(false);
+                          validate(field);
+                        }}
+                      />
+                    </Popover.Content>
+                  </Popover.Root>
+                {/snippet}
+              </DateField.Input>
+            </div>
+          </DateField.Root>
+          <input hidden bind:value={$formData[field]} name={props.name} />
+        {/snippet}
+      </Form.Control>
+      <Form.FieldErrors />
+    </Form.Field>
+    <Form.Field {form} name={`${field}Time`}>
+      <Form.Control>
+        {#snippet children({ props })}
+          <Form.Label class="flex items-center gap-2">
+            Time
+            <HelpTooltip text="Local airport time." />
+          </Form.Label>
+          <TimeInput
+            value={timeValue}
+            onValueChange={(value) => {
+              if (!value) {
+                clearTimeValue();
+                return;
+              }
 
-            timeValue = value;
-            setValue(`${field}Time`, formatTimeValue(value));
-            validate(`${field}Time`);
-          }}
-          locale={navigator.language}
-          class={cn(
-            'border-input bg-background selection:bg-primary dark:bg-input/30 selection:text-primary-foreground ring-offset-background placeholder:text-muted-foreground shadow-xs flex h-9 w-full min-w-0 rounded-md border px-3 py-[6px] text-base outline-none transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
-            'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
-            'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
-          )}
-        />
-        <input
-          hidden
-          bind:value={$formData[`${field}Time`]}
-          name={props.name}
-        />
-      {/snippet}
-    </Form.Control>
-    <Form.FieldErrors />
-  </Form.Field>
-</div>
+              timeValue = value;
+              setValue(`${field}Time`, formatTimeValue(value));
+              validate(`${field}Time`);
+            }}
+            locale={navigator.language}
+            class={cn(
+              'border-input bg-background selection:bg-primary dark:bg-input/30 selection:text-primary-foreground ring-offset-background placeholder:text-muted-foreground shadow-xs flex h-9 w-full min-w-0 rounded-md border px-3 py-[6px] text-base outline-none transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
+              'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
+              'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
+            )}
+          />
+          <input
+            hidden
+            bind:value={$formData[`${field}Time`]}
+            name={props.name}
+          />
+        {/snippet}
+      </Form.Control>
+      <Form.FieldErrors />
+    </Form.Field>
+  </div>
+{/if}

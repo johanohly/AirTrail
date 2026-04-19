@@ -101,8 +101,8 @@ export const validateAndSaveFlight = async (
     bypassSeatCheck?: boolean;
   },
 ): Promise<ErrorActionResult & { id?: number }> => {
-  const pathError = (path: string, message: string) => {
-    return { success: false, type: 'path', path, message } as const;
+  const pathError = (path: string, message: string): ErrorActionResult => {
+    return { success: false, type: 'path', path, message };
   };
 
   const parseDateTimeField = (
@@ -119,8 +119,179 @@ export const validateAndSaveFlight = async (
     }
   };
 
+  const saveFlightValues = async (
+    values: CreateFlight,
+    customFields: Record<string, unknown>,
+  ): Promise<ErrorActionResult & { id?: number }> => {
+    const updateId = data.id;
+    if (updateId) {
+      const flight = await getFlight(updateId);
+      if (
+        !flight ||
+        (!options?.bypassSeatCheck &&
+          !flight.seats.some((seat) => seat.userId === user.id))
+      ) {
+        return {
+          success: false,
+          type: 'httpError',
+          status: 404,
+          message: 'Flight not found or you do not have a seat on this flight',
+        };
+      }
+
+      try {
+        await db.transaction().execute(async (trx) => {
+          await updateFlightPrimitiveWithConnection(trx, updateId, values);
+          await persistEntityCustomFields(trx, {
+            entityType: 'flight',
+            entityId: String(updateId),
+            values: customFields,
+          });
+        });
+      } catch (e) {
+        if (e instanceof CustomFieldValidationError) {
+          return {
+            success: false,
+            type: 'error',
+            message: e.message,
+          };
+        }
+        return {
+          success: false,
+          type: 'error',
+          message: 'Failed to update flight',
+        };
+      }
+
+      return { success: true, message: 'Flight updated successfully' };
+    }
+
+    let flightId: number;
+    try {
+      flightId = await db.transaction().execute(async (trx) => {
+        const createdFlightId = await createFlightPrimitiveWithConnection(
+          trx,
+          values,
+        );
+        await persistEntityCustomFields(trx, {
+          entityType: 'flight',
+          entityId: String(createdFlightId),
+          values: customFields,
+        });
+        return createdFlightId;
+      });
+    } catch (e) {
+      if (e instanceof CustomFieldValidationError) {
+        return {
+          success: false,
+          type: 'error',
+          message: e.message,
+        };
+      }
+      return {
+        success: false,
+        type: 'error',
+        message: 'Failed to add flight',
+      };
+    }
+
+    return {
+      success: true,
+      message: 'Flight added',
+      id: flightId,
+    };
+  };
+
   const from = data.from;
   const to = data.to;
+
+  const {
+    datePrecision,
+    flightNumber,
+    aircraft,
+    aircraftReg,
+    airline,
+    flightReason,
+    note,
+    departureTerminal,
+    departureGate,
+    arrivalTerminal,
+    arrivalGate,
+    customFields = {},
+  } = data;
+
+  if (data.datePrecision !== 'day') {
+    if (!data.departure) {
+      return pathError('departure', 'Enter a 4-digit departure year');
+    }
+
+    if (data.datePrecision === 'month' && !data.departureMonthKnown) {
+      return pathError('departure', 'Select a departure month');
+    }
+
+    if (
+      data.arrival &&
+      data.datePrecision === 'month' &&
+      !data.arrivalMonthKnown
+    ) {
+      return pathError(
+        'arrival',
+        'Select an arrival month or clear the arrival date',
+      );
+    }
+
+    const departureDate = parseISO(data.departure);
+    if (isBeforeEpoch(departureDate)) {
+      return pathError('departure', 'Too far in the past');
+    }
+
+    const arrivalDate = data.arrival ? parseISO(data.arrival) : null;
+    if (arrivalDate && isBeforeEpoch(arrivalDate)) {
+      return pathError('arrival', 'Too far in the past');
+    }
+
+    if (arrivalDate && isBefore(arrivalDate, departureDate)) {
+      return pathError('arrival', 'Arrival must be after departure');
+    }
+
+    let duration: number | null = null;
+    if (from.id !== to.id) {
+      const fromLonLat = { lon: from.lon, lat: from.lat };
+      const toLonLat = { lon: to.lon, lat: to.lat };
+      duration = estimateFlightDuration(
+        distanceBetween(fromLonLat, toLonLat) / 1000,
+      );
+    }
+
+    const values = {
+      from,
+      to,
+      duration,
+      departure: data.departure,
+      arrival: data.arrival,
+      departureScheduled: null,
+      arrivalScheduled: null,
+      takeoffScheduled: null,
+      takeoffActual: null,
+      landingScheduled: null,
+      landingActual: null,
+      departureTerminal: departureTerminal ?? null,
+      departureGate: departureGate ?? null,
+      arrivalTerminal: arrivalTerminal ?? null,
+      arrivalGate: arrivalGate ?? null,
+      date: format(departureDate, 'yyyy-MM-dd'),
+      datePrecision,
+      flightNumber,
+      aircraft,
+      aircraftReg,
+      airline,
+      flightReason,
+      note,
+      seats: data.seats,
+    };
+
+    return await saveFlightValues(values, customFields);
+  }
 
   // Either departure or departureScheduled must be set
   if (!data.departure && !data.departureScheduled) {
@@ -264,21 +435,6 @@ export const validateAndSaveFlight = async (
     );
   }
 
-  const {
-    datePrecision,
-    flightNumber,
-    aircraft,
-    aircraftReg,
-    airline,
-    flightReason,
-    note,
-    departureTerminal,
-    departureGate,
-    arrivalTerminal,
-    arrivalGate,
-    customFields = {},
-  } = data;
-
   const values = {
     from,
     to,
@@ -314,83 +470,7 @@ export const validateAndSaveFlight = async (
     seats: data.seats,
   };
 
-  const updateId = data.id;
-  if (updateId) {
-    const flight = await getFlight(updateId);
-    if (
-      !flight ||
-      (!options?.bypassSeatCheck &&
-        !flight.seats.some((seat) => seat.userId === user.id))
-    ) {
-      return {
-        success: false,
-        type: 'httpError',
-        status: 404,
-        message: 'Flight not found or you do not have a seat on this flight',
-      };
-    }
-
-    try {
-      await db.transaction().execute(async (trx) => {
-        await updateFlightPrimitiveWithConnection(trx, updateId, values);
-        await persistEntityCustomFields(trx, {
-          entityType: 'flight',
-          entityId: String(updateId),
-          values: customFields,
-        });
-      });
-    } catch (e) {
-      if (e instanceof CustomFieldValidationError) {
-        return {
-          success: false,
-          type: 'error',
-          message: e.message,
-        };
-      }
-      return {
-        success: false,
-        type: 'error',
-        message: 'Failed to update flight',
-      };
-    }
-
-    return { success: true, message: 'Flight updated successfully' };
-  }
-
-  let flightId: number;
-  try {
-    flightId = await db.transaction().execute(async (trx) => {
-      const createdFlightId = await createFlightPrimitiveWithConnection(
-        trx,
-        values,
-      );
-      await persistEntityCustomFields(trx, {
-        entityType: 'flight',
-        entityId: String(createdFlightId),
-        values: customFields,
-      });
-      return createdFlightId;
-    });
-  } catch (e) {
-    if (e instanceof CustomFieldValidationError) {
-      return {
-        success: false,
-        type: 'error',
-        message: e.message,
-      };
-    }
-    return {
-      success: false,
-      type: 'error',
-      message: 'Failed to add flight',
-    };
-  }
-
-  return {
-    success: true,
-    message: 'Flight added',
-    id: flightId,
-  };
+  return await saveFlightValues(values, customFields);
 };
 
 export const deleteFlight = async (id: number) => {
