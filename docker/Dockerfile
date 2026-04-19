@@ -29,12 +29,15 @@ COPY --from=build /app/prisma/migrations ./prisma/migrations
 
 COPY ./docker/migrate.js /app/docker/
 COPY ./docker/admin.js /app/docker/
+COPY ./docker/healthcheck.js /app/docker/
 COPY ./docker/entrypoint.sh /app/bin/
 COPY ./docker/airtrail-admin /app/bin/
-RUN chmod +x /app/bin/entrypoint.sh /app/bin/airtrail-admin
+COPY ./docker/airtrail-healthcheck /app/bin/
+RUN chmod +x /app/bin/entrypoint.sh /app/bin/airtrail-admin /app/bin/airtrail-healthcheck
 
 ENV PATH="${PATH}:/app/bin"
 
 USER node
 EXPOSE 3000/tcp
+HEALTHCHECK --interval=5m --start-period=30s --start-interval=10s --retries=3 CMD ["airtrail-healthcheck"]
 ENTRYPOINT [ "/app/bin/entrypoint.sh" ]
