@@ -247,7 +247,11 @@ const toInsertAirport = (
   identSet: Set<string>,
 ): InsertAirport | null => {
   const icao = createAirportCode(airport, identSet);
-  const tz = getAirportTimezone(icao, airport.latitude_deg, airport.longitude_deg);
+  const tz = getAirportTimezone(
+    icao,
+    airport.latitude_deg,
+    airport.longitude_deg,
+  );
   if (!tz) {
     console.error(
       `Could not find timezone for ${airport.latitude_deg}, ${airport.longitude_deg}`,
