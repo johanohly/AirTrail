@@ -265,6 +265,7 @@ export const validateAndSaveFlight = async (
   }
 
   const {
+    datePrecision,
     flightNumber,
     aircraft,
     aircraftReg,
@@ -303,6 +304,7 @@ export const validateAndSaveFlight = async (
     arrivalTerminal: arrivalTerminal ?? null,
     arrivalGate: arrivalGate ?? null,
     date: format(departureDate, 'yyyy-MM-dd'),
+    datePrecision,
     flightNumber,
     aircraft,
     aircraftReg,
@@ -404,6 +406,7 @@ const signature = (f: CreateFlight) => {
   const to = f.to?.id ?? null;
   return [
     f.date ?? '',
+    f.datePrecision ?? 'day',
     from ?? '',
     to ?? '',
     f.flightNumber ?? '',

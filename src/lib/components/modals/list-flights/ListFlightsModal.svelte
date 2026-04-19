@@ -37,9 +37,8 @@
   import { formatAircraft } from '$lib/utils/data/aircraft';
   import {
     Duration,
-    formatAsDate,
+    formatAsFlightDate,
     formatAsDateTime,
-    formatAsMonth,
     isUsingAmPm,
     parseLocalizeISO,
   } from '$lib/utils/datetime';
@@ -105,12 +104,12 @@
           duration: f.duration
             ? Duration.fromSeconds(f.duration).toString()
             : '',
-          month: f.date ? formatAsMonth(f.date) : null,
+          month: f.date ? 'date' : null,
           depTime:
             (depDate ?? depScheduled)
               ? formatAsDateTime((depDate ?? depScheduled)!)
               : f.date
-                ? formatAsDate(f.date)
+                ? formatAsFlightDate(f.date, f.datePrecision, false, true)
                 : null,
           arrTime:
             (arrDate ?? arrScheduled)
@@ -125,8 +124,8 @@
       .sort((a, b) => {
         if (a.departure && b.departure) {
           return isBefore(a.departure, b.departure) ? 1 : -1;
-        } else if (a.date && b.date) {
-          return isBefore(a.date, b.date) ? 1 : -1;
+        } else if (a.dateStart && b.dateStart) {
+          return isBefore(a.dateStart, b.dateStart) ? 1 : -1;
         } else {
           return 0;
         }

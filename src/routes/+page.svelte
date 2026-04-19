@@ -21,8 +21,17 @@
     prepareFlightData,
     type FlightData,
   } from '$lib/utils';
+  import { parseLocalISO } from '$lib/utils/datetime';
 
   const user = $derived(page.data.user);
+
+  const getFilterBoundary = (
+    date: NonNullable<FlightFilters['fromDate']>,
+    tzId: string,
+    end = false,
+  ) => {
+    return parseLocalISO(`${date.toString()}T${end ? '23:59' : '00:00'}`, tzId);
+  };
 
   const flightListInput = writable<{
     scope: 'mine' | 'user' | 'all';
@@ -133,15 +142,21 @@
 
       if (
         filters.fromDate &&
-        (!f.date ||
-          isBefore(f.date, filters.fromDate.toDate(f.date.timeZone ?? 'UTC')))
+        (!f.dateEnd ||
+          isBefore(
+            f.dateEnd,
+            getFilterBoundary(filters.fromDate, f.dateEnd.timeZone ?? 'UTC'),
+          ))
       ) {
         return false;
       }
       if (
         filters.toDate &&
-        (!f.date ||
-          isAfter(f.date, filters.toDate.toDate(f.date.timeZone ?? 'UTC')))
+        (!f.dateStart ||
+          isAfter(
+            f.dateStart,
+            getFilterBoundary(filters.toDate, f.dateStart.timeZone ?? 'UTC', true),
+          ))
       ) {
         return false;
       }

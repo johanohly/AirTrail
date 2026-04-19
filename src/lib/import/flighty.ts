@@ -271,6 +271,7 @@ export const processFlightyFile = async (
         ? landingScheduled.toISOString()
         : null,
       landingActual: landingActual ? landingActual.toISOString() : null,
+      datePrecision: 'day',
       departureTerminal: row.dep_terminal,
       departureGate: row.dep_gate,
       arrivalTerminal: row.arr_terminal,

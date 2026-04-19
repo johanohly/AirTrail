@@ -91,6 +91,10 @@ export type flight = {
     id: Generated<number>;
     date: string;
     /**
+     * @kyselyType('day' | 'month' | 'year')
+     */
+    datePrecision: Generated<'day' | 'month' | 'year'>;
+    /**
      * YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
      */
     departure: string | null;

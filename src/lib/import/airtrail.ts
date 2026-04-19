@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { page } from '$app/state';
-import type { CreateFlight } from '$lib/db/types';
+import { FlightDatePrecisions, type CreateFlight } from '$lib/db/types';
 import { api } from '$lib/trpc';
 import { getAircraftByIcao, getAircraftByName } from '$lib/utils/data/aircraft';
 import { getAirlineByIcao, getAirlineByName } from '$lib/utils/data/airlines';
@@ -20,6 +20,7 @@ const AirTrailFile = z.object({
   flights: z
     .object({
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      datePrecision: z.enum(FlightDatePrecisions).default('day'),
       from: flightAirportSchema.omit({ id: true }),
       to: flightAirportSchema.omit({ id: true }),
       departure: z

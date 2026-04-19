@@ -233,6 +233,7 @@ export const processByAirFile = async (
       takeoffActual: null,
       landingScheduled: null,
       landingActual: null,
+      datePrecision: 'day',
       departureTerminal: null,
       departureGate: null,
       arrivalTerminal: null,

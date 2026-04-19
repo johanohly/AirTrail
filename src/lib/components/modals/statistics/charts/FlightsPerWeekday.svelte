@@ -14,7 +14,7 @@
   import { cubicInOut } from 'svelte/easing';
 
   import type { FlightData } from '$lib/utils';
-  import { getStartOfWeekDay } from '$lib/utils/datetime';
+  import { getStartOfWeekDay, supportsWeekdayBreakdown } from '$lib/utils/datetime';
 
   let { flights }: { flights: FlightData[] } = $props();
 
@@ -30,7 +30,9 @@
 
     return weekdays.map((weekday) => {
       const weekdayFlights = data.filter(
-        (flight) => flight.date?.getDay() === weekday,
+        (flight) =>
+          supportsWeekdayBreakdown(flight.datePrecision) &&
+          flight.date?.getDay() === weekday,
       );
       return {
         weekday,

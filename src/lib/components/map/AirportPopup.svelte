@@ -2,7 +2,7 @@
   import NumberFlow from '@number-flow/svelte';
 
   import { pluralize } from '$lib/utils';
-  import { formatAsDate } from '$lib/utils/datetime';
+  import { formatAsFlightDate } from '$lib/utils/datetime';
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let { data, clickable }: { data: any; clickable: boolean } = $props();
@@ -54,7 +54,9 @@
       <div class="grid grid-cols-[repeat(3,1fr)]">
         <h4 class="font-thin">{flight.route}</h4>
         <h4 class="font-thin">
-          {flight.date ? formatAsDate(flight.date, true, true) : ''}
+          {flight.date
+            ? formatAsFlightDate(flight.date, flight.datePrecision ?? 'day', true, true)
+            : ''}
         </h4>
         <h4 class="font-thin">{flight.airline.name}</h4>
       </div>

@@ -87,6 +87,8 @@ model airline {
 model flight {
   id        Int     @id @default(autoincrement())
   date      String
+  /// @kyselyType('day' | 'month' | 'year')
+  date_precision String @default("day")
   /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
   departure String?
   /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)

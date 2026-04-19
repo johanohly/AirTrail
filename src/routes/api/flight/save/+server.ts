@@ -14,6 +14,7 @@ import { flightSchema } from '$lib/zod/flight';
 
 const defaultFlight = {
   // from, to and departure are required
+  datePrecision: 'day',
   arrival: null,
   arrivalScheduled: null,
   departureTime: null,

@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
-import { FlightReasons, SeatClasses, SeatTypes } from '$lib/db/types';
+import {
+  FlightDatePrecisions,
+  FlightReasons,
+  SeatClasses,
+  SeatTypes,
+} from '$lib/db/types';
 import { flightAirportSchema } from '$lib/zod/airport';
 import { aircraftSchema } from '$lib/zod/aircraft';
 import { airlineSchema } from '$lib/zod/airline';
@@ -39,6 +44,7 @@ export const flightAirportsSchema = z.object({
 });
 
 export const flightDateTimeSchema = z.object({
+  datePrecision: z.enum(FlightDatePrecisions).default('day'),
   departure: z
     .string()
     .datetime({ offset: true, message: 'Select a departure date' })

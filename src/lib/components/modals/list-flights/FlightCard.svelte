@@ -4,8 +4,8 @@
   import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
   import RouteArrow from '$lib/components/display/RouteArrow.svelte';
   import { Badge } from '$lib/components/ui/badge';
-  import type { Airline, Airport } from '$lib/db/types';
-  import { formatAsDate } from '$lib/utils/datetime';
+  import type { Airline, Airport, FlightDatePrecision } from '$lib/db/types';
+  import { formatAsFlightDate } from '$lib/utils/datetime';
 
   type Flight = {
     from: Airport | null;
@@ -13,6 +13,7 @@
     airline: Airline | null;
     flightNumber?: string | null;
     date?: TZDate | null;
+    datePrecision?: FlightDatePrecision;
     passengers?: string[];
   };
 
@@ -26,7 +27,12 @@
 
   const formatDate = (flight: Flight) => {
     if (!flight.date) return null;
-    return formatAsDate(flight.date, false, true);
+    return formatAsFlightDate(
+      flight.date,
+      flight.datePrecision ?? 'day',
+      false,
+      true,
+    );
   };
 
   const getFlightNumber = (flight: Flight) => {
