@@ -45,9 +45,22 @@ export default async function Changelog() {
   const formatter = new Intl.DateTimeFormat(undefined, {
     dateStyle: 'long',
   });
+  const githubToken = process.env.GITHUB_TOKEN;
 
-  const resp = await fetch(`https://api.github.com/repos/${REPO}/releases`);
+  const resp = await fetch(`https://api.github.com/repos/${REPO}/releases`, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      ...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
+    },
+  });
   const body = await resp.json();
+
+  if (!resp.ok) {
+    throw new Error(
+      `GitHub releases request failed: ${resp.status} ${resp.statusText}`,
+    );
+  }
+
   const releases: {
     name: string;
     body: string;
