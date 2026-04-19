@@ -37,10 +37,36 @@ const FR24_FLIGHT_REASON_MAP: Record<string, Flight['flightReason']> = {
 };
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
-const FR24_DATE_REGEX = /^\d{4}(?:-\d{2})?(?:-\d{2})?$/;
+const FR24_DATE_REGEX =
+  /^(?<year>\d{4})(?:-(?<month>\d{2})(?:-(?<day>\d{2}))?)?$/;
+const isValidFR24Date = (date: string) => {
+  const match = FR24_DATE_REGEX.exec(date);
+  if (!match?.groups) {
+    return false;
+  }
+
+  const year = Number(match.groups.year);
+  const month = match.groups.month ? Number(match.groups.month) : null;
+  const day = match.groups.day ? Number(match.groups.day) : null;
+
+  if (month === null) {
+    return true;
+  }
+
+  if (month < 1 || month > 12) {
+    return false;
+  }
+
+  if (day === null) {
+    return true;
+  }
+
+  const lastDayOfMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return day >= 1 && day <= lastDayOfMonth;
+};
 
 const FR24Flight = z.object({
-  date: z.string().regex(FR24_DATE_REGEX),
+  date: z.string().refine(isValidFR24Date, 'Invalid FR24 date'),
   flight_number: z.string().transform(nullTransformer),
   from: z.string(),
   to: z.string(),

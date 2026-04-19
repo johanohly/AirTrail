@@ -59,7 +59,12 @@
         accessorFn: (row) =>
           row.departure
             ? formatAsDateTime(row.departure)
-            : formatAsFlightDate(row.date, row.datePrecision ?? 'day'),
+            : formatAsFlightDate(
+                row.date,
+                row.datePrecision ?? 'day',
+                false,
+                true,
+              ),
         header: 'Departure',
       },
       {

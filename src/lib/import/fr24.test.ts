@@ -70,4 +70,26 @@ describe('processFR24File', () => {
     expect(result.flights[0]?.departure).toBeNull();
     expect(result.flights[0]?.arrival).toBeNull();
   });
+
+  it('rejects month-only FR24 dates with invalid months', async () => {
+    const content = `Date,Flight number,From,To,Dep time,Arr time,Duration,Airline,Aircraft,Registration,Seat number,Seat type,Flight class,Flight reason,Note\n2006-13,,Dunedin / Momona (DUD/NZDN),Christchurch / Christchurch (CHC/NZCH),00:00:00,00:00:00,00:41:00,Air New Zealand (NZ/ANZ),ATR 72-200 (AT72),,,0,1,1,`;
+
+    await expect(
+      processFR24File(content, {
+        filterOwner: false,
+        airlineFromFlightNumber: true,
+      }),
+    ).rejects.toBe(true);
+  });
+
+  it('rejects day-precision FR24 dates that do not exist', async () => {
+    const content = `Date,Flight number,From,To,Dep time,Arr time,Duration,Airline,Aircraft,Registration,Seat number,Seat type,Flight class,Flight reason,Note\n2006-02-30,,Dunedin / Momona (DUD/NZDN),Christchurch / Christchurch (CHC/NZCH),00:00:00,00:00:00,00:41:00,Air New Zealand (NZ/ANZ),ATR 72-200 (AT72),,,0,1,1,`;
+
+    await expect(
+      processFR24File(content, {
+        filterOwner: false,
+        airlineFromFlightNumber: true,
+      }),
+    ).rejects.toBe(true);
+  });
 });
