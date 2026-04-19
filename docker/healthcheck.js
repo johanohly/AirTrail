@@ -1,4 +1,5 @@
-const response = await fetch('http://127.0.0.1:3000/api/ping');
+const port = process.env.PORT ?? '3000';
+const response = await fetch(`http://127.0.0.1:${port}/api/ping`);
 
 if (!response.ok) {
   process.exit(1);
