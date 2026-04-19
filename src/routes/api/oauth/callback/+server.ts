@@ -76,7 +76,14 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
   if (!user && profile.preferred_username) {
     const usernameUser = await getUser(profile.preferred_username);
     if (usernameUser) {
-      if (usernameUser.oauthId !== profile.sub) {
+      if (usernameUser.oauthId && usernameUser.oauthId !== profile.sub) {
+        return error(
+          500,
+          'Username already taken, and is linked to another account',
+        );
+      }
+
+      if (!usernameUser.oauthId) {
         user = await db
           .updateTable('user')
           .set('oauthId', profile.sub)
