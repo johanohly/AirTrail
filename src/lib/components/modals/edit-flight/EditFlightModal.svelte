@@ -84,9 +84,19 @@
 
   const fromTz = flight.from?.tz ?? 'UTC';
   const toTz = flight.to?.tz ?? 'UTC';
+  const isPartialDate = flight.raw.datePrecision !== 'day';
+  const toFormDateAnchor = (value: string | null) => {
+    return value
+      ? new Date(`${value.slice(0, 10)}T00:00:00.000Z`).toISOString()
+      : null;
+  };
 
-  const dep = decomposeToLocal(flight.raw.departure, fromTz, displayLocale);
-  const arr = decomposeToLocal(flight.raw.arrival, toTz, displayLocale);
+  const dep = isPartialDate
+    ? { date: null, time: null }
+    : decomposeToLocal(flight.raw.departure, fromTz, displayLocale);
+  const arr = isPartialDate
+    ? { date: null, time: null }
+    : decomposeToLocal(flight.raw.arrival, toTz, displayLocale);
   const depSched = decomposeToLocal(
     flight.raw.departureScheduled,
     fromTz,
@@ -123,15 +133,10 @@
       typeof flight.raw,
       'id' | 'userId' | 'date' | 'duration'
     >),
-    departureMonthKnown: flight.raw.datePrecision === 'month',
-    arrivalMonthKnown:
-      flight.raw.datePrecision === 'month' && !!flight.raw.arrival,
-    departure:
-      dep.date ??
-      (flight.raw.date
-        ? new Date(flight.raw.date + 'T00:00:00Z').toISOString()
-        : null),
-    arrival: arr.date,
+    departure: isPartialDate
+      ? toFormDateAnchor(flight.raw.date)
+      : (dep.date ?? toFormDateAnchor(flight.raw.date)),
+    arrival: isPartialDate ? null : arr.date,
     departureScheduled: depSched.date,
     arrivalScheduled: arrSched.date,
     takeoffScheduled: takeoffSched.date,

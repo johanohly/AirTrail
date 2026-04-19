@@ -36,17 +36,8 @@
   const yearInputId = `${field}-partial-year`;
   const monthSelectId = `${field}-partial-month`;
 
-  const monthKnownField =
-    field === 'departure' ? 'departureMonthKnown' : 'arrivalMonthKnown';
-
   const setValue = (
-    key:
-      | 'departure'
-      | 'arrival'
-      | 'departureTime'
-      | 'arrivalTime'
-      | 'departureMonthKnown'
-      | 'arrivalMonthKnown',
+    key: 'departure' | 'arrival' | 'departureTime' | 'arrivalTime',
     value: string | null,
   ) => {
     formData.update((current) => ({
@@ -55,10 +46,10 @@
     }));
   };
 
-  const setMonthKnown = (value: boolean) => {
+  const setPartialPrecision = (value: 'month' | 'year') => {
     formData.update((current) => ({
       ...current,
-      [monthKnownField]: value,
+      datePrecision: value,
     }));
   };
 
@@ -76,7 +67,9 @@
   let partialYear = $state('');
   let partialMonth = $state('');
   let lastSyncedPartialDate = $state<string | null>(null);
-  let lastSyncedMonthKnown = $state<boolean | null>(null);
+  let lastSyncedPartialPrecision = $state<'day' | 'month' | 'year' | null>(
+    null,
+  );
 
   let timeValue: Time | undefined = $state(
     $formData[`${field}Time`]
@@ -126,31 +119,34 @@
 
   $effect(() => {
     const dateString = $formData[field];
-    const monthKnown = $formData[monthKnownField];
+    const precision = $formData.datePrecision;
 
     if (
       dateString === lastSyncedPartialDate &&
-      monthKnown === lastSyncedMonthKnown
+      precision === lastSyncedPartialPrecision
     ) {
       return;
     }
 
     lastSyncedPartialDate = dateString;
-    lastSyncedMonthKnown = monthKnown;
+    lastSyncedPartialPrecision = precision;
 
     if (!dateString) {
+      partialYear = '';
+      partialMonth = '';
       return;
     }
 
     const date = dateValueFromISO(dateString);
     partialYear = date.year.toString();
-    partialMonth = monthKnown ? date.month.toString().padStart(2, '0') : '';
+    partialMonth =
+      precision === 'month' ? date.month.toString().padStart(2, '0') : '';
   });
 
   const syncPartialDate = () => {
     const iso = buildPartialIso(partialYear, partialMonth);
     setValue(field, iso);
-    setMonthKnown(!!partialMonth);
+    setPartialPrecision(partialMonth ? 'month' : 'year');
   };
 </script>
 
@@ -162,7 +158,7 @@
           class="grid gap-2 grid-cols-[minmax(96px,1fr)_minmax(0,1.4fr)] items-start"
         >
           <Label for={yearInputId}>
-            {toTitleCase(field)}{field === 'departure' ? ' *' : ''}
+            Year{field === 'departure' ? ' *' : ''}
           </Label>
           <Label for={monthSelectId}>Month</Label>
         </div>
@@ -172,7 +168,7 @@
           <Input
             id={yearInputId}
             bind:value={partialYear}
-            placeholder="Year"
+            placeholder="e.g. 2024"
             inputmode="numeric"
             maxlength={4}
             aria-invalid={$errors[field] ? 'true' : undefined}
@@ -253,7 +249,6 @@
               }
               dateValue = v;
               setValue(field, dateValue.toDate('UTC').toISOString());
-              setMonthKnown(false);
               validate(field);
             }}
             granularity="day"
@@ -308,7 +303,6 @@
                             field,
                             dateValue?.toDate('UTC').toISOString() ?? null,
                           );
-                          setMonthKnown(false);
                           validate(field);
                         }}
                       />

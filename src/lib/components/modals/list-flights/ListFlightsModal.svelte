@@ -104,7 +104,7 @@
           duration: f.duration
             ? Duration.fromSeconds(f.duration).toString()
             : '',
-          month: f.date ? 'date' : null,
+          hasDateDisplay: !!f.date,
           depTime:
             (depDate ?? depScheduled)
               ? formatAsDateTime((depDate ?? depScheduled)!)
@@ -410,7 +410,7 @@
                     <div
                       class="flex items-stretch md:items-center max-md:flex-col-reverse max-md:content-start flex-1 h-full min-w-0"
                     >
-                      {#if flight.month}
+                      {#if flight.hasDateDisplay}
                         <div
                           class="max-md:hidden flex justify-center shrink-0 w-11"
                         >

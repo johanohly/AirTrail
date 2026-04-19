@@ -90,7 +90,7 @@ export const getFlightDateRange = (
 
   return {
     start: parseLocalISO(`${startDate}T00:00`, tzId),
-    end: parseLocalISO(`${endDate}T23:59`, tzId),
+    end: parseLocalISO(`${endDate}T23:59:59.999`, tzId),
   };
 };
 

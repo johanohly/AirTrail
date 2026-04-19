@@ -1,5 +1,5 @@
 import type { TZDate } from '@date-fns/tz';
-import { differenceInSeconds, format, isBefore, parseISO } from 'date-fns';
+import { differenceInSeconds, isBefore, parseISO } from 'date-fns';
 import { type Insertable, sql } from 'kysely';
 import { z } from 'zod';
 
@@ -104,6 +104,8 @@ export const validateAndSaveFlight = async (
   const pathError = (path: string, message: string): ErrorActionResult => {
     return { success: false, type: 'path', path, message };
   };
+
+  const toCanonicalDate = (iso: string) => iso.slice(0, 10);
 
   const parseDateTimeField = (
     date: string | null,
@@ -225,33 +227,9 @@ export const validateAndSaveFlight = async (
       return pathError('departure', 'Enter a 4-digit departure year');
     }
 
-    if (data.datePrecision === 'month' && !data.departureMonthKnown) {
-      return pathError('departure', 'Select a departure month');
-    }
-
-    if (
-      data.arrival &&
-      data.datePrecision === 'month' &&
-      !data.arrivalMonthKnown
-    ) {
-      return pathError(
-        'arrival',
-        'Select an arrival month or clear the arrival date',
-      );
-    }
-
     const departureDate = parseISO(data.departure);
     if (isBeforeEpoch(departureDate)) {
       return pathError('departure', 'Too far in the past');
-    }
-
-    const arrivalDate = data.arrival ? parseISO(data.arrival) : null;
-    if (arrivalDate && isBeforeEpoch(arrivalDate)) {
-      return pathError('arrival', 'Too far in the past');
-    }
-
-    if (arrivalDate && isBefore(arrivalDate, departureDate)) {
-      return pathError('arrival', 'Arrival must be after departure');
     }
 
     let duration: number | null = null;
@@ -268,7 +246,7 @@ export const validateAndSaveFlight = async (
       to,
       duration,
       departure: data.departure,
-      arrival: data.arrival,
+      arrival: null,
       departureScheduled: null,
       arrivalScheduled: null,
       takeoffScheduled: null,
@@ -279,7 +257,7 @@ export const validateAndSaveFlight = async (
       departureGate: departureGate ?? null,
       arrivalTerminal: arrivalTerminal ?? null,
       arrivalGate: arrivalGate ?? null,
-      date: format(departureDate, 'yyyy-MM-dd'),
+      date: toCanonicalDate(data.departure),
       datePrecision,
       flightNumber,
       aircraft,
@@ -459,7 +437,7 @@ export const validateAndSaveFlight = async (
     departureGate: departureGate ?? null,
     arrivalTerminal: arrivalTerminal ?? null,
     arrivalGate: arrivalGate ?? null,
-    date: format(departureDate, 'yyyy-MM-dd'),
+    date: toCanonicalDate(primaryDepartureDate!),
     datePrecision,
     flightNumber,
     aircraft,

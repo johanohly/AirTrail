@@ -30,7 +30,10 @@
     tzId: string,
     end = false,
   ) => {
-    return parseLocalISO(`${date.toString()}T${end ? '23:59' : '00:00'}`, tzId);
+    return parseLocalISO(
+      `${date.toString()}T${end ? '23:59:59.999' : '00:00'}`,
+      tzId,
+    );
   };
 
   const flightListInput = writable<{
