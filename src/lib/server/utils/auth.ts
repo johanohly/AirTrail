@@ -7,6 +7,9 @@ import type { User } from '$lib/db/types';
 import { hashSha256 } from '$lib/server/utils/hash';
 import { generateString } from '$lib/server/utils/random';
 
+const usernameEquals = (username: string) =>
+  sql<boolean>`lower("username") = lower(${username})` as any;
+
 export const createUser = async (
   id: string,
   username: string,
@@ -25,7 +28,7 @@ export const createUser = async (
 export const getUser = async (username: string) => {
   return db
     .selectFrom('user')
-    .where('username', '=', username)
+    .where(usernameEquals(username))
     .selectAll()
     .executeTakeFirst();
 };
@@ -57,12 +60,20 @@ export const deleteSession = async (lucia: Lucia, cookies: Cookies) => {
   });
 };
 
-export const usernameExists = async (username: string) => {
-  const users = await db
+export const usernameExists = async (
+  username: string,
+  excludeUserId?: string,
+) => {
+  let query = db
     .selectFrom('user')
-    .where('username', '=', username)
     .select(sql`1`.as('exists'))
-    .execute();
+    .where(usernameEquals(username));
+
+  if (excludeUserId) {
+    query = query.where('id', '!=', excludeUserId);
+  }
+
+  const users = await query.execute();
   return users.length > 0;
 };
 
