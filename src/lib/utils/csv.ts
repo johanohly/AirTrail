@@ -61,7 +61,7 @@ const parseCsvLines = (csv: string) => {
   return lines;
 };
 
-const parseCsvLine = (line: string): string[] => {
+export const parseCsvLine = (line: string): string[] => {
   const regex = /(?:,|\r?\n|^)(?:"([^"]*(?:""[^"]*)*)"|([^",\r\n]*))/g;
   const fields: string[] = [];
   let match: RegExpExecArray | null;
@@ -77,7 +77,7 @@ const parseCsvLine = (line: string): string[] => {
   return fields;
 };
 
-const sanitizeHeader = (header: string) => {
+export const sanitizeHeader = (header: string) => {
   return header
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '_')

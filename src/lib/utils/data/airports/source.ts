@@ -1,25 +1,19 @@
-import { find } from 'geo-tz';
 import { sql } from 'kysely';
+import { z } from 'zod';
 
 import { db } from '$lib/db';
 import type { Airport } from '$lib/db/types';
-import { parseCsv } from '$lib/utils';
+import { forEachCsvRow } from '$lib/utils/csv-stream';
 import { deepEqual } from '$lib/utils/other';
 import { airportSourceSchema } from '$lib/zod/airport';
 
-export const BATCH_SIZE = 1000;
+import { getAirportTimezone, withBoundedGeoTzCache } from './timezone';
 
-/**
- * Manual timezone overrides for airports where geo-tz returns incorrect results.
- * Key: ICAO code, Value: Correct IANA timezone
- *
- * OOL (Gold Coast): Located right on the Queensland/NSW border.
- * geo-tz returns Australia/Sydney (NSW, has DST) but it should be
- * Australia/Brisbane (Queensland, no DST) as the airport operates on QLD time.
- */
-const TIMEZONE_OVERRIDES: Record<string, string> = {
-  YBCG: 'Australia/Brisbane', // Gold Coast (OOL)
-};
+export const BATCH_SIZE = 1000;
+const AIRPORT_SOURCE_URL =
+  'https://davidmegginson.github.io/ourairports-data/airports.csv';
+const ICAO_RE = /^[A-Z]{4}$/;
+const IATA_RE = /^[A-Z]{3}$/;
 
 export const ensureAirports = async () => {
   const airports = await db
@@ -32,26 +26,26 @@ export const ensureAirports = async () => {
     console.log('Populating initial airport database...');
     console.time('Populate initial airport database');
 
-    const data = await fetchAirports();
-
     // Check for existing (custom) airports to avoid duplicates
     const existingAirports = await db
       .selectFrom('airport')
-      .selectAll()
+      .select('icao')
       .execute();
-    const existingMap = new Map(existingAirports.map((a) => [a.icao, a]));
+    const existingIcaos = new Set(existingAirports.map((a) => a.icao));
+    const batch: InsertAirport[] = [];
 
-    const newAirports = data.filter((airport) => {
-      const existing = existingMap.get(airport.icao);
-      return !existing;
+    await forEachFetchedAirport(async (airport) => {
+      if (existingIcaos.has(airport.icao)) {
+        return;
+      }
+
+      batch.push(airport);
+      if (batch.length >= BATCH_SIZE) {
+        await insertAirportBatch(batch);
+      }
     });
 
-    for (let i = 0; i < newAirports.length; i += BATCH_SIZE) {
-      await db
-        .insertInto('airport')
-        .values(newAirports.slice(i, i + BATCH_SIZE))
-        .execute();
-    }
+    await insertAirportBatch(batch);
 
     console.timeEnd('Populate initial airport database');
     return;
@@ -80,68 +74,47 @@ export const updateAirports = async () => {
 
   const existingAirports = await db.selectFrom('airport').selectAll().execute();
   const existingMap = new Map(existingAirports.map((a) => [a.icao, a]));
-  const data = await fetchAirports();
-  const newMap = new Map(data.map((a) => [a.icao, a]));
-
+  const seenIcaos = new Set<string>();
   const newAirports: InsertAirport[] = [];
   const updatedAirports: Airport[] = [];
-  const removedAirports: Airport[] = [];
+  let created = 0;
+  let updated = 0;
 
-  for (const airport of data) {
+  await forEachFetchedAirport(async (airport) => {
+    seenIcaos.add(airport.icao);
+
     const existing = existingMap.get(airport.icao);
 
     // Means the airport was manually added by the user
     if (existing?.custom) {
-      continue;
+      return;
     }
 
     if (!existing) {
       newAirports.push(airport);
-    } else {
-      const { id: _, ...airportWithoutId } = existing;
-      if (!deepEqual(airport, airportWithoutId)) {
-        updatedAirports.push({ ...airport, id: existing.id });
+      created += 1;
+      if (newAirports.length >= BATCH_SIZE) {
+        await insertAirportBatch(newAirports);
+      }
+      return;
+    }
+
+    const { id: _, ...airportWithoutId } = existing;
+    if (!deepEqual(airport, airportWithoutId)) {
+      updatedAirports.push({ ...airport, id: existing.id });
+      updated += 1;
+      if (updatedAirports.length >= BATCH_SIZE) {
+        await updateAirportBatch(updatedAirports);
       }
     }
-  }
+  });
 
-  for (const airport of existingAirports) {
-    if (!newMap.has(airport.icao) && !airport.custom) {
-      removedAirports.push(airport);
-    }
-  }
+  await insertAirportBatch(newAirports);
+  await updateAirportBatch(updatedAirports);
 
-  for (let i = 0; i < newAirports.length; i += BATCH_SIZE) {
-    await db
-      .insertInto('airport')
-      .values(newAirports.slice(i, i + BATCH_SIZE))
-      .execute();
-  }
-
-  for (let i = 0; i < updatedAirports.length; i += BATCH_SIZE) {
-    const batch = updatedAirports.slice(i, i + BATCH_SIZE);
-    await sql`
-      UPDATE airport SET
-        icao = v.icao,
-        iata = v.iata,
-        lat = v.lat,
-        lon = v.lon,
-        tz = v.tz,
-        name = v.name,
-        municipality = v.municipality,
-        type = v.type,
-        continent = v.continent,
-        country = v.country,
-        custom = v.custom
-      FROM (VALUES ${sql.join(
-        batch.map(
-          (a) =>
-            sql`(${a.id}::int, ${a.icao}, ${a.iata}, ${a.lat}::float8, ${a.lon}::float8, ${a.tz}, ${a.name}, ${a.municipality}, ${a.type}, ${a.continent}, ${a.country}, ${a.custom}::bool)`,
-        ),
-      )}) AS v(id, icao, iata, lat, lon, tz, name, municipality, type, continent, country, custom)
-      WHERE airport.id = v.id
-    `.execute(db);
-  }
+  const removedAirports = existingAirports.filter(
+    (airport) => !airport.custom && !seenIcaos.has(airport.icao),
+  );
 
   // Don't delete airports that are referenced by flights (ON DELETE SET NULL
   // would silently orphan the flight's airport association).
@@ -179,8 +152,8 @@ export const updateAirports = async () => {
   }
 
   return {
-    created: newAirports.length,
-    updated: updatedAirports.length,
+    created,
+    updated,
     removed: safeToRemove.length,
     retained: removedAirports.length - safeToRemove.length,
     time: Date.now() - start,
@@ -188,107 +161,177 @@ export const updateAirports = async () => {
 };
 
 export const fetchAirports = async (): Promise<InsertAirport[]> => {
-  const resp = await fetch(
-    'https://davidmegginson.github.io/ourairports-data/airports.csv',
-  );
-  const text = await resp.text();
-  const [data, error] = parseCsv(text, airportSourceSchema);
-  if (error) {
-    return [];
-  }
-
-  const createAirportCode = (
-    airport: (typeof data)[0],
-    dataMap: Map<string, number>,
-  ): string => {
-    const gpsCode = airport.gps_code?.toUpperCase();
-    const ident = airport.ident.toUpperCase();
-
-    return gpsCode &&
-      gpsCode.length === 4 &&
-      (!dataMap.has(gpsCode) || dataMap.get(gpsCode) === airport.id)
-      ? gpsCode
-      : ident;
-  };
-
-  const dataMap = new Map<string, number>();
-  for (const airport of data) {
-    const key = airport.ident.toUpperCase();
-    dataMap.set(key, airport.id);
-  }
-
   const airports: InsertAirport[] = [];
-  const keywordsByIndex: (string | null)[] = [];
 
-  for (const airport of data) {
-    const icao = createAirportCode(airport, dataMap);
-    const tz =
-      TIMEZONE_OVERRIDES[icao] ??
-      find(airport.latitude_deg, airport.longitude_deg)[0];
-    if (!tz) {
-      console.error(
-        `Could not find timezone for ${airport.latitude_deg}, ${airport.longitude_deg}`,
-      );
-      continue;
-    }
-
-    airports.push({
-      icao,
-      iata: airport.iata_code === '' ? null : airport.iata_code,
-      type: airport.type,
-      name: airport.name,
-      municipality: airport.municipality || null,
-      lat: airport.latitude_deg,
-      lon: airport.longitude_deg,
-      continent: airport.continent,
-      country: airport.iso_country,
-      tz,
-      custom: false,
-    });
-    keywordsByIndex.push(airport.keywords);
-  }
-
-  fillCodesFromKeywords(airports, keywordsByIndex);
+  await forEachFetchedAirport((airport) => {
+    airports.push(airport);
+  });
 
   return airports;
 };
 
-/**
- * For airports missing an ICAO or IATA code, attempt to extract one from the
- * OurAirports `keywords` field. Keywords often contain historical codes for
- * closed airports (e.g. "TXL, EDDT" for Berlin-Tegel).
- *
- * Only extracts from keywords matching the pattern "IATA, ICAO, ..."
- * (3-letter code followed by 4-letter code as the first two tokens).
- *
- * A keyword code is only used if no other airport in the list already has it.
- */
-const fillCodesFromKeywords = (
-  airports: InsertAirport[],
-  keywordsByIndex: (string | null)[],
+const forEachFetchedAirport = async (
+  onAirport: (airport: InsertAirport) => Promise<void> | void,
 ) => {
-  const ICAO_RE = /^[A-Z]{4}$/;
-  const IATA_RE = /^[A-Z]{3}$/;
+  await withBoundedGeoTzCache(async () => {
+    const identSet = await collectAirportSourceIdentSet();
 
-  const usedIcao = new Set(airports.map((a) => a.icao));
-  const usedIata = new Set(airports.filter((a) => a.iata).map((a) => a.iata!));
+    const usedIcao = new Set<string>();
+    const usedIata = new Set<string>();
+    const pendingKeywordFill: Array<{
+      airport: InsertAirport;
+      keywords: string | null;
+    }> = [];
 
-  for (let i = 0; i < airports.length; i++) {
-    const airport = airports[i]!;
-    const keywords = keywordsByIndex[i];
-    if (!keywords) continue;
+    await forEachAirportSourceRow(async (sourceAirport) => {
+      const airport = toInsertAirport(sourceAirport, identSet);
+      if (!airport) {
+        return;
+      }
+
+      usedIcao.add(airport.icao);
+      if (airport.iata) {
+        usedIata.add(airport.iata);
+      }
+
+      if (needsKeywordFill(airport, sourceAirport.keywords)) {
+        pendingKeywordFill.push({
+          airport,
+          keywords: sourceAirport.keywords,
+        });
+
+        return;
+      }
+
+      await onAirport(airport);
+    });
+
+    fillPendingKeywordCodes(pendingKeywordFill, usedIcao, usedIata);
+
+    for (const { airport } of pendingKeywordFill) {
+      await onAirport(airport);
+    }
+  });
+};
+
+const collectAirportSourceIdentSet = async () => {
+  const identSet = new Set<string>();
+
+  await forEachAirportSourceRow((airport) => {
+    identSet.add(airport.ident.toUpperCase());
+  });
+
+  return identSet;
+};
+
+const forEachAirportSourceRow = async (
+  onRow: (row: AirportSourceRow) => Promise<void> | void,
+) => {
+  const resp = await fetch(AIRPORT_SOURCE_URL);
+  if (!resp.ok) {
+    throw new Error(
+      `Failed to fetch airport source CSV: ${resp.status} ${resp.statusText}`,
+    );
+  }
+  if (!resp.body) {
+    throw new Error('Airport source CSV response did not include a body');
+  }
+
+  await forEachCsvRow(resp.body, airportSourceSchema, onRow, (row, error) => {
+    console.error('Error parsing airport row:', row, error);
+  });
+};
+
+const toInsertAirport = (
+  airport: AirportSourceRow,
+  identSet: Set<string>,
+): InsertAirport | null => {
+  const icao = createAirportCode(airport, identSet);
+  const tz = getAirportTimezone(icao, airport.latitude_deg, airport.longitude_deg);
+  if (!tz) {
+    console.error(
+      `Could not find timezone for ${airport.latitude_deg}, ${airport.longitude_deg}`,
+    );
+    return null;
+  }
+
+  return {
+    icao,
+    iata: airport.iata_code === '' ? null : airport.iata_code,
+    type: airport.type,
+    name: airport.name,
+    municipality: airport.municipality || null,
+    lat: airport.latitude_deg,
+    lon: airport.longitude_deg,
+    continent: airport.continent,
+    country: airport.iso_country,
+    tz,
+    custom: false,
+  };
+};
+
+const createAirportCode = (
+  airport: AirportSourceRow,
+  identSet: Set<string>,
+): string => {
+  const gpsCode = airport.gps_code?.toUpperCase();
+  const ident = airport.ident.toUpperCase();
+
+  return gpsCode &&
+    gpsCode.length === 4 &&
+    (!identSet.has(gpsCode) || gpsCode === ident)
+    ? gpsCode
+    : ident;
+};
+
+const needsKeywordFill = (airport: InsertAirport, keywords: string | null) => {
+  if (ICAO_RE.test(airport.icao) && airport.iata !== null) {
+    return false;
+  }
+
+  return getKeywordCodeCandidate(keywords) !== null;
+};
+
+const getKeywordCodeCandidate = (keywords: string | null) => {
+  if (!keywords) {
+    return null;
+  }
+
+  const tokens = keywords.split(',').map((t) => t.trim());
+  if (tokens.length < 2) {
+    return null;
+  }
+
+  const [iataToken, icaoToken] = tokens;
+  if (!iataToken || !icaoToken) {
+    return null;
+  }
+  if (!IATA_RE.test(iataToken) || !ICAO_RE.test(icaoToken)) {
+    return null;
+  }
+
+  return { iataToken, icaoToken };
+};
+
+/**
+ * Apply keyword-based backfills after the full source has been scanned so
+ * we do not claim a code that is already used by a later airport row.
+ */
+const fillPendingKeywordCodes = (
+  airports: Array<{ airport: InsertAirport; keywords: string | null }>,
+  usedIcao: Set<string>,
+  usedIata: Set<string>,
+) => {
+  for (const { airport, keywords } of airports) {
+    const candidate = getKeywordCodeCandidate(keywords);
+    if (!candidate) continue;
 
     const hasProperIcao = ICAO_RE.test(airport.icao);
     const hasIata = airport.iata !== null;
 
     if (hasProperIcao && hasIata) continue;
 
-    const tokens = keywords.split(',').map((t) => t.trim());
-    if (tokens.length < 2) continue;
-
-    const [iataToken, icaoToken] = tokens;
-    if (!iataToken || !icaoToken) continue;
-    if (!IATA_RE.test(iataToken) || !ICAO_RE.test(icaoToken)) continue;
+    const { iataToken, icaoToken } = candidate;
 
     if (!hasProperIcao && !usedIcao.has(icaoToken)) {
       usedIcao.add(icaoToken);
@@ -301,5 +344,46 @@ const fillCodesFromKeywords = (
     }
   }
 };
+
+const insertAirportBatch = async (airports: InsertAirport[]) => {
+  if (airports.length === 0) {
+    return;
+  }
+
+  await db.insertInto('airport').values(airports).execute();
+  airports.length = 0;
+};
+
+const updateAirportBatch = async (airports: Airport[]) => {
+  if (airports.length === 0) {
+    return;
+  }
+
+  await sql`
+    UPDATE airport SET
+      icao = v.icao,
+      iata = v.iata,
+      lat = v.lat,
+      lon = v.lon,
+      tz = v.tz,
+      name = v.name,
+      municipality = v.municipality,
+      type = v.type,
+      continent = v.continent,
+      country = v.country,
+      custom = v.custom
+    FROM (VALUES ${sql.join(
+      airports.map(
+        (a) =>
+          sql`(${a.id}::int, ${a.icao}, ${a.iata}, ${a.lat}::float8, ${a.lon}::float8, ${a.tz}, ${a.name}, ${a.municipality}, ${a.type}, ${a.continent}, ${a.country}, ${a.custom}::bool)`,
+      ),
+    )}) AS v(id, icao, iata, lat, lon, tz, name, municipality, type, continent, country, custom)
+    WHERE airport.id = v.id
+  `.execute(db);
+
+  airports.length = 0;
+};
+
+type AirportSourceRow = z.infer<typeof airportSourceSchema>;
 
 type InsertAirport = Omit<Airport, 'id'>;
