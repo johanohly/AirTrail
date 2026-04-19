@@ -4,17 +4,16 @@
     Area,
     Axis,
     Chart,
-    ChartClipPath,
     LinearGradient,
     Points,
     Spline,
     Svg,
     Tooltip,
   } from 'layerchart';
-  import { cubicInOut } from 'svelte/easing';
 
   import { MONTHS, SHORT_MONTHS } from '$lib/data/datetime';
   import type { FlightData } from '$lib/utils';
+  import { supportsMonthBreakdown } from '$lib/utils/datetime';
 
   let { flights }: { flights: FlightData[] } = $props();
 
@@ -25,7 +24,9 @@
     const months = Array.from({ length: 12 }, (_, i) => i);
     return months.map((month) => {
       const monthFlights = data.filter(
-        (flight) => flight.date?.getMonth() === month,
+        (flight) =>
+          supportsMonthBreakdown(flight.datePrecision) &&
+          flight.date?.getMonth() === month,
       );
       return {
         month,

@@ -20,7 +20,7 @@
   import * as Table from '$lib/components/ui/table';
   import { api } from '$lib/trpc';
   import { prepareFlightData } from '$lib/utils';
-  import { formatAsDate, formatAsDateTime } from '$lib/utils/datetime';
+  import { formatAsDateTime, formatAsFlightDate } from '$lib/utils/datetime';
 
   let { data }: PageProps = $props();
   const flights = $derived.by(() => prepareFlightData(data.flights));
@@ -59,7 +59,12 @@
         accessorFn: (row) =>
           row.departure
             ? formatAsDateTime(row.departure)
-            : formatAsDate(row.date),
+            : formatAsFlightDate(
+                row.date,
+                row.datePrecision ?? 'day',
+                false,
+                true,
+              ),
         header: 'Departure',
       },
       {

@@ -88,6 +88,8 @@ export const SeatClasses = [
   'private',
 ] as const;
 export const FlightReasons = ['leisure', 'business', 'crew', 'other'] as const;
+export const FlightDatePrecisions = ['day', 'month', 'year'] as const;
+export type FlightDatePrecision = (typeof FlightDatePrecisions)[number];
 
 export const VisitedCountryStatus = [
   'lived',

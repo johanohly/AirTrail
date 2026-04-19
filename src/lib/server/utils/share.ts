@@ -7,6 +7,7 @@ import type {
   Airport,
   Aircraft,
   Airline,
+  FlightDatePrecision,
   Seat,
   PublicShare,
 } from '$lib/db/types';
@@ -36,6 +37,7 @@ interface SanitizedFlight {
   landingScheduled?: string | null;
   landingActual?: string | null;
   date?: string | null;
+  datePrecision?: FlightDatePrecision;
 }
 
 // Zod schemas for input validation
@@ -293,6 +295,7 @@ export function sanitizeFlightData(
 
     if (share.showDates) {
       sanitized.date = flight.date;
+      sanitized.datePrecision = flight.datePrecision;
     }
 
     return sanitized;

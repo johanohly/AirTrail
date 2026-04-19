@@ -13,16 +13,22 @@
     NavigationControl,
   } from 'svelte-maplibre';
 
-  import { browser } from '$app/environment';
-  import { base } from '$app/paths';
-
-  import { AirportsArcsLayer } from '.';
   import MapAppearanceControl from './MapAppearanceControl.svelte';
   import MapFallback from './MapFallback.svelte';
   import OpenAipOverlay from './OpenAipOverlay.svelte';
 
+  import { AirportsArcsLayer } from '.';
+
+  import { browser } from '$app/environment';
+  import { base } from '$app/paths';
   import AdminScopeBanner from '$lib/components/admin/AdminScopeBanner.svelte';
   import Filters from '$lib/components/flight-filters/Filters.svelte';
+  import {
+    defaultFilters,
+    type FlightFilters,
+    type TempFilters,
+  } from '$lib/components/flight-filters/types';
+  import * as Popover from '$lib/components/ui/popover';
   import {
     getDefaultAppMapStyleUrl,
     getAppMapImages,
@@ -43,14 +49,11 @@
     bindStyleLayerVisibility,
     supportsMapWebGL,
   } from '$lib/map/runtime';
-  import { appConfig, flightScopeState } from '$lib/state.svelte';
   import {
-    defaultFilters,
-    type FlightFilters,
-    type TempFilters,
-  } from '$lib/components/flight-filters/types';
-  import * as Popover from '$lib/components/ui/popover';
-  import { flightAddedState } from '$lib/state.svelte';
+    appConfig,
+    flightScopeState,
+    flightAddedState,
+  } from '$lib/state.svelte';
   import {
     calculateBounds,
     prepareFlightArcData,

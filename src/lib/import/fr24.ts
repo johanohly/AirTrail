@@ -4,7 +4,12 @@ import { z } from 'zod';
 
 import { page } from '$app/state';
 import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
-import type { Flight, CreateFlight, Seat } from '$lib/db/types';
+import type {
+  Flight,
+  CreateFlight,
+  FlightDatePrecision,
+  Seat,
+} from '$lib/db/types';
 import { parseCsv } from '$lib/utils';
 import { getAircraftByIcao } from '$lib/utils/data/aircraft';
 import { getAirlineByIcao } from '$lib/utils/data/airlines';
@@ -32,9 +37,36 @@ const FR24_FLIGHT_REASON_MAP: Record<string, Flight['flightReason']> = {
 };
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
+const FR24_DATE_REGEX =
+  /^(?<year>\d{4})(?:-(?<month>\d{2})(?:-(?<day>\d{2}))?)?$/;
+const isValidFR24Date = (date: string) => {
+  const match = FR24_DATE_REGEX.exec(date);
+  if (!match?.groups) {
+    return false;
+  }
+
+  const year = Number(match.groups.year);
+  const month = match.groups.month ? Number(match.groups.month) : null;
+  const day = match.groups.day ? Number(match.groups.day) : null;
+
+  if (month === null) {
+    return true;
+  }
+
+  if (month < 1 || month > 12) {
+    return false;
+  }
+
+  if (day === null) {
+    return true;
+  }
+
+  const lastDayOfMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return day >= 1 && day <= lastDayOfMonth;
+};
 
 const FR24Flight = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: z.string().refine(isValidFR24Date, 'Invalid FR24 date'),
   flight_number: z.string().transform(nullTransformer),
   from: z.string(),
   to: z.string(),
@@ -89,6 +121,28 @@ const extractAircraftICAO = (aircraft: string) => {
   return match.groups?.ICAO ?? null;
 };
 
+const normalizeFR24Date = (
+  date: string,
+): { date: string; datePrecision: FlightDatePrecision } => {
+  const [year, month, day] = date.split('-');
+
+  if (day) {
+    return { date, datePrecision: 'day' };
+  }
+
+  if (month) {
+    return {
+      date: `${year}-${month}-01`,
+      datePrecision: 'month',
+    };
+  }
+
+  return {
+    date: `${year}-01-01`,
+    datePrecision: 'year',
+  };
+};
+
 export const processFR24File = async (
   content: string,
   options: PlatformOptions,
@@ -107,6 +161,7 @@ export const processFR24File = async (
   const unknownAirports: Record<string, number[]> = {};
   const unknownAirlines: Record<string, number[]> = {};
   for (const row of data) {
+    const normalizedDate = normalizeFR24Date(row.date);
     const fromCode = extractAirportICAO(row.from);
     const toCode = extractAirportICAO(row.to);
     if (!fromCode || !toCode) {
@@ -118,16 +173,29 @@ export const processFR24File = async (
     const from = mappedFrom ?? (await getAirportByIcao(fromCode));
     const to = mappedTo ?? (await getAirportByIcao(toCode));
 
-    if (row.dep_time === '00:00:00' && row.arr_time === '00:00:00') {
+    if (
+      normalizedDate.datePrecision !== 'day' ||
+      (row.dep_time === '00:00:00' && row.arr_time === '00:00:00')
+    ) {
       row.dep_time = null;
       row.arr_time = null;
     }
 
     const departure = row.dep_time
-      ? toUtc(parseLocalISO(`${row.date}T${row.dep_time}`, from?.tz || 'UTC'))
+      ? toUtc(
+          parseLocalISO(
+            `${normalizedDate.date}T${row.dep_time}`,
+            from?.tz || 'UTC',
+          ),
+        )
       : null;
     let arrival = row.arr_time
-      ? toUtc(parseLocalISO(`${row.date}T${row.arr_time}`, to?.tz || 'UTC'))
+      ? toUtc(
+          parseLocalISO(
+            `${normalizedDate.date}T${row.arr_time}`,
+            to?.tz || 'UTC',
+          ),
+        )
       : null;
     while (departure && arrival && isBefore(arrival, departure)) {
       // arrival is before departure in UTC, so it must be on a later day
@@ -177,7 +245,7 @@ export const processFR24File = async (
     }
 
     flights.push({
-      date: row.date, // YYYY-MM-DD
+      date: normalizedDate.date,
       from: from || null,
       to: to || null,
       departure: departure ? departure.toISOString() : null,
@@ -188,6 +256,7 @@ export const processFR24File = async (
       takeoffActual: null,
       landingScheduled: null,
       landingActual: null,
+      datePrecision: normalizedDate.datePrecision,
       departureTerminal: null,
       departureGate: null,
       arrivalTerminal: null,

@@ -4,7 +4,11 @@ import { isAfter } from 'date-fns';
 import { page } from '$app/state';
 import type { Airport, Flight, FlightSeat } from '$lib/db/types';
 import { distanceBetween, toTitleCase } from '$lib/utils';
-import { nowIn, parseLocalISO, parseLocalizeISO } from '$lib/utils/datetime';
+import {
+  getFlightDateRange,
+  nowIn,
+  parseLocalizeISO,
+} from '$lib/utils/datetime';
 
 type ExcludedType<T, U> = {
   [P in keyof T as P extends keyof U ? never : P]: T[P];
@@ -12,6 +16,8 @@ type ExcludedType<T, U> = {
 
 type FlightOverrides = {
   date: TZDate | null;
+  dateStart: TZDate | null;
+  dateEnd: TZDate | null;
   departure: TZDate | null;
   arrival: TZDate | null;
   distance: number | null;
@@ -25,27 +31,30 @@ export const prepareFlightData = (data: Flight[]): FlightData[] => {
 
   return data
     .map((flight) => {
+      const { start: dateStart, end: dateEnd } = getFlightDateRange(
+        flight.date,
+        flight.datePrecision,
+        flight.from?.tz ?? 'UTC',
+      );
+      const hasExactDateTime = flight.datePrecision === 'day';
+
       const departure =
-        flight.departure && flight.from
+        hasExactDateTime && flight.departure && flight.from
           ? parseLocalizeISO(flight.departure, flight.from.tz)
-          : flight.departure
+          : hasExactDateTime && flight.departure
             ? parseLocalizeISO(flight.departure, 'UTC')
             : null;
 
       return {
         ...flight,
-        date:
-          departure ??
-          (flight.date && flight.from
-            ? parseLocalISO(`${flight.date}T00:00`, flight.from.tz)
-            : flight.date
-              ? parseLocalISO(`${flight.date}T00:00`, 'UTC')
-              : null),
+        date: departure ?? dateStart,
+        dateStart,
+        dateEnd,
         departure,
         arrival:
-          flight.arrival && flight.to
+          hasExactDateTime && flight.arrival && flight.to
             ? parseLocalizeISO(flight.arrival, flight.to.tz)
-            : flight.arrival
+            : hasExactDateTime && flight.arrival
               ? parseLocalizeISO(flight.arrival, 'UTC')
               : null,
         distance:
@@ -98,7 +107,7 @@ export const prepareFlightArcData = (data: FlightData[]) => {
 
     if (
       routeMap[key].flights.every(
-        (f) => f.date && isAfter(f.date, nowIn('UTC')),
+        (f) => f.dateStart && isAfter(f.dateStart, nowIn('UTC')),
       )
     ) {
       routeMap[key].exclusivelyFuture = true;
@@ -197,6 +206,8 @@ const formatSimpleFlight = (f: FlightData) => {
     airports: [f.from?.id, f.to?.id],
     route: `${f.from?.iata ?? f.from?.icao ?? 'N/A'} - ${f.to?.iata ?? f.to?.icao ?? 'N/A'}`,
     date: f.date,
+    dateStart: f.dateStart,
+    datePrecision: f.datePrecision,
     airline: f.airline ?? '',
   };
 };
