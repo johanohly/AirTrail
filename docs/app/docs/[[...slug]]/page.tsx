@@ -3,6 +3,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { ImageZoom } from "fumadocs-ui/components/image-zoom";
 import defaultMdxComponents from "fumadocs-ui/mdx";
+import type { DocData } from "fumadocs-mdx";
 import {
   DocsBody,
   DocsDescription,
@@ -12,6 +13,12 @@ import {
 import { notFound } from "next/navigation";
 
 import { openapi, source } from "@/lib/source";
+
+type DocsPageData = DocData & {
+  full?: boolean;
+  title?: string;
+  description?: string;
+};
 
 const installFooter = {
   items: {
@@ -47,9 +54,10 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
     return notFound();
   }
 
+  const data = page.data as DocsPageData;
   const path = page.path;
   const fullPath = `docs/content/docs/${path}`;
-  const { body: Mdx, lastModified } = page.data;
+  const { body: Mdx, lastModified } = data;
 
   const footerOverride = customFooters?.[path] ?? undefined;
 
@@ -62,16 +70,16 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
         path: fullPath,
       }}
       footer={footerOverride}
-      full={page.data.full}
+      full={data.full}
       lastUpdate={lastModified}
       tableOfContent={{
         style: "clerk",
         single: false,
       }}
-      toc={page.data.toc}
+      toc={data.toc}
     >
-      <DocsTitle>{page.data.title}</DocsTitle>
-      <DocsDescription>{page.data.description}</DocsDescription>
+      <DocsTitle>{data.title}</DocsTitle>
+      <DocsDescription>{data.description}</DocsDescription>
       <DocsBody>
         <Mdx
           components={{
