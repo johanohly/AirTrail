@@ -3,7 +3,6 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { ImageZoom } from "fumadocs-ui/components/image-zoom";
 import defaultMdxComponents from "fumadocs-ui/mdx";
-import type { DocData } from "fumadocs-mdx";
 import {
   DocsBody,
   DocsDescription,
@@ -12,13 +11,7 @@ import {
 } from "fumadocs-ui/page";
 import { notFound } from "next/navigation";
 
-import { openapi, source } from "@/lib/source";
-
-type DocsPageData = DocData & {
-  full?: boolean;
-  title?: string;
-  description?: string;
-};
+import { openapi, source, type DocsPageData } from "@/lib/source";
 
 const installFooter = {
   items: {
