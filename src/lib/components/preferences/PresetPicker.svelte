@@ -32,9 +32,7 @@
     onApplied?: (key: PresetKey, values: Preferences) => void;
   } = $props();
 
-  const resolved = $derived(
-    currentOverride ?? getPreferences(page.data.user),
-  );
+  const resolved = $derived(currentOverride ?? getPreferences(page.data.user));
   const activeKey = $derived(matchPreset(resolved));
   let pendingKey = $state<PresetKey | null>(null);
 
@@ -83,7 +81,9 @@
       <span class="flex w-full items-center justify-between gap-2">
         <span class="text-sm font-semibold">{preset.label}</span>
         {#if isActive}
-          <span class="text-[10px] font-medium uppercase tracking-wider text-primary">
+          <span
+            class="text-[10px] font-medium uppercase tracking-wider text-primary"
+          >
             Active
           </span>
         {/if}

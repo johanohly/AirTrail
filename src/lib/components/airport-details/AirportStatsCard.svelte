@@ -104,7 +104,9 @@
     </span>
     {#if lastVisitLabel}
       <span aria-hidden="true">·</span>
-      <span>last visit <span class="text-foreground">{lastVisitLabel}</span></span>
+      <span
+        >last visit <span class="text-foreground">{lastVisitLabel}</span></span
+      >
     {/if}
   </div>
 </section>

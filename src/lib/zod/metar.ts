@@ -3,13 +3,7 @@ import { z } from 'zod';
 export const flightCategorySchema = z.enum(['VFR', 'MVFR', 'IFR', 'LIFR']);
 export type FlightCategory = z.infer<typeof flightCategorySchema>;
 
-export const cloudCoverageSchema = z.enum([
-  'SKC',
-  'FEW',
-  'SCT',
-  'BKN',
-  'OVC',
-]);
+export const cloudCoverageSchema = z.enum(['SKC', 'FEW', 'SCT', 'BKN', 'OVC']);
 export type CloudCoverage = z.infer<typeof cloudCoverageSchema>;
 
 export const cloudLayerSchema = z.object({
@@ -23,10 +17,7 @@ export const metarWindSchema = z.object({
   dirDeg: z.number().nullable(),
   speedKt: z.number(),
   gustKt: z.number().nullable(),
-  varies: z
-    .object({ from: z.number(), to: z.number() })
-    .nullable()
-    .optional(),
+  varies: z.object({ from: z.number(), to: z.number() }).nullable().optional(),
 });
 
 export const parsedMetarSchema = z.object({

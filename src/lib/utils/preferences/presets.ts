@@ -45,7 +45,8 @@ export const presets: Record<PresetKey, Preset> = {
   aviation: {
     key: 'aviation',
     label: 'Aviation',
-    description: 'Nautical miles, knots, °C, hPa, ISO dates. Pilot and METAR conventions.',
+    description:
+      'Nautical miles, knots, °C, hPa, ISO dates. Pilot and METAR conventions.',
     values: {
       distanceUnit: 'nm',
       windSpeedUnit: 'kt',

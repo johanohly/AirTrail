@@ -43,9 +43,7 @@
   });
 </script>
 
-<div
-  class="rounded-lg border border-dashed border-border/70 bg-muted/30 p-3"
->
+<div class="rounded-lg border border-dashed border-border/70 bg-muted/30 p-3">
   <div
     class="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground font-medium leading-none"
   >

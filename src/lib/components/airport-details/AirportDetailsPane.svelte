@@ -11,10 +11,7 @@
   import { Button } from '$lib/components/ui/button';
   import * as Drawer from '$lib/components/ui/drawer';
   import { Separator } from '$lib/components/ui/separator';
-  import {
-    airportDetailsState,
-    closeAirportDetails,
-  } from '$lib/state.svelte';
+  import { airportDetailsState, closeAirportDetails } from '$lib/state.svelte';
   import { prepareVisitedAirports, type FlightData } from '$lib/utils';
   import { isMediumScreen } from '$lib/utils/size';
 
@@ -52,9 +49,7 @@
             {airport.iata ?? airport.icao}
           </span>
           {#if airport.iata}
-            <span
-              class="text-xs font-mono text-muted-foreground leading-none"
-            >
+            <span class="text-xs font-mono text-muted-foreground leading-none">
               {airport.icao}
             </span>
           {/if}
@@ -130,7 +125,9 @@
           {@render header()}
         </div>
         <Separator />
-        <div class="overflow-y-auto flex-1 divide-y divide-border/60 pb-[env(safe-area-inset-bottom)]">
+        <div
+          class="overflow-y-auto flex-1 divide-y divide-border/60 pb-[env(safe-area-inset-bottom)]"
+        >
           {@render body()}
         </div>
       </DrawerPrimitive.Content>

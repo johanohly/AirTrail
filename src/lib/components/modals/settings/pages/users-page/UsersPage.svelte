@@ -14,11 +14,7 @@
   import type { User } from '$lib/db/types';
   import { api } from '$lib/trpc';
   import { toTitleCase } from '$lib/utils';
-  import {
-    getPreferences,
-    matchPreset,
-    presets,
-  } from '$lib/utils/preferences';
+  import { getPreferences, matchPreset, presets } from '$lib/utils/preferences';
 
   const presetSummary = (u: User): string => {
     const key = matchPreset(getPreferences(u));

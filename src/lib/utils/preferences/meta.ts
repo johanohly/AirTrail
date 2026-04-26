@@ -68,7 +68,7 @@ export const flightTimeDisplayOptions: Option<FlightTimeDisplay>[] = [
   {
     value: 'airport',
     label: 'Airport local time',
-    description: 'Times shown in each airport\'s timezone',
+    description: "Times shown in each airport's timezone",
   },
   {
     value: 'utc',
@@ -78,6 +78,6 @@ export const flightTimeDisplayOptions: Option<FlightTimeDisplay>[] = [
   {
     value: 'system',
     label: 'My system timezone',
-    description: 'Convert all times to your device\'s timezone',
+    description: "Convert all times to your device's timezone",
   },
 ];

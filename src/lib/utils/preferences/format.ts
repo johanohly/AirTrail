@@ -180,7 +180,8 @@ export const formatDateTime = (
   date: Date,
   prefs: DatePrefs & TimePrefs,
   timeZone?: string,
-): string => `${formatDate(date, prefs, timeZone)} ${formatTime(date, prefs, timeZone)}`;
+): string =>
+  `${formatDate(date, prefs, timeZone)} ${formatTime(date, prefs, timeZone)}`;
 
 // ----- Week start -------------------------------------------------------
 

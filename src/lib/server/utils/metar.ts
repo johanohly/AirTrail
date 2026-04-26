@@ -1,8 +1,4 @@
-import type {
-  CloudLayer,
-  FlightCategory,
-  ParsedMetar,
-} from '$lib/zod/metar';
+import type { CloudLayer, FlightCategory, ParsedMetar } from '$lib/zod/metar';
 
 const TTL_MS = 10 * 60 * 1000;
 const STALE_FALLBACK_MS = 6 * 60 * 60 * 1000;
@@ -254,11 +250,7 @@ function parseWind(body: string[]): ParsedMetar['wind'] {
 function parseVisibility(body: string[]): number | null {
   if (!body[0]) return null;
   // Statute miles can come as "N" (whole) + "n/dSM" (fraction)
-  if (
-    /^\d+$/.test(body[0]) &&
-    body[1] &&
-    /^M?\d+\/\d+SM$/.test(body[1])
-  ) {
+  if (/^\d+$/.test(body[0]) && body[1] && /^M?\d+\/\d+SM$/.test(body[1])) {
     const whole = parseInt(body.shift()!);
     const fracTok = body.shift()!.replace(/^M/, '').replace(/SM$/, '');
     const [num, den] = fracTok.split('/').map(Number);
@@ -333,11 +325,7 @@ function parseTempPart(p: string): number | null {
   return neg ? -n : n;
 }
 
-function resolveTimestamp(
-  day: number,
-  hour: number,
-  minute: number,
-): string {
+function resolveTimestamp(day: number, hour: number, minute: number): string {
   const now = new Date();
   const guess = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), day, hour, minute, 0, 0),

@@ -7,10 +7,7 @@
   import { zod } from 'sveltekit-superforms/adapters';
 
   import { goto } from '$app/navigation';
-  import {
-    PreferenceField,
-    PresetPicker,
-  } from '$lib/components/preferences';
+  import { PreferenceField, PresetPicker } from '$lib/components/preferences';
   import * as Form from '$lib/components/ui/form';
   import { Globe } from '$lib/components/ui/globe';
   import { Input, PasswordInput } from '$lib/components/ui/input';
@@ -134,10 +131,7 @@
           >
             <ChevronDown
               size={14}
-              class={cn(
-                'transition-transform',
-                showCustom && 'rotate-180',
-              )}
+              class={cn('transition-transform', showCustom && 'rotate-180')}
             />
             {showCustom ? 'Hide' : 'Customize'} individual settings
           </button>
@@ -151,8 +145,7 @@
                 field="distanceUnit"
                 value={$formData.distanceUnit}
                 onChange={(v) =>
-                  ($formData.distanceUnit =
-                    v as typeof $formData.distanceUnit)}
+                  ($formData.distanceUnit = v as typeof $formData.distanceUnit)}
               />
               <PreferenceField
                 field="windSpeedUnit"
@@ -172,8 +165,7 @@
                 field="pressureUnit"
                 value={$formData.pressureUnit}
                 onChange={(v) =>
-                  ($formData.pressureUnit =
-                    v as typeof $formData.pressureUnit)}
+                  ($formData.pressureUnit = v as typeof $formData.pressureUnit)}
               />
               <PreferenceField
                 field="timeFormat"
@@ -191,8 +183,7 @@
                 field="weekStartsOn"
                 value={$formData.weekStartsOn}
                 onChange={(v) =>
-                  ($formData.weekStartsOn =
-                    v as typeof $formData.weekStartsOn)}
+                  ($formData.weekStartsOn = v as typeof $formData.weekStartsOn)}
               />
               <PreferenceField
                 field="flightTimeDisplay"
@@ -224,16 +215,8 @@
             name="pressureUnit"
             value={$formData.pressureUnit}
           />
-          <input
-            type="hidden"
-            name="timeFormat"
-            value={$formData.timeFormat}
-          />
-          <input
-            type="hidden"
-            name="dateFormat"
-            value={$formData.dateFormat}
-          />
+          <input type="hidden" name="timeFormat" value={$formData.timeFormat} />
+          <input type="hidden" name="dateFormat" value={$formData.dateFormat} />
           <input
             type="hidden"
             name="weekStartsOn"

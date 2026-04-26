@@ -55,7 +55,9 @@
   const arrivalLabel = $derived(formatTime(SAMPLE_ARRIVAL, prefs, arrivalTz));
 </script>
 
-<div class="rounded-lg border border-dashed border-border/70 bg-muted/30 p-3 space-y-3">
+<div
+  class="rounded-lg border border-dashed border-border/70 bg-muted/30 p-3 space-y-3"
+>
   <div
     class="text-[10px] uppercase tracking-wider text-muted-foreground font-medium leading-none"
   >
@@ -97,7 +99,9 @@
   </div>
 
   <div>
-    <div class="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+    <div
+      class="text-[10px] uppercase tracking-wider text-muted-foreground mb-1"
+    >
       Week
     </div>
     <div class="flex gap-1">
@@ -117,7 +121,9 @@
   </div>
 
   <div>
-    <div class="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+    <div
+      class="text-[10px] uppercase tracking-wider text-muted-foreground mb-1"
+    >
       Sample flight
     </div>
     <div class="flex items-center gap-2 rounded-md bg-background px-2.5 py-2">

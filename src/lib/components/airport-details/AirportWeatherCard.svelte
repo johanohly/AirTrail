@@ -8,9 +8,11 @@
     Sun,
     Wind,
   } from '@o7/icon/lucide';
+  import { toast } from 'svelte-sonner';
   import { writable } from 'svelte/store';
 
   import { page } from '$app/state';
+  import { TextTooltip } from '$lib/components/ui/tooltip';
   import { trpc } from '$lib/trpc';
   import { cn } from '$lib/utils';
   import {
@@ -138,7 +140,7 @@
     }
     if (typeof lon === 'number') {
       const utcH = observed.getUTCHours() + observed.getUTCMinutes() / 60;
-      return ((utcH + lon / 15) % 24 + 24) % 24;
+      return (((utcH + lon / 15) % 24) + 24) % 24;
     }
     return observed.getUTCHours();
   });
@@ -197,35 +199,27 @@
   ];
 
   function angDist(a: number, b: number): number {
-    return Math.abs((((a - b) % 360) + 540) % 360 - 180);
+    return Math.abs(((((a - b) % 360) + 540) % 360) - 180);
   }
 
   const lit = $derived.by(() => {
-    const def = {
-      N: false,
-      E: false,
-      S: false,
-      W: false,
-      ticks: new Set<number>(),
-    };
+    const def = { N: false, E: false, S: false, W: false };
     if (!metar || metar.wind.dirDeg === null) return def;
     const dir = metar.wind.dirDeg;
-    const ticks = new Set<number>();
-    for (const t of TICK_DEGS) {
-      if (angDist(dir, t) < 22.5) ticks.add(t);
-    }
     return {
       N: angDist(dir, 0) < 90,
       E: angDist(dir, 90) < 90,
       S: angDist(dir, 180) < 90,
       W: angDist(dir, 270) < 90,
-      ticks,
     };
   });
 
   const WIND_SCALE_MAX = 30;
   const WIND_TICK_COUNT = 27;
-  const WIND_TICK_INDICES = Array.from({ length: WIND_TICK_COUNT }, (_, i) => i);
+  const WIND_TICK_INDICES = Array.from(
+    { length: WIND_TICK_COUNT },
+    (_, i) => i,
+  );
   const WIND_GRADIENT =
     'linear-gradient(to right, rgb(83, 177, 253) 0%, rgb(22, 179, 100) 45%, rgb(247, 144, 9) 55%, rgb(240, 68, 56) 75%, rgb(180, 35, 24) 95%)';
 
@@ -391,14 +385,13 @@
       </div>
       <ConditionIcon
         size={48}
-        class={cn(
-          'shrink-0',
-          isDaytime ? 'text-amber-400' : 'text-slate-400',
-        )}
+        class={cn('shrink-0', isDaytime ? 'text-amber-400' : 'text-slate-400')}
       />
     </div>
 
-    <div class="rounded-lg border border-border/60 bg-background/40 px-3 py-2.5">
+    <div
+      class="rounded-lg border border-border/60 bg-background/40 px-3 py-2.5"
+    >
       <div class="flex items-center gap-2">
         <span
           class={cn(
@@ -453,18 +446,15 @@
             />
             {#each TICK_DEGS as deg}
               {@const isCardinal = deg % 90 === 0}
-              {@const tickLit = lit.ticks.has(deg)}
               <line
                 x1="48"
                 y1="6"
                 x2="48"
                 y2={isCardinal ? 12 : 9}
-                class={tickLit
-                  ? 'stroke-primary'
-                  : isCardinal
-                    ? 'stroke-muted-foreground/70'
-                    : 'stroke-muted-foreground/30'}
-                stroke-width={tickLit ? 1.5 : isCardinal ? 1.25 : 0.75}
+                class={isCardinal
+                  ? 'stroke-muted-foreground/70'
+                  : 'stroke-muted-foreground/30'}
+                stroke-width={isCardinal ? 1.25 : 0.75}
                 transform="rotate({deg} 48 48)"
               />
             {/each}
@@ -505,7 +495,7 @@
             {#if metar.wind.varies}
               {@const start = metar.wind.varies.from}
               {@const end = metar.wind.varies.to}
-              {@const sweep = ((end - start + 360) % 360) || 360}
+              {@const sweep = (end - start + 360) % 360 || 360}
               {@const startRad = ((start - 90) * Math.PI) / 180}
               {@const endRad = ((end - 90) * Math.PI) / 180}
               {@const r = 38}
@@ -526,19 +516,11 @@
               <g
                 style="transform: rotate({compassRotation}deg); transform-origin: 48px 48px; transform-box: view-box; transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);"
               >
-                <polygon
-                  points="48,14 45,48 51,48"
-                  class="fill-primary"
-                />
+                <polygon points="48,14 45,48 51,48" class="fill-primary" />
               </g>
               <circle cx="48" cy="48" r="2.5" class="fill-primary" />
             {:else}
-              <circle
-                cx="48"
-                cy="48"
-                r="3"
-                class="fill-primary/60"
-              />
+              <circle cx="48" cy="48" r="3" class="fill-primary/60" />
             {/if}
           </svg>
           <div class="absolute inset-0 pointer-events-none">
@@ -548,7 +530,10 @@
                 needleDown ? 'top-7' : 'bottom-6',
               )}
             >
-              {#if isVariableWind}VRB{:else}{String(metar.wind.dirDeg).padStart(3, '0')}°{/if}
+              {#if isVariableWind}VRB{:else}{String(metar.wind.dirDeg).padStart(
+                  3,
+                  '0',
+                )}°{/if}
             </span>
           </div>
         </div>
@@ -582,8 +567,25 @@
       </div>
     </div>
 
-    <p class="text-[10px] uppercase tracking-wider text-muted-foreground mt-4">
-      METAR reported {observedAgo}
-    </p>
+    <TextTooltip
+      content={metar.raw}
+      rootProps={{ delayDuration: 0 }}
+      contentProps={{ class: 'max-w-[90vw] font-mono text-xs' }}
+    >
+      <button
+        type="button"
+        onclick={async () => {
+          try {
+            await navigator.clipboard.writeText(metar.raw);
+            toast.success('METAR copied');
+          } catch {
+            toast.error('Failed to copy');
+          }
+        }}
+        class="text-[10px] uppercase tracking-wider text-muted-foreground mt-4 cursor-pointer underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 hover:text-foreground transition-colors"
+      >
+        METAR reported {observedAgo}
+      </button>
+    </TextTooltip>
   {/if}
 </section>
