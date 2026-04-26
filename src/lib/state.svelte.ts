@@ -34,6 +34,20 @@ export const openModalsState = $state<OpenModalsState>({
   settingsTab: 'general',
 });
 
+export const airportDetailsState = $state<{
+  airportId: number | null;
+}>({
+  airportId: null,
+});
+
+export const openAirportDetails = (airportId: number) => {
+  airportDetailsState.airportId = airportId;
+};
+
+export const closeAirportDetails = () => {
+  airportDetailsState.airportId = null;
+};
+
 export const appConfig = $state<{
   config: ClientAppConfig | null;
   configured: DeepBoolean<FullAppConfig, boolean> | null;

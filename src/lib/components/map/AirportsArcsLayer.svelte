@@ -19,7 +19,7 @@
     type TempFilters,
   } from '$lib/components/flight-filters/types';
   import { mapPreferences } from '$lib/map/map-preferences.svelte';
-  import { openModalsState } from '$lib/state.svelte';
+  import { openAirportDetails, openModalsState } from '$lib/state.svelte';
   import {
     type FlightData,
     prepareFlightArcData,
@@ -95,7 +95,7 @@
     if (e.object && tempFilters) {
       tempFilters.airportsEither = [e.object.id.toString()];
       tempFilters.routes = [];
-      openModalsState.listFlights = true;
+      openAirportDetails(e.object.id);
     }
   };
 

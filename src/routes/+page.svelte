@@ -12,9 +12,14 @@
     type Route,
   } from '$lib/components/flight-filters/types';
   import FlightsOnboarding from '$lib/components/onboarding/FlightsOnboarding.svelte';
+  import { AirportDetailsPane } from '$lib/components/airport-details';
   import { Map } from '$lib/components/map';
   import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
-  import { flightScopeState, openModalsState } from '$lib/state.svelte';
+  import {
+    airportDetailsState,
+    flightScopeState,
+    openModalsState,
+  } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
   import {
     getSeatPassengerToken,
@@ -82,6 +87,12 @@
 
   $effect(() => {
     if (!openModalsState.listFlights) {
+      tempFilters = defaultTempFilters;
+    }
+  });
+
+  $effect(() => {
+    if (airportDetailsState.airportId === null) {
       tempFilters = defaultTempFilters;
     }
   });
@@ -246,3 +257,4 @@
 />
 
 <Map bind:filters bind:tempFilters {flights} {filteredFlights} />
+<AirportDetailsPane {flights} />

@@ -12,6 +12,7 @@ import { oauthRouter } from '$lib/server/routes/oauth';
 import { shareRouter } from '$lib/server/routes/share';
 import { sqlRouter } from '$lib/server/routes/sql';
 import { visitedCountriesRouter } from '$lib/server/routes/visited-countries';
+import { weatherRouter } from '$lib/server/routes/weather';
 
 export const appRouter = router({
   user: userRouter,
@@ -25,6 +26,7 @@ export const appRouter = router({
   share: shareRouter,
   visitedCountries: visitedCountriesRouter,
   sql: sqlRouter,
+  weather: weatherRouter,
 });
 
 export type AppRouter = typeof appRouter;

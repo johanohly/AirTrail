@@ -50,6 +50,7 @@
     supportsMapWebGL,
   } from '$lib/map/runtime';
   import {
+    airportDetailsState,
     appConfig,
     flightScopeState,
     flightAddedState,
@@ -57,8 +58,10 @@
   import {
     calculateBounds,
     prepareFlightArcData,
+    prepareVisitedAirports,
     type FlightData,
   } from '$lib/utils';
+  import { isMediumScreen } from '$lib/utils/size';
 
   const { GlobeControl } = maplibregl;
   const unregisterPmtiles = browser ? registerPmtilesProtocol() : null;
@@ -192,6 +195,26 @@
     }
 
     return bindRuntimeMapImages(map, images);
+  });
+
+  $effect(() => {
+    const id = airportDetailsState.airportId;
+    if (!map || id === null) return;
+
+    const airport = prepareVisitedAirports(flights).find((a) => a.id === id);
+    if (!airport) return;
+
+    const padding = $isMediumScreen
+      ? { top: 40, right: 40, bottom: 40, left: 420 }
+      : { top: 40, right: 20, bottom: window.innerHeight * 0.55, left: 20 };
+
+    map.flyTo({
+      center: [airport.lon, airport.lat],
+      zoom: 13,
+      duration: 1200,
+      essential: true,
+      padding,
+    });
   });
 
   onMount(() => {
