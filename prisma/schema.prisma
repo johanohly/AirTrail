@@ -22,14 +22,29 @@ model user {
   id           String  @id
   username     String  @unique
   display_name String
-  /// @kyselyType('metric' | 'imperial')
-  unit         String
   password     String?
 
   /// @kyselyType('user' | 'admin' | 'owner')
   role String
 
   oauth_id String?
+
+  /// @kyselyType('km' | 'mi' | 'nm')
+  distance_unit       String @default("km")
+  /// @kyselyType('kt' | 'mph' | 'kmh' | 'ms')
+  wind_speed_unit     String @default("kt")
+  /// @kyselyType('c' | 'f')
+  temperature_unit    String @default("c")
+  /// @kyselyType('hpa' | 'inhg')
+  pressure_unit       String @default("hpa")
+  /// @kyselyType('12h' | '24h' | 'auto')
+  time_format         String @default("auto")
+  /// @kyselyType('iso' | 'us' | 'eu' | 'auto')
+  date_format         String @default("auto")
+  /// @kyselyType('mon' | 'sun' | 'auto')
+  week_starts_on      String @default("auto")
+  /// @kyselyType('airport' | 'utc' | 'system')
+  flight_time_display String @default("airport")
 
   sessions          session[]
   seats             seat[]

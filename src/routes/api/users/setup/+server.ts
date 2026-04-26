@@ -30,7 +30,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
     return actionResult('failure', { form });
   }
 
-  const { username, password, displayName, unit } = form.data;
+  const { username, password, displayName, ...preferences } = form.data;
   const exists = await usernameExists(username);
   if (exists) {
     setError(form, 'username', 'Username already exists');
@@ -46,8 +46,8 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
     username,
     hashedPassword,
     displayName,
-    unit,
     'owner',
+    preferences,
   );
 
   if (!success) {

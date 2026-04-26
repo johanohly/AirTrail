@@ -116,7 +116,6 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
         username: profile.preferred_username,
         displayName,
         oauthId: profile.sub,
-        unit: 'metric',
         role: 'user',
       })
       .returningAll()

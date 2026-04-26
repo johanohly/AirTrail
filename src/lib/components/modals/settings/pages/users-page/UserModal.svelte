@@ -14,10 +14,8 @@
     ModalBreadcrumbHeader,
   } from '$lib/components/ui/modal';
   import * as RadioGroup from '$lib/components/ui/radio-group';
-  import * as Select from '$lib/components/ui/select';
   import { HelpTooltip } from '$lib/components/ui/tooltip/index.js';
   import type { User as UserType } from '$lib/db/types';
-  import { toTitleCase } from '$lib/utils';
   import { addUserSchema, adminEditUserSchema } from '$lib/zod/user';
 
   type Mode = 'add' | 'edit';
@@ -44,7 +42,6 @@
       return {
         username: user.username,
         displayName: user.displayName,
-        unit: user.unit,
         role: user.role === 'owner' ? 'admin' : user.role,
       };
     }
@@ -52,7 +49,6 @@
       username: '',
       password: '',
       displayName: initialDisplayName,
-      unit: 'metric' as const,
       role: 'user' as const,
     };
   };
@@ -89,7 +85,6 @@
       const data = getInitialData();
       $formData.username = data.username;
       $formData.displayName = data.displayName;
-      $formData.unit = data.unit;
       $formData.role = data.role;
       if ('password' in data) {
         $formData.password = data.password ?? '';
@@ -144,34 +139,6 @@
         </Form.Control>
         <Form.FieldErrors />
       </Form.Field>
-      {#if isEdit}
-        <Form.Field {form} name="unit">
-          <Form.Control>
-            {#snippet children({ props })}
-              <Form.Label>Unit of measurement</Form.Label>
-              <Select.Root
-                type="single"
-                value={$formData.unit}
-                onValueChange={(v) => {
-                  if (v) $formData.unit = v as 'metric' | 'imperial';
-                }}
-              >
-                <Select.Trigger {...props}>
-                  {$formData.unit
-                    ? toTitleCase($formData.unit)
-                    : 'Select a unit'}
-                </Select.Trigger>
-                <Select.Content>
-                  <Select.Item value="metric" label="Metric" />
-                  <Select.Item value="imperial" label="Imperial" />
-                </Select.Content>
-              </Select.Root>
-              <input type="hidden" value={$formData.unit} name={props.name} />
-            {/snippet}
-          </Form.Control>
-          <Form.FieldErrors />
-        </Form.Field>
-      {/if}
       <Form.Field {form} name="role" class="pt-1">
         <Form.Control>
           {#snippet children({ props })}

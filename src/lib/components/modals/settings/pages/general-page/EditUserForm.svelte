@@ -6,8 +6,6 @@
   import { page } from '$app/state';
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
-  import * as Select from '$lib/components/ui/select';
-  import { toTitleCase } from '$lib/utils';
   import { editUserSchema } from '$lib/zod/user';
 
   const form = superForm(
@@ -49,30 +47,6 @@
       {#snippet children({ props })}
         <Form.Label>Display Name</Form.Label>
         <Input bind:value={$formData.displayName} {...props} />
-      {/snippet}
-    </Form.Control>
-    <Form.FieldErrors />
-  </Form.Field>
-  <Form.Field {form} name="unit">
-    <Form.Control>
-      {#snippet children({ props })}
-        <Form.Label>Unit of measurement</Form.Label>
-        <Select.Root
-          type="single"
-          value={$formData.unit}
-          onValueChange={(v) => {
-            if (v) $formData.unit = v;
-          }}
-        >
-          <Select.Trigger {...props}>
-            {$formData.unit ? toTitleCase($formData.unit) : 'Select a unit'}
-          </Select.Trigger>
-          <Select.Content>
-            <Select.Item value="metric" label="Metric" />
-            <Select.Item value="imperial" label="Imperial" />
-          </Select.Content>
-        </Select.Root>
-        <input type="hidden" value={$formData.unit} name={props.name} />
       {/snippet}
     </Form.Control>
     <Form.FieldErrors />

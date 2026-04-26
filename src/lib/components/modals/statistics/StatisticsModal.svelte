@@ -28,9 +28,14 @@
     FLIGHT_CHARTS,
     type ChartKey,
   } from '$lib/stats/aggregations';
-  import { type FlightData, kmToMiles } from '$lib/utils';
+  import { type FlightData } from '$lib/utils';
   import { Duration, nowIn } from '$lib/utils/datetime';
   import { round } from '$lib/utils/number';
+  import {
+    convertDistance,
+    distanceUnitLabel,
+    getPreferences,
+  } from '$lib/utils/preferences';
 
   type VisitedCountryList = VisitedCountry & {
     numeric: number;
@@ -71,7 +76,7 @@
     ),
   );
 
-  let isMetric = $derived.by(() => page.data.user?.unit === 'metric');
+  const prefs = $derived(getPreferences(page.data.user));
   let totalDuration = $derived.by(() =>
     Duration.fromSeconds(
       completedFlights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
@@ -241,14 +246,12 @@
           <h3 class="text-sm font-medium">Distance</h3>
           <span class="text-2xl font-bold">
             <NumberFlow
-              value={isMetric ? totalDistance : kmToMiles(totalDistance)}
-              format={{
-                style: 'unit',
-                unit: isMetric ? 'kilometer' : 'mile',
-                unitDisplay: 'short',
-                maximumFractionDigits: 0,
-              }}
+              value={convertDistance(totalDistance, prefs)}
+              format={{ maximumFractionDigits: 0 }}
             />
+            <span class="text-lg font-medium">
+              {distanceUnitLabel(prefs)}
+            </span>
             (<NumberFlow value={round(earthCircumnavigations, 2)} />x 🌎)
           </span>
         </StatsCard>

@@ -20,7 +20,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     return actionResult('error', 'You must be an admin to create users.', 403);
   }
 
-  const { username, password, displayName, unit, role } = form.data;
+  const { username, password, displayName, role } = form.data;
 
   const exists = await usernameExists(username);
   if (exists) {
@@ -36,7 +36,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     username,
     passwordHash,
     displayName,
-    unit,
     role,
   );
   if (!success) {

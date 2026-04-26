@@ -5,6 +5,7 @@
   import {
     ImportPage,
     GeneralPage,
+    PreferencesPage,
     AppearancePage,
     UsersPage,
     ExportPage,
@@ -30,6 +31,7 @@
 
   const ACCOUNT_SETTINGS = [
     { title: 'General', id: 'general' },
+    { title: 'Preferences', id: 'preferences' },
     { title: 'Security', id: 'security' },
     { title: 'Appearance', id: 'appearance' },
     { title: 'Share', id: 'share' },
@@ -177,6 +179,8 @@
         <div class="flex-1 md:max-w-2xl">
           {#if activeTab === 'general'}
             <GeneralPage />
+          {:else if activeTab === 'preferences'}
+            <PreferencesPage />
           {:else if activeTab === 'security'}
             <SecurityPage />
           {:else if activeTab === 'appearance'}

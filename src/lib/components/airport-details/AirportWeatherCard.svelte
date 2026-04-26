@@ -10,9 +10,19 @@
   } from '@o7/icon/lucide';
   import { writable } from 'svelte/store';
 
+  import { page } from '$app/state';
   import { trpc } from '$lib/trpc';
   import { cn } from '$lib/utils';
+  import {
+    convertTemperature,
+    convertWindSpeed,
+    getPreferences,
+    temperatureUnitLabel,
+    windSpeedUnitLabel,
+  } from '$lib/utils/preferences';
   import type { CloudLayer, FlightCategory } from '$lib/zod/metar';
+
+  const prefs = $derived(getPreferences(page.data.user));
 
   let {
     icao,
@@ -236,7 +246,8 @@
   }
 
   function formatTemp(t: number | null): string {
-    return t === null ? '—' : `${t}`;
+    if (t === null) return '—';
+    return `${Math.round(convertTemperature(t, prefs))}`;
   }
 </script>
 
@@ -251,8 +262,10 @@
         {label}
       </span>
       <span class="text-xs font-semibold tabular-nums">
-        {kt}<span class="text-muted-foreground font-normal">
-          kt · {WIND_META[lvl].label}</span
+        {Math.round(convertWindSpeed(kt, prefs))}<span
+          class="text-muted-foreground font-normal"
+        >
+          {windSpeedUnitLabel(prefs)} · {WIND_META[lvl].label}</span
         >
       </span>
     </div>
@@ -370,7 +383,9 @@
           <span class="text-4xl font-semibold leading-none tracking-tight">
             {formatTemp(metar.tempC)}
           </span>
-          <span class="text-xl font-medium text-muted-foreground">°C</span>
+          <span class="text-xl font-medium text-muted-foreground">
+            {temperatureUnitLabel(prefs)}
+          </span>
         </div>
         <p class="text-sm text-muted-foreground mt-1">{conditionLabel}</p>
       </div>
