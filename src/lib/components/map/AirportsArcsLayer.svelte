@@ -242,7 +242,11 @@
       } else if (mapPreferences.arcColor === 'byFrequency') {
         const normalizedFreq = getArcFrequencyPercentile(d);
         const baseColor = point === 'source' ? FROM_COLOR : TO_COLOR;
-        return interpolateColor(baseColor, HIGH_FREQUENCY_COLOR, normalizedFreq);
+        return interpolateColor(
+          baseColor,
+          HIGH_FREQUENCY_COLOR,
+          normalizedFreq,
+        );
       } else {
         return point === 'source' ? FROM_COLOR : TO_COLOR;
       }
