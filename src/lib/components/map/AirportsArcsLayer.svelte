@@ -2,6 +2,7 @@
   import type { Layer, PickingInfo, Color } from '@deck.gl/core';
   import { ArcLayer, ScatterplotLayer } from '@deck.gl/layers';
   import { MapboxOverlay } from '@deck.gl/mapbox';
+  import { isTouchDevice } from '@melt-ui/svelte/internal/helpers';
   import { onDestroy } from 'svelte';
   import {
     Box,
@@ -26,14 +27,27 @@
     prepareVisitedAirports,
   } from '$lib/utils';
   import { isMediumScreen } from '$lib/utils/size';
-  import { isTouchDevice } from '@melt-ui/svelte/internal/helpers';
 
   const AIRPORT_COLOR = (alpha: number): Color => [16, 185, 129, alpha]; // Tailwind emerald-500
   const INACTIVE_COLOR = (alpha: number): Color => [113, 113, 122, alpha];
   const FROM_COLOR = [59, 130, 246]; // Also the primary color
   const TO_COLOR = [139, 92, 246]; // TW violet-500
+  const HIGH_FREQUENCY_COLOR = [239, 68, 68]; // TW red-500
   const HOVER_COLOR = [16, 185, 129];
   const FUTURE_COLOR = [102, 217, 239, 100];
+
+  const interpolateColor = (
+    from: readonly [number, number, number],
+    to: readonly [number, number, number],
+    t: number,
+  ): Color => {
+    const clampedT = Math.max(0, Math.min(1, t));
+    return [
+      Math.round(from[0] + (to[0] - from[0]) * clampedT),
+      Math.round(from[1] + (to[1] - from[1]) * clampedT),
+      Math.round(from[2] + (to[2] - from[2]) * clampedT),
+    ];
+  };
 
   let {
     flights,
@@ -54,6 +68,48 @@
 
   type VisitedAirport = (typeof visitedAirports)[0];
   type FlightArc = (typeof flightArcs)[0];
+  const getRouteKey = (fromId: number, toId: number) =>
+    fromId <= toId ? `${fromId}:${toId}` : `${toId}:${fromId}`;
+
+  // Rank routes by frequency so the full 0..1 range is always used,
+  // even when one outlier route dominates absolute counts.
+  const arcFrequencyPercentileByRoute = $derived.by(() => {
+    const percentileByRoute: Record<string, number> = {};
+    if (!flightArcs || flightArcs.length === 0) return percentileByRoute;
+
+    if (flightArcs.length === 1) {
+      const onlyArc = flightArcs[0]!;
+      percentileByRoute[getRouteKey(onlyArc.from.id, onlyArc.to.id)] = 1;
+      return percentileByRoute;
+    }
+
+    const sorted = [...flightArcs].sort((a, b) => a.frequency - b.frequency);
+    const denominator = sorted.length - 1;
+
+    let i = 0;
+    while (i < sorted.length) {
+      const frequency = sorted[i]!.frequency;
+      let j = i + 1;
+      while (j < sorted.length && sorted[j]!.frequency === frequency) j += 1;
+
+      const averageRank = (i + (j - 1)) / 2;
+      const percentile = averageRank / denominator;
+
+      for (let k = i; k < j; k += 1) {
+        const arc = sorted[k]!;
+        percentileByRoute[getRouteKey(arc.from.id, arc.to.id)] = percentile;
+      }
+
+      i = j;
+    }
+
+    return percentileByRoute;
+  });
+
+  const getArcFrequencyPercentile = (d: FlightArc) => {
+    const routeKey = getRouteKey(d.from.id, d.to.id);
+    return arcFrequencyPercentileByRoute[routeKey] ?? 0;
+  };
 
   let id = getId('deckgl-layer');
   let hoveredAirport: VisitedAirport | undefined = $state.raw(undefined);
@@ -183,6 +239,10 @@
         return INACTIVE_COLOR(200);
       } else if (d.exclusivelyFuture) {
         return FUTURE_COLOR;
+      } else if (mapPreferences.arcColor === 'byFrequency') {
+        const normalizedFreq = getArcFrequencyPercentile(d);
+        const baseColor = point === 'source' ? FROM_COLOR : TO_COLOR;
+        return interpolateColor(baseColor, HIGH_FREQUENCY_COLOR, normalizedFreq);
       } else {
         return point === 'source' ? FROM_COLOR : TO_COLOR;
       }
@@ -209,8 +269,11 @@
 
   const getArcWidth = (d: FlightArc) => {
     if (mapPreferences.arcThickness === 'byFrequency') {
+      const normalizedFreq = getArcFrequencyPercentile(d);
       return (
-        d.frequency * FREQUENCY_ARC_MULTIPLIER[mapPreferences.arcThicknessScale]
+        normalizedFreq *
+        3 *
+        FREQUENCY_ARC_MULTIPLIER[mapPreferences.arcThicknessScale]
       );
     }
     return UNIFORM_ARC_WIDTH[mapPreferences.arcThicknessScale];
@@ -252,9 +315,23 @@
     getSourceColor: getArcColor('source'),
     getTargetColor: getArcColor('target'),
     updateTriggers: {
-      getSourceColor: [hoveredArc, hoveredAirport],
-      getTargetColor: [hoveredArc, hoveredAirport],
-      getWidth: [mapPreferences.arcThickness, mapPreferences.arcThicknessScale],
+      getSourceColor: [
+        hoveredArc,
+        hoveredAirport,
+        mapPreferences.arcColor,
+        arcFrequencyPercentileByRoute,
+      ],
+      getTargetColor: [
+        hoveredArc,
+        hoveredAirport,
+        mapPreferences.arcColor,
+        arcFrequencyPercentileByRoute,
+      ],
+      getWidth: [
+        mapPreferences.arcThickness,
+        mapPreferences.arcThicknessScale,
+        arcFrequencyPercentileByRoute,
+      ],
     },
     getWidth: getArcWidth,
     getHeight: 0,
