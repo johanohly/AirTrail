@@ -2,11 +2,7 @@
   import { Moon, Sun } from '@o7/icon/lucide';
 
   import { page } from '$app/state';
-  import { cn } from '$lib/utils';
-  import {
-    formatTime,
-    getPreferences,
-  } from '$lib/utils/preferences';
+  import { formatTime, getPreferences } from '$lib/utils/preferences';
 
   let { tz }: { tz?: string | null } = $props();
 
@@ -40,14 +36,15 @@
         timeZoneName: 'shortOffset',
       }).formatToParts(now);
       const tzn = parts.find((p) => p.type === 'timeZoneName')?.value ?? 'UTC';
-      // "GMT+1" → "UTC+1"; "GMT" → "UTC"
       return tzn.replace(/^GMT/, 'UTC').replace(/^UTC$/, 'UTC+0');
     } catch {
       return 'UTC+0';
     }
   });
 
-  const tzCityLabel = $derived(resolvedTz.split('/').slice(-1)[0].replace(/_/g, ' '));
+  const tzCityLabel = $derived(
+    resolvedTz.split('/').slice(-1)[0].replace(/_/g, ' '),
+  );
 
   const localHour = $derived.by(() => {
     try {
@@ -81,7 +78,6 @@
         return h * 60 + m;
       };
       let diff = parse(fmtAirport.format(now)) - parse(fmtLocal.format(now));
-      // Normalize across midnight
       if (diff > 12 * 60) diff -= 24 * 60;
       if (diff < -12 * 60) diff += 24 * 60;
       return diff;
@@ -92,15 +88,14 @@
 
   const deltaLabel = $derived.by(() => {
     const m = userOffsetMinutes;
-    if (m === 0) return 'Same as your time';
+    if (m === 0) return 'Same as you';
     const abs = Math.abs(m);
     const h = Math.floor(abs / 60);
     const min = abs % 60;
     const parts: string[] = [];
     if (h > 0) parts.push(`${h}h`);
     if (min > 0) parts.push(`${min}m`);
-    const direction = m > 0 ? 'ahead of you' : 'behind you';
-    return `${parts.join(' ')} ${direction}`;
+    return `${parts.join(' ')} ${m > 0 ? 'ahead' : 'behind'}`;
   });
 </script>
 
@@ -109,42 +104,36 @@
     Local time
   </h3>
 
-  <div class="rounded-lg border border-border/60 bg-background/40 px-3 py-3">
+  <div
+    class="rounded-lg border border-border/60 bg-background/40 px-3 py-2.5"
+  >
     <div class="flex items-center justify-between gap-3">
       <div class="min-w-0">
-        <p class="text-3xl font-semibold leading-none tabular-nums tracking-tight">
+        <p
+          class="text-3xl font-semibold leading-none tabular-nums tracking-tight"
+        >
           {localTime}
         </p>
-        <p class="text-sm text-muted-foreground mt-1.5 truncate">
+        <p class="text-sm text-muted-foreground mt-1.5 truncate tabular-nums">
           {localDateLabel}
         </p>
       </div>
-      <div
-        class={cn(
-          'flex size-10 shrink-0 items-center justify-center rounded-full',
-          isDaytime
-            ? 'bg-amber-400/15 text-amber-400'
-            : 'bg-slate-500/15 text-slate-400',
-        )}
-        aria-hidden="true"
-      >
-        {#if isDaytime}
-          <Sun size={20} />
-        {:else}
-          <Moon size={20} />
-        {/if}
-      </div>
+      {#if isDaytime}
+        <Sun size={24} class="shrink-0 text-amber-400" aria-hidden="true" />
+      {:else}
+        <Moon size={24} class="shrink-0 text-slate-400" aria-hidden="true" />
+      {/if}
     </div>
+  </div>
 
-    <div
-      class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"
-    >
-      <span class="truncate">
-        <span class="text-foreground font-medium">{tzCityLabel}</span>
-        <span class="text-muted-foreground/80"> · {offsetLabel}</span>
-      </span>
-      <span aria-hidden="true">·</span>
-      <span>{deltaLabel}</span>
-    </div>
+  <div
+    class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-3 text-xs text-muted-foreground"
+  >
+    <span class="truncate">
+      <span class="font-semibold text-foreground">{tzCityLabel}</span>
+      <span class="tabular-nums"> · {offsetLabel}</span>
+    </span>
+    <span aria-hidden="true">·</span>
+    <span>{deltaLabel}</span>
   </div>
 </section>
