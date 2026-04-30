@@ -8,6 +8,7 @@ import {
 import { MAP_BASEMAPS, type MapBasemap } from './basemap';
 
 export type AirportCirclesMode = 'off' | 'small' | 'medium' | 'large';
+export type ArcColorMode = 'default' | 'byFrequency';
 export type ArcThicknessMode = 'uniform' | 'byFrequency';
 export type ArcThicknessScale = 'thin' | 'normal' | 'thick';
 export type AirportOverlayDetail = 'standard' | 'detailed';
@@ -15,6 +16,7 @@ export type AirportOverlayDetail = 'standard' | 'detailed';
 export type MapPreferences = {
   basemap: MapBasemap;
   airportCircles: AirportCirclesMode;
+  arcColor: ArcColorMode;
   arcThickness: ArcThicknessMode;
   arcThicknessScale: ArcThicknessScale;
   airportOverlayDetail: AirportOverlayDetail;
@@ -30,6 +32,10 @@ const AIRPORT_CIRCLES_MODES: readonly AirportCirclesMode[] = [
   'small',
   'medium',
   'large',
+];
+const ARC_COLOR_MODES: readonly ArcColorMode[] = [
+  'default',
+  'byFrequency',
 ];
 const ARC_THICKNESS_MODES: readonly ArcThicknessMode[] = [
   'uniform',
@@ -48,6 +54,7 @@ const AIRPORT_OVERLAY_DETAIL_MODES: readonly AirportOverlayDetail[] = [
 export const MAP_PREFERENCE_DEFAULTS: MapPreferences = {
   basemap: 'default',
   airportCircles: 'large',
+  arcColor: 'default',
   arcThickness: 'uniform',
   arcThicknessScale: 'normal',
   airportOverlayDetail: 'detailed',
@@ -80,6 +87,12 @@ const sanitize = (raw: unknown): MapPreferences => {
     AIRPORT_CIRCLES_MODES.includes(input.airportCircles as AirportCirclesMode)
   ) {
     result.airportCircles = input.airportCircles as AirportCirclesMode;
+  }
+  if (
+    typeof input.arcColor === 'string' &&
+    ARC_COLOR_MODES.includes(input.arcColor as ArcColorMode)
+  ) {
+    result.arcColor = input.arcColor as ArcColorMode;
   }
   if (
     typeof input.arcThickness === 'string' &&
@@ -146,6 +159,7 @@ export const initMapPreferences = () => {
   const hydrated = sanitize(parsed);
   mapPreferences.basemap = hydrated.basemap;
   mapPreferences.airportCircles = hydrated.airportCircles;
+  mapPreferences.arcColor = hydrated.arcColor;
   mapPreferences.arcThickness = hydrated.arcThickness;
   mapPreferences.arcThicknessScale = hydrated.arcThicknessScale;
   mapPreferences.airportOverlayDetail = hydrated.airportOverlayDetail;
@@ -157,6 +171,7 @@ export const initMapPreferences = () => {
       const snapshot: MapPreferences = {
         basemap: mapPreferences.basemap,
         airportCircles: mapPreferences.airportCircles,
+        arcColor: mapPreferences.arcColor,
         arcThickness: mapPreferences.arcThickness,
         arcThicknessScale: mapPreferences.arcThicknessScale,
         airportOverlayDetail: mapPreferences.airportOverlayDetail,
@@ -175,6 +190,7 @@ export const initMapPreferences = () => {
 export const resetMapPreferences = () => {
   mapPreferences.basemap = MAP_PREFERENCE_DEFAULTS.basemap;
   mapPreferences.airportCircles = MAP_PREFERENCE_DEFAULTS.airportCircles;
+  mapPreferences.arcColor = MAP_PREFERENCE_DEFAULTS.arcColor;
   mapPreferences.arcThickness = MAP_PREFERENCE_DEFAULTS.arcThickness;
   mapPreferences.arcThicknessScale = MAP_PREFERENCE_DEFAULTS.arcThicknessScale;
   mapPreferences.airportOverlayDetail =
