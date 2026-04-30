@@ -1,5 +1,6 @@
 <script lang="ts">
   import {
+    ChevronDown,
     Cloud,
     CloudOff,
     CloudSun,
@@ -10,6 +11,7 @@
   } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
   import { writable } from 'svelte/store';
+  import { slide } from 'svelte/transition';
 
   import { page } from '$app/state';
   import { TextTooltip } from '$lib/components/ui/tooltip';
@@ -44,6 +46,8 @@
 
   const metar = $derived($metarQuery.data ?? null);
   const isLoading = $derived($metarQuery.isLoading);
+
+  let expanded = $state(false);
 
   const CATEGORY_META: Record<
     FlightCategory,
@@ -316,6 +320,45 @@
 {/snippet}
 
 <section class="px-4 py-4">
+  <button
+    type="button"
+    class="flex w-full items-center justify-between gap-3 text-left"
+    aria-expanded={expanded}
+    onclick={() => (expanded = !expanded)}
+  >
+    <h3 class="text-xs uppercase tracking-wider text-muted-foreground">
+      Weather
+    </h3>
+    <div class="flex items-center gap-2 min-w-0">
+      {#if !expanded}
+        {#if metar}
+          <span class="text-xs text-muted-foreground truncate">
+            <span class="text-foreground font-medium tabular-nums">
+              {formatTemp(metar.tempC)}{temperatureUnitLabel(prefs)}
+            </span>
+            <span class="text-muted-foreground/80"> · {conditionLabel}</span>
+          </span>
+          <ConditionIcon
+            size={14}
+            class={cn('shrink-0', isDaytime ? 'text-amber-400' : 'text-slate-400')}
+          />
+        {:else if isLoading}
+          <span class="text-xs text-muted-foreground">Loading…</span>
+        {:else}
+          <span class="text-xs text-muted-foreground inline-flex items-center gap-1">
+            <CloudOff size={12} /> Unavailable
+          </span>
+        {/if}
+      {/if}
+      <ChevronDown
+        size={14}
+        class={cn('shrink-0 text-muted-foreground transition-transform', expanded && 'rotate-180')}
+      />
+    </div>
+  </button>
+
+  {#if expanded}
+  <div transition:slide={{ duration: 200 }} class="pt-3">
   {#if isLoading && !metar}
     <div class="animate-pulse">
       <div class="flex items-start justify-between gap-4 mb-4">
@@ -587,5 +630,7 @@
         METAR reported {observedAgo}
       </button>
     </TextTooltip>
+  {/if}
+  </div>
   {/if}
 </section>
