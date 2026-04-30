@@ -6,6 +6,7 @@
 
   import AirportFlightsCard from './AirportFlightsCard.svelte';
   import AirportStatsCard from './AirportStatsCard.svelte';
+  import AirportTimeCard from './AirportTimeCard.svelte';
   import AirportWeatherCard from './AirportWeatherCard.svelte';
 
   import { Button } from '$lib/components/ui/button';
@@ -83,6 +84,7 @@
       airportId={airport.id}
       airlineCount={airport.airlines.length}
     />
+    <AirportTimeCard tz={airport.tz} />
     <AirportWeatherCard icao={airport.icao} tz={airport.tz} lon={airport.lon} />
     <AirportFlightsCard flights={relatedFlights} airportId={airport.id} />
   {/if}
