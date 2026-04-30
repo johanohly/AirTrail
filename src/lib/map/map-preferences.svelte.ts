@@ -7,11 +7,13 @@ import {
 } from './openaip';
 
 export type AirportCirclesMode = 'off' | 'small' | 'medium' | 'large';
+export type ArcColorMode = 'default' | 'byFrequency';
 export type ArcThicknessMode = 'uniform' | 'byFrequency';
 export type ArcThicknessScale = 'thin' | 'normal' | 'thick';
 
 export type MapPreferences = {
   airportCircles: AirportCirclesMode;
+  arcColor: ArcColorMode;
   arcThickness: ArcThicknessMode;
   arcThicknessScale: ArcThicknessScale;
   openAipEnabled: boolean;
@@ -27,6 +29,7 @@ const AIRPORT_CIRCLES_MODES: readonly AirportCirclesMode[] = [
   'medium',
   'large',
 ];
+const ARC_COLOR_MODES: readonly ArcColorMode[] = ['default', 'byFrequency'];
 const ARC_THICKNESS_MODES: readonly ArcThicknessMode[] = [
   'uniform',
   'byFrequency',
@@ -39,6 +42,7 @@ const ARC_THICKNESS_SCALES: readonly ArcThicknessScale[] = [
 
 export const MAP_PREFERENCE_DEFAULTS: MapPreferences = {
   airportCircles: 'large',
+  arcColor: 'default',
   arcThickness: 'uniform',
   arcThicknessScale: 'normal',
   openAipEnabled: false,
@@ -64,6 +68,12 @@ const sanitize = (raw: unknown): MapPreferences => {
     AIRPORT_CIRCLES_MODES.includes(input.airportCircles as AirportCirclesMode)
   ) {
     result.airportCircles = input.airportCircles as AirportCirclesMode;
+  }
+  if (
+    typeof input.arcColor === 'string' &&
+    ARC_COLOR_MODES.includes(input.arcColor as ArcColorMode)
+  ) {
+    result.arcColor = input.arcColor as ArcColorMode;
   }
   if (
     typeof input.arcThickness === 'string' &&
@@ -120,6 +130,7 @@ export const initMapPreferences = () => {
 
   const hydrated = sanitize(parsed);
   mapPreferences.airportCircles = hydrated.airportCircles;
+  mapPreferences.arcColor = hydrated.arcColor;
   mapPreferences.arcThickness = hydrated.arcThickness;
   mapPreferences.arcThicknessScale = hydrated.arcThicknessScale;
   mapPreferences.openAipEnabled = hydrated.openAipEnabled;
@@ -129,6 +140,7 @@ export const initMapPreferences = () => {
     $effect(() => {
       const snapshot: MapPreferences = {
         airportCircles: mapPreferences.airportCircles,
+        arcColor: mapPreferences.arcColor,
         arcThickness: mapPreferences.arcThickness,
         arcThicknessScale: mapPreferences.arcThicknessScale,
         openAipEnabled: mapPreferences.openAipEnabled,
@@ -145,6 +157,7 @@ export const initMapPreferences = () => {
 
 export const resetMapPreferences = () => {
   mapPreferences.airportCircles = MAP_PREFERENCE_DEFAULTS.airportCircles;
+  mapPreferences.arcColor = MAP_PREFERENCE_DEFAULTS.arcColor;
   mapPreferences.arcThickness = MAP_PREFERENCE_DEFAULTS.arcThickness;
   mapPreferences.arcThicknessScale = MAP_PREFERENCE_DEFAULTS.arcThicknessScale;
   mapPreferences.openAipEnabled = MAP_PREFERENCE_DEFAULTS.openAipEnabled;

@@ -16,6 +16,7 @@
     resetMapPreferences,
     toggleOpenAipGroup,
     type AirportCirclesMode,
+    type ArcColorMode,
     type ArcThicknessMode,
     type ArcThicknessScale,
   } from '$lib/map/map-preferences.svelte';
@@ -45,6 +46,14 @@
     { value: 'small', label: 'Small' },
     { value: 'medium', label: 'Medium' },
     { value: 'large', label: 'Large' },
+  ];
+
+  const ARC_COLOR_OPTIONS: Array<{
+    value: ArcColorMode;
+    label: string;
+  }> = [
+    { value: 'default', label: 'Default' },
+    { value: 'byFrequency', label: 'By frequency' },
   ];
 
   const ARC_THICKNESS_OPTIONS: Array<{
@@ -297,6 +306,82 @@
               {/snippet}
             </AppearanceTile>
           {/each}
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex items-baseline justify-between">
+            <h3 class="text-sm font-semibold">Arcs</h3>
+            <p class="text-muted-foreground text-[11px]">Color</p>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            {#each ARC_COLOR_OPTIONS as option (option.value)}
+              <AppearanceTile
+                selected={mapPreferences.arcColor === option.value}
+                onclick={() => (mapPreferences.arcColor = option.value)}
+                label={option.label}
+              >
+                {#snippet illustration()}
+                  <svg
+                    viewBox="0 0 72 32"
+                    class="h-full w-full"
+                    aria-hidden="true"
+                  >
+                    {#if option.value === 'default'}
+                      <path
+                        d="M4 24 Q36 2 68 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        class="text-primary"
+                      />
+                      <path
+                        d="M4 26 Q36 8 68 26"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        class="text-primary"
+                      />
+                      <path
+                        d="M4 28 Q36 14 68 28"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        class="text-primary"
+                      />
+                    {:else}
+                      <path
+                        d="M4 24 Q36 2 68 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        class="text-blue-400"
+                      />
+                      <path
+                        d="M4 26 Q36 8 68 26"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        class="text-violet-400"
+                      />
+                      <path
+                        d="M4 28 Q36 14 68 28"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        class="text-red-500"
+                      />
+                    {/if}
+                  </svg>
+                {/snippet}
+              </AppearanceTile>
+            {/each}
+          </div>
         </div>
       </section>
 
