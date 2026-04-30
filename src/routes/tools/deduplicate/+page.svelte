@@ -125,7 +125,7 @@
     All of these already exist in the database, with the same origin,
     destination, and date.
   </p>
-  <div class="rounded-md border">
+  <div class="rounded-md border [&>div]:max-h-[calc(100vh-350px)]">
     <Table.Root>
       <Table.Header>
         {#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
