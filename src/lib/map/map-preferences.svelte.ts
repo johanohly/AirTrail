@@ -33,10 +33,7 @@ const AIRPORT_CIRCLES_MODES: readonly AirportCirclesMode[] = [
   'medium',
   'large',
 ];
-const ARC_COLOR_MODES: readonly ArcColorMode[] = [
-  'default',
-  'byFrequency',
-];
+const ARC_COLOR_MODES: readonly ArcColorMode[] = ['default', 'byFrequency'];
 const ARC_THICKNESS_MODES: readonly ArcThicknessMode[] = [
   'uniform',
   'byFrequency',
