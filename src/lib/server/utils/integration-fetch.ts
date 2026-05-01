@@ -1,6 +1,6 @@
 import { env } from '$env/dynamic/private';
 import { HttpsProxyAgent } from 'https-proxy-agent';
-import type { OutgoingHttpHeaders } from 'node:http';
+import type { IncomingMessage, OutgoingHttpHeaders } from 'node:http';
 import https from 'node:https';
 import { Readable } from 'node:stream';
 import { SocksProxyAgent } from 'socks-proxy-agent';
@@ -29,10 +29,7 @@ const createAbortError = () =>
 const hasHeader = (headers: OutgoingHttpHeaders, name: string) =>
   Object.keys(headers).some((key) => key.toLowerCase() === name);
 
-const prepareBody = async (
-  init: RequestInit,
-  headers: OutgoingHttpHeaders,
-) => {
+const prepareBody = async (init: RequestInit, headers: OutgoingHttpHeaders) => {
   if (init.body == null) {
     return null;
   }
@@ -86,15 +83,26 @@ const fetchThroughProxy = async (
   }
 
   return new Promise((resolve, reject) => {
-    let settled = false;
+    let promiseSettled = false;
     let req: ReturnType<typeof https.request> | null = null;
+    let res: IncomingMessage | null = null;
     let abortHandler: (() => void) | null = null;
 
-    const settle = <T>(callback: (value: T) => void, value: T) => {
-      if (settled) return;
-      settled = true;
+    const cleanupAbortHandler = () => {
       if (init.signal && abortHandler) {
         init.signal.removeEventListener('abort', abortHandler);
+      }
+    };
+
+    const settle = <T>(
+      callback: (value: T) => void,
+      value: T,
+      { cleanupAbort = true } = {},
+    ) => {
+      if (promiseSettled) return;
+      promiseSettled = true;
+      if (cleanupAbort) {
+        cleanupAbortHandler();
       }
       callback(value);
     };
@@ -103,16 +111,20 @@ const fetchThroughProxy = async (
       ? () => {
           const err = createAbortError();
           req?.destroy(err);
-          settle(reject, err);
+          res?.destroy(err);
+          if (!promiseSettled) {
+            settle(reject, err);
+          }
         }
       : null;
 
     req = https.request(
       url,
       createRequestOptions(init, proxyUrl, headers),
-      (res) => {
+      (upstreamResponse) => {
+        res = upstreamResponse;
         const headers = new Headers();
-        for (const [key, value] of Object.entries(res.headers)) {
+        for (const [key, value] of Object.entries(upstreamResponse.headers)) {
           if (Array.isArray(value)) {
             for (const item of value) headers.append(key, item);
           } else if (value !== undefined) {
@@ -120,19 +132,28 @@ const fetchThroughProxy = async (
           }
         }
 
-        const status = res.statusCode ?? 500;
+        const status = upstreamResponse.statusCode ?? 500;
+        if (responseCannotHaveBody(status)) {
+          cleanupAbortHandler();
+        } else {
+          upstreamResponse.once('close', cleanupAbortHandler);
+          upstreamResponse.once('end', cleanupAbortHandler);
+          upstreamResponse.once('error', cleanupAbortHandler);
+        }
+
         settle(
           resolve,
           new Response(
             responseCannotHaveBody(status)
               ? null
-              : (Readable.toWeb(res) as ReadableStream),
+              : (Readable.toWeb(upstreamResponse) as ReadableStream),
             {
               status,
-              statusText: res.statusMessage ?? '',
+              statusText: upstreamResponse.statusMessage ?? '',
               headers,
             },
           ),
+          { cleanupAbort: responseCannotHaveBody(status) },
         );
       },
     );
