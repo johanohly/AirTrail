@@ -3,6 +3,8 @@
   import { ChevronRight, Funnel, List, Locate, X } from '@o7/icon/lucide';
 
   import { page } from '$app/state';
+  import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
+  import RouteArrow from '$lib/components/display/RouteArrow.svelte';
   import type {
     FlightFilters,
     Route,
@@ -204,6 +206,19 @@
     }
   });
 
+  const formatFlightNumber = (flightNumber: string | null | undefined) => {
+    if (!flightNumber) return null;
+    return flightNumber.replace(/([a-zA-Z]{2})(\d+)/, '$1 $2');
+  };
+
+  const flightSubtitle = (flight: FlightData) => {
+    if (flight.airline?.name) return flight.airline.name;
+    if (flight.aircraft?.name && flight.aircraftReg) {
+      return `${flight.aircraft.name} · ${flight.aircraftReg}`;
+    }
+    return flight.aircraft?.name ?? flight.aircraftReg ?? null;
+  };
+
   const previewLimit = 6;
 </script>
 
@@ -324,27 +339,45 @@
 {/snippet}
 
 {#snippet flightRow(flight: FlightData)}
-  <li class="flex items-center gap-3 py-2">
-    <div class="min-w-0 flex-1">
-      <div class="flex items-baseline gap-2">
-        <span class="truncate text-sm font-medium">
-          {flight.from?.iata ?? flight.from?.icao ?? 'N/A'}
-          <span class="text-muted-foreground">↔</span>
-          {flight.to?.iata ?? flight.to?.icao ?? 'N/A'}
-        </span>
-        <span class="truncate text-xs text-muted-foreground">
-          {flight.airline?.name ?? ''}
-        </span>
+  {@const dateLabel = flight.date
+    ? formatAsFlightDate(flight.date, flight.datePrecision ?? 'day', true, true)
+    : 'Unknown date'}
+  {@const flightNumber = formatFlightNumber(flight.flightNumber)}
+  {@const subtitle = flightSubtitle(flight)}
+  <li class="group rounded-md transition-colors hover:bg-background/55">
+    <div class="flex items-center gap-3 px-2 py-2.5">
+      <div class="flex w-8 shrink-0 justify-center">
+        <AirlineIcon airline={flight.airline} size={28} fallback="plane" />
       </div>
-      <div class="text-[11px] text-muted-foreground">
-        {flight.date
-          ? formatAsFlightDate(
-              flight.date,
-              flight.datePrecision ?? 'day',
-              true,
-              true,
-            )
-          : 'Unknown date'}
+
+      <div class="min-w-0 flex-1">
+        <div class="flex min-w-0 items-center gap-2">
+          <span class="text-base leading-5 font-semibold tracking-tight">
+            {flight.from?.iata ?? flight.from?.icao ?? 'N/A'}
+          </span>
+          <RouteArrow class="size-4 fill-muted-foreground/70" />
+          <span class="text-base leading-5 font-semibold tracking-tight">
+            {flight.to?.iata ?? flight.to?.icao ?? 'N/A'}
+          </span>
+          {#if flightNumber}
+            <span
+              class="min-w-0 truncate text-xs font-medium text-muted-foreground tabular-nums"
+            >
+              {flightNumber}
+            </span>
+          {/if}
+        </div>
+        {#if subtitle}
+          <p class="mt-0.5 truncate text-xs text-muted-foreground">
+            {subtitle}
+          </p>
+        {/if}
+      </div>
+
+      <div
+        class="shrink-0 text-right text-xs font-medium text-muted-foreground tabular-nums"
+      >
+        {dateLabel}
       </div>
     </div>
   </li>
