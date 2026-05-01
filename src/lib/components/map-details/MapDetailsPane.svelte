@@ -7,6 +7,7 @@
   import type { FlightData } from '$lib/utils';
 
   import AirportDetailsContent from './AirportDetailsContent.svelte';
+  import RouteDetailsContent from './RouteDetailsContent.svelte';
 
   let {
     flights,
@@ -23,4 +24,6 @@
 
 {#if selection?.type === 'airport'}
   <AirportDetailsContent {flights} bind:filters bind:tempFilters />
+{:else if selection?.type === 'route'}
+  <RouteDetailsContent {flights} bind:filters bind:tempFilters />
 {/if}

@@ -7,20 +7,26 @@
   let {
     showPreviousView = false,
     activeAirportFilter = null,
+    activeRouteFilter = null,
     showScopeBanner = false,
     alignWithDetails = false,
     onPreviousView,
     onClearAirportFilter,
+    onClearRouteFilter,
   }: {
     showPreviousView?: boolean;
     activeAirportFilter?: { id: string; label: string } | null;
+    activeRouteFilter?: { id: string; label: string } | null;
     showScopeBanner?: boolean;
     alignWithDetails?: boolean;
     onPreviousView?: () => void;
     onClearAirportFilter?: () => void;
+    onClearRouteFilter?: () => void;
   } = $props();
 
-  const visible = $derived(showPreviousView || !!activeAirportFilter);
+  const visible = $derived(
+    showPreviousView || !!activeAirportFilter || !!activeRouteFilter,
+  );
 </script>
 
 {#if visible}
@@ -53,6 +59,19 @@
         aria-label="Clear airport filter"
       >
         <span>Filtered: {activeAirportFilter.label}</span>
+        <X size={13} />
+      </Button>
+    {/if}
+
+    {#if activeRouteFilter && onClearRouteFilter}
+      <Button
+        variant="outline"
+        size="sm"
+        class="pointer-events-auto h-8 border-border/70 bg-background/90 px-2.5 text-xs shadow-xs backdrop-blur-md"
+        onclick={onClearRouteFilter}
+        aria-label="Clear route filter"
+      >
+        <span>Filtered: {activeRouteFilter.label}</span>
         <X size={13} />
       </Button>
     {/if}

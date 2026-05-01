@@ -28,6 +28,7 @@
     defaultFilters,
     hasTempFilters as hasActiveTempFilters,
     type FlightFilters,
+    type Route,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
   import * as Popover from '$lib/components/ui/popover';
@@ -189,6 +190,18 @@
     );
   });
 
+  const routeMatches = (
+    item: { from: { id: number }; to: { id: number } },
+    route: Route,
+  ) => {
+    const fromId = item.from.id.toString();
+    const toId = item.to.id.toString();
+    return (
+      (fromId === route.a && toId === route.b) ||
+      (fromId === route.b && toId === route.a)
+    );
+  };
+
   const activeAirportFilter = $derived.by(() => {
     if (!filters?.airportsEither.length) return null;
     const id = filters.airportsEither[0]!;
@@ -198,6 +211,20 @@
     return {
       id,
       label: airport ? (airport.iata ?? airport.icao) : 'Airport',
+    };
+  });
+
+  const activeRouteFilter = $derived.by(() => {
+    if (!filters?.routes.length) return null;
+    const route = filters.routes[0]!;
+    const arc = prepareFlightArcData(flights).find((item) =>
+      routeMatches(item, route),
+    );
+    return {
+      id: `${route.a}-${route.b}`,
+      label: arc
+        ? `${arc.from.iata ?? arc.from.icao} ↔ ${arc.to.iata ?? arc.to.icao}`
+        : 'Route',
     };
   });
 
@@ -285,28 +312,49 @@
     const selection = mapDetailsState.selection;
     const focusRequest = mapDetailsState.focusRequest;
     if (!map || !selection || focusRequest === handledFocusRequest) return;
-    if (selection.type !== 'airport') return;
-
-    const id = selection.airportId;
-
-    const airport = prepareVisitedAirports(flights).find((a) => a.id === id);
-    if (!airport) return;
-    handledFocusRequest = focusRequest;
 
     const padding = $isMediumScreen
       ? { top: 40, right: 40, bottom: 40, left: 420 }
       : { top: 40, right: 20, bottom: window.innerHeight * 0.55, left: 20 };
 
+    if (selection.type === 'airport') {
+      const airport = prepareVisitedAirports(flights).find(
+        (a) => a.id === selection.airportId,
+      );
+      if (!airport) return;
+      handledFocusRequest = focusRequest;
+
+      previousCamera = snapshotCamera();
+      showPreviousView = !!previousCamera;
+      markProgrammaticMove();
+
+      map.flyTo({
+        center: [airport.lon, airport.lat],
+        zoom: 13,
+        duration: 1200,
+        essential: true,
+        padding,
+      });
+      return;
+    }
+
+    const arc = prepareFlightArcData(flights).find((item) =>
+      routeMatches(item, selection.route),
+    );
+    if (!arc) return;
+
+    const bounds = calculateBounds([arc]);
+    if (!bounds) return;
+    handledFocusRequest = focusRequest;
+
     previousCamera = snapshotCamera();
     showPreviousView = !!previousCamera;
     markProgrammaticMove();
 
-    map.flyTo({
-      center: [airport.lon, airport.lat],
-      zoom: 13,
+    map.fitBounds(bounds, {
+      padding,
       duration: 1200,
       essential: true,
-      padding,
     });
   });
 
@@ -392,11 +440,15 @@
     <MapStatusShelf
       {showPreviousView}
       {activeAirportFilter}
+      {activeRouteFilter}
       {showScopeBanner}
       alignWithDetails={alignStatusWithDetails}
       onPreviousView={restorePreviousView}
       onClearAirportFilter={() => {
         if (filters) filters.airportsEither = [];
+      }}
+      onClearRouteFilter={() => {
+        if (filters) filters.routes = [];
       }}
     />
 

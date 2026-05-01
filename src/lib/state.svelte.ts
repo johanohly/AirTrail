@@ -1,4 +1,7 @@
-import type { Route } from '$lib/components/flight-filters/types';
+import {
+  normalizeRoute,
+  type Route,
+} from '$lib/components/flight-filters/types';
 import type { ClientAppConfig, FullAppConfig } from '$lib/server/utils/config';
 import type { DeepBoolean } from '$lib/utils';
 
@@ -71,7 +74,10 @@ export const openAirportDetails = (airportId: number) => {
 };
 
 export const openRouteDetails = (route: Route) => {
-  mapDetailsState.selection = { type: 'route', route };
+  mapDetailsState.selection = {
+    type: 'route',
+    route: normalizeRoute(route.a, route.b),
+  };
   mapDetailsState.focusRequest += 1;
   syncAirportDetailsCompatibility();
 };

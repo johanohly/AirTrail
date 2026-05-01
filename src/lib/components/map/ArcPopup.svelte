@@ -90,6 +90,6 @@
 {#if clickable}
   <div class="h-px bg-muted my-2" />
   <div class="px-3 pb-2">
-    <p class="text-xs text-muted-foreground text-center">Click to view all</p>
+    <p class="text-xs text-muted-foreground text-center">Click for details</p>
   </div>
 {/if}

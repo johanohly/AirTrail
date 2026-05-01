@@ -16,14 +16,14 @@
 
   import {
     normalizeRoute,
-    setTempRoute,
+    type Route,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
   import { mapPreferences } from '$lib/map/map-preferences.svelte';
   import {
     mapDetailsState,
     openAirportDetails,
-    openModalsState,
+    openRouteDetails,
   } from '$lib/state.svelte';
   import {
     type FlightData,
@@ -108,8 +108,7 @@
         e.object.from.id.toString(),
         e.object.to.id.toString(),
       );
-      setTempRoute(tempFilters, route);
-      openModalsState.listFlights = true;
+      openRouteDetails(route);
     }
   };
 
@@ -130,10 +129,34 @@
     return selection?.type === 'airport' ? selection.airportId : null;
   });
 
+  const selectedRoute = $derived.by(() => {
+    const selection = mapDetailsState.selection;
+    return selection?.type === 'route' ? selection.route : null;
+  });
+
+  const routeMatches = (arc: FlightArc, route: Route | null | undefined) => {
+    if (!route) return false;
+    const fromId = arc.from.id.toString();
+    const toId = arc.to.id.toString();
+    return (
+      (fromId === route.a && toId === route.b) ||
+      (fromId === route.b && toId === route.a)
+    );
+  };
+
+  const selectedRouteAirportIds = $derived.by(() => {
+    if (!selectedRoute) return [];
+    return [Number(selectedRoute.a), Number(selectedRoute.b)];
+  });
+
   const getAirportFillColor = () => {
     return (airport: (typeof visitedAirports)[number]): Color => {
       if (selectedAirportId === airport.id) {
         return AIRPORT_COLOR(110);
+      } else if (selectedRouteAirportIds.includes(airport.id)) {
+        return AIRPORT_COLOR(85);
+      } else if (selectedRoute) {
+        return INACTIVE_COLOR(45);
       } else if (hoveredAirport == airport) {
         return AIRPORT_COLOR(80);
       } else if (
@@ -159,6 +182,10 @@
     return (airport: (typeof visitedAirports)[number]): Color => {
       if (selectedAirportId === airport.id) {
         return AIRPORT_COLOR(255);
+      } else if (selectedRouteAirportIds.includes(airport.id)) {
+        return AIRPORT_COLOR(255);
+      } else if (selectedRoute) {
+        return INACTIVE_COLOR(230);
       } else if (
         hoveredAirport?.id === airport.id ||
         hoveredAirport?.flights.some((f) => f.airports.includes(airport.id))
@@ -183,6 +210,8 @@
     return (d: (typeof flightArcs)[number]) => {
       if (hoveredArc?.from === d.from && hoveredArc?.to === d.to) {
         return HOVER_COLOR;
+      } else if (routeMatches(d, selectedRoute)) {
+        return HOVER_COLOR;
       } else if (hoveredArc) {
         return INACTIVE_COLOR(200);
       } else if (
@@ -198,6 +227,8 @@
       ) {
         return point === 'source' ? FROM_COLOR : TO_COLOR;
       } else if (selectedAirportId) {
+        return INACTIVE_COLOR(170);
+      } else if (selectedRoute) {
         return INACTIVE_COLOR(170);
       } else if (d.exclusivelyFuture) {
         return FUTURE_COLOR;
@@ -234,6 +265,11 @@
     return UNIFORM_ARC_WIDTH[mapPreferences.arcThicknessScale];
   };
 
+  const getVisibleArcWidth = (d: FlightArc) => {
+    const width = getArcWidth(d);
+    return routeMatches(d, selectedRoute) ? Math.max(width + 1.5, 3) : width;
+  };
+
   const airportOptions = $derived.by(() => {
     const mode = mapPreferences.airportCircles;
     const preset =
@@ -248,16 +284,29 @@
       radiusMaxPixels: preset.maxPixels,
       lineWidthUnits: 'pixels',
       getLineWidth: (airport: VisitedAirport) =>
-        airport.id === selectedAirportId ? 2 : 1,
+        airport.id === selectedAirportId ||
+        selectedRouteAirportIds.includes(airport.id)
+          ? 2
+          : 1,
       pickable: true,
       onHover: handleAirportHover,
       onClick: handleAirportClick,
       getFillColor: getAirportFillColor(),
       getLineColor: getAirportLineColor(),
       updateTriggers: {
-        getFillColor: [hoveredArc, hoveredAirport, selectedAirportId],
-        getLineColor: [hoveredArc, hoveredAirport, selectedAirportId],
-        getLineWidth: [selectedAirportId],
+        getFillColor: [
+          hoveredArc,
+          hoveredAirport,
+          selectedAirportId,
+          selectedRoute,
+        ],
+        getLineColor: [
+          hoveredArc,
+          hoveredAirport,
+          selectedAirportId,
+          selectedRoute,
+        ],
+        getLineWidth: [selectedAirportId, selectedRouteAirportIds],
         getRadius: [mode, $isMediumScreen],
       },
       stroked: true,
@@ -272,11 +321,25 @@
     getSourceColor: getArcColor('source'),
     getTargetColor: getArcColor('target'),
     updateTriggers: {
-      getSourceColor: [hoveredArc, hoveredAirport, selectedAirportId],
-      getTargetColor: [hoveredArc, hoveredAirport, selectedAirportId],
-      getWidth: [mapPreferences.arcThickness, mapPreferences.arcThicknessScale],
+      getSourceColor: [
+        hoveredArc,
+        hoveredAirport,
+        selectedAirportId,
+        selectedRoute,
+      ],
+      getTargetColor: [
+        hoveredArc,
+        hoveredAirport,
+        selectedAirportId,
+        selectedRoute,
+      ],
+      getWidth: [
+        mapPreferences.arcThickness,
+        mapPreferences.arcThicknessScale,
+        selectedRoute,
+      ],
     },
-    getWidth: getArcWidth,
+    getWidth: getVisibleArcWidth,
     getHeight: 0,
     greatCircle: true,
   }));
