@@ -1,6 +1,7 @@
 import type { RequestHandler } from './$types';
 
 import { appConfig } from '$lib/server/utils/config';
+import { fetchIntegration } from '$lib/server/utils/integration-fetch';
 
 const OPENAIP_TILE_BASE_URL = 'https://api.tiles.openaip.net/api/data/openaip';
 const PRIVATE_CACHE_CONTROL =
@@ -30,7 +31,7 @@ export const GET: RequestHandler = async ({ locals, params, fetch }) => {
     });
   }
 
-  const upstream = await fetch(
+  const upstream = await fetchIntegration(
     `${OPENAIP_TILE_BASE_URL}/${params.z}/${params.x}/${params.y}.pbf`,
     {
       headers: {
@@ -38,6 +39,7 @@ export const GET: RequestHandler = async ({ locals, params, fetch }) => {
         accept: 'application/vnd.mapbox-vector-tile,application/x-protobuf',
       },
     },
+    fetch,
   );
 
   if (upstream.status === 204) {

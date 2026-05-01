@@ -15,6 +15,7 @@ import { getAircraftByIcao } from '$lib/server/utils/aircraft';
 import { getAirlineByIcao, getAirlineByIata } from '$lib/server/utils/airline';
 import { getAirportByIcao } from '$lib/server/utils/airport';
 import { appConfig } from '$lib/server/utils/config';
+import { fetchIntegration } from '$lib/server/utils/integration-fetch';
 import { RequestRateLimiter } from '$lib/utils/ratelimiter';
 
 const BASE_URL = 'https://aerodatabox.p.rapidapi.com';
@@ -64,7 +65,7 @@ export async function getFlightRoute(
     )}/${fromDate}/${toDate}?dateLocalRole=Both&withAircraftImage=false&withLocation=false`;
   }
 
-  const resp = await fetch(url, {
+  const resp = await fetchIntegration(url, {
     headers: {
       'x-rapidapi-key': apiKey,
     },
@@ -192,7 +193,7 @@ export async function getAircraftFromReg(
   }
 
   const url = `${BASE_URL}/aircrafts/reg/${encodeURIComponent(reg)}`;
-  const resp = await fetch(url, {
+  const resp = await fetchIntegration(url, {
     headers: {
       'x-rapidapi-key': apiKey,
     },
