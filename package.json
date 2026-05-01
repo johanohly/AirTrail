@@ -39,8 +39,10 @@
   "dependencies": {
     "@node-rs/argon2": "^2.0.2",
     "geo-tz": "^8.1.6",
+    "https-proxy-agent": "^7.0.2",
     "memoize": "^10.2.0",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "socks-proxy-agent": "^8.0.5"
   },
   "devDependencies": {
     "@date-fns/tz": "^1.4.1",
