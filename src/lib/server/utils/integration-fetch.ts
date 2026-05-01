@@ -23,42 +23,51 @@ const isSocksProxy = (proxyUrl: string) => {
 const responseCannotHaveBody = (status: number) =>
   status === 204 || status === 205 || status === 304;
 
-const writeBody = (req: ReturnType<typeof https.request>, body: BodyInit) => {
-  if (
-    typeof body === 'string' ||
-    body instanceof Uint8Array ||
-    Buffer.isBuffer(body)
-  ) {
-    req.write(body);
-    return;
+const createAbortError = () =>
+  new DOMException('This operation was aborted', 'AbortError');
+
+const hasHeader = (headers: OutgoingHttpHeaders, name: string) =>
+  Object.keys(headers).some((key) => key.toLowerCase() === name);
+
+const prepareBody = async (
+  init: RequestInit,
+  headers: OutgoingHttpHeaders,
+) => {
+  if (init.body == null) {
+    return null;
   }
 
-  if (body instanceof ArrayBuffer) {
-    req.write(Buffer.from(body));
-    return;
+  const bodyResponse = new Response(init.body);
+  const contentType = bodyResponse.headers.get('content-type');
+  const body = Buffer.from(await bodyResponse.arrayBuffer());
+
+  if (contentType && !hasHeader(headers, 'content-type')) {
+    headers['content-type'] = contentType;
+  }
+  if (!hasHeader(headers, 'content-length')) {
+    headers['content-length'] = body.byteLength;
   }
 
-  if (body instanceof URLSearchParams) {
-    req.write(body.toString());
-    return;
-  }
-
-  throw new Error('Unsupported integration proxy request body type');
+  return body;
 };
 
-const createRequestOptions = (init: RequestInit, proxyUrl: string) => {
+const createRequestOptions = (
+  init: RequestInit,
+  proxyUrl: string,
+  headers: OutgoingHttpHeaders,
+) => {
   const agent = isSocksProxy(proxyUrl)
     ? new SocksProxyAgent(proxyUrl)
     : new HttpsProxyAgent(proxyUrl);
 
   return {
     method: init.method ?? 'GET',
-    headers: normalizeHeaders(init.headers),
+    headers,
     agent,
   };
 };
 
-const fetchThroughProxy = (
+const fetchThroughProxy = async (
   url: URL,
   init: RequestInit,
   proxyUrl: string,
@@ -66,11 +75,41 @@ const fetchThroughProxy = (
   if (url.protocol !== 'https:') {
     throw new Error('Integration proxy only supports HTTPS upstream URLs');
   }
+  if (init.signal?.aborted) {
+    throw createAbortError();
+  }
+
+  const headers = normalizeHeaders(init.headers);
+  const body = await prepareBody(init, headers);
+  if (init.signal?.aborted) {
+    throw createAbortError();
+  }
 
   return new Promise((resolve, reject) => {
-    const req = https.request(
+    let settled = false;
+    let req: ReturnType<typeof https.request> | null = null;
+    let abortHandler: (() => void) | null = null;
+
+    const settle = <T>(callback: (value: T) => void, value: T) => {
+      if (settled) return;
+      settled = true;
+      if (init.signal && abortHandler) {
+        init.signal.removeEventListener('abort', abortHandler);
+      }
+      callback(value);
+    };
+
+    abortHandler = init.signal
+      ? () => {
+          const err = createAbortError();
+          req?.destroy(err);
+          settle(reject, err);
+        }
+      : null;
+
+    req = https.request(
       url,
-      createRequestOptions(init, proxyUrl),
+      createRequestOptions(init, proxyUrl, headers),
       (res) => {
         const headers = new Headers();
         for (const [key, value] of Object.entries(res.headers)) {
@@ -82,7 +121,8 @@ const fetchThroughProxy = (
         }
 
         const status = res.statusCode ?? 500;
-        resolve(
+        settle(
+          resolve,
           new Response(
             responseCannotHaveBody(status)
               ? null
@@ -97,18 +137,14 @@ const fetchThroughProxy = (
       },
     );
 
-    req.on('error', reject);
+    req.on('error', (err) => settle(reject, err));
 
-    if (init.signal) {
-      init.signal.addEventListener(
-        'abort',
-        () => req.destroy(new Error('Request aborted')),
-        { once: true },
-      );
+    if (init.signal && abortHandler) {
+      init.signal.addEventListener('abort', abortHandler, { once: true });
     }
 
-    if (init.body) {
-      writeBody(req, init.body);
+    if (body) {
+      req.write(body);
     }
 
     req.end();
