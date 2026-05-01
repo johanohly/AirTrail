@@ -340,297 +340,309 @@
           </span>
           <ConditionIcon
             size={14}
-            class={cn('shrink-0', isDaytime ? 'text-amber-400' : 'text-slate-400')}
+            class={cn(
+              'shrink-0',
+              isDaytime ? 'text-amber-400' : 'text-slate-400',
+            )}
           />
         {:else if isLoading}
           <span class="text-xs text-muted-foreground">Loading…</span>
         {:else}
-          <span class="text-xs text-muted-foreground inline-flex items-center gap-1">
+          <span
+            class="text-xs text-muted-foreground inline-flex items-center gap-1"
+          >
             <CloudOff size={12} /> Unavailable
           </span>
         {/if}
       {/if}
       <ChevronDown
         size={14}
-        class={cn('shrink-0 text-muted-foreground transition-transform', expanded && 'rotate-180')}
+        class={cn(
+          'shrink-0 text-muted-foreground transition-transform',
+          expanded && 'rotate-180',
+        )}
       />
     </div>
   </button>
 
   {#if expanded}
-  <div transition:slide={{ duration: 200 }} class="pt-3">
-  {#if isLoading && !metar}
-    <div class="animate-pulse">
-      <div class="flex items-start justify-between gap-4 mb-4">
-        <div class="space-y-2">
-          <div class="h-9 w-24 rounded-md bg-muted"></div>
-          <div class="h-3 w-20 rounded bg-muted/70"></div>
-        </div>
-        <div class="h-12 w-12 rounded-full bg-muted"></div>
-      </div>
-      <div class="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5">
-        <div class="flex items-center gap-2">
-          <div class="h-4 w-10 rounded bg-muted"></div>
-          <div class="h-3.5 w-28 rounded bg-muted/70"></div>
-        </div>
-        <div class="grid grid-cols-2 gap-4 mt-3">
-          <div class="space-y-2">
-            <div class="h-3 w-20 rounded bg-muted/70"></div>
-            <div class="h-4 w-16 rounded bg-muted"></div>
-            <div class="flex gap-1">
-              <div class="h-1 flex-1 rounded-full bg-muted"></div>
-              <div class="h-1 flex-1 rounded-full bg-muted"></div>
-              <div class="h-1 flex-1 rounded-full bg-muted"></div>
-              <div class="h-1 flex-1 rounded-full bg-muted"></div>
+    <div transition:slide={{ duration: 200 }} class="pt-3">
+      {#if isLoading && !metar}
+        <div class="animate-pulse">
+          <div class="flex items-start justify-between gap-4 mb-4">
+            <div class="space-y-2">
+              <div class="h-9 w-24 rounded-md bg-muted"></div>
+              <div class="h-3 w-20 rounded bg-muted/70"></div>
+            </div>
+            <div class="h-12 w-12 rounded-full bg-muted"></div>
+          </div>
+          <div
+            class="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5"
+          >
+            <div class="flex items-center gap-2">
+              <div class="h-4 w-10 rounded bg-muted"></div>
+              <div class="h-3.5 w-28 rounded bg-muted/70"></div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 mt-3">
+              <div class="space-y-2">
+                <div class="h-3 w-20 rounded bg-muted/70"></div>
+                <div class="h-4 w-16 rounded bg-muted"></div>
+                <div class="flex gap-1">
+                  <div class="h-1 flex-1 rounded-full bg-muted"></div>
+                  <div class="h-1 flex-1 rounded-full bg-muted"></div>
+                  <div class="h-1 flex-1 rounded-full bg-muted"></div>
+                  <div class="h-1 flex-1 rounded-full bg-muted"></div>
+                </div>
+              </div>
+              <div class="space-y-2">
+                <div class="h-3 w-20 rounded bg-muted/70"></div>
+                <div class="h-4 w-16 rounded bg-muted"></div>
+                <div class="flex gap-1">
+                  <div class="h-1 flex-1 rounded-full bg-muted"></div>
+                  <div class="h-1 flex-1 rounded-full bg-muted"></div>
+                  <div class="h-1 flex-1 rounded-full bg-muted"></div>
+                  <div class="h-1 flex-1 rounded-full bg-muted"></div>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="space-y-2">
-            <div class="h-3 w-20 rounded bg-muted/70"></div>
-            <div class="h-4 w-16 rounded bg-muted"></div>
-            <div class="flex gap-1">
-              <div class="h-1 flex-1 rounded-full bg-muted"></div>
-              <div class="h-1 flex-1 rounded-full bg-muted"></div>
-              <div class="h-1 flex-1 rounded-full bg-muted"></div>
-              <div class="h-1 flex-1 rounded-full bg-muted"></div>
+          <div
+            class="mt-4 rounded-lg border border-border/60 bg-muted/30 px-3 py-3 flex items-center gap-4"
+          >
+            <div class="size-24 rounded-full bg-muted shrink-0"></div>
+            <div class="flex-1 space-y-2.5">
+              <div class="h-3 w-16 rounded bg-muted/70"></div>
+              <div class="h-4 w-24 rounded bg-muted"></div>
+              <div class="h-3 w-full rounded bg-muted/70"></div>
             </div>
           </div>
+          <div class="h-2.5 w-32 rounded bg-muted/70 mt-4"></div>
         </div>
-      </div>
-      <div
-        class="mt-4 rounded-lg border border-border/60 bg-muted/30 px-3 py-3 flex items-center gap-4"
-      >
-        <div class="size-24 rounded-full bg-muted shrink-0"></div>
-        <div class="flex-1 space-y-2.5">
-          <div class="h-3 w-16 rounded bg-muted/70"></div>
-          <div class="h-4 w-24 rounded bg-muted"></div>
-          <div class="h-3 w-full rounded bg-muted/70"></div>
+      {:else if !metar}
+        <div class="flex items-center gap-2 text-muted-foreground">
+          <CloudOff size={18} />
+          <span class="text-sm">Weather unavailable for {icao}</span>
         </div>
-      </div>
-      <div class="h-2.5 w-32 rounded bg-muted/70 mt-4"></div>
-    </div>
-  {:else if !metar}
-    <div class="flex items-center gap-2 text-muted-foreground">
-      <CloudOff size={18} />
-      <span class="text-sm">Weather unavailable for {icao}</span>
-    </div>
-  {:else}
-    <div class="flex items-start justify-between gap-4 mb-4">
-      <div>
-        <div class="flex items-baseline gap-1">
-          <span class="text-4xl font-semibold leading-none tracking-tight">
-            {formatTemp(metar.tempC)}
-          </span>
-          <span class="text-xl font-medium text-muted-foreground">
-            {temperatureUnitLabel(prefs)}
-          </span>
+      {:else}
+        <div class="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <div class="flex items-baseline gap-1">
+              <span class="text-4xl font-semibold leading-none tracking-tight">
+                {formatTemp(metar.tempC)}
+              </span>
+              <span class="text-xl font-medium text-muted-foreground">
+                {temperatureUnitLabel(prefs)}
+              </span>
+            </div>
+            <p class="text-sm text-muted-foreground mt-1">{conditionLabel}</p>
+          </div>
+          <ConditionIcon
+            size={48}
+            class={cn(
+              'shrink-0',
+              isDaytime ? 'text-amber-400' : 'text-slate-400',
+            )}
+          />
         </div>
-        <p class="text-sm text-muted-foreground mt-1">{conditionLabel}</p>
-      </div>
-      <ConditionIcon
-        size={48}
-        class={cn('shrink-0', isDaytime ? 'text-amber-400' : 'text-slate-400')}
-      />
-    </div>
 
-    <div
-      class="rounded-lg border border-border/60 bg-background/40 px-3 py-2.5"
-    >
-      <div class="flex items-center gap-2">
-        <span
-          class={cn(
-            'text-[11px] font-bold px-2 py-0.5 rounded text-white',
-            category.bg,
-          )}
+        <div
+          class="rounded-lg border border-border/60 bg-background/40 px-3 py-2.5"
         >
-          {metar.flightCategory}
-        </span>
-        <span class={cn('text-sm font-medium', category.color)}>
-          {category.label}
-        </span>
-      </div>
-
-      <div class="grid grid-cols-2 gap-4 mt-3">
-        <div>
-          <div class="flex items-center gap-1.5 text-muted-foreground">
-            <Cloud size={13} />
-            <span class="text-xs">Cloud Ceiling</span>
-          </div>
-          <p class="text-base font-semibold mt-0.5">{ceilingLabel}</p>
-          {@render categoryBar(ceilingCategory)}
-        </div>
-        <div>
-          <div class="flex items-center gap-1.5 text-muted-foreground">
-            <Eye size={13} />
-            <span class="text-xs">Visibility</span>
-          </div>
-          <p class="text-base font-semibold mt-0.5">{visibilityLabel}</p>
-          {@render categoryBar(visibilityCategory)}
-        </div>
-      </div>
-    </div>
-
-    <div
-      class="mt-4 rounded-lg border border-border/60 bg-background/40 px-3 py-3"
-    >
-      <div class="flex items-center gap-1.5 text-muted-foreground">
-        <Wind size={13} />
-        <span class="text-xs">Wind</span>
-      </div>
-      <div class="mt-2 flex items-center gap-4">
-        <div class="relative shrink-0 size-24">
-          <svg viewBox="0 0 96 96" class="size-24">
-            <circle
-              cx="48"
-              cy="48"
-              r="44"
-              fill="none"
-              class="stroke-border"
-              stroke-width="1"
-            />
-            {#each TICK_DEGS as deg}
-              {@const isCardinal = deg % 90 === 0}
-              <line
-                x1="48"
-                y1="6"
-                x2="48"
-                y2={isCardinal ? 12 : 9}
-                class={isCardinal
-                  ? 'stroke-muted-foreground/70'
-                  : 'stroke-muted-foreground/30'}
-                stroke-width={isCardinal ? 1.25 : 0.75}
-                transform="rotate({deg} 48 48)"
-              />
-            {/each}
-            <text
-              x="48"
-              y="20"
-              text-anchor="middle"
-              class={lit.N ? 'fill-foreground' : 'fill-muted-foreground/60'}
-              font-size="8"
-              font-weight={lit.N ? '900' : '700'}
-              letter-spacing="0.5">N</text
-            >
-            <text
-              x="78"
-              y="51"
-              text-anchor="middle"
-              class={lit.E ? 'fill-foreground' : 'fill-muted-foreground/60'}
-              font-size="8"
-              font-weight={lit.E ? '900' : '700'}>E</text
-            >
-            <text
-              x="48"
-              y="83"
-              text-anchor="middle"
-              class={lit.S ? 'fill-foreground' : 'fill-muted-foreground/60'}
-              font-size="8"
-              font-weight={lit.S ? '900' : '700'}>S</text
-            >
-            <text
-              x="18"
-              y="51"
-              text-anchor="middle"
-              class={lit.W ? 'fill-foreground' : 'fill-muted-foreground/60'}
-              font-size="8"
-              font-weight={lit.W ? '900' : '700'}>W</text
-            >
-
-            {#if metar.wind.varies}
-              {@const start = metar.wind.varies.from}
-              {@const end = metar.wind.varies.to}
-              {@const sweep = (end - start + 360) % 360 || 360}
-              {@const startRad = ((start - 90) * Math.PI) / 180}
-              {@const endRad = ((end - 90) * Math.PI) / 180}
-              {@const r = 38}
-              {@const x1 = 48 + r * Math.cos(startRad)}
-              {@const y1 = 48 + r * Math.sin(startRad)}
-              {@const x2 = 48 + r * Math.cos(endRad)}
-              {@const y2 = 48 + r * Math.sin(endRad)}
-              <path
-                d={`M ${x1} ${y1} A ${r} ${r} 0 ${sweep > 180 ? 1 : 0} 1 ${x2} ${y2}`}
-                fill="none"
-                class="stroke-primary/40"
-                stroke-width="2.5"
-                stroke-linecap="round"
-              />
-            {/if}
-
-            {#if !isVariableWind}
-              <g
-                style="transform: rotate({compassRotation}deg); transform-origin: 48px 48px; transform-box: view-box; transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);"
-              >
-                <polygon points="48,14 45,48 51,48" class="fill-primary" />
-              </g>
-              <circle cx="48" cy="48" r="2.5" class="fill-primary" />
-            {:else}
-              <circle cx="48" cy="48" r="3" class="fill-primary/60" />
-            {/if}
-          </svg>
-          <div class="absolute inset-0 pointer-events-none">
+          <div class="flex items-center gap-2">
             <span
               class={cn(
-                'absolute inset-x-0 text-center text-[11px] font-medium tabular-nums text-muted-foreground leading-none transition-all duration-300',
-                needleDown ? 'top-7' : 'bottom-6',
+                'text-[11px] font-bold px-2 py-0.5 rounded text-white',
+                category.bg,
               )}
             >
-              {#if isVariableWind}VRB{:else}{String(metar.wind.dirDeg).padStart(
-                  3,
-                  '0',
-                )}°{/if}
+              {metar.flightCategory}
+            </span>
+            <span class={cn('text-sm font-medium', category.color)}>
+              {category.label}
             </span>
           </div>
-        </div>
-        <div class="flex-1 min-w-0 space-y-2.5">
-          {#if metar.wind.gustKt !== null}
-            {@render windStrengthBar(metar.wind.speedKt, 'Strength')}
-            {@render windStrengthBar(metar.wind.gustKt, 'Gust')}
-          {:else}
+
+          <div class="grid grid-cols-2 gap-4 mt-3">
             <div>
-              <div
-                class="text-[10px] uppercase tracking-wider text-muted-foreground"
-              >
-                Direction
+              <div class="flex items-center gap-1.5 text-muted-foreground">
+                <Cloud size={13} />
+                <span class="text-xs">Cloud Ceiling</span>
               </div>
-              <div class="text-sm font-semibold">
-                {#if isVariableWind}
-                  Variable
-                {:else if metar.wind.varies}
-                  {metar.wind.varies.from}° – {metar.wind.varies.to}°
-                {:else}
-                  {cardinal}
-                  <span class="text-xs font-normal text-muted-foreground">
-                    · {metar.wind.dirDeg}°
-                  </span>
+              <p class="text-base font-semibold mt-0.5">{ceilingLabel}</p>
+              {@render categoryBar(ceilingCategory)}
+            </div>
+            <div>
+              <div class="flex items-center gap-1.5 text-muted-foreground">
+                <Eye size={13} />
+                <span class="text-xs">Visibility</span>
+              </div>
+              <p class="text-base font-semibold mt-0.5">{visibilityLabel}</p>
+              {@render categoryBar(visibilityCategory)}
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="mt-4 rounded-lg border border-border/60 bg-background/40 px-3 py-3"
+        >
+          <div class="flex items-center gap-1.5 text-muted-foreground">
+            <Wind size={13} />
+            <span class="text-xs">Wind</span>
+          </div>
+          <div class="mt-2 flex items-center gap-4">
+            <div class="relative shrink-0 size-24">
+              <svg viewBox="0 0 96 96" class="size-24">
+                <circle
+                  cx="48"
+                  cy="48"
+                  r="44"
+                  fill="none"
+                  class="stroke-border"
+                  stroke-width="1"
+                />
+                {#each TICK_DEGS as deg}
+                  {@const isCardinal = deg % 90 === 0}
+                  <line
+                    x1="48"
+                    y1="6"
+                    x2="48"
+                    y2={isCardinal ? 12 : 9}
+                    class={isCardinal
+                      ? 'stroke-muted-foreground/70'
+                      : 'stroke-muted-foreground/30'}
+                    stroke-width={isCardinal ? 1.25 : 0.75}
+                    transform="rotate({deg} 48 48)"
+                  />
+                {/each}
+                <text
+                  x="48"
+                  y="20"
+                  text-anchor="middle"
+                  class={lit.N ? 'fill-foreground' : 'fill-muted-foreground/60'}
+                  font-size="8"
+                  font-weight={lit.N ? '900' : '700'}
+                  letter-spacing="0.5">N</text
+                >
+                <text
+                  x="78"
+                  y="51"
+                  text-anchor="middle"
+                  class={lit.E ? 'fill-foreground' : 'fill-muted-foreground/60'}
+                  font-size="8"
+                  font-weight={lit.E ? '900' : '700'}>E</text
+                >
+                <text
+                  x="48"
+                  y="83"
+                  text-anchor="middle"
+                  class={lit.S ? 'fill-foreground' : 'fill-muted-foreground/60'}
+                  font-size="8"
+                  font-weight={lit.S ? '900' : '700'}>S</text
+                >
+                <text
+                  x="18"
+                  y="51"
+                  text-anchor="middle"
+                  class={lit.W ? 'fill-foreground' : 'fill-muted-foreground/60'}
+                  font-size="8"
+                  font-weight={lit.W ? '900' : '700'}>W</text
+                >
+
+                {#if metar.wind.varies}
+                  {@const start = metar.wind.varies.from}
+                  {@const end = metar.wind.varies.to}
+                  {@const sweep = (end - start + 360) % 360 || 360}
+                  {@const startRad = ((start - 90) * Math.PI) / 180}
+                  {@const endRad = ((end - 90) * Math.PI) / 180}
+                  {@const r = 38}
+                  {@const x1 = 48 + r * Math.cos(startRad)}
+                  {@const y1 = 48 + r * Math.sin(startRad)}
+                  {@const x2 = 48 + r * Math.cos(endRad)}
+                  {@const y2 = 48 + r * Math.sin(endRad)}
+                  <path
+                    d={`M ${x1} ${y1} A ${r} ${r} 0 ${sweep > 180 ? 1 : 0} 1 ${x2} ${y2}`}
+                    fill="none"
+                    class="stroke-primary/40"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                  />
                 {/if}
+
+                {#if !isVariableWind}
+                  <g
+                    style="transform: rotate({compassRotation}deg); transform-origin: 48px 48px; transform-box: view-box; transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);"
+                  >
+                    <polygon points="48,14 45,48 51,48" class="fill-primary" />
+                  </g>
+                  <circle cx="48" cy="48" r="2.5" class="fill-primary" />
+                {:else}
+                  <circle cx="48" cy="48" r="3" class="fill-primary/60" />
+                {/if}
+              </svg>
+              <div class="absolute inset-0 pointer-events-none">
+                <span
+                  class={cn(
+                    'absolute inset-x-0 text-center text-[11px] font-medium tabular-nums text-muted-foreground leading-none transition-all duration-300',
+                    needleDown ? 'top-7' : 'bottom-6',
+                  )}
+                >
+                  {#if isVariableWind}VRB{:else}{String(
+                      metar.wind.dirDeg,
+                    ).padStart(3, '0')}°{/if}
+                </span>
               </div>
             </div>
-            {@render windStrengthBar(metar.wind.speedKt, 'Strength')}
-          {/if}
+            <div class="flex-1 min-w-0 space-y-2.5">
+              {#if metar.wind.gustKt !== null}
+                {@render windStrengthBar(metar.wind.speedKt, 'Strength')}
+                {@render windStrengthBar(metar.wind.gustKt, 'Gust')}
+              {:else}
+                <div>
+                  <div
+                    class="text-[10px] uppercase tracking-wider text-muted-foreground"
+                  >
+                    Direction
+                  </div>
+                  <div class="text-sm font-semibold">
+                    {#if isVariableWind}
+                      Variable
+                    {:else if metar.wind.varies}
+                      {metar.wind.varies.from}° – {metar.wind.varies.to}°
+                    {:else}
+                      {cardinal}
+                      <span class="text-xs font-normal text-muted-foreground">
+                        · {metar.wind.dirDeg}°
+                      </span>
+                    {/if}
+                  </div>
+                </div>
+                {@render windStrengthBar(metar.wind.speedKt, 'Strength')}
+              {/if}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
 
-    <TextTooltip
-      content={metar.raw}
-      rootProps={{ delayDuration: 0 }}
-      contentProps={{ class: 'max-w-[90vw] font-mono text-xs' }}
-    >
-      <button
-        type="button"
-        onclick={async () => {
-          try {
-            await navigator.clipboard.writeText(metar.raw);
-            toast.success('METAR copied');
-          } catch {
-            toast.error('Failed to copy');
-          }
-        }}
-        class="text-[10px] uppercase tracking-wider text-muted-foreground mt-4 cursor-pointer underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 hover:text-foreground transition-colors"
-      >
-        METAR reported {observedAgo}
-      </button>
-    </TextTooltip>
-  {/if}
-  </div>
+        <TextTooltip
+          content={metar.raw}
+          rootProps={{ delayDuration: 0 }}
+          contentProps={{ class: 'max-w-[90vw] font-mono text-xs' }}
+        >
+          <button
+            type="button"
+            onclick={async () => {
+              try {
+                await navigator.clipboard.writeText(metar.raw);
+                toast.success('METAR copied');
+              } catch {
+                toast.error('Failed to copy');
+              }
+            }}
+            class="text-[10px] uppercase tracking-wider text-muted-foreground mt-4 cursor-pointer underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 hover:text-foreground transition-colors"
+          >
+            METAR reported {observedAgo}
+          </button>
+        </TextTooltip>
+      {/if}
+    </div>
   {/if}
 </section>

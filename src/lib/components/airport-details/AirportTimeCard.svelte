@@ -104,9 +104,7 @@
     Local time
   </h3>
 
-  <div
-    class="rounded-lg border border-border/60 bg-background/40 px-3 py-2.5"
-  >
+  <div class="rounded-lg border border-border/60 bg-background/40 px-3 py-2.5">
     <div class="flex items-center justify-between gap-3">
       <div class="min-w-0">
         <p
