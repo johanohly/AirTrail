@@ -35,6 +35,8 @@
     () =>
       filters.departureAirports.length ||
       filters.arrivalAirports.length ||
+      filters.airportsEither.length ||
+      filters.routes.length ||
       filters.fromDate ||
       filters.toDate ||
       filters.passengers.length ||

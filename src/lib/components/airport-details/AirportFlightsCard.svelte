@@ -1,16 +1,23 @@
 <script lang="ts">
   import { PlaneLanding, PlaneTakeoff } from '@o7/icon/lucide';
 
+  import { Button } from '$lib/components/ui/button';
   import type { FlightData } from '$lib/utils';
   import { formatAsFlightDate } from '$lib/utils/datetime';
 
   let {
     flights,
     airportId,
+    onShowAllDepartures,
+    onShowAllArrivals,
   }: {
     flights: FlightData[];
     airportId: number;
+    onShowAllDepartures?: () => void;
+    onShowAllArrivals?: () => void;
   } = $props();
+
+  const previewLimit = 5;
 
   const byDateDesc = (a: FlightData, b: FlightData) => {
     const ad = a.date?.getTime() ?? 0;
@@ -60,20 +67,33 @@
   Icon: typeof PlaneTakeoff,
   items: FlightData[],
   direction: 'departure' | 'arrival',
+  onShowAll?: () => void,
 )}
   <div>
-    <div class="flex items-center gap-2 mb-1">
+    <div class="mb-1 flex min-h-8 items-center gap-2">
       <Icon size={14} class="text-muted-foreground" />
       <h4 class="text-xs uppercase tracking-wider text-muted-foreground">
         {title}
       </h4>
-      <span class="text-xs text-muted-foreground ml-auto">{items.length}</span>
+      {#if items.length > previewLimit && onShowAll}
+        <Button
+          variant="ghost"
+          size="sm"
+          class="ml-auto h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+          onclick={onShowAll}
+        >
+          Show all {items.length}
+        </Button>
+      {:else}
+        <span class="ml-auto text-xs text-muted-foreground">{items.length}</span
+        >
+      {/if}
     </div>
     {#if items.length === 0}
       <p class="text-sm text-muted-foreground py-1">None.</p>
     {:else}
       <ul class="flex flex-col divide-y divide-border/50">
-        {#each items as flight (flight.id)}
+        {#each items.slice(0, previewLimit) as flight (flight.id)}
           {@render flightRow(flight, direction)}
         {/each}
       </ul>
@@ -81,7 +101,19 @@
   </div>
 {/snippet}
 
-<section class="px-4 py-4 flex flex-col gap-4">
-  {@render section('Departures', PlaneTakeoff, departures, 'departure')}
-  {@render section('Arrivals', PlaneLanding, arrivals, 'arrival')}
+<section class="flex flex-col gap-4 px-4 py-4">
+  {@render section(
+    'Departures',
+    PlaneTakeoff,
+    departures,
+    'departure',
+    onShowAllDepartures,
+  )}
+  {@render section(
+    'Arrivals',
+    PlaneLanding,
+    arrivals,
+    'arrival',
+    onShowAllArrivals,
+  )}
 </section>

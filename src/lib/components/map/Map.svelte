@@ -15,6 +15,7 @@
 
   import MapAppearanceControl from './MapAppearanceControl.svelte';
   import MapFallback from './MapFallback.svelte';
+  import MapStatusShelf from './MapStatusShelf.svelte';
   import OpenAipOverlay from './OpenAipOverlay.svelte';
 
   import { AirportsArcsLayer } from '.';
@@ -25,6 +26,7 @@
   import Filters from '$lib/components/flight-filters/Filters.svelte';
   import {
     defaultFilters,
+    hasTempFilters as hasActiveTempFilters,
     type FlightFilters,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
@@ -50,13 +52,14 @@
     supportsMapWebGL,
   } from '$lib/map/runtime';
   import {
-    airportDetailsState,
     appConfig,
     flightScopeState,
     flightAddedState,
+    mapDetailsState,
   } from '$lib/state.svelte';
   import {
     calculateBounds,
+    cn,
     prepareFlightArcData,
     prepareVisitedAirports,
     type FlightData,
@@ -81,9 +84,20 @@
   } = $props();
 
   const showScopeBanner = $derived(flightScopeState.scope !== 'mine');
+  const alignStatusWithDetails = $derived(!!mapDetailsState.selection);
 
   let map: maplibregl.Map | undefined = $state(undefined);
   let canRenderMap = $state(!browser);
+  type CameraSnapshot = {
+    center: [number, number];
+    zoom: number;
+    bearing: number;
+    pitch: number;
+  };
+  let previousCamera: CameraSnapshot | null = $state(null);
+  let showPreviousView = $state(false);
+  let programmaticCameraMove = false;
+  let handledFocusRequest = $state(-1);
   const style = $derived(
     getConfiguredAppMapStyleUrl(mode.current, appConfig.config?.map),
   );
@@ -125,22 +139,70 @@
     });
   };
 
+  const snapshotCamera = (): CameraSnapshot | null => {
+    if (!map) return null;
+    const center = map.getCenter();
+    return {
+      center: [center.lng, center.lat],
+      zoom: map.getZoom(),
+      bearing: map.getBearing(),
+      pitch: map.getPitch(),
+    };
+  };
+
+  const markProgrammaticMove = () => {
+    if (!map) return;
+    programmaticCameraMove = true;
+    map.once('moveend', () => {
+      programmaticCameraMove = false;
+    });
+  };
+
+  const restorePreviousView = () => {
+    if (!map || !previousCamera) return;
+    markProgrammaticMove();
+    map.easeTo({
+      center: previousCamera.center,
+      zoom: previousCamera.zoom,
+      bearing: previousCamera.bearing,
+      pitch: previousCamera.pitch,
+      duration: 650,
+      essential: true,
+    });
+    previousCamera = null;
+    showPreviousView = false;
+  };
+
   const showClear = $derived.by(() => {
     return (
       filters &&
       (filters.departureAirports.length ||
         filters.arrivalAirports.length ||
+        filters.airportsEither.length ||
+        filters.routes.length ||
         filters.fromDate ||
         filters.toDate ||
+        filters.passengers.length ||
+        filters.airline.length ||
+        filters.aircraft.length ||
         filters.aircraftRegs.length)
     );
   });
 
+  const activeAirportFilter = $derived.by(() => {
+    if (!filters?.airportsEither.length) return null;
+    const id = filters.airportsEither[0]!;
+    const airport = prepareVisitedAirports(flights).find(
+      (a) => a.id.toString() === id,
+    );
+    return {
+      id,
+      label: airport ? (airport.iata ?? airport.icao) : 'Airport',
+    };
+  });
+
   let previousFilteredCount = $state(0);
-  const hasTempFilters = $derived(
-    tempFilters &&
-      (tempFilters.routes.length > 0 || tempFilters.airportsEither.length > 0),
-  );
+  const hasTempFilters = $derived(hasActiveTempFilters(tempFilters));
 
   $effect(() => {
     if (!flightAddedState.added) return;
@@ -198,15 +260,46 @@
   });
 
   $effect(() => {
-    const id = airportDetailsState.airportId;
-    if (!map || id === null) return;
+    if (!map) return;
+
+    const clearPreviousView = () => {
+      if (programmaticCameraMove) return;
+      previousCamera = null;
+      showPreviousView = false;
+    };
+
+    map.on('dragstart', clearPreviousView);
+    map.on('zoomstart', clearPreviousView);
+    map.on('rotatestart', clearPreviousView);
+    map.on('pitchstart', clearPreviousView);
+
+    return () => {
+      map.off('dragstart', clearPreviousView);
+      map.off('zoomstart', clearPreviousView);
+      map.off('rotatestart', clearPreviousView);
+      map.off('pitchstart', clearPreviousView);
+    };
+  });
+
+  $effect(() => {
+    const selection = mapDetailsState.selection;
+    const focusRequest = mapDetailsState.focusRequest;
+    if (!map || !selection || focusRequest === handledFocusRequest) return;
+    if (selection.type !== 'airport') return;
+
+    const id = selection.airportId;
 
     const airport = prepareVisitedAirports(flights).find((a) => a.id === id);
     if (!airport) return;
+    handledFocusRequest = focusRequest;
 
     const padding = $isMediumScreen
       ? { top: 40, right: 40, bottom: 40, left: 420 }
       : { top: 40, right: 20, bottom: window.innerHeight * 0.55, left: 20 };
+
+    previousCamera = snapshotCamera();
+    showPreviousView = !!previousCamera;
+    markProgrammaticMove();
 
     map.flyTo({
       center: [airport.lon, airport.lat],
@@ -225,7 +318,10 @@
 
 {#if showScopeBanner}
   <div
-    class="absolute top-3 left-1/2 -translate-x-1/2 z-10 w-[min(400px,calc(100%-2rem))]"
+    class={cn(
+      'absolute top-3 left-1/2 z-10 w-[min(400px,calc(100%-2rem))] -translate-x-1/2 transition-[left] duration-200',
+      alignStatusWithDetails ? 'md:left-[calc(50%+12rem)]' : '',
+    )}
   >
     <AdminScopeBanner />
   </div>
@@ -244,15 +340,15 @@
     attributionControl={false}
   >
     <AttributionControl compact={true} />
-    <NavigationControl />
-    <GeolocateControl />
-    <Control position="top-left">
+    <NavigationControl position="top-right" />
+    <GeolocateControl position="top-right" />
+    <Control position="top-right">
       <ControlGroup>
         <MapAppearanceControl {openAipConfigured} />
       </ControlGroup>
     </Control>
     {#if flights.length}
-      <Control position="top-left">
+      <Control position="top-right">
         <ControlGroup>
           <ControlButton onclick={fitFlights} title="Show all flights">
             <Fullscreen size={20} />
@@ -265,8 +361,8 @@
                 </ControlButton>
               </Popover.Trigger>
               <Popover.Content
-                side="right"
-                class="flex flex-col grow-0 gap-2 w-fit"
+                side="left"
+                class="flex w-fit grow-0 flex-col gap-2"
               >
                 <Filters bind:flights bind:filters bind:tempFilters />
               </Popover.Content>
@@ -274,7 +370,7 @@
           {/if}
         </ControlGroup>
       </Control>
-      <Control position="top-left">
+      <Control position="top-right">
         {#if showClear}
           <div
             class="maplibregl-ctrl-group bg-destructive! hover:bg-destructive/80!"
@@ -292,6 +388,17 @@
         {/if}
       </Control>
     {/if}
+
+    <MapStatusShelf
+      {showPreviousView}
+      {activeAirportFilter}
+      {showScopeBanner}
+      alignWithDetails={alignStatusWithDetails}
+      onPreviousView={restorePreviousView}
+      onClearAirportFilter={() => {
+        if (filters) filters.airportsEither = [];
+      }}
+    />
 
     {#if openAipActive}
       <OpenAipOverlay

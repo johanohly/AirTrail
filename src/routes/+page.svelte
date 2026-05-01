@@ -5,8 +5,9 @@
   import { toast } from 'svelte-sonner';
 
   import {
+    createDefaultTempFilters,
     defaultFilters,
-    defaultTempFilters,
+    hasTempFilters as hasActiveTempFilters,
     type FlightFilters,
     type TempFilters,
     type Route,
@@ -15,11 +16,7 @@
   import { AirportDetailsPane } from '$lib/components/airport-details';
   import { Map } from '$lib/components/map';
   import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
-  import {
-    airportDetailsState,
-    flightScopeState,
-    openModalsState,
-  } from '$lib/state.svelte';
+  import { flightScopeState, openModalsState } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
   import {
     getSeatPassengerToken,
@@ -74,7 +71,7 @@
   });
 
   let filters: FlightFilters = $state(defaultFilters);
-  let tempFilters: TempFilters = $state(defaultTempFilters);
+  let tempFilters: TempFilters = $state(createDefaultTempFilters());
 
   const effectiveSeatUserId = $derived.by(() => {
     if (flightScopeState.scope === 'all') return undefined;
@@ -87,13 +84,7 @@
 
   $effect(() => {
     if (!openModalsState.listFlights) {
-      tempFilters = defaultTempFilters;
-    }
-  });
-
-  $effect(() => {
-    if (airportDetailsState.airportId === null) {
-      tempFilters = defaultTempFilters;
+      tempFilters = createDefaultTempFilters();
     }
   });
 
@@ -103,115 +94,124 @@
     return (fromId === r.a && toId === r.b) || (fromId === r.b && toId === r.a);
   };
 
+  const matchesLocationFilters = (
+    f: FlightData,
+    locationFilters: Pick<
+      FlightFilters,
+      'departureAirports' | 'arrivalAirports' | 'airportsEither' | 'routes'
+    >,
+  ) => {
+    const fromId = f.from?.id.toString();
+    const toId = f.to?.id.toString();
+
+    if (
+      locationFilters.departureAirports.length &&
+      (!fromId || !locationFilters.departureAirports.includes(fromId))
+    ) {
+      return false;
+    }
+    if (
+      locationFilters.arrivalAirports.length &&
+      (!toId || !locationFilters.arrivalAirports.includes(toId))
+    ) {
+      return false;
+    }
+    if (
+      locationFilters.airportsEither.length &&
+      (!fromId ||
+        !toId ||
+        ![fromId, toId].some((id) =>
+          locationFilters.airportsEither.includes(id),
+        ))
+    ) {
+      return false;
+    }
+    if (
+      locationFilters.routes.length &&
+      !locationFilters.routes.some((r) => matchesRoute(f, r))
+    ) {
+      return false;
+    }
+
+    return true;
+  };
+
+  const matchesNonLocationFilters = (f: FlightData) => {
+    if (
+      filters.fromDate &&
+      (!f.dateEnd ||
+        isBefore(
+          f.dateEnd,
+          getFilterBoundary(filters.fromDate, f.dateEnd.timeZone ?? 'UTC'),
+        ))
+    ) {
+      return false;
+    }
+    if (
+      filters.toDate &&
+      (!f.dateStart ||
+        isAfter(
+          f.dateStart,
+          getFilterBoundary(
+            filters.toDate,
+            f.dateStart.timeZone ?? 'UTC',
+            true,
+          ),
+        ))
+    ) {
+      return false;
+    }
+
+    if (
+      filters.passengers.length &&
+      !f.seats.some((seat) => {
+        const token = getSeatPassengerToken(seat);
+        return token ? filters.passengers.includes(token) : false;
+      })
+    ) {
+      return false;
+    }
+
+    if (
+      filters.airline.length &&
+      !filters.airline.includes(f.airline?.name || '')
+    ) {
+      return false;
+    }
+
+    if (
+      filters.aircraft.length &&
+      !filters.aircraft.includes(f.aircraft?.name || '')
+    ) {
+      return false;
+    }
+
+    if (
+      filters.aircraftRegs.length &&
+      !filters.aircraftRegs.includes(f.aircraftReg || '')
+    ) {
+      return false;
+    }
+
+    return true;
+  };
+
   const filteredFlights = $derived.by(() => {
-    return flights.filter((f) => {
-      const fromId = f.from?.id.toString();
-      const toId = f.to?.id.toString();
+    return flights.filter(
+      (f) => matchesLocationFilters(f, filters) && matchesNonLocationFilters(f),
+    );
+  });
 
-      if (tempFilters.routes.length || tempFilters.airportsEither.length) {
-        if (
-          tempFilters.routes.length &&
-          !tempFilters.routes.some((r) => matchesRoute(f, r))
-        ) {
-          return false;
-        }
-        if (
-          tempFilters.airportsEither.length &&
-          (!fromId ||
-            !toId ||
-            ![fromId, toId].some((id) =>
-              tempFilters.airportsEither.includes(id),
-            ))
-        ) {
-          return false;
-        }
-      } else {
-        if (
-          filters.departureAirports.length &&
-          (!fromId || !filters.departureAirports.includes(fromId))
-        ) {
-          return false;
-        }
-        if (
-          filters.arrivalAirports.length &&
-          (!toId || !filters.arrivalAirports.includes(toId))
-        ) {
-          return false;
-        }
-        if (
-          filters.airportsEither.length &&
-          (!fromId ||
-            !toId ||
-            ![fromId, toId].some((id) => filters.airportsEither.includes(id)))
-        ) {
-          return false;
-        }
-        if (
-          filters.routes.length &&
-          !filters.routes.some((r) => matchesRoute(f, r))
-        ) {
-          return false;
-        }
-      }
+  const drilldownFlights = $derived.by(() => {
+    const locationFilters = hasActiveTempFilters(tempFilters)
+      ? tempFilters
+      : filters;
 
-      if (
-        filters.fromDate &&
-        (!f.dateEnd ||
-          isBefore(
-            f.dateEnd,
-            getFilterBoundary(filters.fromDate, f.dateEnd.timeZone ?? 'UTC'),
-          ))
-      ) {
-        return false;
-      }
-      if (
-        filters.toDate &&
-        (!f.dateStart ||
-          isAfter(
-            f.dateStart,
-            getFilterBoundary(
-              filters.toDate,
-              f.dateStart.timeZone ?? 'UTC',
-              true,
-            ),
-          ))
-      ) {
-        return false;
-      }
-
-      if (
-        filters.passengers.length &&
-        !f.seats.some((seat) => {
-          const token = getSeatPassengerToken(seat);
-          return token ? filters.passengers.includes(token) : false;
-        })
-      ) {
-        return false;
-      }
-
-      if (
-        filters.airline.length &&
-        !filters.airline.includes(f.airline?.name || '')
-      ) {
-        return false;
-      }
-
-      if (
-        filters.aircraft.length &&
-        !filters.aircraft.includes(f.aircraft?.name || '')
-      ) {
-        return false;
-      }
-
-      if (
-        filters.aircraftRegs.length &&
-        !filters.aircraftRegs.includes(f.aircraftReg || '')
-      ) {
-        return false;
-      }
-
-      return true;
-    });
+    return flights.filter(
+      (f) =>
+        matchesLocationFilters(f, locationFilters) &&
+        matchesNonLocationFilters(f),
+    );
   });
 
   const invalidator = {
@@ -241,7 +241,7 @@
   bind:filters
   bind:tempFilters
   {flights}
-  {filteredFlights}
+  filteredFlights={drilldownFlights}
   {deleteFlight}
   seatUserId={effectiveSeatUserId}
   {showPassengerDetails}
@@ -257,4 +257,4 @@
 />
 
 <Map bind:filters bind:tempFilters {flights} {filteredFlights} />
-<AirportDetailsPane {flights} />
+<AirportDetailsPane {flights} bind:filters bind:tempFilters />

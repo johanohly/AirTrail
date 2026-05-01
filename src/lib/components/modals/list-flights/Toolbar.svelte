@@ -13,9 +13,10 @@
   import { page as pageState } from '$app/state';
 
   import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
-  import type {
-    FlightFilters,
-    TempFilters,
+  import {
+    clearTempFilters,
+    type FlightFilters,
+    type TempFilters,
   } from '$lib/components/flight-filters/types';
   import ResponsiveFilters from '$lib/components/flight-filters/ResponsiveFilters.svelte';
   import { Confirm } from '$lib/components/helpers';
@@ -121,8 +122,7 @@
         size="sm"
         onclick={() => {
           if (tempFilters) {
-            tempFilters.airportsEither = [];
-            tempFilters.routes = [];
+            clearTempFilters(tempFilters);
           }
         }}
       >

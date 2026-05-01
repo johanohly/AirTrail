@@ -15,9 +15,11 @@
   import Toolbar from './Toolbar.svelte';
 
   import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
-  import type {
-    FlightFilters,
-    TempFilters,
+  import {
+    clearTempFilters as clearTempFilterValues,
+    hasTempFilters as hasActiveTempFilters,
+    type FlightFilters,
+    type TempFilters,
   } from '$lib/components/flight-filters/types';
   import { AddFlightModal, EditFlightModal } from '$lib/components/modals';
   import { Button } from '$lib/components/ui/button';
@@ -227,27 +229,42 @@
     }
   };
 
-  const hasTempFilters = $derived.by(
-    () =>
-      tempFilters &&
-      (tempFilters.airportsEither.length > 0 || tempFilters.routes.length > 0),
-  );
+  const hasTempFilters = $derived.by(() => hasActiveTempFilters(tempFilters));
 
   const clearTempFilters = () => {
     if (!tempFilters) return;
-    tempFilters.airportsEither = [];
-    tempFilters.routes = [];
+    clearTempFilterValues(tempFilters);
   };
 
-  const tempFilterAirport = $derived.by(() => {
-    if (!tempFilters?.airportsEither.length) return null;
-    const airportId = tempFilters.airportsEither[0]!;
+  const findAirportById = (airportId: string) => {
     const flight = flights.find(
       (f) =>
         f.from?.id.toString() === airportId ||
         f.to?.id.toString() === airportId,
     );
     return flight?.from?.id.toString() === airportId ? flight.from : flight?.to;
+  };
+
+  const tempFilterAirport = $derived.by(() => {
+    if (tempFilters?.departureAirports.length) {
+      return {
+        label: 'Departures',
+        airport: findAirportById(tempFilters.departureAirports[0]!),
+      };
+    }
+    if (tempFilters?.arrivalAirports.length) {
+      return {
+        label: 'Arrivals',
+        airport: findAirportById(tempFilters.arrivalAirports[0]!),
+      };
+    }
+    if (tempFilters?.airportsEither.length) {
+      return {
+        label: 'Airport',
+        airport: findAirportById(tempFilters.airportsEither[0]!),
+      };
+    }
+    return null;
   });
 
   const tempFilterRoute = $derived.by(() => {
@@ -276,19 +293,21 @@
     <div class="flex flex-col gap-2 max-md:px-4 max-md:py-4">
       {#if hasTempFilters}
         <div class="flex flex-col gap-1">
-          {#if tempFilterAirport}
-            <h3 class="text-sm font-thin text-muted-foreground">Airport</h3>
+          {#if tempFilterAirport?.airport}
+            <h3 class="text-sm font-thin text-muted-foreground">
+              {tempFilterAirport.label}
+            </h3>
             <h2
-              class="text-2xl font-bold tracking-tight flex items-center gap-2"
+              class="flex items-center gap-2 text-2xl font-bold tracking-tight"
             >
               <img
-                src="https://flagcdn.com/{tempFilterAirport.country.toLowerCase()}.svg"
-                alt={tempFilterAirport.country}
-                class="w-8 h-5"
+                src="https://flagcdn.com/{tempFilterAirport.airport.country.toLowerCase()}.svg"
+                alt={tempFilterAirport.airport.country}
+                class="h-5 w-8"
               />
-              {tempFilterAirport.iata ?? tempFilterAirport.icao}
+              {tempFilterAirport.airport.iata ?? tempFilterAirport.airport.icao}
               <span class="text-base font-normal text-muted-foreground">
-                — {tempFilterAirport.name}
+                {tempFilterAirport.airport.name}
               </span>
             </h2>
           {:else if tempFilterRoute}

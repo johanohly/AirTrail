@@ -107,7 +107,7 @@
     </ControlButton>
   </Popover.Trigger>
   <Popover.Content
-    side="right"
+    side="left"
     align="start"
     sideOffset={8}
     class="w-[320px] p-0"

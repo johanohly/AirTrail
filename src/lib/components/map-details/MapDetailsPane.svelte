@@ -3,8 +3,10 @@
     FlightFilters,
     TempFilters,
   } from '$lib/components/flight-filters/types';
-  import { MapDetailsPane } from '$lib/components/map-details';
+  import { mapDetailsState } from '$lib/state.svelte';
   import type { FlightData } from '$lib/utils';
+
+  import AirportDetailsContent from './AirportDetailsContent.svelte';
 
   let {
     flights,
@@ -15,6 +17,10 @@
     filters?: FlightFilters;
     tempFilters?: TempFilters;
   } = $props();
+
+  const selection = $derived(mapDetailsState.selection);
 </script>
 
-<MapDetailsPane {flights} bind:filters bind:tempFilters />
+{#if selection?.type === 'airport'}
+  <AirportDetailsContent {flights} bind:filters bind:tempFilters />
+{/if}
