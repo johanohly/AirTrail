@@ -4,18 +4,37 @@ import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import type { DB } from './schema';
 import type { CreateFlight } from './types';
 
+const airportDisplayName = sql<string>`regexp_replace("name", '\\s+International(\\s+Airport)?$', ' Intl.', 'i')`;
+
+const airportForClient = (db: Kysely<DB>) => {
+  return db
+    .selectFrom('airport')
+    .select([
+      'id',
+      'icao',
+      'iata',
+      'lat',
+      'lon',
+      'tz',
+      airportDisplayName.as('name'),
+      'municipality',
+      'type',
+      'continent',
+      'country',
+      'custom',
+    ]);
+};
+
 const airports = (
   db: Kysely<DB>,
   from: Expression<number | null>,
   to: Expression<number | null>,
 ) => {
   return [
-    jsonObjectFrom(
-      db.selectFrom('airport').where('airport.id', '=', from).selectAll(),
-    ).as('from'),
-    jsonObjectFrom(
-      db.selectFrom('airport').where('airport.id', '=', to).selectAll(),
-    ).as('to'),
+    jsonObjectFrom(airportForClient(db).where('airport.id', '=', from)).as(
+      'from',
+    ),
+    jsonObjectFrom(airportForClient(db).where('airport.id', '=', to)).as('to'),
   ];
 };
 
@@ -241,7 +260,20 @@ export const findAirportsPrimitive = async (db: Kysely<DB>, input: string) => {
   const namePattern = `%${input}%`;
   return await db
     .selectFrom('airport')
-    .selectAll()
+    .select([
+      'id',
+      'icao',
+      'iata',
+      'lat',
+      'lon',
+      'tz',
+      airportDisplayName.as('name'),
+      'municipality',
+      'type',
+      'continent',
+      'country',
+      'custom',
+    ])
     .where((qb) =>
       qb.or([
         qb('icao', 'ilike', input),

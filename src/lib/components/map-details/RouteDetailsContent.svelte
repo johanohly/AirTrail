@@ -207,48 +207,44 @@
   const previewLimit = 6;
 </script>
 
-{#snippet routeStop(airport: RouteAirport, label: string)}
+{#snippet routeStop(airport: RouteAirport)}
   {@const timeZone = airport.tz ?? 'UTC'}
   <button
     type="button"
-    class="group grid w-full grid-cols-[1fr_auto] items-start gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-background/55 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+    class="group w-full rounded-lg px-2 py-2 text-left transition-colors hover:bg-background/55 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
     onclick={() => openAirportDetails(airport.id)}
     aria-label="Open details for {airport.name}"
   >
-    <div class="min-w-0">
-      <div class="flex items-center gap-1.5 text-sm font-semibold leading-none">
+    <p class="truncate text-sm font-medium text-muted-foreground">
+      {airportPlace(airport)} · {airport.name}
+    </p>
+    <div class="mt-1.5 grid grid-cols-[1fr_auto] items-center gap-3">
+      <div class="flex min-w-0 items-center gap-2 leading-none">
         <img
           src="https://flagcdn.com/{airport.country.toLowerCase()}.svg"
           alt={airport.country}
-          class="h-4 w-6 shrink-0 rounded-[3px] object-cover shadow-sm"
+          class="h-6 w-9 shrink-0 rounded object-cover shadow-sm"
         />
-        <span>{airportCode(airport)}</span>
-        <span class="truncate text-muted-foreground"
-          >· {airportPlace(airport)}</span
+        <span
+          class="text-4xl leading-none font-semibold tracking-tight text-foreground"
         >
+          {airportCode(airport)}
+        </span>
         <ChevronRight
-          size={14}
+          size={18}
           class="shrink-0 text-muted-foreground/70 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground"
         />
       </div>
-      <p
-        class="mt-2 text-5xl leading-none font-semibold tracking-tight text-foreground tabular-nums"
-      >
-        {formatTime(now, prefs, timeZone)}
-      </p>
-      <p class="mt-1 text-xs font-medium text-muted-foreground">
-        {label} · {localDateLabel(timeZone)}
-      </p>
-    </div>
-    <div class="pt-0.5 text-right">
-      <p
-        class="text-[10px] font-medium tracking-wider text-muted-foreground uppercase"
-      >
-        {offsetLabel(timeZone)}
-      </p>
-      <p class="mt-1 max-w-24 truncate text-xs text-muted-foreground">
-        {airport.name}
-      </p>
+      <div class="text-right">
+        <p
+          class="text-2xl leading-none font-semibold tracking-tight tabular-nums"
+        >
+          {formatTime(now, prefs, timeZone)}
+        </p>
+        <p class="mt-1 text-[11px] text-muted-foreground tabular-nums">
+          {localDateLabel(timeZone)} · {offsetLabel(timeZone)}
+        </p>
+      </div>
     </div>
   </button>
 {/snippet}
@@ -256,7 +252,7 @@
 {#snippet header()}
   {#if routeAirports}
     <div class="px-3 py-3">
-      {@render routeStop(routeAirports.from, 'Origin')}
+      {@render routeStop(routeAirports.from)}
 
       <div
         class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-2 py-1.5 text-[11px] text-muted-foreground"
@@ -276,7 +272,7 @@
         <div class="h-px bg-border/60"></div>
       </div>
 
-      {@render routeStop(routeAirports.to, 'Destination')}
+      {@render routeStop(routeAirports.to)}
     </div>
   {/if}
 {/snippet}
