@@ -6,6 +6,7 @@
     CloudSun,
     Eye,
     Moon,
+    Settings,
     Sun,
     Wind,
   } from '@o7/icon/lucide';
@@ -14,12 +15,18 @@
   import { slide } from 'svelte/transition';
 
   import { page } from '$app/state';
+  import { PreferenceField } from '$lib/components/preferences';
+  import { Button } from '$lib/components/ui/button';
+  import * as Popover from '$lib/components/ui/popover';
   import { TextTooltip } from '$lib/components/ui/tooltip';
+  import { openModalsState } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
   import { cn } from '$lib/utils';
   import {
+    convertDistance,
     convertTemperature,
     convertWindSpeed,
+    distanceUnitLabel,
     getPreferences,
     temperatureUnitLabel,
     windSpeedUnitLabel,
@@ -48,6 +55,7 @@
   const isLoading = $derived($metarQuery.isLoading);
 
   let expanded = $state(false);
+  let weatherSettingsOpen = $state(false);
 
   const CATEGORY_META: Record<
     FlightCategory,
@@ -162,8 +170,7 @@
 
   const visibilityLabel = $derived.by(() => {
     if (!metar) return '';
-    if (metar.cavok || metar.visibilityM >= 9999) return '10+ km';
-    return `${(metar.visibilityM / 1000).toFixed(1)} km`;
+    return formatVisibility(metar.visibilityM, metar.cavok);
   });
 
   const ceilingLabel = $derived(
@@ -246,6 +253,15 @@
   function formatTemp(t: number | null): string {
     if (t === null) return '—';
     return `${Math.round(convertTemperature(t, prefs))}`;
+  }
+
+  function formatVisibility(meters: number, isCavok: boolean): string {
+    const kilometers = isCavok || meters >= 9999 ? 10 : meters / 1000;
+    const converted = convertDistance(kilometers, prefs);
+    const formatted = new Intl.NumberFormat(undefined, {
+      maximumFractionDigits: converted < 10 ? 1 : 0,
+    }).format(converted);
+    return `${formatted}${isCavok || meters >= 9999 ? '+' : ''} ${distanceUnitLabel(prefs)}`;
   }
 </script>
 
@@ -622,26 +638,75 @@
           </div>
         </div>
 
-        <TextTooltip
-          content={metar.raw}
-          rootProps={{ delayDuration: 0 }}
-          contentProps={{ class: 'max-w-[90vw] font-mono text-xs' }}
-        >
-          <button
-            type="button"
-            onclick={async () => {
-              try {
-                await navigator.clipboard.writeText(metar.raw);
-                toast.success('METAR copied');
-              } catch {
-                toast.error('Failed to copy');
-              }
-            }}
-            class="text-[10px] uppercase tracking-wider text-muted-foreground mt-4 cursor-pointer underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 hover:text-foreground transition-colors"
+        <div class="mt-4 flex items-center justify-between gap-3">
+          <TextTooltip
+            content={metar.raw}
+            rootProps={{ delayDuration: 0 }}
+            contentProps={{ class: 'max-w-[90vw] font-mono text-xs' }}
           >
-            METAR reported {observedAgo}
-          </button>
-        </TextTooltip>
+            <button
+              type="button"
+              onclick={async () => {
+                try {
+                  await navigator.clipboard.writeText(metar.raw);
+                  toast.success('METAR copied');
+                } catch {
+                  toast.error('Failed to copy');
+                }
+              }}
+              class="min-w-0 cursor-pointer truncate text-[10px] uppercase tracking-wider text-muted-foreground underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 transition-colors hover:text-foreground"
+            >
+              METAR reported {observedAgo}
+            </button>
+          </TextTooltip>
+
+          <Popover.Root bind:open={weatherSettingsOpen}>
+            <Popover.Trigger>
+              {#snippet child({ props })}
+                <Button
+                  {...props}
+                  variant="ghost"
+                  size="icon-sm"
+                  class="shrink-0 text-muted-foreground hover:text-foreground"
+                  aria-label="Weather formatting settings"
+                  title="Weather formatting settings"
+                >
+                  <Settings size={14} />
+                </Button>
+              {/snippet}
+            </Popover.Trigger>
+            <Popover.Content
+              class="w-[320px] max-w-[90vw] p-3"
+              align="end"
+              side="top"
+            >
+              <div class="mb-3">
+                <h5 class="text-sm font-semibold">Weather formatting</h5>
+                <p class="text-xs text-muted-foreground">
+                  These are global display preferences. Changes apply anywhere
+                  AirTrail shows the same units.
+                </p>
+              </div>
+              <div class="grid gap-3">
+                <PreferenceField field="temperatureUnit" />
+                <PreferenceField field="windSpeedUnit" />
+                <PreferenceField field="distanceUnit" label="Visibility" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  class="mt-1 w-full"
+                  onclick={() => {
+                    weatherSettingsOpen = false;
+                    openModalsState.settingsTab = 'preferences';
+                    openModalsState.settings = true;
+                  }}
+                >
+                  Open full preferences
+                </Button>
+              </div>
+            </Popover.Content>
+          </Popover.Root>
+        </div>
       {/if}
     </div>
   {/if}

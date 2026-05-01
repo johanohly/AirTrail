@@ -7,6 +7,7 @@ export const flightAddedState = $state({
 
 export type SettingsTabId =
   | 'general'
+  | 'preferences'
   | 'security'
   | 'appearance'
   | 'share'
