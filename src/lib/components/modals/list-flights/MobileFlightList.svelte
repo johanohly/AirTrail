@@ -73,7 +73,7 @@
           {@const isLastFlight = index === flights.length - 1}
           {@const isSelected =
             !readonly && selecting && selectedFlights.includes(flight.id)}
-          <div class="isolate">
+          <div id="flight-list-row-{flight.id}" class="isolate scroll-mt-24">
             <SwipeableFlightRow
               bind:this={swipeableRefs[flight.id]}
               disabled={selecting || readonly}

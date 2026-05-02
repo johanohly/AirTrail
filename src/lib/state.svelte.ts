@@ -9,6 +9,19 @@ export const flightAddedState = $state({
   added: false,
 });
 
+export const flightListFocusState = $state<{
+  flightId: number | null;
+  request: number;
+}>({
+  flightId: null,
+  request: 0,
+});
+
+export const focusFlightInList = (flightId: number) => {
+  flightListFocusState.flightId = flightId;
+  flightListFocusState.request += 1;
+};
+
 export type SettingsTabId =
   | 'general'
   | 'preferences'

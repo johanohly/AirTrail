@@ -18,6 +18,7 @@
   import * as Tooltip from '$lib/components/ui/tooltip';
   import {
     closeMapDetails,
+    focusFlightInList,
     focusMapDetails,
     mapDetailsState,
     openAirportDetails,
@@ -141,9 +142,9 @@
     filters.routes = [normalizeRoute(selectedRoute.a, selectedRoute.b)];
   };
 
-  const showAllFlights = () => {
-    if (!selectedRoute || !tempFilters) return;
-    setTempRoute(tempFilters, selectedRoute);
+  const showAllFlights = (flightId?: number) => {
+    if (selectedRoute && tempFilters) setTempRoute(tempFilters, selectedRoute);
+    if (flightId) focusFlightInList(flightId);
     openModalsState.listFlights = true;
   };
 
@@ -344,8 +345,15 @@
     : 'Unknown date'}
   {@const flightNumber = formatFlightNumber(flight.flightNumber)}
   {@const subtitle = flightSubtitle(flight)}
-  <li class="group rounded-md transition-colors hover:bg-background/55">
-    <div class="flex items-center gap-3 px-2 py-2.5">
+  <li>
+    <button
+      type="button"
+      class="group grid w-full cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors hover:bg-background/55 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+      onclick={() => showAllFlights(flight.id)}
+      aria-label="Open flight {flight.from?.iata ??
+        flight.from?.icao ??
+        'N/A'} to {flight.to?.iata ?? flight.to?.icao ?? 'N/A'} in flight list"
+    >
       <div class="flex w-8 shrink-0 justify-center">
         <AirlineIcon airline={flight.airline} size={28} fallback="plane" />
       </div>
@@ -379,7 +387,7 @@
       >
         {dateLabel}
       </div>
-    </div>
+    </button>
   </li>
 {/snippet}
 
@@ -441,7 +449,7 @@
             variant="ghost"
             size="sm"
             class="ml-auto h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-            onclick={showAllFlights}
+            onclick={() => showAllFlights()}
           >
             Show all {routeFlights.length}
           </Button>

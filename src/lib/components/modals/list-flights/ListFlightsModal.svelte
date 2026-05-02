@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { tick } from 'svelte';
+
   import autoAnimate from '@formkit/auto-animate';
   import {
     ArrowLeftRight,
@@ -29,11 +31,16 @@
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { LabelledSeparator, Separator } from '$lib/components/ui/separator';
   import * as Tooltip from '$lib/components/ui/tooltip';
-  import { flightAddedState, flightScopeState } from '$lib/state.svelte';
+  import {
+    flightAddedState,
+    flightListFocusState,
+    flightScopeState,
+  } from '$lib/state.svelte';
   import {
     cn,
     formatSeatForUser,
     getFlightPassengerLabels,
+    highlightElement,
     type FlightData,
   } from '$lib/utils';
   import { formatAircraft } from '$lib/utils/data/aircraft';
@@ -162,6 +169,7 @@
 
   let selecting = $state(false);
   let selectedFlights = $state<number[]>([]);
+  let handledFocusRequest = $state(0);
 
   // Add flight state
   let addFlightOpen = $state(false);
@@ -170,6 +178,27 @@
     if (flightAddedState.added && addFlightOpen) {
       addFlightOpen = false;
     }
+  });
+
+  $effect(() => {
+    if (!open || flightListFocusState.request === handledFocusRequest) return;
+
+    const flightId = flightListFocusState.flightId;
+    handledFocusRequest = flightListFocusState.request;
+    if (!flightId) return;
+
+    const index = formattedFlights.findIndex(
+      (flight) => flight.id === flightId,
+    );
+    if (index >= 0) page = Math.floor(index / flightsPerPage) + 1;
+
+    tick().then(() => {
+      highlightElement(`#flight-list-row-${flightId}`, {
+        duration: 1900,
+        scrollOffset: -100,
+        pulses: 3,
+      }).catch(() => {});
+    });
   });
 
   // Mobile edit state
@@ -400,7 +429,10 @@
               use:autoAnimate
             >
               {#each flights as flight (flight.id)}
-                <div class="relative">
+                <div
+                  id="flight-list-row-{flight.id}"
+                  class="relative scroll-mt-24 rounded-lg"
+                >
                   {#if showPassengerDetails && flight.passengers.length}
                     {@render passengerBadge(flight.passengers)}
                   {/if}

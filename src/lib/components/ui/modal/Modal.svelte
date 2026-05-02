@@ -19,6 +19,7 @@
 
   // Global modal stack for proper back button handling with nested modals
   const modalHistoryStack: string[] = [];
+  let modalLayerCounter = 0;
 
   export function pushModalHistory(id: string): void {
     modalHistoryStack.push(id);
@@ -70,7 +71,13 @@
     closeButton,
     dialogNoPadding = false,
     drawerNoPadding = false,
+    drawerRawContent = false,
+    drawerSnapPoints,
+    overlayClass,
+    activeSnapPoint = $bindable<string | number | null>(null),
+    shouldScaleBackground = true,
     handleBackButton = true,
+    onOpenChange,
     children,
   }: {
     open: boolean;
@@ -82,7 +89,13 @@
     closeButton?: boolean;
     dialogNoPadding?: boolean;
     drawerNoPadding?: boolean;
+    drawerRawContent?: boolean;
+    drawerSnapPoints?: Array<string | number>;
+    overlayClass?: string;
+    activeSnapPoint?: string | number | null;
+    shouldScaleBackground?: boolean;
     handleBackButton?: boolean;
+    onOpenChange?: (open: boolean) => void;
     children: Snippet;
   } = $props();
 
@@ -108,6 +121,16 @@
   const modalId = generateUUID();
   let historyPushed = $state(false);
   let closingFromPopstate = $state(false);
+  let previousOpen = $state(open);
+  let layer = $state(0);
+  let layerAssigned = $state(false);
+
+  const overlayStyle = $derived(
+    layerAssigned ? `z-index: ${1000 + layer * 20};` : undefined,
+  );
+  const contentStyle = $derived(
+    layerAssigned ? `z-index: ${1001 + layer * 20};` : undefined,
+  );
 
   function handlePopstate(event: PopStateEvent) {
     const isTopmostModal = peekModalHistory() === modalId;
@@ -128,6 +151,22 @@
       }, 0);
     }
   }
+
+  $effect(() => {
+    if (open && !layerAssigned) {
+      layer = ++modalLayerCounter;
+      layerAssigned = true;
+    } else if (!open && layerAssigned) {
+      layerAssigned = false;
+    }
+  });
+
+  $effect(() => {
+    if (open !== previousOpen) {
+      previousOpen = open;
+      onOpenChange?.(open);
+    }
+  });
 
   $effect(() => {
     if (!browser || !handleBackButton) return;
@@ -171,13 +210,28 @@
       preventScroll={false}
       escapeKeydownBehavior={closeOnEscape ? 'close' : 'ignore'}
       interactOutsideBehavior={closeOnOutsideClick ? 'close' : 'ignore'}
+      {overlayClass}
+      {overlayStyle}
+      style={contentStyle}
     >
       {@render children()}
     </Dialog.Content>
   </Dialog.Root>
 {:else}
-  <Drawer.Root bind:open shouldScaleBackground>
-    <Drawer.Content noPadding={drawerNoPadding || modalState.hasHeader}>
+  <Drawer.Root
+    bind:open
+    bind:activeSnapPoint
+    {shouldScaleBackground}
+    snapPoints={drawerSnapPoints}
+  >
+    <Drawer.Content
+      noPadding={drawerNoPadding || modalState.hasHeader}
+      raw={drawerRawContent}
+      class={className}
+      {overlayClass}
+      {overlayStyle}
+      style={contentStyle}
+    >
       {@render children()}
     </Drawer.Content>
   </Drawer.Root>

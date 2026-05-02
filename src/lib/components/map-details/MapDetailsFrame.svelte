@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { Drawer as DrawerPrimitive } from '@johly/vaul-svelte';
   import type { Snippet } from 'svelte';
   import { cubicOut } from 'svelte/easing';
   import { fly } from 'svelte/transition';
 
-  import * as Drawer from '$lib/components/ui/drawer';
+  import { Modal } from '$lib/components/ui/modal';
   import { Separator } from '$lib/components/ui/separator';
   import { isMediumScreen } from '$lib/utils/size';
 
@@ -51,42 +50,36 @@
     </div>
   {/if}
 {:else}
-  <Drawer.Root
+  <Modal
     {open}
     bind:activeSnapPoint
-    snapPoints={[0.55, 0.95]}
-    onOpenChange={(v) => onOpenChange?.(v)}
+    drawerRawContent
+    drawerSnapPoints={[0.55, 0.95]}
     shouldScaleBackground={false}
+    class="glass-pane h-[95vh] rounded-t-2xl outline-none"
+    overlayClass="bg-black/30"
+    onOpenChange={(v) => onOpenChange?.(v)}
   >
-    <DrawerPrimitive.Portal>
-      <DrawerPrimitive.Overlay
-        class="fixed inset-0 z-40 bg-black/30 data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out data-[state=open]:fade-in"
-      />
-      <DrawerPrimitive.Content
-        class="glass-pane fixed right-0 bottom-0 left-0 z-50 flex h-[95vh] flex-col rounded-t-2xl outline-none"
-      >
+    <div
+      class="mx-auto mt-2.5 mb-1 h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/30"
+    ></div>
+    <div class="shrink-0">
+      {@render header()}
+    </div>
+    {#if actions}
+      <div class="shrink-0 px-4 pb-3" aria-label="Details actions">
         <div
-          class="mx-auto mt-2.5 mb-1 h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/30"
-        ></div>
-        <div class="shrink-0">
-          {@render header()}
-        </div>
-        {#if actions}
-          <div class="shrink-0 px-4 pb-3" aria-label="Details actions">
-            <div
-              class="flex gap-2 rounded-lg border border-border/70 bg-background/80 p-1"
-            >
-              {@render actions()}
-            </div>
-          </div>
-        {/if}
-        <Separator />
-        <div
-          class="flex-1 divide-y divide-border/60 overflow-y-auto pb-[env(safe-area-inset-bottom)]"
+          class="flex gap-2 rounded-lg border border-border/70 bg-background/80 p-1"
         >
-          {@render children()}
+          {@render actions()}
         </div>
-      </DrawerPrimitive.Content>
-    </DrawerPrimitive.Portal>
-  </Drawer.Root>
+      </div>
+    {/if}
+    <Separator />
+    <div
+      class="flex-1 divide-y divide-border/60 overflow-y-auto pb-[env(safe-area-inset-bottom)]"
+    >
+      {@render children()}
+    </div>
+  </Modal>
 {/if}

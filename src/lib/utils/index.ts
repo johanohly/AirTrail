@@ -19,3 +19,4 @@ export { formatNumber, formatDuration } from './number';
 export { sortAndFilterByMatch } from './search';
 export { isOAuthCallback } from './oauth';
 export * from './boolean';
+export * from './highlight';
