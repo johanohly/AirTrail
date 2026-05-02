@@ -1,6 +1,7 @@
 <script lang="ts">
   import { PlaneLanding, PlaneTakeoff } from '@o7/icon/lucide';
 
+  import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
   import { Button } from '$lib/components/ui/button';
   import type { FlightData } from '$lib/utils';
   import { formatAsFlightDate } from '$lib/utils/datetime';
@@ -13,8 +14,8 @@
   }: {
     flights: FlightData[];
     airportId: number;
-    onShowAllDepartures?: () => void;
-    onShowAllArrivals?: () => void;
+    onShowAllDepartures?: (flightId?: number) => void;
+    onShowAllArrivals?: (flightId?: number) => void;
   } = $props();
 
   const previewLimit = 5;
@@ -31,34 +32,72 @@
   const arrivals = $derived(
     flights.filter((f) => f.to?.id === airportId).sort(byDateDesc),
   );
+
+  const formatFlightNumber = (flightNumber: string | null | undefined) => {
+    if (!flightNumber) return null;
+    return flightNumber.replace(/([a-zA-Z]{2})(\d+)/, '$1 $2');
+  };
+
+  const flightSubtitle = (flight: FlightData) => {
+    if (flight.airline?.name) return flight.airline.name;
+    if (flight.aircraft?.name && flight.aircraftReg) {
+      return `${flight.aircraft.name} · ${flight.aircraftReg}`;
+    }
+    return flight.aircraft?.name ?? flight.aircraftReg ?? null;
+  };
 </script>
 
 {#snippet flightRow(flight: FlightData, direction: 'departure' | 'arrival')}
   {@const other = direction === 'departure' ? flight.to : flight.from}
-  <li class="py-2 flex items-center gap-3">
-    <div class="min-w-0 flex-1">
-      <div class="flex items-baseline gap-2">
-        <span class="text-sm font-medium truncate">
-          {other?.iata ?? other?.icao ?? 'N/A'}
-        </span>
-        <span class="text-xs text-muted-foreground truncate">
-          {other?.name ?? ''}
-        </span>
+  {@const dateLabel = flight.date
+    ? formatAsFlightDate(flight.date, flight.datePrecision ?? 'day', true, true)
+    : 'Unknown date'}
+  {@const flightNumber = formatFlightNumber(flight.flightNumber)}
+  {@const subtitle = [other?.name, flightSubtitle(flight)]
+    .filter(Boolean)
+    .join(' · ')}
+  <li>
+    <button
+      type="button"
+      class="group grid w-full cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors hover:bg-background/55 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+      onclick={() =>
+        direction === 'departure'
+          ? onShowAllDepartures?.(flight.id)
+          : onShowAllArrivals?.(flight.id)}
+      aria-label="Open {direction === 'departure'
+        ? 'departure to'
+        : 'arrival from'} {other?.iata ?? other?.icao ?? 'N/A'} in flight list"
+    >
+      <div class="flex w-8 shrink-0 justify-center">
+        <AirlineIcon airline={flight.airline} size={28} fallback="plane" />
       </div>
-      <div class="text-[11px] text-muted-foreground">
-        {flight.date
-          ? formatAsFlightDate(
-              flight.date,
-              flight.datePrecision ?? 'day',
-              true,
-              true,
-            )
-          : 'Unknown date'}
-        {#if flight.airline}
-          · {flight.airline.name}
+
+      <div class="min-w-0 flex-1">
+        <div class="flex min-w-0 items-center gap-2">
+          <span class="text-base leading-5 font-semibold tracking-tight">
+            {other?.iata ?? other?.icao ?? 'N/A'}
+          </span>
+          {#if flightNumber}
+            <span
+              class="min-w-0 truncate text-xs font-medium text-muted-foreground tabular-nums"
+            >
+              {flightNumber}
+            </span>
+          {/if}
+        </div>
+        {#if subtitle}
+          <p class="mt-0.5 truncate text-xs text-muted-foreground">
+            {subtitle}
+          </p>
         {/if}
       </div>
-    </div>
+
+      <div
+        class="shrink-0 text-right text-xs font-medium text-muted-foreground tabular-nums"
+      >
+        {dateLabel}
+      </div>
+    </button>
   </li>
 {/snippet}
 
@@ -67,7 +106,7 @@
   Icon: typeof PlaneTakeoff,
   items: FlightData[],
   direction: 'departure' | 'arrival',
-  onShowAll?: () => void,
+  onShowAll?: (flightId?: number) => void,
 )}
   <div>
     <div class="mb-1 flex min-h-8 items-center gap-2">
@@ -80,7 +119,7 @@
           variant="ghost"
           size="sm"
           class="ml-auto h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-          onclick={onShowAll}
+          onclick={() => onShowAll?.()}
         >
           Show all {items.length}
         </Button>

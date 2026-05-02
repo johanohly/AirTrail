@@ -17,6 +17,7 @@
   import * as Tooltip from '$lib/components/ui/tooltip';
   import {
     closeMapDetails,
+    focusFlightInList,
     focusMapDetails,
     mapDetailsState,
     openModalsState,
@@ -79,15 +80,18 @@
     filters.airportsEither = [airport.id.toString()];
   };
 
-  const showDepartures = () => {
-    if (!airport || !tempFilters) return;
-    setTempDepartureAirport(tempFilters, airport.id.toString());
+  const showDepartures = (flightId?: number) => {
+    if (!airport) return;
+    if (tempFilters)
+      setTempDepartureAirport(tempFilters, airport.id.toString());
+    if (flightId) focusFlightInList(flightId);
     openModalsState.listFlights = true;
   };
 
-  const showArrivals = () => {
-    if (!airport || !tempFilters) return;
-    setTempArrivalAirport(tempFilters, airport.id.toString());
+  const showArrivals = (flightId?: number) => {
+    if (!airport) return;
+    if (tempFilters) setTempArrivalAirport(tempFilters, airport.id.toString());
+    if (flightId) focusFlightInList(flightId);
     openModalsState.listFlights = true;
   };
 </script>
