@@ -35,7 +35,9 @@
       >
         {@render header()}
         <Separator />
-        <div class="flex-1 divide-y divide-border/60 overflow-y-auto">
+        <div
+          class="scrollbar-subtle flex-1 divide-y divide-border/60 overflow-y-auto"
+        >
           {@render children()}
         </div>
       </aside>
@@ -77,7 +79,7 @@
     {/if}
     <Separator />
     <div
-      class="flex-1 divide-y divide-border/60 overflow-y-auto pb-[env(safe-area-inset-bottom)]"
+      class="scrollbar-subtle flex-1 divide-y divide-border/60 overflow-y-auto pb-[env(safe-area-inset-bottom)]"
     >
       {@render children()}
     </div>

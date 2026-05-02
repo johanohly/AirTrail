@@ -219,8 +219,6 @@
     }
     return flight.aircraft?.name ?? flight.aircraftReg ?? null;
   };
-
-  const previewLimit = 6;
 </script>
 
 {#snippet routeStop(airport: RouteAirport)}
@@ -444,23 +442,22 @@
         <h3 class="text-xs tracking-wider text-muted-foreground uppercase">
           Flights
         </h3>
-        {#if routeFlights.length > previewLimit}
+        <span class="text-xs text-muted-foreground tabular-nums">
+          {routeFlights.length}
+        </span>
+        {#if routeFlights.length > 0}
           <Button
             variant="ghost"
             size="sm"
             class="ml-auto h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
             onclick={() => showAllFlights()}
           >
-            Show all {routeFlights.length}
+            Open list
           </Button>
-        {:else}
-          <span class="ml-auto text-xs text-muted-foreground">
-            {routeFlights.length}
-          </span>
         {/if}
       </div>
       <ul class="flex flex-col divide-y divide-border/50">
-        {#each routeFlights.slice(0, previewLimit) as flight (flight.id)}
+        {#each routeFlights as flight (flight.id)}
           {@render flightRow(flight)}
         {/each}
       </ul>

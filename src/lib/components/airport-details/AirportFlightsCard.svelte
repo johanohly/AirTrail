@@ -18,7 +18,7 @@
     onShowAllArrivals?: (flightId?: number) => void;
   } = $props();
 
-  const previewLimit = 5;
+  const inlineFlightTarget = 14;
 
   const byDateDesc = (a: FlightData, b: FlightData) => {
     const ad = a.date?.getTime() ?? 0;
@@ -44,6 +44,21 @@
       return `${flight.aircraft.name} · ${flight.aircraftReg}`;
     }
     return flight.aircraft?.name ?? flight.aircraftReg ?? null;
+  };
+
+  const inlineLimitFor = (direction: 'departure' | 'arrival') => {
+    const current =
+      direction === 'departure' ? departures.length : arrivals.length;
+    const other =
+      direction === 'departure' ? arrivals.length : departures.length;
+    const sectionCount =
+      Number(departures.length > 0) + Number(arrivals.length > 0);
+
+    if (sectionCount <= 1) return Math.min(current, inlineFlightTarget);
+
+    const baseShare = Math.floor(inlineFlightTarget / sectionCount);
+    const otherShare = Math.min(other, baseShare);
+    return Math.min(current, inlineFlightTarget - otherShare);
   };
 </script>
 
@@ -108,13 +123,14 @@
   direction: 'departure' | 'arrival',
   onShowAll?: (flightId?: number) => void,
 )}
+  {@const visibleItems = items.slice(0, inlineLimitFor(direction))}
   <div>
     <div class="mb-1 flex min-h-8 items-center gap-2">
       <Icon size={14} class="text-muted-foreground" />
       <h4 class="text-xs uppercase tracking-wider text-muted-foreground">
         {title}
       </h4>
-      {#if items.length > previewLimit && onShowAll}
+      {#if items.length > visibleItems.length && onShowAll}
         <Button
           variant="ghost"
           size="sm"
@@ -132,7 +148,7 @@
       <p class="text-sm text-muted-foreground py-1">None.</p>
     {:else}
       <ul class="flex flex-col divide-y divide-border/50">
-        {#each items.slice(0, previewLimit) as flight (flight.id)}
+        {#each visibleItems as flight (flight.id)}
           {@render flightRow(flight, direction)}
         {/each}
       </ul>
