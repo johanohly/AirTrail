@@ -22,12 +22,23 @@
   } = $props();
 
   let activeSnapPoint: string | number | null = $state(0.55);
+
+  const handleWindowKeydown = (e: KeyboardEvent) => {
+    if (!open || !$isMediumScreen || e.key !== 'Escape' || e.defaultPrevented)
+      return;
+    if (document.querySelector('[role="dialog"]')) return;
+
+    e.preventDefault();
+    onOpenChange?.(false);
+  };
 </script>
+
+<svelte:window onkeydown={handleWindowKeydown} />
 
 {#if $isMediumScreen}
   {#if open}
     <div
-      transition:fly={{ x: -32, duration: 260, easing: cubicOut }}
+      transition:fly={{ x: -420, duration: 260, easing: cubicOut }}
       class="absolute top-3 left-3 z-20 flex max-w-[calc(100vw-1.5rem)] items-start gap-2"
     >
       <aside
