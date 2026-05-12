@@ -2,7 +2,7 @@
   import { Funnel, Fullscreen, Undo2 } from '@o7/icon/lucide';
   import maplibregl from 'maplibre-gl';
   import { mode } from 'mode-watcher';
-  import { onDestroy, onMount } from 'svelte';
+  import { onDestroy, onMount, untrack } from 'svelte';
   import {
     AttributionControl,
     Control,
@@ -87,7 +87,7 @@
   const showScopeBanner = $derived(flightScopeState.scope !== 'mine');
   const alignStatusWithDetails = $derived(!!mapDetailsState.selection);
 
-  let map: maplibregl.Map | undefined = $state(undefined);
+  let map: maplibregl.Map | undefined = $state.raw(undefined);
   let canRenderMap = $state(!browser);
   type CameraSnapshot = {
     center: [number, number];
@@ -129,15 +129,32 @@
     return prepareFlightArcData(filteredFlights);
   });
 
+  const detailsPanePadding = () => {
+    if (!mapDetailsState.selection) {
+      return { top: 0, right: 0, bottom: 0, left: 0 };
+    }
+    return $isMediumScreen
+      ? { top: 40, right: 40, bottom: 40, left: 420 }
+      : { top: 40, right: 20, bottom: window.innerHeight * 0.55, left: 20 };
+  };
+
   export const fitFlights = () => {
     if (!map || !flightArcs) return;
 
     const bounds = calculateBounds(flightArcs);
     if (!bounds) return;
 
-    map.fitBounds(bounds, {
-      padding: 120,
+    // Add breathing-room margin on top of any current panel padding so this
+    // also looks reasonable when a details panel is open. Set via setPadding
+    // (no `padding` option on fitBounds) to avoid maplibre's double-counting.
+    const base = detailsPanePadding();
+    map.setPadding({
+      top: base.top + 60,
+      right: base.right + 60,
+      bottom: base.bottom + 60,
+      left: base.left + 60,
     });
+    map.fitBounds(bounds);
   };
 
   const snapshotCamera = (): CameraSnapshot | null => {
@@ -308,54 +325,125 @@
     };
   });
 
+  // Drive edge padding + camera focus from details-pane state.
+  //
+  // When the camera moves significantly, use flyTo for its parabolic arc —
+  // looks much better than easeTo's linear interpolation for big distance +
+  // zoom changes (overview→airport, switching to a far-away route).
+  //
+  // When the camera target matches the current camera (reselect of the same
+  // airport/route after a deselect), use easeTo so `padding` is interpolated
+  // smoothly — flyTo treats padding as an end-state and would snap.
+  //
+  // Route fits go through cameraForBounds. maplibre's cameraForBounds adds
+  // edge + option padding for screen size but uses ONLY option for the
+  // center offset, so different (edge, option) splits with the same total
+  // produce different centers. The route compute path pins the split by
+  // temporarily setting persistent to target around the cameraForBounds
+  // call, so a reselect after a deselect computes the same center as the
+  // original open and `cameraMoved` correctly reports false.
+  //
+  // untrack guards every map mutation: svelte-maplibre's bind:map re-emits on
+  // internal map events, so a tracked mutation here would loop.
+  let prevHasSelection = false;
+  let prevMediumScreen: boolean | null = null;
+  let paddingInitialized = false;
   $effect(() => {
     const selection = mapDetailsState.selection;
     const focusRequest = mapDetailsState.focusRequest;
-    if (!map || !selection || focusRequest === handledFocusRequest) return;
+    const mediumScreen = $isMediumScreen;
+    if (!map) return;
 
-    const padding = $isMediumScreen
-      ? { top: 40, right: 40, bottom: 40, left: 420 }
-      : { top: 40, right: 20, bottom: window.innerHeight * 0.55, left: 20 };
+    const hasSelection = !!selection;
+    const padding = detailsPanePadding();
+    const needsFocus = hasSelection && focusRequest !== handledFocusRequest;
+    const paddingChanged =
+      paddingInitialized &&
+      (prevHasSelection !== hasSelection || prevMediumScreen !== mediumScreen);
 
-    if (selection.type === 'airport') {
-      const airport = prepareVisitedAirports(flights).find(
-        (a) => a.id === selection.airportId,
-      );
-      if (!airport) return;
+    prevHasSelection = hasSelection;
+    prevMediumScreen = mediumScreen;
+    paddingInitialized = true;
+
+    if (needsFocus && selection) {
       handledFocusRequest = focusRequest;
+
+      let targetCenter: [number, number];
+      let targetZoom: number;
+
+      if (selection.type === 'airport') {
+        const airport = prepareVisitedAirports(flights).find(
+          (a) => a.id === selection.airportId,
+        );
+        if (!airport) return;
+        targetCenter = [airport.lon, airport.lat];
+        targetZoom = 13;
+      } else {
+        const arc = prepareFlightArcData(flights).find((item) =>
+          routeMatches(item, selection.route),
+        );
+        if (!arc) return;
+        const bounds = calculateBounds([arc]);
+        if (!bounds) return;
+
+        // cameraForBounds uses (edge + option) for screen size but ONLY option
+        // for the center offset, so the same total split differently produces
+        // different centers. Pin the split to edge=target/option=0 by setting
+        // persistent to target while computing — paired setPadding calls
+        // within the same JS task produce no render between, so no flicker.
+        const target = untrack(() => {
+          const saved = map!.getPadding();
+          map!.setPadding(padding);
+          const t = map!.cameraForBounds(bounds);
+          map!.setPadding(saved);
+          return t;
+        });
+        if (!target) return;
+        targetCenter = [target.center.lng, target.center.lat];
+        targetZoom = target.zoom;
+      }
+
+      const currentCenter = map.getCenter();
+      const cameraMoved =
+        Math.abs(currentCenter.lng - targetCenter[0]) > 1e-4 ||
+        Math.abs(currentCenter.lat - targetCenter[1]) > 1e-4 ||
+        Math.abs(map.getZoom() - targetZoom) > 1e-2;
 
       previousCamera = snapshotCamera();
       showPreviousView = !!previousCamera;
       markProgrammaticMove();
 
-      map.flyTo({
-        center: [airport.lon, airport.lat],
-        zoom: 13,
-        duration: 1200,
-        essential: true,
-        padding,
+      untrack(() => {
+        if (cameraMoved) {
+          map!.flyTo({
+            center: targetCenter,
+            zoom: targetZoom,
+            padding,
+            duration: 1200,
+            essential: true,
+          });
+        } else {
+          map!.easeTo({
+            center: targetCenter,
+            zoom: targetZoom,
+            padding,
+            duration: 300,
+            essential: true,
+          });
+        }
       });
       return;
     }
 
-    const arc = prepareFlightArcData(flights).find((item) =>
-      routeMatches(item, selection.route),
-    );
-    if (!arc) return;
-
-    const bounds = calculateBounds([arc]);
-    if (!bounds) return;
-    handledFocusRequest = focusRequest;
-
-    previousCamera = snapshotCamera();
-    showPreviousView = !!previousCamera;
-    markProgrammaticMove();
-
-    map.fitBounds(bounds, {
-      padding,
-      duration: 1200,
-      essential: true,
-    });
+    if (paddingChanged) {
+      untrack(() => {
+        map!.easeTo({
+          padding,
+          duration: 300,
+          essential: true,
+        });
+      });
+    }
   });
 
   onMount(() => {

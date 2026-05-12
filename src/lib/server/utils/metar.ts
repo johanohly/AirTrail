@@ -104,7 +104,7 @@ const TIMESTAMP_RE = /^(\d{2})(\d{2})(\d{2})Z$/;
 const TEMP_DEW_RE = /^(M?\d{2}|\/\/)\/(M?\d{2}|\/\/)$/;
 const ALTIMETER_RE = /^([AQ])(\d{4})$/;
 const VIS_METERS_RE = /^(\d{4})(NDV|N|NE|E|SE|S|SW|W|NW)?$/;
-const VIS_SM_RE = /^M?(\d+(?:\/\d+)?)SM$/;
+const VIS_SM_RE = /^[MP]?(\d+(?:\/\d+)?)SM$/;
 const RVR_RE = /^R\d{2}[LRC]?\//;
 const WX_PHENOM_RE =
   /^(\+|-|VC)?((MI|BC|PR|DR|BL|SH|TS|FZ){1,2})?(DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS)+$/;
@@ -129,9 +129,12 @@ export function parseMetar(
   const body = trendIdx >= 0 ? main.slice(0, trendIdx) : main;
 
   if (body[0] === 'METAR' || body[0] === 'SPECI') body.shift();
+  if (body[0] === 'COR') body.shift();
 
   const station = body.shift();
   if (!station || !/^[A-Z][A-Z0-9]{3}$/.test(station)) return null;
+
+  if (body[0] === 'COR') body.shift();
 
   let observedAtIso: string;
   if (body[0] && TIMESTAMP_RE.test(body[0])) {
@@ -146,6 +149,8 @@ export function parseMetar(
   }
 
   while (body[0] === 'AUTO' || body[0] === 'COR') body.shift();
+
+  if (body[0] === 'NIL') return null;
 
   const wind = parseWind(body);
 

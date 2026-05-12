@@ -21,6 +21,7 @@
   } from '$lib/components/flight-filters/types';
   import { mapPreferences } from '$lib/map/map-preferences.svelte';
   import {
+    closeMapDetails,
     mapDetailsState,
     openAirportDetails,
     openRouteDetails,
@@ -109,6 +110,12 @@
         e.object.to.id.toString(),
       );
       openRouteDetails(route);
+    }
+  };
+
+  const handleMapClick = (e: PickingInfo) => {
+    if (!e.object && mapDetailsState.selection) {
+      closeMapDetails();
     }
   };
 
@@ -363,11 +370,11 @@
 
   const buildLayers = () => {
     const layers: Layer[] = [];
+    layers.push(new ArcLayer(arcOptions));
+    layers.push(new ArcLayer(ghostArcOptions));
     if (mapPreferences.airportCircles !== 'off') {
       layers.push(new ScatterplotLayer<VisitedAirport>(airportOptions));
     }
-    layers.push(new ArcLayer(arcOptions));
-    layers.push(new ArcLayer(ghostArcOptions));
     return layers;
   };
 
@@ -375,6 +382,7 @@
     if (loaded && map && !layer) {
       layer = new MapboxOverlay({
         id,
+        onClick: handleMapClick,
         layers: buildLayers(),
       });
       map.addControl(layer);
@@ -387,6 +395,7 @@
 
   $effect(() => {
     layer?.setProps({
+      onClick: handleMapClick,
       layers: buildLayers(),
     });
   });

@@ -13,6 +13,7 @@
     registerHeader: () => void;
     registerFooter: () => void;
     getState: () => ModalState;
+    getContentZIndex: () => number | undefined;
   };
   export const getModalContext = () =>
     getContext<ModalContext>(ModalContextKey);
@@ -72,6 +73,7 @@
     dialogNoPadding = false,
     drawerNoPadding = false,
     drawerRawContent = false,
+    drawerModal = true,
     drawerSnapPoints,
     overlayClass,
     activeSnapPoint = $bindable<string | number | null>(null),
@@ -90,6 +92,7 @@
     dialogNoPadding?: boolean;
     drawerNoPadding?: boolean;
     drawerRawContent?: boolean;
+    drawerModal?: boolean;
     drawerSnapPoints?: Array<string | number>;
     overlayClass?: string;
     activeSnapPoint?: string | number | null;
@@ -109,6 +112,7 @@
     registerHeader: () => (modalState.hasHeader = true),
     registerFooter: () => (modalState.hasFooter = true),
     getState: () => modalState,
+    getContentZIndex: () => (layerAssigned ? 1001 + layer * 20 : undefined),
   });
 
   const presetConfig = $derived(presets[preset]);
@@ -222,6 +226,7 @@
     bind:open
     bind:activeSnapPoint
     {shouldScaleBackground}
+    modal={drawerModal}
     snapPoints={drawerSnapPoints}
   >
     <Drawer.Content

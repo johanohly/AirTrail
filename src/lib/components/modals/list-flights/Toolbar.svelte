@@ -23,6 +23,7 @@
   import { Button } from '$lib/components/ui/button';
   import { Label } from '$lib/components/ui/label';
   import * as Popover from '$lib/components/ui/popover';
+  import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import * as Select from '$lib/components/ui/select';
   import {
@@ -61,6 +62,12 @@
 
   const users = $derived(pageState.data.users);
   const isAdmin = $derived(pageState.data.user?.role !== 'user');
+
+  const modalCtx = getModalContext();
+  const toolbarStyle = $derived.by(() => {
+    const z = modalCtx?.getContentZIndex();
+    return z !== undefined ? `z-index: ${z + 1};` : undefined;
+  });
 
   const updateScope = (scope: FlightScope) => {
     setFlightScope(
@@ -222,6 +229,7 @@
   <Portal>
     <div
       class={`pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-5 transition-opacity duration-150 ${modalOpen ? 'opacity-100' : 'opacity-0'}`}
+      style={toolbarStyle}
     >
       <div class="pointer-events-auto w-full max-w-[768px]">
         <div

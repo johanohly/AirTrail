@@ -67,10 +67,11 @@
     {open}
     bind:activeSnapPoint
     drawerRawContent
+    drawerModal={false}
     drawerSnapPoints={[0.55, 0.95]}
     shouldScaleBackground={false}
     class="glass-pane h-[95vh] rounded-t-2xl outline-none"
-    overlayClass="bg-black/30"
+    overlayClass="pointer-events-none bg-black/30"
     onOpenChange={(v) => onOpenChange?.(v)}
   >
     <div
