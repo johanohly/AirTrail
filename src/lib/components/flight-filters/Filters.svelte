@@ -17,7 +17,7 @@
     getSeatPassengerToken,
     type FlightData,
   } from '$lib/utils';
-  import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
+  import { AirlineIcon } from '$lib/components/display';
 
   let {
     flights = $bindable(),

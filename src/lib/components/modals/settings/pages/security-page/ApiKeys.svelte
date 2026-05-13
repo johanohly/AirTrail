@@ -4,6 +4,7 @@
   import { formatRelative } from 'date-fns';
   import { toast } from 'svelte-sonner';
 
+  import { TimeDisplay } from '$lib/components/display';
   import { Confirm } from '$lib/components/helpers';
   import CreateKey from '$lib/components/modals/settings/pages/security-page/CreateKey.svelte';
   import { Button } from '$lib/components/ui/button';
@@ -45,9 +46,13 @@
             {key.name}
           </h4>
           <p class="text-muted-foreground text-sm">
-            Created {formatRelative(key.createdAt, new Date())}
+            Created <TimeDisplay date={key.createdAt} mode="plain">
+              {formatRelative(key.createdAt, new Date())}
+            </TimeDisplay>
             {#if key.lastUsed}
-              ∙ Last used {formatRelative(key.lastUsed, new Date())}
+              ∙ Last used <TimeDisplay date={key.lastUsed} mode="plain">
+                {formatRelative(key.lastUsed, new Date())}
+              </TimeDisplay>
             {/if}
           </p>
         </div>

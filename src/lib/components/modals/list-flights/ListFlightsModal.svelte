@@ -16,7 +16,7 @@
   import MobileFlightList from './MobileFlightList.svelte';
   import Toolbar from './Toolbar.svelte';
 
-  import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
+  import { AirlineIcon, TimeDisplay } from '$lib/components/display';
   import {
     clearTempFilters as clearTempFilterValues,
     hasTempFilters as hasActiveTempFilters,
@@ -47,7 +47,6 @@
   import {
     Duration,
     formatAsFlightDate,
-    formatAsDateTime,
     isUsingAmPm,
     parseLocalizeISO,
   } from '$lib/utils/datetime';
@@ -114,16 +113,12 @@
             ? Duration.fromSeconds(f.duration).toString()
             : '',
           hasDateDisplay: !!f.date,
-          depTime:
-            (depDate ?? depScheduled)
-              ? formatAsDateTime((depDate ?? depScheduled)!)
-              : f.date
-                ? formatAsFlightDate(f.date, f.datePrecision, false, true)
-                : null,
-          arrTime:
-            (arrDate ?? arrScheduled)
-              ? formatAsDateTime((arrDate ?? arrScheduled)!)
+          depAt: (depDate ?? depScheduled) as Date | null,
+          depFallback:
+            !(depDate ?? depScheduled) && f.date
+              ? formatAsFlightDate(f.date, f.datePrecision, false, true)
               : null,
+          arrAt: (arrDate ?? arrScheduled) as Date | null,
           depStatus,
           arrStatus,
           seat: formatSeatForUser(f, seatUserId),
@@ -577,26 +572,34 @@
 {#snippet flightTimes(flight)}
   <div class="flex items-center">
     <PlaneTakeoff size="16" class="mr-1" />
-    <p
-      class={cn('text-sm', {
-        'text-green-600 dark:text-green-400': flight.depStatus === 'early',
-        'text-red-600 dark:text-red-400': flight.depStatus === 'late',
-      })}
-    >
-      {flight.depTime}
-    </p>
+    {#if flight.depAt}
+      <TimeDisplay
+        date={flight.depAt}
+        airportTz={flight.from?.tz}
+        airportLabel={flight.from?.iata}
+        side="right"
+        class={cn('text-sm', {
+          'text-green-600 dark:text-green-400': flight.depStatus === 'early',
+          'text-red-600 dark:text-red-400': flight.depStatus === 'late',
+        })}
+      />
+    {:else if flight.depFallback}
+      <p class="text-sm">{flight.depFallback}</p>
+    {/if}
   </div>
   <div class="flex items-center">
-    {#if flight.arrTime}
+    {#if flight.arrAt}
       <PlaneLanding size="16" class="mr-1" />
-      <p
+      <TimeDisplay
+        date={flight.arrAt}
+        airportTz={flight.to?.tz}
+        airportLabel={flight.to?.iata}
+        side="right"
         class={cn('text-sm overflow-hidden text-ellipsis whitespace-nowrap', {
           'text-green-600 dark:text-green-400': flight.arrStatus === 'early',
           'text-red-600 dark:text-red-400': flight.arrStatus === 'late',
         })}
-      >
-        {flight.arrTime}
-      </p>
+      />
     {/if}
     <p class="text-sm text-transparent">.</p>
   </div>

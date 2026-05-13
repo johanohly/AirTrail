@@ -1,7 +1,7 @@
 <script lang="ts">
   import { PlaneLanding, PlaneTakeoff } from '@o7/icon/lucide';
 
-  import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
+  import { AirlineIcon } from '$lib/components/display';
   import { Button } from '$lib/components/ui/button';
   import type { FlightData } from '$lib/utils';
   import { formatAsFlightDate } from '$lib/utils/datetime';

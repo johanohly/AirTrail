@@ -6,7 +6,7 @@
   import CreateAirline from './CreateAirline.svelte';
   import EditAirline from './EditAirline.svelte';
 
-  import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
+  import { AirlineIcon } from '$lib/components/display';
   import { confirmation } from '$lib/components/helpers';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';

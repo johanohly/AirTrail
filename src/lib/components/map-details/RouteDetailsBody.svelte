@@ -2,8 +2,7 @@
   import NumberFlow from '@number-flow/svelte';
   import { List } from '@o7/icon/lucide';
 
-  import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
-  import RouteArrow from '$lib/components/display/RouteArrow.svelte';
+  import { AirlineIcon, RouteArrow } from '$lib/components/display';
   import { Button } from '$lib/components/ui/button';
   import type { FlightData } from '$lib/utils';
   import { formatAsFlightDate } from '$lib/utils/datetime';

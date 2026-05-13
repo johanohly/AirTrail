@@ -9,6 +9,7 @@
   import type { PageProps } from './$types';
 
   import { invalidateAll } from '$app/navigation';
+  import { TimeDisplay } from '$lib/components/display';
   import { Button } from '$lib/components/ui/button';
   import { Checkbox } from '$lib/components/ui/checkbox';
   import {
@@ -20,7 +21,7 @@
   import * as Table from '$lib/components/ui/table';
   import { api } from '$lib/trpc';
   import { prepareFlightData } from '$lib/utils';
-  import { formatAsDateTime, formatAsFlightDate } from '$lib/utils/datetime';
+  import { formatAsFlightDate } from '$lib/utils/datetime';
 
   let { data }: PageProps = $props();
   const flights = $derived.by(() => prepareFlightData(data.flights));
@@ -56,20 +57,42 @@
         header: 'Destination',
       },
       {
+        id: 'departure',
         accessorFn: (row) =>
-          row.departure
-            ? formatAsDateTime(row.departure)
-            : formatAsFlightDate(
-                row.date,
-                row.datePrecision ?? 'day',
-                false,
-                true,
-              ),
+          row.departure?.getTime() ?? row.date?.getTime() ?? 0,
         header: 'Departure',
+        cell: ({ row }) => {
+          const f = row.original;
+          if (f.departure) {
+            return renderComponent(TimeDisplay, {
+              date: f.departure,
+              airportTz: f.from?.tz,
+              airportLabel: f.from?.iata,
+              side: 'top',
+            });
+          }
+          return formatAsFlightDate(
+            f.date,
+            f.datePrecision ?? 'day',
+            false,
+            true,
+          );
+        },
       },
       {
-        accessorFn: (row) => (row.arrival ? formatAsDateTime(row.arrival) : ''),
+        id: 'arrival',
+        accessorFn: (row) => row.arrival?.getTime() ?? 0,
         header: 'Arrival',
+        cell: ({ row }) => {
+          const f = row.original;
+          if (!f.arrival) return '';
+          return renderComponent(TimeDisplay, {
+            date: f.arrival,
+            airportTz: f.to?.tz,
+            airportLabel: f.to?.iata,
+            side: 'top',
+          });
+        },
       },
       {
         id: 'airline',
