@@ -6,6 +6,7 @@
 
   import * as Form from '$lib/components/ui/form';
   import * as Calendar from '$lib/components/ui/calendar';
+  import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
   import { Portal } from '$lib/components/ui/popover';
   import { cn } from '$lib/utils';
   import { Button } from '$lib/components/ui/button';
@@ -29,6 +30,12 @@
 
   const minValue = parseDate('1970-01-01');
   const locale = navigator.language;
+
+  const modalCtx = getModalContext();
+  const contentStyle = $derived.by(() => {
+    const modalZ = modalCtx?.getContentZIndex();
+    return modalZ !== undefined ? `z-index: ${modalZ + 5};` : undefined;
+  });
 
   // Convert string dates to DateValue for the component
   let dateRange: { start: DateValue | undefined; end: DateValue | undefined } =
@@ -172,7 +179,7 @@
   </div>
 
   <Portal>
-    <DateRangePicker.Content class="z-50">
+    <DateRangePicker.Content class="z-50" style={contentStyle}>
       <DateRangePicker.Calendar
         class="rounded-md border bg-background shadow-md mt-2 p-3"
       >
