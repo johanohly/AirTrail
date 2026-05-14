@@ -224,3 +224,156 @@ export const resolveFlightTimeZone = (
   const primary = endpoint === 'departure' ? flight.from?.tz : flight.to?.tz;
   return primary ?? flight.from?.tz ?? flight.to?.tz ?? 'UTC';
 };
+
+/**
+ * Resolve the timezone the flight form should interpret its date/time inputs
+ * in, given the user's `flightTimeDisplay` preference. Falls back to the
+ * provided airport tz, then to UTC.
+ */
+export const resolveFlightEditTimeZone = (
+  prefs: FlightTimePrefs,
+  airportTz: string | null | undefined,
+): string => {
+  if (prefs.flightTimeDisplay === 'utc') return 'UTC';
+  if (prefs.flightTimeDisplay === 'system') {
+    return typeof Intl !== 'undefined'
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      : 'UTC';
+  }
+  return airportTz ?? 'UTC';
+};
+
+/**
+ * Pick an Intl locale appropriate for rendering 12h/24h time controls based on
+ * the user's `timeFormat` preference. `auto` falls back to the browser locale.
+ */
+export const resolveTimeLocale = (prefs: TimePrefs): string => {
+  if (prefs.timeFormat === '12h') return 'en-US';
+  if (prefs.timeFormat === '24h') return 'fr-FR';
+  return typeof navigator !== 'undefined' && navigator.language
+    ? navigator.language
+    : 'en-US';
+};
+
+/**
+ * Pick an Intl locale that produces the user's preferred date segment order
+ * (DD/MM, MM/DD, YYYY-MM-DD). `auto` falls back to the browser locale.
+ */
+export const resolveDateLocale = (prefs: DatePrefs): string => {
+  const locale = localeForDateFormat(prefs.dateFormat);
+  if (locale) return locale;
+  return typeof navigator !== 'undefined' && navigator.language
+    ? navigator.language
+    : 'en-US';
+};
+
+/**
+ * Re-express a (YYYY-MM-DD, HH:MM) pair from one timezone to another while
+ * preserving the absolute moment they describe. Used by the flight form to
+ * convert between airport-local storage and the user's chosen display tz.
+ */
+export const reinterpretLocalDateTime = (
+  date: string,
+  time: string,
+  fromTz: string,
+  toTz: string,
+): { date: string; time: string } => {
+  if (fromTz === toTz) return { date, time };
+  const [y, m, d] = date.split('-').map(Number);
+  const [h, min] = time.split(':').map(Number);
+  if ([y, m, d, h, min].some((v) => Number.isNaN(v))) {
+    return { date, time };
+  }
+  // Find the UTC instant whose local representation in `fromTz` equals the
+  // given fields. We use Intl to invert the tz offset rather than constructing
+  // a TZDate (which would couple this helper to date-fns/tz).
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: fromTz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+  const target = Date.UTC(y, m - 1, d, h, min);
+  // Two-pass to account for DST: first guess, then refine by the offset error.
+  const offsetAt = (utc: number): number => {
+    const parts = fmt.formatToParts(new Date(utc));
+    const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
+    const asUtc = Date.UTC(
+      get('year'),
+      get('month') - 1,
+      get('day'),
+      get('hour') % 24,
+      get('minute'),
+      get('second'),
+    );
+    return asUtc - utc;
+  };
+  let utc = target - offsetAt(target);
+  utc = target - offsetAt(utc);
+  const out = new Intl.DateTimeFormat('en-CA', {
+    timeZone: toTz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(utc));
+  const p = (t: string) => out.find((part) => part.type === t)?.value ?? '';
+  const hh = p('hour') === '24' ? '00' : p('hour');
+  return {
+    date: `${p('year')}-${p('month')}-${p('day')}`,
+    time: `${hh}:${p('minute')}`,
+  };
+};
+
+/**
+ * Translate an airport-local (storedDate, storedTime) pair into editTz-local
+ * values suitable for display. The date is returned as a "YYYY-MM-DDT00:00:00.000Z"
+ * ISO string for compatibility with the form state shape; the time is "HH:MM".
+ * Inputs pass through unchanged when conversion is unnecessary or impossible.
+ */
+export const pairToDisplay = (
+  storedDate: string | null,
+  storedTime: string | null,
+  airportTz: string,
+  editTz: string,
+): { date: string | null; time: string | null } => {
+  if (!storedDate || !storedTime || editTz === airportTz) {
+    return { date: storedDate, time: storedTime };
+  }
+  const r = reinterpretLocalDateTime(
+    storedDate.slice(0, 10),
+    storedTime,
+    airportTz,
+    editTz,
+  );
+  return { date: `${r.date}T00:00:00.000Z`, time: r.time };
+};
+
+/**
+ * Translate an editTz-local (date, time) pair into airport-local storage
+ * values. Callers must provide an anchor date — a time alone is ambiguous
+ * once you account for cross-midnight tz shifts and DST.
+ */
+export const pairToStorage = (
+  anchorDate: string,
+  time: string,
+  editTz: string,
+  airportTz: string,
+): { date: string; time: string } => {
+  if (editTz === airportTz) {
+    return { date: `${anchorDate.slice(0, 10)}T00:00:00.000Z`, time };
+  }
+  const r = reinterpretLocalDateTime(
+    anchorDate.slice(0, 10),
+    time,
+    editTz,
+    airportTz,
+  );
+  return { date: `${r.date}T00:00:00.000Z`, time: r.time };
+};

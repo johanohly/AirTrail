@@ -5,6 +5,7 @@
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
 
+  import { page } from '$app/state';
   import { MONTHS } from '$lib/data/datetime';
   import { Button } from '$lib/components/ui/button';
   import { Calendar } from '$lib/components/ui/calendar';
@@ -19,6 +20,14 @@
   import { cn, toTitleCase } from '$lib/utils';
   import { dateValueFromISO } from '$lib/utils/datetime';
   import { formatTimeValue, parseTimeValue } from '$lib/utils/datetime/time';
+  import {
+    getPreferences,
+    pairToDisplay,
+    pairToStorage,
+    resolveDateLocale,
+    resolveFlightEditTimeZone,
+    resolveTimeLocale,
+  } from '$lib/utils/preferences';
   import type { flightSchema } from '$lib/zod/flight';
 
   let {
@@ -36,13 +45,89 @@
   const yearInputId = `${field}-partial-year`;
   const monthSelectId = `${field}-partial-month`;
 
+  const fallbackTimezone =
+    typeof Intl !== 'undefined'
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      : 'UTC';
+  const prefs = $derived(getPreferences(page.data.user));
+
+  const timeKey = `${field}Time` as 'departureTime' | 'arrivalTime';
+  const counterpartField = field === 'departure' ? 'arrival' : 'departure';
+  const counterpartTimeKey = `${counterpartField}Time` as
+    | 'departureTime'
+    | 'arrivalTime';
+
+  const airportTz = $derived(
+    (field === 'departure' ? $formData.from?.tz : $formData.to?.tz) ??
+      fallbackTimezone,
+  );
+  const counterpartAirportTz = $derived(
+    (counterpartField === 'departure'
+      ? $formData.from?.tz
+      : $formData.to?.tz) ?? fallbackTimezone,
+  );
+  const editTz = $derived(resolveFlightEditTimeZone(prefs, airportTz));
+  const editLocale = $derived(resolveTimeLocale(prefs));
+  const dateLocale = $derived(resolveDateLocale(prefs));
+
+  // editTz-local view of this field's stored pair.
+  const display = (): { date: string | null; time: string | null } =>
+    pairToDisplay(
+      $formData[field] as string | null,
+      $formData[timeKey] as string | null,
+      airportTz,
+      editTz,
+    );
+  const getDisplayDate = (): string | null => display().date;
+  const getDisplayTime = (): string | null => display().time;
+
+  // editTz-local date of the counterpart pair. Used to anchor conversions when
+  // the user types a time without a date — the server fills the missing date
+  // from the counterpart on submit, and we mirror that here eagerly so the
+  // conversion is unambiguous even when it crosses midnight in editTz.
+  const counterpartDisplayDate = (): string | null =>
+    pairToDisplay(
+      $formData[counterpartField] as string | null,
+      $formData[counterpartTimeKey] as string | null,
+      counterpartAirportTz,
+      editTz,
+    ).date;
+
   const setValue = (
     key: 'departure' | 'arrival' | 'departureTime' | 'arrivalTime',
     value: string | null,
   ) => {
+    const writingDate = key === field;
+    const writingTime = key === timeKey;
+    if (!writingDate && !writingTime) {
+      formData.update((current) => ({ ...current, [key]: value }));
+      return;
+    }
+
+    const ownDate = writingDate ? value : getDisplayDate();
+    const ownTime = writingTime ? value : getDisplayTime();
+
+    // No time to convert against → pass through.
+    if (!ownTime) {
+      formData.update((current) => ({ ...current, [key]: value }));
+      return;
+    }
+
+    // Anchor on this field's date when present; otherwise borrow the
+    // counterpart's editTz date so the user can type a time alone. We don't
+    // borrow when the user is writing a date (a null date write is an
+    // explicit clear, not a request to inherit).
+    const anchor = ownDate ?? (writingTime ? counterpartDisplayDate() : null);
+    if (!anchor) {
+      formData.update((current) => ({ ...current, [key]: value }));
+      return;
+    }
+
+    const r = pairToStorage(anchor, ownTime, editTz, airportTz);
     formData.update((current) => ({
       ...current,
-      [key]: value,
+      [field]: r.date,
+      [timeKey]: r.time,
     }));
   };
 
@@ -78,15 +163,16 @@
   );
 
   const clearTimeValue = () => {
-    if (!timeValue && !$formData[`${field}Time`]) return;
+    if (!timeValue && !$formData[timeKey]) return;
     timeValue = undefined;
-    setValue(`${field}Time`, null);
-    validate(`${field}Time`);
+    setValue(timeKey, null);
+    validate(timeKey);
   };
 
   $effect(() => {
-    if ($formData[field]) {
-      const date = dateValueFromISO($formData[field]);
+    const displayDate = getDisplayDate();
+    if (displayDate) {
+      const date = dateValueFromISO(displayDate);
       if (!dateValue || date.compare(dateValue) !== 0) {
         dateValue = date;
       }
@@ -96,12 +182,12 @@
   });
 
   $effect(() => {
-    const timeString = $formData[`${field}Time`];
+    const timeString = getDisplayTime();
     if (timeString) {
       const parsed = parseTimeValue(timeString);
       if (!parsed) {
         timeValue = undefined;
-        setValue(`${field}Time`, null);
+        setValue(timeKey, null);
         return;
       }
 
@@ -253,7 +339,7 @@
             }}
             granularity="day"
             minValue={parseDate('1970-01-01')}
-            locale={navigator.language}
+            locale={dateLocale}
           >
             <div class="flex w-full flex-col gap-1.5">
               <DateField.Input
@@ -322,7 +408,13 @@
         {#snippet children({ props })}
           <Form.Label class="flex items-center gap-2">
             Time
-            <HelpTooltip text="Local airport time." />
+            <HelpTooltip
+              text={editTz === airportTz
+                ? 'Local airport time.'
+                : editTz === 'UTC'
+                  ? 'In UTC. Set by your flight time display preference.'
+                  : `In your system time (${editTz}). Set by your flight time display preference.`}
+            />
           </Form.Label>
           <TimeInput
             value={timeValue}
@@ -333,10 +425,10 @@
               }
 
               timeValue = value;
-              setValue(`${field}Time`, formatTimeValue(value));
-              validate(`${field}Time`);
+              setValue(timeKey, formatTimeValue(value));
+              validate(timeKey);
             }}
-            locale={navigator.language}
+            locale={editLocale}
             class={cn(
               'border-input bg-background selection:bg-primary dark:bg-input/30 selection:text-primary-foreground ring-offset-background placeholder:text-muted-foreground shadow-xs flex h-9 w-full min-w-0 rounded-md border px-3 py-[6px] text-base outline-none transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
               'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
