@@ -25,16 +25,19 @@ export function useRouteDetails(
   const prefs = $derived(getPreferences(page.data.user));
 
   let now = $state(new Date());
-  $effect(() => {
-    const id = setInterval(() => {
-      now = new Date();
-    }, 30_000);
-    return () => clearInterval(id);
-  });
 
   const selectedRoute = $derived.by(() => {
     const selection = mapDetailsState.selection;
     return selection?.type === 'route' ? selection.route : null;
+  });
+
+  $effect(() => {
+    if (!selectedRoute) return;
+    now = new Date();
+    const id = setInterval(() => {
+      now = new Date();
+    }, 30_000);
+    return () => clearInterval(id);
   });
 
   const matchesRoute = (flight: FlightData, route: Route) => {

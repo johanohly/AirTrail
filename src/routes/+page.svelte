@@ -13,7 +13,7 @@
     type Route,
   } from '$lib/components/flight-filters/types';
   import FlightsOnboarding from '$lib/components/onboarding/FlightsOnboarding.svelte';
-  import { AirportDetailsPane } from '$lib/components/airport-details';
+  import { MapDetailsPane } from '$lib/components/map-details';
   import { Map } from '$lib/components/map';
   import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
   import { flightScopeState, openModalsState } from '$lib/state.svelte';
@@ -257,4 +257,4 @@
 />
 
 <Map bind:filters bind:tempFilters {flights} {filteredFlights} />
-<AirportDetailsPane {flights} bind:filters bind:tempFilters />
+<MapDetailsPane {flights} bind:filters bind:tempFilters />

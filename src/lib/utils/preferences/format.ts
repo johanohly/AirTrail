@@ -321,13 +321,17 @@ export const reinterpretLocalDateTime = (
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    // `hourCycle: 'h23'` is authoritative and guarantees 00–23 (so we never
+    // see Safari's stray '24' for midnight). `hour12: false` is kept as a
+    // belt-and-braces fallback for any runtime that doesn't honor hourCycle;
+    // when both are set, hourCycle wins per the Intl spec.
     hour12: false,
+    hourCycle: 'h23',
   }).formatToParts(new Date(utc));
   const p = (t: string) => out.find((part) => part.type === t)?.value ?? '';
-  const hh = p('hour') === '24' ? '00' : p('hour');
   return {
     date: `${p('year')}-${p('month')}-${p('day')}`,
-    time: `${hh}:${p('minute')}`,
+    time: `${p('hour')}:${p('minute')}`,
   };
 };
 
@@ -367,6 +371,9 @@ export const pairToStorage = (
   airportTz: string,
 ): { date: string; time: string } => {
   if (editTz === airportTz) {
+    // Matches the flight-form storage shape: the date is stored as the day at
+    // UTC midnight and the time as a separate "HH:MM" string, so any non-
+    // midnight time component on `anchorDate` is intentionally discarded.
     return { date: `${anchorDate.slice(0, 10)}T00:00:00.000Z`, time };
   }
   const r = reinterpretLocalDateTime(

@@ -1,4 +1,3 @@
-export { default as AirportDetailsPane } from './AirportDetailsPane.svelte';
 export { default as AirportStatsCard } from './AirportStatsCard.svelte';
 export { default as AirportTimeCard } from './AirportTimeCard.svelte';
 export { default as AirportWeatherCard } from './AirportWeatherCard.svelte';

@@ -4,6 +4,7 @@
   import { fly } from 'svelte/transition';
 
   import { Modal } from '$lib/components/ui/modal';
+  import { peekModalHistory } from '$lib/components/ui/modal/Modal.svelte';
   import { Separator } from '$lib/components/ui/separator';
   import { isMediumScreen } from '$lib/utils/size';
 
@@ -26,7 +27,7 @@
   const handleWindowKeydown = (e: KeyboardEvent) => {
     if (!open || !$isMediumScreen || e.key !== 'Escape' || e.defaultPrevented)
       return;
-    if (document.querySelector('[role="dialog"]')) return;
+    if (peekModalHistory()) return;
 
     e.preventDefault();
     onOpenChange?.(false);

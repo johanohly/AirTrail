@@ -64,26 +64,9 @@ export const mapDetailsState = $state<{
   focusRequest: 0,
 });
 
-export const airportDetailsState = $state<{
-  airportId: number | null;
-  focusRequest: number;
-}>({
-  airportId: null,
-  focusRequest: 0,
-});
-
-const syncAirportDetailsCompatibility = () => {
-  airportDetailsState.airportId =
-    mapDetailsState.selection?.type === 'airport'
-      ? mapDetailsState.selection.airportId
-      : null;
-  airportDetailsState.focusRequest = mapDetailsState.focusRequest;
-};
-
 export const openAirportDetails = (airportId: number) => {
   mapDetailsState.selection = { type: 'airport', airportId };
   mapDetailsState.focusRequest += 1;
-  syncAirportDetailsCompatibility();
 };
 
 export const openRouteDetails = (route: Route) => {
@@ -92,21 +75,16 @@ export const openRouteDetails = (route: Route) => {
     route: normalizeRoute(route.a, route.b),
   };
   mapDetailsState.focusRequest += 1;
-  syncAirportDetailsCompatibility();
 };
 
 export const focusMapDetails = () => {
   if (!mapDetailsState.selection) return;
   mapDetailsState.focusRequest += 1;
-  syncAirportDetailsCompatibility();
 };
 
 export const closeMapDetails = () => {
   mapDetailsState.selection = null;
-  syncAirportDetailsCompatibility();
 };
-
-export const closeAirportDetails = closeMapDetails;
 
 export const appConfig = $state<{
   config: ClientAppConfig | null;

@@ -10,8 +10,20 @@ type CacheEntry = {
   fetchedAt: number;
   expiresAt: number;
 };
+// Cap bounds process memory under abusive ICAO enumeration (~1.2M valid 4-char permutations).
+const CACHE_MAX_ENTRIES = 2000;
 const cache = new Map<string, CacheEntry>();
 const inflight = new Map<string, Promise<ParsedMetar | null>>();
+
+function setCacheEntry(key: string, entry: CacheEntry) {
+  if (cache.has(key)) cache.delete(key); // move-to-end on update
+  cache.set(key, entry);
+  while (cache.size > CACHE_MAX_ENTRIES) {
+    const oldest = cache.keys().next().value;
+    if (oldest === undefined) break;
+    cache.delete(oldest);
+  }
+}
 
 type AwcMetar = {
   rawOb?: string;
@@ -36,7 +48,7 @@ export async function getParsedMetar(
       const parsed = fetched
         ? parseMetar(fetched.raw, fetched.observedAtIso)
         : null;
-      cache.set(key, {
+      setCacheEntry(key, {
         value: parsed,
         fetchedAt: now,
         expiresAt: now + TTL_MS,
@@ -47,7 +59,7 @@ export async function getParsedMetar(
       if (cached && now - cached.fetchedAt < STALE_FALLBACK_MS) {
         return cached.value;
       }
-      cache.set(key, {
+      setCacheEntry(key, {
         value: null,
         fetchedAt: now,
         expiresAt: now + 60_000,
@@ -106,8 +118,9 @@ const ALTIMETER_RE = /^([AQ])(\d{4})$/;
 const VIS_METERS_RE = /^(\d{4})(NDV|N|NE|E|SE|S|SW|W|NW)?$/;
 const VIS_SM_RE = /^[MP]?(\d+(?:\/\d+)?)SM$/;
 const RVR_RE = /^R\d{2}[LRC]?\//;
+// Descriptor-only tokens like `TS`, `VCTS`, `VCSH` are valid wx groups with no phenomenon.
 const WX_PHENOM_RE =
-  /^(\+|-|VC)?((MI|BC|PR|DR|BL|SH|TS|FZ){1,2})?(DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS)+$/;
+  /^(?:(?:\+|-|VC)?(?:MI|BC|PR|DR|BL|SH|TS|FZ){1,2}(?:DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS)*|(?:\+|-|VC)?(?:DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS)+)$/;
 
 export function parseMetar(
   raw: string,

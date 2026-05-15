@@ -129,6 +129,9 @@
     return prepareFlightArcData(filteredFlights);
   });
 
+  const allVisitedAirports = $derived(prepareVisitedAirports(flights));
+  const allFlightArcs = $derived(prepareFlightArcData(flights));
+
   const detailsPanePadding = () => {
     if (!mapDetailsState.selection) {
       return { top: 0, right: 0, bottom: 0, left: 0 };
@@ -222,9 +225,7 @@
   const activeAirportFilter = $derived.by(() => {
     if (!filters?.airportsEither.length) return null;
     const id = filters.airportsEither[0]!;
-    const airport = prepareVisitedAirports(flights).find(
-      (a) => a.id.toString() === id,
-    );
+    const airport = allVisitedAirports.find((a) => a.id.toString() === id);
     return {
       id,
       label: airport ? (airport.iata ?? airport.icao) : 'Airport',
@@ -234,9 +235,7 @@
   const activeRouteFilter = $derived.by(() => {
     if (!filters?.routes.length) return null;
     const route = filters.routes[0]!;
-    const arc = prepareFlightArcData(flights).find((item) =>
-      routeMatches(item, route),
-    );
+    const arc = allFlightArcs.find((item) => routeMatches(item, route));
     return {
       id: `${route.a}-${route.b}`,
       label: arc
@@ -372,14 +371,14 @@
       let targetZoom: number;
 
       if (selection.type === 'airport') {
-        const airport = prepareVisitedAirports(flights).find(
+        const airport = allVisitedAirports.find(
           (a) => a.id === selection.airportId,
         );
         if (!airport) return;
         targetCenter = [airport.lon, airport.lat];
         targetZoom = 13;
       } else {
-        const arc = prepareFlightArcData(flights).find((item) =>
+        const arc = allFlightArcs.find((item) =>
           routeMatches(item, selection.route),
         );
         if (!arc) return;
