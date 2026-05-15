@@ -1,7 +1,7 @@
 <script lang="ts" module>
   import { getContext } from 'svelte';
 
-  const ModalContextKey = Symbol('ModalContext');
+  export const ModalContextKey = Symbol('ModalContext');
 
   export type ModalState = {
     hasHeader: boolean;

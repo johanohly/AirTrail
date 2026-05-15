@@ -1,6 +1,6 @@
 <script lang="ts">
   import { type DateValue, parseDate, Time } from '@internationalized/date';
-  import { CalendarDays, CalendarMinus } from '@o7/icon/lucide';
+  import { CalendarDays, CalendarMinus, Settings2 } from '@o7/icon/lucide';
   import { DateField } from 'bits-ui';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
@@ -15,8 +15,9 @@
   import * as Popover from '$lib/components/ui/popover';
   import * as Select from '$lib/components/ui/select';
   import { TimeInput } from '$lib/components/ui/time-input';
-  import { HelpTooltip } from '$lib/components/ui/tooltip';
   import * as Tooltip from '$lib/components/ui/tooltip';
+
+  import { PreferenceField } from '$lib/components/preferences';
   import { cn, toTitleCase } from '$lib/utils';
   import { dateValueFromISO } from '$lib/utils/datetime';
   import { formatTimeValue, parseTimeValue } from '$lib/utils/datetime/time';
@@ -408,13 +409,38 @@
         {#snippet children({ props })}
           <Form.Label class="flex items-center gap-2">
             Time
-            <HelpTooltip
-              text={editTz === airportTz
-                ? 'Local airport time.'
-                : editTz === 'UTC'
-                  ? 'In UTC. Set by your flight time display preference.'
-                  : `In your system time (${editTz}). Set by your flight time display preference.`}
-            />
+            <Popover.Root>
+              <Popover.Trigger>
+                {#snippet child({ props })}
+                  <button
+                    {...props}
+                    type="button"
+                    aria-label="Time display preferences"
+                    class="-m-1 inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring data-[state=open]:bg-accent data-[state=open]:text-foreground"
+                  >
+                    <Settings2 size={14} />
+                  </button>
+                {/snippet}
+              </Popover.Trigger>
+              <Popover.Content align="start" sideOffset={6} class="w-64 p-3">
+                <p class="text-xs text-muted-foreground leading-snug pb-3">
+                  You're entering times in
+                  <span class="font-medium text-foreground">
+                    {prefs.flightTimeDisplay === 'airport'
+                      ? 'airport-local time'
+                      : prefs.flightTimeDisplay === 'utc'
+                        ? 'UTC'
+                        : `your system timezone (${editTz})`}</span
+                  >. These preferences apply to this form and the rest of
+                  AirTrail.
+                </p>
+                <div class="flex flex-col gap-3">
+                  <PreferenceField field="flightTimeDisplay" />
+                  <PreferenceField field="timeFormat" />
+                  <PreferenceField field="dateFormat" />
+                </div>
+              </Popover.Content>
+            </Popover.Root>
           </Form.Label>
           <TimeInput
             value={timeValue}
