@@ -117,8 +117,8 @@ export const processByAirFile = async (
     throw new Error('User not found');
   }
 
-  const [data, error] = parseCsv(input, ByAirFlight);
-  if (data.length === 0 || error) {
+  const { rows: data } = parseCsv(input, ByAirFlight);
+  if (data.length === 0) {
     return {
       flights: [],
       unknownAirports: {},

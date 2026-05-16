@@ -62,8 +62,8 @@ export const processJetLogFile = async (
     throw new Error('User not found');
   }
 
-  const [data, error] = parseCsv(input, JetLogFlight);
-  if (data.length === 0 || error) {
+  const { rows: data } = parseCsv(input, JetLogFlight);
+  if (data.length === 0) {
     return {
       flights: [],
       unknownAirports: {},

@@ -1,35 +1,48 @@
-import { ZodSchema } from 'zod';
+import { ZodError, ZodSchema } from 'zod';
+
+export type SkippedCsvRow = {
+  rowNumber: number;
+  raw: Record<string, string>;
+  error: ZodError;
+};
+
+export type ParseCsvResult<T> = {
+  rows: T[];
+  skipped: SkippedCsvRow[];
+};
 
 export const parseCsv = <T>(
   csv: string,
   schema: ZodSchema<T>,
-): [T[], boolean] => {
+): ParseCsvResult<T> => {
   const lines = parseCsvLines(csv);
   if (lines.length < 2) {
-    return [[], true];
+    return { rows: [], skipped: [] };
   }
 
   // @ts-expect-error - clearly checking for length above
   const headers = parseCsvLine(lines[0]).map(sanitizeHeader);
   const rows: T[] = [];
-  for (const line of lines.slice(1)) {
+  const skipped: SkippedCsvRow[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i]!;
     const values = parseCsvLine(line);
 
-    const row = headers.reduce<Record<string, string>>((acc, header, i) => {
-      acc[header] = values[i] ?? '';
+    const raw = headers.reduce<Record<string, string>>((acc, header, j) => {
+      acc[header] = values[j] ?? '';
       return acc;
     }, {});
 
-    try {
-      const validatedRow = schema.parse(row);
-      rows.push(validatedRow);
-    } catch (e) {
-      console.error('Error parsing row: ', row, e);
-      return [[], true];
+    const result = schema.safeParse(raw);
+    if (result.success) {
+      rows.push(result.data);
+    } else {
+      console.warn(`Skipping CSV row ${i}: `, raw, result.error);
+      skipped.push({ rowNumber: i, raw, error: result.error });
     }
   }
 
-  return [rows, false];
+  return { rows, skipped };
 };
 
 const parseCsvLines = (csv: string) => {

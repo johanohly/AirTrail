@@ -16,7 +16,7 @@ import { getAirlineByIcao } from '$lib/utils/data/airlines';
 import { getAirportByIcao } from '$lib/utils/data/airports/cache';
 import { parseLocalISO, toUtc } from '$lib/utils/datetime';
 
-const FR24_AIRPORT_REGEX = /\(([a-zA-Z]{3})\/(?<ICAO>[a-zA-Z]{4})\)/;
+const FR24_AIRPORT_REGEX = /\(([a-zA-Z0-9]{3})\/(?<ICAO>[a-zA-Z]{4})\)/;
 const FR24_SEAT_TYPE_MAP: Record<string, Seat['seat']> = {
   '1': 'window',
   '2': 'middle',
@@ -99,7 +99,7 @@ const extractAirportICAO = (airport: string) => {
   return match.groups?.ICAO;
 };
 
-const AIRLINE_REGEX = /(.*) \(([0-9A-Z]{2})\/(?<ICAO>[a-zA-Z]{3})\)/;
+const AIRLINE_REGEX = /(.*) \([0-9A-Z]{0,2}\/(?<ICAO>[a-zA-Z]{3})\)/;
 const extractAirlineICAO = (airline: string) => {
   const match = AIRLINE_REGEX.exec(airline);
   if (!match) {
@@ -147,10 +147,7 @@ export const processFR24File = async (
   content: string,
   options: PlatformOptions,
 ) => {
-  const [data, error] = parseCsv(content, FR24Flight);
-  if (error) {
-    throw error;
-  }
+  const { rows: data, skipped } = parseCsv(content, FR24Flight);
 
   const userId = page.data.user?.id;
   if (!userId) {
@@ -284,5 +281,6 @@ export const processFR24File = async (
     flights,
     unknownAirports,
     unknownAirlines,
+    skippedRows: skipped.length,
   };
 };

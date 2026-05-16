@@ -31,6 +31,7 @@
 
   let importing = $state(false);
   let importedCount = $state(0);
+  let skippedRows = $state(0);
   let unknownAirports = $state<Record<string, number[]>>({});
   let unknownAirlines = $state<Record<string, number[]>>({});
   let unknownUsers = $state<Record<string, number[]>>({});
@@ -101,6 +102,12 @@
       unknownAirlines = result.unknownAirlines;
       unknownUsers = result.unknownUsers;
       exportedUsers = result.exportedUsers;
+      skippedRows = result.skippedRows ?? 0;
+      if (skippedRows > 0) {
+        toast.warning(
+          `Skipped ${skippedRows} ${pluralize(skippedRows, 'row')} that could not be parsed`,
+        );
+      }
       return;
     }
 
@@ -132,12 +139,18 @@
     unknownAirlines = result.unknownAirlines;
     unknownUsers = result.unknownUsers;
     exportedUsers = result.exportedUsers;
+    skippedRows = result.skippedRows ?? 0;
 
     importedCount = mapping ? importedCount + inserted : inserted;
     if (inserted > 0) {
       toast.success(`Imported ${inserted} ${pluralize(inserted, 'flight')}`);
     } else {
       toast.info('No new flights to import');
+    }
+    if (skippedRows > 0) {
+      toast.warning(
+        `Skipped ${skippedRows} ${pluralize(skippedRows, 'row')} that could not be parsed`,
+      );
     }
   };
 
@@ -224,6 +237,7 @@
     exportedUsers = [];
     userMapping = {};
     importedCount = 0;
+    skippedRows = 0;
     files = null;
     originalFile = null;
     fileError = null;
@@ -330,6 +344,7 @@
   {:else}
     <StatusStep
       {importedCount}
+      {skippedRows}
       {unknownAirports}
       {unknownAirlines}
       busy={importing}
