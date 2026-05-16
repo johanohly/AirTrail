@@ -229,12 +229,7 @@
           />
         </div>
 
-        <Form.Button disabled={$submitting}>
-          {#if $submitting}
-            <LoaderCircle class="animate-spin mr-1" size="18" />
-          {/if}
-          Create
-        </Form.Button>
+        <Form.Button loading={$submitting}>Create</Form.Button>
       </form>
     </div>
   </div>

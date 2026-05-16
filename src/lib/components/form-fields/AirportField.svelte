@@ -32,6 +32,7 @@
       <AirportPicker
         bind:value={$formData[field]}
         placeholder="Choose an airport"
+        invalid={!!props['aria-invalid']}
         onCreateNew={isAdmin ? () => (createAirport = true) : undefined}
       />
       <input hidden bind:value={$formData[field]} name={props.name} />
