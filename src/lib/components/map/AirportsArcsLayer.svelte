@@ -313,7 +313,7 @@
           selectedAirportId,
           selectedRoute,
         ],
-        getLineWidth: [selectedAirportId, selectedRouteAirportIds],
+        getLineWidth: [selectedAirportId, selectedRoute],
         getRadius: [mode, $isMediumScreen],
       },
       stroked: true,

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ChevronDown, LoaderCircle } from '@o7/icon/lucide';
+  import { ChevronDown } from '@o7/icon/lucide';
   import { onMount } from 'svelte';
   import { toast } from 'svelte-sonner';
   import { slide } from 'svelte/transition';

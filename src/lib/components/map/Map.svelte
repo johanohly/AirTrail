@@ -303,7 +303,8 @@
   });
 
   $effect(() => {
-    if (!map) return;
+    const m = map;
+    if (!m) return;
 
     const clearPreviousView = () => {
       if (programmaticCameraMove) return;
@@ -311,16 +312,16 @@
       showPreviousView = false;
     };
 
-    map.on('dragstart', clearPreviousView);
-    map.on('zoomstart', clearPreviousView);
-    map.on('rotatestart', clearPreviousView);
-    map.on('pitchstart', clearPreviousView);
+    m.on('dragstart', clearPreviousView);
+    m.on('zoomstart', clearPreviousView);
+    m.on('rotatestart', clearPreviousView);
+    m.on('pitchstart', clearPreviousView);
 
     return () => {
-      map.off('dragstart', clearPreviousView);
-      map.off('zoomstart', clearPreviousView);
-      map.off('rotatestart', clearPreviousView);
-      map.off('pitchstart', clearPreviousView);
+      m.off('dragstart', clearPreviousView);
+      m.off('zoomstart', clearPreviousView);
+      m.off('rotatestart', clearPreviousView);
+      m.off('pitchstart', clearPreviousView);
     };
   });
 

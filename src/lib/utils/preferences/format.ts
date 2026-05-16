@@ -185,11 +185,13 @@ export const formatDateTime = (
 
 // ----- Week start -------------------------------------------------------
 
+export type WeekDay = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
 /**
- * Resolve `weekStartsOn` to a JS getDay() value (0=Sun, 1=Mon).
+ * Resolve `weekStartsOn` to a JS getDay() value (0=Sun..6=Sat).
  * For 'auto', uses the browser's locale; falls back to Monday on the server.
  */
-export const getWeekStartsOn = (prefs: WeekStartPrefs): 0 | 1 => {
+export const getWeekStartsOn = (prefs: WeekStartPrefs): WeekDay => {
   if (prefs.weekStartsOn === 'mon') return 1;
   if (prefs.weekStartsOn === 'sun') return 0;
   if (typeof navigator === 'undefined') return 1;
@@ -198,7 +200,7 @@ export const getWeekStartsOn = (prefs: WeekStartPrefs): 0 | 1 => {
   const isoDay =
     locale.getWeekInfo?.().firstDay ?? locale.weekInfo?.firstDay ?? 1;
   // ISO uses 1=Mon..7=Sun, JS uses 0=Sun..6=Sat. Modulo converts.
-  return (isoDay % 7) as 0 | 1;
+  return (isoDay % 7) as WeekDay;
 };
 
 // ----- Flight time display ----------------------------------------------
