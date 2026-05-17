@@ -296,7 +296,10 @@
     <Form.FieldErrors />
   </Form.Field>
 {:else}
-  <div class="grid gap-2 grid-cols-[3fr_2fr] items-start">
+  <div
+    class="grid gap-2 grid-cols-[3fr_2fr] items-start"
+    data-testid="datetime-{field}"
+  >
     <Form.Field {form} name={field}>
       <Form.Control>
         {#snippet children({ props })}

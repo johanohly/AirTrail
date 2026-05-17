@@ -188,6 +188,7 @@
     size="icon"
     onclick={() => (open = true)}
     disabled={triggerDisabled}
+    data-testid="edit-flight-button"
   >
     <SquarePen size={16} />
   </Button>

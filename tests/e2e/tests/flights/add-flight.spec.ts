@@ -53,11 +53,11 @@ test.describe('Add Flight', () => {
         await fromField.fill(fromAirport.iata);
 
         // Wait for dropdown to appear and select the airport
-        await page.waitForTimeout(500); // Wait for debounce
-        await expect(page.getByText(fromAirport.name)).toBeVisible({
-          timeout: 10000,
-        });
-        await page.getByText(fromAirport.name).first().click();
+        const fromOption = page
+          .getByText(fromAirport.icao, { exact: true })
+          .first();
+        await expect(fromOption).toBeVisible({ timeout: 10000 });
+        await fromOption.click();
 
         // Fill in arrival airport - search for LHR
         await modal.getByText(/^To \*$/i).waitFor({ timeout: 5000 });
@@ -67,12 +67,11 @@ test.describe('Add Flight', () => {
         await toField.click();
         await toField.fill(toAirport.iata);
 
-        // Wait for dropdown and select the airport
-        await page.waitForTimeout(500); // Wait for debounce
-        await expect(page.getByText(toAirport.name)).toBeVisible({
-          timeout: 10000,
-        });
-        await page.getByText(toAirport.name).first().click();
+        const toOption = page
+          .getByText(toAirport.icao, { exact: true })
+          .first();
+        await expect(toOption).toBeVisible({ timeout: 10000 });
+        await toOption.click();
 
         // Fill in departure date - use the hidden input field
         // The form uses a hidden input with name="departure" that stores the ISO datetime string

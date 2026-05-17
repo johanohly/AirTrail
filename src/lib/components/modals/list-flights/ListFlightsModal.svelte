@@ -570,7 +570,7 @@
 </Modal>
 
 {#snippet flightTimes(flight)}
-  <div class="flex items-center">
+  <div class="flex items-center" data-testid="flight-time-departure">
     <PlaneTakeoff size="16" class="mr-1" />
     {#if flight.depAt}
       <TimeDisplay
@@ -587,7 +587,7 @@
       <p class="text-sm">{flight.depFallback}</p>
     {/if}
   </div>
-  <div class="flex items-center">
+  <div class="flex items-center" data-testid="flight-time-arrival">
     {#if flight.arrAt}
       <PlaneLanding size="16" class="mr-1" />
       <TimeDisplay
