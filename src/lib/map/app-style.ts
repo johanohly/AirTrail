@@ -53,6 +53,26 @@ export const getAppMapImages = (
         pixelRatio: 2,
       },
     },
+    ...['white', 'blue', 'gray', 'green', 'red', 'yellow'].map((color) => ({
+      id: `chevron-${color}`,
+      url: `${base}/airport-style/chevron-${color}@2x.png`,
+      options: { pixelRatio: 2 },
+    })),
+    {
+      id: 'papi',
+      url: `${base}/airport-style/papi@2x.png`,
+      options: { pixelRatio: 2 },
+    },
+    {
+      id: 'windsock',
+      url: `${base}/airport-style/windsock@2x.png`,
+      options: { pixelRatio: 2 },
+    },
+    {
+      id: 'tower',
+      url: `${base}/airport-style/tower@2x.png`,
+      options: { pixelRatio: 2 },
+    },
     ...getOpenAipPatternImages(),
     ...getOpenAipSymbolImages(normalizedTheme),
   ];
