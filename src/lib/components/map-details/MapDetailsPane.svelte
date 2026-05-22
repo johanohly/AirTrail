@@ -40,6 +40,13 @@
     () => filters,
     () => tempFilters,
   );
+
+  const mobileOpen = $derived.by(() => {
+    const selection = mapDetailsState.selection;
+    if (selection?.type === 'airport') return !!airport.airport;
+    if (selection?.type === 'route') return !!route.routeAirports;
+    return false;
+  });
 </script>
 
 {#if $isMediumScreen}
@@ -76,7 +83,7 @@
   {/snippet}
 
   <MapDetailsFrame
-    open={!!mapDetailsState.selection}
+    open={mobileOpen}
     header={mobileHeader}
     actions={mobileActions}
     onOpenChange={(v) => {

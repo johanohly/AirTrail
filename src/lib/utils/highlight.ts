@@ -94,7 +94,6 @@ export const highlightElement = (
         top: rect.top + window.scrollY + scrollOffset,
         behavior: scrollBehavior,
       });
-      element.scrollIntoView({ block: 'center', behavior: scrollBehavior });
     }
 
     const overlay = document.createElement('div');

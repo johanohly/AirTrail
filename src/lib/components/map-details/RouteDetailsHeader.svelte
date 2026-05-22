@@ -24,13 +24,31 @@
   const airportPlace = (airport: RouteAirport) =>
     airport.municipality ?? airport.name;
 
-  const localDateLabel = (timeZone: string) =>
-    new Intl.DateTimeFormat(undefined, {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      timeZone,
-    }).format(now);
+  const localTimeLabel = (timeZone: string) => {
+    try {
+      return formatTime(now, prefs, timeZone);
+    } catch {
+      return formatTime(now, prefs, 'UTC');
+    }
+  };
+
+  const localDateLabel = (timeZone: string) => {
+    try {
+      return new Intl.DateTimeFormat(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        timeZone,
+      }).format(now);
+    } catch {
+      return new Intl.DateTimeFormat(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        timeZone: 'UTC',
+      }).format(now);
+    }
+  };
 
   const offsetLabel = (timeZone: string) => {
     try {
@@ -111,7 +129,7 @@
         <p
           class="text-2xl leading-none font-semibold tracking-tight tabular-nums"
         >
-          {formatTime(now, prefs, timeZone)}
+          {localTimeLabel(timeZone)}
         </p>
         <p class="mt-1 text-[11px] text-muted-foreground tabular-nums">
           {localDateLabel(timeZone)} · {offsetLabel(timeZone)}

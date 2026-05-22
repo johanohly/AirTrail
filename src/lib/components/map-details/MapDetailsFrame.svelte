@@ -22,7 +22,12 @@
     onOpenChange?: (open: boolean) => void;
   } = $props();
 
-  let activeSnapPoint: string | number | null = $state(0.55);
+  const defaultSnapPoint = 0.55;
+  let activeSnapPoint: string | number | null = $state(defaultSnapPoint);
+
+  $effect(() => {
+    if (!open) activeSnapPoint = defaultSnapPoint;
+  });
 
   const handleWindowKeydown = (e: KeyboardEvent) => {
     if (!open || !$isMediumScreen || e.key !== 'Escape' || e.defaultPrevented)
