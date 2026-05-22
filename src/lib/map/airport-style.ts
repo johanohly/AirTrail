@@ -130,7 +130,15 @@ const DARK_AIRPORT_LAYOUT_OVERRIDES = {
       'chevron-green',
       'yellow',
       'chevron-yellow',
-      'chevron-white',
+      'blue',
+      'chevron-blue',
+      [
+        'match',
+        ['get', 'navigationaid'],
+        'txe',
+        'chevron-blue',
+        'chevron-white',
+      ],
     ],
   },
 } as const;
