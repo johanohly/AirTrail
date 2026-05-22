@@ -1022,12 +1022,11 @@ const insertOverlayLayers = (
     (layer) => layer.type === 'symbol',
   );
   const insertIndex =
-    groundInsertIndex !== -1 ? groundInsertIndex + 1 : fallbackInsertIndex;
-  if (insertIndex === -1) {
-    throw new Error(
-      'Could not find a symbol insertion point in the base style',
-    );
-  }
+    groundInsertIndex !== -1
+      ? groundInsertIndex + 1
+      : fallbackInsertIndex !== -1
+        ? fallbackInsertIndex
+        : layers.length;
 
   style.layers = [
     ...layers.slice(0, insertIndex),

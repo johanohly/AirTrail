@@ -5,6 +5,7 @@ import {
   OPENAIP_OVERLAY_GROUPS,
   type OpenAipOverlayGroup,
 } from './openaip';
+import { MAP_BASEMAPS, type MapBasemap } from './basemap';
 
 export type AirportCirclesMode = 'off' | 'small' | 'medium' | 'large';
 export type ArcThicknessMode = 'uniform' | 'byFrequency';
@@ -12,6 +13,7 @@ export type ArcThicknessScale = 'thin' | 'normal' | 'thick';
 export type AirportOverlayDetail = 'standard' | 'detailed';
 
 export type MapPreferences = {
+  basemap: MapBasemap;
   airportCircles: AirportCirclesMode;
   arcThickness: ArcThicknessMode;
   arcThicknessScale: ArcThicknessScale;
@@ -44,6 +46,7 @@ const AIRPORT_OVERLAY_DETAIL_MODES: readonly AirportOverlayDetail[] = [
 ];
 
 export const MAP_PREFERENCE_DEFAULTS: MapPreferences = {
+  basemap: 'default',
   airportCircles: 'large',
   arcThickness: 'uniform',
   arcThicknessScale: 'normal',
@@ -66,6 +69,12 @@ const sanitize = (raw: unknown): MapPreferences => {
   if (!raw || typeof raw !== 'object') return result;
   const input = raw as Partial<Record<keyof MapPreferences, unknown>>;
 
+  if (
+    typeof input.basemap === 'string' &&
+    MAP_BASEMAPS.includes(input.basemap as MapBasemap)
+  ) {
+    result.basemap = input.basemap as MapBasemap;
+  }
   if (
     typeof input.airportCircles === 'string' &&
     AIRPORT_CIRCLES_MODES.includes(input.airportCircles as AirportCirclesMode)
@@ -135,6 +144,7 @@ export const initMapPreferences = () => {
   }
 
   const hydrated = sanitize(parsed);
+  mapPreferences.basemap = hydrated.basemap;
   mapPreferences.airportCircles = hydrated.airportCircles;
   mapPreferences.arcThickness = hydrated.arcThickness;
   mapPreferences.arcThicknessScale = hydrated.arcThicknessScale;
@@ -145,6 +155,7 @@ export const initMapPreferences = () => {
   $effect.root(() => {
     $effect(() => {
       const snapshot: MapPreferences = {
+        basemap: mapPreferences.basemap,
         airportCircles: mapPreferences.airportCircles,
         arcThickness: mapPreferences.arcThickness,
         arcThicknessScale: mapPreferences.arcThicknessScale,
@@ -162,6 +173,7 @@ export const initMapPreferences = () => {
 };
 
 export const resetMapPreferences = () => {
+  mapPreferences.basemap = MAP_PREFERENCE_DEFAULTS.basemap;
   mapPreferences.airportCircles = MAP_PREFERENCE_DEFAULTS.airportCircles;
   mapPreferences.arcThickness = MAP_PREFERENCE_DEFAULTS.arcThickness;
   mapPreferences.arcThicknessScale = MAP_PREFERENCE_DEFAULTS.arcThicknessScale;

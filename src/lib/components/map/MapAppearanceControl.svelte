@@ -1,6 +1,9 @@
 <script lang="ts">
   import { Settings2 } from '@o7/icon/lucide';
+  import { mode } from 'mode-watcher';
   import { ControlButton } from 'svelte-maplibre';
+  import { fly } from 'svelte/transition';
+  import { base } from '$app/paths';
   import { page } from '$app/state';
 
   import AppearanceTile from './AppearanceTile.svelte';
@@ -11,6 +14,7 @@
   import { Button } from '$lib/components/ui/button';
   import * as Popover from '$lib/components/ui/popover';
   import { Switch } from '$lib/components/ui/switch';
+  import type { MapBasemap } from '$lib/map/basemap';
   import {
     mapPreferences,
     resetMapPreferences,
@@ -86,6 +90,19 @@
 
   // Sanity assertion: make sure we render a tile for every known group.
   OPENAIP_OVERLAY_GROUPS satisfies readonly OpenAipOverlayGroup[];
+
+  const BASEMAP_OPTIONS: Array<{
+    value: MapBasemap;
+    label: string;
+  }> = [
+    { value: 'default', label: 'Default' },
+    { value: 'satellite', label: 'Satellite' },
+  ];
+
+  const basemapPreviewTheme = $derived(
+    mode.current === 'dark' ? 'dark' : 'light',
+  );
+  const airportDetailSupported = $derived(mapPreferences.basemap === 'default');
 </script>
 
 <Popover.Root bind:open={popoverOpen}>
@@ -122,6 +139,183 @@
     class="w-[320px] p-0"
   >
     <div class="max-h-[calc(100vh-6rem)] overflow-y-auto p-4 space-y-5">
+      <section class="space-y-2">
+        <div class="flex items-baseline justify-between">
+          <h3 class="text-sm font-semibold">Basemap</h3>
+          <p class="text-muted-foreground text-[11px]">Style</p>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          {#each BASEMAP_OPTIONS as option (option.value)}
+            <AppearanceTile
+              selected={mapPreferences.basemap === option.value}
+              onclick={() => (mapPreferences.basemap = option.value)}
+              label={option.label}
+              labelOutside
+            >
+              {#snippet illustration()}
+                <img
+                  src={option.value === 'satellite'
+                    ? `${base}/basemap-previews/satellite.jpg`
+                    : `${base}/basemap-previews/default-${basemapPreviewTheme}.png`}
+                  alt=""
+                  draggable="false"
+                  class="size-full object-cover"
+                />
+              {/snippet}
+            </AppearanceTile>
+          {/each}
+        </div>
+        {#if airportDetailSupported}
+          <div
+            class="space-y-2 border-t pt-3"
+            transition:fly={{ y: -8, duration: 160 }}
+          >
+            <div class="flex items-baseline justify-between">
+              <h4 class="text-xs font-semibold">Airport detail</h4>
+              <p class="text-muted-foreground text-[11px]">Overlay</p>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              {#each AIRPORT_DETAIL_OPTIONS as option (option.value)}
+                <AppearanceTile
+                  selected={mapPreferences.airportOverlayDetail ===
+                    option.value}
+                  onclick={() =>
+                    (mapPreferences.airportOverlayDetail = option.value)}
+                  label={option.label}
+                >
+                  {#snippet illustration()}
+                    <svg
+                      viewBox="0 0 72 32"
+                      class="airport-detail-tile h-full w-full"
+                      aria-hidden="true"
+                    >
+                      <rect
+                        width="72"
+                        height="32"
+                        fill="var(--airport-ground)"
+                      />
+                      <g transform="translate(36 16) rotate(-53)">
+                        <path
+                          d="M10 -20 V42"
+                          fill="none"
+                          stroke="var(--airport-taxiway-edge)"
+                          stroke-width="5"
+                          stroke-linecap="round"
+                        />
+                        <path
+                          d="M10 -20 V42"
+                          fill="none"
+                          stroke="var(--airport-taxiway)"
+                          stroke-width="3.5"
+                          stroke-linecap="round"
+                        />
+                        {#if option.value === 'detailed'}
+                          <path
+                            d="M10 -19 V41"
+                            fill="none"
+                            stroke="var(--airport-taxiway-centerline)"
+                            stroke-width="0.8"
+                            stroke-linecap="round"
+                          />
+                        {/if}
+                        <rect
+                          x="-36"
+                          y="-5"
+                          width="46"
+                          height="10"
+                          rx="1"
+                          fill="var(--airport-runway)"
+                          stroke="var(--airport-runway-edge)"
+                          stroke-width="0.5"
+                        />
+                        <path
+                          d="M-22 0 H2"
+                          fill="none"
+                          stroke="var(--airport-runway-marking)"
+                          stroke-width="1.25"
+                          stroke-dasharray="5 4"
+                          stroke-linecap="round"
+                          stroke-opacity="0.9"
+                        />
+                      </g>
+                      {#if option.value === 'detailed'}
+                        <g transform="translate(36 16) rotate(-53)">
+                          <path
+                            d="M8 -5 V5"
+                            fill="none"
+                            stroke="var(--airport-runway-marking)"
+                            stroke-width="1"
+                            stroke-linecap="round"
+                          />
+                          <path
+                            d="M-2 -4 V4 M0 -4 V4 M2 -4 V4 M4 -4 V4 M6 -4 V4"
+                            fill="none"
+                            stroke="var(--airport-runway-marking)"
+                            stroke-width="0.75"
+                          />
+                          <circle
+                            cx="-30"
+                            cy="-8"
+                            r="1"
+                            fill="var(--airport-edge-light)"
+                          />
+                          <circle
+                            cx="-20"
+                            cy="-8"
+                            r="1"
+                            fill="var(--airport-edge-light)"
+                          />
+                          <circle
+                            cx="-10"
+                            cy="-8"
+                            r="1"
+                            fill="var(--airport-edge-light)"
+                          />
+                          <circle
+                            cx="-30"
+                            cy="8"
+                            r="1"
+                            fill="var(--airport-edge-light)"
+                          />
+                          <circle
+                            cx="-20"
+                            cy="8"
+                            r="1"
+                            fill="var(--airport-edge-light)"
+                          />
+                          <circle
+                            cx="-10"
+                            cy="8"
+                            r="1"
+                            fill="var(--airport-edge-light)"
+                          />
+                          <path
+                            d="M10 -5 L13 -6.5 L13 -3.5 Z"
+                            fill="var(--airport-green-light)"
+                          />
+                          <path
+                            d="M10 -5 L7 -6.5 L7 -3.5 Z"
+                            fill="var(--airport-red-light)"
+                          />
+                          <path
+                            d="M10 5 L13 3.5 L13 6.5 Z"
+                            fill="var(--airport-green-light)"
+                          />
+                          <path
+                            d="M10 5 L7 3.5 L7 6.5 Z"
+                            fill="var(--airport-red-light)"
+                          />
+                        </g>
+                      {/if}
+                    </svg>
+                  {/snippet}
+                </AppearanceTile>
+              {/each}
+            </div>
+          </div>
+        {/if}
+      </section>
+
       <section class="space-y-2">
         <div class="flex items-baseline justify-between">
           <h3 class="text-sm font-semibold">Airports</h3>
@@ -302,146 +496,6 @@
                     stroke-width={strokeWidth}
                     stroke-linecap="round"
                   />
-                </svg>
-              {/snippet}
-            </AppearanceTile>
-          {/each}
-        </div>
-      </section>
-
-      <section class="space-y-2">
-        <div class="flex items-baseline justify-between">
-          <h3 class="text-sm font-semibold">Airport map</h3>
-          <p class="text-muted-foreground text-[11px]">Detail</p>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          {#each AIRPORT_DETAIL_OPTIONS as option (option.value)}
-            <AppearanceTile
-              selected={mapPreferences.airportOverlayDetail === option.value}
-              onclick={() =>
-                (mapPreferences.airportOverlayDetail = option.value)}
-              label={option.label}
-            >
-              {#snippet illustration()}
-                <svg
-                  viewBox="0 0 72 32"
-                  class="airport-detail-tile h-full w-full"
-                  aria-hidden="true"
-                >
-                  <rect width="72" height="32" fill="var(--airport-ground)" />
-                  <g transform="translate(36 16) rotate(-53)">
-                    <path
-                      d="M10 -20 V42"
-                      fill="none"
-                      stroke="var(--airport-taxiway-edge)"
-                      stroke-width="5"
-                      stroke-linecap="round"
-                    />
-                    <path
-                      d="M10 -20 V42"
-                      fill="none"
-                      stroke="var(--airport-taxiway)"
-                      stroke-width="3.5"
-                      stroke-linecap="round"
-                    />
-                    {#if option.value === 'detailed'}
-                      <path
-                        d="M10 -19 V41"
-                        fill="none"
-                        stroke="var(--airport-taxiway-centerline)"
-                        stroke-width="0.8"
-                        stroke-linecap="round"
-                      />
-                    {/if}
-                    <rect
-                      x="-36"
-                      y="-5"
-                      width="46"
-                      height="10"
-                      rx="1"
-                      fill="var(--airport-runway)"
-                      stroke="var(--airport-runway-edge)"
-                      stroke-width="0.5"
-                    />
-                    <path
-                      d="M-22 0 H2"
-                      fill="none"
-                      stroke="var(--airport-runway-marking)"
-                      stroke-width="1.25"
-                      stroke-dasharray="5 4"
-                      stroke-linecap="round"
-                      stroke-opacity="0.9"
-                    />
-                  </g>
-                  {#if option.value === 'detailed'}
-                    <g transform="translate(36 16) rotate(-53)">
-                      <path
-                        d="M8 -5 V5"
-                        fill="none"
-                        stroke="var(--airport-runway-marking)"
-                        stroke-width="1"
-                        stroke-linecap="round"
-                      />
-                      <path
-                        d="M-2 -4 V4 M0 -4 V4 M2 -4 V4 M4 -4 V4 M6 -4 V4"
-                        fill="none"
-                        stroke="var(--airport-runway-marking)"
-                        stroke-width="0.75"
-                      />
-                      <circle
-                        cx="-30"
-                        cy="-8"
-                        r="1"
-                        fill="var(--airport-edge-light)"
-                      />
-                      <circle
-                        cx="-20"
-                        cy="-8"
-                        r="1"
-                        fill="var(--airport-edge-light)"
-                      />
-                      <circle
-                        cx="-10"
-                        cy="-8"
-                        r="1"
-                        fill="var(--airport-edge-light)"
-                      />
-                      <circle
-                        cx="-30"
-                        cy="8"
-                        r="1"
-                        fill="var(--airport-edge-light)"
-                      />
-                      <circle
-                        cx="-20"
-                        cy="8"
-                        r="1"
-                        fill="var(--airport-edge-light)"
-                      />
-                      <circle
-                        cx="-10"
-                        cy="8"
-                        r="1"
-                        fill="var(--airport-edge-light)"
-                      />
-                      <path
-                        d="M10 -5 L13 -6.5 L13 -3.5 Z"
-                        fill="var(--airport-green-light)"
-                      />
-                      <path
-                        d="M10 -5 L7 -6.5 L7 -3.5 Z"
-                        fill="var(--airport-red-light)"
-                      />
-                      <path
-                        d="M10 5 L13 3.5 L13 6.5 Z"
-                        fill="var(--airport-green-light)"
-                      />
-                      <path
-                        d="M10 5 L7 3.5 L7 6.5 Z"
-                        fill="var(--airport-red-light)"
-                      />
-                    </g>
-                  {/if}
                 </svg>
               {/snippet}
             </AppearanceTile>

@@ -101,7 +101,11 @@
   let programmaticCameraMove = false;
   let handledFocusRequest = $state(-1);
   const style = $derived(
-    getConfiguredAppMapStyleUrl(mode.current, appConfig.config?.map),
+    getConfiguredAppMapStyleUrl(
+      mode.current,
+      appConfig.config?.map,
+      mapPreferences.basemap,
+    ),
   );
   const images = $derived(getAppMapImages(base, mode.current));
   const openAipTheme = $derived(
@@ -117,7 +121,7 @@
     getOpenAipOverlayLayers(mapPreferences.openAipGroups, openAipTheme),
   );
   const usingDefaultAppStyle = $derived(
-    style === getDefaultAppMapStyleUrl(mode.current),
+    style === getDefaultAppMapStyleUrl(mode.current, mapPreferences.basemap),
   );
   const openAipTileUrlTemplate = $derived(
     browser
@@ -126,7 +130,10 @@
   );
   const hiddenAirportLabelLayerIds = ['airport-overlay-name-label'];
   const airportDetailVisibility = $derived(
-    mapPreferences.airportOverlayDetail === 'detailed' ? 'visible' : 'none',
+    mapPreferences.basemap === 'default' &&
+      mapPreferences.airportOverlayDetail === 'detailed'
+      ? 'visible'
+      : 'none',
   );
 
   const flightArcs = $derived.by(() => {

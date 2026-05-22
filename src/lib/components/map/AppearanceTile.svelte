@@ -9,42 +9,78 @@
     onclick,
     illustration,
     compact = false,
+    disabled = false,
+    labelOutside = false,
   }: {
     label: string;
     selected: boolean;
     onclick: () => void;
     illustration: Snippet;
     compact?: boolean;
+    disabled?: boolean;
+    labelOutside?: boolean;
   } = $props();
 </script>
 
-<button
-  type="button"
-  aria-pressed={selected}
-  {onclick}
-  class={cn(
-    'group flex flex-col items-center rounded-md border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-    selected
-      ? 'border-primary bg-primary/5'
-      : 'border-muted hover:border-accent hover:bg-accent/40',
-    compact ? 'p-1.5' : 'p-2',
-  )}
->
-  <div
-    class={cn(
-      'flex w-full items-center justify-center overflow-hidden rounded-sm bg-muted dark:bg-muted/50',
-      compact ? 'h-7' : 'h-10',
-    )}
-  >
-    {@render illustration()}
+{#if labelOutside}
+  <div class="flex w-full min-w-0 flex-col items-center">
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={selected}
+      {onclick}
+      {disabled}
+      class={cn(
+        'group flex w-full items-center justify-center overflow-hidden rounded-md border-2 bg-muted p-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 dark:bg-muted/50',
+        selected ? 'border-primary' : 'border-muted hover:border-accent',
+        disabled && 'cursor-not-allowed opacity-45 hover:border-muted',
+        compact ? 'h-[3.375rem]' : 'h-[4.5rem]',
+      )}
+    >
+      {@render illustration()}
+    </button>
+    <span
+      class={cn(
+        'mt-1 w-full text-center leading-none',
+        compact ? 'text-[10px]' : 'text-[11px]',
+        selected ? 'text-foreground font-medium' : 'text-muted-foreground',
+      )}
+    >
+      {label}
+    </span>
   </div>
-  <span
+{:else}
+  <button
+    type="button"
+    aria-pressed={selected}
+    {onclick}
+    {disabled}
     class={cn(
-      'mt-1 w-full text-center leading-none',
-      compact ? 'text-[10px]' : 'text-[11px]',
-      selected ? 'text-foreground font-medium' : 'text-muted-foreground',
+      'group flex flex-col items-center rounded-md border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+      selected
+        ? 'border-primary bg-primary/5'
+        : 'border-muted hover:border-accent hover:bg-accent/40',
+      disabled &&
+        'cursor-not-allowed opacity-45 hover:border-muted hover:bg-transparent',
+      compact ? 'p-1.5' : 'p-2',
     )}
   >
-    {label}
-  </span>
-</button>
+    <div
+      class={cn(
+        'flex w-full items-center justify-center overflow-hidden rounded-sm bg-muted dark:bg-muted/50',
+        compact ? 'h-7' : 'h-10',
+      )}
+    >
+      {@render illustration()}
+    </div>
+    <span
+      class={cn(
+        'mt-1 w-full text-center leading-none',
+        compact ? 'text-[10px]' : 'text-[11px]',
+        selected ? 'text-foreground font-medium' : 'text-muted-foreground',
+      )}
+    >
+      {label}
+    </span>
+  </button>
+{/if}

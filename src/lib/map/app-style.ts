@@ -8,22 +8,34 @@ import {
   getOpenAipSymbolImages,
 } from '$lib/map/openaip';
 import type { CustomImageSpec } from 'svelte-maplibre';
+import type { MapBasemap } from './basemap';
 
 type AppMapConfig = {
   lightStyleUrl?: string | null;
   darkStyleUrl?: string | null;
 };
 
-export const getDefaultAppMapStyleUrl = (theme: string) => {
+export const getDefaultAppMapStyleUrl = (
+  theme: string,
+  basemap: MapBasemap = 'default',
+) => {
   const normalizedTheme = normalizeCartoTheme(theme);
+  if (basemap === 'satellite') {
+    return `${AIRPORT_STYLE_ROUTE_PATH}?theme=${normalizedTheme}&basemap=satellite`;
+  }
+
   return `${AIRPORT_STYLE_ROUTE_PATH}?theme=${normalizedTheme}`;
 };
 
 export const getConfiguredAppMapStyleUrl = (
   theme: string,
   config?: AppMapConfig | null,
+  basemap: MapBasemap = 'default',
 ) => {
   const normalizedTheme = normalizeCartoTheme(theme);
+  if (basemap === 'satellite') {
+    return getDefaultAppMapStyleUrl(normalizedTheme, basemap);
+  }
 
   if (normalizedTheme === 'dark') {
     return config?.darkStyleUrl || getDefaultAppMapStyleUrl(normalizedTheme);
