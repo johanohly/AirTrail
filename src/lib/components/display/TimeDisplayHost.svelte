@@ -164,7 +164,10 @@
         : `${plural(months, 'month')} ${suffix}`;
     }
     const years = Math.floor(abs / (86400 * 365));
-    const months = Math.floor((abs % (86400 * 365)) / (86400 * 30));
+    const months = Math.min(
+      11,
+      Math.floor((abs % (86400 * 365)) / (86400 * 30)),
+    );
     return months > 0
       ? `${plural(years, 'year')}, ${plural(months, 'month')} ${suffix}`
       : `${plural(years, 'year')} ${suffix}`;
