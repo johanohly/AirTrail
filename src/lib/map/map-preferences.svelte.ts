@@ -9,11 +9,13 @@ import {
 export type AirportCirclesMode = 'off' | 'small' | 'medium' | 'large';
 export type ArcThicknessMode = 'uniform' | 'byFrequency';
 export type ArcThicknessScale = 'thin' | 'normal' | 'thick';
+export type AirportOverlayDetail = 'standard' | 'detailed';
 
 export type MapPreferences = {
   airportCircles: AirportCirclesMode;
   arcThickness: ArcThicknessMode;
   arcThicknessScale: ArcThicknessScale;
+  airportOverlayDetail: AirportOverlayDetail;
   openAipEnabled: boolean;
   openAipGroups: OpenAipOverlayGroup[];
 };
@@ -36,11 +38,16 @@ const ARC_THICKNESS_SCALES: readonly ArcThicknessScale[] = [
   'normal',
   'thick',
 ];
+const AIRPORT_OVERLAY_DETAIL_MODES: readonly AirportOverlayDetail[] = [
+  'standard',
+  'detailed',
+];
 
 export const MAP_PREFERENCE_DEFAULTS: MapPreferences = {
   airportCircles: 'large',
   arcThickness: 'uniform',
   arcThicknessScale: 'normal',
+  airportOverlayDetail: 'detailed',
   openAipEnabled: false,
   openAipGroups: [...OPENAIP_DEFAULT_ENABLED_GROUPS],
 };
@@ -76,6 +83,15 @@ const sanitize = (raw: unknown): MapPreferences => {
     ARC_THICKNESS_SCALES.includes(input.arcThicknessScale as ArcThicknessScale)
   ) {
     result.arcThicknessScale = input.arcThicknessScale as ArcThicknessScale;
+  }
+  if (
+    typeof input.airportOverlayDetail === 'string' &&
+    AIRPORT_OVERLAY_DETAIL_MODES.includes(
+      input.airportOverlayDetail as AirportOverlayDetail,
+    )
+  ) {
+    result.airportOverlayDetail =
+      input.airportOverlayDetail as AirportOverlayDetail;
   }
   if (typeof input.openAipEnabled === 'boolean') {
     result.openAipEnabled = input.openAipEnabled;
@@ -122,6 +138,7 @@ export const initMapPreferences = () => {
   mapPreferences.airportCircles = hydrated.airportCircles;
   mapPreferences.arcThickness = hydrated.arcThickness;
   mapPreferences.arcThicknessScale = hydrated.arcThicknessScale;
+  mapPreferences.airportOverlayDetail = hydrated.airportOverlayDetail;
   mapPreferences.openAipEnabled = hydrated.openAipEnabled;
   mapPreferences.openAipGroups = hydrated.openAipGroups;
 
@@ -131,6 +148,7 @@ export const initMapPreferences = () => {
         airportCircles: mapPreferences.airportCircles,
         arcThickness: mapPreferences.arcThickness,
         arcThicknessScale: mapPreferences.arcThicknessScale,
+        airportOverlayDetail: mapPreferences.airportOverlayDetail,
         openAipEnabled: mapPreferences.openAipEnabled,
         openAipGroups: [...mapPreferences.openAipGroups],
       };
@@ -147,6 +165,8 @@ export const resetMapPreferences = () => {
   mapPreferences.airportCircles = MAP_PREFERENCE_DEFAULTS.airportCircles;
   mapPreferences.arcThickness = MAP_PREFERENCE_DEFAULTS.arcThickness;
   mapPreferences.arcThicknessScale = MAP_PREFERENCE_DEFAULTS.arcThicknessScale;
+  mapPreferences.airportOverlayDetail =
+    MAP_PREFERENCE_DEFAULTS.airportOverlayDetail;
   mapPreferences.openAipEnabled = MAP_PREFERENCE_DEFAULTS.openAipEnabled;
   mapPreferences.openAipGroups = [...MAP_PREFERENCE_DEFAULTS.openAipGroups];
 };

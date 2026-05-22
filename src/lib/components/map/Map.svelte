@@ -46,6 +46,7 @@
     OPENAIP_TILE_URL_TEMPLATE,
     type OpenAipTheme,
   } from '$lib/map/openaip';
+  import { AIRPORT_DETAIL_LAYER_IDS } from '$lib/map/airport-style';
   import { registerPmtilesProtocol } from '$lib/map/pmtiles';
   import {
     bindRuntimeMapImages,
@@ -124,6 +125,9 @@
       : `${base}${OPENAIP_TILE_URL_TEMPLATE}`,
   );
   const hiddenAirportLabelLayerIds = ['airport-overlay-name-label'];
+  const airportDetailVisibility = $derived(
+    mapPreferences.airportOverlayDetail === 'detailed' ? 'visible' : 'none',
+  );
 
   const flightArcs = $derived.by(() => {
     return prepareFlightArcData(filteredFlights);
@@ -291,6 +295,18 @@
       map,
       hiddenAirportLabelLayerIds,
       visibility,
+    );
+  });
+
+  $effect(() => {
+    if (!map) {
+      return;
+    }
+
+    return bindStyleLayerVisibility(
+      map,
+      AIRPORT_DETAIL_LAYER_IDS,
+      airportDetailVisibility,
     );
   });
 

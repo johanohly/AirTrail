@@ -13,7 +13,7 @@ export const supportsMapWebGL = () => {
 
 export const applyStyleLayerVisibility = (
   map: maplibregl.Map,
-  layerIds: string[],
+  layerIds: readonly string[],
   visibility: 'visible' | 'none',
 ) => {
   for (const layerId of layerIds) {
@@ -31,7 +31,7 @@ export const applyStyleLayerVisibility = (
 
 export const bindStyleLayerVisibility = (
   map: maplibregl.Map,
-  layerIds: string[],
+  layerIds: readonly string[],
   visibility: 'visible' | 'none',
 ) => {
   const syncVisibility = () => {

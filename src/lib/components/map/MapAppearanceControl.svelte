@@ -15,6 +15,7 @@
     mapPreferences,
     resetMapPreferences,
     toggleOpenAipGroup,
+    type AirportOverlayDetail,
     type AirportCirclesMode,
     type ArcThicknessMode,
     type ArcThicknessScale,
@@ -62,6 +63,14 @@
     { value: 'thin', label: 'Thin' },
     { value: 'normal', label: 'Normal' },
     { value: 'thick', label: 'Thick' },
+  ];
+
+  const AIRPORT_DETAIL_OPTIONS: Array<{
+    value: AirportOverlayDetail;
+    label: string;
+  }> = [
+    { value: 'standard', label: 'Standard' },
+    { value: 'detailed', label: 'Detailed' },
   ];
 
   const OPENAIP_GROUP_OPTIONS: Array<{
@@ -300,6 +309,146 @@
         </div>
       </section>
 
+      <section class="space-y-2">
+        <div class="flex items-baseline justify-between">
+          <h3 class="text-sm font-semibold">Airport map</h3>
+          <p class="text-muted-foreground text-[11px]">Detail</p>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          {#each AIRPORT_DETAIL_OPTIONS as option (option.value)}
+            <AppearanceTile
+              selected={mapPreferences.airportOverlayDetail === option.value}
+              onclick={() =>
+                (mapPreferences.airportOverlayDetail = option.value)}
+              label={option.label}
+            >
+              {#snippet illustration()}
+                <svg
+                  viewBox="0 0 72 32"
+                  class="airport-detail-tile h-full w-full"
+                  aria-hidden="true"
+                >
+                  <rect width="72" height="32" fill="var(--airport-ground)" />
+                  <g transform="translate(36 16) rotate(-53)">
+                    <path
+                      d="M10 -20 V42"
+                      fill="none"
+                      stroke="var(--airport-taxiway-edge)"
+                      stroke-width="5"
+                      stroke-linecap="round"
+                    />
+                    <path
+                      d="M10 -20 V42"
+                      fill="none"
+                      stroke="var(--airport-taxiway)"
+                      stroke-width="3.5"
+                      stroke-linecap="round"
+                    />
+                    {#if option.value === 'detailed'}
+                      <path
+                        d="M10 -19 V41"
+                        fill="none"
+                        stroke="var(--airport-taxiway-centerline)"
+                        stroke-width="0.8"
+                        stroke-linecap="round"
+                      />
+                    {/if}
+                    <rect
+                      x="-36"
+                      y="-5"
+                      width="46"
+                      height="10"
+                      rx="1"
+                      fill="var(--airport-runway)"
+                      stroke="var(--airport-runway-edge)"
+                      stroke-width="0.5"
+                    />
+                    <path
+                      d="M-22 0 H2"
+                      fill="none"
+                      stroke="var(--airport-runway-marking)"
+                      stroke-width="1.25"
+                      stroke-dasharray="5 4"
+                      stroke-linecap="round"
+                      stroke-opacity="0.9"
+                    />
+                  </g>
+                  {#if option.value === 'detailed'}
+                    <g transform="translate(36 16) rotate(-53)">
+                      <path
+                        d="M8 -5 V5"
+                        fill="none"
+                        stroke="var(--airport-runway-marking)"
+                        stroke-width="1"
+                        stroke-linecap="round"
+                      />
+                      <path
+                        d="M-2 -4 V4 M0 -4 V4 M2 -4 V4 M4 -4 V4 M6 -4 V4"
+                        fill="none"
+                        stroke="var(--airport-runway-marking)"
+                        stroke-width="0.75"
+                      />
+                      <circle
+                        cx="-30"
+                        cy="-8"
+                        r="1"
+                        fill="var(--airport-edge-light)"
+                      />
+                      <circle
+                        cx="-20"
+                        cy="-8"
+                        r="1"
+                        fill="var(--airport-edge-light)"
+                      />
+                      <circle
+                        cx="-10"
+                        cy="-8"
+                        r="1"
+                        fill="var(--airport-edge-light)"
+                      />
+                      <circle
+                        cx="-30"
+                        cy="8"
+                        r="1"
+                        fill="var(--airport-edge-light)"
+                      />
+                      <circle
+                        cx="-20"
+                        cy="8"
+                        r="1"
+                        fill="var(--airport-edge-light)"
+                      />
+                      <circle
+                        cx="-10"
+                        cy="8"
+                        r="1"
+                        fill="var(--airport-edge-light)"
+                      />
+                      <path
+                        d="M10 -5 L13 -6.5 L13 -3.5 Z"
+                        fill="var(--airport-green-light)"
+                      />
+                      <path
+                        d="M10 -5 L7 -6.5 L7 -3.5 Z"
+                        fill="var(--airport-red-light)"
+                      />
+                      <path
+                        d="M10 5 L13 3.5 L13 6.5 Z"
+                        fill="var(--airport-green-light)"
+                      />
+                      <path
+                        d="M10 5 L7 3.5 L7 6.5 Z"
+                        fill="var(--airport-red-light)"
+                      />
+                    </g>
+                  {/if}
+                </svg>
+              {/snippet}
+            </AppearanceTile>
+          {/each}
+        </div>
+      </section>
+
       {#if openAipConfigured}
         <section class="space-y-3">
           <div class="flex items-center justify-between">
@@ -445,3 +594,31 @@
     </div>
   </Popover.Content>
 </Popover.Root>
+
+<style>
+  .airport-detail-tile {
+    --airport-ground: #eef2ef;
+    --airport-taxiway-edge: #dfe3e1;
+    --airport-taxiway: #fafafa;
+    --airport-taxiway-centerline: #eab308;
+    --airport-runway: #d9dadd;
+    --airport-runway-edge: #c6c8cc;
+    --airport-runway-marking: #fafafa;
+    --airport-edge-light: #9ca3af;
+    --airport-green-light: #22c55e;
+    --airport-red-light: #ef4444;
+  }
+
+  :global(.dark) .airport-detail-tile {
+    --airport-ground: #121a18;
+    --airport-taxiway-edge: #24302d;
+    --airport-taxiway: #33413d;
+    --airport-taxiway-centerline: #facc15;
+    --airport-runway: #3a3f46;
+    --airport-runway-edge: #515966;
+    --airport-runway-marking: #eef2f7;
+    --airport-edge-light: #94a3b8;
+    --airport-green-light: #4ade80;
+    --airport-red-light: #f87171;
+  }
+</style>

@@ -153,6 +153,21 @@ const terminalFilter = [
   ],
 ];
 
+export const AIRPORT_DETAIL_LAYER_IDS = [
+  'airport-overlay-runway-threshold-synth',
+  'airport-overlay-runway-centerline-synth',
+  'airport-overlay-marking-fill',
+  'airport-overlay-marking-line',
+  'airport-overlay-taxiway-centerline',
+  'airport-overlay-parking-position',
+  'airport-overlay-navigationaid-circle',
+  'airport-overlay-navigationaid-directed',
+  'airport-overlay-papi',
+  'airport-overlay-windsock',
+  'airport-overlay-tower',
+  'airport-overlay-runway-designator-synth',
+] as const;
+
 const airportGroundLayers = [
   {
     id: 'airport-overlay-taxiway-outline',
