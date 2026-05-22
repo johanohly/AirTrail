@@ -62,12 +62,13 @@ export const processJetLogFile = async (
     throw new Error('User not found');
   }
 
-  const { rows: data } = parseCsv(input, JetLogFlight);
+  const { rows: data, skipped } = parseCsv(input, JetLogFlight);
   if (data.length === 0) {
     return {
       flights: [],
       unknownAirports: {},
       unknownAirlines: {},
+      skippedRows: skipped.length,
     };
   }
 
@@ -202,5 +203,6 @@ export const processJetLogFile = async (
     flights,
     unknownAirports,
     unknownAirlines,
+    skippedRows: skipped.length,
   };
 };

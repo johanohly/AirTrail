@@ -7,7 +7,7 @@ import { getParsedMetar } from '$lib/server/utils/metar';
 export const weatherRouter = router({
   getMetar: authedProcedure
     .input(z.string().regex(/^[A-Za-z][A-Za-z0-9]{3}$/))
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
       // Restrict to ICAOs referenced by an actual flight to limit outbound
       // fetches and prevent enumeration of arbitrary station codes.
       const referenced = await db
@@ -20,12 +20,14 @@ export const weatherRouter = router({
               eb
                 .selectFrom('flight')
                 .select('flight.id')
+                .where('flight.userId', '=', ctx.user.id)
                 .whereRef('flight.fromId', '=', 'airport.id'),
             ),
             eb.exists(
               eb
                 .selectFrom('flight')
                 .select('flight.id')
+                .where('flight.userId', '=', ctx.user.id)
                 .whereRef('flight.toId', '=', 'airport.id'),
             ),
           ]),

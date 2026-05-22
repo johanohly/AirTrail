@@ -11,7 +11,7 @@
   import { page } from '$app/state';
   import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
   import { cn } from '$lib/utils';
-  import { getPreferences } from '$lib/utils/preferences';
+  import { formatTime, getPreferences } from '$lib/utils/preferences';
 
   type Variant = 'time' | 'date' | 'datetime';
 
@@ -50,26 +50,18 @@
     return airportTz ?? 'UTC';
   });
 
-  const hour12 = $derived.by(() => {
-    if (prefs.timeFormat === '12h') return true;
-    if (prefs.timeFormat === '24h') return false;
-    return undefined;
-  });
-
   const inlineLabel = $derived.by(() => {
     if (!date) return '';
-    const opts: Intl.DateTimeFormatOptions = { timeZone: primaryTz };
-    if (variant !== 'time') {
-      opts.day = 'numeric';
-      opts.month = 'short';
-    }
-    if (variant !== 'date') {
-      opts.hour = 'numeric';
-      opts.minute = 'numeric';
-      if (hour12 === true) opts.hour12 = true;
-      else if (hour12 === false) opts.hourCycle = 'h23';
-    }
-    return new Intl.DateTimeFormat(undefined, opts).format(date);
+    if (variant === 'time') return formatTime(date, prefs, primaryTz);
+
+    const dateLabel = new Intl.DateTimeFormat(undefined, {
+      day: 'numeric',
+      month: 'short',
+      timeZone: primaryTz,
+    }).format(date);
+    if (variant === 'date') return dateLabel;
+
+    return `${dateLabel}, ${formatTime(date, prefs, primaryTz)}`;
   });
 
   const modalCtx = getModalContext();

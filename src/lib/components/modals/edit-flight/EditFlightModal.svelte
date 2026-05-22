@@ -36,9 +36,12 @@
     showTrigger?: boolean;
   } = $props();
 
-  // If their language uses 12-hour time format, we display the time in *a* 12-hour format
-  // (not necessarily the user's locale, because our time validator doesn't support all languages).
-  const displayLocale = isUsingAmPm() ? 'en-US' : 'fr-FR';
+  // If preferences resolve to 12-hour time, we display the time in *a* 12-hour
+  // format (not necessarily the user's locale, because our time validator
+  // doesn't support all languages). 'auto' falls back to system-locale detection.
+  const displayLocale = isUsingAmPm(page.data.user?.timeFormat)
+    ? 'en-US'
+    : 'fr-FR';
 
   const customFieldDefinitions = trpc.customField.listDefinitions.query({
     entityType: 'flight',

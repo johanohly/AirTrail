@@ -13,15 +13,9 @@
     type ModalContext,
   } from '$lib/components/ui/modal/Modal.svelte';
   import * as Popover from '$lib/components/ui/popover';
-  import { getPreferences } from '$lib/utils/preferences';
+  import { formatTime, getPreferences } from '$lib/utils/preferences';
 
   const prefs = $derived(getPreferences(page.data.user));
-
-  const hour12 = $derived.by(() => {
-    if (prefs.timeFormat === '12h') return true;
-    if (prefs.timeFormat === '24h') return false;
-    return undefined;
-  });
 
   const systemTz =
     typeof Intl !== 'undefined'
@@ -56,15 +50,7 @@
       day: 'numeric',
       year: 'numeric',
     }).format(date);
-    const timeOpts: Intl.DateTimeFormatOptions = {
-      timeZone: tz,
-      hour: 'numeric',
-      minute: '2-digit',
-      second: '2-digit',
-    };
-    if (hour12 === true) timeOpts.hour12 = true;
-    else if (hour12 === false) timeOpts.hourCycle = 'h23';
-    const timeLabel = new Intl.DateTimeFormat(undefined, timeOpts).format(date);
+    const timeLabel = formatTime(date, prefs, tz);
     return { badge, dateLabel, timeLabel };
   };
 

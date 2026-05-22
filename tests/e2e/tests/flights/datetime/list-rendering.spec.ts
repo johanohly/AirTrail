@@ -15,7 +15,7 @@ import { expect, test } from '@test/index';
 //   Stored departure: 2024-01-16T03:30:00Z   (22:30 EST on Jan 15)
 //   Stored arrival:   2024-01-16T10:00:00Z   (10:00 GMT)
 //
-// Expected rendered wall-clocks (locale en-US, timeFormat=24h):
+// Expected rendered wall-clocks (timeFormat=24h, dateFormat=iso):
 //   airport: dep "Jan 15, 22:30" (JFK)  | arr "Jan 16, 10:00" (LHR)
 //   utc:     dep "Jan 16, 03:30"        | arr "Jan 16, 10:00"
 //   system:  dep "Jan 16, 04:30"        | arr "Jan 16, 11:00"  (Stockholm = CET, UTC+1)
