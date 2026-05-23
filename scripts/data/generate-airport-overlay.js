@@ -30,7 +30,7 @@ const DEFAULT_TEMP_DIR = join(
   `airtrail-airport-overlay-${process.pid}`,
 );
 const FILTER_EXPRESSIONS = [
-  'aeroway=runway,taxiway,apron,terminal,gate,parking_position,jet_bridge,aerodrome,marking,windsock,tower',
+  'aeroway=runway,taxiway,taxilane,apron,terminal,gate,parking_position,jet_bridge,aerodrome,marking,windsock,tower',
   'navigationaid',
 ];
 const LAYER_IDS = ['airport', 'airport_labels', 'airport_nodes', 'aerodrome'];
@@ -438,6 +438,9 @@ const airportNodeRank = (rawFeature) => {
   return Math.max(0, rank);
 };
 
+const isTaxiwayLike = (aeroway) =>
+  aeroway === 'taxiway' || aeroway === 'taxilane';
+
 const airportNodeFeature = (rawFeature) => {
   if (!['Polygon', 'MultiPolygon'].includes(geometryType(rawFeature))) {
     return null;
@@ -610,7 +613,7 @@ const normalizeRawFeature = (
 
   if (
     (aeroway === 'runway' ||
-      aeroway === 'taxiway' ||
+      isTaxiwayLike(aeroway) ||
       aeroway === 'jet_bridge') &&
     ['LineString', 'MultiLineString'].includes(rawGeometryType)
   ) {
@@ -627,7 +630,7 @@ const normalizeRawFeature = (
 
     layers.airport.push(feature(rawFeature.geometry, props));
 
-    if (aeroway === 'runway' || aeroway === 'taxiway') {
+    if (aeroway === 'runway' || isTaxiwayLike(aeroway)) {
       const widthM = parseMeters(rawFeature.properties?.width);
       const polygon = bufferedLinePolygon(rawFeature, widthM);
       if (polygon) {
@@ -665,7 +668,7 @@ const normalizeRawFeature = (
     );
   }
 
-  if (aeroway === 'taxiway' && labelName(rawFeature)) {
+  if (isTaxiwayLike(aeroway) && labelName(rawFeature)) {
     layers.airport_labels.push(
       feature(
         rawFeature.geometry,

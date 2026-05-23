@@ -151,6 +151,14 @@ const RUNWAY_WIDTH_VALUE = [
   ],
 ] as const;
 
+const taxiwayAerowayFilter = [
+  'match',
+  ['get', 'aeroway'],
+  ['taxiway', 'taxilane'],
+  true,
+  false,
+] as const;
+
 const terminalFilter = [
   'any',
   ['==', ['get', 'aeroway'], 'terminal'],
@@ -185,7 +193,7 @@ const airportGroundLayers = [
     minzoom: 8,
     filter: [
       'all',
-      ['==', ['get', 'aeroway'], 'taxiway'],
+      taxiwayAerowayFilter,
       ['!=', ['geometry-type'], 'Polygon'],
       ['!', ['has', 'width_m']],
     ],
@@ -219,7 +227,7 @@ const airportGroundLayers = [
     minzoom: 8,
     filter: [
       'all',
-      ['==', ['get', 'aeroway'], 'taxiway'],
+      taxiwayAerowayFilter,
       ['!=', ['geometry-type'], 'Polygon'],
       ['!', ['has', 'width_m']],
     ],
@@ -251,11 +259,7 @@ const airportGroundLayers = [
     source: AIRPORT_SOURCE,
     'source-layer': 'airport',
     minzoom: 8,
-    filter: [
-      'all',
-      ['==', ['get', 'aeroway'], 'taxiway'],
-      ['==', ['geometry-type'], 'Polygon'],
-    ],
+    filter: ['all', taxiwayAerowayFilter, ['==', ['geometry-type'], 'Polygon']],
     paint: {
       'line-color': AIRPORT_OUTLINE,
       'line-width': [
@@ -332,11 +336,7 @@ const airportGroundLayers = [
     source: AIRPORT_SOURCE,
     'source-layer': 'airport',
     minzoom: 8,
-    filter: [
-      'all',
-      ['==', ['get', 'aeroway'], 'taxiway'],
-      ['==', ['geometry-type'], 'Polygon'],
-    ],
+    filter: ['all', taxiwayAerowayFilter, ['==', ['geometry-type'], 'Polygon']],
     paint: {
       'fill-antialias': true,
       'fill-color': AIRPORT_FILL,
@@ -548,11 +548,7 @@ const airportMarkingLayers = [
     source: AIRPORT_SOURCE,
     'source-layer': 'airport',
     minzoom: 14,
-    filter: [
-      'all',
-      ['==', ['get', 'aeroway'], 'taxiway'],
-      ['!=', ['geometry-type'], 'Polygon'],
-    ],
+    filter: ['all', taxiwayAerowayFilter, ['!=', ['geometry-type'], 'Polygon']],
     layout: {
       'line-cap': 'butt',
       'line-join': 'round',
@@ -874,11 +870,7 @@ const airportLabelLayers = [
     'source-layer': 'airport',
     minzoom: 13,
     maxzoom: 24,
-    filter: [
-      'all',
-      ['==', ['get', 'aeroway'], 'taxiway'],
-      ['!=', ['geometry-type'], 'Polygon'],
-    ],
+    filter: ['all', taxiwayAerowayFilter, ['!=', ['geometry-type'], 'Polygon']],
     layout: {
       'text-field': '{ref}',
       'text-font': [
