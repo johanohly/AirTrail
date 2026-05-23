@@ -83,30 +83,26 @@
     const percentileByRoute: Record<string, number> = {};
     if (!flightArcs || flightArcs.length === 0) return percentileByRoute;
 
-    if (flightArcs.length === 1) {
-      const onlyArc = flightArcs[0]!;
-      percentileByRoute[getRouteKey(onlyArc.from.id, onlyArc.to.id)] = 1;
+    const frequencies = [
+      ...new Set(flightArcs.map((arc) => arc.frequency)),
+    ].sort((a, b) => a - b);
+    if (frequencies.length === 1) {
+      for (const arc of flightArcs) {
+        percentileByRoute[getRouteKey(arc.from.id, arc.to.id)] = 0;
+      }
       return percentileByRoute;
     }
 
-    const sorted = [...flightArcs].sort((a, b) => a.frequency - b.frequency);
-    const denominator = sorted.length - 1;
+    const denominator = frequencies.length - 1;
+    const percentileByFrequency = new Map<number, number>();
 
-    let i = 0;
-    while (i < sorted.length) {
-      const frequency = sorted[i]!.frequency;
-      let j = i + 1;
-      while (j < sorted.length && sorted[j]!.frequency === frequency) j += 1;
+    for (const [rank, frequency] of frequencies.entries()) {
+      percentileByFrequency.set(frequency, rank / denominator);
+    }
 
-      const averageRank = (i + (j - 1)) / 2;
-      const percentile = averageRank / denominator;
-
-      for (let k = i; k < j; k += 1) {
-        const arc = sorted[k]!;
-        percentileByRoute[getRouteKey(arc.from.id, arc.to.id)] = percentile;
-      }
-
-      i = j;
+    for (const arc of flightArcs) {
+      percentileByRoute[getRouteKey(arc.from.id, arc.to.id)] =
+        percentileByFrequency.get(arc.frequency) ?? 0;
     }
 
     return percentileByRoute;
@@ -270,6 +266,22 @@
   };
 
   const getArcColor = (point: 'source' | 'target') => {
+    const baseArcColor = (d: FlightArc): Color => {
+      if (d.exclusivelyFuture) {
+        return FUTURE_COLOR;
+      }
+      if (mapPreferences.arcColor === 'byFrequency') {
+        const normalizedFreq = getArcFrequencyPercentile(d);
+        const baseColor = point === 'source' ? FROM_COLOR : TO_COLOR;
+        return interpolateColor(
+          baseColor,
+          HIGH_FREQUENCY_COLOR,
+          normalizedFreq,
+        );
+      }
+      return point === 'source' ? FROM_COLOR : TO_COLOR;
+    };
+
     return (d: (typeof flightArcs)[number]) => {
       if (hoveredArc?.from === d.from && hoveredArc?.to === d.to) {
         return HOVER_COLOR;
@@ -281,30 +293,20 @@
         hoveredAirport?.id === d.from.id ||
         hoveredAirport?.id === d.to.id
       ) {
-        return point === 'source' ? FROM_COLOR : TO_COLOR;
+        return baseArcColor(d);
       } else if (hoveredAirport) {
         return INACTIVE_COLOR(200);
       } else if (
         selectedAirportId &&
         (d.from.id === selectedAirportId || d.to.id === selectedAirportId)
       ) {
-        return point === 'source' ? FROM_COLOR : TO_COLOR;
+        return baseArcColor(d);
       } else if (selectedAirportId) {
         return INACTIVE_COLOR(170);
       } else if (selectedRoute) {
         return INACTIVE_COLOR(170);
-      } else if (d.exclusivelyFuture) {
-        return FUTURE_COLOR;
-      } else if (mapPreferences.arcColor === 'byFrequency') {
-        const normalizedFreq = getArcFrequencyPercentile(d);
-        const baseColor = point === 'source' ? FROM_COLOR : TO_COLOR;
-        return interpolateColor(
-          baseColor,
-          HIGH_FREQUENCY_COLOR,
-          normalizedFreq,
-        );
       } else {
-        return point === 'source' ? FROM_COLOR : TO_COLOR;
+        return baseArcColor(d);
       }
     };
   };
