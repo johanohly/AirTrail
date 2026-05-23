@@ -26,6 +26,7 @@ type ProcessResult = {
     displayName: string;
     mappedUserId: string | null;
   }[];
+  skippedRows?: number;
 };
 
 type Processor = (

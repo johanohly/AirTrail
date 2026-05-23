@@ -2,6 +2,7 @@ import { type Handle, type ServerInit } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import type { Cookie } from 'lucia';
 
+import '$lib/zod/setup';
 import { lucia } from '$lib/server/auth';
 import { validateAirlineIcons } from '$lib/server/utils/airline';
 import { appConfig } from '$lib/server/utils/config';

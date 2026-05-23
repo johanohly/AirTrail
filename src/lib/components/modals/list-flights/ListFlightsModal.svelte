@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { tick } from 'svelte';
+
   import autoAnimate from '@formkit/auto-animate';
   import {
     ArrowLeftRight,
@@ -14,10 +16,12 @@
   import MobileFlightList from './MobileFlightList.svelte';
   import Toolbar from './Toolbar.svelte';
 
-  import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
-  import type {
-    FlightFilters,
-    TempFilters,
+  import { AirlineIcon, TimeDisplay } from '$lib/components/display';
+  import {
+    clearTempFilters as clearTempFilterValues,
+    hasTempFilters as hasActiveTempFilters,
+    type FlightFilters,
+    type TempFilters,
   } from '$lib/components/flight-filters/types';
   import { AddFlightModal, EditFlightModal } from '$lib/components/modals';
   import { Button } from '$lib/components/ui/button';
@@ -27,19 +31,22 @@
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { LabelledSeparator, Separator } from '$lib/components/ui/separator';
   import * as Tooltip from '$lib/components/ui/tooltip';
-  import { flightAddedState, flightScopeState } from '$lib/state.svelte';
+  import {
+    flightAddedState,
+    flightListFocusState,
+    flightScopeState,
+  } from '$lib/state.svelte';
   import {
     cn,
     formatSeatForUser,
     getFlightPassengerLabels,
+    highlightElement,
     type FlightData,
   } from '$lib/utils';
   import { formatAircraft } from '$lib/utils/data/aircraft';
   import {
     Duration,
     formatAsFlightDate,
-    formatAsDateTime,
-    isUsingAmPm,
     parseLocalizeISO,
   } from '$lib/utils/datetime';
   import { isMediumScreen } from '$lib/utils/size';
@@ -105,16 +112,12 @@
             ? Duration.fromSeconds(f.duration).toString()
             : '',
           hasDateDisplay: !!f.date,
-          depTime:
-            (depDate ?? depScheduled)
-              ? formatAsDateTime((depDate ?? depScheduled)!)
-              : f.date
-                ? formatAsFlightDate(f.date, f.datePrecision, false, true)
-                : null,
-          arrTime:
-            (arrDate ?? arrScheduled)
-              ? formatAsDateTime((arrDate ?? arrScheduled)!)
+          depAt: (depDate ?? depScheduled) as Date | null,
+          depFallback:
+            !(depDate ?? depScheduled) && f.date
+              ? formatAsFlightDate(f.date, f.datePrecision, false, true)
               : null,
+          arrAt: (arrDate ?? arrScheduled) as Date | null,
           depStatus,
           arrStatus,
           seat: formatSeatForUser(f, seatUserId),
@@ -160,6 +163,7 @@
 
   let selecting = $state(false);
   let selectedFlights = $state<number[]>([]);
+  let handledFocusRequest = $state(0);
 
   // Add flight state
   let addFlightOpen = $state(false);
@@ -168,6 +172,27 @@
     if (flightAddedState.added && addFlightOpen) {
       addFlightOpen = false;
     }
+  });
+
+  $effect(() => {
+    if (!open || flightListFocusState.request === handledFocusRequest) return;
+
+    const flightId = flightListFocusState.flightId;
+    handledFocusRequest = flightListFocusState.request;
+    if (!flightId) return;
+
+    const index = formattedFlights.findIndex(
+      (flight) => flight.id === flightId,
+    );
+    if (index >= 0) page = Math.floor(index / flightsPerPage) + 1;
+
+    tick().then(() => {
+      highlightElement(`#flight-list-row-${flightId}`, {
+        duration: 1900,
+        scrollOffset: -100,
+        pulses: 3,
+      }).catch(() => {});
+    });
   });
 
   // Mobile edit state
@@ -227,27 +252,42 @@
     }
   };
 
-  const hasTempFilters = $derived.by(
-    () =>
-      tempFilters &&
-      (tempFilters.airportsEither.length > 0 || tempFilters.routes.length > 0),
-  );
+  const hasTempFilters = $derived.by(() => hasActiveTempFilters(tempFilters));
 
   const clearTempFilters = () => {
     if (!tempFilters) return;
-    tempFilters.airportsEither = [];
-    tempFilters.routes = [];
+    clearTempFilterValues(tempFilters);
   };
 
-  const tempFilterAirport = $derived.by(() => {
-    if (!tempFilters?.airportsEither.length) return null;
-    const airportId = tempFilters.airportsEither[0]!;
+  const findAirportById = (airportId: string) => {
     const flight = flights.find(
       (f) =>
         f.from?.id.toString() === airportId ||
         f.to?.id.toString() === airportId,
     );
     return flight?.from?.id.toString() === airportId ? flight.from : flight?.to;
+  };
+
+  const tempFilterAirport = $derived.by(() => {
+    if (tempFilters?.departureAirports.length) {
+      return {
+        label: 'Departures',
+        airport: findAirportById(tempFilters.departureAirports[0]!),
+      };
+    }
+    if (tempFilters?.arrivalAirports.length) {
+      return {
+        label: 'Arrivals',
+        airport: findAirportById(tempFilters.arrivalAirports[0]!),
+      };
+    }
+    if (tempFilters?.airportsEither.length) {
+      return {
+        label: 'Airport',
+        airport: findAirportById(tempFilters.airportsEither[0]!),
+      };
+    }
+    return null;
   });
 
   const tempFilterRoute = $derived.by(() => {
@@ -276,19 +316,21 @@
     <div class="flex flex-col gap-2 max-md:px-4 max-md:py-4">
       {#if hasTempFilters}
         <div class="flex flex-col gap-1">
-          {#if tempFilterAirport}
-            <h3 class="text-sm font-thin text-muted-foreground">Airport</h3>
+          {#if tempFilterAirport?.airport}
+            <h3 class="text-sm font-thin text-muted-foreground">
+              {tempFilterAirport.label}
+            </h3>
             <h2
-              class="text-2xl font-bold tracking-tight flex items-center gap-2"
+              class="flex items-center gap-2 text-2xl font-bold tracking-tight"
             >
               <img
-                src="https://flagcdn.com/{tempFilterAirport.country.toLowerCase()}.svg"
-                alt={tempFilterAirport.country}
-                class="w-8 h-5"
+                src="https://flagcdn.com/{tempFilterAirport.airport.country.toLowerCase()}.svg"
+                alt={tempFilterAirport.airport.country}
+                class="h-5 w-8"
               />
-              {tempFilterAirport.iata ?? tempFilterAirport.icao}
+              {tempFilterAirport.airport.iata ?? tempFilterAirport.airport.icao}
               <span class="text-base font-normal text-muted-foreground">
-                — {tempFilterAirport.name}
+                {tempFilterAirport.airport.name}
               </span>
             </h2>
           {:else if tempFilterRoute}
@@ -363,10 +405,18 @@
       <div class="h-[130px] sm:h-[90px]"></div>
     {:else}
       <ScrollArea type="hover">
-        <div class="hidden md:block">
+        <div
+          class={cn(
+            'hidden gap-y-2 md:grid md:grid-cols-[max-content_32px_minmax(16rem,1fr)_12px_auto] lg:grid-cols-[max-content_12px_minmax(0,12rem)_12px_minmax(16rem,1fr)_12px_auto] xl:grid-cols-[max-content_12px_minmax(0,12rem)_12px_minmax(0,12rem)_12px_minmax(18rem,1fr)_12px_auto]',
+            {
+              'gap-y-4': showPassengerDetails,
+            },
+          )}
+          use:autoAnimate
+        >
           {#each flightsByYear as { year, flights } (year)}
             {#if year !== '0'}
-              <LabelledSeparator class="mt-4 mb-2">
+              <LabelledSeparator class="col-span-full mt-4">
                 <h3
                   class="border px-4 py-1 rounded-full border-dashed text-sm font-medium leading-7"
                 >
@@ -374,126 +424,98 @@
                 </h3>
               </LabelledSeparator>
             {/if}
-            <div
-              class={cn('space-y-2', {
-                'space-y-4 pt-1': showPassengerDetails,
-              })}
-              use:autoAnimate
-            >
-              {#each flights as flight (flight.id)}
-                <div class="relative">
-                  {#if showPassengerDetails && flight.passengers.length}
-                    {@render passengerBadge(flight.passengers)}
-                  {/if}
-                  <Card
-                    onclick={() => {
-                      if (!readonly && selecting) {
-                        if (selectedFlights.includes(flight.id)) {
-                          selectedFlights = selectedFlights.filter(
-                            (id) => id !== flight.id,
-                          );
-                        } else {
-                          selectedFlights = [...selectedFlights, flight.id];
-                        }
+            {#each flights as flight (flight.id)}
+              <div
+                id="flight-list-row-{flight.id}"
+                class="relative col-span-full grid grid-cols-subgrid scroll-mt-24 rounded-lg"
+              >
+                {#if showPassengerDetails && flight.passengers.length}
+                  {@render passengerBadge(flight.passengers)}
+                {/if}
+                <Card
+                  onclick={() => {
+                    if (!readonly && selecting) {
+                      if (selectedFlights.includes(flight.id)) {
+                        selectedFlights = selectedFlights.filter(
+                          (id) => id !== flight.id,
+                        );
+                      } else {
+                        selectedFlights = [...selectedFlights, flight.id];
                       }
-                    }}
-                    level="2"
-                    class={cn('flex items-center p-3', {
+                    }
+                  }}
+                  level="2"
+                  class={cn(
+                    'col-span-full grid grid-cols-subgrid items-center p-3',
+                    {
                       'cursor-pointer border-zinc-600 border-dotted border-2':
                         !readonly && selecting,
                       'border-destructive border-solid':
                         !readonly &&
                         selecting &&
                         selectedFlights.includes(flight.id),
-                    })}
-                  >
-                    <div
-                      class="flex items-stretch md:items-center max-md:flex-col-reverse max-md:content-start flex-1 h-full min-w-0"
-                    >
-                      {#if flight.hasDateDisplay}
-                        <div
-                          class="max-md:hidden flex justify-center shrink-0 w-11"
-                        >
-                          <AirlineIcon
-                            airline={flight.airline}
-                            size={36}
-                            fallback="plane"
-                          />
-                        </div>
-                        <Separator
-                          orientation="vertical"
-                          class="max-md:hidden h-10 mx-3"
+                    },
+                  )}
+                >
+                  {#if flight.hasDateDisplay}
+                    <div class="flex min-w-max items-center">
+                      <div class="flex w-11 shrink-0 justify-center">
+                        <AirlineIcon
+                          airline={flight.airline}
+                          size={36}
+                          fallback="plane"
                         />
-                        <div
-                          class={cn(
-                            'max-md:hidden flex flex-col shrink-0',
-                            isUsingAmPm() ? 'w-36' : 'w-32',
-                          )}
-                        >
-                          {@render flightTimes(flight)}
-                        </div>
-                        <div class="px-4 flex md:hidden">
+                      </div>
+                      <Separator orientation="vertical" class="mx-3 h-10" />
+                      <div
+                        class="flex min-w-max shrink-0 flex-col whitespace-nowrap"
+                      >
+                        {@render flightTimes(flight)}
+                      </div>
+                    </div>
+                  {:else}
+                    <div aria-hidden="true"></div>
+                  {/if}
+                  <div aria-hidden="true"></div>
+                  <div class="hidden min-w-0 flex-col lg:flex">
+                    {@render seatAndAirline(flight)}
+                  </div>
+                  <div class="hidden lg:block" aria-hidden="true"></div>
+                  <div class="hidden min-w-0 flex-col xl:flex">
+                    {@render flightAndTailNumber(flight)}
+                  </div>
+                  <div class="hidden xl:block" aria-hidden="true"></div>
+                  <div class="flex min-w-0 px-8 xl:px-12">
+                    <div class="w-full grid grid-cols-[auto_1fr_auto] gap-3">
+                      {@render airport(flight.from)}
+                      <div class="h-full flex flex-col justify-center">
+                        <div class="relative">
                           <div
-                            class={cn(
-                              'flex flex-col shrink-0',
-                              isUsingAmPm() ? 'w-36' : 'w-32',
-                            )}
+                            class="relative w-full h-px border-b border-dashed border-dark-2 dark:border-zinc-500"
                           >
-                            {@render flightTimes(flight)}
-                          </div>
-                          <div class="hidden sm:flex flex-col">
-                            {@render seatAndAirline(flight)}
-                          </div>
-                          {#if !readonly}
-                            <div class="flex justify-end w-full">
-                              {@render actions(flight)}
-                            </div>
-                          {/if}
-                        </div>
-                        <Separator class="my-4 md:hidden" />
-                      {/if}
-                      <div class="max-lg:hidden flex flex-col w-48 shrink-0">
-                        {@render seatAndAirline(flight)}
-                      </div>
-                      <div class="max-xl:hidden flex flex-col w-48 shrink-0">
-                        {@render flightAndTailNumber(flight)}
-                      </div>
-                      <div class="flex flex-1 px-12 md:px-16">
-                        <div
-                          class="w-full grid grid-cols-[auto_1fr_auto] gap-3"
-                        >
-                          {@render airport(flight.from)}
-                          <div class="h-full flex flex-col justify-center">
-                            <div class="relative">
-                              <div
-                                class="relative w-full h-px border-b border-dashed border-dark-2 dark:border-zinc-500"
-                              >
-                                <div
-                                  class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-1 bg-card dark:bg-dark-2 text-dark-2 dark:text-zinc-500"
-                                >
-                                  <div class="flex flex-col items-center">
-                                    <Plane size="20" />
-                                    <span class="text-xs"
-                                      >{flight.duration}</span
-                                    >
-                                  </div>
-                                </div>
+                            <div
+                              class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-1 bg-card dark:bg-dark-2 text-dark-2 dark:text-zinc-500"
+                            >
+                              <div class="flex flex-col items-center">
+                                <Plane size="20" />
+                                <span class="text-xs">{flight.duration}</span>
                               </div>
                             </div>
                           </div>
-                          {@render airport(flight.to)}
                         </div>
                       </div>
-                      {#if !readonly}
-                        <div class="hidden md:flex">
-                          {@render actions(flight)}
-                        </div>
-                      {/if}
+                      {@render airport(flight.to)}
                     </div>
-                  </Card>
-                </div>
-              {/each}
-            </div>
+                  </div>
+                  {#if !readonly}
+                    <div aria-hidden="true"></div>
+                    <div class="hidden md:flex">
+                      {@render actions(flight)}
+                    </div>
+                  {/if}
+                </Card>
+              </div>
+            {/each}
           {/each}
         </div>
         <div class="h-[90px]"></div>
@@ -524,28 +546,36 @@
 </Modal>
 
 {#snippet flightTimes(flight)}
-  <div class="flex items-center">
+  <div class="flex items-center" data-testid="flight-time-departure">
     <PlaneTakeoff size="16" class="mr-1" />
-    <p
-      class={cn('text-sm', {
-        'text-green-600 dark:text-green-400': flight.depStatus === 'early',
-        'text-red-600 dark:text-red-400': flight.depStatus === 'late',
-      })}
-    >
-      {flight.depTime}
-    </p>
+    {#if flight.depAt}
+      <TimeDisplay
+        date={flight.depAt}
+        airportTz={flight.from?.tz}
+        airportLabel={flight.from?.iata}
+        side="right"
+        class={cn('text-sm', {
+          'text-green-600 dark:text-green-400': flight.depStatus === 'early',
+          'text-red-600 dark:text-red-400': flight.depStatus === 'late',
+        })}
+      />
+    {:else if flight.depFallback}
+      <p class="text-sm">{flight.depFallback}</p>
+    {/if}
   </div>
-  <div class="flex items-center">
-    {#if flight.arrTime}
+  <div class="flex items-center" data-testid="flight-time-arrival">
+    {#if flight.arrAt}
       <PlaneLanding size="16" class="mr-1" />
-      <p
+      <TimeDisplay
+        date={flight.arrAt}
+        airportTz={flight.to?.tz}
+        airportLabel={flight.to?.iata}
+        side="right"
         class={cn('text-sm overflow-hidden text-ellipsis whitespace-nowrap', {
           'text-green-600 dark:text-green-400': flight.arrStatus === 'early',
           'text-red-600 dark:text-red-400': flight.arrStatus === 'late',
         })}
-      >
-        {flight.arrTime}
-      </p>
+      />
     {/if}
     <p class="text-sm text-transparent">.</p>
   </div>

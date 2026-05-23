@@ -2,7 +2,7 @@
   import { Funnel, Fullscreen, Undo2 } from '@o7/icon/lucide';
   import maplibregl from 'maplibre-gl';
   import { mode } from 'mode-watcher';
-  import { onDestroy, onMount } from 'svelte';
+  import { onDestroy, onMount, untrack } from 'svelte';
   import {
     AttributionControl,
     Control,
@@ -15,6 +15,7 @@
 
   import MapAppearanceControl from './MapAppearanceControl.svelte';
   import MapFallback from './MapFallback.svelte';
+  import MapStatusShelf from './MapStatusShelf.svelte';
   import OpenAipOverlay from './OpenAipOverlay.svelte';
 
   import { AirportsArcsLayer } from '.';
@@ -25,7 +26,9 @@
   import Filters from '$lib/components/flight-filters/Filters.svelte';
   import {
     defaultFilters,
+    hasTempFilters as hasActiveTempFilters,
     type FlightFilters,
+    type Route,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
   import * as Popover from '$lib/components/ui/popover';
@@ -43,6 +46,7 @@
     OPENAIP_TILE_URL_TEMPLATE,
     type OpenAipTheme,
   } from '$lib/map/openaip';
+  import { AIRPORT_DETAIL_LAYER_IDS } from '$lib/map/airport-style';
   import { registerPmtilesProtocol } from '$lib/map/pmtiles';
   import {
     bindRuntimeMapImages,
@@ -53,12 +57,16 @@
     appConfig,
     flightScopeState,
     flightAddedState,
+    mapDetailsState,
   } from '$lib/state.svelte';
   import {
     calculateBounds,
+    cn,
     prepareFlightArcData,
+    prepareVisitedAirports,
     type FlightData,
   } from '$lib/utils';
+  import { isMediumScreen } from '$lib/utils/size';
 
   const { GlobeControl } = maplibregl;
   const unregisterPmtiles = browser ? registerPmtilesProtocol() : null;
@@ -78,11 +86,26 @@
   } = $props();
 
   const showScopeBanner = $derived(flightScopeState.scope !== 'mine');
+  const alignStatusWithDetails = $derived(!!mapDetailsState.selection);
 
-  let map: maplibregl.Map | undefined = $state(undefined);
+  let map: maplibregl.Map | undefined = $state.raw(undefined);
   let canRenderMap = $state(!browser);
+  type CameraSnapshot = {
+    center: [number, number];
+    zoom: number;
+    bearing: number;
+    pitch: number;
+  };
+  let previousCamera: CameraSnapshot | null = $state(null);
+  let showPreviousView = $state(false);
+  let programmaticCameraMove = false;
+  let handledFocusRequest = $state(-1);
   const style = $derived(
-    getConfiguredAppMapStyleUrl(mode.current, appConfig.config?.map),
+    getConfiguredAppMapStyleUrl(
+      mode.current,
+      appConfig.config?.map,
+      mapPreferences.basemap,
+    ),
   );
   const images = $derived(getAppMapImages(base, mode.current));
   const openAipTheme = $derived(
@@ -98,7 +121,7 @@
     getOpenAipOverlayLayers(mapPreferences.openAipGroups, openAipTheme),
   );
   const usingDefaultAppStyle = $derived(
-    style === getDefaultAppMapStyleUrl(mode.current),
+    style === getDefaultAppMapStyleUrl(mode.current, mapPreferences.basemap),
   );
   const openAipTileUrlTemplate = $derived(
     browser
@@ -106,10 +129,28 @@
       : `${base}${OPENAIP_TILE_URL_TEMPLATE}`,
   );
   const hiddenAirportLabelLayerIds = ['airport-overlay-name-label'];
+  const airportDetailVisibility = $derived(
+    mapPreferences.basemap === 'default' &&
+      mapPreferences.airportOverlayDetail === 'detailed'
+      ? 'visible'
+      : 'none',
+  );
 
   const flightArcs = $derived.by(() => {
     return prepareFlightArcData(filteredFlights);
   });
+
+  const allVisitedAirports = $derived(prepareVisitedAirports(flights));
+  const allFlightArcs = $derived(prepareFlightArcData(flights));
+
+  const detailsPanePadding = () => {
+    if (!mapDetailsState.selection) {
+      return { top: 0, right: 0, bottom: 0, left: 0 };
+    }
+    return $isMediumScreen
+      ? { top: 40, right: 40, bottom: 40, left: 420 }
+      : { top: 40, right: 20, bottom: window.innerHeight * 0.55, left: 20 };
+  };
 
   export const fitFlights = () => {
     if (!map || !flightArcs) return;
@@ -117,9 +158,51 @@
     const bounds = calculateBounds(flightArcs);
     if (!bounds) return;
 
-    map.fitBounds(bounds, {
-      padding: 120,
+    // Add breathing-room margin on top of any current panel padding so this
+    // also looks reasonable when a details panel is open. Set via setPadding
+    // (no `padding` option on fitBounds) to avoid maplibre's double-counting.
+    const base = detailsPanePadding();
+    map.setPadding({
+      top: base.top + 60,
+      right: base.right + 60,
+      bottom: base.bottom + 60,
+      left: base.left + 60,
     });
+    map.fitBounds(bounds);
+  };
+
+  const snapshotCamera = (): CameraSnapshot | null => {
+    if (!map) return null;
+    const center = map.getCenter();
+    return {
+      center: [center.lng, center.lat],
+      zoom: map.getZoom(),
+      bearing: map.getBearing(),
+      pitch: map.getPitch(),
+    };
+  };
+
+  const markProgrammaticMove = () => {
+    if (!map) return;
+    programmaticCameraMove = true;
+    map.once('moveend', () => {
+      programmaticCameraMove = false;
+    });
+  };
+
+  const restorePreviousView = () => {
+    if (!map || !previousCamera) return;
+    markProgrammaticMove();
+    map.easeTo({
+      center: previousCamera.center,
+      zoom: previousCamera.zoom,
+      bearing: previousCamera.bearing,
+      pitch: previousCamera.pitch,
+      duration: 650,
+      essential: true,
+    });
+    previousCamera = null;
+    showPreviousView = false;
   };
 
   const showClear = $derived.by(() => {
@@ -127,17 +210,53 @@
       filters &&
       (filters.departureAirports.length ||
         filters.arrivalAirports.length ||
+        filters.airportsEither.length ||
+        filters.routes.length ||
         filters.fromDate ||
         filters.toDate ||
+        filters.passengers.length ||
+        filters.airline.length ||
+        filters.aircraft.length ||
         filters.aircraftRegs.length)
     );
   });
 
+  const routeMatches = (
+    item: { from: { id: number }; to: { id: number } },
+    route: Route,
+  ) => {
+    const fromId = item.from.id.toString();
+    const toId = item.to.id.toString();
+    return (
+      (fromId === route.a && toId === route.b) ||
+      (fromId === route.b && toId === route.a)
+    );
+  };
+
+  const activeAirportFilter = $derived.by(() => {
+    if (!filters?.airportsEither.length) return null;
+    const id = filters.airportsEither[0]!;
+    const airport = allVisitedAirports.find((a) => a.id.toString() === id);
+    return {
+      id,
+      label: airport ? (airport.iata ?? airport.icao) : 'Airport',
+    };
+  });
+
+  const activeRouteFilter = $derived.by(() => {
+    if (!filters?.routes.length) return null;
+    const route = filters.routes[0]!;
+    const arc = allFlightArcs.find((item) => routeMatches(item, route));
+    return {
+      id: `${route.a}-${route.b}`,
+      label: arc
+        ? `${arc.from.iata ?? arc.from.icao} ↔ ${arc.to.iata ?? arc.to.icao}`
+        : 'Route',
+    };
+  });
+
   let previousFilteredCount = $state(0);
-  const hasTempFilters = $derived(
-    tempFilters &&
-      (tempFilters.routes.length > 0 || tempFilters.airportsEither.length > 0),
-  );
+  const hasTempFilters = $derived(hasActiveTempFilters(tempFilters));
 
   $effect(() => {
     if (!flightAddedState.added) return;
@@ -191,7 +310,163 @@
       return;
     }
 
+    return bindStyleLayerVisibility(
+      map,
+      AIRPORT_DETAIL_LAYER_IDS,
+      airportDetailVisibility,
+    );
+  });
+
+  $effect(() => {
+    if (!map) {
+      return;
+    }
+
     return bindRuntimeMapImages(map, images);
+  });
+
+  $effect(() => {
+    const m = map;
+    if (!m) return;
+
+    const clearPreviousView = () => {
+      if (programmaticCameraMove) return;
+      previousCamera = null;
+      showPreviousView = false;
+    };
+
+    m.on('dragstart', clearPreviousView);
+    m.on('zoomstart', clearPreviousView);
+    m.on('rotatestart', clearPreviousView);
+    m.on('pitchstart', clearPreviousView);
+
+    return () => {
+      m.off('dragstart', clearPreviousView);
+      m.off('zoomstart', clearPreviousView);
+      m.off('rotatestart', clearPreviousView);
+      m.off('pitchstart', clearPreviousView);
+    };
+  });
+
+  // Drive edge padding + camera focus from details-pane state.
+  //
+  // When the camera moves significantly, use flyTo for its parabolic arc —
+  // looks much better than easeTo's linear interpolation for big distance +
+  // zoom changes (overview→airport, switching to a far-away route).
+  //
+  // When the camera target matches the current camera (reselect of the same
+  // airport/route after a deselect), use easeTo so `padding` is interpolated
+  // smoothly — flyTo treats padding as an end-state and would snap.
+  //
+  // Route fits go through cameraForBounds. maplibre's cameraForBounds adds
+  // edge + option padding for screen size but uses ONLY option for the
+  // center offset, so different (edge, option) splits with the same total
+  // produce different centers. The route compute path pins the split by
+  // temporarily setting persistent to target around the cameraForBounds
+  // call, so a reselect after a deselect computes the same center as the
+  // original open and `cameraMoved` correctly reports false.
+  //
+  // untrack guards every map mutation: svelte-maplibre's bind:map re-emits on
+  // internal map events, so a tracked mutation here would loop.
+  let prevHasSelection = false;
+  let prevMediumScreen: boolean | null = null;
+  let paddingInitialized = false;
+  $effect(() => {
+    const selection = mapDetailsState.selection;
+    const focusRequest = mapDetailsState.focusRequest;
+    const mediumScreen = $isMediumScreen;
+    if (!map) return;
+
+    const hasSelection = !!selection;
+    const padding = detailsPanePadding();
+    const needsFocus = hasSelection && focusRequest !== handledFocusRequest;
+    const paddingChanged =
+      paddingInitialized &&
+      (prevHasSelection !== hasSelection || prevMediumScreen !== mediumScreen);
+
+    prevHasSelection = hasSelection;
+    prevMediumScreen = mediumScreen;
+    paddingInitialized = true;
+
+    if (needsFocus && selection) {
+      handledFocusRequest = focusRequest;
+
+      let targetCenter: [number, number];
+      let targetZoom: number;
+
+      if (selection.type === 'airport') {
+        const airport = allVisitedAirports.find(
+          (a) => a.id === selection.airportId,
+        );
+        if (!airport) return;
+        targetCenter = [airport.lon, airport.lat];
+        targetZoom = 13;
+      } else {
+        const arc = allFlightArcs.find((item) =>
+          routeMatches(item, selection.route),
+        );
+        if (!arc) return;
+        const bounds = calculateBounds([arc]);
+        if (!bounds) return;
+
+        // cameraForBounds uses (edge + option) for screen size but ONLY option
+        // for the center offset, so the same total split differently produces
+        // different centers. Pin the split to edge=target/option=0 by setting
+        // persistent to target while computing — paired setPadding calls
+        // within the same JS task produce no render between, so no flicker.
+        const target = untrack(() => {
+          const saved = map!.getPadding();
+          map!.setPadding(padding);
+          const t = map!.cameraForBounds(bounds);
+          map!.setPadding(saved);
+          return t;
+        });
+        if (!target) return;
+        targetCenter = [target.center.lng, target.center.lat];
+        targetZoom = target.zoom;
+      }
+
+      const currentCenter = map.getCenter();
+      const cameraMoved =
+        Math.abs(currentCenter.lng - targetCenter[0]) > 1e-4 ||
+        Math.abs(currentCenter.lat - targetCenter[1]) > 1e-4 ||
+        Math.abs(map.getZoom() - targetZoom) > 1e-2;
+
+      previousCamera = snapshotCamera();
+      showPreviousView = !!previousCamera;
+      markProgrammaticMove();
+
+      untrack(() => {
+        if (cameraMoved) {
+          map!.flyTo({
+            center: targetCenter,
+            zoom: targetZoom,
+            padding,
+            duration: 1200,
+            essential: true,
+          });
+        } else {
+          map!.easeTo({
+            center: targetCenter,
+            zoom: targetZoom,
+            padding,
+            duration: 300,
+            essential: true,
+          });
+        }
+      });
+      return;
+    }
+
+    if (paddingChanged) {
+      untrack(() => {
+        map!.easeTo({
+          padding,
+          duration: 300,
+          essential: true,
+        });
+      });
+    }
   });
 
   onMount(() => {
@@ -202,7 +477,10 @@
 
 {#if showScopeBanner}
   <div
-    class="absolute top-3 left-1/2 -translate-x-1/2 z-10 w-[min(400px,calc(100%-2rem))]"
+    class={cn(
+      'absolute top-3 left-1/2 z-10 w-[min(400px,calc(100%-2rem))] -translate-x-1/2 transition-[left] duration-200',
+      alignStatusWithDetails ? 'md:left-[calc(50%+12rem)]' : '',
+    )}
   >
     <AdminScopeBanner />
   </div>
@@ -221,15 +499,15 @@
     attributionControl={false}
   >
     <AttributionControl compact={true} />
-    <NavigationControl />
-    <GeolocateControl />
-    <Control position="top-left">
+    <NavigationControl position="top-right" />
+    <GeolocateControl position="top-right" />
+    <Control position="top-right">
       <ControlGroup>
         <MapAppearanceControl {openAipConfigured} />
       </ControlGroup>
     </Control>
     {#if flights.length}
-      <Control position="top-left">
+      <Control position="top-right">
         <ControlGroup>
           <ControlButton onclick={fitFlights} title="Show all flights">
             <Fullscreen size={20} />
@@ -242,8 +520,8 @@
                 </ControlButton>
               </Popover.Trigger>
               <Popover.Content
-                side="right"
-                class="flex flex-col grow-0 gap-2 w-fit"
+                side="left"
+                class="flex w-fit grow-0 flex-col gap-2"
               >
                 <Filters bind:flights bind:filters bind:tempFilters />
               </Popover.Content>
@@ -251,7 +529,7 @@
           {/if}
         </ControlGroup>
       </Control>
-      <Control position="top-left">
+      <Control position="top-right">
         {#if showClear}
           <div
             class="maplibregl-ctrl-group bg-destructive! hover:bg-destructive/80!"
@@ -269,6 +547,21 @@
         {/if}
       </Control>
     {/if}
+
+    <MapStatusShelf
+      {showPreviousView}
+      {activeAirportFilter}
+      {activeRouteFilter}
+      {showScopeBanner}
+      alignWithDetails={alignStatusWithDetails}
+      onPreviousView={restorePreviousView}
+      onClearAirportFilter={() => {
+        if (filters) filters.airportsEither = [];
+      }}
+      onClearRouteFilter={() => {
+        if (filters) filters.routes = [];
+      }}
+    />
 
     {#if openAipActive}
       <OpenAipOverlay

@@ -6,6 +6,7 @@ import { db } from '$lib/db';
 import type { User } from '$lib/db/types';
 import { hashSha256 } from '$lib/server/utils/hash';
 import { generateString } from '$lib/server/utils/random';
+import type { Preferences } from '$lib/zod/user';
 
 const usernameEquals = (username: string) =>
   sql<boolean>`lower("username") = lower(${username})` as any;
@@ -15,12 +16,19 @@ export const createUser = async (
   username: string,
   password: string,
   displayName: string,
-  unit: User['unit'],
   role: User['role'],
+  preferences?: Partial<Preferences>,
 ) => {
   const result = await db
     .insertInto('user')
-    .values({ id, username, password, displayName, unit, role })
+    .values({
+      id,
+      username,
+      password,
+      displayName,
+      role,
+      ...(preferences ?? {}),
+    })
     .executeTakeFirst();
   return result.numInsertedOrUpdatedRows && result.numInsertedOrUpdatedRows > 0;
 };

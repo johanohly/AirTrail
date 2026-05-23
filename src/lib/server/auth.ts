@@ -23,10 +23,25 @@ export const lucia = new Lucia(adapter, {
       password: db.password,
       // @ts-expect-error - Lucia establishes its own connection so the camel case translation layer does not get applied here
       displayName: db.display_name,
-      unit: db.unit,
       role: db.role,
       // @ts-expect-error - Same as above
       oauthId: db.oauth_id,
+      // @ts-expect-error - Same as above
+      distanceUnit: db.distance_unit,
+      // @ts-expect-error - Same as above
+      windSpeedUnit: db.wind_speed_unit,
+      // @ts-expect-error - Same as above
+      temperatureUnit: db.temperature_unit,
+      // @ts-expect-error - Same as above
+      pressureUnit: db.pressure_unit,
+      // @ts-expect-error - Same as above
+      timeFormat: db.time_format,
+      // @ts-expect-error - Same as above
+      dateFormat: db.date_format,
+      // @ts-expect-error - Same as above
+      weekStartsOn: db.week_starts_on,
+      // @ts-expect-error - Same as above
+      flightTimeDisplay: db.flight_time_display,
     };
   },
 });

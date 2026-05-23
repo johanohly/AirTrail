@@ -1,4 +1,4 @@
-FROM johly/airtrail-airport-overlay:2026.4.18@sha256:3c2395defd27d9f45a92e0da1ab5f453c382a23d6c676ca4e7e490aa647d75e5 AS airport_overlay
+FROM johly/airtrail-airport-overlay:2026.5.23@sha256:05f30d8d73dca311f10931367fcb43f0701f0f7b6977fd9ff65dd264f29fea62 AS airport_overlay
 
 FROM oven/bun:debian AS base
 WORKDIR /app

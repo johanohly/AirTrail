@@ -13,15 +13,17 @@
   import { page as pageState } from '$app/state';
 
   import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
-  import type {
-    FlightFilters,
-    TempFilters,
+  import {
+    clearTempFilters,
+    type FlightFilters,
+    type TempFilters,
   } from '$lib/components/flight-filters/types';
   import ResponsiveFilters from '$lib/components/flight-filters/ResponsiveFilters.svelte';
   import { Confirm } from '$lib/components/helpers';
   import { Button } from '$lib/components/ui/button';
   import { Label } from '$lib/components/ui/label';
   import * as Popover from '$lib/components/ui/popover';
+  import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import * as Select from '$lib/components/ui/select';
   import {
@@ -60,6 +62,12 @@
 
   const users = $derived(pageState.data.users);
   const isAdmin = $derived(pageState.data.user?.role !== 'user');
+
+  const modalCtx = getModalContext();
+  const toolbarStyle = $derived.by(() => {
+    const z = modalCtx?.getContentZIndex();
+    return z !== undefined ? `z-index: ${z + 1};` : undefined;
+  });
 
   const updateScope = (scope: FlightScope) => {
     setFlightScope(
@@ -121,8 +129,7 @@
         size="sm"
         onclick={() => {
           if (tempFilters) {
-            tempFilters.airportsEither = [];
-            tempFilters.routes = [];
+            clearTempFilters(tempFilters);
           }
         }}
       >
@@ -222,6 +229,7 @@
   <Portal>
     <div
       class={`pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-5 transition-opacity duration-150 ${modalOpen ? 'opacity-100' : 'opacity-0'}`}
+      style={toolbarStyle}
     >
       <div class="pointer-events-auto w-full max-w-[768px]">
         <div

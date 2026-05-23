@@ -16,6 +16,7 @@
 
   let {
     importedCount = 0,
+    skippedRows = 0,
     unknownAirports = {},
     unknownAirlines = {},
     busy = false,
@@ -23,6 +24,7 @@
     onclose,
   }: {
     importedCount?: number;
+    skippedRows?: number;
     unknownAirports?: Record<string, number[]>;
     unknownAirlines?: Record<string, number[]>;
     busy?: boolean;
@@ -90,6 +92,25 @@
         </p>
       </div>
     </div>
+
+    {#if skippedRows > 0}
+      <Separator class="my-4" />
+
+      <div class="flex items-start gap-3">
+        <CircleAlert
+          class="text-amber-600 dark:text-amber-500 mt-0.5 shrink-0"
+          size={20}
+        />
+        <div class="flex-1">
+          <p class="font-medium text-sm">
+            {skippedRows} Skipped {pluralize(skippedRows, 'Row')}
+          </p>
+          <p class="text-sm text-muted-foreground mt-0.5">
+            Could not be parsed. Check the browser console for details.
+          </p>
+        </div>
+      </div>
+    {/if}
 
     {#if unknownAirportCodes.length || unknownAirlineCodes.length}
       <Separator class="my-4" />

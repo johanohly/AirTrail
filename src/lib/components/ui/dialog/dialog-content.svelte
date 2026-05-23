@@ -14,16 +14,20 @@
     ref = $bindable(null),
     class: className,
     closeButton = true,
+    overlayClass,
+    overlayStyle,
     children,
     ...restProps
   }: WithoutChildrenOrChild<DialogPrimitive.ContentProps> & {
     closeButton?: boolean;
+    overlayClass?: string;
+    overlayStyle?: string;
     children: Snippet;
   } = $props();
 </script>
 
 <Dialog.Portal>
-  <Dialog.Overlay />
+  <Dialog.Overlay class={overlayClass} style={overlayStyle} />
   <DialogPrimitive.Content
     bind:ref
     class={cn(

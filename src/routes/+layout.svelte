@@ -7,6 +7,7 @@
   import { dev } from '$app/environment';
   import { page } from '$app/state';
   import { NavigationDock } from '$lib/components';
+  import { TimeDisplayHost } from '$lib/components/display';
   import { ConfirmWrapper, ScreenSize } from '$lib/components/helpers';
   import {
     AddFlightModal,
@@ -44,6 +45,7 @@
     <TooltipProvider>
       <SettingsModal bind:open={openModalsState.settings} />
       <AddFlightModal bind:open={openModalsState.addFlight} />
+      <TimeDisplayHost />
 
       <main class="h-full" data-vaul-drawer-wrapper>
         {@render children()}

@@ -188,16 +188,44 @@ export type user = {
     id: string;
     username: string;
     displayName: string;
-    /**
-     * @kyselyType('metric' | 'imperial')
-     */
-    unit: 'metric' | 'imperial';
     password: string | null;
     /**
      * @kyselyType('user' | 'admin' | 'owner')
      */
     role: 'user' | 'admin' | 'owner';
     oauthId: string | null;
+    /**
+     * @kyselyType('km' | 'mi' | 'nm')
+     */
+    distanceUnit: Generated<'km' | 'mi' | 'nm'>;
+    /**
+     * @kyselyType('kt' | 'mph' | 'kmh' | 'ms')
+     */
+    windSpeedUnit: Generated<'kt' | 'mph' | 'kmh' | 'ms'>;
+    /**
+     * @kyselyType('c' | 'f')
+     */
+    temperatureUnit: Generated<'c' | 'f'>;
+    /**
+     * @kyselyType('hpa' | 'inhg')
+     */
+    pressureUnit: Generated<'hpa' | 'inhg'>;
+    /**
+     * @kyselyType('12h' | '24h' | 'auto')
+     */
+    timeFormat: Generated<'12h' | '24h' | 'auto'>;
+    /**
+     * @kyselyType('iso' | 'us' | 'eu' | 'auto')
+     */
+    dateFormat: Generated<'iso' | 'us' | 'eu' | 'auto'>;
+    /**
+     * @kyselyType('mon' | 'sun' | 'auto')
+     */
+    weekStartsOn: Generated<'mon' | 'sun' | 'auto'>;
+    /**
+     * @kyselyType('airport' | 'utc' | 'system')
+     */
+    flightTimeDisplay: Generated<'airport' | 'utc' | 'system'>;
 };
 export type visited_country = {
     id: Generated<number>;

@@ -16,10 +16,16 @@
 
   import {
     normalizeRoute,
+    type Route,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
   import { mapPreferences } from '$lib/map/map-preferences.svelte';
-  import { openModalsState } from '$lib/state.svelte';
+  import {
+    closeMapDetails,
+    mapDetailsState,
+    openAirportDetails,
+    openRouteDetails,
+  } from '$lib/state.svelte';
   import {
     type FlightData,
     prepareFlightArcData,
@@ -93,9 +99,7 @@
 
   const handleAirportClick = (e: PickingInfo<VisitedAirport>) => {
     if (e.object && tempFilters) {
-      tempFilters.airportsEither = [e.object.id.toString()];
-      tempFilters.routes = [];
-      openModalsState.listFlights = true;
+      openAirportDetails(e.object.id);
     }
   };
 
@@ -105,9 +109,13 @@
         e.object.from.id.toString(),
         e.object.to.id.toString(),
       );
-      tempFilters.routes = [route];
-      tempFilters.airportsEither = [];
-      openModalsState.listFlights = true;
+      openRouteDetails(route);
+    }
+  };
+
+  const handleMapClick = (e: PickingInfo) => {
+    if (!e.object && mapDetailsState.selection) {
+      closeMapDetails();
     }
   };
 
@@ -123,9 +131,40 @@
     layerId.value = id;
   });
 
+  const selectedAirportId = $derived.by(() => {
+    const selection = mapDetailsState.selection;
+    return selection?.type === 'airport' ? selection.airportId : null;
+  });
+
+  const selectedRoute = $derived.by(() => {
+    const selection = mapDetailsState.selection;
+    return selection?.type === 'route' ? selection.route : null;
+  });
+
+  const routeMatches = (arc: FlightArc, route: Route | null | undefined) => {
+    if (!route) return false;
+    const fromId = arc.from.id.toString();
+    const toId = arc.to.id.toString();
+    return (
+      (fromId === route.a && toId === route.b) ||
+      (fromId === route.b && toId === route.a)
+    );
+  };
+
+  const selectedRouteAirportIds = $derived.by(() => {
+    if (!selectedRoute) return [];
+    return [Number(selectedRoute.a), Number(selectedRoute.b)];
+  });
+
   const getAirportFillColor = () => {
     return (airport: (typeof visitedAirports)[number]): Color => {
-      if (hoveredAirport == airport) {
+      if (selectedAirportId === airport.id) {
+        return AIRPORT_COLOR(110);
+      } else if (selectedRouteAirportIds.includes(airport.id)) {
+        return AIRPORT_COLOR(85);
+      } else if (selectedRoute) {
+        return INACTIVE_COLOR(45);
+      } else if (hoveredAirport == airport) {
         return AIRPORT_COLOR(80);
       } else if (
         hoveredAirport?.flights.some((f) => f.airports.includes(airport.id))
@@ -148,7 +187,13 @@
 
   const getAirportLineColor = () => {
     return (airport: (typeof visitedAirports)[number]): Color => {
-      if (
+      if (selectedAirportId === airport.id) {
+        return AIRPORT_COLOR(255);
+      } else if (selectedRouteAirportIds.includes(airport.id)) {
+        return AIRPORT_COLOR(255);
+      } else if (selectedRoute) {
+        return INACTIVE_COLOR(230);
+      } else if (
         hoveredAirport?.id === airport.id ||
         hoveredAirport?.flights.some((f) => f.airports.includes(airport.id))
       ) {
@@ -172,6 +217,8 @@
     return (d: (typeof flightArcs)[number]) => {
       if (hoveredArc?.from === d.from && hoveredArc?.to === d.to) {
         return HOVER_COLOR;
+      } else if (routeMatches(d, selectedRoute)) {
+        return HOVER_COLOR;
       } else if (hoveredArc) {
         return INACTIVE_COLOR(200);
       } else if (
@@ -181,6 +228,15 @@
         return point === 'source' ? FROM_COLOR : TO_COLOR;
       } else if (hoveredAirport) {
         return INACTIVE_COLOR(200);
+      } else if (
+        selectedAirportId &&
+        (d.from.id === selectedAirportId || d.to.id === selectedAirportId)
+      ) {
+        return point === 'source' ? FROM_COLOR : TO_COLOR;
+      } else if (selectedAirportId) {
+        return INACTIVE_COLOR(170);
+      } else if (selectedRoute) {
+        return INACTIVE_COLOR(170);
       } else if (d.exclusivelyFuture) {
         return FUTURE_COLOR;
       } else {
@@ -216,6 +272,11 @@
     return UNIFORM_ARC_WIDTH[mapPreferences.arcThicknessScale];
   };
 
+  const getVisibleArcWidth = (d: FlightArc) => {
+    const width = getArcWidth(d);
+    return routeMatches(d, selectedRoute) ? Math.max(width + 1.5, 3) : width;
+  };
+
   const airportOptions = $derived.by(() => {
     const mode = mapPreferences.airportCircles;
     const preset =
@@ -229,15 +290,30 @@
         airport.frequency * baseUnits * preset.scale,
       radiusMaxPixels: preset.maxPixels,
       lineWidthUnits: 'pixels',
-      getLineWidth: 1,
+      getLineWidth: (airport: VisitedAirport) =>
+        airport.id === selectedAirportId ||
+        selectedRouteAirportIds.includes(airport.id)
+          ? 2
+          : 1,
       pickable: true,
       onHover: handleAirportHover,
       onClick: handleAirportClick,
       getFillColor: getAirportFillColor(),
       getLineColor: getAirportLineColor(),
       updateTriggers: {
-        getFillColor: [hoveredArc, hoveredAirport],
-        getLineColor: [hoveredArc, hoveredAirport],
+        getFillColor: [
+          hoveredArc,
+          hoveredAirport,
+          selectedAirportId,
+          selectedRoute,
+        ],
+        getLineColor: [
+          hoveredArc,
+          hoveredAirport,
+          selectedAirportId,
+          selectedRoute,
+        ],
+        getLineWidth: [selectedAirportId, selectedRoute],
         getRadius: [mode, $isMediumScreen],
       },
       stroked: true,
@@ -252,11 +328,25 @@
     getSourceColor: getArcColor('source'),
     getTargetColor: getArcColor('target'),
     updateTriggers: {
-      getSourceColor: [hoveredArc, hoveredAirport],
-      getTargetColor: [hoveredArc, hoveredAirport],
-      getWidth: [mapPreferences.arcThickness, mapPreferences.arcThicknessScale],
+      getSourceColor: [
+        hoveredArc,
+        hoveredAirport,
+        selectedAirportId,
+        selectedRoute,
+      ],
+      getTargetColor: [
+        hoveredArc,
+        hoveredAirport,
+        selectedAirportId,
+        selectedRoute,
+      ],
+      getWidth: [
+        mapPreferences.arcThickness,
+        mapPreferences.arcThicknessScale,
+        selectedRoute,
+      ],
     },
-    getWidth: getArcWidth,
+    getWidth: getVisibleArcWidth,
     getHeight: 0,
     greatCircle: true,
   }));
@@ -280,11 +370,11 @@
 
   const buildLayers = () => {
     const layers: Layer[] = [];
+    layers.push(new ArcLayer(arcOptions));
+    layers.push(new ArcLayer(ghostArcOptions));
     if (mapPreferences.airportCircles !== 'off') {
       layers.push(new ScatterplotLayer<VisitedAirport>(airportOptions));
     }
-    layers.push(new ArcLayer(arcOptions));
-    layers.push(new ArcLayer(ghostArcOptions));
     return layers;
   };
 
@@ -292,6 +382,7 @@
     if (loaded && map && !layer) {
       layer = new MapboxOverlay({
         id,
+        onClick: handleMapClick,
         layers: buildLayers(),
       });
       map.addControl(layer);
@@ -304,6 +395,7 @@
 
   $effect(() => {
     layer?.setProps({
+      onClick: handleMapClick,
       layers: buildLayers(),
     });
   });

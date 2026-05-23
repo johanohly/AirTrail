@@ -148,12 +148,13 @@ export const processFlightyFile = async (
     throw new Error('User not found');
   }
 
-  const [data, error] = parseCsv(input, FlightyFlight);
-  if (data.length === 0 || error) {
+  const { rows: data, skipped } = parseCsv(input, FlightyFlight);
+  if (data.length === 0) {
     return {
       flights: [],
       unknownAirports: {},
       unknownAirlines: {},
+      skippedRows: skipped.length,
     };
   }
 
@@ -299,5 +300,6 @@ export const processFlightyFile = async (
     flights,
     unknownAirports,
     unknownAirlines,
+    skippedRows: skipped.length,
   };
 };

@@ -17,7 +17,7 @@
     getSeatPassengerToken,
     type FlightData,
   } from '$lib/utils';
-  import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
+  import { AirlineIcon } from '$lib/components/display';
 
   let {
     flights = $bindable(),
@@ -35,6 +35,8 @@
     () =>
       filters.departureAirports.length ||
       filters.arrivalAirports.length ||
+      filters.airportsEither.length ||
+      filters.routes.length ||
       filters.fromDate ||
       filters.toDate ||
       filters.passengers.length ||

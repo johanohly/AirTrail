@@ -16,7 +16,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     return actionResult('error', 'You must be logged in to create users.', 401);
   }
 
-  const { username, displayName, unit } = form.data;
+  const { username, displayName } = form.data;
 
   const updatedFields: Record<string, any> = {};
 
@@ -25,9 +25,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   }
   if (displayName !== user.displayName) {
     updatedFields.displayName = displayName;
-  }
-  if (unit !== user.unit) {
-    updatedFields.unit = unit;
   }
 
   if (Object.keys(updatedFields).length === 0) {

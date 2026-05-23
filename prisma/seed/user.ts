@@ -9,7 +9,6 @@ export const SEED_USER = {
   password: 'password',
   displayName: 'Test User',
   role: 'owner',
-  unit: 'metric',
 } as const;
 
 export const seedUser = async (db: Kysely<DB>) => {

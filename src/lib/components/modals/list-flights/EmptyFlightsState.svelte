@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Plus, PlaneTakeoff } from '@o7/icon/lucide';
 
-  import RouteArrow from '$lib/components/display/RouteArrow.svelte';
+  import { RouteArrow } from '$lib/components/display';
   import { Button } from '$lib/components/ui/button';
   import type { Airline } from '$lib/db/types';
 

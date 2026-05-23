@@ -10,6 +10,8 @@ const AIRPORT_SOURCE = 'airport-overlay';
 const AIRPORT_FILL = '#ededed';
 const AIRPORT_FILL_DARK = '#e4e4e4';
 const AIRPORT_OUTLINE = '#d0d0d0';
+const AIRPORT_MARKING = '#ffffff';
+const AIRPORT_MARKING_DARK = '#e9ecf2';
 const AIRPORT_TERMINAL = '#f1f1f1';
 const AIRPORT_TERMINAL_SHADOW = '#c8c8c8';
 const AIRPORT_TERMINAL_SHADOW_OPACITY = 0.68;
@@ -31,6 +33,15 @@ const DARK_AIRPORT_PAINT_OVERRIDES = {
   'airport-overlay-apron': {
     'fill-color': '#4d5663',
   },
+  'airport-overlay-taxiway-polygon': {
+    'fill-color': '#4d5663',
+  },
+  'airport-overlay-taxiway-polygon-outline': {
+    'line-color': '#2f3640',
+  },
+  'airport-overlay-runway-polygon-outline': {
+    'line-color': '#2f3640',
+  },
   'airport-overlay-apron-outline': {
     'line-color': '#2f3640',
   },
@@ -39,6 +50,15 @@ const DARK_AIRPORT_PAINT_OVERRIDES = {
   },
   'airport-overlay-runway-line': {
     'line-color': '#596271',
+  },
+  'airport-overlay-runway-polygon': {
+    'fill-color': '#596271',
+  },
+  'airport-overlay-marking-fill': {
+    'fill-color': AIRPORT_MARKING_DARK,
+  },
+  'airport-overlay-marking-line': {
+    'line-color': AIRPORT_MARKING_DARK,
   },
   'airport-overlay-terminals-shadow': {
     'fill-color': '#0c0f14',
@@ -73,10 +93,53 @@ const DARK_AIRPORT_PAINT_OVERRIDES = {
   'airport-overlay-gate-label': {
     'text-color': '#111111',
   },
+  'airport-overlay-navigationaid-circle': {
+    'circle-color': [
+      'case',
+      ['==', ['get', 'light_colour'], 'red'],
+      '#ef4444',
+      ['==', ['get', 'light_colour'], 'green'],
+      '#22c55e',
+      ['==', ['get', 'light_colour'], 'yellow'],
+      '#facc15',
+      ['==', ['get', 'light_colour'], 'blue'],
+      '#3b82f6',
+      [
+        'match',
+        ['get', 'navigationaid'],
+        ['txc', 'rwt'],
+        '#22c55e',
+        ['txe'],
+        '#3b82f6',
+        '#ffffff',
+      ],
+    ],
+  },
 } as const;
 const DARK_AIRPORT_LAYOUT_OVERRIDES = {
   'airport-overlay-gate-label': {
     'text-font': ['Roboto Bold'],
+  },
+  'airport-overlay-navigationaid-directed': {
+    'icon-image': [
+      'match',
+      ['get', 'light_colour'],
+      'red',
+      'chevron-red',
+      'green',
+      'chevron-green',
+      'yellow',
+      'chevron-yellow',
+      'blue',
+      'chevron-blue',
+      [
+        'match',
+        ['get', 'navigationaid'],
+        'txe',
+        'chevron-blue',
+        'chevron-white',
+      ],
+    ],
   },
 } as const;
 const RUNWAY_WIDTH_VALUE = [
@@ -86,6 +149,14 @@ const RUNWAY_WIDTH_VALUE = [
     ['get', 'width'],
     ['*', ['to-number', ['get', 'width_m']], 3.28084],
   ],
+] as const;
+
+const taxiwayAerowayFilter = [
+  'match',
+  ['get', 'aeroway'],
+  ['taxiway', 'taxilane'],
+  true,
+  false,
 ] as const;
 
 const terminalFilter = [
@@ -98,6 +169,21 @@ const terminalFilter = [
   ],
 ];
 
+export const AIRPORT_DETAIL_LAYER_IDS = [
+  'airport-overlay-runway-threshold-synth',
+  'airport-overlay-runway-centerline-synth',
+  'airport-overlay-marking-fill',
+  'airport-overlay-marking-line',
+  'airport-overlay-taxiway-centerline',
+  'airport-overlay-parking-position',
+  'airport-overlay-navigationaid-circle',
+  'airport-overlay-navigationaid-directed',
+  'airport-overlay-papi',
+  'airport-overlay-windsock',
+  'airport-overlay-tower',
+  'airport-overlay-runway-designator-synth',
+] as const;
+
 const airportGroundLayers = [
   {
     id: 'airport-overlay-taxiway-outline',
@@ -105,7 +191,12 @@ const airportGroundLayers = [
     source: AIRPORT_SOURCE,
     'source-layer': 'airport',
     minzoom: 8,
-    filter: ['==', ['get', 'aeroway'], 'taxiway'],
+    filter: [
+      'all',
+      taxiwayAerowayFilter,
+      ['!=', ['geometry-type'], 'Polygon'],
+      ['!', ['has', 'width_m']],
+    ],
     layout: {
       'line-cap': 'square',
       'line-join': 'miter',
@@ -134,7 +225,12 @@ const airportGroundLayers = [
     source: AIRPORT_SOURCE,
     'source-layer': 'airport',
     minzoom: 8,
-    filter: ['==', ['get', 'aeroway'], 'taxiway'],
+    filter: [
+      'all',
+      taxiwayAerowayFilter,
+      ['!=', ['geometry-type'], 'Polygon'],
+      ['!', ['has', 'width_m']],
+    ],
     layout: {
       'line-cap': 'square',
       'line-join': 'miter',
@@ -158,24 +254,65 @@ const airportGroundLayers = [
     },
   },
   {
+    id: 'airport-overlay-taxiway-polygon-outline',
+    type: 'line',
+    source: AIRPORT_SOURCE,
+    'source-layer': 'airport',
+    minzoom: 8,
+    filter: ['all', taxiwayAerowayFilter, ['==', ['geometry-type'], 'Polygon']],
+    paint: {
+      'line-color': AIRPORT_OUTLINE,
+      'line-width': [
+        'interpolate',
+        ['exponential', 1.2],
+        ['zoom'],
+        8,
+        0.3,
+        12,
+        0.75,
+        16,
+        1.25,
+        20,
+        2,
+      ],
+      'line-opacity': ['interpolate', ['linear'], ['zoom'], 8, 0, 8.5, 1],
+    },
+  },
+  {
+    id: 'airport-overlay-runway-polygon-outline',
+    type: 'line',
+    source: AIRPORT_SOURCE,
+    'source-layer': 'airport',
+    minzoom: 7,
+    filter: [
+      'all',
+      ['==', ['get', 'aeroway'], 'runway'],
+      ['==', ['geometry-type'], 'Polygon'],
+    ],
+    paint: {
+      'line-color': AIRPORT_OUTLINE,
+      'line-width': [
+        'interpolate',
+        ['exponential', 1.2],
+        ['zoom'],
+        8,
+        0.5,
+        12,
+        1,
+        16,
+        1.5,
+        20,
+        3,
+      ],
+      'line-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0, 8, 1],
+    },
+  },
+  {
     id: 'airport-overlay-apron',
     type: 'fill',
     source: AIRPORT_SOURCE,
     'source-layer': 'airport',
-    filter: [
-      'any',
-      ['==', ['get', 'aeroway'], 'apron'],
-      [
-        'all',
-        ['==', ['get', 'aeroway'], 'runway'],
-        ['==', ['geometry-type'], 'Polygon'],
-      ],
-      [
-        'all',
-        ['==', ['get', 'aeroway'], 'taxiway'],
-        ['==', ['geometry-type'], 'Polygon'],
-      ],
-    ],
+    filter: ['==', ['get', 'aeroway'], 'apron'],
     paint: {
       'fill-antialias': true,
       'fill-color': AIRPORT_FILL,
@@ -186,24 +323,41 @@ const airportGroundLayers = [
     type: 'line',
     source: AIRPORT_SOURCE,
     'source-layer': 'airport',
-    filter: [
-      'any',
-      ['==', ['get', 'aeroway'], 'apron'],
-      [
-        'all',
-        ['==', ['get', 'aeroway'], 'runway'],
-        ['==', ['geometry-type'], 'Polygon'],
-      ],
-      [
-        'all',
-        ['==', ['get', 'aeroway'], 'taxiway'],
-        ['==', ['geometry-type'], 'Polygon'],
-      ],
-    ],
+    filter: ['==', ['get', 'aeroway'], 'apron'],
     paint: {
       'line-color': AIRPORT_OUTLINE,
       'line-width': 0,
       'line-opacity': 0,
+    },
+  },
+  {
+    id: 'airport-overlay-taxiway-polygon',
+    type: 'fill',
+    source: AIRPORT_SOURCE,
+    'source-layer': 'airport',
+    minzoom: 8,
+    filter: ['all', taxiwayAerowayFilter, ['==', ['geometry-type'], 'Polygon']],
+    paint: {
+      'fill-antialias': true,
+      'fill-color': AIRPORT_FILL,
+      'fill-opacity': ['interpolate', ['linear'], ['zoom'], 8, 0, 8.5, 1],
+    },
+  },
+  {
+    id: 'airport-overlay-runway-polygon',
+    type: 'fill',
+    source: AIRPORT_SOURCE,
+    'source-layer': 'airport',
+    minzoom: 7,
+    filter: [
+      'all',
+      ['==', ['get', 'aeroway'], 'runway'],
+      ['==', ['geometry-type'], 'Polygon'],
+    ],
+    paint: {
+      'fill-antialias': true,
+      'fill-color': AIRPORT_FILL_DARK,
+      'fill-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0, 8, 1],
     },
   },
   {
@@ -216,6 +370,7 @@ const airportGroundLayers = [
       'all',
       ['==', ['get', 'aeroway'], 'runway'],
       ['!=', ['geometry-type'], 'Polygon'],
+      ['!', ['has', 'width_m']],
     ],
     layout: {
       'line-cap': 'square',
@@ -267,6 +422,7 @@ const airportGroundLayers = [
       'all',
       ['==', ['get', 'aeroway'], 'runway'],
       ['!=', ['geometry-type'], 'Polygon'],
+      ['!', ['has', 'width_m']],
     ],
     layout: {
       'line-cap': 'square',
@@ -306,6 +462,256 @@ const airportGroundLayers = [
         ],
       ],
       'line-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0, 8, 1],
+    },
+  },
+] as const;
+
+const airportMarkingLayers = [
+  {
+    id: 'airport-overlay-runway-threshold-synth',
+    type: 'line',
+    source: AIRPORT_SOURCE,
+    'source-layer': 'airport',
+    minzoom: 13,
+    filter: ['==', ['get', 'aeroway'], 'runway_threshold'],
+    layout: { 'line-cap': 'butt' },
+    paint: {
+      'line-color': AIRPORT_MARKING,
+      'line-width': ['interpolate', ['linear'], ['zoom'], 13, 1, 18, 4],
+      'line-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0, 14, 1],
+    },
+  },
+  {
+    id: 'airport-overlay-runway-centerline-synth',
+    type: 'line',
+    source: AIRPORT_SOURCE,
+    'source-layer': 'airport',
+    minzoom: 13,
+    filter: [
+      'all',
+      ['==', ['get', 'aeroway'], 'runway'],
+      ['!=', ['geometry-type'], 'Polygon'],
+      ['!=', ['get', 'has_osm_markings'], true],
+    ],
+    layout: {
+      'line-cap': 'butt',
+      'line-join': 'miter',
+    },
+    paint: {
+      'line-color': AIRPORT_MARKING,
+      'line-width': ['interpolate', ['linear'], ['zoom'], 13, 0.8, 18, 2],
+      'line-dasharray': [16, 12],
+      'line-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0, 14, 1],
+    },
+  },
+  {
+    id: 'airport-overlay-marking-fill',
+    type: 'fill',
+    source: AIRPORT_SOURCE,
+    'source-layer': 'airport',
+    minzoom: 13,
+    filter: [
+      'all',
+      ['==', ['get', 'aeroway'], 'marking'],
+      ['==', ['geometry-type'], 'Polygon'],
+    ],
+    paint: {
+      'fill-antialias': true,
+      'fill-color': AIRPORT_MARKING,
+      'fill-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0, 14, 1],
+    },
+  },
+  {
+    id: 'airport-overlay-marking-line',
+    type: 'line',
+    source: AIRPORT_SOURCE,
+    'source-layer': 'airport',
+    minzoom: 13,
+    filter: [
+      'all',
+      ['==', ['get', 'aeroway'], 'marking'],
+      ['!=', ['geometry-type'], 'Polygon'],
+    ],
+    layout: {
+      'line-cap': 'butt',
+      'line-join': 'miter',
+    },
+    paint: {
+      'line-color': AIRPORT_MARKING,
+      'line-width': ['interpolate', ['linear'], ['zoom'], 13, 0.5, 18, 2.5],
+      'line-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0, 14, 1],
+    },
+  },
+  {
+    id: 'airport-overlay-taxiway-centerline',
+    type: 'line',
+    source: AIRPORT_SOURCE,
+    'source-layer': 'airport',
+    minzoom: 14,
+    filter: ['all', taxiwayAerowayFilter, ['!=', ['geometry-type'], 'Polygon']],
+    layout: {
+      'line-cap': 'butt',
+      'line-join': 'round',
+    },
+    paint: {
+      'line-color': '#eab308',
+      'line-width': ['interpolate', ['linear'], ['zoom'], 14, 0.5, 18, 1.5],
+      'line-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, 0.9],
+    },
+  },
+  {
+    id: 'airport-overlay-parking-position',
+    type: 'line',
+    source: AIRPORT_SOURCE,
+    'source-layer': 'airport',
+    minzoom: 14,
+    filter: ['==', ['get', 'aeroway'], 'parking_position'],
+    layout: {
+      'line-cap': 'butt',
+      'line-join': 'round',
+    },
+    paint: {
+      'line-color': '#a16207',
+      'line-width': ['interpolate', ['linear'], ['zoom'], 14, 0.5, 18, 1.5],
+      'line-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, 0.9],
+    },
+  },
+  {
+    id: 'airport-overlay-navigationaid-circle',
+    type: 'circle',
+    source: AIRPORT_SOURCE,
+    'source-layer': 'airport',
+    minzoom: 14,
+    filter: [
+      'all',
+      ['==', ['get', 'aeroway'], 'navigationaid'],
+      ['!=', ['get', 'light_shape'], 'directed'],
+      ['!=', ['get', 'navigationaid'], 'papi'],
+    ],
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 14, 1, 18, 2.5],
+      'circle-color': [
+        'case',
+        ['==', ['get', 'light_colour'], 'red'],
+        '#ef4444',
+        ['==', ['get', 'light_colour'], 'green'],
+        '#22c55e',
+        ['==', ['get', 'light_colour'], 'yellow'],
+        '#facc15',
+        ['==', ['get', 'light_colour'], 'blue'],
+        '#3b82f6',
+        [
+          'match',
+          ['get', 'navigationaid'],
+          ['txc', 'rwt'],
+          '#22c55e',
+          ['txe'],
+          '#3b82f6',
+          '#9ca3af',
+        ],
+      ],
+      'circle-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, 1],
+      'circle-stroke-width': 0,
+    },
+  },
+  {
+    id: 'airport-overlay-navigationaid-directed',
+    type: 'symbol',
+    source: AIRPORT_SOURCE,
+    'source-layer': 'airport',
+    minzoom: 14,
+    filter: [
+      'all',
+      ['==', ['get', 'aeroway'], 'navigationaid'],
+      ['==', ['get', 'light_shape'], 'directed'],
+    ],
+    layout: {
+      'icon-image': [
+        'match',
+        ['get', 'light_colour'],
+        'red',
+        'chevron-red',
+        'green',
+        'chevron-green',
+        'yellow',
+        'chevron-yellow',
+        'blue',
+        'chevron-blue',
+        [
+          'match',
+          ['get', 'navigationaid'],
+          'txe',
+          'chevron-blue',
+          'chevron-gray',
+        ],
+      ],
+      'icon-size': ['interpolate', ['linear'], ['zoom'], 14, 0.5, 18, 1],
+      'icon-anchor': 'bottom',
+      'icon-rotation-alignment': 'map',
+      'icon-rotate': ['coalesce', ['to-number', ['get', 'light_direction']], 0],
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
+    },
+    paint: {
+      'icon-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, 1],
+    },
+  },
+  {
+    id: 'airport-overlay-papi',
+    type: 'symbol',
+    source: AIRPORT_SOURCE,
+    'source-layer': 'airport',
+    minzoom: 14,
+    filter: [
+      'all',
+      ['==', ['get', 'aeroway'], 'navigationaid'],
+      ['==', ['get', 'navigationaid'], 'papi'],
+    ],
+    layout: {
+      'icon-image': 'papi',
+      'icon-size': ['interpolate', ['linear'], ['zoom'], 14, 0.7, 18, 1.6],
+      'icon-rotation-alignment': 'map',
+      'icon-rotate': ['coalesce', ['to-number', ['get', 'light_direction']], 0],
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
+    },
+    paint: {
+      'icon-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, 1],
+    },
+  },
+  {
+    id: 'airport-overlay-windsock',
+    type: 'symbol',
+    source: AIRPORT_SOURCE,
+    'source-layer': 'airport',
+    minzoom: 13,
+    filter: ['==', ['get', 'aeroway'], 'windsock'],
+    layout: {
+      'icon-image': 'windsock',
+      'icon-size': ['interpolate', ['linear'], ['zoom'], 13, 1, 18, 1.9],
+      'icon-allow-overlap': true,
+    },
+    paint: {
+      'icon-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0, 13.5, 1],
+    },
+  },
+] as const;
+
+const airportTowerLayers = [
+  {
+    id: 'airport-overlay-tower',
+    type: 'symbol',
+    source: AIRPORT_SOURCE,
+    'source-layer': 'airport',
+    minzoom: 12,
+    filter: ['==', ['get', 'aeroway'], 'tower'],
+    layout: {
+      'icon-image': 'tower',
+      'icon-size': ['interpolate', ['linear'], ['zoom'], 12, 0.7, 18, 1.6],
+      'icon-allow-overlap': true,
+    },
+    paint: {
+      'icon-opacity': ['interpolate', ['linear'], ['zoom'], 12, 0, 12.5, 1],
     },
   },
 ] as const;
@@ -464,7 +870,7 @@ const airportLabelLayers = [
     'source-layer': 'airport',
     minzoom: 13,
     maxzoom: 24,
-    filter: ['==', ['get', 'aeroway'], 'taxiway'],
+    filter: ['all', taxiwayAerowayFilter, ['!=', ['geometry-type'], 'Polygon']],
     layout: {
       'text-field': '{ref}',
       'text-font': [
@@ -498,7 +904,11 @@ const airportLabelLayers = [
     'source-layer': 'airport',
     minzoom: 11,
     maxzoom: 24,
-    filter: ['==', ['get', 'aeroway'], 'runway'],
+    filter: [
+      'all',
+      ['==', ['get', 'aeroway'], 'runway'],
+      ['!=', ['geometry-type'], 'Polygon'],
+    ],
     layout: {
       'text-field': '{ref}',
       'text-font': ['Montserrat SemiBold', 'Open Sans Bold', 'Noto Sans Bold'],
@@ -519,6 +929,30 @@ const airportLabelLayers = [
       'text-color': AIRPORT_LABEL_STRONG,
       'text-halo-color': AIRPORT_HALO,
       'text-halo-width': ['interpolate', ['linear'], ['zoom'], 11, 0.1, 15, 1],
+    },
+  },
+  {
+    id: 'airport-overlay-runway-designator-synth',
+    type: 'symbol',
+    source: AIRPORT_SOURCE,
+    'source-layer': 'airport',
+    minzoom: 14,
+    maxzoom: 24,
+    filter: ['==', ['get', 'aeroway'], 'runway_designator'],
+    layout: {
+      'text-field': ['get', 'ref'],
+      'text-font': ['Montserrat Bold', 'Open Sans Bold', 'Noto Sans Bold'],
+      'text-size': ['interpolate', ['linear'], ['zoom'], 14, 12, 18, 22],
+      'text-rotation-alignment': 'map',
+      'text-rotate': ['get', 'bearing'],
+      'text-anchor': 'center',
+      'text-letter-spacing': 0.15,
+      'text-allow-overlap': true,
+      'text-ignore-placement': true,
+    },
+    paint: {
+      'text-color': AIRPORT_MARKING,
+      'text-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, 1],
     },
   },
   {
@@ -588,12 +1022,11 @@ const insertOverlayLayers = (
     (layer) => layer.type === 'symbol',
   );
   const insertIndex =
-    groundInsertIndex !== -1 ? groundInsertIndex + 1 : fallbackInsertIndex;
-  if (insertIndex === -1) {
-    throw new Error(
-      'Could not find a symbol insertion point in the base style',
-    );
-  }
+    groundInsertIndex !== -1
+      ? groundInsertIndex + 1
+      : fallbackInsertIndex !== -1
+        ? fallbackInsertIndex
+        : layers.length;
 
   style.layers = [
     ...layers.slice(0, insertIndex),
@@ -655,7 +1088,9 @@ export const buildPmtilesAirportStyle = (
 
   insertOverlayLayers(rewrittenStyle, [
     ...airportGroundLayers,
+    ...airportMarkingLayers,
     ...airportBuildingLayers,
+    ...airportTowerLayers,
     ...airportLabelLayers,
   ]);
 

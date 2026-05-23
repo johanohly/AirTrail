@@ -624,26 +624,78 @@ const refreshVm = async (token: string, ref: string) => {
   } satisfies VmInfo;
 };
 
+const TRANSITIONAL_VM_STATES = new Set([
+  'creating',
+  'starting',
+  'restarting',
+  'rebooting',
+]);
+
+const waitForVmRunning = async (token: string, vm: VmInfo): Promise<VmInfo> => {
+  const s = spinner();
+  s.start(
+    `Waiting for VM ${vm.ref} to reach running state (currently ${vm.state})`,
+  );
+
+  let current = vm;
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    if (current.state === 'running') {
+      s.stop(`VM ${vm.ref} is running`);
+      return current;
+    }
+
+    if (
+      !TRANSITIONAL_VM_STATES.has(current.state) &&
+      current.state !== 'unknown'
+    ) {
+      s.stop(`VM ${vm.ref} entered unexpected state ${current.state}`);
+      throw new Error(
+        `VM ${vm.name} entered state ${current.state} while waiting to start.`,
+      );
+    }
+
+    s.message(`VM ${vm.ref} state: ${current.state}`);
+    await sleep(10_000);
+    current = await refreshVm(token, vm.ref);
+  }
+
+  s.stop(`Timed out waiting for VM ${vm.ref} to become running`);
+  throw new Error(
+    `Timed out waiting for VM ${vm.name} to reach running state (last state: ${current.state}).`,
+  );
+};
+
 const ensureVmRunning = async (token: string, vm: VmInfo) => {
   if (vm.state === 'running') {
     return vm;
   }
 
-  const shouldStart = ensure(
-    await confirm({
-      message: `VM ${vm.name} is ${vm.state}. Start it?`,
-      initialValue: true,
-    }),
-  );
-  if (!shouldStart) {
-    throw new Error(`VM ${vm.name} must be running to continue.`);
+  if (TRANSITIONAL_VM_STATES.has(vm.state)) {
+    return waitForVmRunning(token, vm);
   }
 
-  await run('ubi', ['vm', vm.ref, 'start'], {
-    env: { ...process.env, UBI_TOKEN: token },
-  });
+  if (vm.state === 'stopped') {
+    const shouldStart = ensure(
+      await confirm({
+        message: `VM ${vm.name} is ${vm.state}. Start it?`,
+        initialValue: true,
+      }),
+    );
+    if (!shouldStart) {
+      throw new Error(`VM ${vm.name} must be running to continue.`);
+    }
 
-  return refreshVm(token, vm.ref);
+    await run('ubi', ['vm', vm.ref, 'start'], {
+      env: { ...process.env, UBI_TOKEN: token },
+    });
+
+    const refreshed = await refreshVm(token, vm.ref);
+    return waitForVmRunning(token, refreshed);
+  }
+
+  throw new Error(
+    `VM ${vm.name} is in state ${vm.state} and cannot be started.`,
+  );
 };
 
 const waitForSsh = async (

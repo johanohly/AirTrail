@@ -1,8 +1,7 @@
 <script lang="ts">
   import type { TZDate } from '@date-fns/tz';
 
-  import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
-  import RouteArrow from '$lib/components/display/RouteArrow.svelte';
+  import { AirlineIcon, RouteArrow } from '$lib/components/display';
   import { Badge } from '$lib/components/ui/badge';
   import type { Airline, Airport, FlightDatePrecision } from '$lib/db/types';
   import { formatAsFlightDate } from '$lib/utils/datetime';

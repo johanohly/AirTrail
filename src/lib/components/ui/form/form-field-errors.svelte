@@ -21,16 +21,14 @@
 {#if formField.errors.length}
   <FormPrimitive.FieldErrors
     bind:ref
-    class={cn('text-destructive text-sm font-medium', className)}
+    class={cn('text-destructive text-xs font-medium', className)}
     {...restProps}
   >
     {#snippet children({ errors, errorProps })}
       {#if childrenProp}
         {@render childrenProp({ errors, errorProps })}
       {:else}
-        {#each errors as error (error)}
-          <div {...errorProps} class={cn(errorClasses)}>{error}</div>
-        {/each}
+        <div {...errorProps} class={cn(errorClasses)}>{errors[0]}</div>
       {/if}
     {/snippet}
   </FormPrimitive.FieldErrors>

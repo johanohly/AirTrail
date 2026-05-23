@@ -2,6 +2,7 @@ import { tz, TZDate } from '@date-fns/tz';
 import { isBefore, parse } from 'date-fns';
 
 import type { FlightDatePrecision } from '$lib/db/types';
+import type { TimeFormat } from '$lib/zod/user';
 
 import { parseLocalISO } from './parse';
 
@@ -22,7 +23,10 @@ export const isSameLocalDay = (date1: TZDate, date2: TZDate) => {
   );
 };
 
-export const isUsingAmPm = () => {
+export const isUsingAmPm = (timeFormat: TimeFormat = 'auto') => {
+  if (timeFormat === '12h') return true;
+  if (timeFormat === '24h') return false;
+
   const test = new Date(Date.UTC(2025, 0, 1, 13, 0, 0)); // 13:00 UTC
   const formatted = test.toLocaleTimeString(undefined, { hour: 'numeric' });
 

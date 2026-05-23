@@ -26,7 +26,7 @@
   let open = $state(false);
 </script>
 
-<div class="hidden gap-2 xl:flex">
+<div class="hidden gap-2 2xl:flex">
   <Filters {flights} bind:filters bind:tempFilters {hasTempFilters} />
 </div>
 
@@ -36,7 +36,7 @@
       <Button
         variant="outline"
         size="sm"
-        class="gap-2 xl:hidden"
+        class="gap-2 2xl:hidden"
         {...props}
         disabled={flights.length === 0}
       >

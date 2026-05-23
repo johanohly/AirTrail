@@ -14,6 +14,12 @@
   import type { User } from '$lib/db/types';
   import { api } from '$lib/trpc';
   import { toTitleCase } from '$lib/utils';
+  import { getPreferences, matchPreset, presets } from '$lib/utils/preferences';
+
+  const presetSummary = (u: User): string => {
+    const key = matchPreset(getPreferences(u));
+    return key ? presets[key].label : 'Custom';
+  };
 
   const users = $derived(page.data.users);
 
@@ -79,7 +85,7 @@
                 {current_user.username}
               </p>
               <p class="text-sm text-muted-foreground truncate">
-                {toTitleCase(current_user.unit)}
+                {presetSummary(current_user)}
               </p>
             </div>
           </div>

@@ -5,6 +5,7 @@
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
 
+  import { page } from '$app/state';
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
@@ -18,7 +19,8 @@
   } from '$lib/utils/datetime';
   import type { flightSchema } from '$lib/zod/flight';
 
-  const displayLocale = isUsingAmPm() ? 'en-US' : 'fr-FR';
+  const displayLocale = () =>
+    isUsingAmPm(page.data.user?.timeFormat) ? 'en-US' : 'fr-FR';
 
   type FlightFormData = z.infer<typeof flightSchema>;
   type TimetableTab = 'scheduled' | 'actual';
@@ -125,13 +127,13 @@
         result.departure,
         "yyyy-MM-dd'T'00:00:00.000'Z'",
       );
-      $formData.departureTime = formatAsTime(result.departure, displayLocale);
+      $formData.departureTime = formatAsTime(result.departure, displayLocale());
 
       $formData.arrival = format(
         result.arrival,
         "yyyy-MM-dd'T'00:00:00.000'Z'",
       );
-      $formData.arrivalTime = formatAsTime(result.arrival, displayLocale);
+      $formData.arrivalTime = formatAsTime(result.arrival, displayLocale());
     }
 
     // Apply scheduled times. For future flights, fallback to lookup time when schedule is missing.
@@ -145,7 +147,7 @@
       );
       $formData.departureScheduledTime = formatAsTime(
         departureScheduleSource,
-        displayLocale,
+        displayLocale(),
       );
     }
 
@@ -159,7 +161,7 @@
       );
       $formData.arrivalScheduledTime = formatAsTime(
         arrivalScheduleSource,
-        displayLocale,
+        displayLocale(),
       );
     }
 

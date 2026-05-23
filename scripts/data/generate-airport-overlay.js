@@ -1,6 +1,14 @@
 #!/usr/bin/env node
 
-import { area, pointOnFeature } from '@turf/turf';
+import {
+  area,
+  bearing,
+  centroid,
+  destination,
+  distance,
+  point,
+  pointOnFeature,
+} from '@turf/turf';
 import { spawn } from 'node:child_process';
 import {
   appendFileSync,
@@ -21,8 +29,10 @@ const DEFAULT_TEMP_DIR = join(
   tmpdir(),
   `airtrail-airport-overlay-${process.pid}`,
 );
-const FILTER_EXPRESSION =
-  'aeroway=runway,taxiway,apron,terminal,gate,parking_position,jet_bridge,aerodrome';
+const FILTER_EXPRESSIONS = [
+  'aeroway=runway,taxiway,taxilane,apron,terminal,gate,parking_position,jet_bridge,aerodrome,marking,windsock,tower',
+  'navigationaid',
+];
 const LAYER_IDS = ['airport', 'airport_labels', 'airport_nodes', 'aerodrome'];
 const FLUSH_EVERY_FEATURES = 500;
 const PROGRESS_LOG_INTERVAL_MS = 10_000;
@@ -186,6 +196,180 @@ const labelName = (rawFeature) =>
   rawFeature.properties?.gate ??
   rawFeature.properties?.name;
 
+// turf's lineOffset uses planar/Mercator math and produces results that are
+// off by cos(lat) for non-N-S lines; at lat 55, a 22.5m offset comes out as
+// ~20m. Use Haversine destination() per vertex instead, which is geodesically
+// exact. Vertex perpendicular is the bisector of incoming/outgoing bearings;
+// for the runways we buffer (mostly straight), this matches the segment
+// perpendicular within rounding.
+const offsetVertex = (coords, i, side, halfWidthM) => {
+  const cur = point(coords[i]);
+  let segBearing;
+  if (i === 0) {
+    segBearing = bearing(cur, point(coords[1]));
+  } else if (i === coords.length - 1) {
+    segBearing = bearing(point(coords[i - 1]), cur);
+  } else {
+    const incoming = bearing(point(coords[i - 1]), cur);
+    const outgoing = bearing(cur, point(coords[i + 1]));
+    let delta = outgoing - incoming;
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
+    segBearing = incoming + delta / 2;
+  }
+  const perp = side > 0 ? segBearing + 90 : segBearing - 90;
+  return destination(cur, halfWidthM, perp, { units: 'meters' }).geometry
+    .coordinates;
+};
+
+const bufferLineString = (coordinates, halfWidthM) => {
+  if (!coordinates || coordinates.length < 2) return null;
+  try {
+    const left = coordinates.map((_, i) =>
+      offsetVertex(coordinates, i, -1, halfWidthM),
+    );
+    const right = coordinates.map((_, i) =>
+      offsetVertex(coordinates, i, 1, halfWidthM),
+    );
+    return [...left, ...right.slice().reverse(), left[0]];
+  } catch {
+    return null;
+  }
+};
+
+const computeBbox = (geometry) => {
+  let minLng = Infinity,
+    minLat = Infinity,
+    maxLng = -Infinity,
+    maxLat = -Infinity;
+  const walk = (c) => {
+    if (typeof c[0] === 'number') {
+      if (c[0] < minLng) minLng = c[0];
+      if (c[0] > maxLng) maxLng = c[0];
+      if (c[1] < minLat) minLat = c[1];
+      if (c[1] > maxLat) maxLat = c[1];
+    } else {
+      for (const x of c) walk(x);
+    }
+  };
+  walk(geometry.coordinates);
+  return [minLng, minLat, maxLng, maxLat];
+};
+
+const bboxesIntersect = (a, b) =>
+  !(a[2] < b[0] || b[2] < a[0] || a[3] < b[1] || b[3] < a[1]);
+
+const generateRunwayEndpointFeatures = (rawFeature, widthM) => {
+  const features = [];
+  if (!widthM || widthM <= 0) return features;
+  const geom = rawFeature.geometry;
+  if (!geom || geom.type !== 'LineString') return features;
+  const coords = geom.coordinates;
+  if (coords.length < 2) return features;
+
+  const startPt = point(coords[0]);
+  const endPt = point(coords[coords.length - 1]);
+  const startBearing = bearing(startPt, point(coords[1]));
+  const endBearing = bearing(point(coords[coords.length - 2]), endPt);
+  const half = widthM / 2;
+  const id = osmId(rawFeature);
+
+  for (const [pt, bear] of [
+    [startPt, startBearing],
+    [endPt, endBearing],
+  ]) {
+    const left = destination(pt, half, bear - 90, { units: 'meters' }).geometry
+      .coordinates;
+    const right = destination(pt, half, bear + 90, { units: 'meters' }).geometry
+      .coordinates;
+    features.push(
+      feature(
+        { type: 'LineString', coordinates: [left, right] },
+        { aeroway: 'runway_threshold', osm_id: id },
+        { minzoom: 13, maxzoom: 14 },
+      ),
+    );
+  }
+
+  const ref = rawFeature.properties?.ref;
+  if (!ref || !ref.includes('/')) return features;
+  const parts = ref.split('/').map((s) => s.trim());
+  if (parts.length !== 2) return features;
+
+  const headingOf = (d) => {
+    const m = d.match(/(\d+)/);
+    return m ? parseInt(m[1], 10) * 10 : null;
+  };
+  const h0 = headingOf(parts[0]);
+  const h1 = headingOf(parts[1]);
+  if (h0 == null || h1 == null) return features;
+
+  const angleDiff = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
+  const startDes =
+    angleDiff(startBearing, h0) < angleDiff(startBearing, h1)
+      ? parts[0]
+      : parts[1];
+  const endDes = startDes === parts[0] ? parts[1] : parts[0];
+
+  // Place designator ~60m inside the runway from each endpoint.
+  const startDesPt = destination(startPt, 60, startBearing, {
+    units: 'meters',
+  }).geometry;
+  const endDesPt = destination(endPt, 60, endBearing - 180, {
+    units: 'meters',
+  }).geometry;
+
+  features.push(
+    feature(
+      startDesPt,
+      {
+        aeroway: 'runway_designator',
+        ref: startDes,
+        bearing: startBearing,
+        osm_id: id,
+      },
+      { minzoom: 13, maxzoom: 14 },
+    ),
+    feature(
+      endDesPt,
+      {
+        aeroway: 'runway_designator',
+        ref: endDes,
+        bearing: endBearing,
+        osm_id: id,
+      },
+      { minzoom: 13, maxzoom: 14 },
+    ),
+  );
+
+  return features;
+};
+
+const bufferedLinePolygon = (rawFeature, widthM) => {
+  if (!widthM || widthM <= 0) return null;
+  const half = widthM / 2;
+  const geom = rawFeature.geometry;
+  if (!geom) return null;
+
+  if (geom.type === 'LineString') {
+    const ring = bufferLineString(geom.coordinates, half);
+    if (!ring) return null;
+    return { type: 'Polygon', coordinates: [ring] };
+  }
+
+  if (geom.type === 'MultiLineString') {
+    const polygons = [];
+    for (const coords of geom.coordinates) {
+      const ring = bufferLineString(coords, half);
+      if (ring) polygons.push([ring]);
+    }
+    if (!polygons.length) return null;
+    return { type: 'MultiPolygon', coordinates: polygons };
+  }
+
+  return null;
+};
+
 const pointGeometry = (rawFeature) => {
   if (!rawFeature.geometry) {
     return null;
@@ -222,6 +406,7 @@ const airportFeatureProperties = (rawFeature, kind) => ({
   length_m: parseMeters(rawFeature.properties?.length),
   terminal: rawFeature.properties?.terminal,
   gate: rawFeature.properties?.gate,
+  marking: rawFeature.properties?.marking,
   osm_id: osmId(rawFeature),
 });
 
@@ -252,6 +437,9 @@ const airportNodeRank = (rawFeature) => {
 
   return Math.max(0, rank);
 };
+
+const isTaxiwayLike = (aeroway) =>
+  aeroway === 'taxiway' || aeroway === 'taxilane';
 
 const airportNodeFeature = (rawFeature) => {
   if (!['Polygon', 'MultiPolygon'].includes(geometryType(rawFeature))) {
@@ -304,7 +492,12 @@ const airportNodeDedupKey = (rawFeature) => {
   );
 };
 
-const normalizeRawFeature = (rawFeature, seenAirportNodes) => {
+const normalizeRawFeature = (
+  rawFeature,
+  seenAirportNodes,
+  markingBboxes,
+  seenTowers,
+) => {
   const layers = {
     airport: [],
     airport_labels: [],
@@ -312,28 +505,146 @@ const normalizeRawFeature = (rawFeature, seenAirportNodes) => {
     aerodrome: [],
   };
 
+  const navigationaid = rawFeature.properties?.navigationaid;
+  if (navigationaid && rawFeature.geometry?.type === 'Point') {
+    const lightDirection = parseFloat(
+      rawFeature.properties?.['light:direction'] ?? '',
+    );
+    layers.airport.push(
+      feature(
+        rawFeature.geometry,
+        {
+          aeroway: 'navigationaid',
+          navigationaid,
+          light_colour:
+            rawFeature.properties?.['light:colour'] ??
+            rawFeature.properties?.['light:color'],
+          light_shape: rawFeature.properties?.['light:shape'],
+          light_direction: Number.isFinite(lightDirection)
+            ? lightDirection
+            : undefined,
+          osm_id: osmId(rawFeature),
+        },
+        { minzoom: 14, maxzoom: 14 },
+      ),
+    );
+  }
+
   const aeroway = rawFeature.properties?.aeroway;
   if (!aeroway) {
+    return layers;
+  }
+
+  if (aeroway === 'windsock' && rawFeature.geometry?.type === 'Point') {
+    layers.airport.push(
+      feature(
+        rawFeature.geometry,
+        {
+          aeroway: 'windsock',
+          osm_id: osmId(rawFeature),
+        },
+        { minzoom: 13, maxzoom: 14 },
+      ),
+    );
+    return layers;
+  }
+
+  if (aeroway === 'tower') {
+    // For tower outlines / building footprints, use the centroid so the icon
+    // sits at the middle of the structure rather than on its boundary
+    // (pointOnFeature would land somewhere along the perimeter).
+    let geom = null;
+    if (rawFeature.geometry?.type === 'Point') {
+      geom = rawFeature.geometry;
+    } else if (rawFeature.geometry) {
+      try {
+        geom = centroid(rawFeature).geometry;
+      } catch {
+        geom = pointGeometry(rawFeature);
+      }
+    }
+    if (geom) {
+      // OSM commonly tags the same physical tower as both a closed/open way
+      // and a multipolygon relation, plus sometimes a separate node, so the
+      // raw feed has 2-4 features per tower. Dedupe by haversine proximity
+      // within 20m, which preserves distinct towers (e.g. CPH's two ATC towers
+      // sit ~26m apart).
+      const [lon, lat] = geom.coordinates;
+      const isDuplicate = seenTowers?.some(([oLon, oLat]) => {
+        return (
+          distance(point([oLon, oLat]), point([lon, lat]), {
+            units: 'meters',
+          }) < 20
+        );
+      });
+      if (!isDuplicate) {
+        seenTowers?.push([lon, lat]);
+        layers.airport.push(
+          feature(
+            geom,
+            {
+              aeroway: 'tower',
+              name: rawFeature.properties?.name,
+              osm_id: osmId(rawFeature),
+            },
+            { minzoom: 12, maxzoom: 14 },
+          ),
+        );
+      }
+    }
     return layers;
   }
 
   const rawGeometryType = geometryType(rawFeature);
 
   if (
-    (aeroway === 'runway' ||
-      aeroway === 'taxiway' ||
-      aeroway === 'jet_bridge') &&
+    aeroway === 'parking_position' &&
     ['LineString', 'MultiLineString'].includes(rawGeometryType)
   ) {
     layers.airport.push(
-      feature(
-        rawFeature.geometry,
-        airportFeatureProperties(
-          rawFeature,
-          aeroway === 'jet_bridge' ? 'jet_bridge' : aeroway,
-        ),
-      ),
+      feature(rawFeature.geometry, {
+        aeroway: 'parking_position',
+        ref: rawFeature.properties?.ref,
+        name: rawFeature.properties?.name,
+        osm_id: osmId(rawFeature),
+      }),
     );
+  }
+
+  if (
+    (aeroway === 'runway' ||
+      isTaxiwayLike(aeroway) ||
+      aeroway === 'jet_bridge') &&
+    ['LineString', 'MultiLineString'].includes(rawGeometryType)
+  ) {
+    const isRunway = aeroway === 'runway';
+    const runwayBbox = isRunway ? computeBbox(rawFeature.geometry) : null;
+    const hasOsmMarkings =
+      isRunway && markingBboxes?.some((mb) => bboxesIntersect(runwayBbox, mb));
+
+    const props = airportFeatureProperties(
+      rawFeature,
+      aeroway === 'jet_bridge' ? 'jet_bridge' : aeroway,
+    );
+    if (hasOsmMarkings) props.has_osm_markings = true;
+
+    layers.airport.push(feature(rawFeature.geometry, props));
+
+    if (aeroway === 'runway' || isTaxiwayLike(aeroway)) {
+      const widthM = parseMeters(rawFeature.properties?.width);
+      const polygon = bufferedLinePolygon(rawFeature, widthM);
+      if (polygon) {
+        const polyProps = airportFeatureProperties(rawFeature, aeroway);
+        if (hasOsmMarkings) polyProps.has_osm_markings = true;
+        layers.airport.push(feature(polygon, polyProps));
+      }
+
+      if (isRunway && !hasOsmMarkings) {
+        layers.airport.push(
+          ...generateRunwayEndpointFeatures(rawFeature, widthM),
+        );
+      }
+    }
   }
 
   if (
@@ -357,7 +668,7 @@ const normalizeRawFeature = (rawFeature, seenAirportNodes) => {
     );
   }
 
-  if (aeroway === 'taxiway' && labelName(rawFeature)) {
+  if (isTaxiwayLike(aeroway) && labelName(rawFeature)) {
     layers.airport_labels.push(
       feature(
         rawFeature.geometry,
@@ -384,6 +695,26 @@ const normalizeRawFeature = (rawFeature, seenAirportNodes) => {
     if (geometry) {
       layers.airport_labels.push(
         feature(geometry, airportLabelProperties(rawFeature, 'gate')),
+      );
+    }
+  }
+
+  if (aeroway === 'marking') {
+    if (['Polygon', 'MultiPolygon'].includes(rawGeometryType)) {
+      layers.airport.push(
+        feature(
+          rawFeature.geometry,
+          airportFeatureProperties(rawFeature, 'marking'),
+          { minzoom: 14, maxzoom: 14 },
+        ),
+      );
+    } else if (['LineString', 'MultiLineString'].includes(rawGeometryType)) {
+      layers.airport.push(
+        feature(
+          rawFeature.geometry,
+          airportFeatureProperties(rawFeature, 'marking'),
+          { minzoom: 14, maxzoom: 14 },
+        ),
       );
     }
   }
@@ -513,7 +844,7 @@ const runOsmiumPipeline = async (input, tempDir) => {
     '-o',
     filteredPath,
     input,
-    FILTER_EXPRESSION,
+    ...FILTER_EXPRESSIONS,
   ]);
 
   console.log(`Exporting ${baseName} to GeoJSONSeq...`);
@@ -532,7 +863,30 @@ const runOsmiumPipeline = async (input, tempDir) => {
   return { baseName, exportPath, filteredPath };
 };
 
+const collectMarkingBboxes = async (exportPath, baseName) => {
+  const state = {
+    baseName,
+    bytesRead: 0,
+    totalBytes: statSync(exportPath).size,
+    featureCount: 0,
+    lastLoggedAt: Date.now(),
+  };
+  const bboxes = [];
+  for await (const f of geoJsonSeqRecords(exportPath, state)) {
+    if (f.properties?.aeroway === 'marking' && f.geometry?.coordinates) {
+      bboxes.push(computeBbox(f.geometry));
+    }
+  }
+  return bboxes;
+};
+
 const processExport = async (exportPath, layerFiles, totals, baseName) => {
+  console.log(`Scanning ${baseName} for existing OSM markings...`);
+  const markingBboxes = await collectMarkingBboxes(exportPath, baseName);
+  console.log(
+    `  Found ${markingBboxes.length} OSM markings; runways near these will skip synthesized markings`,
+  );
+
   const state = {
     baseName,
     bytesRead: 0,
@@ -542,6 +896,7 @@ const processExport = async (exportPath, layerFiles, totals, baseName) => {
   };
   const layerBatches = createLayerBatches();
   const seenAirportNodes = new Set();
+  const seenTowers = [];
 
   console.log(
     `Normalizing ${baseName} from ${formatBytes(state.totalBytes)} of GeoJSONSeq...`,
@@ -549,7 +904,12 @@ const processExport = async (exportPath, layerFiles, totals, baseName) => {
 
   for await (const rawFeature of geoJsonSeqRecords(exportPath, state)) {
     state.featureCount += 1;
-    const layers = normalizeRawFeature(rawFeature, seenAirportNodes);
+    const layers = normalizeRawFeature(
+      rawFeature,
+      seenAirportNodes,
+      markingBboxes,
+      seenTowers,
+    );
 
     for (const layerId of LAYER_IDS) {
       if (!layers[layerId].length) {

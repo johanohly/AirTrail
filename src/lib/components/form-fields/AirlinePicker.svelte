@@ -5,7 +5,7 @@
   import { writable } from 'svelte/store';
   import { fly } from 'svelte/transition';
 
-  import AirlineIcon from '$lib/components/display/AirlineIcon.svelte';
+  import { AirlineIcon } from '$lib/components/display';
   import type { Airline } from '$lib/db/types';
   import { api } from '$lib/trpc';
   import { cn, toTitleCase } from '$lib/utils';

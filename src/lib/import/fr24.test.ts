@@ -71,25 +71,68 @@ describe('processFR24File', () => {
     expect(result.flights[0]?.arrival).toBeNull();
   });
 
-  it('rejects month-only FR24 dates with invalid months', async () => {
+  it('skips month-only FR24 dates with invalid months', async () => {
     const content = `Date,Flight number,From,To,Dep time,Arr time,Duration,Airline,Aircraft,Registration,Seat number,Seat type,Flight class,Flight reason,Note\n2006-13,,Dunedin / Momona (DUD/NZDN),Christchurch / Christchurch (CHC/NZCH),00:00:00,00:00:00,00:41:00,Air New Zealand (NZ/ANZ),ATR 72-200 (AT72),,,0,1,1,`;
 
-    await expect(
-      processFR24File(content, {
-        filterOwner: false,
-        airlineFromFlightNumber: true,
-      }),
-    ).rejects.toBe(true);
+    const result = await processFR24File(content, {
+      filterOwner: false,
+      airlineFromFlightNumber: true,
+    });
+
+    expect(result.flights).toHaveLength(0);
+    expect(result.skippedRows).toBe(1);
   });
 
-  it('rejects day-precision FR24 dates that do not exist', async () => {
+  it('skips day-precision FR24 dates that do not exist', async () => {
     const content = `Date,Flight number,From,To,Dep time,Arr time,Duration,Airline,Aircraft,Registration,Seat number,Seat type,Flight class,Flight reason,Note\n2006-02-30,,Dunedin / Momona (DUD/NZDN),Christchurch / Christchurch (CHC/NZCH),00:00:00,00:00:00,00:41:00,Air New Zealand (NZ/ANZ),ATR 72-200 (AT72),,,0,1,1,`;
 
-    await expect(
-      processFR24File(content, {
-        filterOwner: false,
-        airlineFromFlightNumber: true,
-      }),
-    ).rejects.toBe(true);
+    const result = await processFR24File(content, {
+      filterOwner: false,
+      airlineFromFlightNumber: true,
+    });
+
+    expect(result.flights).toHaveLength(0);
+    expect(result.skippedRows).toBe(1);
+  });
+
+  it('skips dateless rows but keeps valid rows', async () => {
+    const content = `Date,Flight number,From,To,Dep time,Arr time,Duration,Airline,Aircraft,Registration,Seat number,Seat type,Flight class,Flight reason,Note
+2006-02-01,,Dunedin / Momona (DUD/NZDN),Christchurch / Christchurch (CHC/NZCH),00:00:00,00:00:00,00:41:00,Air New Zealand (NZ/ANZ),ATR 72-200 (AT72),,,0,1,1,
+,,Dunedin / Momona (DUD/NZDN),Christchurch / Christchurch (CHC/NZCH),00:00:00,00:00:00,00:41:00,Air New Zealand (NZ/ANZ),ATR 72-200 (AT72),,,0,1,1,`;
+
+    const result = await processFR24File(content, {
+      filterOwner: false,
+      airlineFromFlightNumber: true,
+    });
+
+    expect(result.flights).toHaveLength(1);
+    expect(result.flights[0]?.date).toBe('2006-02-01');
+    expect(result.skippedRows).toBe(1);
+  });
+
+  it('extracts ICAO from airports with digit-IATA placeholders like NA0', async () => {
+    const content = `Date,Flight number,From,To,Dep time,Arr time,Duration,Airline,Aircraft,Registration,Seat number,Seat type,Flight class,Flight reason,Note\n2017-06-30,,Harle / Harle (NA0/EDXP),Wangerooge / Wangerooge (AGE/EDWG),09:00:00,09:10:00,00:10:00,Inselflieger (/LFH),Britten-Norman Islander (BN2P),D-ILFH,,1,1,1,`;
+
+    const result = await processFR24File(content, {
+      filterOwner: false,
+      airlineFromFlightNumber: true,
+    });
+
+    expect(result.flights).toHaveLength(1);
+    expect(getAirportByIcao).toHaveBeenCalledWith('EDXP');
+    expect(getAirportByIcao).toHaveBeenCalledWith('EDWG');
+    expect(result.skippedRows).toBe(0);
+  });
+
+  it('extracts ICAO from airlines with empty IATA like (/LFH)', async () => {
+    const content = `Date,Flight number,From,To,Dep time,Arr time,Duration,Airline,Aircraft,Registration,Seat number,Seat type,Flight class,Flight reason,Note\n2017-06-30,,Harle / Harle (NA0/EDXP),Wangerooge / Wangerooge (AGE/EDWG),09:00:00,09:10:00,00:10:00,Inselflieger (/LFH),Britten-Norman Islander (BN2P),D-ILFH,,1,1,1,`;
+
+    const result = await processFR24File(content, {
+      filterOwner: false,
+      airlineFromFlightNumber: true,
+    });
+
+    expect(result.flights).toHaveLength(1);
+    expect(getAirlineByIcao).toHaveBeenCalledWith('LFH');
   });
 });

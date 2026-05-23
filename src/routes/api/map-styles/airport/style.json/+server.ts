@@ -1,5 +1,9 @@
 import type { RequestHandler } from './$types';
 
+import {
+  getArcgisWorldImageryStyle,
+  normalizeMapBasemap,
+} from '$lib/map/basemap';
 import { getCartoBasemapStyleUrl, normalizeCartoTheme } from '$lib/map/carto';
 import { buildPmtilesAirportStyle } from '$lib/map/airport-style';
 
@@ -54,9 +58,18 @@ const fetchBaseStyle = async (fetchFn: typeof fetch, url: string) => {
 
 export const GET: RequestHandler = async ({ fetch, url }) => {
   const theme = normalizeCartoTheme(url.searchParams.get('theme') ?? 'light');
-  const baseStyleUrl = getCartoBasemapStyleUrl(theme);
+  const basemap = normalizeMapBasemap(url.searchParams.get('basemap'));
 
   try {
+    if (basemap === 'satellite') {
+      return Response.json(getArcgisWorldImageryStyle(), {
+        headers: {
+          'cache-control': 'public, max-age=300, stale-while-revalidate=3600',
+        },
+      });
+    }
+
+    const baseStyleUrl = getCartoBasemapStyleUrl(theme);
     const baseStyle = await fetchBaseStyle(fetch, baseStyleUrl);
     const style = buildPmtilesAirportStyle(baseStyle, theme);
 

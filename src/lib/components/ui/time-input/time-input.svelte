@@ -7,12 +7,14 @@
     onValueChange,
     locale,
     disabled = false,
+    invalid = false,
     class: className,
   }: {
     value: Time | undefined;
     onValueChange?: (value: Time | undefined) => void;
     locale: string;
     disabled?: boolean;
+    invalid?: boolean;
     class?: string;
   } = $props();
 
@@ -52,6 +54,7 @@
   <div class="flex w-full flex-col gap-1.5">
     <TimeField.Input
       bind:ref={inputRef}
+      aria-invalid={invalid ? 'true' : undefined}
       class={className}
       onkeyup={syncClearedValue}
       onfocusout={syncClearedValue}
