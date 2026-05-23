@@ -330,10 +330,9 @@
   const getArcWidth = (d: FlightArc) => {
     if (mapPreferences.arcThickness === 'byFrequency') {
       const normalizedFreq = getArcFrequencyPercentile(d);
+      const scaledFreq = 1 + normalizedFreq * 2;
       return (
-        normalizedFreq *
-        3 *
-        FREQUENCY_ARC_MULTIPLIER[mapPreferences.arcThicknessScale]
+        scaledFreq * FREQUENCY_ARC_MULTIPLIER[mapPreferences.arcThicknessScale]
       );
     }
     return UNIFORM_ARC_WIDTH[mapPreferences.arcThicknessScale];
