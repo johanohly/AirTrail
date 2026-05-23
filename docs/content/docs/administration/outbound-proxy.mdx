@@ -1,0 +1,53 @@
+---
+title: Outbound Proxy
+---
+
+AirTrail normally connects directly to third-party APIs from the server. If your deployment environment requires outbound HTTP(S) traffic to go through a proxy, configure Node.js standard proxy environment variables for the AirTrail process.
+
+## Requirements
+
+Node.js 22.21.0 or newer is required for `NODE_USE_ENV_PROXY`.
+
+AirTrail Docker images use a compatible Node.js 22 runtime. If you build the image yourself, rebuild with a current `node:22-slim` base image.
+
+<Callout>
+  Node.js currently labels this proxy support as active development and may log
+  an `UNDICI-EHPA` experimental warning when it is enabled.
+</Callout>
+
+## Docker Compose
+
+Add the proxy variables to the `airtrail` service environment or to the `.env` file used by Docker Compose:
+
+```bash
+NODE_USE_ENV_PROXY=1
+HTTPS_PROXY=http://proxy.example.com:8080
+HTTP_PROXY=http://proxy.example.com:8080
+NO_PROXY=localhost,127.0.0.1,db,airtrail_db
+```
+
+## Manual Installation
+
+Set the variables before starting AirTrail:
+
+```bash
+NODE_USE_ENV_PROXY=1 \
+HTTPS_PROXY=http://proxy.example.com:8080 \
+HTTP_PROXY=http://proxy.example.com:8080 \
+NO_PROXY=localhost,127.0.0.1 \
+bun ./build
+```
+
+## TLS Inspection
+
+If your proxy intercepts TLS traffic, Node.js may also need to trust your organization's certificate authority:
+
+```bash
+NODE_EXTRA_CA_CERTS=/path/to/corporate-ca.pem
+```
+
+## Notes
+
+- This uses Node.js built-in proxy support.
+- SOCKS proxies are not supported by this setup.
+- These variables affect outbound server-side HTTP(S) requests made by the AirTrail process.
