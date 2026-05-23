@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 344 241" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g transform="matrix(4.166667,0,0,4.166667,0,0)">
+        <g transform="matrix(1,0,0,1,-0.4,-5.6)">
+            <g>
+                <path d="M10,13.1L0.4,21.6L0.4,25.5L8.4,22.5L14.5,13.1L10,13.1Z" style="fill:rgb(91,202,244);fill-rule:nonzero;"/>
+                <path d="M0.4,25.5L1.3,30.3L8.4,22.5L0.4,25.5Z" style="fill:rgb(68,172,225);fill-rule:nonzero;"/>
+                <path d="M18.2,9.9L10,13.1L14.5,13.1L18.2,9.9Z" style="fill:rgb(0,122,193);fill-rule:nonzero;"/>
+                <path d="M14.5,13.1L8.4,22.5L22.3,17.9L14.5,13.1Z" style="fill:rgb(0,122,193);fill-rule:nonzero;"/>
+                <path d="M41.7,19L22.3,17.9L27.9,25.5L41.7,19Z" style="fill:rgb(0,122,193);fill-rule:nonzero;"/>
+                <path d="M12.4,33.2L1.8,33.3L13.9,37.3L12.4,33.2Z" style="fill:rgb(91,202,244);fill-rule:nonzero;"/>
+                <path d="M8.4,22.5L1.3,30.3L1.8,33.3L12.4,33.2L8.4,22.5Z" style="fill:rgb(0,122,193);fill-rule:nonzero;"/>
+                <path d="M22.3,17.9L8.4,22.5L12.4,33.2L27.9,25.5L22.3,17.9Z" style="fill:rgb(91,202,244);fill-rule:nonzero;"/>
+                <path d="M27.9,25.5L27.6,38.5L41.7,38.4L41.7,35.5L27.9,25.5Z" style="fill:rgb(0,122,193);fill-rule:nonzero;"/>
+                <path d="M27.9,25.5L12.4,33.2L13.9,37.3L27.6,38.5L27.9,25.5Z" style="fill:rgb(68,172,225);fill-rule:nonzero;"/>
+                <path d="M41.7,35.5L55.4,25.5L41.7,19L27.9,25.5L41.7,35.5Z" style="fill:rgb(91,202,244);fill-rule:nonzero;"/>
+                <path d="M22.3,17.9L41.7,19L61,17.9L68.8,13.1L65.1,9.9L41.7,5.6L18.2,9.9L14.5,13.1L22.3,17.9Z" style="fill:rgb(68,172,225);fill-rule:nonzero;"/>
+                <path d="M1.8,33.3L24.5,50.4L13.9,37.3L1.8,33.3Z" style="fill:rgb(68,172,225);fill-rule:nonzero;"/>
+                <path d="M13.9,37.3L37.6,56.4L27.6,38.5L13.9,37.3Z" style="fill:rgb(91,202,244);fill-rule:nonzero;"/>
+                <path d="M27.6,38.5L37.6,56.4L41.7,38.4L27.6,38.5Z" style="fill:rgb(68,172,225);fill-rule:nonzero;"/>
+                <path d="M73.3,13.1L68.8,13.1L74.9,22.5L82.9,25.5L82.9,21.6L73.3,13.1Z" style="fill:rgb(91,202,244);fill-rule:nonzero;"/>
+                <path d="M82,30.3L82.9,25.5L74.9,22.5L82,30.3Z" style="fill:rgb(0,122,193);fill-rule:nonzero;"/>
+                <path d="M73.3,13.1L65.1,9.9L68.8,13.1L73.3,13.1Z" style="fill:rgb(0,122,193);fill-rule:nonzero;"/>
+                <path d="M74.9,22.5L68.8,13.1L61,17.9L74.9,22.5Z" style="fill:rgb(0,122,193);fill-rule:nonzero;"/>
+                <path d="M61,17.9L41.7,19L55.4,25.5L61,17.9Z" style="fill:rgb(0,122,193);fill-rule:nonzero;"/>
+                <path d="M69.4,37.3L81.5,33.3L70.9,33.2L69.4,37.3Z" style="fill:rgb(91,202,244);fill-rule:nonzero;"/>
+                <path d="M70.9,33.2L81.5,33.3L82,30.3L74.9,22.5L70.9,33.2Z" style="fill:rgb(68,172,225);fill-rule:nonzero;"/>
+                <path d="M55.4,25.5L70.9,33.2L74.9,22.5L61,17.9L55.4,25.5Z" style="fill:rgb(91,202,244);fill-rule:nonzero;"/>
+                <path d="M41.7,38.4L55.7,38.5L55.4,25.5L41.7,35.5L41.7,38.4Z" style="fill:rgb(68,172,225);fill-rule:nonzero;"/>
+                <path d="M55.7,38.5L69.4,37.3L70.9,33.2L55.4,25.5L55.7,38.5Z" style="fill:rgb(0,122,193);fill-rule:nonzero;"/>
+                <path d="M58.8,50.4L81.5,33.3L69.4,37.3L58.8,50.4Z" style="fill:rgb(68,172,225);fill-rule:nonzero;"/>
+                <path d="M45.7,56.4L41.7,38.4L37.6,56.4L13.9,37.3L24.5,50.4L41.7,63.4L58.8,50.4L69.4,37.3L45.7,56.4Z" style="fill:rgb(0,122,193);fill-rule:nonzero;"/>
+                <path d="M45.7,56.4L69.4,37.3L55.7,38.5L45.7,56.4Z" style="fill:rgb(68,172,225);fill-rule:nonzero;"/>
+                <path d="M41.7,38.4L45.7,56.4L55.7,38.5L41.7,38.4Z" style="fill:rgb(91,202,244);fill-rule:nonzero;"/>
+            </g>
+        </g>
+    </g>
+</svg>
