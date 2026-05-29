@@ -6202,6 +6202,13 @@
     "defunct": false
   },
   {
+    "id": "flybe",
+    "name": "Flybe",
+    "icao": "BEE",
+    "iata": "BE",
+    "defunct": true
+  },
+  {
     "id": "flybig",
     "name": "FlyBig",
     "icao": "FLG",
