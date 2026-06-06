@@ -4,7 +4,11 @@ import {
   getArcgisWorldImageryStyle,
   normalizeMapBasemap,
 } from '$lib/map/basemap';
-import { getCartoBasemapStyleUrl, normalizeCartoTheme } from '$lib/map/carto';
+import {
+  getCartoBasemapStyleUrl,
+  getCartoFallbackBasemapStyle,
+  normalizeCartoTheme,
+} from '$lib/map/carto';
 import { buildPmtilesAirportStyle } from '$lib/map/airport-style';
 
 const BASE_STYLE_TTL_MS = 60 * 60 * 1000;
@@ -70,7 +74,14 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
     }
 
     const baseStyleUrl = getCartoBasemapStyleUrl(theme);
-    const baseStyle = await fetchBaseStyle(fetch, baseStyleUrl);
+    let baseStyle: Record<string, unknown>;
+
+    try {
+      baseStyle = await fetchBaseStyle(fetch, baseStyleUrl);
+    } catch {
+      baseStyle = getCartoFallbackBasemapStyle(theme);
+    }
+
     const style = buildPmtilesAirportStyle(baseStyle, theme);
 
     return Response.json(style, {
