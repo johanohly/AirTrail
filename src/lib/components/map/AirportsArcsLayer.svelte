@@ -20,6 +20,7 @@
     type Route,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
+  import { GlobeOcclusionExtension } from '$lib/map/globe-occlusion';
   import { mapPreferences } from '$lib/map/map-preferences.svelte';
   import {
     closeMapDetails,
@@ -36,11 +37,29 @@
 
   const AIRPORT_COLOR = (alpha: number): Color => [16, 185, 129, alpha]; // Tailwind emerald-500
   const INACTIVE_COLOR = (alpha: number): Color => [113, 113, 122, alpha];
-  const FROM_COLOR = [59, 130, 246]; // Also the primary color
-  const TO_COLOR = [139, 92, 246]; // TW violet-500
-  const HIGH_FREQUENCY_COLOR = [239, 68, 68]; // TW red-500
+  const FROM_COLOR = [59, 130, 246] as const; // Also the primary color
+  const TO_COLOR = [139, 92, 246] as const; // TW violet-500
+  const HIGH_FREQUENCY_COLOR = [239, 68, 68] as const; // TW red-500
   const HOVER_COLOR = [16, 185, 129];
   const FUTURE_COLOR = [102, 217, 239, 100];
+
+  // In globe mode deck shares MapLibre's depth buffer but reconstructs its
+  // own globe projection, so surface geometry can never depth-test cleanly
+  // against the basemap globe (z-fighting). Depth is skipped entirely and
+  // GlobeOcclusionExtension hides the far side of the globe instead.
+  const GLOBE_ARC_PARAMETERS = {
+    // Arc ribbons are extruded in screen space, so their winding is
+    // unreliable on the globe — never cull them.
+    cullMode: 'none',
+    depthCompare: 'always',
+    depthWriteEnabled: false,
+  } as const;
+  const GLOBE_AIRPORT_PARAMETERS = {
+    cullMode: 'back',
+    depthCompare: 'always',
+    depthWriteEnabled: false,
+  } as const;
+  const globeOcclusion = new GlobeOcclusionExtension();
 
   const interpolateColor = (
     from: readonly [number, number, number],
@@ -54,7 +73,6 @@
       Math.round(from[2] + (to[2] - from[2]) * clampedT),
     ];
   };
-
   let {
     flights,
     flightArcs,
@@ -113,6 +131,59 @@
     return arcFrequencyPercentileByRoute[routeKey] ?? 0;
   };
 
+  // deck's picking coordinate is unprojected through deck's own globe
+  // viewport, which drifts from MapLibre during the globe<->mercator
+  // transition zooms — anchor popups via the raw pointer position instead.
+  const getPointerLngLat = (
+    e: PickingInfo,
+    event?: DeckPointerEvent,
+  ): [number, number] | undefined => {
+    const point =
+      event?.srcEvent?.point ??
+      event?.offsetCenter ??
+      (e.pixel ? { x: e.pixel[0], y: e.pixel[1] } : undefined) ??
+      (Number.isFinite(e.x) && Number.isFinite(e.y)
+        ? { x: e.x, y: e.y }
+        : undefined);
+
+    if (event?.srcEvent?.lngLat) {
+      return [event.srcEvent.lngLat.lng, event.srcEvent.lngLat.lat];
+    }
+
+    if (map && point) {
+      const lngLat = map.unproject([point.x, point.y]);
+      return [lngLat.lng, lngLat.lat];
+    }
+
+    const srcEvent = event?.srcEvent;
+    if (
+      map &&
+      typeof srcEvent?.clientX === 'number' &&
+      typeof srcEvent.clientY === 'number'
+    ) {
+      const rect = map.getContainer().getBoundingClientRect();
+      const lngLat = map.unproject([
+        srcEvent.clientX - rect.left,
+        srcEvent.clientY - rect.top,
+      ]);
+      return [lngLat.lng, lngLat.lat];
+    }
+
+    return e.coordinate?.length
+      ? ([e.coordinate[0], e.coordinate[1]] as [number, number])
+      : undefined;
+  };
+
+  type DeckPointerEvent = {
+    offsetCenter?: { x: number; y: number };
+    srcEvent?: Event & {
+      point?: { x: number; y: number };
+      lngLat?: { lng: number; lat: number };
+      clientX?: number;
+      clientY?: number;
+    };
+  };
+
   let id = getId('deckgl-layer');
   let hoveredAirport: VisitedAirport | undefined = $state.raw(undefined);
   let hoveredArc: FlightArc | undefined = $state.raw(undefined);
@@ -125,24 +196,39 @@
   layerId.value = id;
   setPopupTarget(new Box(undefined));
 
-  const handleAirportHover = (e: PickingInfo<VisitedAirport>) => {
+  const getProjectionType = () => {
+    const projection = map?.getProjection?.() as
+      | { type?: string; name?: string }
+      | undefined;
+    return projection?.type ?? projection?.name ?? 'unknown';
+  };
+
+  const handleAirportHover = (
+    e: PickingInfo<VisitedAirport>,
+    event?: DeckPointerEvent,
+  ) => {
     if (!isTouchDevice()) {
       hoveredAirport = e.object ?? undefined;
       const type = e.index !== -1 ? 'mousemove' : 'mouseleave';
       layerEvent.value = {
         ...e,
+        coordinate: getPointerLngLat(e, event),
         layerType: 'deckgl',
         type,
       };
     }
   };
 
-  const handleArcHover = (e: PickingInfo<FlightArc>) => {
+  const handleArcHover = (
+    e: PickingInfo<FlightArc>,
+    event?: DeckPointerEvent,
+  ) => {
     if (!isTouchDevice()) {
       hoveredArc = e.object ?? undefined;
       const type = e.index !== -1 ? 'mousemove' : 'mouseleave';
       layerEvent.value = {
         ...e,
+        coordinate: getPointerLngLat(e, event),
         layerType: 'deckgl',
         type,
       };
@@ -172,6 +258,9 @@
   };
 
   let layer: MapboxOverlay | undefined = $state();
+  let layerProjection: string | undefined = $state(undefined);
+  let currentMapProjection = $state('unknown');
+  const isGlobe = $derived(mapPreferences.projection === 'globe');
 
   onDestroy(() => {
     if (loaded && layer) {
@@ -181,6 +270,25 @@
 
   $effect(() => {
     layerId.value = id;
+  });
+
+  // The deck overlay must match the basemap's actual projection, which lags
+  // the preference while MapLibre transitions between projections.
+  $effect(() => {
+    if (!map) return;
+
+    const syncMapProjection = () => {
+      currentMapProjection = getProjectionType();
+    };
+
+    syncMapProjection();
+    (map.on as any)('projectiontransition', syncMapProjection);
+    map.on('styledata', syncMapProjection);
+
+    return () => {
+      (map.off as any)('projectiontransition', syncMapProjection);
+      map.off('styledata', syncMapProjection);
+    };
   });
 
   const selectedAirportId = $derived.by(() => {
@@ -207,7 +315,6 @@
     if (!selectedRoute) return [];
     return [Number(selectedRoute.a), Number(selectedRoute.b)];
   });
-
   const getAirportFillColor = () => {
     return (airport: (typeof visitedAirports)[number]): Color => {
       if (selectedAirportId === airport.id) {
@@ -265,8 +372,8 @@
     };
   };
 
-  const getArcColor = (point: 'source' | 'target') => {
-    const baseArcColor = (d: FlightArc): Color => {
+  const getBaseArcColor = (point: 'source' | 'target') => {
+    return (d: FlightArc): Color => {
       if (d.exclusivelyFuture) {
         return FUTURE_COLOR;
       }
@@ -281,6 +388,10 @@
       }
       return point === 'source' ? FROM_COLOR : TO_COLOR;
     };
+  };
+
+  const getArcColor = (point: 'source' | 'target') => {
+    const baseArcColor = getBaseArcColor(point);
 
     return (d: (typeof flightArcs)[number]) => {
       if (hoveredArc?.from === d.from && hoveredArc?.to === d.to) {
@@ -352,6 +463,8 @@
     const baseUnits = $isMediumScreen ? 50_000 : 100_000;
     return {
       id: 'scatterplot-layer',
+      parameters: isGlobe ? GLOBE_AIRPORT_PARAMETERS : undefined,
+      extensions: [globeOcclusion],
       data: visitedAirports,
       getPosition: (airport: VisitedAirport) => [airport.lon, airport.lat],
       getRadius: (airport: VisitedAirport) =>
@@ -390,6 +503,8 @@
 
   const arcOptions = $derived.by(() => ({
     id: 'arc-layer',
+    parameters: isGlobe ? GLOBE_ARC_PARAMETERS : undefined,
+    extensions: [globeOcclusion],
     data: flightArcs,
     getSourcePosition: (data: FlightArc) => [data.from.lon, data.from.lat],
     getTargetPosition: (data: FlightArc) => [data.to.lon, data.to.lat],
@@ -428,6 +543,8 @@
   // This allows for a larger hover area while keeping the visual arc thin
   const ghostArcOptions = $derived({
     id: 'ghost-arc',
+    parameters: isGlobe ? GLOBE_ARC_PARAMETERS : undefined,
+    extensions: [globeOcclusion],
     data: flightArcs,
     getSourcePosition: (data: FlightArc) => [data.from.lon, data.from.lat],
     getTargetPosition: (data: FlightArc) => [data.to.lon, data.to.lat],
@@ -451,23 +568,36 @@
     return layers;
   };
 
+  // Globe needs interleaved rendering (deck draws into MapLibre's canvas so
+  // the planet can occlude far-side geometry); mercator keeps the original
+  // separate-canvas overlay. Switching requires recreating the overlay.
   $effect(() => {
-    if (loaded && map && !layer) {
-      layer = new MapboxOverlay({
-        id,
-        onClick: handleMapClick,
-        layers: buildLayers(),
-      });
-      map.addControl(layer);
-      // Prevent the deck.gl overlay from rendering above map controls
-      if (layer._container) {
-        layer._container.style.zIndex = '-1';
-      }
+    if (!loaded || !map) return;
+    if (currentMapProjection !== mapPreferences.projection) return;
+    if (layer && layerProjection === mapPreferences.projection) return;
+
+    if (layer) {
+      map.removeControl(layer);
+    }
+
+    const nextLayer = new MapboxOverlay({
+      id,
+      interleaved: isGlobe,
+      onClick: handleMapClick,
+      layers: buildLayers(),
+    });
+    map.addControl(nextLayer);
+    layer = nextLayer;
+    layerProjection = mapPreferences.projection;
+    // Prevent the deck.gl overlay from rendering above map controls when not interleaved.
+    if (layer._container) {
+      layer._container.style.zIndex = '-1';
     }
   });
 
   $effect(() => {
-    layer?.setProps({
+    if (!layer || layerProjection !== mapPreferences.projection) return;
+    layer.setProps({
       onClick: handleMapClick,
       layers: buildLayers(),
     });
