@@ -37,6 +37,7 @@
     getAppMapImages,
     getConfiguredAppMapStyleUrl,
   } from '$lib/map/app-style';
+  import { globeCameraForArcs } from '$lib/map/globe-fit';
   import {
     initMapPreferences,
     mapPreferences,
@@ -68,7 +69,6 @@
   } from '$lib/utils';
   import { isMediumScreen } from '$lib/utils/size';
 
-  const { GlobeControl } = maplibregl;
   const unregisterPmtiles = browser ? registerPmtilesProtocol() : null;
 
   onDestroy(() => unregisterPmtiles?.());
@@ -128,6 +128,8 @@
       ? `${window.location.origin}${base}${OPENAIP_TILE_URL_TEMPLATE}`
       : `${base}${OPENAIP_TILE_URL_TEMPLATE}`,
   );
+  const projection = $derived({ type: mapPreferences.projection });
+  const mapRotationEnabled = $derived(mapPreferences.projection === 'mercator');
   const hiddenAirportLabelLayerIds = ['airport-overlay-name-label'];
   const airportDetailVisibility = $derived(
     mapPreferences.basemap === 'default' &&
@@ -135,6 +137,17 @@
       ? 'visible'
       : 'none',
   );
+
+  const resetUnsupportedCamera = (m: maplibregl.Map) => {
+    const bearing = mapRotationEnabled ? m.getBearing() : 0;
+    if (m.getPitch() === 0 && m.getBearing() === bearing) return;
+    m.easeTo({
+      pitch: 0,
+      bearing,
+      duration: 0,
+      essential: true,
+    });
+  };
 
   const flightArcs = $derived.by(() => {
     return prepareFlightArcData(filteredFlights);
@@ -155,19 +168,41 @@
   export const fitFlights = () => {
     if (!map || !flightArcs) return;
 
-    const bounds = calculateBounds(flightArcs);
-    if (!bounds) return;
-
     // Add breathing-room margin on top of any current panel padding so this
     // also looks reasonable when a details panel is open. Set via setPadding
     // (no `padding` option on fitBounds) to avoid maplibre's double-counting.
     const base = detailsPanePadding();
-    map.setPadding({
+    const padding = {
       top: base.top + 60,
       right: base.right + 60,
       bottom: base.bottom + 60,
       left: base.left + 60,
-    });
+    };
+
+    // On the globe a bounding-box fit can be unsatisfiable (flights spanning
+    // more than a hemisphere make fitBounds silently give up), so fit a
+    // spherical cap around the flights instead.
+    if (mapPreferences.projection === 'globe') {
+      const canvas = map.getCanvas();
+      const camera = globeCameraForArcs(flightArcs, {
+        width: canvas.clientWidth,
+        height: canvas.clientHeight,
+        padding,
+      });
+      if (!camera) return;
+      map.setPadding(padding);
+      map.flyTo({
+        center: camera.center,
+        zoom: camera.zoom,
+        essential: true,
+      });
+      return;
+    }
+
+    const bounds = calculateBounds(flightArcs);
+    if (!bounds) return;
+
+    map.setPadding(padding);
     map.fitBounds(bounds);
   };
 
@@ -196,8 +231,8 @@
     map.easeTo({
       center: previousCamera.center,
       zoom: previousCamera.zoom,
-      bearing: previousCamera.bearing,
-      pitch: previousCamera.pitch,
+      bearing: mapRotationEnabled ? previousCamera.bearing : 0,
+      pitch: 0,
       duration: 650,
       essential: true,
     });
@@ -325,6 +360,32 @@
     return bindRuntimeMapImages(map, images);
   });
 
+  // Bearing and pitch are locked in globe mode (deck.gl's globe viewport
+  // cannot follow them). svelte-maplibre only applies dragRotate at map
+  // creation, and touch/keyboard rotation are separate handlers it never
+  // touches, so sync all rotation handlers here and square the camera up
+  // whenever the projection flips.
+  $effect(() => {
+    const m = map;
+    if (!m || !projection.type) return;
+    untrack(() => {
+      // Toggled on the container directly: svelte-maplibre's class prop and
+      // maplibre's own imperative classList writes fight over the class
+      // attribute, so a reactive class prop is unreliable here.
+      m.getContainer().classList.toggle('rotation-locked', !mapRotationEnabled);
+      if (mapRotationEnabled) {
+        m.dragRotate.enable();
+        m.keyboard.enableRotation();
+        m.touchZoomRotate.enableRotation();
+      } else {
+        m.dragRotate.disable();
+        m.keyboard.disableRotation();
+        m.touchZoomRotate.disableRotation();
+      }
+      resetUnsupportedCamera(m);
+    });
+  });
+
   $effect(() => {
     const m = map;
     if (!m) return;
@@ -406,24 +467,42 @@
           routeMatches(item, selection.route),
         );
         if (!arc) return;
-        const bounds = calculateBounds([arc]);
-        if (!bounds) return;
 
-        // cameraForBounds uses (edge + option) for screen size but ONLY option
-        // for the center offset, so the same total split differently produces
-        // different centers. Pin the split to edge=target/option=0 by setting
-        // persistent to target while computing — paired setPadding calls
-        // within the same JS task produce no render between, so no flicker.
-        const target = untrack(() => {
-          const saved = map!.getPadding();
-          map!.setPadding(padding);
-          const t = map!.cameraForBounds(bounds);
-          map!.setPadding(saved);
-          return t;
-        });
-        if (!target) return;
-        targetCenter = [target.center.lng, target.center.lat];
-        targetZoom = target.zoom;
+        if (mapPreferences.projection === 'globe') {
+          // Same spherical-cap fit as fitFlights: cameraForBounds can
+          // silently fail on the globe for very long routes. The fit is a
+          // pure function of arc + padding, so a reselect after a deselect
+          // computes the same camera and `cameraMoved` stays false.
+          const canvas = map.getCanvas();
+          const camera = globeCameraForArcs([arc], {
+            width: canvas.clientWidth,
+            height: canvas.clientHeight,
+            padding,
+          });
+          if (!camera) return;
+          targetCenter = camera.center;
+          targetZoom = camera.zoom;
+        } else {
+          const bounds = calculateBounds([arc]);
+          if (!bounds) return;
+
+          // cameraForBounds uses (edge + option) for screen size but ONLY
+          // option for the center offset, so the same total split differently
+          // produces different centers. Pin the split to edge=target/option=0
+          // by setting persistent to target while computing — paired
+          // setPadding calls within the same JS task produce no render
+          // between, so no flicker.
+          const target = untrack(() => {
+            const saved = map!.getPadding();
+            map!.setPadding(padding);
+            const t = map!.cameraForBounds(bounds);
+            map!.setPadding(saved);
+            return t;
+          });
+          if (!target) return;
+          targetCenter = [target.center.lng, target.center.lat];
+          targetZoom = target.zoom;
+        }
       }
 
       const currentCenter = map.getCenter();
@@ -490,10 +569,15 @@
   <MapLibre
     onload={() => {
       map?.touchPitch.disable();
+      if (map) resetUnsupportedCamera(map);
       fitFlights();
     }}
     bind:map
     {style}
+    {projection}
+    dragRotate={mapRotationEnabled}
+    pitchWithRotate={false}
+    maxPitch={0}
     diffStyleUpdates
     class="relative h-full"
     attributionControl={false}
@@ -579,3 +663,15 @@
 {:else}
   <MapFallback {flights} {filteredFlights} />
 {/if}
+
+<style>
+  /* The compass is dead weight while rotation is locked (globe mode):
+     bearing is pinned to 0 and the compass's own drag-to-rotate bypasses
+     the dragRotate handler. svelte-maplibre freezes NavigationControl
+     options at creation, so hide it with CSS instead of a prop.
+     !important because app.css forces `display: flex !important` on all
+     control-group buttons. */
+  :global(.rotation-locked .maplibregl-ctrl-compass) {
+    display: none !important;
+  }
+</style>

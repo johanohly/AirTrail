@@ -96,7 +96,7 @@
     "layerchart": "^2.0.0-next.46",
     "lru-cache": "^11.2.6",
     "lucia": "^3.2.2",
-    "maplibre-gl": "^5.19.0",
+    "maplibre-gl": "^5.24.0",
     "mode-watcher": "^1.1.0",
     "openid-client": "^6.8.2",
     "postcss": "^8.5.6",
