@@ -110,6 +110,7 @@
     try {
       await api.flight.deleteMany.mutate(selectedFlights);
       await trpc.flight.list.utils.invalidate();
+      await trpc.flightTrack.list.utils.invalidate();
       toast.success('Flights deleted', { id: toastId });
     } catch (err) {
       console.error(err);

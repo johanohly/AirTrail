@@ -133,6 +133,7 @@
     }
     if (flightsToImport.length > 0) {
       trpc.flight.list.utils.invalidate();
+      trpc.flightTrack.list.utils.invalidate();
     }
 
     unknownAirports = result.unknownAirports;

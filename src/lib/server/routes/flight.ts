@@ -16,6 +16,10 @@ import {
 } from '$lib/server/utils/flight';
 import { getAircraftFromReg } from '$lib/server/utils/flight-lookup/aerodatabox';
 import { getFlightRoute } from '$lib/server/utils/flight-lookup/flight-lookup';
+import {
+  flightTrackPayloadSchema,
+  type FlightTrackInput,
+} from '$lib/track/schema';
 import { generateCsv } from '$lib/utils/csv';
 import { omit } from '$lib/utils/other';
 
@@ -256,6 +260,33 @@ export const flightRouter = router({
       .execute();
     const res = await listFlights(user.id);
     const flightIds = res.map((f) => f.id);
+    const trackRows =
+      flightIds.length > 0
+        ? await db
+            .selectFrom('flightTrack')
+            .select([
+              'flightId',
+              'track',
+              'sourceFormat',
+              'sourceName',
+              'pointCount',
+            ])
+            .where('flightId', 'in', flightIds)
+            .execute()
+        : [];
+    const tracksByFlight = new Map<number, FlightTrackInput>(
+      trackRows.map((row) => {
+        const track = flightTrackPayloadSchema.parse(row.track);
+        return [
+          row.flightId,
+          {
+            ...track,
+            sourceFormat: row.sourceFormat,
+            sourceName: row.sourceName,
+          },
+        ];
+      }),
+    );
 
     // Batch-load custom field values for all flights
     const cfValueRows: CfValueRow[] =
@@ -304,6 +335,9 @@ export const flightRouter = router({
       airline: flight.airline ? omit(flight.airline, ['id']) : null,
       aircraft: flight.aircraft ? omit(flight.aircraft, ['id']) : null,
       seats: flight.seats.map((seat) => omit(seat, ['id', 'flightId'])),
+      ...(tracksByFlight.has(flight.id)
+        ? { track: tracksByFlight.get(flight.id) }
+        : {}),
       ...(cfByFlight.has(String(flight.id))
         ? { customFields: cfByFlight.get(String(flight.id)) }
         : {}),

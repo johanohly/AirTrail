@@ -10,6 +10,7 @@
     FlightCustomFieldsModal,
     FlightForm,
     FlightTerminalGateModal,
+    FlightTrackModal,
   } from '$lib/components/modals/flight-form';
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
@@ -79,6 +80,18 @@
           values.map((v) => [v.fieldId, v.value]),
         );
         savedFieldIds = new Set(values.map((v) => v.fieldId));
+        const track = await api.flightTrack.get.query(flight.id);
+        formData.update((current) => ({
+          ...current,
+          track: track
+            ? {
+                coordinates: track.coordinates,
+                ...(track.times ? { times: track.times } : {}),
+                sourceFormat: track.sourceFormat,
+                sourceName: track.sourceName,
+              }
+            : undefined,
+        }));
       } catch (e) {
         console.error(e);
       }
@@ -173,6 +186,7 @@
         if (form.message) {
           if (form.message.type === 'success') {
             trpc.flight.list.utils.invalidate();
+            trpc.flightTrack.list.utils.invalidate();
             toast.success(form.message.text);
             open = false;
             return;
@@ -209,6 +223,7 @@
       <div class="flex w-full items-center justify-between">
         <div class="flex items-center gap-2">
           <FlightTerminalGateModal {form} />
+          <FlightTrackModal {form} />
           <FlightCustomFieldsModal
             bind:this={customFieldsModal}
             definitions={$customFieldDefinitions.data ?? []}

@@ -4,11 +4,13 @@ import type {
   airport,
   api_key,
   flight,
+  flight_track,
   public_share,
   seat,
   user,
   visited_country,
 } from '$lib/db/schema';
+import type { FlightTrackInput } from '$lib/track/schema';
 import type { Insertable, Selectable } from 'kysely';
 
 export type FullUser = Selectable<user>;
@@ -32,6 +34,7 @@ export type Flight = Omit<
   aircraft: Aircraft | null;
   airline: Airline | null;
 };
+export type FlightTrack = Selectable<flight_track>;
 type CreateFlightAirport = Partial<Airport>;
 type FlightRecord = Omit<
   Selectable<flight>,
@@ -43,6 +46,7 @@ export type CreateFlight = FlightRecord & {
   aircraft: Aircraft | null;
   airline: Airline | null;
   seats: Omit<Seat, 'flightId' | 'id'>[];
+  track?: FlightTrackInput | null;
 };
 export type PublicShare = Selectable<public_share>;
 export type VisitedCountry = Selectable<visited_country>;

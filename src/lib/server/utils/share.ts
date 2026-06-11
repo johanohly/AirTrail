@@ -12,6 +12,10 @@ import type {
   PublicShare,
 } from '$lib/db/types';
 import { generateRandomString } from '$lib/server/utils/random';
+import {
+  flightTrackPayloadSchema,
+  type FlightTrackInput,
+} from '$lib/track/schema';
 import type { ErrorActionResult } from '$lib/utils/forms';
 import { baseShareSchema, type shareSchema } from '$lib/zod/share';
 
@@ -38,6 +42,7 @@ interface SanitizedFlight {
   landingActual?: string | null;
   date?: string | null;
   datePrecision?: FlightDatePrecision;
+  track?: FlightTrackInput;
 }
 
 // Zod schemas for input validation
@@ -210,6 +215,29 @@ export async function getPublicShareData(slug: string) {
 
   // Sanitize flight data based on privacy settings
   const sanitizedFlights = sanitizeFlightData(flights, share);
+  const flightIds = sanitizedFlights.map((flight) => flight.id);
+  const trackRows =
+    flightIds.length > 0
+      ? await db
+          .selectFrom('flightTrack')
+          .select(['flightId', 'track', 'sourceFormat', 'sourceName'])
+          .where('flightId', 'in', flightIds)
+          .execute()
+      : [];
+  const tracksByFlight = new Map<number, FlightTrackInput>(
+    trackRows.map((row) => {
+      const track = flightTrackPayloadSchema.parse(row.track);
+      return [
+        row.flightId,
+        {
+          coordinates: track.coordinates,
+          ...(share.showTimes && track.times ? { times: track.times } : {}),
+          sourceFormat: row.sourceFormat,
+          sourceName: row.sourceName,
+        },
+      ];
+    }),
+  );
 
   return {
     settings: {
@@ -217,7 +245,12 @@ export async function getPublicShareData(slug: string) {
       showStats: share.showStats,
       showFlightList: share.showFlightList,
     },
-    flights: sanitizedFlights,
+    flights: sanitizedFlights.map((flight) => ({
+      ...flight,
+      ...(tracksByFlight.has(flight.id)
+        ? { track: tracksByFlight.get(flight.id) }
+        : {}),
+    })),
   };
 }
 

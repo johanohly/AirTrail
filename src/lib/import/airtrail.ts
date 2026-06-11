@@ -13,6 +13,7 @@ import {
   flightOptionalInformationSchema,
   flightSeatInformationSchema,
 } from '$lib/zod/flight';
+import { flightTrackInputSchema } from '$lib/track/schema';
 
 const dateTimePrimitive = z.string().datetime({ offset: true }).nullable();
 
@@ -40,6 +41,7 @@ const AirTrailFile = z.object({
       duration: z.number().int().positive().nullable(),
       airline: airlineSchema.omit({ id: true }).nullable(),
       aircraft: aircraftSchema.omit({ id: true }).nullable(),
+      track: flightTrackInputSchema.optional(),
     })
     .merge(
       flightOptionalInformationSchema.omit({ airline: true, aircraft: true }),
@@ -200,19 +202,14 @@ export const processAirTrailFile = async (
     }
 
     if (!from) {
-      if (!unknownAirports[rawFlight.from.icao])
-        unknownAirports[rawFlight.from.icao] = [];
-      unknownAirports[rawFlight.from.icao].push(flightIndex);
+      (unknownAirports[rawFlight.from.icao] ??= []).push(flightIndex);
     }
     if (!to) {
-      if (!unknownAirports[rawFlight.to.icao])
-        unknownAirports[rawFlight.to.icao] = [];
-      unknownAirports[rawFlight.to.icao].push(flightIndex);
+      (unknownAirports[rawFlight.to.icao] ??= []).push(flightIndex);
     }
     if (!airline && rawFlight.airline?.icao) {
       const code = rawFlight.airline.icao;
-      if (!unknownAirlines[code]) unknownAirlines[code] = [];
-      unknownAirlines[code].push(flightIndex);
+      (unknownAirlines[code] ??= []).push(flightIndex);
     }
 
     flights.push({
@@ -231,6 +228,7 @@ export const processAirTrailFile = async (
       to: to || null,
       airline,
       aircraft,
+      track: rawFlight.track,
       seats,
     });
   }

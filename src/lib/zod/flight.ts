@@ -9,6 +9,7 @@ import {
 import { flightAirportSchema } from '$lib/zod/airport';
 import { aircraftSchema } from '$lib/zod/aircraft';
 import { airlineSchema } from '$lib/zod/airline';
+import { flightTrackInputSchema } from '$lib/track/schema';
 
 const regex24h = /^([01]?\d|2[0-3])(?::|\.|)[0-5]\d(?:\s?(?:am|pm))?$/i;
 const regex12hLike = /^\d{1,2}(?::|\.|)\d{2}\s?(?:am|pm)$/i;
@@ -121,10 +122,15 @@ export const flightCustomFieldsSchema = z.object({
   customFields: z.record(z.string(), z.unknown()).default({}),
 });
 
+export const flightTrackSchema = z.object({
+  track: flightTrackInputSchema.nullable().optional(),
+});
+
 export const flightSchema = flightAirportsSchema
   .merge(flightDateTimeSchema)
   .merge(flightOptionalInformationSchema)
   .merge(flightSeatInformationSchema)
-  .merge(flightCustomFieldsSchema);
+  .merge(flightCustomFieldsSchema)
+  .merge(flightTrackSchema);
 
 export type FlightFormData = z.infer<typeof flightSchema>;

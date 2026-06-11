@@ -143,6 +143,18 @@ export type flight = {
     aircraftId: number | null;
     airlineId: number | null;
 };
+export type flight_track = {
+    flightId: number;
+    track: unknown;
+    /**
+     * @kyselyType('gpx' | 'kml' | 'csv')
+     */
+    sourceFormat: 'gpx' | 'kml' | 'csv';
+    sourceName: string | null;
+    pointCount: number;
+    createdAt: Generated<Timestamp>;
+    updatedAt: Generated<Timestamp>;
+};
 export type public_share = {
     id: Generated<number>;
     userId: string;
@@ -249,6 +261,7 @@ export type DB = {
     customFieldDefinition: custom_field_definition;
     customFieldValue: custom_field_value;
     flight: flight;
+    flightTrack: flight_track;
     publicShare: public_share;
     seat: seat;
     session: session;

@@ -220,6 +220,7 @@ export const validateAndSaveFlight = async (
     arrivalTerminal,
     arrivalGate,
     customFields = {},
+    track,
   } = data;
 
   if (data.datePrecision !== 'day') {
@@ -266,6 +267,7 @@ export const validateAndSaveFlight = async (
       flightReason,
       note,
       seats: data.seats,
+      track,
     };
 
     return await saveFlightValues(values, customFields);
@@ -446,6 +448,7 @@ export const validateAndSaveFlight = async (
     flightReason,
     note,
     seats: data.seats,
+    track,
   };
 
   return await saveFlightValues(values, customFields);

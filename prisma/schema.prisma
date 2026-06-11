@@ -100,27 +100,27 @@ model airline {
 }
 
 model flight {
-  id        Int     @id @default(autoincrement())
-  date      String
+  id                  Int     @id @default(autoincrement())
+  date                String
   /// @kyselyType('day' | 'month' | 'year')
-  date_precision String @default("day")
+  date_precision      String  @default("day")
   /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
-  departure String?
+  departure           String?
   /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
-  arrival   String?
+  arrival             String?
   /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
   departure_scheduled String?
   /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
-  arrival_scheduled String?
+  arrival_scheduled   String?
   /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
-  takeoff_scheduled String?
+  takeoff_scheduled   String?
   /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
-  takeoff_actual String?
+  takeoff_actual      String?
   /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
-  landing_scheduled String?
+  landing_scheduled   String?
   /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
-  landing_actual String?
-  duration  Int?
+  landing_actual      String?
+  duration            Int?
 
   departure_terminal String?
   departure_gate     String?
@@ -138,14 +138,30 @@ model flight {
   aircraft_id Int?
   airline_id  Int?
 
-  from     airport?  @relation("flights_from", fields: [from_id], references: [id])
-  to       airport?  @relation("flights_to", fields: [to_id], references: [id])
-  aircraft aircraft? @relation(fields: [aircraft_id], references: [id])
-  airline  airline?  @relation(fields: [airline_id], references: [id])
+  from     airport?      @relation("flights_from", fields: [from_id], references: [id])
+  to       airport?      @relation("flights_to", fields: [to_id], references: [id])
+  aircraft aircraft?     @relation(fields: [aircraft_id], references: [id])
+  airline  airline?      @relation(fields: [airline_id], references: [id])
   seats    seat[]
+  track    flight_track?
 
   @@index([from_id], map: "flight_from_id_idx")
   @@index([to_id], map: "flight_to_id_idx")
+}
+
+model flight_track {
+  flight_id Int  @id
+  track     Json
+
+  /// @kyselyType('gpx' | 'kml' | 'csv')
+  source_format String
+  source_name   String?
+  point_count   Int
+
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  flight flight @relation(fields: [flight_id], references: [id], onDelete: Cascade)
 }
 
 model seat {

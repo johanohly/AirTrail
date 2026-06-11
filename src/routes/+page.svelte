@@ -54,6 +54,7 @@
   });
 
   const rawFlights = trpc.flight.list.query(flightListInput);
+  const rawFlightTracks = trpc.flightTrack.list.query(flightListInput);
   const rawVisitedCountries = trpc.visitedCountries.list.query();
 
   const flights = $derived.by(() => {
@@ -65,6 +66,13 @@
 
   const visitedCountriesData = $derived.by(() => {
     const data = $rawVisitedCountries.data;
+    if (!data || !data.length) return [];
+
+    return data;
+  });
+
+  const flightTracks = $derived.by(() => {
+    const data = $rawFlightTracks.data;
     if (!data || !data.length) return [];
 
     return data;
@@ -217,6 +225,7 @@
   const invalidator = {
     onSuccess: () => {
       trpc.flight.list.utils.invalidate();
+      trpc.flightTrack.list.utils.invalidate();
     },
   };
   const deleteFlightMutation = trpc.flight.delete.mutation(invalidator);
@@ -256,5 +265,5 @@
   {showCountryStats}
 />
 
-<Map bind:filters bind:tempFilters {flights} {filteredFlights} />
+<Map bind:filters bind:tempFilters {flights} {filteredFlights} {flightTracks} />
 <MapDetailsPane {flights} bind:filters bind:tempFilters />

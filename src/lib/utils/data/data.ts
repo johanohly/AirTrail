@@ -203,6 +203,7 @@ export const prepareVisitedAirports = (data: FlightData[]) => {
 
 const formatSimpleFlight = (f: FlightData) => {
   return {
+    id: f.id,
     airports: [f.from?.id, f.to?.id],
     route: `${f.from?.iata ?? f.from?.icao ?? 'N/A'} - ${f.to?.iata ?? f.to?.icao ?? 'N/A'}`,
     date: f.date,
