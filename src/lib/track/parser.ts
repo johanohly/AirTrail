@@ -5,6 +5,7 @@ import {
   type FlightTrackInput,
   type FlightTrackPayload,
   type FlightTrackSourceFormat,
+  MAX_FLIGHT_TRACK_POINTS,
 } from './schema';
 
 import { parseCsvLine, sanitizeHeader } from '$lib/utils/csv';
@@ -62,10 +63,14 @@ export const parseTrackContent = (
   }
 
   const originalPointCount = raw.coordinates.length;
-  const track =
+  const simplifiedTrack =
     raw.coordinates.length > SIMPLIFY_THRESHOLD
       ? simplifyTrack(raw, SIMPLIFY_TOLERANCE_METERS)
       : raw;
+  const track =
+    simplifiedTrack.coordinates.length > MAX_FLIGHT_TRACK_POINTS
+      ? limitTrackPoints(simplifiedTrack, MAX_FLIGHT_TRACK_POINTS)
+      : simplifiedTrack;
 
   return {
     ...track,
@@ -344,6 +349,30 @@ export const simplifyTrack = (
       times.push(track.times[index]!);
     }
   });
+
+  return {
+    coordinates,
+    times: track.times ? times : undefined,
+  };
+};
+
+const limitTrackPoints = (
+  track: FlightTrackPayload,
+  maxPoints: number,
+): FlightTrackPayload => {
+  if (track.coordinates.length <= maxPoints) return track;
+
+  const coordinates: FlightTrackCoordinate[] = [];
+  const times: number[] = [];
+  const lastIndex = track.coordinates.length - 1;
+
+  for (let index = 0; index < maxPoints; index++) {
+    const sourceIndex = Math.round((index * lastIndex) / (maxPoints - 1));
+    coordinates.push(track.coordinates[sourceIndex]!);
+    if (track.times) {
+      times.push(track.times[sourceIndex]!);
+    }
+  }
 
   return {
     coordinates,

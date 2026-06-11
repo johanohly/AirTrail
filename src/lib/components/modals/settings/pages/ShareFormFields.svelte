@@ -9,6 +9,7 @@
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import * as Select from '$lib/components/ui/select';
+  import { HelpTooltip } from '$lib/components/ui/tooltip';
   import { generateRandomString } from '$lib/utils/string';
   import type { shareSchema } from '$lib/zod/share';
 
@@ -33,6 +34,12 @@
   function generateNewSlug() {
     $formData.slug = generateRandomString(12);
   }
+
+  $effect(() => {
+    if (!$formData.showMap) {
+      $formData.showTracks = false;
+    }
+  });
 </script>
 
 <!-- Share URL -->
@@ -102,6 +109,24 @@
         {#snippet children({ props })}
           <Checkbox bind:checked={$formData.showMap} {...props} />
           <Form.Label class="text-sm font-normal">Show Map</Form.Label>
+        {/snippet}
+      </Form.Control>
+    </Form.Field>
+
+    <Form.Field {form} name="showTracks" class="flex flex-row items-center">
+      <Form.Control>
+        {#snippet children({ props })}
+          <Checkbox
+            bind:checked={$formData.showTracks}
+            {...props}
+            disabled={!$formData.showMap}
+          />
+          <Form.Label class="flex items-center gap-1.5 text-sm font-normal">
+            Show Exact Tracks
+            <HelpTooltip
+              text="Shows uploaded GPX, KML, or CSV flight paths on the shared map. When off, the map still uses normal airport-to-airport arcs."
+            />
+          </Form.Label>
         {/snippet}
       </Form.Control>
     </Form.Field>

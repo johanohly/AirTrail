@@ -2,6 +2,7 @@ import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, it, beforeAll } from 'vitest';
 
 import { parseTrackContent, simplifyTrack } from './parser';
+import { MAX_FLIGHT_TRACK_POINTS, flightTrackInputSchema } from './schema';
 
 beforeAll(() => {
   globalThis.DOMParser = DOMParser as unknown as typeof globalThis.DOMParser;
@@ -95,5 +96,24 @@ describe('track parser', () => {
     expect(simplified.coordinates).toContainEqual(coordinates[10]);
     expect(simplified.times).toHaveLength(simplified.coordinates.length);
     expect(simplified.times).toContain(10);
+  });
+
+  it('limits parsed tracks to the server-side point cap', () => {
+    const rows = Array.from({ length: MAX_FLIGHT_TRACK_POINTS + 500 }, (_, i) =>
+      [i % 2 ? '0.002' : '0', (i * 0.001).toString()].join(','),
+    );
+
+    const result = parseTrackContent(
+      ['Latitude,Longitude', ...rows].join('\n'),
+      'csv',
+    );
+
+    expect(result.coordinates).toHaveLength(MAX_FLIGHT_TRACK_POINTS);
+    expect(result.coordinates[0]).toEqual([0, 0]);
+    expect(result.coordinates.at(-1)).toEqual([
+      (MAX_FLIGHT_TRACK_POINTS + 499) * 0.001,
+      0.002,
+    ]);
+    expect(flightTrackInputSchema.safeParse(result).success).toBe(true);
   });
 });

@@ -100,6 +100,13 @@
                       Map
                     </span>
                   {/if}
+                  {#if share.showMap && share.showTracks}
+                    <span
+                      class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                    >
+                      Tracks
+                    </span>
+                  {/if}
                   {#if share.showStats}
                     <span
                       class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary/50 text-secondary-foreground"

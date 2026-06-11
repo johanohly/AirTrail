@@ -66,6 +66,7 @@ export const shareUpdateSchema = z.object({
   showAirlines: z.boolean().optional(),
   showAircraft: z.boolean().optional(),
   showTimes: z.boolean().optional(),
+  showTracks: z.boolean().optional(),
   showDates: z.boolean().optional(),
   showSeat: z.boolean().optional(),
 });
@@ -107,6 +108,7 @@ export async function listUserShares(userId: string) {
  */
 export async function createShare(userId: string, input: ShareCreateInput) {
   const slug = input.slug || generateRandomString(12);
+  const showTracks = input.showMap && input.showTracks;
 
   // Check if slug already exists
   const existing = await db
@@ -137,6 +139,7 @@ export async function createShare(userId: string, input: ShareCreateInput) {
       showAirlines: input.showAirlines,
       showAircraft: input.showAircraft,
       showTimes: input.showTimes,
+      showTracks,
       showDates: input.showDates,
       showSeat: input.showSeat,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -150,6 +153,10 @@ export async function createShare(userId: string, input: ShareCreateInput) {
  */
 export async function updateShare(userId: string, input: ShareUpdateInput) {
   const { id, ...updates } = input;
+  const normalizedUpdates = {
+    ...updates,
+    ...(updates.showMap === false ? { showTracks: false } : {}),
+  };
 
   // Check if slug already exists (if being updated)
   if (updates.slug) {
@@ -170,7 +177,7 @@ export async function updateShare(userId: string, input: ShareUpdateInput) {
 
   return await db
     .updateTable('publicShare')
-    .set(updates)
+    .set(normalizedUpdates)
     .where('id', '=', id)
     .where('userId', '=', userId)
     .returningAll()
@@ -217,7 +224,7 @@ export async function getPublicShareData(slug: string) {
   const sanitizedFlights = sanitizeFlightData(flights, share);
   const flightIds = sanitizedFlights.map((flight) => flight.id);
   const trackRows =
-    flightIds.length > 0
+    share.showMap && share.showTracks && flightIds.length > 0
       ? await db
           .selectFrom('flightTrack')
           .select(['flightId', 'track', 'sourceFormat', 'sourceName'])
@@ -244,6 +251,7 @@ export async function getPublicShareData(slug: string) {
       showMap: share.showMap,
       showStats: share.showStats,
       showFlightList: share.showFlightList,
+      showTracks: share.showTracks,
     },
     flights: sanitizedFlights.map((flight) => ({
       ...flight,
@@ -407,6 +415,7 @@ export async function validateAndSaveShare(
           showAirlines: shareData.showAirlines,
           showAircraft: shareData.showAircraft,
           showTimes: shareData.showTimes,
+          showTracks: shareData.showMap && shareData.showTracks,
           showDates: shareData.showDates,
           showSeat: shareData.showSeat,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -460,6 +469,7 @@ export async function validateAndSaveShare(
           showAirlines: shareData.showAirlines,
           showAircraft: shareData.showAircraft,
           showTimes: shareData.showTimes,
+          showTracks: shareData.showMap && shareData.showTracks,
           showDates: shareData.showDates,
           showSeat: shareData.showSeat,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any

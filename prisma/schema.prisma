@@ -238,6 +238,7 @@ model public_share {
   show_airlines       Boolean @default(true)
   show_aircraft       Boolean @default(false)
   show_times          Boolean @default(false)
+  show_tracks         Boolean @default(false)
   show_dates          Boolean @default(true)
   show_seat           Boolean @default(false)
 

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const flightTrackSourceFormats = ['gpx', 'kml', 'csv'] as const;
+export const MAX_FLIGHT_TRACK_POINTS = 2_000;
 
 export const flightTrackCoordinateSchema = z
   .union([
@@ -16,8 +17,11 @@ export const flightTrackCoordinateSchema = z
   );
 
 const flightTrackPayloadBaseSchema = z.object({
-  coordinates: flightTrackCoordinateSchema.array().min(2),
-  times: z.number().int().array().optional(),
+  coordinates: flightTrackCoordinateSchema
+    .array()
+    .min(2)
+    .max(MAX_FLIGHT_TRACK_POINTS),
+  times: z.number().int().array().max(MAX_FLIGHT_TRACK_POINTS).optional(),
 });
 
 export const flightTrackPayloadSchema = flightTrackPayloadBaseSchema.refine(

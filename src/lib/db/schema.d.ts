@@ -170,6 +170,7 @@ export type public_share = {
     showAirlines: Generated<boolean>;
     showAircraft: Generated<boolean>;
     showTimes: Generated<boolean>;
+    showTracks: Generated<boolean>;
     showDates: Generated<boolean>;
     showSeat: Generated<boolean>;
 };

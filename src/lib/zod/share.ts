@@ -10,6 +10,7 @@ export const baseShareSchema = z.object({
   showAirlines: z.boolean().default(true),
   showAircraft: z.boolean().default(false),
   showTimes: z.boolean().default(false),
+  showTracks: z.boolean().default(false),
   showDates: z.boolean().default(true),
   showSeat: z.boolean().default(false),
 });
