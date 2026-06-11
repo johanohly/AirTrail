@@ -17,6 +17,7 @@
   import MapFallback from './MapFallback.svelte';
   import MapStatusShelf from './MapStatusShelf.svelte';
   import OpenAipOverlay from './OpenAipOverlay.svelte';
+  import TimeOfDayLayer from './TimeOfDayLayer.svelte';
 
   import { AirportsArcsLayer } from '.';
 
@@ -646,6 +647,10 @@
         if (filters) filters.routes = [];
       }}
     />
+
+    {#if mapPreferences.timeOfDayEnabled}
+      <TimeOfDayLayer />
+    {/if}
 
     {#if openAipActive}
       <OpenAipOverlay
