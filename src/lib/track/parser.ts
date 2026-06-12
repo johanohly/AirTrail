@@ -167,23 +167,26 @@ const extractGeometryTracks = (
 };
 
 const buildRawTrack = (coordinates: unknown[], times?: unknown[]): RawTrack => {
-  const normalizedCoordinates = coordinates
-    .map(normalizeCoordinate)
-    .filter((coordinate): coordinate is FlightTrackCoordinate =>
-      Boolean(coordinate),
-    );
+  const shouldNormalizeTimes = times?.length === coordinates.length;
+  const normalizedCoordinates: FlightTrackCoordinate[] = [];
+  const normalizedTimes: number[] = [];
 
-  const normalizedTimes =
-    times?.length === normalizedCoordinates.length
-      ? times
-          .map(toEpochSeconds)
-          .filter((time): time is number => time !== null)
-      : undefined;
+  coordinates.forEach((rawCoordinate, index) => {
+    const coordinate = normalizeCoordinate(rawCoordinate);
+    if (!coordinate) return;
+
+    normalizedCoordinates.push(coordinate);
+    if (shouldNormalizeTimes) {
+      const time = toEpochSeconds(times[index]);
+      if (time !== null) normalizedTimes.push(time);
+    }
+  });
 
   return {
     coordinates: normalizedCoordinates,
     times:
-      normalizedTimes?.length === normalizedCoordinates.length
+      shouldNormalizeTimes &&
+      normalizedTimes.length === normalizedCoordinates.length
         ? normalizedTimes
         : undefined,
   };

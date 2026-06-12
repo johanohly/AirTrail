@@ -40,6 +40,34 @@ describe('track parser', () => {
     expect(result.times).toEqual([1767261600, 1767261660]);
   });
 
+  it('keeps XML times aligned when invalid coordinates are filtered', () => {
+    const result = parseTrackContent(
+      `<?xml version="1.0" encoding="UTF-8"?>
+      <gpx version="1.1" creator="AirTrail test">
+        <trk>
+          <trkseg>
+            <trkpt lat="bad" lon="12.000">
+              <time>2026-01-01T09:59:00Z</time>
+            </trkpt>
+            <trkpt lat="55.618" lon="12.656">
+              <time>2026-01-01T10:00:00Z</time>
+            </trkpt>
+            <trkpt lat="55.620" lon="12.700">
+              <time>2026-01-01T10:01:00Z</time>
+            </trkpt>
+          </trkseg>
+        </trk>
+      </gpx>`,
+      'gpx',
+    );
+
+    expect(result.coordinates).toEqual([
+      [12.656, 55.618],
+      [12.7, 55.62],
+    ]);
+    expect(result.times).toEqual([1767261600, 1767261660]);
+  });
+
   it('parses KML LineString coordinates with altitude', () => {
     const result = parseTrackContent(
       `<?xml version="1.0" encoding="UTF-8"?>
