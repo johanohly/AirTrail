@@ -231,7 +231,7 @@ const bufferLineString = (coordinates, halfWidthM) => {
     const right = coordinates.map((_, i) =>
       offsetVertex(coordinates, i, 1, halfWidthM),
     );
-    return [...left, ...right.slice().reverse(), left[0]];
+    return [...left, ...right.toReversed(), left[0]];
   } catch {
     return null;
   }

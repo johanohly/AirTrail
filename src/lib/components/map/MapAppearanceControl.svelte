@@ -753,6 +753,27 @@
           </div>
         </section>
 
+        <section class="space-y-3 px-4 py-4">
+          <h3
+            class="text-muted-foreground text-[10px] font-medium uppercase tracking-wider"
+          >
+            Layers
+          </h3>
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm font-medium leading-none">Time of day</p>
+              <p class="text-muted-foreground mt-1 text-[11px]">
+                Live day/night shading
+              </p>
+            </div>
+            <Switch
+              size="small"
+              checked={mapPreferences.timeOfDayEnabled}
+              onCheckedChange={(v) => (mapPreferences.timeOfDayEnabled = v)}
+            />
+          </div>
+        </section>
+
         {#if openAipConfigured}
           <section class="space-y-3 px-4 py-4">
             <div class="flex items-center justify-between">
