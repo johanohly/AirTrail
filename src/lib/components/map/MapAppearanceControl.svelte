@@ -772,6 +772,19 @@
               onCheckedChange={(v) => (mapPreferences.timeOfDayEnabled = v)}
             />
           </div>
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm font-medium leading-none">Rain radar</p>
+              <p class="text-muted-foreground mt-1 text-[11px]">
+                Latest RainViewer precipitation
+              </p>
+            </div>
+            <Switch
+              size="small"
+              checked={mapPreferences.rainViewerEnabled}
+              onCheckedChange={(v) => (mapPreferences.rainViewerEnabled = v)}
+            />
+          </div>
         </section>
 
         {#if openAipConfigured}

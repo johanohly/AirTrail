@@ -17,6 +17,7 @@
   import MapFallback from './MapFallback.svelte';
   import MapStatusShelf from './MapStatusShelf.svelte';
   import OpenAipOverlay from './OpenAipOverlay.svelte';
+  import RainViewerLayer from './RainViewerLayer.svelte';
   import TimeOfDayLayer from './TimeOfDayLayer.svelte';
 
   import { AirportsArcsLayer } from '.';
@@ -650,6 +651,10 @@
 
     {#if mapPreferences.timeOfDayEnabled}
       <TimeOfDayLayer />
+    {/if}
+
+    {#if mapPreferences.rainViewerEnabled}
+      <RainViewerLayer />
     {/if}
 
     {#if openAipActive}
