@@ -95,7 +95,9 @@ const parseXmlTrack = (
   sourceFormat: Exclude<FlightTrackSourceFormat, 'csv'>,
 ): RawTrack => {
   if (typeof DOMParser === 'undefined') {
-    throw new Error('Track XML parsing is not available in this environment');
+    throw new TypeError(
+      'Track XML parsing is not available in this environment',
+    );
   }
 
   const document = new DOMParser().parseFromString(content, 'application/xml');
@@ -172,7 +174,7 @@ const buildRawTrack = (coordinates: unknown[], times?: unknown[]): RawTrack => {
     );
 
   const normalizedTimes =
-    times && times.length === normalizedCoordinates.length
+    times?.length === normalizedCoordinates.length
       ? times
           .map(toEpochSeconds)
           .filter((time): time is number => time !== null)
@@ -243,29 +245,17 @@ const parseCsvTrack = (content: string): RawTrack => {
   const times: number[] = [];
 
   for (const line of lines) {
-    const values = parseCsvLine(line);
-    const row = headers.reduce<Record<string, string>>((acc, header, index) => {
-      acc[header] = values[index] ?? '';
-      return acc;
-    }, {});
+    const parsedRow = parseCsvTrackRow(line, {
+      headers,
+      latitudeHeader,
+      longitudeHeader,
+      altitudeHeader,
+      timeHeader,
+    });
+    if (!parsedRow) continue;
 
-    const lat = parseNumber(row[latitudeHeader]);
-    const lon = parseNumber(row[longitudeHeader]);
-    if (lat === null || lon === null) continue;
-
-    const altitudeFeet =
-      altitudeHeader && row[altitudeHeader]
-        ? parseNumber(row[altitudeHeader])
-        : null;
-    const coordinate: FlightTrackCoordinate =
-      altitudeFeet === null ? [lon, lat] : [lon, lat, altitudeFeet * 0.3048];
-    coordinates.push(coordinate);
-
-    const time =
-      timeHeader && row[timeHeader] ? toEpochSeconds(row[timeHeader]) : null;
-    if (time !== null) {
-      times.push(time);
-    }
+    coordinates.push(parsedRow.coordinate);
+    if (parsedRow.time !== null) times.push(parsedRow.time);
   }
 
   return {
@@ -274,13 +264,48 @@ const parseCsvTrack = (content: string): RawTrack => {
   };
 };
 
+const parseCsvTrackRow = (
+  line: string,
+  columns: {
+    headers: string[];
+    latitudeHeader: string;
+    longitudeHeader: string;
+    altitudeHeader?: string;
+    timeHeader?: string;
+  },
+): { coordinate: FlightTrackCoordinate; time: number | null } | null => {
+  const values = parseCsvLine(line);
+  const row = columns.headers.reduce<Record<string, string>>(
+    (acc, header, index) => {
+      acc[header] = values[index] ?? '';
+      return acc;
+    },
+    {},
+  );
+
+  const lat = parseNumber(row[columns.latitudeHeader]);
+  const lon = parseNumber(row[columns.longitudeHeader]);
+  if (lat === null || lon === null) return null;
+
+  const altitudeFeet = columns.altitudeHeader
+    ? parseNumber(row[columns.altitudeHeader])
+    : null;
+  const coordinate: FlightTrackCoordinate =
+    altitudeFeet === null ? [lon, lat] : [lon, lat, altitudeFeet * 0.3048];
+  const time = columns.timeHeader
+    ? toEpochSeconds(row[columns.timeHeader])
+    : null;
+
+  return { coordinate, time };
+};
+
 const findHeader = (headers: string[], candidates: string[]) => {
   return candidates.find((candidate) => headers.includes(candidate));
 };
 
 const parseNumber = (value: string | undefined) => {
   if (!value) return null;
-  const parsed = Number(value.replace(/,/g, ''));
+  const parsed = Number(value.replaceAll(',', ''));
   return Number.isFinite(parsed) ? parsed : null;
 };
 
@@ -323,10 +348,15 @@ export const simplifyTrack = (
     let maxIndex = -1;
 
     for (let index = start + 1; index < end; index++) {
+      const point = points[index];
+      const startPoint = points[start];
+      const endPoint = points[end];
+      if (!point || !startPoint || !endPoint) continue;
+
       const distanceSquared = perpendicularDistanceSquared(
-        points[index]!,
-        points[start]!,
-        points[end]!,
+        point,
+        startPoint,
+        endPoint,
       );
       if (distanceSquared > maxDistanceSquared) {
         maxDistanceSquared = distanceSquared;
@@ -346,7 +376,8 @@ export const simplifyTrack = (
     if (!keep[index]) return;
     coordinates.push(coordinate);
     if (track.times) {
-      times.push(track.times[index]!);
+      const time = track.times[index];
+      if (time !== undefined) times.push(time);
     }
   });
 
@@ -368,9 +399,13 @@ const limitTrackPoints = (
 
   for (let index = 0; index < maxPoints; index++) {
     const sourceIndex = Math.round((index * lastIndex) / (maxPoints - 1));
-    coordinates.push(track.coordinates[sourceIndex]!);
+    const coordinate = track.coordinates[sourceIndex];
+    if (!coordinate) continue;
+
+    coordinates.push(coordinate);
     if (track.times) {
-      times.push(track.times[sourceIndex]!);
+      const time = track.times[sourceIndex];
+      if (time !== undefined) times.push(time);
     }
   }
 

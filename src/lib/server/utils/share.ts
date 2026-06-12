@@ -153,9 +153,18 @@ export async function createShare(userId: string, input: ShareCreateInput) {
  */
 export async function updateShare(userId: string, input: ShareUpdateInput) {
   const { id, ...updates } = input;
+
+  const currentShare = await db
+    .selectFrom('publicShare')
+    .select('showMap')
+    .where('id', '=', id)
+    .where('userId', '=', userId)
+    .executeTakeFirstOrThrow();
+
+  const effectiveShowMap = updates.showMap ?? currentShare.showMap;
   const normalizedUpdates = {
     ...updates,
-    ...(updates.showMap === false ? { showTracks: false } : {}),
+    ...(!effectiveShowMap ? { showTracks: false } : {}),
   };
 
   // Check if slug already exists (if being updated)
@@ -223,8 +232,9 @@ export async function getPublicShareData(slug: string) {
   // Sanitize flight data based on privacy settings
   const sanitizedFlights = sanitizeFlightData(flights, share);
   const flightIds = sanitizedFlights.map((flight) => flight.id);
+  const showTracks = share.showMap && share.showTracks;
   const trackRows =
-    share.showMap && share.showTracks && flightIds.length > 0
+    showTracks && flightIds.length > 0
       ? await db
           .selectFrom('flightTrack')
           .select(['flightId', 'track', 'sourceFormat', 'sourceName'])
@@ -251,7 +261,7 @@ export async function getPublicShareData(slug: string) {
       showMap: share.showMap,
       showStats: share.showStats,
       showFlightList: share.showFlightList,
-      showTracks: share.showTracks,
+      showTracks,
     },
     flights: sanitizedFlights.map((flight) => ({
       ...flight,

@@ -5,7 +5,7 @@ import { parseTrackContent, simplifyTrack } from './parser';
 import { MAX_FLIGHT_TRACK_POINTS, flightTrackInputSchema } from './schema';
 
 beforeAll(() => {
-  globalThis.DOMParser = DOMParser as unknown as typeof globalThis.DOMParser;
+  Object.defineProperty(globalThis, 'DOMParser', { value: DOMParser });
 });
 
 describe('track parser', () => {

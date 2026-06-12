@@ -41,7 +41,7 @@ const AirTrailFile = z.object({
       duration: z.number().int().positive().nullable(),
       airline: airlineSchema.omit({ id: true }).nullable(),
       aircraft: aircraftSchema.omit({ id: true }).nullable(),
-      track: flightTrackInputSchema.optional(),
+      track: flightTrackInputSchema.nullable().optional(),
     })
     .merge(
       flightOptionalInformationSchema.omit({ airline: true, aircraft: true }),
@@ -123,6 +123,15 @@ export const processAirTrailFile = async (
   const unknownAirports: Record<string, number[]> = {};
   const unknownAirlines: Record<string, number[]> = {};
   const unknownUsers: Record<string, number[]> = {};
+  const addUnknownFlightIndex = (
+    records: Record<string, number[]>,
+    key: string,
+    flightIndex: number,
+  ) => {
+    const flightIndexes = records[key] ?? [];
+    records[key] = flightIndexes;
+    flightIndexes.push(flightIndex);
+  };
   for (const rawFlight of data.flights) {
     const flightIndex = flights.length;
 
@@ -137,8 +146,7 @@ export const processAirTrailFile = async (
 
       if (dataUser && !user) {
         const key = `${dataUser.id}|${dataUser.username}|${dataUser.displayName}`;
-        if (!unknownUsers[key]) unknownUsers[key] = [];
-        unknownUsers[key].push(flightIndex);
+        addUnknownFlightIndex(unknownUsers, key, flightIndex);
       }
       /*
       1. If the user is known, no guest name is needed.
@@ -202,14 +210,14 @@ export const processAirTrailFile = async (
     }
 
     if (!from) {
-      (unknownAirports[rawFlight.from.icao] ??= []).push(flightIndex);
+      addUnknownFlightIndex(unknownAirports, rawFlight.from.icao, flightIndex);
     }
     if (!to) {
-      (unknownAirports[rawFlight.to.icao] ??= []).push(flightIndex);
+      addUnknownFlightIndex(unknownAirports, rawFlight.to.icao, flightIndex);
     }
     if (!airline && rawFlight.airline?.icao) {
       const code = rawFlight.airline.icao;
-      (unknownAirlines[code] ??= []).push(flightIndex);
+      addUnknownFlightIndex(unknownAirlines, code, flightIndex);
     }
 
     flights.push({

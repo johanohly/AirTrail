@@ -60,8 +60,12 @@ export const flightTrackRouter = router({
           'flightTrack.pointCount',
         ]);
 
-      const scopedUserId =
-        scope === 'mine' ? user.id : scope === 'user' ? input?.userId : null;
+      let scopedUserId: string | null | undefined = null;
+      if (scope === 'mine') {
+        scopedUserId = user.id;
+      } else if (scope === 'user') {
+        scopedUserId = input?.userId;
+      }
 
       if (scopedUserId) {
         query = query.where((eb) =>
