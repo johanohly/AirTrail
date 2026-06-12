@@ -230,19 +230,21 @@ const createAntimeridianSplitPolygon = (
 
   const ringWithoutClosingPoint = ring.slice(0, -1) as Array<[number, number]>;
   const [firstJumpIndex, secondJumpIndex] = jumpIndexes;
+  const firstJumpNextIndex =
+    (firstJumpIndex + 1) % ringWithoutClosingPoint.length;
+  const secondJumpNextIndex =
+    (secondJumpIndex + 1) % ringWithoutClosingPoint.length;
   const firstCrossing = interpolateDatelineCrossing(
     ringWithoutClosingPoint[firstJumpIndex],
-    ringWithoutClosingPoint[firstJumpIndex + 1],
+    ringWithoutClosingPoint[firstJumpNextIndex],
   );
   const secondCrossing = interpolateDatelineCrossing(
     ringWithoutClosingPoint[secondJumpIndex],
-    ringWithoutClosingPoint[
-      (secondJumpIndex + 1) % ringWithoutClosingPoint.length
-    ],
+    ringWithoutClosingPoint[secondJumpNextIndex],
   );
   const firstJumpIsEastToWest =
     ringWithoutClosingPoint[firstJumpIndex][0] > 0 &&
-    ringWithoutClosingPoint[firstJumpIndex + 1][0] < 0;
+    ringWithoutClosingPoint[firstJumpNextIndex][0] < 0;
   const eastRing = firstJumpIsEastToWest
     ? closeRing([
         secondCrossing.east,
