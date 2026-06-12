@@ -18,6 +18,7 @@ export type MapPreferences = {
   basemap: MapBasemap;
   projection: MapProjection;
   timeOfDayEnabled: boolean;
+  rainViewerEnabled: boolean;
   airportCircles: AirportCirclesMode;
   arcColor: ArcColorMode;
   arcThickness: ArcThicknessMode;
@@ -56,6 +57,7 @@ export const MAP_PREFERENCE_DEFAULTS: MapPreferences = {
   basemap: 'default',
   projection: 'mercator',
   timeOfDayEnabled: false,
+  rainViewerEnabled: false,
   airportCircles: 'large',
   arcColor: 'default',
   arcThickness: 'uniform',
@@ -93,6 +95,9 @@ const sanitize = (raw: unknown): MapPreferences => {
   }
   if (typeof input.timeOfDayEnabled === 'boolean') {
     result.timeOfDayEnabled = input.timeOfDayEnabled;
+  }
+  if (typeof input.rainViewerEnabled === 'boolean') {
+    result.rainViewerEnabled = input.rainViewerEnabled;
   }
   if (
     typeof input.airportCircles === 'string' &&
@@ -172,6 +177,7 @@ export const initMapPreferences = () => {
   mapPreferences.basemap = hydrated.basemap;
   mapPreferences.projection = hydrated.projection;
   mapPreferences.timeOfDayEnabled = hydrated.timeOfDayEnabled;
+  mapPreferences.rainViewerEnabled = hydrated.rainViewerEnabled;
   mapPreferences.airportCircles = hydrated.airportCircles;
   mapPreferences.arcColor = hydrated.arcColor;
   mapPreferences.arcThickness = hydrated.arcThickness;
@@ -186,6 +192,7 @@ export const initMapPreferences = () => {
         basemap: mapPreferences.basemap,
         projection: mapPreferences.projection,
         timeOfDayEnabled: mapPreferences.timeOfDayEnabled,
+        rainViewerEnabled: mapPreferences.rainViewerEnabled,
         airportCircles: mapPreferences.airportCircles,
         arcColor: mapPreferences.arcColor,
         arcThickness: mapPreferences.arcThickness,
@@ -207,6 +214,7 @@ export const resetMapPreferences = () => {
   mapPreferences.basemap = MAP_PREFERENCE_DEFAULTS.basemap;
   mapPreferences.projection = MAP_PREFERENCE_DEFAULTS.projection;
   mapPreferences.timeOfDayEnabled = MAP_PREFERENCE_DEFAULTS.timeOfDayEnabled;
+  mapPreferences.rainViewerEnabled = MAP_PREFERENCE_DEFAULTS.rainViewerEnabled;
   mapPreferences.airportCircles = MAP_PREFERENCE_DEFAULTS.airportCircles;
   mapPreferences.arcColor = MAP_PREFERENCE_DEFAULTS.arcColor;
   mapPreferences.arcThickness = MAP_PREFERENCE_DEFAULTS.arcThickness;
