@@ -87,11 +87,6 @@
       checkForNewVersions();
     }
   });
-  //
-  // Switching between airport local time and e.g. UTC display/input causes some weirdness until refresh
-  // Close date picker after picking https://github.com/johanohly/AirTrail/discussions/255
-  // https://www.rainviewer.com/api.html
-  //
 </script>
 
 <Modal bind:open class="max-w-2xl" drawerNoPadding>

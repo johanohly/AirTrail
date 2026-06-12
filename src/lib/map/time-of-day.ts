@@ -171,6 +171,15 @@ const interpolateDatelineCrossing = (
   };
 };
 
+const createCircleGeometry = (
+  center: [number, number],
+  radius: number,
+): Polygon =>
+  geoCircle()
+    .center(center)
+    .radius(radius)
+    .precision(CIRCLE_PRECISION_DEGREES)() as Polygon;
+
 const createPolarCapPolygon = (
   ring: Polygon['coordinates'][number],
   pole: 'north' | 'south',
@@ -192,7 +201,7 @@ const createPolarCapPolygon = (
   const boundaryWestToEast =
     start[0] > 0
       ? [crossing.west, ...boundary, crossing.east]
-      : [crossing.west, ...boundary.reverse(), crossing.east];
+      : [crossing.west, ...boundary.toReversed(), crossing.east];
   const poleLatitude =
     pole === 'north' ? POLE_EDGE_LATITUDE : -POLE_EDGE_LATITUDE;
   const poleEdge = [180, 120, 60, 0, -60, -120, -180].map(
@@ -275,10 +284,7 @@ const createCirclePolygon = (
   center: [number, number],
   radius: number,
 ): Polygon | MultiPolygon => {
-  const geometry = geoCircle()
-    .center(center)
-    .radius(radius)
-    .precision(CIRCLE_PRECISION_DEGREES)() as Polygon;
+  const geometry = createCircleGeometry(center, radius);
   const distanceToNorthPole = 90 - center[1];
   const distanceToSouthPole = 90 + center[1];
 

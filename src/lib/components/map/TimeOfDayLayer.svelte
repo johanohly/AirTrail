@@ -23,6 +23,18 @@
   );
   const data = $derived(createTimeOfDayGeoJson(currentTime, projection));
   const isDarkMode = $derived(mode.current === 'dark');
+  const isSatellite = $derived(mapPreferences.basemap === 'satellite');
+  const fillOpacityScale = $derived.by(() => {
+    if (isSatellite) return 4.35;
+    if (isDarkMode) return 12;
+    return 1;
+  });
+  const getSeverityScale = (item: (typeof TIME_OF_DAY_SEVERITIES)[number]) =>
+    !isSatellite && isDarkMode && item.severity === 'civil' ? 0.86 : 1;
+  const getBaseOpacity = (item: (typeof TIME_OF_DAY_SEVERITIES)[number]) =>
+    isSatellite || !isDarkMode ? item.lightOpacity : item.darkOpacity;
+  const getFillOpacity = (item: (typeof TIME_OF_DAY_SEVERITIES)[number]) =>
+    getBaseOpacity(item) * fillOpacityScale * getSeverityScale(item);
 
   onMount(() => {
     const interval = window.setInterval(() => {
@@ -44,7 +56,7 @@
       filter={['==', ['get', 'severity'], item.severity]}
       paint={{
         'fill-color': NIGHT_FILL,
-        'fill-opacity': isDarkMode ? item.darkOpacity : item.lightOpacity,
+        'fill-opacity': getFillOpacity(item),
         'fill-antialias': true,
       }}
     />
