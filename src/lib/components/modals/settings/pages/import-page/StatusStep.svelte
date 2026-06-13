@@ -13,10 +13,12 @@
   import { Separator } from '$lib/components/ui/separator';
   import type { Airline, Airport } from '$lib/db/types';
   import { pluralize } from '$lib/utils';
+  import type { ImportFailure } from './';
 
   let {
     importedCount = 0,
     skippedRows = 0,
+    importFailures = [],
     unknownAirports = {},
     unknownAirlines = {},
     busy = false,
@@ -25,6 +27,7 @@
   }: {
     importedCount?: number;
     skippedRows?: number;
+    importFailures?: ImportFailure[];
     unknownAirports?: Record<string, number[]>;
     unknownAirlines?: Record<string, number[]>;
     busy?: boolean;
@@ -108,6 +111,33 @@
           <p class="text-sm text-muted-foreground mt-0.5">
             Could not be parsed. Check the browser console for details.
           </p>
+        </div>
+      </div>
+    {/if}
+
+    {#if importFailures.length > 0}
+      <Separator class="my-4" />
+
+      <div class="flex items-start gap-3">
+        <CircleAlert class="text-destructive mt-0.5 shrink-0" size={20} />
+        <div class="flex-1">
+          <p class="font-medium text-sm">
+            {importFailures.length} Validation
+            {pluralize(importFailures.length, 'Error')}
+          </p>
+          <div class="text-sm text-muted-foreground mt-1 space-y-1">
+            {#each importFailures.slice(0, 5) as failure (failure.index)}
+              <p>
+                Flight {failure.index + 1}: {failure.message}
+              </p>
+            {/each}
+            {#if importFailures.length > 5}
+              <p>
+                Plus {importFailures.length - 5} more
+                {pluralize(importFailures.length - 5, 'error')}.
+              </p>
+            {/if}
+          </div>
         </div>
       </div>
     {/if}

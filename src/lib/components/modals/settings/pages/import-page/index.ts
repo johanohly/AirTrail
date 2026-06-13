@@ -1,5 +1,10 @@
 import type { Airline, Airport } from '$lib/db/types';
 
+export type ImportFailure = {
+  index: number;
+  message: string;
+};
+
 export type PlatformOptions = {
   filterOwner: boolean;
   airlineFromFlightNumber: boolean;

@@ -5,21 +5,23 @@
 
   import PlatformTabs from './PlatformTabs.svelte';
 
-  import { platforms } from './';
+  import { platforms, type ImportFailure } from './';
 
   import { Info } from '@o7/icon/lucide';
 
   import * as Alert from '$lib/components/ui/alert';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
+  import type { Airline, Airport, CreateFlight } from '$lib/db/types';
   import { processFile } from '$lib/import';
+  import { flightAddedState } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
   import { cn, pluralize } from '$lib/utils';
+  import { getErrorText } from '$lib/utils/error';
   import FileStep from './FileStep.svelte';
   import OptionsStep from './OptionsStep.svelte';
   import StatusStep from './StatusStep.svelte';
   import UserMappingStep from './UserMappingStep.svelte';
-  import type { Airline, Airport } from '$lib/db/types';
 
   let { open = $bindable() }: { open: boolean } = $props();
 
@@ -32,6 +34,7 @@
   let importing = $state(false);
   let importedCount = $state(0);
   let skippedRows = $state(0);
+  let importFailures = $state<ImportFailure[]>([]);
   let unknownAirports = $state<Record<string, number[]>>({});
   let unknownAirlines = $state<Record<string, number[]>>({});
   let unknownUsers = $state<Record<string, number[]>>({});
@@ -80,6 +83,72 @@
   const canImport = $derived(!!files?.[0] && !fileError);
   const createMany = trpc.flight.createMany.mutation();
 
+  type FlightImportItem = {
+    flight: CreateFlight;
+    index: number;
+  };
+
+  const getImportErrorMessage = (
+    error: unknown,
+    fallback = 'Unknown import error',
+  ) => {
+    return getErrorText(error) || fallback;
+  };
+
+  const refreshImportedFlights = async () => {
+    await Promise.all([
+      trpc.flight.list.utils.invalidate(),
+      trpc.flightTrack.list.utils.invalidate(),
+    ]);
+    flightAddedState.added = true;
+  };
+
+  const importBatch = async (
+    batch: FlightImportItem[],
+  ): Promise<{
+    inserted: number;
+    attached: number;
+    failures: ImportFailure[];
+  }> => {
+    if (!batch.length) return { inserted: 0, attached: 0, failures: [] };
+
+    try {
+      const stats = await $createMany.mutateAsync({
+        flights: batch.map(({ flight }) => flight),
+        dedupe: dedupeImportedFlights,
+      });
+
+      return {
+        inserted: stats?.insertedFlights ?? 0,
+        attached: stats?.attachedSeats ?? 0,
+        failures: [],
+      };
+    } catch (error) {
+      if (batch.length === 1) {
+        return {
+          inserted: 0,
+          attached: 0,
+          failures: [
+            {
+              index: batch[0]!.index,
+              message: getImportErrorMessage(error),
+            },
+          ],
+        };
+      }
+
+      const middle = Math.floor(batch.length / 2);
+      const first = await importBatch(batch.slice(0, middle));
+      const second = await importBatch(batch.slice(middle));
+
+      return {
+        inserted: first.inserted + second.inserted,
+        attached: first.attached + second.attached,
+        failures: [...first.failures, ...second.failures],
+      };
+    }
+  };
+
   const executeImport = async (mapping?: {
     airportMapping?: Record<string, Airport>;
     airlineMapping?: Record<string, Airline>;
@@ -103,6 +172,7 @@
       unknownUsers = result.unknownUsers;
       exportedUsers = result.exportedUsers;
       skippedRows = result.skippedRows ?? 0;
+      importFailures = [];
       if (skippedRows > 0) {
         toast.warning(
           `Skipped ${skippedRows} ${pluralize(skippedRows, 'row')} that could not be parsed`,
@@ -118,22 +188,24 @@
       ...Object.values(result.unknownAirports).flat(),
       ...Object.values(result.unknownAirlines).flat(),
     ]);
-    const flightsToImport = flights.filter((_, i) => !unknownIndices.has(i));
+    const flightsToImport = flights
+      .map((flight, index) => ({ flight, index }))
+      .filter(({ index }) => !unknownIndices.has(index));
 
     // Send flights in batches to avoid exceeding the server body size limit
     const BATCH_SIZE = 50;
     let inserted = 0;
+    let attached = 0;
+    const failures: ImportFailure[] = [];
     for (let i = 0; i < flightsToImport.length; i += BATCH_SIZE) {
       const batch = flightsToImport.slice(i, i + BATCH_SIZE);
-      const stats = await $createMany.mutateAsync({
-        flights: batch,
-        dedupe: dedupeImportedFlights,
-      });
-      inserted += stats?.insertedFlights ?? 0;
+      const result = await importBatch(batch);
+      inserted += result.inserted;
+      attached += result.attached;
+      failures.push(...result.failures);
     }
-    if (flightsToImport.length > 0) {
-      trpc.flight.list.utils.invalidate();
-      trpc.flightTrack.list.utils.invalidate();
+    if (inserted > 0 || attached > 0) {
+      await refreshImportedFlights();
     }
 
     unknownAirports = result.unknownAirports;
@@ -141,16 +213,22 @@
     unknownUsers = result.unknownUsers;
     exportedUsers = result.exportedUsers;
     skippedRows = result.skippedRows ?? 0;
+    importFailures = failures;
 
     importedCount = mapping ? importedCount + inserted : inserted;
     if (inserted > 0) {
       toast.success(`Imported ${inserted} ${pluralize(inserted, 'flight')}`);
-    } else {
+    } else if (failures.length === 0) {
       toast.info('No new flights to import');
     }
     if (skippedRows > 0) {
       toast.warning(
         `Skipped ${skippedRows} ${pluralize(skippedRows, 'row')} that could not be parsed`,
+      );
+    }
+    if (failures.length > 0) {
+      toast.error(
+        `Skipped ${failures.length} ${pluralize(failures.length, 'flight')} with validation errors`,
       );
     }
   };
@@ -195,7 +273,7 @@
       importing = false;
       step = 4;
     } catch (error) {
-      toast.error('Failed to import file');
+      toast.error(getImportErrorMessage(error, 'Failed to import file'));
       console.error(error);
       importing = false;
     }
@@ -208,7 +286,7 @@
       await executeImport({ userMapping: mapping });
       step = 5;
     } catch (error) {
-      toast.error('Failed to import file');
+      toast.error(getImportErrorMessage(error, 'Failed to import file'));
       console.error(error);
     } finally {
       importing = false;
@@ -224,7 +302,7 @@
     try {
       await executeImport({ airportMapping, airlineMapping, userMapping });
     } catch (error) {
-      toast.error('Failed to reprocess file');
+      toast.error(getImportErrorMessage(error, 'Failed to reprocess file'));
       console.error(error);
     } finally {
       importing = false;
@@ -239,6 +317,7 @@
     userMapping = {};
     importedCount = 0;
     skippedRows = 0;
+    importFailures = [];
     files = null;
     originalFile = null;
     fileError = null;
@@ -346,6 +425,7 @@
     <StatusStep
       {importedCount}
       {skippedRows}
+      {importFailures}
       {unknownAirports}
       {unknownAirlines}
       busy={importing}
