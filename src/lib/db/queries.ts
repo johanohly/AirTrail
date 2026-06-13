@@ -3,6 +3,7 @@ import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 
 import type { DB } from './schema';
 import type { CreateFlight } from './types';
+import type { FlightTrackInput } from '$lib/track/schema';
 
 const airportDisplayName = sql<string>`regexp_replace("name", '\\s+International(\\s+Airport)?$', ' Intl.', 'i')`;
 
@@ -140,7 +141,7 @@ export const createFlightPrimitiveWithConnection = async (
   db: Kysely<DB>,
   data: CreateFlight,
 ) => {
-  const { seats, from, to, aircraft, airline, ...flightData } = data;
+  const { seats, from, to, aircraft, airline, track, ...flightData } = data;
   const fromId = from?.id ?? null;
   const toId = to?.id ?? null;
   const aircraftId = aircraft?.id ?? null;
@@ -168,6 +169,11 @@ export const createFlightPrimitiveWithConnection = async (
   }));
 
   await db.insertInto('seat').values(seatData).executeTakeFirstOrThrow();
+
+  if (track) {
+    await upsertFlightTrackPrimitiveWithConnection(db, resp.id, track);
+  }
+
   return resp.id;
 };
 
@@ -176,7 +182,7 @@ export const updateFlightPrimitiveWithConnection = async (
   id: number,
   data: CreateFlight,
 ) => {
-  const { seats, from, to, aircraft, airline, ...flightData } = data;
+  const { seats, from, to, aircraft, airline, track, ...flightData } = data;
   if (!from || !to) {
     throw new Error('Both departure and arrival airports are required');
   }
@@ -214,6 +220,60 @@ export const updateFlightPrimitiveWithConnection = async (
   }));
 
   await db.insertInto('seat').values(seatData).executeTakeFirstOrThrow();
+
+  if (track !== undefined) {
+    if (track === null) {
+      await deleteFlightTrackPrimitiveWithConnection(db, id);
+    } else {
+      await upsertFlightTrackPrimitiveWithConnection(db, id, track);
+    }
+  }
+};
+
+export const upsertFlightTrackPrimitiveWithConnection = async (
+  db: Kysely<DB>,
+  flightId: number,
+  track: FlightTrackInput,
+) => {
+  await db
+    .insertInto('flightTrack')
+    .values({
+      flightId,
+      track: {
+        coordinates: track.coordinates,
+        ...(track.times ? { times: track.times } : {}),
+        ...(track.groundSpeedKt ? { groundSpeedKt: track.groundSpeedKt } : {}),
+        ...(track.trackDeg ? { trackDeg: track.trackDeg } : {}),
+      },
+      sourceFormat: track.sourceFormat,
+      sourceName: track.sourceName ?? null,
+      pointCount: track.coordinates.length,
+      updatedAt: new Date(),
+    })
+    .onConflict((oc) =>
+      oc.column('flightId').doUpdateSet({
+        track: {
+          coordinates: track.coordinates,
+          ...(track.times ? { times: track.times } : {}),
+          ...(track.groundSpeedKt
+            ? { groundSpeedKt: track.groundSpeedKt }
+            : {}),
+          ...(track.trackDeg ? { trackDeg: track.trackDeg } : {}),
+        },
+        sourceFormat: track.sourceFormat,
+        sourceName: track.sourceName ?? null,
+        pointCount: track.coordinates.length,
+        updatedAt: sql`CURRENT_TIMESTAMP`,
+      }),
+    )
+    .executeTakeFirstOrThrow();
+};
+
+export const deleteFlightTrackPrimitiveWithConnection = async (
+  db: Kysely<DB>,
+  flightId: number,
+) => {
+  await db.deleteFrom('flightTrack').where('flightId', '=', flightId).execute();
 };
 
 export const createManyFlightsPrimitive = async (
@@ -224,13 +284,23 @@ export const createManyFlightsPrimitive = async (
     const flights = await trx
       .insertInto('flight')
       .values(
-        data.map(({ seats: _, from, to, aircraft, airline, ...rest }) => ({
-          ...rest,
-          fromId: from?.id ?? null,
-          toId: to?.id ?? null,
-          aircraftId: aircraft?.id ?? null,
-          airlineId: airline?.id ?? null,
-        })),
+        data.map(
+          ({
+            seats: _,
+            from,
+            to,
+            aircraft,
+            airline,
+            track: _track,
+            ...rest
+          }) => ({
+            ...rest,
+            fromId: from?.id ?? null,
+            toId: to?.id ?? null,
+            aircraftId: aircraft?.id ?? null,
+            airlineId: airline?.id ?? null,
+          }),
+        ),
       )
       .returning('id')
       .execute();
@@ -253,6 +323,32 @@ export const createManyFlightsPrimitive = async (
     });
 
     await trx.insertInto('seat').values(seatData).execute();
+
+    const trackData = flights.flatMap((flight, index) => {
+      const track = data[index]?.track;
+      if (!track) return [];
+      return [
+        {
+          flightId: flight.id,
+          track: {
+            coordinates: track.coordinates,
+            ...(track.times ? { times: track.times } : {}),
+            ...(track.groundSpeedKt
+              ? { groundSpeedKt: track.groundSpeedKt }
+              : {}),
+            ...(track.trackDeg ? { trackDeg: track.trackDeg } : {}),
+          },
+          sourceFormat: track.sourceFormat,
+          sourceName: track.sourceName ?? null,
+          pointCount: track.coordinates.length,
+          updatedAt: new Date(),
+        },
+      ];
+    });
+
+    if (trackData.length) {
+      await trx.insertInto('flightTrack').values(trackData).execute();
+    }
   });
 };
 

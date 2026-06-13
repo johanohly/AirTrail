@@ -8,6 +8,7 @@
     type FlightFilters,
   } from '$lib/components/flight-filters/types';
   import { Map } from '$lib/components/map';
+  import type { FlightTrackRow } from '$lib/track/schema';
   import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
   import { trpc } from '$lib/trpc';
   import { prepareFlightData } from '$lib/utils';
@@ -21,6 +22,23 @@
     if (!data?.flights?.length) return [];
 
     return prepareFlightData(data.flights);
+  });
+
+  const flightTracks = $derived.by((): FlightTrackRow[] => {
+    const data = $shareQuery.data;
+    if (!data?.flights?.length) return [];
+
+    return data.flights.flatMap((flight) =>
+      flight.track
+        ? [
+            {
+              flightId: flight.id,
+              ...flight.track,
+              pointCount: flight.track.coordinates.length,
+            },
+          ]
+        : [],
+    );
   });
 
   let showFlightList = $state(false);
@@ -78,7 +96,7 @@
         ? 'h-full pt-14'
         : 'h-full'}
     >
-      <Map {flights} filteredFlights={flights} />
+      <Map {flights} filteredFlights={flights} {flightTracks} />
     </div>
   {:else}
     <div class="min-h-screen flex items-center justify-center">

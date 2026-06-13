@@ -19,6 +19,7 @@
     try {
       await api.flight.deleteAll.mutate();
       await trpc.flight.list.utils.invalidate();
+      await trpc.flightTrack.list.utils.invalidate();
       toast.info('All your flights have been deleted.', { id: toastId });
     } catch (err) {
       console.error(err);

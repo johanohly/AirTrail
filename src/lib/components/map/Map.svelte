@@ -62,6 +62,7 @@
     flightAddedState,
     mapDetailsState,
   } from '$lib/state.svelte';
+  import type { FlightTrackRow } from '$lib/track/schema';
   import {
     calculateBounds,
     cn,
@@ -78,11 +79,13 @@
   let {
     flights,
     filteredFlights,
+    flightTracks = [],
     filters = $bindable(),
     tempFilters = $bindable(),
   }: {
     flights: FlightData[];
     filteredFlights: FlightData[];
+    flightTracks?: FlightTrackRow[];
     filters?: FlightFilters;
     tempFilters?: TempFilters;
   } = $props();
@@ -667,6 +670,7 @@
     <AirportsArcsLayer
       flights={filteredFlights}
       {flightArcs}
+      {flightTracks}
       bind:tempFilters
     />
   </MapLibre>

@@ -32,6 +32,7 @@
     showAirlines: boolean;
     showAircraft: boolean;
     showTimes: boolean;
+    showTracks: boolean;
     showDates: boolean;
     showSeat: boolean;
   }
@@ -61,6 +62,7 @@
     showAirlines: share.showAirlines,
     showAircraft: share.showAircraft,
     showTimes: share.showTimes,
+    showTracks: share.showTracks,
     showDates: share.showDates,
     showSeat: share.showSeat,
   };

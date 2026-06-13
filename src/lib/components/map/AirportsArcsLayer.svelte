@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Layer, PickingInfo, Color } from '@deck.gl/core';
-  import { ArcLayer, ScatterplotLayer } from '@deck.gl/layers';
+  import { ArcLayer, PathLayer, ScatterplotLayer } from '@deck.gl/layers';
   import { MapboxOverlay } from '@deck.gl/mapbox';
   import { isTouchDevice } from '@melt-ui/svelte/internal/helpers';
   import { onDestroy } from 'svelte';
@@ -33,6 +33,10 @@
     prepareFlightArcData,
     prepareVisitedAirports,
   } from '$lib/utils';
+  import type {
+    FlightTrackCoordinate,
+    FlightTrackRow,
+  } from '$lib/track/schema';
   import { isMediumScreen } from '$lib/utils/size';
 
   const AIRPORT_COLOR = (alpha: number): Color => [16, 185, 129, alpha]; // Tailwind emerald-500
@@ -42,6 +46,17 @@
   const HIGH_FREQUENCY_COLOR = [239, 68, 68] as const; // TW red-500
   const HOVER_COLOR = [16, 185, 129];
   const FUTURE_COLOR = [102, 217, 239, 100];
+
+  const MERCATOR_ROUTE_PARAMETERS = {
+    cullMode: 'none',
+    depthCompare: 'always',
+    depthWriteEnabled: false,
+  } as const;
+  const MERCATOR_AIRPORT_PARAMETERS = {
+    cullMode: 'back',
+    depthCompare: 'always',
+    depthWriteEnabled: false,
+  } as const;
 
   // In globe mode deck shares MapLibre's depth buffer but reconstructs its
   // own globe projection, so surface geometry can never depth-test cleanly
@@ -76,10 +91,12 @@
   let {
     flights,
     flightArcs,
+    flightTracks = [],
     tempFilters = $bindable(),
   }: {
     flights: FlightData[];
     flightArcs: ReturnType<typeof prepareFlightArcData>;
+    flightTracks?: FlightTrackRow[];
     tempFilters?: TempFilters;
   } = $props();
 
@@ -92,8 +109,32 @@
 
   type VisitedAirport = (typeof visitedAirports)[0];
   type FlightArc = (typeof flightArcs)[0];
+  type FlightTrackPath = FlightArc & {
+    flightId: number;
+    path: FlightTrackCoordinate[];
+  };
   const getRouteKey = (fromId: number, toId: number) =>
     fromId <= toId ? `${fromId}:${toId}` : `${toId}:${fromId}`;
+
+  const unwrapTrackPath = (path: FlightTrackCoordinate[]) => {
+    if (!path.length) return path;
+    const unwrapped: FlightTrackCoordinate[] = [path[0]!];
+
+    for (let index = 1; index < path.length; index++) {
+      const previous = unwrapped[index - 1]!;
+      const current = path[index]!;
+      let lon = current[0];
+      while (lon - previous[0] > 180) lon -= 360;
+      while (lon - previous[0] < -180) lon += 360;
+      unwrapped.push(
+        current[2] === undefined
+          ? [lon, current[1]]
+          : [lon, current[1], current[2]],
+      );
+    }
+
+    return unwrapped;
+  };
 
   // Rank routes by frequency so the full 0..1 range is always used,
   // even when one outlier route dominates absolute counts.
@@ -130,6 +171,57 @@
     const routeKey = getRouteKey(d.from.id, d.to.id);
     return arcFrequencyPercentileByRoute[routeKey] ?? 0;
   };
+
+  const flightById = $derived.by(() => {
+    return new Map(flights.map((flight) => [flight.id, flight]));
+  });
+
+  const arcByRoute = $derived.by(() => {
+    return new Map(
+      flightArcs.map((arc) => [getRouteKey(arc.from.id, arc.to.id), arc]),
+    );
+  });
+
+  const trackFlightIds = $derived.by(() => {
+    return new Set(flightTracks.map((track) => track.flightId));
+  });
+
+  const fullyTrackedRouteKeys = $derived.by(() => {
+    const keys = new Set<string>();
+    for (const arc of flightArcs) {
+      if (
+        arc.flights.length > 0 &&
+        arc.flights.every((flight) => trackFlightIds.has(flight.id))
+      ) {
+        keys.add(getRouteKey(arc.from.id, arc.to.id));
+      }
+    }
+    return keys;
+  });
+
+  const visibleFlightArcs = $derived.by(() => {
+    return flightArcs.filter(
+      (arc) => !fullyTrackedRouteKeys.has(getRouteKey(arc.from.id, arc.to.id)),
+    );
+  });
+
+  const flightTrackPaths = $derived.by(() => {
+    const paths: FlightTrackPath[] = [];
+    for (const track of flightTracks) {
+      const flight = flightById.get(track.flightId);
+      if (!flight?.from || !flight.to) continue;
+
+      const arc = arcByRoute.get(getRouteKey(flight.from.id, flight.to.id));
+      if (!arc) continue;
+
+      paths.push({
+        ...arc,
+        flightId: track.flightId,
+        path: unwrapTrackPath(track.coordinates),
+      });
+    }
+    return paths;
+  });
 
   // deck's picking coordinate is unprojected through deck's own globe
   // viewport, which drifts from MapLibre during the globe<->mercator
@@ -235,6 +327,22 @@
     }
   };
 
+  const handleTrackHover = (
+    e: PickingInfo<FlightTrackPath>,
+    event?: DeckPointerEvent,
+  ) => {
+    if (!isTouchDevice()) {
+      hoveredArc = e.object ?? undefined;
+      const type = e.index !== -1 ? 'mousemove' : 'mouseleave';
+      layerEvent.value = {
+        ...e,
+        coordinate: getPointerLngLat(e, event),
+        layerType: 'deckgl',
+        type,
+      };
+    }
+  };
+
   const handleAirportClick = (e: PickingInfo<VisitedAirport>) => {
     if (e.object && tempFilters) {
       openAirportDetails(e.object.id);
@@ -242,6 +350,16 @@
   };
 
   const handleArcClick = (e: PickingInfo<FlightArc>) => {
+    if (e.object && tempFilters) {
+      const route = normalizeRoute(
+        e.object.from.id.toString(),
+        e.object.to.id.toString(),
+      );
+      openRouteDetails(route);
+    }
+  };
+
+  const handleTrackClick = (e: PickingInfo<FlightTrackPath>) => {
     if (e.object && tempFilters) {
       const route = normalizeRoute(
         e.object.from.id.toString(),
@@ -463,7 +581,9 @@
     const baseUnits = $isMediumScreen ? 50_000 : 100_000;
     return {
       id: 'scatterplot-layer',
-      parameters: isGlobe ? GLOBE_AIRPORT_PARAMETERS : undefined,
+      parameters: isGlobe
+        ? GLOBE_AIRPORT_PARAMETERS
+        : MERCATOR_AIRPORT_PARAMETERS,
       extensions: [globeOcclusion],
       data: visitedAirports,
       getPosition: (airport: VisitedAirport) => [airport.lon, airport.lat],
@@ -503,9 +623,9 @@
 
   const arcOptions = $derived.by(() => ({
     id: 'arc-layer',
-    parameters: isGlobe ? GLOBE_ARC_PARAMETERS : undefined,
+    parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
     extensions: [globeOcclusion],
-    data: flightArcs,
+    data: visibleFlightArcs,
     getSourcePosition: (data: FlightArc) => [data.from.lon, data.from.lat],
     getTargetPosition: (data: FlightArc) => [data.to.lon, data.to.lat],
     getSourceColor: getArcColor('source'),
@@ -543,9 +663,9 @@
   // This allows for a larger hover area while keeping the visual arc thin
   const ghostArcOptions = $derived({
     id: 'ghost-arc',
-    parameters: isGlobe ? GLOBE_ARC_PARAMETERS : undefined,
+    parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
     extensions: [globeOcclusion],
-    data: flightArcs,
+    data: visibleFlightArcs,
     getSourcePosition: (data: FlightArc) => [data.from.lon, data.from.lat],
     getTargetPosition: (data: FlightArc) => [data.to.lon, data.to.lat],
     getSourceColor: [0, 0, 0, 0],
@@ -558,10 +678,91 @@
     greatCircle: true,
   });
 
+  const getTrackColor = () => {
+    const baseArcColor = getBaseArcColor('source');
+
+    return (d: FlightTrackPath): Color => {
+      if (hoveredArc?.from === d.from && hoveredArc?.to === d.to) {
+        return HOVER_COLOR;
+      } else if (routeMatches(d, selectedRoute)) {
+        return HOVER_COLOR;
+      } else if (hoveredArc) {
+        return INACTIVE_COLOR(200);
+      } else if (
+        hoveredAirport?.id === d.from.id ||
+        hoveredAirport?.id === d.to.id
+      ) {
+        return baseArcColor(d);
+      } else if (hoveredAirport) {
+        return INACTIVE_COLOR(200);
+      } else if (
+        selectedAirportId &&
+        (d.from.id === selectedAirportId || d.to.id === selectedAirportId)
+      ) {
+        return baseArcColor(d);
+      } else if (selectedAirportId) {
+        return INACTIVE_COLOR(170);
+      } else if (selectedRoute) {
+        return INACTIVE_COLOR(170);
+      } else {
+        return baseArcColor(d);
+      }
+    };
+  };
+
+  const pathOptions = $derived.by(() => ({
+    id: 'track-path-layer',
+    parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
+    extensions: [globeOcclusion],
+    data: flightTrackPaths,
+    getPath: (data: FlightTrackPath) => data.path,
+    getColor: getTrackColor(),
+    getWidth: getVisibleArcWidth,
+    widthUnits: 'pixels',
+    rounded: true,
+    jointRounded: true,
+    capRounded: true,
+    updateTriggers: {
+      getColor: [
+        hoveredArc,
+        hoveredAirport,
+        selectedAirportId,
+        selectedRoute,
+        mapPreferences.arcColor,
+        arcFrequencyPercentileByRoute,
+      ],
+      getWidth: [
+        mapPreferences.arcThickness,
+        mapPreferences.arcThicknessScale,
+        selectedRoute,
+        arcFrequencyPercentileByRoute,
+      ],
+    },
+  }));
+
+  const ghostPathOptions = $derived({
+    id: 'ghost-track-path',
+    parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
+    extensions: [globeOcclusion],
+    data: flightTrackPaths,
+    getPath: (data: FlightTrackPath) => data.path,
+    getColor: [0, 0, 0, 0],
+    getWidth: 3 * 6,
+    widthUnits: 'pixels',
+    pickable: true,
+    onHover: handleTrackHover,
+    onClick: handleTrackClick,
+    rounded: true,
+    jointRounded: true,
+    capRounded: true,
+  });
+
   const buildLayers = () => {
     const layers: Layer[] = [];
     layers.push(new ArcLayer(arcOptions));
     layers.push(new ArcLayer(ghostArcOptions));
+    layers.push(new PathLayer<FlightTrackPath>(pathOptions));
+    layers.push(new PathLayer<FlightTrackPath>(ghostPathOptions));
     if (mapPreferences.airportCircles !== 'off') {
       layers.push(new ScatterplotLayer<VisitedAirport>(airportOptions));
     }
