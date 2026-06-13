@@ -75,6 +75,16 @@ export const platforms = [
     },
   },
   {
+    name: 'OpenFlights',
+    value: 'openflights',
+    description: 'CSV backup from OpenFlights.',
+    extensions: ['.csv'],
+    options: {
+      filterOwner: false,
+      airlineFromFlightNumber: true,
+    },
+  },
+  {
     name: 'AirTrail',
     value: 'airtrail',
     description: 'JSON export from AirTrail (re-import your data).',
