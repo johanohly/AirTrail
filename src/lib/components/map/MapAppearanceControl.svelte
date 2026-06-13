@@ -19,6 +19,7 @@
     mapPreferences,
     resetMapPreferences,
     toggleOpenAipGroup,
+    type AirportCircleRadiusMode,
     type AirportOverlayDetail,
     type AirportCirclesMode,
     type ArcColorMode,
@@ -52,6 +53,14 @@
     { value: 'small', label: 'Small' },
     { value: 'medium', label: 'Medium' },
     { value: 'large', label: 'Large' },
+  ];
+
+  const AIRPORT_CIRCLE_RADIUS_OPTIONS: Array<{
+    value: AirportCircleRadiusMode;
+    label: string;
+  }> = [
+    { value: 'byFrequency', label: 'By frequency' },
+    { value: 'uniform', label: 'Uniform' },
   ];
 
   const ARC_COLOR_OPTIONS: Array<{
@@ -489,83 +498,166 @@
           >
             Airports
           </h3>
-          <div class="grid grid-cols-4 gap-2">
-            {#each AIRPORT_CIRCLE_OPTIONS as option (option.value)}
-              <AppearanceTile
-                selected={mapPreferences.airportCircles === option.value}
-                onclick={() => (mapPreferences.airportCircles = option.value)}
-                label={option.label}
-              >
-                {#snippet illustration()}
-                  {#if option.value === 'off'}
+          <div class="space-y-2">
+            <p class="text-xs font-medium">Size</p>
+            <div class="grid grid-cols-4 gap-2">
+              {#each AIRPORT_CIRCLE_OPTIONS as option (option.value)}
+                <AppearanceTile
+                  selected={mapPreferences.airportCircles === option.value}
+                  onclick={() => (mapPreferences.airportCircles = option.value)}
+                  label={option.label}
+                >
+                  {#snippet illustration()}
+                    {#if option.value === 'off'}
+                      <svg
+                        viewBox="0 0 48 32"
+                        class="h-full w-full text-muted-foreground"
+                        aria-hidden="true"
+                      >
+                        <circle
+                          cx="24"
+                          cy="16"
+                          r="6"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-dasharray="2 2"
+                        />
+                        <line
+                          x1="14"
+                          y1="6"
+                          x2="34"
+                          y2="26"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    {:else}
+                      {@const radii =
+                        option.value === 'small'
+                          ? [2, 3, 2.5]
+                          : option.value === 'medium'
+                            ? [3.5, 5, 4]
+                            : [5, 7.5, 6]}
+                      <svg
+                        viewBox="0 0 48 32"
+                        class="h-full w-full text-primary"
+                        aria-hidden="true"
+                      >
+                        <circle
+                          cx="13"
+                          cy="20"
+                          r={radii[0]}
+                          fill="currentColor"
+                          fill-opacity="0.2"
+                          stroke="currentColor"
+                          stroke-width="1"
+                        />
+                        <circle
+                          cx="26"
+                          cy="13"
+                          r={radii[1]}
+                          fill="currentColor"
+                          fill-opacity="0.2"
+                          stroke="currentColor"
+                          stroke-width="1"
+                        />
+                        <circle
+                          cx="37"
+                          cy="22"
+                          r={radii[2]}
+                          fill="currentColor"
+                          fill-opacity="0.2"
+                          stroke="currentColor"
+                          stroke-width="1"
+                        />
+                      </svg>
+                    {/if}
+                  {/snippet}
+                </AppearanceTile>
+              {/each}
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <p class="text-xs font-medium">Mode</p>
+            <div class="grid grid-cols-2 gap-2">
+              {#each AIRPORT_CIRCLE_RADIUS_OPTIONS as option (option.value)}
+                <AppearanceTile
+                  selected={mapPreferences.airportCircleRadius === option.value}
+                  onclick={() =>
+                    (mapPreferences.airportCircleRadius = option.value)}
+                  label={option.label}
+                >
+                  {#snippet illustration()}
                     <svg
-                      viewBox="0 0 48 32"
-                      class="h-full w-full text-muted-foreground"
-                      aria-hidden="true"
-                    >
-                      <circle
-                        cx="24"
-                        cy="16"
-                        r="6"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-dasharray="2 2"
-                      />
-                      <line
-                        x1="14"
-                        y1="6"
-                        x2="34"
-                        y2="26"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                      />
-                    </svg>
-                  {:else}
-                    {@const radii =
-                      option.value === 'small'
-                        ? [2, 3, 2.5]
-                        : option.value === 'medium'
-                          ? [3.5, 5, 4]
-                          : [5, 7.5, 6]}
-                    <svg
-                      viewBox="0 0 48 32"
+                      viewBox="0 0 72 32"
                       class="h-full w-full text-primary"
                       aria-hidden="true"
                     >
-                      <circle
-                        cx="13"
-                        cy="20"
-                        r={radii[0]}
-                        fill="currentColor"
-                        fill-opacity="0.2"
-                        stroke="currentColor"
-                        stroke-width="1"
-                      />
-                      <circle
-                        cx="26"
-                        cy="13"
-                        r={radii[1]}
-                        fill="currentColor"
-                        fill-opacity="0.2"
-                        stroke="currentColor"
-                        stroke-width="1"
-                      />
-                      <circle
-                        cx="37"
-                        cy="22"
-                        r={radii[2]}
-                        fill="currentColor"
-                        fill-opacity="0.2"
-                        stroke="currentColor"
-                        stroke-width="1"
-                      />
+                      {#if option.value === 'uniform'}
+                        <circle
+                          cx="18"
+                          cy="19"
+                          r="4.75"
+                          fill="currentColor"
+                          fill-opacity="0.2"
+                          stroke="currentColor"
+                          stroke-width="1"
+                        />
+                        <circle
+                          cx="36"
+                          cy="12"
+                          r="4.75"
+                          fill="currentColor"
+                          fill-opacity="0.2"
+                          stroke="currentColor"
+                          stroke-width="1"
+                        />
+                        <circle
+                          cx="54"
+                          cy="21"
+                          r="4.75"
+                          fill="currentColor"
+                          fill-opacity="0.2"
+                          stroke="currentColor"
+                          stroke-width="1"
+                        />
+                      {:else}
+                        <circle
+                          cx="18"
+                          cy="19"
+                          r="2.75"
+                          fill="currentColor"
+                          fill-opacity="0.2"
+                          stroke="currentColor"
+                          stroke-width="1"
+                        />
+                        <circle
+                          cx="36"
+                          cy="12"
+                          r="6.5"
+                          fill="currentColor"
+                          fill-opacity="0.2"
+                          stroke="currentColor"
+                          stroke-width="1"
+                        />
+                        <circle
+                          cx="54"
+                          cy="21"
+                          r="4.25"
+                          fill="currentColor"
+                          fill-opacity="0.2"
+                          stroke="currentColor"
+                          stroke-width="1"
+                        />
+                      {/if}
                     </svg>
-                  {/if}
-                {/snippet}
-              </AppearanceTile>
-            {/each}
+                  {/snippet}
+                </AppearanceTile>
+              {/each}
+            </div>
           </div>
         </section>
 
