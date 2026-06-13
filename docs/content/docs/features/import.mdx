@@ -5,7 +5,7 @@ title: Import
 The import feature allows you to import flight data from other sources into AirTrail.
 Currently, AirTrail supports importing flights from [MyFlightRadar24](https://my.flightradar24.com)
 , [App in the Air](https://appintheair.com), [JetLog](https://github.com/pbogre/jetlog), [TripIt (ICS)](https://www.tripit.com)
-, [Flighty](https://flightyapp.com), [byAir](https://byair.app) and [AirTrail JSON files](/docs/features/export).
+, [Flighty](https://flightyapp.com), [byAir](https://byair.app), [OpenFlights](https://openflights.org) and [AirTrail JSON files](/docs/features/export).
 
 ## Import flights from MyFlightradar24
 
@@ -110,11 +110,6 @@ Import the CSV file into AirTrail:
 4. Select your CSV file from Flighty.
 5. Click Import.
 
-Notes:
-
-- The importer will prioritize actual departure/arrival times over scheduled times when available.
-- Seat types, cabin classes, and flight reasons will be mapped to AirTrail's standardized values.
-
 ## Import flights from byAir
 
 byAir is a flight tracking app that allows you to export your flight data as a CSV file.
@@ -132,6 +127,24 @@ Import the CSV file into AirTrail:
 2. Go to the settings page and open the Import tab.
 3. Choose the source "byAir".
 4. Select your CSV file from byAir.
+5. Click Import.
+
+## Import flights from OpenFlights
+
+OpenFlights can export your flights as a CSV backup.
+
+Export from OpenFlights:
+
+1. Open OpenFlights.
+2. Go to Settings.
+3. Click "Backup to CSV" to download the CSV file.
+
+Import the CSV file into AirTrail:
+
+1. Open the AirTrail application.
+2. Go to the settings page and open the Import tab.
+3. Choose the source "OpenFlights".
+4. Select your OpenFlights CSV file.
 5. Click Import.
 
 ## Import flights from AirTrail JSON files
