@@ -8,6 +8,7 @@ import {
 import { MAP_BASEMAPS, type MapBasemap } from './basemap';
 
 export type AirportCirclesMode = 'off' | 'small' | 'medium' | 'large';
+export type AirportCircleRadiusMode = 'byFrequency' | 'uniform';
 export type ArcColorMode = 'default' | 'byFrequency';
 export type ArcThicknessMode = 'uniform' | 'byFrequency';
 export type ArcThicknessScale = 'thin' | 'normal' | 'thick';
@@ -20,6 +21,7 @@ export type MapPreferences = {
   timeOfDayEnabled: boolean;
   rainViewerEnabled: boolean;
   airportCircles: AirportCirclesMode;
+  airportCircleRadius: AirportCircleRadiusMode;
   arcColor: ArcColorMode;
   arcThickness: ArcThicknessMode;
   arcThicknessScale: ArcThicknessScale;
@@ -36,6 +38,10 @@ const AIRPORT_CIRCLES_MODES: readonly AirportCirclesMode[] = [
   'small',
   'medium',
   'large',
+];
+const AIRPORT_CIRCLE_RADIUS_MODES: readonly AirportCircleRadiusMode[] = [
+  'byFrequency',
+  'uniform',
 ];
 const ARC_COLOR_MODES: readonly ArcColorMode[] = ['default', 'byFrequency'];
 const ARC_THICKNESS_MODES: readonly ArcThicknessMode[] = [
@@ -59,6 +65,7 @@ export const MAP_PREFERENCE_DEFAULTS: MapPreferences = {
   timeOfDayEnabled: false,
   rainViewerEnabled: false,
   airportCircles: 'large',
+  airportCircleRadius: 'byFrequency',
   arcColor: 'default',
   arcThickness: 'uniform',
   arcThicknessScale: 'normal',
@@ -104,6 +111,15 @@ const sanitize = (raw: unknown): MapPreferences => {
     AIRPORT_CIRCLES_MODES.includes(input.airportCircles as AirportCirclesMode)
   ) {
     result.airportCircles = input.airportCircles as AirportCirclesMode;
+  }
+  if (
+    typeof input.airportCircleRadius === 'string' &&
+    AIRPORT_CIRCLE_RADIUS_MODES.includes(
+      input.airportCircleRadius as AirportCircleRadiusMode,
+    )
+  ) {
+    result.airportCircleRadius =
+      input.airportCircleRadius as AirportCircleRadiusMode;
   }
   if (
     typeof input.arcColor === 'string' &&
@@ -179,6 +195,7 @@ export const initMapPreferences = () => {
   mapPreferences.timeOfDayEnabled = hydrated.timeOfDayEnabled;
   mapPreferences.rainViewerEnabled = hydrated.rainViewerEnabled;
   mapPreferences.airportCircles = hydrated.airportCircles;
+  mapPreferences.airportCircleRadius = hydrated.airportCircleRadius;
   mapPreferences.arcColor = hydrated.arcColor;
   mapPreferences.arcThickness = hydrated.arcThickness;
   mapPreferences.arcThicknessScale = hydrated.arcThicknessScale;
@@ -194,6 +211,7 @@ export const initMapPreferences = () => {
         timeOfDayEnabled: mapPreferences.timeOfDayEnabled,
         rainViewerEnabled: mapPreferences.rainViewerEnabled,
         airportCircles: mapPreferences.airportCircles,
+        airportCircleRadius: mapPreferences.airportCircleRadius,
         arcColor: mapPreferences.arcColor,
         arcThickness: mapPreferences.arcThickness,
         arcThicknessScale: mapPreferences.arcThicknessScale,
@@ -216,6 +234,8 @@ export const resetMapPreferences = () => {
   mapPreferences.timeOfDayEnabled = MAP_PREFERENCE_DEFAULTS.timeOfDayEnabled;
   mapPreferences.rainViewerEnabled = MAP_PREFERENCE_DEFAULTS.rainViewerEnabled;
   mapPreferences.airportCircles = MAP_PREFERENCE_DEFAULTS.airportCircles;
+  mapPreferences.airportCircleRadius =
+    MAP_PREFERENCE_DEFAULTS.airportCircleRadius;
   mapPreferences.arcColor = MAP_PREFERENCE_DEFAULTS.arcColor;
   mapPreferences.arcThickness = MAP_PREFERENCE_DEFAULTS.arcThickness;
   mapPreferences.arcThicknessScale = MAP_PREFERENCE_DEFAULTS.arcThicknessScale;

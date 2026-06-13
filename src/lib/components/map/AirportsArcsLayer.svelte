@@ -557,6 +557,7 @@
     normal: 1.5,
     thick: 2.5,
   } as const;
+  const UNIFORM_AIRPORT_FREQUENCY = 2;
 
   const getArcWidth = (d: FlightArc) => {
     if (mapPreferences.arcThickness === 'byFrequency') {
@@ -579,6 +580,10 @@
     const preset =
       mode === 'off' ? AIRPORT_CIRCLE_SIZE.large : AIRPORT_CIRCLE_SIZE[mode];
     const baseUnits = $isMediumScreen ? 50_000 : 100_000;
+    const getFrequencyScale = (airport: VisitedAirport) =>
+      mapPreferences.airportCircleRadius === 'uniform'
+        ? UNIFORM_AIRPORT_FREQUENCY
+        : airport.frequency;
     return {
       id: 'scatterplot-layer',
       parameters: isGlobe
@@ -588,7 +593,7 @@
       data: visitedAirports,
       getPosition: (airport: VisitedAirport) => [airport.lon, airport.lat],
       getRadius: (airport: VisitedAirport) =>
-        airport.frequency * baseUnits * preset.scale,
+        getFrequencyScale(airport) * baseUnits * preset.scale,
       radiusMaxPixels: preset.maxPixels,
       lineWidthUnits: 'pixels',
       getLineWidth: (airport: VisitedAirport) =>
@@ -615,7 +620,7 @@
           selectedRoute,
         ],
         getLineWidth: [selectedAirportId, selectedRoute],
-        getRadius: [mode, $isMediumScreen],
+        getRadius: [mode, mapPreferences.airportCircleRadius, $isMediumScreen],
       },
       stroked: true,
     };
