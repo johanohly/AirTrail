@@ -35,6 +35,8 @@
       points: track.coordinates.length,
       altitudePoints,
       hasTimes: Boolean(track.times?.length),
+      hasGroundSpeed: Boolean(track.groundSpeedKt?.length),
+      hasTrackDegrees: Boolean(track.trackDeg?.length),
       sourceFormat: track.sourceFormat.toUpperCase(),
     };
   });
@@ -132,6 +134,12 @@
                 {/if}
                 {#if trackSummary.hasTimes}
                   &middot; timestamps stored
+                {/if}
+                {#if trackSummary.hasGroundSpeed}
+                  &middot; speed
+                {/if}
+                {#if trackSummary.hasTrackDegrees}
+                  &middot; heading
                 {/if}
               </p>
             </div>

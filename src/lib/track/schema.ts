@@ -22,11 +22,24 @@ const flightTrackPayloadBaseSchema = z.object({
     .min(2)
     .max(MAX_FLIGHT_TRACK_POINTS),
   times: z.number().int().array().max(MAX_FLIGHT_TRACK_POINTS).optional(),
+  groundSpeedKt: z.number().array().max(MAX_FLIGHT_TRACK_POINTS).optional(),
+  trackDeg: z.number().array().max(MAX_FLIGHT_TRACK_POINTS).optional(),
 });
 
+const hasAlignedTrackProperties = (
+  track: z.infer<typeof flightTrackPayloadBaseSchema>,
+) => {
+  return (
+    (!track.times || track.times.length === track.coordinates.length) &&
+    (!track.groundSpeedKt ||
+      track.groundSpeedKt.length === track.coordinates.length) &&
+    (!track.trackDeg || track.trackDeg.length === track.coordinates.length)
+  );
+};
+
 export const flightTrackPayloadSchema = flightTrackPayloadBaseSchema.refine(
-  (track) => !track.times || track.times.length === track.coordinates.length,
-  'Track times must align with coordinates',
+  hasAlignedTrackProperties,
+  'Track properties must align with coordinates',
 );
 
 export const flightTrackInputSchema = flightTrackPayloadBaseSchema
@@ -35,8 +48,8 @@ export const flightTrackInputSchema = flightTrackPayloadBaseSchema
     sourceName: z.string().max(255).nullable().optional(),
   })
   .refine(
-    (track) => !track.times || track.times.length === track.coordinates.length,
-    'Track times must align with coordinates',
+    hasAlignedTrackProperties,
+    'Track properties must align with coordinates',
   );
 
 export type FlightTrackSourceFormat = (typeof flightTrackSourceFormats)[number];

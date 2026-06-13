@@ -21,6 +21,8 @@ export type ParsedTrackFile = FlightTrackInput & {
 type RawTrack = {
   coordinates: FlightTrackCoordinate[];
   times?: number[];
+  groundSpeedKt?: number[];
+  trackDeg?: number[];
 };
 
 type GeoJsonFeature = {
@@ -101,6 +103,11 @@ const parseXmlTrack = (
   }
 
   const document = new DOMParser().parseFromString(content, 'application/xml');
+  const pointTrack = extractTimestampedPointTrack(document);
+  if (pointTrack && pointTrack.coordinates.length >= 2) {
+    return pointTrack;
+  }
+
   const featureCollection =
     sourceFormat === 'gpx' ? gpx(document) : kml(document);
 
@@ -192,6 +199,58 @@ const buildRawTrack = (coordinates: unknown[], times?: unknown[]): RawTrack => {
   };
 };
 
+const extractTimestampedPointTrack = (document: Document): RawTrack | null => {
+  const coordinates: FlightTrackCoordinate[] = [];
+  const times: number[] = [];
+  const groundSpeedKt: number[] = [];
+  const trackDeg: number[] = [];
+
+  for (const placemark of Array.from(
+    document.getElementsByTagName('Placemark'),
+  )) {
+    const coordinateText = placemark
+      .getElementsByTagName('Point')[0]
+      ?.getElementsByTagName('coordinates')[0]
+      ?.textContent?.trim();
+    const time = toEpochSeconds(
+      placemark.getElementsByTagName('when')[0]?.textContent,
+    );
+    if (!coordinateText || time === null) continue;
+
+    const coordinate = normalizeCoordinate(parseKmlCoordinate(coordinateText));
+    if (!coordinate) continue;
+
+    coordinates.push(coordinate);
+    times.push(time);
+
+    const description = placemark
+      .getElementsByTagName('description')[0]
+      ?.textContent?.trim();
+    const speed = parseDescriptionNumber(description, 'Speed', 'kt');
+    if (speed !== null) groundSpeedKt.push(speed);
+
+    const heading =
+      parseNumber(
+        placemark.getElementsByTagName('heading')[0]?.textContent ?? undefined,
+      ) ?? parseDescriptionNumber(description, 'Heading');
+    if (heading !== null) trackDeg.push(normalizeTrackDegrees(heading));
+  }
+
+  if (coordinates.length < 2) return null;
+
+  return {
+    coordinates,
+    times: times.length === coordinates.length ? times : undefined,
+    groundSpeedKt:
+      groundSpeedKt.length === coordinates.length ? groundSpeedKt : undefined,
+    trackDeg: trackDeg.length === coordinates.length ? trackDeg : undefined,
+  };
+};
+
+const parseKmlCoordinate = (value: string) => {
+  return value.split(',').map((part) => part.trim());
+};
+
 const normalizeCoordinate = (input: unknown): FlightTrackCoordinate | null => {
   if (!Array.isArray(input) || input.length < 2) return null;
   const lon = Number(input[0]);
@@ -232,38 +291,66 @@ const parseCsvTrack = (content: string): RawTrack => {
     'altitude_feet',
   ]);
   const timeHeader = findHeader(headers, [
+    'utc',
+    'date_utc',
     'timestamp',
     'time',
     'date_time',
     'datetime',
-    'utc',
-    'date_utc',
+  ]);
+  const positionHeader = findHeader(headers, ['position', 'coordinates']);
+  const speedHeader = findHeader(headers, [
+    'speed',
+    'ground_speed',
+    'groundspeed',
+    'ground_speed_kt',
+    'speed_kt',
+  ]);
+  const trackHeader = findHeader(headers, [
+    'direction',
+    'heading',
+    'track',
+    'course',
+    'track_deg',
+    'heading_deg',
   ]);
 
-  if (!latitudeHeader || !longitudeHeader) {
+  if ((!latitudeHeader || !longitudeHeader) && !positionHeader) {
     throw new Error('CSV track file needs latitude and longitude columns');
   }
 
   const coordinates: FlightTrackCoordinate[] = [];
   const times: number[] = [];
+  const groundSpeedKt: number[] = [];
+  const trackDeg: number[] = [];
 
   for (const line of lines) {
     const parsedRow = parseCsvTrackRow(line, {
       headers,
       latitudeHeader,
       longitudeHeader,
+      positionHeader,
       altitudeHeader,
       timeHeader,
+      speedHeader,
+      trackHeader,
     });
     if (!parsedRow) continue;
 
     coordinates.push(parsedRow.coordinate);
     if (parsedRow.time !== null) times.push(parsedRow.time);
+    if (parsedRow.groundSpeedKt !== null) {
+      groundSpeedKt.push(parsedRow.groundSpeedKt);
+    }
+    if (parsedRow.trackDeg !== null) trackDeg.push(parsedRow.trackDeg);
   }
 
   return {
     coordinates,
     times: times.length === coordinates.length ? times : undefined,
+    groundSpeedKt:
+      groundSpeedKt.length === coordinates.length ? groundSpeedKt : undefined,
+    trackDeg: trackDeg.length === coordinates.length ? trackDeg : undefined,
   };
 };
 
@@ -271,12 +358,20 @@ const parseCsvTrackRow = (
   line: string,
   columns: {
     headers: string[];
-    latitudeHeader: string;
-    longitudeHeader: string;
+    latitudeHeader?: string;
+    longitudeHeader?: string;
+    positionHeader?: string;
     altitudeHeader?: string;
     timeHeader?: string;
+    speedHeader?: string;
+    trackHeader?: string;
   },
-): { coordinate: FlightTrackCoordinate; time: number | null } | null => {
+): {
+  coordinate: FlightTrackCoordinate;
+  time: number | null;
+  groundSpeedKt: number | null;
+  trackDeg: number | null;
+} | null => {
   const values = parseCsvLine(line);
   const row = columns.headers.reduce<Record<string, string>>(
     (acc, header, index) => {
@@ -286,9 +381,20 @@ const parseCsvTrackRow = (
     {},
   );
 
-  const lat = parseNumber(row[columns.latitudeHeader]);
-  const lon = parseNumber(row[columns.longitudeHeader]);
-  if (lat === null || lon === null) return null;
+  const position = parseCsvPosition(
+    columns.positionHeader ? row[columns.positionHeader] : undefined,
+  );
+  const lat =
+    columns.latitudeHeader && columns.longitudeHeader
+      ? parseNumber(row[columns.latitudeHeader])
+      : position?.lat;
+  const lon =
+    columns.latitudeHeader && columns.longitudeHeader
+      ? parseNumber(row[columns.longitudeHeader])
+      : position?.lon;
+  if (lat === null || lat === undefined || lon === null || lon === undefined) {
+    return null;
+  }
 
   const altitudeFeet = columns.altitudeHeader
     ? parseNumber(row[columns.altitudeHeader])
@@ -298,8 +404,28 @@ const parseCsvTrackRow = (
   const time = columns.timeHeader
     ? toEpochSeconds(row[columns.timeHeader])
     : null;
+  const groundSpeedKt = columns.speedHeader
+    ? parseNumber(row[columns.speedHeader])
+    : null;
+  const trackDeg = columns.trackHeader
+    ? parseNumber(row[columns.trackHeader])
+    : null;
 
-  return { coordinate, time };
+  return {
+    coordinate,
+    time,
+    groundSpeedKt,
+    trackDeg: trackDeg === null ? null : normalizeTrackDegrees(trackDeg),
+  };
+};
+
+const parseCsvPosition = (value: string | undefined) => {
+  if (!value) return null;
+  const [latValue, lonValue] = value.split(',').map((part) => part.trim());
+  const lat = parseNumber(latValue);
+  const lon = parseNumber(lonValue);
+
+  return lat === null || lon === null ? null : { lat, lon };
 };
 
 const findHeader = (headers: string[], candidates: string[]) => {
@@ -311,6 +437,26 @@ const parseNumber = (value: string | undefined) => {
   const parsed = Number(value.replaceAll(',', ''));
   return Number.isFinite(parsed) ? parsed : null;
 };
+
+const parseDescriptionNumber = (
+  description: string | null | undefined,
+  label: string,
+  unit?: string,
+) => {
+  if (!description) return null;
+  const normalizedDescription = description
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&deg;/g, ' ')
+    .replace(/\s+/g, ' ');
+  const escapedUnit = unit ? `\\s*${unit}` : '';
+  const match = new RegExp(
+    `${label}:\\s*(-?\\d+(?:\\.\\d+)?)${escapedUnit}`,
+    'i',
+  ).exec(normalizedDescription);
+  return match?.[1] ? parseNumber(match[1]) : null;
+};
+
+const normalizeTrackDegrees = (value: number) => ((value % 360) + 360) % 360;
 
 const toEpochSeconds = (value: unknown): number | null => {
   if (typeof value !== 'string' && typeof value !== 'number') return null;
@@ -327,8 +473,13 @@ const toEpochSeconds = (value: unknown): number | null => {
   }
 
   const parsed = Date.parse(trimmed);
+  if (!hasExplicitTimezone(trimmed)) return null;
   if (!Number.isFinite(parsed)) return null;
   return Math.round(parsed / 1000);
+};
+
+const hasExplicitTimezone = (value: string) => {
+  return /(?:z|utc|[+-]\d{2}:?\d{2})$/i.test(value.trim());
 };
 
 export const simplifyTrack = (
@@ -374,19 +525,16 @@ export const simplifyTrack = (
   }
 
   const coordinates: FlightTrackCoordinate[] = [];
-  const times: number[] = [];
+  const pickedProperties = createAlignedPropertyPicker(track);
   track.coordinates.forEach((coordinate, index) => {
     if (!keep[index]) return;
     coordinates.push(coordinate);
-    if (track.times) {
-      const time = track.times[index];
-      if (time !== undefined) times.push(time);
-    }
+    pickedProperties.pick(index);
   });
 
   return {
     coordinates,
-    times: track.times ? times : undefined,
+    ...pickedProperties.toPayload(),
   };
 };
 
@@ -397,7 +545,7 @@ const limitTrackPoints = (
   if (track.coordinates.length <= maxPoints) return track;
 
   const coordinates: FlightTrackCoordinate[] = [];
-  const times: number[] = [];
+  const pickedProperties = createAlignedPropertyPicker(track);
   const lastIndex = track.coordinates.length - 1;
 
   for (let index = 0; index < maxPoints; index++) {
@@ -406,15 +554,38 @@ const limitTrackPoints = (
     if (!coordinate) continue;
 
     coordinates.push(coordinate);
-    if (track.times) {
-      const time = track.times[sourceIndex];
-      if (time !== undefined) times.push(time);
-    }
+    pickedProperties.pick(sourceIndex);
   }
 
   return {
     coordinates,
-    times: track.times ? times : undefined,
+    ...pickedProperties.toPayload(),
+  };
+};
+
+const createAlignedPropertyPicker = (track: FlightTrackPayload) => {
+  const times: number[] = [];
+  const groundSpeedKt: number[] = [];
+  const trackDeg: number[] = [];
+
+  return {
+    pick(index: number) {
+      const time = track.times?.[index];
+      if (time !== undefined) times.push(time);
+
+      const groundSpeed = track.groundSpeedKt?.[index];
+      if (groundSpeed !== undefined) groundSpeedKt.push(groundSpeed);
+
+      const trackDirection = track.trackDeg?.[index];
+      if (trackDirection !== undefined) trackDeg.push(trackDirection);
+    },
+    toPayload(): Omit<FlightTrackPayload, 'coordinates'> {
+      return {
+        ...(track.times ? { times } : {}),
+        ...(track.groundSpeedKt ? { groundSpeedKt } : {}),
+        ...(track.trackDeg ? { trackDeg } : {}),
+      };
+    },
   };
 };
 

@@ -242,6 +242,8 @@ export const upsertFlightTrackPrimitiveWithConnection = async (
       track: {
         coordinates: track.coordinates,
         ...(track.times ? { times: track.times } : {}),
+        ...(track.groundSpeedKt ? { groundSpeedKt: track.groundSpeedKt } : {}),
+        ...(track.trackDeg ? { trackDeg: track.trackDeg } : {}),
       },
       sourceFormat: track.sourceFormat,
       sourceName: track.sourceName ?? null,
@@ -253,6 +255,10 @@ export const upsertFlightTrackPrimitiveWithConnection = async (
         track: {
           coordinates: track.coordinates,
           ...(track.times ? { times: track.times } : {}),
+          ...(track.groundSpeedKt
+            ? { groundSpeedKt: track.groundSpeedKt }
+            : {}),
+          ...(track.trackDeg ? { trackDeg: track.trackDeg } : {}),
         },
         sourceFormat: track.sourceFormat,
         sourceName: track.sourceName ?? null,
@@ -327,6 +333,10 @@ export const createManyFlightsPrimitive = async (
           track: {
             coordinates: track.coordinates,
             ...(track.times ? { times: track.times } : {}),
+            ...(track.groundSpeedKt
+              ? { groundSpeedKt: track.groundSpeedKt }
+              : {}),
+            ...(track.trackDeg ? { trackDeg: track.trackDeg } : {}),
           },
           sourceFormat: track.sourceFormat,
           sourceName: track.sourceName ?? null,

@@ -249,6 +249,10 @@ export async function getPublicShareData(slug: string) {
         {
           coordinates: track.coordinates,
           ...(share.showTimes && track.times ? { times: track.times } : {}),
+          ...(track.groundSpeedKt
+            ? { groundSpeedKt: track.groundSpeedKt }
+            : {}),
+          ...(track.trackDeg ? { trackDeg: track.trackDeg } : {}),
           sourceFormat: row.sourceFormat,
           sourceName: row.sourceName,
         },

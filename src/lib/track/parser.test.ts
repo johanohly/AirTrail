@@ -109,14 +109,90 @@ describe('track parser', () => {
     expect(result.times).toEqual([1767261600, 1767261660]);
   });
 
-  it('keeps times aligned when simplifying', () => {
+  it('uses explicit UTC CSV columns and ignores timezone-less datetimes', () => {
+    const result = parseTrackContent(
+      `Timestamp,UTC,Latitude,Longitude
+2026-01-01T11:00:00,2026-01-01T10:00:00Z,55.618,12.656
+2026-01-01T11:01:00,2026-01-01T10:01:00Z,55.620,12.700`,
+      'csv',
+    );
+    const withoutTimezone = parseTrackContent(
+      `Timestamp,Latitude,Longitude
+2026-01-01T10:00:00,55.618,12.656
+2026-01-01T10:01:00,55.620,12.700`,
+      'csv',
+    );
+
+    expect(result.times).toEqual([1767261600, 1767261660]);
+    expect(withoutTimezone.times).toBeUndefined();
+  });
+
+  it('parses FR24 CSV position, speed, and direction columns', () => {
+    const result = parseTrackContent(
+      `Timestamp,UTC,Callsign,Position,Altitude,Speed,Direction
+1781327392,2026-06-13T05:09:52Z,SAS44D,"55.626709,12.644473",0,0,101
+1781327710,2026-06-13T05:15:10Z,SAS44D,"55.626736,12.644255",1000,3,98`,
+      'csv',
+    );
+
+    expect(result.coordinates).toEqual([
+      [12.644473, 55.626709, 0],
+      [12.644255, 55.626736, 304.8],
+    ]);
+    expect(result.times).toEqual([1781327392, 1781327710]);
+    expect(result.groundSpeedKt).toEqual([0, 3]);
+    expect(result.trackDeg).toEqual([101, 98]);
+  });
+
+  it('parses FR24 KML point placemarks with speed and heading', () => {
+    const result = parseTrackContent(
+      `<?xml version="1.0" encoding="UTF-8"?>
+      <kml xmlns="http://www.opengis.net/kml/2.2">
+        <Document>
+          <Placemark>
+            <description><![CDATA[Altitude: 0 ft Speed: 3 kt Heading: 98&deg;]]></description>
+            <TimeStamp><when>2026-06-13T05:15:10+00:00</when></TimeStamp>
+            <LookAt><heading>98</heading></LookAt>
+            <Point><coordinates>12.644255,55.626736,0</coordinates></Point>
+          </Placemark>
+          <Placemark>
+            <description><![CDATA[Altitude: 1000 ft Speed: 8 kt Heading: 120&deg;]]></description>
+            <TimeStamp><when>2026-06-13T05:15:17+00:00</when></TimeStamp>
+            <LookAt><heading>120</heading></LookAt>
+            <Point><coordinates>12.644036,55.626755,304.8</coordinates></Point>
+          </Placemark>
+          <Placemark>
+            <LineString>
+              <coordinates>0,0,0 1,1,1</coordinates>
+            </LineString>
+          </Placemark>
+        </Document>
+      </kml>`,
+      'kml',
+    );
+
+    expect(result.coordinates).toEqual([
+      [12.644255, 55.626736, 0],
+      [12.644036, 55.626755, 304.8],
+    ]);
+    expect(result.times).toEqual([1781327710, 1781327717]);
+    expect(result.groundSpeedKt).toEqual([3, 8]);
+    expect(result.trackDeg).toEqual([98, 120]);
+  });
+
+  it('keeps track properties aligned when simplifying', () => {
     const coordinates = Array.from({ length: 20 }, (_, index) => [
       index * 0.001,
       index === 10 ? 0.01 : 0,
     ]) as [number, number][];
     const times = coordinates.map((_, index) => index);
+    const groundSpeedKt = coordinates.map((_, index) => index * 10);
+    const trackDeg = coordinates.map((_, index) => index);
 
-    const simplified = simplifyTrack({ coordinates, times }, 10);
+    const simplified = simplifyTrack(
+      { coordinates, times, groundSpeedKt, trackDeg },
+      10,
+    );
 
     expect(simplified.coordinates.length).toBeLessThan(coordinates.length);
     expect(simplified.coordinates[0]).toEqual(coordinates[0]);
@@ -124,6 +200,12 @@ describe('track parser', () => {
     expect(simplified.coordinates).toContainEqual(coordinates[10]);
     expect(simplified.times).toHaveLength(simplified.coordinates.length);
     expect(simplified.times).toContain(10);
+    expect(simplified.groundSpeedKt).toHaveLength(
+      simplified.coordinates.length,
+    );
+    expect(simplified.groundSpeedKt).toContain(100);
+    expect(simplified.trackDeg).toHaveLength(simplified.coordinates.length);
+    expect(simplified.trackDeg).toContain(10);
   });
 
   it('limits parsed tracks to the server-side point cap', () => {
