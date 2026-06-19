@@ -9,6 +9,8 @@
     defaultFilters,
     hasTempFilters as hasActiveTempFilters,
     type FlightFilters,
+    type MultiOptionFilterOperator,
+    type OptionFilterOperator,
     type TempFilters,
     type Route,
   } from '$lib/components/flight-filters/types';
@@ -102,25 +104,83 @@
     return (fromId === r.a && toId === r.b) || (fromId === r.b && toId === r.a);
   };
 
+  const optionMatches = (
+    value: string | null | undefined,
+    selectedValues: string[],
+    operator: OptionFilterOperator = 'is any of',
+  ) => {
+    if (!selectedValues.length) return true;
+    if (!value) return false;
+
+    const found = selectedValues.includes(value);
+
+    switch (operator) {
+      case 'is':
+      case 'is any of':
+        return found;
+      case 'is not':
+      case 'is none of':
+        return !found;
+    }
+  };
+
+  const multiOptionMatches = (
+    values: string[],
+    selectedValues: string[],
+    operator: MultiOptionFilterOperator = 'include any of',
+  ) => {
+    if (!selectedValues.length) return true;
+
+    const selected = new Set(selectedValues);
+    const matchCount = values.filter((value) => selected.has(value)).length;
+
+    switch (operator) {
+      case 'include':
+      case 'include any of':
+        return matchCount > 0;
+      case 'exclude':
+      case 'exclude if any of':
+        return matchCount === 0;
+      case 'include all of':
+        return matchCount === selectedValues.length;
+      case 'exclude if all':
+        return matchCount !== selectedValues.length;
+    }
+  };
+
   const matchesLocationFilters = (
     f: FlightData,
-    locationFilters: Pick<
-      FlightFilters,
-      'departureAirports' | 'arrivalAirports' | 'airportsEither' | 'routes'
-    >,
+    locationFilters: Pick<FlightFilters, 'airportsEither' | 'routes'> &
+      Partial<
+        Pick<
+          FlightFilters,
+          | 'departureAirports'
+          | 'departureAirportsOperator'
+          | 'arrivalAirports'
+          | 'arrivalAirportsOperator'
+        >
+      >,
   ) => {
     const fromId = f.from?.id.toString();
     const toId = f.to?.id.toString();
+    const departureAirports = locationFilters.departureAirports ?? [];
+    const arrivalAirports = locationFilters.arrivalAirports ?? [];
 
     if (
-      locationFilters.departureAirports.length &&
-      (!fromId || !locationFilters.departureAirports.includes(fromId))
+      !optionMatches(
+        fromId,
+        departureAirports,
+        locationFilters.departureAirportsOperator,
+      )
     ) {
       return false;
     }
     if (
-      locationFilters.arrivalAirports.length &&
-      (!toId || !locationFilters.arrivalAirports.includes(toId))
+      !optionMatches(
+        toId,
+        arrivalAirports,
+        locationFilters.arrivalAirportsOperator,
+      )
     ) {
       return false;
     }
@@ -145,6 +205,16 @@
   };
 
   const matchesNonLocationFilters = (f: FlightData) => {
+    if (
+      !optionMatches(
+        f.date?.getFullYear().toString(),
+        filters.years,
+        filters.yearsOperator,
+      )
+    ) {
+      return false;
+    }
+
     if (
       filters.fromDate &&
       (!f.dateEnd ||
@@ -171,32 +241,39 @@
     }
 
     if (
-      filters.passengers.length &&
-      !f.seats.some((seat) => {
-        const token = getSeatPassengerToken(seat);
-        return token ? filters.passengers.includes(token) : false;
-      })
+      !multiOptionMatches(
+        f.seats
+          .map((seat) => getSeatPassengerToken(seat))
+          .filter((token): token is string => !!token),
+        filters.passengers,
+        filters.passengersOperator,
+      )
     ) {
       return false;
     }
 
     if (
-      filters.airline.length &&
-      !filters.airline.includes(f.airline?.name || '')
+      !optionMatches(f.airline?.name, filters.airline, filters.airlineOperator)
     ) {
       return false;
     }
 
     if (
-      filters.aircraft.length &&
-      !filters.aircraft.includes(f.aircraft?.name || '')
+      !optionMatches(
+        f.aircraft?.name,
+        filters.aircraft,
+        filters.aircraftOperator,
+      )
     ) {
       return false;
     }
 
     if (
-      filters.aircraftRegs.length &&
-      !filters.aircraftRegs.includes(f.aircraftReg || '')
+      !optionMatches(
+        f.aircraftReg,
+        filters.aircraftRegs,
+        filters.aircraftRegsOperator,
+      )
     ) {
       return false;
     }

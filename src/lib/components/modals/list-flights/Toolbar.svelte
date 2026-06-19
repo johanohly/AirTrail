@@ -122,12 +122,12 @@
 </script>
 
 <!-- Top bar: filters + Select (desktop only) -->
-<div class="flex flex-wrap items-center justify-between gap-3">
-  <div class="flex flex-wrap items-center gap-2">
+<div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+  <div class="flex min-w-0 flex-wrap items-center gap-2">
     {#if hasTempFilters}
       <Button
         variant="outline"
-        size="sm"
+        class="flex-none"
         onclick={() => {
           if (tempFilters) {
             clearTempFilters(tempFilters);
@@ -137,16 +137,18 @@
         Show All Flights
       </Button>
     {/if}
-    <ResponsiveFilters
-      {flights}
-      bind:filters
-      bind:tempFilters
-      {hasTempFilters}
-    />
+    <div class="min-w-0 flex-1">
+      <ResponsiveFilters
+        {flights}
+        bind:filters
+        bind:tempFilters
+        {hasTempFilters}
+      />
+    </div>
   </div>
 
   <div
-    class={`ml-auto flex items-center gap-2 ${selecting ? 'pointer-events-none opacity-0' : ''}`}
+    class={`flex flex-none items-center gap-2 justify-self-end ${selecting ? 'pointer-events-none opacity-0' : ''}`}
   >
     {#if isAdmin && users.length > 0}
       <Popover.Root>
@@ -215,7 +217,7 @@
         selectedFlights = [];
       }}
       disabled={flights.length === 0}
-      class="hidden gap-2 px-3.5 sm:inline-flex"
+      class="hidden gap-2 sm:inline-flex"
       variant="outline"
       size="sm"
     >
