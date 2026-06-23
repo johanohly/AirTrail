@@ -1,0 +1,270 @@
+@layer components {
+  [data-filter-date-editor] {
+    width: 284px;
+    padding: 0.625rem;
+  }
+
+  [data-filter-date-calendar] {
+    --filter-date-range-fill: var(--accent);
+    --filter-date-preview-cap: color-mix(
+      in srgb,
+      var(--foreground) 28%,
+      var(--accent)
+    );
+    --filter-date-preview-cap-foreground: var(--foreground);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    outline: none;
+  }
+
+  [data-filter-date-calendar-header] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  [data-filter-date-calendar-nav] {
+    display: inline-flex;
+    width: 1.75rem;
+    height: 1.75rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background: var(--background);
+    padding: 0;
+    box-shadow: var(--filter-shadow-xs);
+    color: var(--muted-foreground);
+  }
+
+  [data-filter-date-calendar-nav]:hover {
+    color: var(--foreground);
+  }
+
+  [data-filter-date-calendar-nav] svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  [data-filter-date-calendar-heading] {
+    color: var(--foreground);
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+
+  [data-filter-date-calendar-heading] > div {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  [data-filter-date-calendar-heading-button] {
+    border: 0;
+    border-radius: 0.3125rem;
+    background: transparent;
+    padding: 0.1875rem 0.3125rem;
+    color: inherit;
+    font: inherit;
+  }
+
+  [data-filter-date-calendar-heading-button]:hover,
+  [data-filter-date-calendar-heading-button][data-active] {
+    background: var(--accent);
+  }
+
+  [data-filter-date-calendar] > [data-mode] {
+    position: relative;
+    min-height: 224px;
+  }
+
+  [data-filter-date-calendar-grid] {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 0.25rem;
+    table-layout: fixed;
+  }
+
+  [data-filter-date-calendar-head-cell] {
+    height: 1.5rem;
+    color: var(--muted-foreground);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    text-align: center;
+  }
+
+  [data-filter-date-calendar-cell] {
+    padding: 0;
+    border-radius: 0;
+    text-align: center;
+  }
+
+  [data-filter-date-calendar-cell][data-range-middle],
+  [data-filter-date-calendar-cell][data-highlight-middle] {
+    background: var(--filter-date-range-fill);
+  }
+
+  [data-filter-date-calendar-cell][data-selection-start]:not(
+      [data-selection-single]
+    ),
+  [data-filter-date-calendar-cell][data-highlight-start] {
+    background: linear-gradient(
+      to right,
+      transparent 0 50%,
+      var(--filter-date-range-fill) 50% 100%
+    );
+  }
+
+  [data-filter-date-calendar-cell][data-selection-end],
+  [data-filter-date-calendar-cell][data-highlight-end] {
+    background: linear-gradient(
+      to right,
+      var(--filter-date-range-fill) 0 50%,
+      transparent 50% 100%
+    );
+  }
+
+  [data-filter-date-calendar-cell]:first-child:is(
+      [data-range-middle],
+      [data-selection-end],
+      [data-highlight-middle],
+      [data-highlight-end]
+    ) {
+    border-top-left-radius: 0.375rem;
+    border-bottom-left-radius: 0.375rem;
+  }
+
+  [data-filter-date-calendar-cell]:last-child:is(
+      [data-range-middle],
+      [data-selection-start]:not([data-selection-single]),
+      [data-highlight-middle],
+      [data-highlight-start]
+    ) {
+    border-top-right-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+  }
+
+  [data-filter-date-calendar-day] {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    width: 2rem;
+    height: 2rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.375rem;
+    color: var(--foreground);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    outline: none;
+  }
+
+  [data-filter-date-calendar-day]:hover,
+  [data-filter-date-calendar-day]:focus {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+
+  [data-filter-date-calendar-day][data-highlighted],
+  [data-filter-date-calendar-day][data-range-middle],
+  [data-filter-date-calendar-day][data-selected] {
+    width: 100%;
+    border-radius: 0;
+    background: var(--accent);
+    color: var(--accent-foreground);
+    font-weight: 500;
+  }
+
+  [data-filter-date-calendar-day][data-selection-start],
+  [data-filter-date-calendar-day][data-selection-end],
+  [data-filter-date-calendar-day][data-selected][data-selection-start],
+  [data-filter-date-calendar-day][data-selected][data-selection-end],
+  [data-filter-date-calendar-day][data-selection-start][data-selection-single],
+  [data-filter-date-calendar-day][data-selection-start][data-range-end],
+  [data-filter-date-calendar-day][data-selection-start][data-selection-end] {
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    max-width: 2rem;
+    border-radius: 0.375rem;
+    aspect-ratio: 1;
+    background: var(--foreground);
+    color: var(--background);
+    font-weight: 650;
+  }
+
+  [data-filter-date-calendar-day][data-highlight-start]:not([data-selected]),
+  [data-filter-date-calendar-day][data-highlight-end]:not([data-selected]) {
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    max-width: 2rem;
+    border-radius: 0.375rem;
+    aspect-ratio: 1;
+    background: var(--filter-date-preview-cap);
+    color: var(--filter-date-preview-cap-foreground);
+    font-weight: 650;
+  }
+
+  [data-filter-date-calendar-day][data-today]:not([data-selected])::after {
+    content: '';
+    position: absolute;
+    bottom: 0.3125rem;
+    left: 50%;
+    width: 0.25rem;
+    height: 0.25rem;
+    border-radius: 999px;
+    background: currentColor;
+    transform: translateX(-50%);
+  }
+
+  [data-filter-date-calendar-day][data-disabled],
+  [data-filter-date-calendar-day][data-outside-month] {
+    color: color-mix(in srgb, var(--muted-foreground) 55%, transparent);
+    pointer-events: none;
+  }
+
+  [data-filter-date-calendar-mode-panel] {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    overflow: auto;
+    background: var(--popover);
+    padding: 0.125rem;
+  }
+
+  [data-filter-date-calendar-mode-panel] > div {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.25rem;
+  }
+
+  [data-filter-date-calendar-mode-panel]
+    [data-filter-date-calendar-mode-option] {
+    height: 1.875rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--foreground);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  [data-filter-date-calendar-mode-panel]
+    [data-filter-date-calendar-mode-option]:hover {
+    background: var(--accent);
+  }
+
+  [data-filter-date-calendar-mode-panel]
+    [data-filter-date-calendar-mode-option][data-active] {
+    background: var(--foreground);
+    color: var(--background);
+  }
+
+  [data-filter-date-calendar-mode-panel]
+    [data-filter-date-calendar-mode-option]:disabled {
+    color: color-mix(in srgb, var(--muted-foreground) 45%, transparent);
+    pointer-events: none;
+  }
+}

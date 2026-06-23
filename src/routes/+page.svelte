@@ -1,16 +1,19 @@
 <script lang="ts">
-  import { isAfter, isBefore } from 'date-fns';
   import { page } from '$app/state';
   import { writable } from 'svelte/store';
   import { toast } from 'svelte-sonner';
 
   import {
+    createDefaultFilters,
+    matchesFlight,
+    matchesLocationFilters,
+    matchesNonLocationFilters,
+  } from '$lib/components/flight-filters/model';
+  import {
     createDefaultTempFilters,
-    defaultFilters,
     hasTempFilters as hasActiveTempFilters,
     type FlightFilters,
     type TempFilters,
-    type Route,
   } from '$lib/components/flight-filters/types';
   import FlightsOnboarding from '$lib/components/onboarding/FlightsOnboarding.svelte';
   import { MapDetailsPane } from '$lib/components/map-details';
@@ -18,25 +21,9 @@
   import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
   import { flightScopeState, openModalsState } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
-  import {
-    getSeatPassengerToken,
-    prepareFlightData,
-    type FlightData,
-  } from '$lib/utils';
-  import { parseLocalISO } from '$lib/utils/datetime';
+  import { prepareFlightData } from '$lib/utils';
 
   const user = $derived(page.data.user);
-
-  const getFilterBoundary = (
-    date: NonNullable<FlightFilters['fromDate']>,
-    tzId: string,
-    end = false,
-  ) => {
-    return parseLocalISO(
-      `${date.toString()}T${end ? '23:59:59.999' : '00:00'}`,
-      tzId,
-    );
-  };
 
   const flightListInput = writable<{
     scope: 'mine' | 'user' | 'all';
@@ -78,7 +65,7 @@
     return data;
   });
 
-  let filters: FlightFilters = $state(defaultFilters);
+  let filters: FlightFilters = $state(createDefaultFilters());
   let tempFilters: TempFilters = $state(createDefaultTempFilters());
 
   const effectiveSeatUserId = $derived.by(() => {
@@ -96,118 +83,8 @@
     }
   });
 
-  const matchesRoute = (f: FlightData, r: Route): boolean => {
-    const fromId = f.from?.id.toString();
-    const toId = f.to?.id.toString();
-    return (fromId === r.a && toId === r.b) || (fromId === r.b && toId === r.a);
-  };
-
-  const matchesLocationFilters = (
-    f: FlightData,
-    locationFilters: Pick<
-      FlightFilters,
-      'departureAirports' | 'arrivalAirports' | 'airportsEither' | 'routes'
-    >,
-  ) => {
-    const fromId = f.from?.id.toString();
-    const toId = f.to?.id.toString();
-
-    if (
-      locationFilters.departureAirports.length &&
-      (!fromId || !locationFilters.departureAirports.includes(fromId))
-    ) {
-      return false;
-    }
-    if (
-      locationFilters.arrivalAirports.length &&
-      (!toId || !locationFilters.arrivalAirports.includes(toId))
-    ) {
-      return false;
-    }
-    if (
-      locationFilters.airportsEither.length &&
-      (!fromId ||
-        !toId ||
-        ![fromId, toId].some((id) =>
-          locationFilters.airportsEither.includes(id),
-        ))
-    ) {
-      return false;
-    }
-    if (
-      locationFilters.routes.length &&
-      !locationFilters.routes.some((r) => matchesRoute(f, r))
-    ) {
-      return false;
-    }
-
-    return true;
-  };
-
-  const matchesNonLocationFilters = (f: FlightData) => {
-    if (
-      filters.fromDate &&
-      (!f.dateEnd ||
-        isBefore(
-          f.dateEnd,
-          getFilterBoundary(filters.fromDate, f.dateEnd.timeZone ?? 'UTC'),
-        ))
-    ) {
-      return false;
-    }
-    if (
-      filters.toDate &&
-      (!f.dateStart ||
-        isAfter(
-          f.dateStart,
-          getFilterBoundary(
-            filters.toDate,
-            f.dateStart.timeZone ?? 'UTC',
-            true,
-          ),
-        ))
-    ) {
-      return false;
-    }
-
-    if (
-      filters.passengers.length &&
-      !f.seats.some((seat) => {
-        const token = getSeatPassengerToken(seat);
-        return token ? filters.passengers.includes(token) : false;
-      })
-    ) {
-      return false;
-    }
-
-    if (
-      filters.airline.length &&
-      !filters.airline.includes(f.airline?.name || '')
-    ) {
-      return false;
-    }
-
-    if (
-      filters.aircraft.length &&
-      !filters.aircraft.includes(f.aircraft?.name || '')
-    ) {
-      return false;
-    }
-
-    if (
-      filters.aircraftRegs.length &&
-      !filters.aircraftRegs.includes(f.aircraftReg || '')
-    ) {
-      return false;
-    }
-
-    return true;
-  };
-
   const filteredFlights = $derived.by(() => {
-    return flights.filter(
-      (f) => matchesLocationFilters(f, filters) && matchesNonLocationFilters(f),
-    );
+    return flights.filter((flight) => matchesFlight(flight, filters));
   });
 
   const drilldownFlights = $derived.by(() => {
@@ -216,9 +93,9 @@
       : filters;
 
     return flights.filter(
-      (f) =>
-        matchesLocationFilters(f, locationFilters) &&
-        matchesNonLocationFilters(f),
+      (flight) =>
+        matchesLocationFilters(flight, locationFilters) &&
+        matchesNonLocationFilters(flight, filters),
     );
   });
 

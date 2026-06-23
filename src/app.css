@@ -136,6 +136,9 @@ layer(base);
     --ring: oklch(70.8% 0 0);
 
     --radius: 0.5rem;
+    --filter-shadow-xs: 0 1px 2px rgb(0 0 0 / 0.05);
+    --filter-shadow-menu:
+      0 18px 45px rgb(0 0 0 / 0.12), 0 2px 8px rgb(0 0 0 / 0.08);
   }
 
   .dark {
@@ -169,6 +172,8 @@ layer(base);
     --destructive-foreground: hsl(0, 0%, 98%);
 
     --ring: hsl(240, 4.9%, 83.9%);
+    --filter-shadow-menu:
+      0 18px 45px rgb(0 0 0 / 0.4), 0 2px 8px rgb(0 0 0 / 0.28);
   }
 }
 
@@ -297,7 +302,9 @@ layer(base);
 }
 
 :is(.maplibregl-ctrl, .mapboxgl-ctrl)
-  button:not([title='Clear filters']):not(:disabled):hover {
+  button:not([title='Clear filters']):not(:disabled):not(
+    :has([data-map-filter-dot])
+  ):hover {
   filter: brightness(0.8) !important;
 }
 
@@ -341,6 +348,10 @@ layer(base);
     box-shadow !important;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
   width: 2rem !important;
+}
+
+[data-clear-ctrl] button {
+  color: var(--destructive-foreground) !important;
 }
 
 .maplibregl-ctrl

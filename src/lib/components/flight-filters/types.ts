@@ -5,17 +5,35 @@ export type Route = {
   b: string;
 };
 
+export type OptionFilterOperator = 'is' | 'is not' | 'is any of' | 'is none of';
+
+export type MultiOptionFilterOperator =
+  | 'include'
+  | 'exclude'
+  | 'include any of'
+  | 'include all of'
+  | 'exclude if any of'
+  | 'exclude if all';
+
 export type FlightFilters = {
   departureAirports: string[];
+  departureAirportsOperator: OptionFilterOperator;
   arrivalAirports: string[];
+  arrivalAirportsOperator: OptionFilterOperator;
   airportsEither: string[];
   routes: Route[];
+  years: string[];
+  yearsOperator: OptionFilterOperator;
   fromDate: CalendarDate | undefined;
   toDate: CalendarDate | undefined;
   passengers: string[];
+  passengersOperator: MultiOptionFilterOperator;
   airline: string[];
+  airlineOperator: OptionFilterOperator;
   aircraft: string[];
+  aircraftOperator: OptionFilterOperator;
   aircraftRegs: string[];
+  aircraftRegsOperator: OptionFilterOperator;
 };
 
 export type TempFilters = {
@@ -23,19 +41,6 @@ export type TempFilters = {
   arrivalAirports: string[];
   airportsEither: string[];
   routes: Route[];
-};
-
-export const defaultFilters: FlightFilters = {
-  departureAirports: [],
-  arrivalAirports: [],
-  airportsEither: [],
-  routes: [],
-  fromDate: undefined,
-  toDate: undefined,
-  passengers: [],
-  airline: [],
-  aircraft: [],
-  aircraftRegs: [],
 };
 
 export const createDefaultTempFilters = (): TempFilters => ({

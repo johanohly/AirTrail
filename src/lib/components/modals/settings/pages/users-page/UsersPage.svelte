@@ -7,6 +7,7 @@
 
   import { invalidateAll } from '$app/navigation';
   import { page } from '$app/state';
+  import { UserAvatar } from '$lib/components/display';
   import { Confirm } from '$lib/components/helpers';
   import UserModal from '$lib/components/modals/settings/pages/users-page/UserModal.svelte';
   import { Button } from '$lib/components/ui/button';
@@ -74,6 +75,7 @@
       {#each users as current_user}
         <Card level="2" class="flex items-center p-3">
           <div class="flex items-center flex-1 gap-4 h-full min-w-0">
+            <UserAvatar username={current_user.username} size={36} />
             <div class="flex flex-col min-w-0 w-2/5">
               <h4 class="leading-4 truncate">{current_user.displayName}</h4>
               <p class="text-sm text-muted-foreground truncate">

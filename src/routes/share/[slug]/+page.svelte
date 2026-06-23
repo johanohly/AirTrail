@@ -1,27 +1,67 @@
 <script lang="ts">
+  import type { inferRouterOutputs } from '@trpc/server';
   import { ChartPie } from '@o7/icon/lucide';
   import { AirplanemodeInactive } from '@o7/icon/material/solid';
+  import { writable } from 'svelte/store';
 
   import { page } from '$app/state';
-  import {
-    defaultFilters,
-    type FlightFilters,
-  } from '$lib/components/flight-filters/types';
+  import { createDefaultFilters } from '$lib/components/flight-filters/model';
+  import type { FlightFilters } from '$lib/components/flight-filters/types';
   import { Map } from '$lib/components/map';
+  import type { Flight, FlightSeat } from '$lib/db/types';
+  import type { AppRouter } from '$lib/server/routes/_app';
   import type { FlightTrackRow } from '$lib/track/schema';
   import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
   import { trpc } from '$lib/trpc';
   import { prepareFlightData } from '$lib/utils';
 
-  const slug = $derived(page.params.slug);
+  type ShareFlight =
+    inferRouterOutputs<AppRouter>['share']['public']['flights'][number];
 
-  const shareQuery = trpc.share.public.query({ slug });
+  function normalizeSharedFlight(flight: ShareFlight) {
+    return {
+      ...flight,
+      date: flight.date ?? null,
+      datePrecision: flight.datePrecision ?? 'day',
+      departure: flight.departure ?? null,
+      arrival: flight.arrival ?? null,
+      departureScheduled: flight.departureScheduled ?? null,
+      arrivalScheduled: flight.arrivalScheduled ?? null,
+      takeoffScheduled: flight.takeoffScheduled ?? null,
+      takeoffActual: flight.takeoffActual ?? null,
+      landingScheduled: flight.landingScheduled ?? null,
+      landingActual: flight.landingActual ?? null,
+      departureTerminal: null,
+      departureGate: null,
+      arrivalTerminal: null,
+      arrivalGate: null,
+      flightNumber: flight.flightNumber ?? null,
+      aircraftReg: flight.aircraftReg ?? null,
+      note: null,
+      airline: flight.airline ?? null,
+      aircraft: flight.aircraft ?? null,
+      seats: flight.seats.map((seat) => ({
+        ...seat,
+        user: 'user' in seat ? (seat.user as FlightSeat['user']) : null,
+      })),
+    };
+  }
+
+  const shareInput = writable({ slug: page.params.slug ?? '' });
+
+  $effect(() => {
+    shareInput.set({ slug: page.params.slug ?? '' });
+  });
+
+  const shareQuery = trpc.share.public.query(shareInput);
 
   const flights = $derived.by(() => {
     const data = $shareQuery.data;
     if (!data?.flights?.length) return [];
 
-    return prepareFlightData(data.flights);
+    return prepareFlightData(
+      data.flights.map(normalizeSharedFlight) as unknown as Flight[],
+    );
   });
 
   const flightTracks = $derived.by((): FlightTrackRow[] => {
@@ -43,7 +83,7 @@
 
   let showFlightList = $state(false);
   let showStatistics = $state(false);
-  let filters: FlightFilters = $state(defaultFilters);
+  let filters: FlightFilters = $state(createDefaultFilters());
 
   const shareSettings = $derived($shareQuery.data?.settings);
 </script>

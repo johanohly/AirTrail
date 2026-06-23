@@ -26,8 +26,12 @@
   import { base } from '$app/paths';
   import AdminScopeBanner from '$lib/components/admin/AdminScopeBanner.svelte';
   import Filters from '$lib/components/flight-filters/Filters.svelte';
+  import MobileFiltersModal from '$lib/components/flight-filters/MobileFiltersModal.svelte';
   import {
-    defaultFilters,
+    createDefaultFilters,
+    hasFlightFilters,
+  } from '$lib/components/flight-filters/model';
+  import {
     hasTempFilters as hasActiveTempFilters,
     type FlightFilters,
     type Route,
@@ -102,19 +106,21 @@
     pitch: number;
   };
   let previousCamera: CameraSnapshot | null = $state(null);
+  let filterDrawerOpen = $state(false);
   let showPreviousView = $state(false);
   let programmaticCameraMove = false;
   let handledFocusRequest = $state(-1);
+  const currentTheme = $derived(mode.current ?? 'light');
   const style = $derived(
     getConfiguredAppMapStyleUrl(
-      mode.current,
+      currentTheme,
       appConfig.config?.map,
       mapPreferences.basemap,
     ),
   );
-  const images = $derived(getAppMapImages(base, mode.current));
+  const images = $derived(getAppMapImages(base, currentTheme));
   const openAipTheme = $derived(
-    (mode.current === 'dark' ? 'dark' : 'light') as OpenAipTheme,
+    (currentTheme === 'dark' ? 'dark' : 'light') as OpenAipTheme,
   );
   const openAipConfigured = $derived(
     !!appConfig.configured?.integrations?.openAipKey,
@@ -126,7 +132,7 @@
     getOpenAipOverlayLayers(mapPreferences.openAipGroups, openAipTheme),
   );
   const usingDefaultAppStyle = $derived(
-    style === getDefaultAppMapStyleUrl(mode.current, mapPreferences.basemap),
+    style === getDefaultAppMapStyleUrl(currentTheme, mapPreferences.basemap),
   );
   const openAipTileUrlTemplate = $derived(
     browser
@@ -245,21 +251,7 @@
     showPreviousView = false;
   };
 
-  const showClear = $derived.by(() => {
-    return (
-      filters &&
-      (filters.departureAirports.length ||
-        filters.arrivalAirports.length ||
-        filters.airportsEither.length ||
-        filters.routes.length ||
-        filters.fromDate ||
-        filters.toDate ||
-        filters.passengers.length ||
-        filters.airline.length ||
-        filters.aircraft.length ||
-        filters.aircraftRegs.length)
-    );
-  });
+  const showClear = $derived(filters ? hasFlightFilters(filters) : false);
 
   const routeMatches = (
     item: { from: { id: number }; to: { id: number } },
@@ -505,7 +497,9 @@
             return t;
           });
           if (!target) return;
-          targetCenter = [target.center.lng, target.center.lat];
+          if (!target.center || target.zoom === undefined) return;
+          const center = maplibregl.LngLat.convert(target.center);
+          targetCenter = [center.lng, center.lat];
           targetZoom = target.zoom;
         }
       }
@@ -602,19 +596,52 @@
             <Fullscreen size={20} />
           </ControlButton>
           {#if filters}
-            <Popover.Root>
-              <Popover.Trigger>
-                <ControlButton title="Filter flights">
-                  <Funnel size={18} />
-                </ControlButton>
-              </Popover.Trigger>
-              <Popover.Content
-                side="left"
-                class="flex w-fit grow-0 flex-col gap-2"
+            {#if $isMediumScreen}
+              <Popover.Root>
+                <Popover.Trigger>
+                  <ControlButton title="Filter flights">
+                    <span class="relative inline-flex">
+                      <Funnel size={18} />
+                      {#if showClear || hasTempFilters}
+                        <span
+                          aria-hidden="true"
+                          data-map-filter-dot
+                          class="absolute -right-1 -top-1 size-2.5 rounded-full bg-blue-500 ring-2 ring-background"
+                        ></span>
+                      {/if}
+                    </span>
+                  </ControlButton>
+                </Popover.Trigger>
+                <Popover.Content
+                  side="left"
+                  class="flex w-fit grow-0 flex-col gap-2 p-3"
+                >
+                  <Filters
+                    bind:flights
+                    bind:filters
+                    bind:tempFilters
+                    layout="stacked"
+                    presentation="map-popover"
+                  />
+                </Popover.Content>
+              </Popover.Root>
+            {:else}
+              <ControlButton
+                onclick={() => (filterDrawerOpen = true)}
+                title="Filter flights"
               >
-                <Filters bind:flights bind:filters bind:tempFilters />
-              </Popover.Content>
-            </Popover.Root>
+                <span class="relative inline-flex">
+                  <Funnel size={18} />
+                  {#if showClear || hasTempFilters}
+                    <span
+                      aria-hidden="true"
+                      data-map-filter-dot
+                      class="absolute right-0 top-0 size-2 rounded-full bg-blue-500 ring-2 ring-background"
+                    ></span>
+                  {/if}
+                </span>
+              </ControlButton>
+            {/if}
           {/if}
         </ControlGroup>
       </Control>
@@ -626,7 +653,7 @@
           >
             <ControlButton
               onclick={() => {
-                filters = defaultFilters;
+                filters = createDefaultFilters();
               }}
               title="Clear filters"
             >
@@ -674,6 +701,15 @@
       bind:tempFilters
     />
   </MapLibre>
+
+  {#if filters && !$isMediumScreen}
+    <MobileFiltersModal
+      bind:open={filterDrawerOpen}
+      {flights}
+      bind:filters
+      bind:tempFilters
+    />
+  {/if}
 {:else}
   <MapFallback {flights} {filteredFlights} />
 {/if}
