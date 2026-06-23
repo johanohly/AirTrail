@@ -736,20 +736,21 @@ export function multiOptionMatches(
 ) {
   if (!selectedValues.length) return true;
 
-  const selected = new Set(selectedValues);
-  const matchCount = values.filter((value) => selected.has(value)).length;
+  const present = new Set(values);
+  const hasAny = selectedValues.some((value) => present.has(value));
+  const hasAll = selectedValues.every((value) => present.has(value));
 
   switch (operator) {
     case 'include':
     case 'include any of':
-      return matchCount > 0;
+      return hasAny;
     case 'exclude':
     case 'exclude if any of':
-      return matchCount === 0;
+      return !hasAny;
     case 'include all of':
-      return matchCount === selectedValues.length;
+      return hasAll;
     case 'exclude if all':
-      return matchCount !== selectedValues.length;
+      return !hasAll;
   }
 }
 
