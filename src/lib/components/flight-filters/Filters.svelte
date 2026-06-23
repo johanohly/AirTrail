@@ -49,7 +49,6 @@
 </script>
 
 <script lang="ts">
-  import { CalendarDate } from '@internationalized/date';
   import {
     Calendar,
     Funnel,
@@ -64,17 +63,21 @@
   import { Filter, useDataTableFilters } from 'bits-ui';
   import { createRawSnippet } from 'svelte';
   import type { Component } from 'svelte';
-  import type {
-    ColumnConfig,
-    FilterIcon,
-    FilterModel,
-    FiltersState,
-  } from 'bits-ui';
+  import type { ColumnConfig, FilterIcon, FiltersState } from 'bits-ui';
 
+  import './filter.css';
+  import './filter-date.css';
+
+  import {
+    bitsFiltersToFlightFilters,
+    bitsSignature,
+    createDefaultFilters,
+    flightFiltersToBits,
+    flightSignature,
+    hasFlightFilters,
+  } from '$lib/components/flight-filters/model';
   import type {
     FlightFilters,
-    MultiOptionFilterOperator,
-    OptionFilterOperator,
     TempFilters,
   } from '$lib/components/flight-filters/types';
   import UserAvatar from '$lib/components/display/UserAvatar.svelte';
@@ -86,6 +89,16 @@
   } from '$lib/utils';
   import type { Airline, Airport } from '$lib/db/types';
   import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
+
+  type FlightFilterColumnConfig =
+    | ColumnConfig<FlightData, 'option', string, 'departureAirports'>
+    | ColumnConfig<FlightData, 'option', string, 'arrivalAirports'>
+    | ColumnConfig<FlightData, 'option', string, 'year'>
+    | ColumnConfig<FlightData, 'date', Date, 'date'>
+    | ColumnConfig<FlightData, 'multiOption', string[], 'passengers'>
+    | ColumnConfig<FlightData, 'option', string, 'airline'>
+    | ColumnConfig<FlightData, 'option', string, 'aircraft'>
+    | ColumnConfig<FlightData, 'option', string, 'aircraftRegs'>;
 
   let {
     flights = $bindable(),
@@ -184,29 +197,6 @@
     if (!filterContentZIndex) return;
     return pushFilterContentZIndex(filterContentZIndex);
   });
-
-  function createFlightFilters(): FlightFilters {
-    return {
-      departureAirports: [],
-      departureAirportsOperator: 'is any of',
-      arrivalAirports: [],
-      arrivalAirportsOperator: 'is any of',
-      airportsEither: [],
-      routes: [],
-      years: [],
-      yearsOperator: 'is any of',
-      fromDate: undefined,
-      toDate: undefined,
-      passengers: [],
-      passengersOperator: 'include any of',
-      airline: [],
-      airlineOperator: 'is any of',
-      aircraft: [],
-      aircraftOperator: 'is any of',
-      aircraftRegs: [],
-      aircraftRegsOperator: 'is any of',
-    };
-  }
 
   const uniqueAirports = (
     sourceFlights: FlightData[],
@@ -434,334 +424,8 @@
         icon: Hash,
         options: columnOptions(aircraftRegOptions),
       },
-    ] satisfies ReadonlyArray<ColumnConfig<FlightData, any, any, any>>;
+    ] satisfies ReadonlyArray<FlightFilterColumnConfig>;
   });
-
-  function calendarDateToDate(value: CalendarDate) {
-    return new Date(value.year, value.month - 1, value.day);
-  }
-
-  function dateToCalendarDate(value: Date) {
-    return new CalendarDate(
-      value.getFullYear(),
-      value.getMonth() + 1,
-      value.getDate(),
-    );
-  }
-
-  function isSameCalendarDate(a: CalendarDate, b: CalendarDate) {
-    return a.compare(b) === 0;
-  }
-
-  function isFullYearRange(fromDate?: CalendarDate, toDate?: CalendarDate) {
-    if (!fromDate || !toDate || fromDate.year !== toDate.year) return false;
-    return (
-      fromDate.month === 1 &&
-      fromDate.day === 1 &&
-      toDate.month === 12 &&
-      toDate.day === 31
-    );
-  }
-
-  function stringValues(filter: FilterModel) {
-    return filter.values
-      .map((value) => (typeof value === 'string' ? value : undefined))
-      .filter((value): value is string => !!value);
-  }
-
-  function firstDateValue(filter: FilterModel) {
-    const value = filter.values[0];
-    return value instanceof Date ? dateToCalendarDate(value) : undefined;
-  }
-
-  function normalizeDateRange(fromDate: CalendarDate, toDate: CalendarDate) {
-    return fromDate.compare(toDate) <= 0
-      ? [fromDate, toDate]
-      : [toDate, fromDate];
-  }
-
-  function optionFilter(
-    columnId: string,
-    values: string[],
-    operator: OptionFilterOperator = values.length > 1 ? 'is any of' : 'is',
-  ): FilterModel<'option'> | undefined {
-    if (!values.length) return undefined;
-    return {
-      columnId,
-      type: 'option',
-      operator,
-      values,
-    };
-  }
-
-  function normalizeOptionOperator(
-    operator: OptionFilterOperator,
-    valueCount: number,
-  ): OptionFilterOperator {
-    if (valueCount > 1) {
-      if (operator === 'is') return 'is any of';
-      if (operator === 'is not') return 'is none of';
-      return operator;
-    }
-
-    if (operator === 'is any of') return 'is';
-    if (operator === 'is none of') return 'is not';
-    return operator;
-  }
-
-  function multiOptionFilter(
-    columnId: string,
-    values: string[],
-    operator: MultiOptionFilterOperator = values.length > 1
-      ? 'include any of'
-      : 'include',
-  ): FilterModel<'multiOption'> | undefined {
-    if (!values.length) return undefined;
-    return {
-      columnId,
-      type: 'multiOption',
-      operator,
-      values,
-    };
-  }
-
-  function dateFilterFromFlightFilters(
-    source: FlightFilters,
-  ): FilterModel<'date'> | FilterModel<'option'> | undefined {
-    if (source.years.length) {
-      return {
-        columnId: 'year',
-        type: 'option',
-        operator: source.yearsOperator,
-        values: source.years,
-      };
-    }
-
-    if (isFullYearRange(source.fromDate, source.toDate)) {
-      return {
-        columnId: 'year',
-        type: 'option',
-        operator: 'is',
-        values: [source.fromDate.year.toString()],
-      };
-    }
-
-    if (source.fromDate && source.toDate) {
-      const [fromDate, toDate] = normalizeDateRange(
-        source.fromDate,
-        source.toDate,
-      );
-
-      if (isSameCalendarDate(fromDate, toDate)) {
-        return {
-          columnId: 'date',
-          type: 'date',
-          operator: 'is',
-          values: [calendarDateToDate(fromDate)],
-        };
-      }
-
-      return {
-        columnId: 'date',
-        type: 'date',
-        operator: 'is between',
-        values: [calendarDateToDate(fromDate), calendarDateToDate(toDate)],
-      };
-    }
-
-    if (source.fromDate) {
-      return {
-        columnId: 'date',
-        type: 'date',
-        operator: 'is on or after',
-        values: [calendarDateToDate(source.fromDate)],
-      };
-    }
-
-    if (source.toDate) {
-      return {
-        columnId: 'date',
-        type: 'date',
-        operator: 'is on or before',
-        values: [calendarDateToDate(source.toDate)],
-      };
-    }
-  }
-
-  function flightFiltersToBits(source: FlightFilters): FiltersState {
-    const nextFilters: FiltersState = [];
-
-    for (const filter of [
-      optionFilter(
-        'departureAirports',
-        source.departureAirports,
-        source.departureAirportsOperator,
-      ),
-      optionFilter(
-        'arrivalAirports',
-        source.arrivalAirports,
-        source.arrivalAirportsOperator,
-      ),
-      dateFilterFromFlightFilters(source),
-      multiOptionFilter(
-        'passengers',
-        source.passengers,
-        source.passengersOperator,
-      ),
-      optionFilter('airline', source.airline, source.airlineOperator),
-      optionFilter('aircraft', source.aircraft, source.aircraftOperator),
-      optionFilter(
-        'aircraftRegs',
-        source.aircraftRegs,
-        source.aircraftRegsOperator,
-      ),
-    ]) {
-      if (filter) nextFilters.push(filter);
-    }
-
-    return nextFilters;
-  }
-
-  function applyDateFilter(target: FlightFilters, filter: FilterModel) {
-    if (filter.columnId === 'year') {
-      const year = Number.parseInt(stringValues(filter)[0] ?? '', 10);
-      if (!Number.isFinite(year)) return;
-
-      target.fromDate = new CalendarDate(year, 1, 1);
-      target.toDate = new CalendarDate(year, 12, 31);
-      return;
-    }
-
-    if (filter.columnId !== 'date') return;
-
-    const firstDate = firstDateValue(filter);
-    const secondValue = filter.values[1];
-    const secondDate =
-      secondValue instanceof Date ? dateToCalendarDate(secondValue) : undefined;
-
-    if (!firstDate) return;
-
-    switch (filter.operator) {
-      case 'is':
-        target.fromDate = firstDate;
-        target.toDate = firstDate;
-        break;
-      case 'is before':
-        target.toDate = firstDate.subtract({ days: 1 });
-        break;
-      case 'is on or before':
-        target.toDate = firstDate;
-        break;
-      case 'is after':
-        target.fromDate = firstDate.add({ days: 1 });
-        break;
-      case 'is on or after':
-        target.fromDate = firstDate;
-        break;
-      case 'is between':
-        if (secondDate) {
-          const [fromDate, toDate] = normalizeDateRange(firstDate, secondDate);
-          target.fromDate = fromDate;
-          target.toDate = toDate;
-        }
-        break;
-    }
-  }
-
-  function bitsFiltersToFlightFilters(source: FiltersState): FlightFilters {
-    const nextFilters = createFlightFilters();
-    const dateFilters: FilterModel[] = [];
-
-    for (const filter of source) {
-      switch (filter.columnId) {
-        case 'departureAirports':
-          nextFilters.departureAirports = stringValues(filter);
-          nextFilters.departureAirportsOperator =
-            filter.operator as OptionFilterOperator;
-          break;
-        case 'arrivalAirports':
-          nextFilters.arrivalAirports = stringValues(filter);
-          nextFilters.arrivalAirportsOperator =
-            filter.operator as OptionFilterOperator;
-          break;
-        case 'passengers':
-          nextFilters.passengers = stringValues(filter);
-          nextFilters.passengersOperator =
-            filter.operator as MultiOptionFilterOperator;
-          break;
-        case 'airline':
-          nextFilters.airline = stringValues(filter);
-          nextFilters.airlineOperator = filter.operator as OptionFilterOperator;
-          break;
-        case 'aircraft':
-          nextFilters.aircraft = stringValues(filter);
-          nextFilters.aircraftOperator =
-            filter.operator as OptionFilterOperator;
-          break;
-        case 'aircraftRegs':
-          nextFilters.aircraftRegs = stringValues(filter);
-          nextFilters.aircraftRegsOperator =
-            filter.operator as OptionFilterOperator;
-          break;
-        case 'year':
-          nextFilters.years = stringValues(filter);
-          nextFilters.yearsOperator = normalizeOptionOperator(
-            filter.operator as OptionFilterOperator,
-            nextFilters.years.length,
-          );
-          break;
-        case 'date':
-          dateFilters.push(filter);
-          break;
-      }
-    }
-
-    dateFilters
-      .sort((a) => (a.columnId === 'year' ? -1 : 1))
-      .forEach((filter) => applyDateFilter(nextFilters, filter));
-
-    return nextFilters;
-  }
-
-  function serializeFilterValue(value: unknown) {
-    if (value instanceof Date) {
-      return `${value.getFullYear()}-${value.getMonth() + 1}-${value.getDate()}`;
-    }
-
-    return String(value);
-  }
-
-  function bitsSignature(source: FiltersState) {
-    return JSON.stringify(
-      source.map((filter) => ({
-        columnId: filter.columnId,
-        type: filter.type,
-        operator: filter.operator,
-        values: filter.values.map(serializeFilterValue),
-      })),
-    );
-  }
-
-  function flightSignature(source: FlightFilters) {
-    return JSON.stringify({
-      departureAirports: source.departureAirports,
-      departureAirportsOperator: source.departureAirportsOperator,
-      arrivalAirports: source.arrivalAirports,
-      arrivalAirportsOperator: source.arrivalAirportsOperator,
-      years: source.years,
-      yearsOperator: source.yearsOperator,
-      fromDate: source.fromDate?.toString(),
-      toDate: source.toDate?.toString(),
-      passengers: source.passengers,
-      passengersOperator: source.passengersOperator,
-      airline: source.airline,
-      airlineOperator: source.airlineOperator,
-      aircraft: source.aircraft,
-      aircraftOperator: source.aircraftOperator,
-      aircraftRegs: source.aircraftRegs,
-      aircraftRegsOperator: source.aircraftRegsOperator,
-    });
-  }
 
   const filterState = useDataTableFilters({
     strategy: 'client',
@@ -773,13 +437,30 @@
 
   let lastSyncedBitsSignature = $state(bitsSignature(filterState.filters));
   let lastSyncedFlightSignature = $state(flightSignature(filters));
+  const showClear = $derived(hasFlightFilters(filters));
+
+  function syncBitsFilters(nextBits: FiltersState) {
+    filterState.actions.batch((actions) => {
+      actions.removeAllFilters();
+
+      for (const filter of nextBits) {
+        const column = filterState.columns.find(
+          (candidate) => candidate.id === filter.columnId,
+        );
+        if (!column) continue;
+
+        actions.setFilterValue(column, filter.values);
+        actions.setFilterOperator(filter.columnId, filter.operator);
+      }
+    });
+  }
 
   $effect(() => {
     const currentBitsSignature = bitsSignature(filterState.filters);
     if (currentBitsSignature === lastSyncedBitsSignature) return;
 
     lastSyncedBitsSignature = currentBitsSignature;
-    filters = bitsFiltersToFlightFilters(filterState.filters);
+    filters = bitsFiltersToFlightFilters(filterState.filters, filters);
     lastSyncedFlightSignature = flightSignature(filters);
   });
 
@@ -787,14 +468,21 @@
     const currentFlightSignature = flightSignature(filters);
     if (currentFlightSignature === lastSyncedFlightSignature) return;
 
+    const nextBits = flightFiltersToBits(filters);
+    const nextBitsSignature = bitsSignature(nextBits);
+
     lastSyncedFlightSignature = currentFlightSignature;
+    if (nextBitsSignature === lastSyncedBitsSignature) return;
+
+    lastSyncedBitsSignature = nextBitsSignature;
+    syncBitsFilters(nextBits);
   });
 
-  const providerColumns = $derived(filterState.columns as any);
+  const providerColumns = $derived(filterState.columns);
 </script>
 
 <Filter.Provider
-  columns={providerColumns}
+  columns={providerColumns as never}
   filters={filterState.filters}
   actions={filterState.actions}
   strategy={filterState.strategy}
@@ -849,8 +537,16 @@
 {/snippet}
 
 {#snippet filterActions()}
-  <Filter.Actions>
+  <button
+    type="button"
+    data-filter-actions
+    data-state={showClear ? 'visible' : 'hidden'}
+    disabled={!showClear}
+    onclick={() => {
+      filters = createDefaultFilters();
+    }}
+  >
     <X size={14} aria-hidden="true" />
     <span>Clear</span>
-  </Filter.Actions>
+  </button>
 {/snippet}

@@ -8,6 +8,7 @@
     FlightFilters,
     TempFilters,
   } from '$lib/components/flight-filters/types';
+  import { hasFlightFilters } from '$lib/components/flight-filters/model';
   import { Button } from '$lib/components/ui/button';
   import { isMediumScreen } from '$lib/utils/size';
   import type { FlightData } from '$lib/utils';
@@ -26,20 +27,7 @@
 
   let drawerOpen = $state(false);
 
-  const filtersApplied = $derived(
-    hasTempFilters ||
-      filters.departureAirports.length > 0 ||
-      filters.arrivalAirports.length > 0 ||
-      filters.airportsEither.length > 0 ||
-      filters.routes.length > 0 ||
-      filters.years.length > 0 ||
-      !!filters.fromDate ||
-      !!filters.toDate ||
-      filters.passengers.length > 0 ||
-      filters.airline.length > 0 ||
-      filters.aircraft.length > 0 ||
-      filters.aircraftRegs.length > 0,
-  );
+  const filtersApplied = $derived(hasTempFilters || hasFlightFilters(filters));
 </script>
 
 {#if $isMediumScreen}

@@ -43,27 +43,6 @@ export type TempFilters = {
   routes: Route[];
 };
 
-export const defaultFilters: FlightFilters = {
-  departureAirports: [],
-  departureAirportsOperator: 'is any of',
-  arrivalAirports: [],
-  arrivalAirportsOperator: 'is any of',
-  airportsEither: [],
-  routes: [],
-  years: [],
-  yearsOperator: 'is any of',
-  fromDate: undefined,
-  toDate: undefined,
-  passengers: [],
-  passengersOperator: 'include any of',
-  airline: [],
-  airlineOperator: 'is any of',
-  aircraft: [],
-  aircraftOperator: 'is any of',
-  aircraftRegs: [],
-  aircraftRegsOperator: 'is any of',
-};
-
 export const createDefaultTempFilters = (): TempFilters => ({
   departureAirports: [],
   arrivalAirports: [],
