@@ -1,4 +1,5 @@
 import {
+  allowInsecureRequests,
   authorizationCodeGrant,
   buildAuthorizationUrl,
   discovery,
@@ -6,6 +7,7 @@ import {
   randomState,
 } from 'openid-client';
 
+import { env } from '$env/dynamic/private';
 import { appConfig } from '$lib/server/utils/config';
 
 export const getAuthorizeUrl = async (redirectUrl: string) => {
@@ -58,7 +60,15 @@ export const getOAuthClient = async () => {
   }
 
   try {
-    return await discovery(new URL(issuerUrl), clientId, clientSecret);
+    return await discovery(
+      new URL(issuerUrl),
+      clientId,
+      clientSecret,
+      undefined,
+      env.OAUTH_ALLOW_INSECURE_HTTP === 'true'
+        ? { execute: [allowInsecureRequests] }
+        : undefined,
+    );
   } catch {
     throw new Error('Failed to discover issuer');
   }
