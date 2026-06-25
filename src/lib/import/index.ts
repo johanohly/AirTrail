@@ -8,6 +8,7 @@ import { processAITAFile } from '$lib/import/aita';
 import { processByAirFile } from '$lib/import/byair';
 import { processFlightyFile } from '$lib/import/flighty';
 import { processFR24File } from '$lib/import/fr24';
+import { processJetLoversFile } from '$lib/import/jetlovers';
 import { processJetLogFile } from '$lib/import/jetlog';
 import { processLegacyAirTrailFile } from '$lib/import/legacy-airtrail';
 import { processOpenFlightsFile } from '$lib/import/openflights';
@@ -62,6 +63,8 @@ const processors: Record<PlatformValue, Processor> = {
     withDefaultUnknownUsers(() => processFlightyFile(content, options)),
   byair: async (content, options) =>
     withDefaultUnknownUsers(() => processByAirFile(content, options)),
+  jetlovers: async (content, options) =>
+    withDefaultUnknownUsers(() => processJetLoversFile(content, options)),
   openflights: async (content, options) =>
     withDefaultUnknownUsers(() => processOpenFlightsFile(content, options)),
 };

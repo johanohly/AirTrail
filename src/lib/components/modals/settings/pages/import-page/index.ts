@@ -75,6 +75,16 @@ export const platforms = [
     },
   },
   {
+    name: 'JetLovers',
+    value: 'jetlovers',
+    description: 'CSV export from JetLovers flight tracker.',
+    extensions: ['.csv'],
+    options: {
+      filterOwner: false,
+      airlineFromFlightNumber: true,
+    },
+  },
+  {
     name: 'OpenFlights',
     value: 'openflights',
     description: 'CSV backup from OpenFlights.',
