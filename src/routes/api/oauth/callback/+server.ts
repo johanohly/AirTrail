@@ -10,6 +10,7 @@ import { lucia } from '$lib/server/auth';
 import { createSession, getUser } from '$lib/server/utils/auth';
 import { appConfig } from '$lib/server/utils/config';
 import { getOAuthProfile } from '$lib/server/utils/oauth';
+import { createOAuthLinkToken } from '$lib/server/utils/oauth-link-token';
 
 const CallbackSchema = z.object({
   url: z.string().url(),
@@ -72,7 +73,8 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
       .executeTakeFirst();
   }
 
-  // Case 3: User has not logged in via OAuth before, but has an account (we assume the username is owned by the user)
+  // Case 3: User has not logged in via OAuth before, but has an account.
+  // preferred_username is only a hint; local password auth is required before linking.
   if (!user && profile.preferred_username) {
     const usernameUser = await getUser(profile.preferred_username);
     if (usernameUser) {
@@ -84,12 +86,18 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
       }
 
       if (!usernameUser.oauthId) {
-        user = await db
-          .updateTable('user')
-          .set('oauthId', profile.sub)
-          .where('id', '=', usernameUser.id)
-          .returningAll()
-          .executeTakeFirst();
+        const linkToken = await createOAuthLinkToken(
+          usernameUser.id,
+          profile.sub,
+        );
+        return json(
+          {
+            code: 'oauth_link_required',
+            username: usernameUser.username,
+            linkToken,
+          },
+          { status: 409 },
+        );
       } else {
         user = usernameUser;
       }

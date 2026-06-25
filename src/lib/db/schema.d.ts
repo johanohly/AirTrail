@@ -155,6 +155,14 @@ export type flight_track = {
     createdAt: Generated<Timestamp>;
     updatedAt: Generated<Timestamp>;
 };
+export type oauth_link_token = {
+    id: string;
+    token: string;
+    userId: string;
+    oauthSub: string;
+    expiresAt: Timestamp;
+    createdAt: Generated<Timestamp>;
+};
 export type public_share = {
     id: Generated<number>;
     userId: string;
@@ -263,6 +271,7 @@ export type DB = {
     customFieldValue: custom_field_value;
     flight: flight;
     flightTrack: flight_track;
+    oauthLinkToken: oauth_link_token;
     publicShare: public_share;
     seat: seat;
     session: session;

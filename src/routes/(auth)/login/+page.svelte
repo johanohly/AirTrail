@@ -9,6 +9,7 @@
 
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
+  import * as Alert from '$lib/components/ui/alert';
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
   import { Globe } from '$lib/components/ui/globe';
@@ -24,6 +25,7 @@
 
   let oauthLoading = $state(true);
   let autoLoggingIn = $state(false);
+  let oauthLinkRequired = $state(false);
 
   onMount(async () => {
     if (!isSetup) {
@@ -53,8 +55,27 @@
       });
 
       if (!resp.ok) {
+        const err: {
+          code?: string;
+          username?: string;
+          linkToken?: string;
+          message?: string;
+        } = await resp.json();
+        if (
+          resp.status === 409 &&
+          err.code === 'oauth_link_required' &&
+          err.username &&
+          err.linkToken
+        ) {
+          $formData.username = err.username;
+          $formData.oauthLinkToken = err.linkToken;
+          oauthLinkRequired = true;
+          oauthLoading = false;
+          window.history.replaceState({}, '', '/login');
+          return;
+        }
+
         await goto('/login', { replaceState: true }); // clear potential query params
-        const err = await resp.json();
         toast.error(err?.message);
         oauthLoading = false;
         return;
@@ -102,6 +123,8 @@
   };
 
   let showLoader = $derived.by(() => {
+    if (oauthLinkRequired) return false;
+
     return (
       (autoLoggingIn || !page.url.search.includes('autoLogin=false')) &&
       (!appConfig ||
@@ -125,13 +148,25 @@
             {/if}
           </p>
         </div>
-        {#if !(appConfig.oauth.enabled && appConfig.oauth.hidePasswordForm)}
+        {#if oauthLinkRequired || !(appConfig.oauth.enabled && appConfig.oauth.hidePasswordForm)}
+          {#if oauthLinkRequired}
+            <Alert.Root variant="info">
+              <Alert.Description>
+                Log in with your AirTrail password to link this OAuth account.
+              </Alert.Description>
+            </Alert.Root>
+          {/if}
           <form
             use:enhance
             action="/api/users/login"
             method="POST"
             class="grid gap-4"
           >
+            <input
+              type="hidden"
+              name="oauthLinkToken"
+              value={$formData.oauthLinkToken ?? ''}
+            />
             <Form.Field {form} name="username">
               <Form.Control>
                 {#snippet children({ props })}
@@ -158,7 +193,7 @@
             </Form.Button>
           </form>
         {/if}
-        {#if appConfig.oauth.enabled}
+        {#if appConfig.oauth.enabled && !oauthLinkRequired}
           <Button
             onclick={oauthLogin}
             disabled={oauthLoading}
