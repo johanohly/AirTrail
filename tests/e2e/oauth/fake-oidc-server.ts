@@ -1,4 +1,4 @@
-import { createHmac, randomBytes } from 'node:crypto';
+import { createHash, createHmac, randomBytes } from 'node:crypto';
 import {
   createServer,
   type IncomingMessage,
@@ -23,10 +23,14 @@ let currentProfile: Profile = {
 };
 
 const codes = new Map<string, Profile>();
+const codeChallenges = new Map<string, string>();
 const accessTokens = new Map<string, Profile>();
 
 const base64url = (input: string | Buffer) =>
   Buffer.from(input).toString('base64url');
+
+const pkceChallenge = (verifier: string) =>
+  createHash('sha256').update(verifier).digest('base64url');
 
 const signIdToken = (profile: Profile) => {
   const header = { alg: 'HS256', typ: 'JWT' };
@@ -80,6 +84,31 @@ const parseForm = async (request: IncomingMessage) => {
   return new URLSearchParams();
 };
 
+const hasValidClientAuth = (
+  request: IncomingMessage,
+  form: URLSearchParams,
+) => {
+  const authorization = request.headers.authorization;
+  if (authorization?.toLowerCase().startsWith('basic ')) {
+    const [id, secret] = Buffer.from(
+      authorization.slice(authorization.indexOf(' ') + 1),
+      'base64',
+    )
+      .toString('utf8')
+      .split(':');
+
+    return (
+      decodeURIComponent(id) === clientId &&
+      decodeURIComponent(secret) === clientSecret
+    );
+  }
+
+  return (
+    form.get('client_id') === clientId &&
+    form.get('client_secret') === clientSecret
+  );
+};
+
 const redirect = (response: ServerResponse, location: URL) => {
   response.writeHead(302, { location: location.toString() });
   response.end();
@@ -100,11 +129,15 @@ const handleRequest = async (
       jwks_uri: `${issuer}/jwks`,
       response_types_supported: ['code'],
       grant_types_supported: ['authorization_code'],
+      code_challenge_methods_supported: ['S256'],
       subject_types_supported: ['public'],
       scopes_supported: ['openid', 'profile'],
       claims_supported: ['sub', 'preferred_username', 'name'],
       id_token_signing_alg_values_supported: ['HS256'],
-      token_endpoint_auth_methods_supported: ['client_secret_post'],
+      token_endpoint_auth_methods_supported: [
+        'client_secret_basic',
+        'client_secret_post',
+      ],
     });
   }
 
@@ -125,6 +158,10 @@ const handleRequest = async (
 
     const code = randomBytes(16).toString('base64url');
     codes.set(code, currentProfile);
+    const codeChallenge = url.searchParams.get('code_challenge');
+    if (codeChallenge) {
+      codeChallenges.set(code, codeChallenge);
+    }
 
     const location = new URL(redirectUri);
     location.searchParams.set('code', code);
@@ -136,10 +173,7 @@ const handleRequest = async (
 
   if (url.pathname === '/token' && request.method === 'POST') {
     const form = await parseForm(request);
-    if (
-      form.get('client_id') !== clientId ||
-      form.get('client_secret') !== clientSecret
-    ) {
+    if (!hasValidClientAuth(request, form)) {
       return sendJson(response, 401, { error: 'invalid_client' });
     }
 
@@ -149,7 +183,16 @@ const handleRequest = async (
       return sendJson(response, 400, { error: 'invalid_grant' });
     }
 
+    const codeChallenge = codeChallenges.get(code);
+    if (codeChallenge) {
+      const codeVerifier = form.get('code_verifier');
+      if (!codeVerifier || pkceChallenge(codeVerifier) !== codeChallenge) {
+        return sendJson(response, 400, { error: 'invalid_grant' });
+      }
+    }
+
     codes.delete(code);
+    codeChallenges.delete(code);
     const accessToken = randomBytes(24).toString('base64url');
     accessTokens.set(accessToken, profile);
     return sendJson(response, 200, {

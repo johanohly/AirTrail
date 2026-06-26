@@ -6,25 +6,48 @@ const {
   mockDb,
   mockGenerateString,
   mockHashSha256,
+  mockTrx,
+  selectResults,
+  transactionExecute,
+  updateChain,
 } = vi.hoisted(() => {
   const deleteChains: any[] = [];
+  const selectResults: any[] = [];
+
   const insertChain = {
     values: vi.fn().mockReturnThis(),
+    execute: vi.fn(async () => undefined),
+  };
+  const updateChain = {
+    set: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
     execute: vi.fn(async () => undefined),
   };
   const createDeleteChain = () => {
     const chain = {
       where: vi.fn().mockReturnThis(),
-      returningAll: vi.fn().mockReturnThis(),
       execute: vi.fn(async () => undefined),
-      executeTakeFirst: vi.fn(async () => undefined),
     };
     deleteChains.push(chain);
     return chain;
   };
+  const createSelectChain = () => ({
+    select: vi.fn().mockReturnThis(),
+    selectAll: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    forUpdate: vi.fn().mockReturnThis(),
+    executeTakeFirst: vi.fn(async () => selectResults.shift()),
+  });
+  const mockTrx = {
+    deleteFrom: vi.fn(() => createDeleteChain()),
+    selectFrom: vi.fn(() => createSelectChain()),
+    updateTable: vi.fn(() => updateChain),
+  };
+  const transactionExecute = vi.fn(async (callback) => callback(mockTrx));
   const mockDb = {
     deleteFrom: vi.fn(() => createDeleteChain()),
     insertInto: vi.fn(() => insertChain),
+    transaction: vi.fn(() => ({ execute: transactionExecute })),
   };
 
   return {
@@ -33,6 +56,10 @@ const {
     mockDb,
     mockGenerateString: vi.fn(),
     mockHashSha256: vi.fn((value: string) => `hashed:${value}`),
+    mockTrx,
+    selectResults,
+    transactionExecute,
+    updateChain,
   };
 });
 
@@ -50,8 +77,9 @@ vi.mock('$lib/server/utils/random', () => ({
 
 import {
   cleanupExpiredOAuthLinkTokens,
-  consumeOAuthLinkToken,
   createOAuthLinkToken,
+  linkOAuthAccount,
+  linkOAuthAccountWithToken,
 } from './oauth-link-token';
 
 describe('oauth link tokens', () => {
@@ -60,6 +88,7 @@ describe('oauth link tokens', () => {
     vi.setSystemTime(new Date('2026-06-25T12:00:00.000Z'));
     vi.clearAllMocks();
     deleteChains.length = 0;
+    selectResults.length = 0;
     mockGenerateString
       .mockReset()
       .mockReturnValueOnce('plain-token')
@@ -67,6 +96,9 @@ describe('oauth link tokens', () => {
     mockHashSha256.mockClear();
     insertChain.values.mockClear();
     insertChain.execute.mockClear();
+    updateChain.set.mockClear();
+    updateChain.where.mockClear();
+    updateChain.execute.mockClear();
   });
 
   afterEach(() => {
@@ -95,43 +127,56 @@ describe('oauth link tokens', () => {
     });
   });
 
-  it('consumes a token atomically and only when it is not expired', async () => {
-    const expected = {
-      id: 'row-id',
-      token: 'hashed:plain-token',
-      userId: 'user-1',
-      oauthSub: 'oauth-sub-1',
-      expiresAt: new Date('2026-06-25T12:10:00.000Z'),
-      createdAt: new Date('2026-06-25T12:00:00.000Z'),
-    };
-    mockDb.deleteFrom.mockImplementationOnce(() => {
-      const chain = {
-        where: vi.fn().mockReturnThis(),
-        returningAll: vi.fn().mockReturnThis(),
-        execute: vi.fn(async () => undefined),
-        executeTakeFirst: vi.fn(async () => expected),
-      };
-      deleteChains.push(chain);
-      return chain;
-    });
+  it('links with a token inside one transaction before deleting it', async () => {
+    selectResults.push(
+      {
+        id: 'token-row-id',
+        token: 'hashed:plain-token',
+        userId: 'user-1',
+        oauthSub: 'oauth-sub-1',
+        expiresAt: new Date('2026-06-25T12:10:00.000Z'),
+        createdAt: new Date('2026-06-25T12:00:00.000Z'),
+      },
+      { id: 'user-1', oauthId: null },
+      undefined,
+    );
 
-    const token = await consumeOAuthLinkToken('plain-token');
+    const result = await linkOAuthAccountWithToken('user-1', 'plain-token');
 
-    expect(token).toBe(expected);
-    expect(mockDb.deleteFrom).toHaveBeenCalledWith('oauthLinkToken');
-    const chain = deleteChains.at(-1)!;
-    expect(chain.where).toHaveBeenCalledWith(
-      'token',
+    expect(result).toEqual({ success: true });
+    expect(mockDb.transaction).toHaveBeenCalled();
+    expect(transactionExecute).toHaveBeenCalled();
+    expect(mockTrx.selectFrom).toHaveBeenNthCalledWith(1, 'oauthLinkToken');
+    expect(mockTrx.selectFrom).toHaveBeenNthCalledWith(2, 'user');
+    expect(mockTrx.selectFrom).toHaveBeenNthCalledWith(3, 'user');
+    expect(updateChain.set).toHaveBeenCalledWith({ oauthId: 'oauth-sub-1' });
+    expect(mockTrx.deleteFrom).toHaveBeenCalledWith('oauthLinkToken');
+    expect(deleteChains.at(-1)!.where).toHaveBeenCalledWith(
+      'id',
       '=',
-      'hashed:plain-token',
+      'token-row-id',
     );
-    expect(chain.where).toHaveBeenCalledWith(
-      'expiresAt',
-      '>',
-      new Date('2026-06-25T12:00:00.000Z'),
-    );
-    expect(chain.returningAll).toHaveBeenCalled();
-    expect(chain.executeTakeFirst).toHaveBeenCalled();
+  });
+
+  it('directly links an OAuth subject inside a transaction', async () => {
+    selectResults.push({ id: 'user-1', oauthId: null }, undefined);
+
+    const result = await linkOAuthAccount('user-1', 'oauth-sub-1');
+
+    expect(result).toEqual({ success: true });
+    expect(mockTrx.selectFrom).toHaveBeenNthCalledWith(1, 'user');
+    expect(mockTrx.selectFrom).toHaveBeenNthCalledWith(2, 'user');
+    expect(updateChain.set).toHaveBeenCalledWith({ oauthId: 'oauth-sub-1' });
+  });
+
+  it('does not delete the token when the authenticated user does not match', async () => {
+    selectResults.push(undefined);
+
+    const result = await linkOAuthAccountWithToken('user-2', 'plain-token');
+
+    expect(result).toEqual({ success: false, reason: 'invalid_token' });
+    expect(mockTrx.updateTable).not.toHaveBeenCalled();
+    expect(mockTrx.deleteFrom).not.toHaveBeenCalled();
   });
 
   it('cleans up expired tokens', async () => {

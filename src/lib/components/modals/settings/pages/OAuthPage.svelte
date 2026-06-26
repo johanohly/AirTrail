@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { ChevronRight } from '@o7/icon/lucide';
+  import { Collapsible } from 'bits-ui';
   import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod } from 'sveltekit-superforms/adapters';
@@ -9,8 +11,10 @@
   import { Locked } from '$lib/components/helpers';
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
+  import * as Select from '$lib/components/ui/select';
   import { Switch } from '$lib/components/ui/switch';
   import { appConfig } from '$lib/state.svelte';
+  import { cn } from '$lib/utils';
   import { oauthConfigSchema } from '$lib/zod/config';
 
   const form = superForm(
@@ -38,6 +42,11 @@
     },
   );
   const { form: formData, enhance } = form;
+  let advancedOpen = $state(
+    (appConfig.config?.oauth?.tokenEndpointAuthMethod ??
+      'client_secret_post') !== 'client_secret_post' ||
+      !!appConfig.config?.oauth?.prompt,
+  );
 
   const changes = $derived.by(() => {
     return Object.entries($formData).some(([key, value]) => {
@@ -169,6 +178,85 @@
         <Form.FieldErrors />
       </Form.Field>
     </Locked>
+    <Collapsible.Root bind:open={advancedOpen} class="space-y-3">
+      <Collapsible.Trigger
+        class="flex items-center gap-1 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ChevronRight
+          size={16}
+          class={cn('size-4 transition-transform', {
+            'rotate-90': advancedOpen,
+          })}
+        />
+        Advanced
+      </Collapsible.Trigger>
+      <Collapsible.Content>
+        {#snippet child({ props, open })}
+          {#if open}
+            <div {...props} class="ml-2 flex flex-col space-y-4 border-l pl-4">
+              <Locked
+                locked={appConfig.envConfigured?.oauth
+                  ?.tokenEndpointAuthMethod ?? false}
+                tooltip={lockedTooltip}
+              >
+                <Form.Field {form} name="tokenEndpointAuthMethod">
+                  <Form.Control>
+                    {#snippet children({ props })}
+                      <div class="grid gap-1">
+                        <Form.Label>Token Endpoint Auth Method</Form.Label>
+                        <Form.Description>
+                          How AirTrail authenticates to the provider token
+                          endpoint.
+                        </Form.Description>
+                      </div>
+                      <Select.Root
+                        type="single"
+                        bind:value={$formData.tokenEndpointAuthMethod}
+                      >
+                        <Select.Trigger {...props}>
+                          {$formData.tokenEndpointAuthMethod}
+                        </Select.Trigger>
+                        <Select.Content>
+                          <Select.Item
+                            value="client_secret_post"
+                            label="client_secret_post"
+                          />
+                          <Select.Item
+                            value="client_secret_basic"
+                            label="client_secret_basic"
+                          />
+                        </Select.Content>
+                      </Select.Root>
+                    {/snippet}
+                  </Form.Control>
+                  <Form.FieldErrors />
+                </Form.Field>
+              </Locked>
+              <Locked
+                locked={appConfig.envConfigured?.oauth?.prompt ?? false}
+                tooltip={lockedTooltip}
+              >
+                <Form.Field {form} name="prompt">
+                  <Form.Control>
+                    {#snippet children({ props })}
+                      <div class="grid gap-1">
+                        <Form.Label>Prompt</Form.Label>
+                        <Form.Description>
+                          Optional OIDC prompt parameter, such as login,
+                          consent, or select_account.
+                        </Form.Description>
+                      </div>
+                      <Input bind:value={$formData.prompt} {...props} />
+                    {/snippet}
+                  </Form.Control>
+                  <Form.FieldErrors />
+                </Form.Field>
+              </Locked>
+            </div>
+          {/if}
+        {/snippet}
+      </Collapsible.Content>
+    </Collapsible.Root>
     <Locked
       locked={appConfig.envConfigured?.oauth?.buttonText ?? false}
       tooltip={lockedTooltip}

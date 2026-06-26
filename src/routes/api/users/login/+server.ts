@@ -3,11 +3,10 @@ import { zod } from 'sveltekit-superforms/adapters';
 
 import type { RequestHandler } from './$types';
 
-import { db } from '$lib/db';
 import { lucia } from '$lib/server/auth';
 import { createSession, getUser } from '$lib/server/utils/auth';
 import { verifyArgon2 } from '$lib/server/utils/hash';
-import { consumeOAuthLinkToken } from '$lib/server/utils/oauth-link-token';
+import { linkOAuthAccountWithToken } from '$lib/server/utils/oauth-link-token';
 import { signInSchema } from '$lib/zod/auth';
 
 export const POST: RequestHandler = async ({ cookies, request }) => {
@@ -31,8 +30,8 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
   }
 
   if (oauthLinkToken) {
-    const linkToken = await consumeOAuthLinkToken(oauthLinkToken);
-    if (!linkToken || linkToken.userId !== user.id) {
+    const linkResult = await linkOAuthAccountWithToken(user.id, oauthLinkToken);
+    if (!linkResult.success && linkResult.reason === 'invalid_token') {
       form.message = {
         type: 'error',
         text: 'Invalid or expired OAuth link token',
@@ -40,7 +39,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
       return actionResult('failure', { form });
     }
 
-    if (user.oauthId && user.oauthId !== linkToken.oauthSub) {
+    if (!linkResult.success && linkResult.reason === 'already_linked') {
       form.message = {
         type: 'error',
         text: 'User is already linked to an OAuth account',
@@ -48,24 +47,13 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
       return actionResult('failure', { form });
     }
 
-    const duplicateUser = await db
-      .selectFrom('user')
-      .select(['id'])
-      .where('oauthId', '=', linkToken.oauthSub)
-      .executeTakeFirst();
-    if (duplicateUser && duplicateUser.id !== user.id) {
+    if (!linkResult.success && linkResult.reason === 'duplicate_oauth') {
       form.message = {
         type: 'error',
         text: 'OAuth account is already linked to another user',
       };
       return actionResult('failure', { form });
     }
-
-    await db
-      .updateTable('user')
-      .set({ oauthId: linkToken.oauthSub })
-      .where('id', '=', user.id)
-      .execute();
   }
 
   await createSession(lucia, user.id, cookies);

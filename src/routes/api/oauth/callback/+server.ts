@@ -9,8 +9,15 @@ import { db, type User } from '$lib/db';
 import { lucia } from '$lib/server/auth';
 import { createSession, getUser } from '$lib/server/utils/auth';
 import { appConfig } from '$lib/server/utils/config';
-import { getOAuthProfile } from '$lib/server/utils/oauth';
-import { createOAuthLinkToken } from '$lib/server/utils/oauth-link-token';
+import {
+  getOAuthProfile,
+  OAUTH_CODE_VERIFIER_COOKIE,
+  OAUTH_STATE_COOKIE,
+} from '$lib/server/utils/oauth';
+import {
+  createOAuthLinkToken,
+  linkOAuthAccount,
+} from '$lib/server/utils/oauth-link-token';
 
 const CallbackSchema = z.object({
   url: z.string().url(),
@@ -24,6 +31,19 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
   }
 
   const { url } = parsed.data;
+  const expectedState = cookies.get(OAUTH_STATE_COOKIE);
+  if (!expectedState) {
+    return error(400, 'OAuth state is missing');
+  }
+
+  const codeVerifier = cookies.get(OAUTH_CODE_VERIFIER_COOKIE);
+  if (!codeVerifier) {
+    return error(400, 'OAuth code verifier is missing');
+  }
+
+  cookies.delete(OAUTH_STATE_COOKIE, { path: '/' });
+  cookies.delete(OAUTH_CODE_VERIFIER_COOKIE, { path: '/' });
+
   const config = await appConfig.get();
   if (!config) {
     return error(500, 'Failed to load config');
@@ -31,10 +51,9 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
 
   let profile: UserInfoResponse;
   try {
-    profile = await getOAuthProfile(url);
-  } catch (e) {
-    console.error(e);
-    return error(500, 'Invalid state, please try again');
+    profile = await getOAuthProfile(url, expectedState, codeVerifier);
+  } catch {
+    return error(400, 'Invalid OAuth callback, please try again');
   }
 
   const { autoRegister } = config.oauth;
@@ -47,21 +66,16 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
       return error(500, 'User is already linked to an account');
     }
 
-    const existingUser = await db
-      .selectFrom('user')
-      .selectAll()
-      .where('oauthId', '=', profile.sub)
-      .executeTakeFirst();
-    if (existingUser) {
+    const linkResult = await linkOAuthAccount(user.id, profile.sub);
+    if (!linkResult.success && linkResult.reason === 'duplicate_oauth') {
       return error(500, 'Account is already linked to another user');
     }
-
-    user = await db
-      .updateTable('user')
-      .set('oauthId', profile.sub)
-      .where('id', '=', user.id)
-      .returningAll()
-      .executeTakeFirst();
+    if (!linkResult.success && linkResult.reason === 'invalid_token') {
+      return error(500, 'Failed to link OAuth account');
+    }
+    if (!linkResult.success) {
+      return error(500, 'User is already linked to an account');
+    }
   }
 
   // Case 2: User is not logged in (user is logging in via OAuth)

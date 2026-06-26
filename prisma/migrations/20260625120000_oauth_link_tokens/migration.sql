@@ -19,5 +19,8 @@ CREATE INDEX "oauth_link_token_token_idx" ON "oauth_link_token"("token");
 -- CreateIndex
 CREATE INDEX "oauth_link_token_user_id_idx" ON "oauth_link_token"("user_id");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "user_oauth_id_key" ON "user"("oauth_id");
+
 -- AddForeignKey
 ALTER TABLE "oauth_link_token" ADD CONSTRAINT "oauth_link_token_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

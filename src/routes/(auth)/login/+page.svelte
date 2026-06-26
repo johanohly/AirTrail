@@ -114,7 +114,7 @@
     if (!redirect) return;
 
     try {
-      const resp = await api.oauth.authorize.query(redirect);
+      const resp = await api.oauth.authorize.mutate(redirect);
       window.location.href = resp.url;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'OAuth login failed');

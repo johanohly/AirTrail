@@ -27,7 +27,7 @@ model user {
   /// @kyselyType('user' | 'admin' | 'owner')
   role String
 
-  oauth_id String?
+  oauth_id String? @unique
 
   /// @kyselyType('km' | 'mi' | 'nm')
   distance_unit       String @default("km")
