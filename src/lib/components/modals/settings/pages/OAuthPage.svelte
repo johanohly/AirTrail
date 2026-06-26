@@ -210,6 +210,7 @@
                     </div>
                     <Select.Root
                       type="single"
+                      name={props.name}
                       bind:value={$formData.tokenEndpointAuthMethod}
                     >
                       <Select.Trigger {...props}>
