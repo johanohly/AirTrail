@@ -20,7 +20,7 @@ export const oauthRouter = router({
       }
 
       const { codeVerifier, state, url } = await getAuthorizeUrl(input);
-      const secure = input.startsWith('https://');
+      const secure = ctx.url.protocol === 'https:';
       const cookieOptions = {
         httpOnly: true,
         maxAge: 10 * 60,

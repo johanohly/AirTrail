@@ -191,69 +191,67 @@
         Advanced
       </Collapsible.Trigger>
       <Collapsible.Content>
-        {#snippet child({ props, open })}
-          {#if open}
-            <div {...props} class="ml-2 flex flex-col space-y-4 border-l pl-4">
-              <Locked
-                locked={appConfig.envConfigured?.oauth
-                  ?.tokenEndpointAuthMethod ?? false}
-                tooltip={lockedTooltip}
-              >
-                <Form.Field {form} name="tokenEndpointAuthMethod">
-                  <Form.Control>
-                    {#snippet children({ props })}
-                      <div class="grid gap-1">
-                        <Form.Label>Token Endpoint Auth Method</Form.Label>
-                        <Form.Description>
-                          How AirTrail authenticates to the provider token
-                          endpoint.
-                        </Form.Description>
-                      </div>
-                      <Select.Root
-                        type="single"
-                        bind:value={$formData.tokenEndpointAuthMethod}
-                      >
-                        <Select.Trigger {...props}>
-                          {$formData.tokenEndpointAuthMethod}
-                        </Select.Trigger>
-                        <Select.Content>
-                          <Select.Item
-                            value="client_secret_post"
-                            label="client_secret_post"
-                          />
-                          <Select.Item
-                            value="client_secret_basic"
-                            label="client_secret_basic"
-                          />
-                        </Select.Content>
-                      </Select.Root>
-                    {/snippet}
-                  </Form.Control>
-                  <Form.FieldErrors />
-                </Form.Field>
-              </Locked>
-              <Locked
-                locked={appConfig.envConfigured?.oauth?.prompt ?? false}
-                tooltip={lockedTooltip}
-              >
-                <Form.Field {form} name="prompt">
-                  <Form.Control>
-                    {#snippet children({ props })}
-                      <div class="grid gap-1">
-                        <Form.Label>Prompt</Form.Label>
-                        <Form.Description>
-                          Optional OIDC prompt parameter, such as login,
-                          consent, or select_account.
-                        </Form.Description>
-                      </div>
-                      <Input bind:value={$formData.prompt} {...props} />
-                    {/snippet}
-                  </Form.Control>
-                  <Form.FieldErrors />
-                </Form.Field>
-              </Locked>
-            </div>
-          {/if}
+        {#snippet child({ props })}
+          <div {...props} class="ml-2 flex flex-col space-y-4 border-l pl-4">
+            <Locked
+              locked={appConfig.envConfigured?.oauth?.tokenEndpointAuthMethod ??
+                false}
+              tooltip={lockedTooltip}
+            >
+              <Form.Field {form} name="tokenEndpointAuthMethod">
+                <Form.Control>
+                  {#snippet children({ props })}
+                    <div class="grid gap-1">
+                      <Form.Label>Token Endpoint Auth Method</Form.Label>
+                      <Form.Description>
+                        How AirTrail authenticates to the provider token
+                        endpoint.
+                      </Form.Description>
+                    </div>
+                    <Select.Root
+                      type="single"
+                      bind:value={$formData.tokenEndpointAuthMethod}
+                    >
+                      <Select.Trigger {...props}>
+                        {$formData.tokenEndpointAuthMethod}
+                      </Select.Trigger>
+                      <Select.Content>
+                        <Select.Item
+                          value="client_secret_post"
+                          label="client_secret_post"
+                        />
+                        <Select.Item
+                          value="client_secret_basic"
+                          label="client_secret_basic"
+                        />
+                      </Select.Content>
+                    </Select.Root>
+                  {/snippet}
+                </Form.Control>
+                <Form.FieldErrors />
+              </Form.Field>
+            </Locked>
+            <Locked
+              locked={appConfig.envConfigured?.oauth?.prompt ?? false}
+              tooltip={lockedTooltip}
+            >
+              <Form.Field {form} name="prompt">
+                <Form.Control>
+                  {#snippet children({ props })}
+                    <div class="grid gap-1">
+                      <Form.Label>Prompt</Form.Label>
+                      <Form.Description>
+                        Optional OIDC prompt parameter, such as login, consent,
+                        or select_account.
+                      </Form.Description>
+                    </div>
+                    <Input bind:value={$formData.prompt} {...props} />
+                  {/snippet}
+                </Form.Control>
+                <Form.FieldErrors />
+              </Form.Field>
+            </Locked>
+          </div>
         {/snippet}
       </Collapsible.Content>
     </Collapsible.Root>

@@ -40,6 +40,7 @@ const {
   });
   const mockTrx = {
     deleteFrom: vi.fn(() => createDeleteChain()),
+    insertInto: vi.fn(() => insertChain),
     selectFrom: vi.fn(() => createSelectChain()),
     updateTable: vi.fn(() => updateChain),
   };
@@ -106,18 +107,22 @@ describe('oauth link tokens', () => {
   });
 
   it('creates a hashed expiring token and replaces prior tokens for the user', async () => {
+    selectResults.push({ id: 'user-1' });
+
     const token = await createOAuthLinkToken('user-1', 'oauth-sub-1');
 
     expect(token).toBe('plain-token');
-    expect(mockDb.deleteFrom).toHaveBeenNthCalledWith(1, 'oauthLinkToken');
-    expect(mockDb.deleteFrom).toHaveBeenNthCalledWith(2, 'oauthLinkToken');
+    expect(mockDb.transaction).toHaveBeenCalled();
+    expect(mockTrx.selectFrom).toHaveBeenCalledWith('user');
+    expect(mockTrx.deleteFrom).toHaveBeenNthCalledWith(1, 'oauthLinkToken');
+    expect(mockTrx.deleteFrom).toHaveBeenNthCalledWith(2, 'oauthLinkToken');
     expect(deleteChains[1]!.where).toHaveBeenCalledWith(
       'userId',
       '=',
       'user-1',
     );
     expect(mockHashSha256).toHaveBeenCalledWith('plain-token');
-    expect(mockDb.insertInto).toHaveBeenCalledWith('oauthLinkToken');
+    expect(mockTrx.insertInto).toHaveBeenCalledWith('oauthLinkToken');
     expect(insertChain.values).toHaveBeenCalledWith({
       id: 'row-id',
       token: 'hashed:plain-token',

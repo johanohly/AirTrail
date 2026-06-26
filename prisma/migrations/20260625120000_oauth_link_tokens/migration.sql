@@ -17,7 +17,21 @@ CREATE UNIQUE INDEX "oauth_link_token_token_key" ON "oauth_link_token"("token");
 CREATE INDEX "oauth_link_token_token_idx" ON "oauth_link_token"("token");
 
 -- CreateIndex
-CREATE INDEX "oauth_link_token_user_id_idx" ON "oauth_link_token"("user_id");
+CREATE UNIQUE INDEX "oauth_link_token_user_id_key" ON "oauth_link_token"("user_id");
+
+-- Deduplicate existing OAuth links before enforcing one user per OAuth subject.
+WITH ranked_oauth_users AS (
+    SELECT
+        "id",
+        ROW_NUMBER() OVER (PARTITION BY "oauth_id" ORDER BY "id") AS "rank"
+    FROM "user"
+    WHERE "oauth_id" IS NOT NULL
+)
+UPDATE "user"
+SET "oauth_id" = NULL
+FROM ranked_oauth_users
+WHERE "user"."id" = ranked_oauth_users."id"
+  AND ranked_oauth_users."rank" > 1;
 
 -- CreateIndex
 CREATE UNIQUE INDEX "user_oauth_id_key" ON "user"("oauth_id");

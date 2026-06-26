@@ -22,20 +22,35 @@ export const createOAuthLinkToken = async (
   userId: string,
   oauthSub: string,
 ): Promise<string> => {
-  await cleanupExpiredOAuthLinkTokens();
-  await db.deleteFrom('oauthLinkToken').where('userId', '=', userId).execute();
-
   const token = generateString();
-  await db
-    .insertInto('oauthLinkToken')
-    .values({
-      id: generateString(),
-      token: hashSha256(token),
-      userId,
-      oauthSub,
-      expiresAt: new Date(Date.now() + OAUTH_LINK_TOKEN_TTL_MS),
-    })
-    .execute();
+  await db.transaction().execute(async (trx) => {
+    await trx
+      .selectFrom('user')
+      .select('id')
+      .where('id', '=', userId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    await trx
+      .deleteFrom('oauthLinkToken')
+      .where('expiresAt', '<=', new Date())
+      .execute();
+    await trx
+      .deleteFrom('oauthLinkToken')
+      .where('userId', '=', userId)
+      .execute();
+
+    await trx
+      .insertInto('oauthLinkToken')
+      .values({
+        id: generateString(),
+        token: hashSha256(token),
+        userId,
+        oauthSub,
+        expiresAt: new Date(Date.now() + OAUTH_LINK_TOKEN_TTL_MS),
+      })
+      .execute();
+  });
 
   return token;
 };

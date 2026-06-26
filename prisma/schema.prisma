@@ -51,13 +51,13 @@ model user {
   visited_countries visited_country[]
   api_keys          api_key[]
   public_share      public_share[]
-  oauth_link_tokens oauth_link_token[]
+  oauth_link_token  oauth_link_token?
 }
 
 model oauth_link_token {
   id         String   @id
   token      String   @unique
-  user_id    String
+  user_id    String   @unique
   oauth_sub  String
   expires_at DateTime @db.Timestamptz
   created_at DateTime @default(now()) @db.Timestamptz
@@ -65,7 +65,6 @@ model oauth_link_token {
   user user @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([token])
-  @@index([user_id])
 }
 
 model airport {
