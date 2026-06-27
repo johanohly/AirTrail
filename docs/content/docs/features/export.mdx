@@ -44,7 +44,8 @@ The CSV file contains the following columns:
 ### JSON
 
 <Callout>
-  The JSON format can be reimported into AirTrail using the import feature.
+  The JSON format can be reimported into AirTrail using the import feature. Use
+  the AirTrail importer for v3 exports and AirTrail (pre-v3) for legacy exports.
 </Callout>
 
 The JSON export option provides a more structured format that is ideal for developers or when integrating the data into
@@ -66,16 +67,60 @@ The JSON file follows this structure:
   "flights": [
     {
       "date": "YYYY-MM-DD",
-      "from": "ICAO_CODE",
-      "to": "ICAO_CODE",
+      "datePrecision": "day",
+      "from": {
+        "icao": "ICAO_CODE",
+        "iata": "IATA_CODE",
+        "name": "Airport Name",
+        "municipality": "City",
+        "type": "large_airport",
+        "lat": 55.0,
+        "lon": 12.0,
+        "continent": "EU",
+        "country": "DK",
+        "tz": "Europe/Copenhagen",
+        "custom": false
+      },
+      "to": {
+        "icao": "ICAO_CODE",
+        "iata": "IATA_CODE",
+        "name": "Airport Name",
+        "municipality": "City",
+        "type": "large_airport",
+        "lat": 53.0,
+        "lon": -6.0,
+        "continent": "EU",
+        "country": "IE",
+        "tz": "Europe/Dublin",
+        "custom": false
+      },
       "departure": "ISO_8601_DATETIME",
       "arrival": "ISO_8601_DATETIME",
+      "departureScheduled": "ISO_8601_DATETIME",
+      "arrivalScheduled": "ISO_8601_DATETIME",
+      "takeoffScheduled": "ISO_8601_DATETIME",
+      "takeoffActual": "ISO_8601_DATETIME",
+      "landingScheduled": "ISO_8601_DATETIME",
+      "landingActual": "ISO_8601_DATETIME",
       "duration": flight_duration_in_seconds,
       "flightNumber": "FLIGHT_NUMBER",
       "flightReason": "FLIGHT_REASON",
-      "airline": "ICAO_AIRLINE_CODE",
-      "aircraft": "ICAO_AIRCRAFT_TYPE",
+      "airline": {
+        "name": "Airline Name",
+        "icao": "ICAO_AIRLINE_CODE",
+        "iata": "IATA_AIRLINE_CODE",
+        "iconPath": null,
+        "sourceId": "airline-source-id"
+      },
+      "aircraft": {
+        "name": "Aircraft Type",
+        "icao": "ICAO_AIRCRAFT_TYPE"
+      },
       "aircraftReg": "AIRCRAFT_REGISTRATION",
+      "departureTerminal": "TERMINAL",
+      "departureGate": "GATE",
+      "arrivalTerminal": "TERMINAL",
+      "arrivalGate": "GATE",
       "note": "FLIGHT_NOTE",
       "seats": [
         {
