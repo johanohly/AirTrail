@@ -6,6 +6,7 @@ import { authedProcedure, publicProcedure, router } from '../trpc';
 
 import { db } from '$lib/db';
 import { createApiKey } from '$lib/server/utils/auth';
+import { publicUserSelect } from '$lib/server/utils/user';
 import { updatePreferencesSchema } from '$lib/zod/user';
 
 export const userRouter = router({
@@ -51,7 +52,7 @@ export const userRouter = router({
     return result.numDeletedRows > 0;
   }),
   list: authedProcedure.query(async () => {
-    return db.selectFrom('user').selectAll().execute();
+    return db.selectFrom('user').select(publicUserSelect).execute();
   }),
   listApiKeys: authedProcedure.query(async ({ ctx }) => {
     return db

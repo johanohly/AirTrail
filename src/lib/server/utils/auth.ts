@@ -3,7 +3,7 @@ import { sql } from 'kysely';
 import type { Lucia } from 'lucia';
 
 import { db } from '$lib/db';
-import type { User } from '$lib/db/types';
+import { publicUserFields, type User } from '$lib/db/types';
 import { hashSha256 } from '$lib/server/utils/hash';
 import { generateString } from '$lib/server/utils/random';
 import type { Preferences } from '$lib/zod/user';
@@ -37,8 +37,25 @@ export const getUser = async (username: string) => {
   return db
     .selectFrom('user')
     .where(usernameEquals(username))
+    .select(publicUserFields)
+    .executeTakeFirst();
+};
+
+export const getUserWithPassword = async (username: string) => {
+  return db
+    .selectFrom('user')
+    .where(usernameEquals(username))
     .selectAll()
     .executeTakeFirst();
+};
+
+export const getUserPasswordHash = async (userId: string) => {
+  const user = await db
+    .selectFrom('user')
+    .select('password')
+    .where('id', '=', userId)
+    .executeTakeFirst();
+  return user?.password ?? null;
 };
 
 export const createSessionCookie = async (lucia: Lucia, userId: string) => {

@@ -4,7 +4,7 @@ import { zod } from 'sveltekit-superforms/adapters';
 import type { RequestHandler } from './$types';
 
 import { lucia } from '$lib/server/auth';
-import { createSession, getUser } from '$lib/server/utils/auth';
+import { createSession, getUserWithPassword } from '$lib/server/utils/auth';
 import { verifyArgon2 } from '$lib/server/utils/hash';
 import { linkOAuthAccountWithToken } from '$lib/server/utils/oauth-link-token';
 import { signInSchema } from '$lib/zod/auth';
@@ -17,7 +17,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 
   const { username, password, oauthLinkToken } = form.data;
 
-  const user = await getUser(username);
+  const user = await getUserWithPassword(username);
   if (!user || !user.password) {
     form.message = { type: 'error', text: 'Invalid username or password' };
     return actionResult('failure', { form });

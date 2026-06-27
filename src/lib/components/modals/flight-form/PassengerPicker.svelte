@@ -7,7 +7,7 @@
 
   import { page } from '$app/state';
   import UserModal from '$lib/components/modals/settings/pages/users-page/UserModal.svelte';
-  import type { User as UserType } from '$lib/db/types';
+  import type { PublicUser } from '$lib/db/types';
   import { cn } from '$lib/utils';
 
   let {
@@ -29,7 +29,7 @@
     page.data.user?.role === 'admin' || page.data.user?.role === 'owner',
   );
 
-  const getUsers = () => (page.data.users as UserType[]) ?? [];
+  const getUsers = () => page.data.users ?? [];
 
   const availableUsers = $derived.by(() => {
     const users = getUsers();
@@ -48,7 +48,7 @@
   };
 
   type SelectionValue =
-    | { type: 'user'; user: UserType }
+    | { type: 'user'; user: PublicUser }
     | { type: 'guest'; name: string }
     | { type: 'create'; name: string };
 

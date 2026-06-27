@@ -15,6 +15,22 @@ import type { Insertable, Selectable } from 'kysely';
 
 export type FullUser = Selectable<user>;
 export type User = Omit<FullUser, 'password'>;
+export const publicUserFields = [
+  'id',
+  'username',
+  'displayName',
+  'role',
+  'oauthId',
+  'distanceUnit',
+  'windSpeedUnit',
+  'temperatureUnit',
+  'pressureUnit',
+  'timeFormat',
+  'dateFormat',
+  'weekStartsOn',
+  'flightTimeDisplay',
+] as const satisfies readonly (keyof User)[];
+export type PublicUser = Pick<User, (typeof publicUserFields)[number]>;
 export type ApiKey = Omit<Selectable<api_key>, 'key' | 'userId'>;
 export type Aircraft = Selectable<aircraft>;
 export type Airline = Selectable<airline>;

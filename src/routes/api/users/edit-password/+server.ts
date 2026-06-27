@@ -4,6 +4,7 @@ import { zod } from 'sveltekit-superforms/adapters';
 import type { RequestHandler } from './$types';
 
 import { db } from '$lib/db';
+import { getUserPasswordHash } from '$lib/server/utils/auth';
 import { hashArgon2, verifyArgon2 } from '$lib/server/utils/hash';
 import { editPasswordSchema } from '$lib/zod/user';
 
@@ -12,7 +13,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   if (!form.valid) return actionResult('failure', { form });
 
   const user = locals.user;
-  if (!user || !user.password) {
+  if (!user) {
     return actionResult(
       'error',
       'You must be logged in to edit your password.',
@@ -21,7 +22,17 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   }
 
   const { currentPassword, newPassword } = form.data;
-  const valid = await verifyArgon2(user.password, currentPassword);
+  const currentPasswordHash = await getUserPasswordHash(user.id);
+
+  if (!currentPasswordHash) {
+    return actionResult(
+      'error',
+      'You must be logged in to edit your password.',
+      401,
+    );
+  }
+
+  const valid = await verifyArgon2(currentPasswordHash, currentPassword);
   if (!valid) {
     setError(form, 'currentPassword', 'Invalid password');
     return actionResult('failure', { form });
