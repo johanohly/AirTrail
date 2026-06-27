@@ -6,7 +6,7 @@ import { resolve } from '$app/paths';
 import { db } from '$lib/db';
 import { trpcServer } from '$lib/server/server';
 import { appConfig } from '$lib/server/utils/config';
-import { publicUserSelect, toPublicUser } from '$lib/server/utils/user';
+import { publicUserSelect, toPageUser } from '$lib/server/utils/user';
 
 export const load = async (event: Parameters<LayoutServerLoad>[0]) => {
   if (
@@ -22,7 +22,7 @@ export const load = async (event: Parameters<LayoutServerLoad>[0]) => {
 
   return {
     trpc: await trpcServer.hydrateToClient(event),
-    user: event.locals.user ? toPublicUser(event.locals.user) : null,
+    user: event.locals.user ? toPageUser(event.locals.user) : null,
     users: await db.selectFrom('user').select(publicUserSelect).execute(),
     appConfig: {
       config,

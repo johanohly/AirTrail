@@ -20,7 +20,6 @@ export const publicUserFields = [
   'username',
   'displayName',
   'role',
-  'oauthId',
   'distanceUnit',
   'windSpeedUnit',
   'temperatureUnit',
@@ -31,6 +30,7 @@ export const publicUserFields = [
   'flightTimeDisplay',
 ] as const satisfies readonly (keyof User)[];
 export type PublicUser = Pick<User, (typeof publicUserFields)[number]>;
+export type PageUser = PublicUser & { hasOAuthLinked: boolean };
 export type ApiKey = Omit<Selectable<api_key>, 'key' | 'userId'>;
 export type Aircraft = Selectable<aircraft>;
 export type Airline = Selectable<airline>;

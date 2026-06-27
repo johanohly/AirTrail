@@ -6,7 +6,7 @@ declare global {
     }
 
     interface PageData {
-      user: import('$lib/db/types').PublicUser | null;
+      user: import('$lib/db/types').PageUser | null;
       users: import('$lib/db/types').PublicUser[];
     }
 

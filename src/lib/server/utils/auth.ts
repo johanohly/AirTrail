@@ -49,6 +49,14 @@ export const getUserWithPassword = async (username: string) => {
     .executeTakeFirst();
 };
 
+export const getUserWithOAuthId = async (username: string) => {
+  return db
+    .selectFrom('user')
+    .where(usernameEquals(username))
+    .select([...publicUserFields, 'oauthId'])
+    .executeTakeFirst();
+};
+
 export const getUserPasswordHash = async (userId: string) => {
   const user = await db
     .selectFrom('user')

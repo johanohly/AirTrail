@@ -1,6 +1,6 @@
-import { publicUserFields, type PublicUser } from '$lib/db/types';
+import type { PageUser, PublicUser, User } from '$lib/db/types';
 
-export const publicUserSelect = publicUserFields;
+export { publicUserFields as publicUserSelect } from '$lib/db/types';
 
 export const toPublicUser = (user: PublicUser): PublicUser => {
   const {
@@ -8,7 +8,6 @@ export const toPublicUser = (user: PublicUser): PublicUser => {
     username,
     displayName,
     role,
-    oauthId,
     distanceUnit,
     windSpeedUnit,
     temperatureUnit,
@@ -24,7 +23,6 @@ export const toPublicUser = (user: PublicUser): PublicUser => {
     username,
     displayName,
     role,
-    oauthId,
     distanceUnit,
     windSpeedUnit,
     temperatureUnit,
@@ -35,3 +33,8 @@ export const toPublicUser = (user: PublicUser): PublicUser => {
     flightTimeDisplay,
   };
 };
+
+export const toPageUser = (user: User): PageUser => ({
+  ...toPublicUser(user),
+  hasOAuthLinked: Boolean(user.oauthId),
+});
