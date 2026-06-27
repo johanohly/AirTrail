@@ -18,7 +18,7 @@
     form: SuperForm<FlightFormData>;
   } = $props();
 
-  const { form: formData } = form;
+  const { form: formData, errors } = form;
   type TimetableTab = 'scheduled' | 'actual';
 
   const MAX_DURATION_SECONDS = 24 * 60 * 60;
@@ -38,6 +38,28 @@
     'takeoffScheduledTime',
     'takeoffActualTime',
     'landingScheduledTime',
+    'landingActualTime',
+  ] as const;
+
+  const scheduledTimetableFields = [
+    'departureScheduled',
+    'departureScheduledTime',
+    'arrivalScheduled',
+    'arrivalScheduledTime',
+    'takeoffScheduled',
+    'takeoffScheduledTime',
+    'landingScheduled',
+    'landingScheduledTime',
+  ] as const;
+
+  const actualTimetableFields = [
+    'departure',
+    'departureTime',
+    'arrival',
+    'arrivalTime',
+    'takeoffActual',
+    'takeoffActualTime',
+    'landingActual',
     'landingActualTime',
   ] as const;
 
@@ -65,6 +87,45 @@
   let prevHasTimetableData = $state(false);
   let preferredMobileTab = $state<TimetableTab>('actual');
   let preferredMobileTabVersion = $state(0);
+  let revealedTimetableError = $state('');
+
+  const hasError = (field: keyof FlightFormData) => !!$errors[field];
+
+  const timetableErrorTab = $derived.by<TimetableTab | null>(() => {
+    if ($formData.datePrecision !== 'day') return null;
+
+    const hasScheduledErrors = scheduledTimetableFields.some(hasError);
+    if (hasScheduledErrors) return 'scheduled';
+
+    const hasActualErrors = actualTimetableFields.some(hasError);
+    if (hasActualErrors && (showTimetable || hasTimetableData)) {
+      return 'actual';
+    }
+
+    return null;
+  });
+
+  const timetableErrorSignature = $derived.by(() => {
+    return [...scheduledTimetableFields, ...actualTimetableFields]
+      .flatMap((field) =>
+        ($errors[field] ?? []).map((message) => `${field}:${message}`),
+      )
+      .join('|');
+  });
+
+  $effect(() => {
+    if (!timetableErrorTab) {
+      revealedTimetableError = '';
+      return;
+    }
+
+    if (timetableErrorSignature === revealedTimetableError) return;
+    revealedTimetableError = timetableErrorSignature;
+    showTimetable = true;
+    partialDateMode = false;
+    preferredMobileTab = timetableErrorTab;
+    preferredMobileTabVersion += 1;
+  });
 
   const clearDetailedTimetable = () => {
     formData.update((current) => ({

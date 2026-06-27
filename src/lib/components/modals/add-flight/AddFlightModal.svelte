@@ -19,7 +19,7 @@
   } from '$lib/components/ui/modal';
   import { flightAddedState, openModalsState } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
-  import { flightSchema } from '$lib/zod/flight';
+  import { flightFormSchema } from '$lib/zod/flight';
 
   let { open = $bindable() }: { open: boolean } = $props();
 
@@ -45,10 +45,10 @@
   };
 
   const form = superForm(
-    defaults<Infer<typeof flightSchema>>(zod(flightSchema)),
+    defaults<Infer<typeof flightFormSchema>>(zod(flightFormSchema)),
     {
       dataType: 'json',
-      validators: zod(flightSchema),
+      validators: zod(flightFormSchema),
       onSubmit({ cancel }) {
         $formData.customFields = toCustomFieldsPayload();
         if (!customFieldsModal?.validate()) {

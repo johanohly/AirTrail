@@ -5,11 +5,11 @@ import type { RequestHandler } from './$types';
 
 import { validateAndSaveFlight } from '$lib/server/utils/flight';
 import { handleErrorActionResult } from '$lib/utils/forms';
-import { flightSchema } from '$lib/zod/flight';
+import { flightFormSchema } from '$lib/zod/flight';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
   const formData = await request.formData();
-  const form = await superValidate(formData, zod(flightSchema));
+  const form = await superValidate(formData, zod(flightFormSchema));
   if (!form.valid) {
     return actionResult('failure', { form });
   }

@@ -23,7 +23,7 @@
   import { api, trpc } from '$lib/trpc';
   import { type FlightData } from '$lib/utils';
   import { decomposeToLocal, isUsingAmPm } from '$lib/utils/datetime';
-  import { flightSchema } from '$lib/zod/flight';
+  import { flightFormSchema } from '$lib/zod/flight';
 
   let {
     flight,
@@ -174,11 +174,14 @@
   };
 
   const form = superForm(
-    defaults<Infer<typeof flightSchema>>(schemaFlight, zod(flightSchema)),
+    defaults<Infer<typeof flightFormSchema>>(
+      schemaFlight,
+      zod(flightFormSchema),
+    ),
     {
       dataType: 'json',
       id: Math.random().toString(36).substring(7),
-      validators: zod(flightSchema),
+      validators: zod(flightFormSchema),
       onSubmit({ cancel }) {
         $formData.id = flight.id;
         $formData.customFields = toCustomFieldsPayload();
