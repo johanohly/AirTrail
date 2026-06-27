@@ -10,7 +10,7 @@ import { apiError, unauthorized, validateApiKey } from '$lib/server/utils/api';
 import { validateAndSaveFlight } from '$lib/server/utils/flight';
 import { aircraftSchema } from '$lib/zod/aircraft';
 import { airlineSchema } from '$lib/zod/airline';
-import { flightSchema } from '$lib/zod/flight';
+import { flightSchema, validateFlightDepartureDate } from '$lib/zod/flight';
 
 const defaultFlight = {
   // from, to and departure are required
@@ -62,7 +62,8 @@ const saveApiFlightSchema = flightSchema
     z.object({
       airline: airlineSchema.shape.icao,
     }),
-  );
+  )
+  .superRefine(validateFlightDepartureDate);
 
 const dateTimeSchema = z.string().datetime({ offset: true });
 
