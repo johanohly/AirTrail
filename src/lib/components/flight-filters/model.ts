@@ -55,12 +55,18 @@ export const multiOptionOperators: ReadonlyArray<
   { value: 'exclude', label: 'Exclude' },
   { value: 'include any of', label: 'Include any of' },
   { value: 'include all of', label: 'Include all of' },
+  { value: 'include exactly', label: 'Include exactly' },
   { value: 'exclude if any of', label: 'Exclude if any of' },
   { value: 'exclude if all', label: 'Exclude if all' },
+  { value: 'exclude exactly', label: 'Exclude exactly' },
 ];
 
 export const singularMultiOptionOperators = multiOptionOperators.filter(
-  (operator) => operator.value === 'include' || operator.value === 'exclude',
+  (operator) =>
+    operator.value === 'include' ||
+    operator.value === 'exclude' ||
+    operator.value === 'include exactly' ||
+    operator.value === 'exclude exactly',
 );
 
 export const pluralMultiOptionOperators = multiOptionOperators.filter(
@@ -160,6 +166,12 @@ export function normalizeMultiOptionOperator(
   }
 
   return operator;
+}
+
+function setEquals(a: string[], b: string[]) {
+  const aSet = new Set(a);
+  const bSet = new Set(b);
+  return aSet.size === bSet.size && [...aSet].every((value) => bSet.has(value));
 }
 
 export function optionColumnValues(
@@ -751,6 +763,10 @@ export function multiOptionMatches(
       return hasAll;
     case 'exclude if all':
       return !hasAll;
+    case 'include exactly':
+      return setEquals(values, selectedValues);
+    case 'exclude exactly':
+      return !setEquals(values, selectedValues);
   }
 }
 

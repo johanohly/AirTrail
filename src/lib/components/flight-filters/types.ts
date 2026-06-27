@@ -12,8 +12,10 @@ export type MultiOptionFilterOperator =
   | 'exclude'
   | 'include any of'
   | 'include all of'
+  | 'include exactly'
   | 'exclude if any of'
-  | 'exclude if all';
+  | 'exclude if all'
+  | 'exclude exactly';
 
 export type FlightFilters = {
   departureAirports: string[];

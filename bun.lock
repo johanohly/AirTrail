@@ -49,7 +49,7 @@
         "@types/semver": "^7.7.1",
         "@xmldom/xmldom": "^0.9.10",
         "autoprefixer": "^10.4.23",
-        "bits-ui": "npm:@johly/bits-ui@^2.18.9",
+        "bits-ui": "npm:@johly/bits-ui@^2.18.10",
         "clsx": "^2.1.1",
         "cobe": "^2.0.1",
         "date-fns": "^4.1.0",
@@ -1150,7 +1150,7 @@
 
     "bignumber.js": ["bignumber.js@9.3.1", "", {}, "sha512-Ko0uX15oIUS7wJ3Rb30Fs6SkVbLmPBAKdlm7q9+ak9bbIeFf0MwuBsQV6z7+X768/cHsfg+WlysDWJcmthjsjQ=="],
 
-    "bits-ui": ["@johly/bits-ui@2.18.9", "", { "dependencies": { "@floating-ui/core": "^1.7.1", "@floating-ui/dom": "^1.7.1", "esm-env": "^1.1.2", "runed": "^0.35.1", "svelte-toolbelt": "^0.10.6", "tabbable": "^6.2.0" }, "peerDependencies": { "@internationalized/date": "^3.8.1", "svelte": "^5.33.0" } }, "sha512-udk0DrorE9PaURZr+4fjeBbIcBOIVaPhqJfkCpAgM4p1EQ7o2ZJ8UOYLFMmjcLUx0799U8D/spp5n0zZMa18OA=="],
+    "bits-ui": ["@johly/bits-ui@2.18.10", "", { "dependencies": { "@floating-ui/core": "^1.7.1", "@floating-ui/dom": "^1.7.1", "esm-env": "^1.1.2", "runed": "^0.35.1", "svelte-toolbelt": "^0.10.6", "tabbable": "^6.2.0" }, "peerDependencies": { "@internationalized/date": "^3.8.1", "svelte": "^5.33.0" } }, "sha512-6etRIte4QMoF9ZeI/jvGGa2DarIDs2Yqk1LMM8xM0dZu+uxxkAgXoGhwPgf5y+oDrU2s1ictW+FTxjYDT+hILw=="],
 
     "bl": ["bl@4.1.0", "", { "dependencies": { "buffer": "^5.5.0", "inherits": "^2.0.4", "readable-stream": "^3.4.0" } }, "sha512-1W07cM9gS6DcLperZfFSj+bWLtaPGSOHWhPiGzXmvVJbRLdG82sH/Kn8EtW1VqWVA54AKf2h5k5BbnIbwF3h6w=="],
 
