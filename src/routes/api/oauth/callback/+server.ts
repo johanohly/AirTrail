@@ -5,9 +5,10 @@ import { z } from 'zod';
 
 import type { RequestHandler } from './$types';
 
-import { db, type User } from '$lib/db';
+import { db } from '$lib/db';
+import type { User } from '$lib/db/types';
 import { lucia } from '$lib/server/auth';
-import { createSession, getUser } from '$lib/server/utils/auth';
+import { createSession, getUserWithOAuthId } from '$lib/server/utils/auth';
 import { appConfig } from '$lib/server/utils/config';
 import {
   getOAuthProfile,
@@ -90,7 +91,7 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
   // Case 3: User has not logged in via OAuth before, but has an account.
   // preferred_username is only a hint; local password auth is required before linking.
   if (!user && profile.preferred_username) {
-    const usernameUser = await getUser(profile.preferred_username);
+    const usernameUser = await getUserWithOAuthId(profile.preferred_username);
     if (usernameUser) {
       if (usernameUser.oauthId && usernameUser.oauthId !== profile.sub) {
         return error(

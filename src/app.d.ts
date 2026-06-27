@@ -6,8 +6,8 @@ declare global {
     }
 
     interface PageData {
-      user: import('lucia').User | null;
-      users: Omit<import('lucia').User, 'password'>[];
+      user: import('$lib/db/types').PageUser | null;
+      users: import('$lib/db/types').PublicUser[];
     }
 
     namespace Superforms {
