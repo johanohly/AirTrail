@@ -19,6 +19,7 @@ import {
   createOAuthLinkToken,
   linkOAuthAccount,
 } from '$lib/server/utils/oauth-link-token';
+import { usernameSchema } from '$lib/zod/user';
 
 const CallbackSchema = z.object({
   url: z.string().url(),
@@ -129,6 +130,15 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
       return error(500, 'Username not provided');
     }
 
+    const username = usernameSchema.safeParse(profile.preferred_username);
+    if (!username.success) {
+      return error(
+        400,
+        username.error.issues[0]?.message ??
+          'Username provided by OAuth provider is invalid',
+      );
+    }
+
     const displayName =
       profile.name ??
       `${profile.given_name || ''} ${profile.family_name || ''}`;
@@ -136,7 +146,7 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
       .insertInto('user')
       .values({
         id: generateId(15),
-        username: profile.preferred_username,
+        username: username.data,
         displayName,
         oauthId: profile.sub,
         role: 'user',
