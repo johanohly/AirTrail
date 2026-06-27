@@ -33,6 +33,36 @@ const timePrimitive = z
 
 const dateTimePrimitive = z.string().datetime({ offset: true });
 
+type FlightDepartureDateFields = {
+  datePrecision: (typeof FlightDatePrecisions)[number];
+  departure: string | null;
+  departureScheduled: string | null;
+};
+
+export const validateFlightDepartureDate = (
+  data: FlightDepartureDateFields,
+  ctx: z.RefinementCtx,
+) => {
+  if (data.datePrecision !== 'day') {
+    if (!data.departure) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['departure'],
+        message: 'Select a departure date',
+      });
+    }
+    return;
+  }
+
+  if (!data.departure && !data.departureScheduled) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['departure'],
+      message: 'Select a departure date',
+    });
+  }
+};
+
 export const flightAirportsSchema = z.object({
   from: flightAirportSchema
     .nullable()
@@ -49,8 +79,7 @@ export const flightDateTimeSchema = z.object({
   departure: z
     .string()
     .datetime({ offset: true, message: 'Select a departure date' })
-    .nullable()
-    .refine((value) => value !== null, 'Select a departure date'),
+    .nullable(),
   departureTime: timePrimitive,
   departureScheduled: dateTimePrimitive.nullable(),
   departureScheduledTime: timePrimitive,
@@ -132,5 +161,9 @@ export const flightSchema = flightAirportsSchema
   .merge(flightSeatInformationSchema)
   .merge(flightCustomFieldsSchema)
   .merge(flightTrackSchema);
+
+export const flightFormSchema = flightSchema.superRefine(
+  validateFlightDepartureDate,
+);
 
 export type FlightFormData = z.infer<typeof flightSchema>;
