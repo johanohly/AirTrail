@@ -6,6 +6,7 @@ import type { RequestHandler } from './$types';
 import { lucia } from '$lib/server/auth';
 import { createSession, getUser } from '$lib/server/utils/auth';
 import { verifyArgon2 } from '$lib/server/utils/hash';
+import { linkOAuthAccountWithToken } from '$lib/server/utils/oauth-link-token';
 import { signInSchema } from '$lib/zod/auth';
 
 export const POST: RequestHandler = async ({ cookies, request }) => {
@@ -14,7 +15,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
     return actionResult('failure', { form });
   }
 
-  const { username, password } = form.data;
+  const { username, password, oauthLinkToken } = form.data;
 
   const user = await getUser(username);
   if (!user || !user.password) {
@@ -26,6 +27,33 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
   if (!validPassword) {
     form.message = { type: 'error', text: 'Invalid username or password' };
     return actionResult('failure', { form });
+  }
+
+  if (oauthLinkToken) {
+    const linkResult = await linkOAuthAccountWithToken(user.id, oauthLinkToken);
+    if (!linkResult.success && linkResult.reason === 'invalid_token') {
+      form.message = {
+        type: 'error',
+        text: 'Invalid or expired OAuth link token',
+      };
+      return actionResult('failure', { form });
+    }
+
+    if (!linkResult.success && linkResult.reason === 'already_linked') {
+      form.message = {
+        type: 'error',
+        text: 'User is already linked to an OAuth account',
+      };
+      return actionResult('failure', { form });
+    }
+
+    if (!linkResult.success && linkResult.reason === 'duplicate_oauth') {
+      form.message = {
+        type: 'error',
+        text: 'OAuth account is already linked to another user',
+      };
+      return actionResult('failure', { form });
+    }
   }
 
   await createSession(lucia, user.id, cookies);

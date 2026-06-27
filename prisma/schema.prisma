@@ -27,7 +27,7 @@ model user {
   /// @kyselyType('user' | 'admin' | 'owner')
   role String
 
-  oauth_id String?
+  oauth_id String? @unique
 
   /// @kyselyType('km' | 'mi' | 'nm')
   distance_unit       String @default("km")
@@ -51,6 +51,20 @@ model user {
   visited_countries visited_country[]
   api_keys          api_key[]
   public_share      public_share[]
+  oauth_link_token  oauth_link_token?
+}
+
+model oauth_link_token {
+  id         String   @id
+  token      String   @unique
+  user_id    String   @unique
+  oauth_sub  String
+  expires_at DateTime @db.Timestamptz
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  user user @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([token])
 }
 
 model airport {
