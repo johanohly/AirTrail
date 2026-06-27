@@ -12,6 +12,7 @@ import { api } from '$lib/trpc';
 import { getAircraftByIcao } from '$lib/utils/data/aircraft';
 import { getAirlineByIcao } from '$lib/utils/data/airlines';
 import { getAirportByIcao } from '$lib/utils/data/airports/cache';
+import { usernameSchema } from '$lib/zod/user';
 
 const AirTrailFile = z.object({
   flights: z
@@ -73,14 +74,7 @@ const AirTrailFile = z.object({
   users: z
     .object({
       id: z.string().min(3),
-      username: z
-        .string()
-        .min(3, { message: 'Username must be at least 3 characters long' })
-        .max(20, { message: 'Username must be at most 20 characters long' })
-        .regex(/^\w+$/, {
-          message:
-            'Username can only contain letters, numbers, and underscores',
-        }),
+      username: usernameSchema,
       displayName: z.string().min(3),
     })
     .array()
