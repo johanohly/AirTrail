@@ -51,6 +51,8 @@
     showFilters = true,
     seatUserId,
     showCountryStats = true,
+    onOpenFlight,
+    suppressEscapeNavigation = false,
   }: {
     open?: boolean;
     flights: FlightData[];
@@ -60,6 +62,8 @@
     showFilters?: boolean;
     seatUserId?: string;
     showCountryStats?: boolean;
+    onOpenFlight?: (flightId: number) => void;
+    suppressEscapeNavigation?: boolean;
   } = $props();
 
   const showScopeBanner = $derived(flightScopeState.scope !== 'mine');
@@ -140,6 +144,10 @@
     countriesByContinentDetails(visitedCountries),
   );
 
+  const pushDrilldownHistory = () => {
+    history.pushState({ statisticsDrilldown: true }, '');
+  };
+
   $effect(() => {
     const closedFromDrilldown =
       wasOpen && !open && (activeChart || activeContinent);
@@ -189,8 +197,8 @@
 </script>
 
 <svelte:window
-  onpopstate={() => {
-    if (!open) return;
+  onpopstate={(event) => {
+    if (!open || event.state?.statisticsDrilldown) return;
     if (activeContinent) {
       activeContinent = null;
     } else if (activeChart) {
@@ -198,6 +206,7 @@
     }
   }}
   onkeydown={(e) => {
+    if (suppressEscapeNavigation) return;
     if (e.key !== 'Escape') return;
     if (activeContinent || activeChart) {
       history.back();
@@ -228,6 +237,8 @@
       data={activeChartData}
       flights={completedFlights}
       onBack={() => history.back()}
+      {onOpenFlight}
+      {seatUserId}
     />
   {:else}
     <div class="space-y-4">
@@ -312,7 +323,7 @@
         flights={completedFlights}
         onOpenChart={(key) => {
           activeChart = key;
-          history.pushState(null, '');
+          pushDrilldownHistory();
         }}
         {seatUserId}
       />
@@ -329,7 +340,7 @@
             class="cursor-pointer"
             onclick={() => {
               activeChart = 'visited-country-status';
-              history.pushState(null, '');
+              pushDrilldownHistory();
             }}
           >
             <PieChart title="Visited Country Status" data={countryStatusData} />
@@ -340,7 +351,7 @@
           data={countriesByContinentData}
           onBarClick={(continent) => {
             activeContinent = continent;
-            history.pushState(null, '');
+            pushDrilldownHistory();
           }}
         />
       {/if}

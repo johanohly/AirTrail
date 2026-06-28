@@ -186,12 +186,16 @@
     );
     if (index >= 0) page = Math.floor(index / flightsPerPage) + 1;
 
-    tick().then(() => {
+    const highlightFlight = () =>
       highlightElement(`#flight-list-row-${flightId}`, {
         duration: 1900,
         scrollOffset: -100,
         pulses: 3,
       }).catch(() => {});
+
+    tick().then(() => {
+      highlightFlight();
+      setTimeout(highlightFlight, 150);
     });
   });
 

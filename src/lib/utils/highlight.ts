@@ -66,6 +66,51 @@ export const cancelHighlight = (target: HighlightTarget) => {
   activeHighlights.get(element)?.();
 };
 
+const canScroll = (element: HTMLElement) => {
+  const style = window.getComputedStyle(element);
+  const overflowY = style.overflowY;
+  return (
+    (overflowY === 'auto' || overflowY === 'scroll') &&
+    element.scrollHeight > element.clientHeight
+  );
+};
+
+const findScrollContainer = (element: HTMLElement) => {
+  let parent = element.parentElement;
+
+  while (parent && parent !== document.body) {
+    if (canScroll(parent)) return parent;
+    parent = parent.parentElement;
+  }
+
+  return null;
+};
+
+const scrollElementIntoView = (
+  element: HTMLElement,
+  scrollOffset: number,
+  behavior: ScrollBehavior,
+) => {
+  const scrollContainer = findScrollContainer(element);
+
+  element.scrollIntoView({
+    block: 'center',
+    inline: 'nearest',
+    behavior,
+  });
+
+  if (!scrollContainer) {
+    if (scrollOffset !== 0) {
+      window.scrollBy({ top: scrollOffset, behavior });
+    }
+    return;
+  }
+
+  if (scrollOffset !== 0) {
+    scrollContainer.scrollBy({ top: scrollOffset, behavior });
+  }
+};
+
 export const highlightElement = (
   target: HighlightTarget,
   options: HighlightOptions = {},
@@ -89,11 +134,7 @@ export const highlightElement = (
     cancelHighlight(element);
 
     if (scroll) {
-      const rect = element.getBoundingClientRect();
-      window.scrollTo({
-        top: rect.top + window.scrollY + scrollOffset,
-        behavior: scrollBehavior,
-      });
+      scrollElementIntoView(element, scrollOffset, scrollBehavior);
     }
 
     const overlay = document.createElement('div');
