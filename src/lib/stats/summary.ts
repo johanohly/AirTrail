@@ -85,18 +85,13 @@ export const isCompletedFlight = (flight: Flight): boolean => {
     hasExactDateTime && flight.arrival
       ? parseLocalizeISO(flight.arrival, flight.to?.tz ?? 'UTC')
       : null;
-  const departure =
-    hasExactDateTime && flight.departure
-      ? parseLocalizeISO(flight.departure, flight.from?.tz ?? 'UTC')
-      : null;
   const { start, end } = getFlightDateRange(
     flight.date,
     flight.datePrecision,
     flight.from?.tz ?? 'UTC',
   );
 
-  const fallbackDate =
-    flight.datePrecision === 'day' ? (departure ?? start) : (end ?? start);
+  const fallbackDate = flight.datePrecision === 'day' ? start : (end ?? start);
   const comparisonDate = arrival ?? fallbackDate;
   if (!comparisonDate) return true;
 
