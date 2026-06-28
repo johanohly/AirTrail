@@ -81,7 +81,7 @@
     "@types/semver": "^7.7.1",
     "@xmldom/xmldom": "^0.9.10",
     "autoprefixer": "^10.4.23",
-    "bits-ui": "npm:@johly/bits-ui@^2.18.10",
+    "bits-ui": "npm:@johly/bits-ui@^2.18.11",
     "clsx": "^2.1.1",
     "cobe": "^2.0.1",
     "date-fns": "^4.1.0",

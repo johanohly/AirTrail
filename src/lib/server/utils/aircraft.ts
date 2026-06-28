@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { sql } from 'kysely';
 
 import { db } from '$lib/db';
 import type { Aircraft } from '$lib/db/types';
@@ -42,15 +43,22 @@ export const getAircraftByName = async (
 export const findAircraft = async (
   input: string,
 ): Promise<Aircraft[] | null> => {
+  const pattern = `%${input}%`;
+
   return await db
     .selectFrom('aircraft')
     .selectAll()
     .where((eb) =>
-      eb.or([
-        eb('name', 'ilike', `%${input}%`),
-        eb('icao', 'ilike', `%${input}%`),
-      ]),
+      eb.or([eb('name', 'ilike', pattern), eb('icao', 'ilike', input)]),
     )
+    .select(
+      sql`CASE
+            WHEN "icao" ILIKE ${input} THEN 1
+            WHEN "name" ILIKE ${pattern} THEN 2
+            ELSE 3
+          END`.as('match_rank'),
+    )
+    .orderBy('match_rank', 'asc')
     .orderBy('name')
     .limit(10)
     .execute();

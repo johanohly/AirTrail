@@ -87,7 +87,7 @@
     getSeatPassengerToken,
     type FlightData,
   } from '$lib/utils';
-  import type { Airline, Airport } from '$lib/db/types';
+  import type { Aircraft, Airline, Airport } from '$lib/db/types';
   import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
 
   type FlightFilterColumnConfig =
@@ -122,6 +122,7 @@
     shortLabel?: string;
     count?: number;
     icon?: FilterIcon;
+    keywords?: string[];
   };
 
   type FilterIconProps = {
@@ -216,6 +217,9 @@
         value: airport.id.toString(),
         label: `${airport.iata ?? airport.icao} | ${airport.name}`,
         shortLabel: airport.iata ?? airport.icao,
+        keywords: [airport.iata, airport.icao].filter(
+          (code): code is string => !!code,
+        ),
         icon: airportFlagIcon(airport),
       }));
   };
@@ -290,6 +294,9 @@
       .map(({ airline, count }) => ({
         value: airline.name,
         label: airline.name,
+        keywords: [airline.iata, airline.icao].filter(
+          (code): code is string => !!code,
+        ),
         count,
         icon: airlineIcon(airline),
       }))
@@ -297,20 +304,32 @@
   });
 
   const aircraftOptions = $derived.by(() => {
-    const frequencyMap = new Map<string, number>();
+    const frequencyMap = new Map<
+      string,
+      {
+        aircraft: Aircraft;
+        count: number;
+      }
+    >();
 
     for (const flight of flights ?? []) {
       if (!flight.aircraft) continue;
-      frequencyMap.set(
-        flight.aircraft.name,
-        (frequencyMap.get(flight.aircraft.name) ?? 0) + 1,
-      );
+      const existing = frequencyMap.get(flight.aircraft.name);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        frequencyMap.set(flight.aircraft.name, {
+          aircraft: flight.aircraft,
+          count: 1,
+        });
+      }
     }
 
-    return Array.from(frequencyMap.entries())
-      .map(([aircraft, count]) => ({
-        value: aircraft,
-        label: aircraft,
+    return Array.from(frequencyMap.values())
+      .map(({ aircraft, count }) => ({
+        value: aircraft.name,
+        label: aircraft.name,
+        keywords: [aircraft.icao].filter((code): code is string => !!code),
         count,
       }))
       .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));

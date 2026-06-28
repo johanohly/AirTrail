@@ -75,6 +75,7 @@
     label: string;
     shortLabel?: string;
     count?: number;
+    keywords?: string[];
     kind?: 'airport' | 'airline' | 'passenger';
     country?: string | null;
     iconPath?: string | null;
@@ -171,6 +172,9 @@
           value,
           label: `${airport.iata ?? airport.icao} | ${airport.name}`,
           shortLabel: airport.iata ?? airport.icao,
+          keywords: [airport.iata, airport.icao].filter(
+            (code): code is string => !!code,
+          ),
           count: 1,
           kind: 'airport',
           country: airport.country,
@@ -238,6 +242,9 @@
             ? {
                 value: flight.airline.name,
                 label: flight.airline.name,
+                keywords: [flight.airline.iata, flight.airline.icao].filter(
+                  (code): code is string => !!code,
+                ),
                 kind: 'airline',
                 iconPath: flight.airline.iconPath,
               }
@@ -247,7 +254,13 @@
       aircraft: countedOptions(
         (flights ?? []).map((flight) =>
           flight.aircraft
-            ? { value: flight.aircraft.name, label: flight.aircraft.name }
+            ? {
+                value: flight.aircraft.name,
+                label: flight.aircraft.name,
+                keywords: [flight.aircraft.icao].filter(
+                  (code): code is string => !!code,
+                ),
+              }
             : null,
         ),
       ),
@@ -370,7 +383,10 @@
       (option) =>
         option.label.toLowerCase().includes(query) ||
         option.value.toLowerCase().includes(query) ||
-        option.shortLabel?.toLowerCase().includes(query),
+        option.shortLabel?.toLowerCase().includes(query) ||
+        option.keywords?.some((keyword) =>
+          keyword.toLowerCase().includes(query),
+        ),
     );
   }
 
