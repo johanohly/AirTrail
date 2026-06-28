@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "postbuild": "bun scripts/post-build.mts",
+    "sync:algolia": "bun scripts/post-build.mts",
+    "deploy:pages": "bun run build && bun run sync:algolia && wrangler pages deploy out",
     "generate": "bun scripts/generate-api-docs.mts",
     "dev": "next dev",
     "start": "next start",
@@ -41,6 +42,7 @@
     "ajv": "^8.17.1",
     "tailwindcss": "^4.1.16",
     "typescript": "^5.9.3",
-    "ultracite": "6.2.1"
+    "ultracite": "6.2.1",
+    "wrangler": "4.105.0"
   }
 }

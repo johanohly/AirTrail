@@ -1,0 +1,65 @@
+name: Deploy docs
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy docs to Cloudflare Pages
+    runs-on: ubuntu-latest
+
+    env:
+      NEXT_PUBLIC_ALGOLIA_APP_ID: ${{ vars.NEXT_PUBLIC_ALGOLIA_APP_ID }}
+      NEXT_PUBLIC_ALGOLIA_INDEX: ${{ vars.NEXT_PUBLIC_ALGOLIA_INDEX }}
+      NEXT_PUBLIC_ALGOLIA_API_KEY: ${{ vars.NEXT_PUBLIC_ALGOLIA_API_KEY }}
+      ALGOLIA_API_KEY: ${{ secrets.ALGOLIA_API_KEY }}
+      NEXT_PUBLIC_POSTHOG_KEY: ${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}
+      NEXT_PUBLIC_POSTHOG_HOST: ${{ vars.NEXT_PUBLIC_POSTHOG_HOST }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_PAGES_PROJECT_NAME: ${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME }}
+      CLOUDFLARE_PAGES_PRODUCTION_BRANCH: ${{ vars.CLOUDFLARE_PAGES_PRODUCTION_BRANCH }}
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2
+
+      - name: Install dependencies
+        working-directory: docs
+        run: bun install --frozen-lockfile
+
+      - name: Build docs
+        working-directory: docs
+        run: bun run build
+
+      - name: Sync Algolia index
+        working-directory: docs
+        run: bun run sync:algolia
+
+      - name: Deploy Pages project
+        working-directory: docs
+        run: |
+          : "${CLOUDFLARE_PAGES_PROJECT_NAME:?Set the CLOUDFLARE_PAGES_PROJECT_NAME repository variable}"
+          PAGES_BRANCH="${CLOUDFLARE_PAGES_PRODUCTION_BRANCH:-main}"
+          bunx wrangler pages deploy out \
+            --project-name "$CLOUDFLARE_PAGES_PROJECT_NAME" \
+            --branch "$PAGES_BRANCH" \
+            --commit-hash "$GITHUB_SHA" \
+            --commit-message "$GITHUB_REF_NAME"
