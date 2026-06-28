@@ -51,6 +51,8 @@
     showFilters = true,
     seatUserId,
     showCountryStats = true,
+    onOpenFlight,
+    pauseDrilldownNavigation = false,
   }: {
     open?: boolean;
     flights: FlightData[];
@@ -60,6 +62,8 @@
     showFilters?: boolean;
     seatUserId?: string;
     showCountryStats?: boolean;
+    onOpenFlight?: (flightId: number) => void;
+    pauseDrilldownNavigation?: boolean;
   } = $props();
 
   const showScopeBanner = $derived(flightScopeState.scope !== 'mine');
@@ -190,7 +194,7 @@
 
 <svelte:window
   onpopstate={() => {
-    if (!open) return;
+    if (!open || pauseDrilldownNavigation) return;
     if (activeContinent) {
       activeContinent = null;
     } else if (activeChart) {
@@ -198,6 +202,7 @@
     }
   }}
   onkeydown={(e) => {
+    if (pauseDrilldownNavigation) return;
     if (e.key !== 'Escape') return;
     if (activeContinent || activeChart) {
       history.back();
@@ -215,6 +220,7 @@
   drawerNoPadding={Boolean(activeChart || activeContinent)}
   closeOnEscape={false}
   closeButton={true}
+  handleBackButton={!pauseDrilldownNavigation}
 >
   {#if activeContinent}
     <BarChartDrillDown
@@ -228,6 +234,8 @@
       data={activeChartData}
       flights={completedFlights}
       onBack={() => history.back()}
+      {onOpenFlight}
+      {seatUserId}
     />
   {:else}
     <div class="space-y-4">

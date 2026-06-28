@@ -19,7 +19,11 @@
   import { MapDetailsPane } from '$lib/components/map-details';
   import { Map } from '$lib/components/map';
   import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
-  import { flightScopeState, openModalsState } from '$lib/state.svelte';
+  import {
+    flightScopeState,
+    focusFlightInList,
+    openModalsState,
+  } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
   import { prepareFlightData } from '$lib/utils';
 
@@ -76,10 +80,32 @@
 
   const showPassengerDetails = $derived(flightScopeState.scope !== 'mine');
   const showCountryStats = $derived(flightScopeState.scope === 'mine');
+  let flightListOpenedFromStatistics = $state(false);
+  let releaseStatisticsNavigationPauseTimer: ReturnType<
+    typeof setTimeout
+  > | null = null;
 
   $effect(() => {
+    if (openModalsState.listFlights) {
+      if (releaseStatisticsNavigationPauseTimer) {
+        clearTimeout(releaseStatisticsNavigationPauseTimer);
+        releaseStatisticsNavigationPauseTimer = null;
+      }
+      return;
+    }
+
     if (!openModalsState.listFlights) {
       tempFilters = createDefaultTempFilters();
+    }
+
+    if (
+      flightListOpenedFromStatistics &&
+      !releaseStatisticsNavigationPauseTimer
+    ) {
+      releaseStatisticsNavigationPauseTimer = setTimeout(() => {
+        flightListOpenedFromStatistics = false;
+        releaseStatisticsNavigationPauseTimer = null;
+      }, 250);
     }
   });
 
@@ -117,6 +143,12 @@
       toast.error('Failed to delete flight', { id: toastId });
     }
   };
+
+  const openFlightInList = (flightId: number) => {
+    focusFlightInList(flightId);
+    flightListOpenedFromStatistics = true;
+    openModalsState.listFlights = true;
+  };
 </script>
 
 {#if !$rawFlights.isLoading}
@@ -140,6 +172,8 @@
   visitedCountries={showCountryStats ? visitedCountriesData : []}
   seatUserId={effectiveSeatUserId}
   {showCountryStats}
+  onOpenFlight={openFlightInList}
+  pauseDrilldownNavigation={flightListOpenedFromStatistics}
 />
 
 <Map bind:filters bind:tempFilters {flights} {filteredFlights} {flightTracks} />

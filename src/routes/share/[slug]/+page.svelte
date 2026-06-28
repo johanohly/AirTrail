@@ -12,6 +12,7 @@
   import type { AppRouter } from '$lib/server/routes/_app';
   import type { FlightTrackRow } from '$lib/track/schema';
   import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
+  import { focusFlightInList } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
   import { prepareFlightData } from '$lib/utils';
 
@@ -83,9 +84,39 @@
 
   let showFlightList = $state(false);
   let showStatistics = $state(false);
+  let flightListOpenedFromStatistics = $state(false);
+  let releaseStatisticsNavigationPauseTimer: ReturnType<
+    typeof setTimeout
+  > | null = null;
   let filters: FlightFilters = $state(createDefaultFilters());
 
   const shareSettings = $derived($shareQuery.data?.settings);
+
+  const openSharedFlightInList = (flightId: number) => {
+    focusFlightInList(flightId);
+    flightListOpenedFromStatistics = true;
+    showFlightList = true;
+  };
+
+  $effect(() => {
+    if (showFlightList) {
+      if (releaseStatisticsNavigationPauseTimer) {
+        clearTimeout(releaseStatisticsNavigationPauseTimer);
+        releaseStatisticsNavigationPauseTimer = null;
+      }
+      return;
+    }
+
+    if (
+      flightListOpenedFromStatistics &&
+      !releaseStatisticsNavigationPauseTimer
+    ) {
+      releaseStatisticsNavigationPauseTimer = setTimeout(() => {
+        flightListOpenedFromStatistics = false;
+        releaseStatisticsNavigationPauseTimer = null;
+      }, 250);
+    }
+  });
 </script>
 
 <svelte:head>
@@ -172,6 +203,10 @@
       {filters}
       showFilters={false}
       showCountryStats={false}
+      onOpenFlight={shareSettings.showFlightList
+        ? openSharedFlightInList
+        : undefined}
+      pauseDrilldownNavigation={flightListOpenedFromStatistics}
     />
   {/if}
 {:else if shareSettings}

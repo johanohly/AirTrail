@@ -137,6 +137,8 @@
   );
 
   function handlePopstate(event: PopStateEvent) {
+    if (!handleBackButton) return;
+
     const isTopmostModal = peekModalHistory() === modalId;
     const wasTriggeredByThisModal = event.state?.modal === modalId;
     if (
