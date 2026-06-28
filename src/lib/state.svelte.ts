@@ -22,6 +22,11 @@ export const focusFlightInList = (flightId: number) => {
   flightListFocusState.request += 1;
 };
 
+export const clearFlightListFocus = () => {
+  flightListFocusState.flightId = null;
+  flightListFocusState.request += 1;
+};
+
 export type SettingsTabId =
   | 'general'
   | 'preferences'

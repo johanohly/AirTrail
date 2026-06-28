@@ -12,7 +12,7 @@
   import type { AppRouter } from '$lib/server/routes/_app';
   import type { FlightTrackRow } from '$lib/track/schema';
   import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
-  import { focusFlightInList } from '$lib/state.svelte';
+  import { clearFlightListFocus, focusFlightInList } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
   import { prepareFlightData } from '$lib/utils';
 
@@ -99,6 +99,12 @@
     if (!showFlightList) {
       flightListOpenedFromStatistics = false;
     }
+  });
+
+  $effect(() => {
+    return () => {
+      clearFlightListFocus();
+    };
   });
 </script>
 
