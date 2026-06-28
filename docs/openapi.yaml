@@ -75,6 +75,78 @@ paths:
           '$ref': '#/components/responses/500'
       security:
         - bearerAuth: []
+  /flight/export:
+    get:
+      tags:
+        - 'Flight'
+      summary: 'Export flights'
+      description: "Export an AirTrail backup visible to the authenticated API key. The JSON response matches the AirTrail import format. Regular users can only export their own flights. Admins and owners can also request a specific user's flights or all flights."
+      operationId: 'export-flights'
+      parameters:
+        - name: format
+          in: query
+          required: false
+          description: 'The backup format to return.'
+          schema:
+            type: string
+            enum:
+              - 'json'
+              - 'yaml'
+              - 'yml'
+            default: 'json'
+        - name: scope
+          in: query
+          required: false
+          description: 'Which flights to export. `mine` is the default. `user` and `all` require an admin or owner API key.'
+          schema:
+            type: string
+            enum:
+              - 'mine'
+              - 'user'
+              - 'all'
+            default: 'mine'
+        - name: userId
+          in: query
+          required: false
+          description: 'The user ID whose flights should be exported when `scope=user`.'
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'An AirTrail backup export'
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: 'Attachment filename for the exported backup.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupExport'
+            application/yaml:
+              schema:
+                type: string
+        '400':
+          description: 'Invalid query parameters'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 'Invalid format'
+        '401':
+          '$ref': '#/components/responses/401'
+        '403':
+          '$ref': '#/components/responses/403'
+        '500':
+          '$ref': '#/components/responses/500'
+      security:
+        - bearerAuth: []
   /flight/get/{id}:
     get:
       tags:
@@ -304,6 +376,26 @@ components:
         success:
           type: boolean
           example: true
+    BackupExport:
+      type: object
+      description: 'AirTrail backup export. The JSON representation can be imported using the AirTrail importer.'
+      properties:
+        users:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              displayName:
+                type: string
+              username:
+                type: string
+        flights:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
     CustomFieldsInput:
       type: object
       description: 'Custom field values keyed by custom field key. Values must match the configured field type.'

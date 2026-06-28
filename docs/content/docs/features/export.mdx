@@ -13,6 +13,26 @@ To export your flights, follow these steps:
 3. Click on the "Export" tab.
 4. Choose your desired export format (CSV or JSON).
 
+## Export with the API
+
+You can automate AirTrail backups with an API key:
+
+```bash
+curl -H "Authorization: Bearer <api-key>" \
+  "https://your-instance.com/api/flight/export?format=json" \
+  -o airtrail.json
+```
+
+Use `format=yaml` to export YAML instead:
+
+```bash
+curl -H "Authorization: Bearer <api-key>" \
+  "https://your-instance.com/api/flight/export?format=yaml" \
+  -o airtrail.yaml
+```
+
+By default, the API exports flights belonging to the API key owner. Admin and owner API keys can use `scope=user&userId=<user-id>` or `scope=all`.
+
 ## Export formats
 
 ### CSV
