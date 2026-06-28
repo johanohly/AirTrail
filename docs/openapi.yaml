@@ -235,7 +235,7 @@ paths:
       tags:
         - 'Stats'
       summary: 'Get statistics'
-      description: "Get aggregated statistics for flights visible to the authenticated API key. Regular users can only retrieve their own statistics. Admins and owners can also request a specific user's statistics or statistics for all users."
+      description: "Get aggregated statistics for completed flights visible to the authenticated API key. Regular users can only retrieve their own statistics. Admins and owners can also request a specific user's statistics or statistics for all users."
       operationId: 'get-stats'
       parameters:
         - name: scope
@@ -748,19 +748,19 @@ components:
       properties:
         flights:
           type: integer
-          description: 'Total number of flights.'
+          description: 'Total number of completed flights.'
           example: 42
         distanceKm:
           type: integer
-          description: 'Total great-circle distance flown in kilometres, rounded to the nearest km.'
+          description: 'Total great-circle distance flown by completed flights in kilometres, rounded to the nearest km.'
           example: 87432
         durationSeconds:
           type: integer
-          description: 'Total time spent flying in seconds.'
+          description: 'Total time spent flying on completed flights in seconds.'
           example: 561600
         airports:
           type: integer
-          description: 'Total number of unique airports visited (origins and destinations combined).'
+          description: 'Total number of unique airports visited by completed flights (origins and destinations combined).'
           example: 31
         topAirline:
           nullable: true

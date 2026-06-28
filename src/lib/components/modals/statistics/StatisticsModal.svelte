@@ -66,14 +66,18 @@
 
   // Only show completed flights
   const completedFlights = $derived.by(() =>
-    filteredFlights.filter(
-      (f) =>
-        !f.date ||
-        isBefore(
-          f.arrival ? f.arrival : (f.dateEnd ?? f.date),
-          nowIn(f.to?.tz || 'UTC'),
-        ),
-    ),
+    filteredFlights.filter((f) => {
+      if (!f.date) return true;
+
+      return isBefore(
+        f.arrival
+          ? f.arrival
+          : f.datePrecision === 'day'
+            ? f.date
+            : (f.dateEnd ?? f.date),
+        nowIn(f.to?.tz || 'UTC'),
+      );
+    }),
   );
 
   const prefs = $derived(getPreferences(page.data.user));
@@ -149,14 +153,17 @@
 
     if (open) {
       setTimeout(() => {
-        flightCount = flights.length;
-        totalDistance = flights.reduce(
+        flightCount = completedFlights.length;
+        totalDistance = completedFlights.reduce(
           (acc, curr) => (acc += curr.distance ?? 0),
           0,
         );
         earthCircumnavigations = totalDistance / 40075;
         const duration = Duration.fromSeconds(
-          flights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
+          completedFlights.reduce(
+            (acc, curr) => (acc += curr.duration ?? 0),
+            0,
+          ),
         );
         totalDurationParts = {
           days: duration.days,
@@ -164,7 +171,7 @@
           minutes: duration.minutes,
         };
         airports = new Set(
-          flights
+          completedFlights
             .filter((f) => f.from && f.to)
             .flatMap((f) => [f.from!.name, f.to!.name]),
         ).size;
