@@ -52,7 +52,7 @@
     seatUserId,
     showCountryStats = true,
     onOpenFlight,
-    pauseDrilldownNavigation = false,
+    suppressEscapeNavigation = false,
   }: {
     open?: boolean;
     flights: FlightData[];
@@ -63,7 +63,7 @@
     seatUserId?: string;
     showCountryStats?: boolean;
     onOpenFlight?: (flightId: number) => void;
-    pauseDrilldownNavigation?: boolean;
+    suppressEscapeNavigation?: boolean;
   } = $props();
 
   const showScopeBanner = $derived(flightScopeState.scope !== 'mine');
@@ -144,6 +144,10 @@
     countriesByContinentDetails(visitedCountries),
   );
 
+  const pushDrilldownHistory = () => {
+    history.pushState({ statisticsDrilldown: true }, '');
+  };
+
   $effect(() => {
     const closedFromDrilldown =
       wasOpen && !open && (activeChart || activeContinent);
@@ -193,8 +197,8 @@
 </script>
 
 <svelte:window
-  onpopstate={() => {
-    if (!open || pauseDrilldownNavigation) return;
+  onpopstate={(event) => {
+    if (!open || event.state?.statisticsDrilldown) return;
     if (activeContinent) {
       activeContinent = null;
     } else if (activeChart) {
@@ -202,7 +206,7 @@
     }
   }}
   onkeydown={(e) => {
-    if (pauseDrilldownNavigation) return;
+    if (suppressEscapeNavigation) return;
     if (e.key !== 'Escape') return;
     if (activeContinent || activeChart) {
       history.back();
@@ -220,7 +224,6 @@
   drawerNoPadding={Boolean(activeChart || activeContinent)}
   closeOnEscape={false}
   closeButton={true}
-  handleBackButton={!pauseDrilldownNavigation}
 >
   {#if activeContinent}
     <BarChartDrillDown
@@ -320,7 +323,7 @@
         flights={completedFlights}
         onOpenChart={(key) => {
           activeChart = key;
-          history.pushState(null, '');
+          pushDrilldownHistory();
         }}
         {seatUserId}
       />
@@ -337,7 +340,7 @@
             class="cursor-pointer"
             onclick={() => {
               activeChart = 'visited-country-status';
-              history.pushState(null, '');
+              pushDrilldownHistory();
             }}
           >
             <PieChart title="Visited Country Status" data={countryStatusData} />
@@ -348,7 +351,7 @@
           data={countriesByContinentData}
           onBarClick={(continent) => {
             activeContinent = continent;
-            history.pushState(null, '');
+            pushDrilldownHistory();
           }}
         />
       {/if}

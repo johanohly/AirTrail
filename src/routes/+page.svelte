@@ -81,31 +81,11 @@
   const showPassengerDetails = $derived(flightScopeState.scope !== 'mine');
   const showCountryStats = $derived(flightScopeState.scope === 'mine');
   let flightListOpenedFromStatistics = $state(false);
-  let releaseStatisticsNavigationPauseTimer: ReturnType<
-    typeof setTimeout
-  > | null = null;
 
   $effect(() => {
-    if (openModalsState.listFlights) {
-      if (releaseStatisticsNavigationPauseTimer) {
-        clearTimeout(releaseStatisticsNavigationPauseTimer);
-        releaseStatisticsNavigationPauseTimer = null;
-      }
-      return;
-    }
-
     if (!openModalsState.listFlights) {
       tempFilters = createDefaultTempFilters();
-    }
-
-    if (
-      flightListOpenedFromStatistics &&
-      !releaseStatisticsNavigationPauseTimer
-    ) {
-      releaseStatisticsNavigationPauseTimer = setTimeout(() => {
-        flightListOpenedFromStatistics = false;
-        releaseStatisticsNavigationPauseTimer = null;
-      }, 250);
+      flightListOpenedFromStatistics = false;
     }
   });
 
@@ -145,6 +125,7 @@
   };
 
   const openFlightInList = (flightId: number) => {
+    tempFilters = createDefaultTempFilters();
     focusFlightInList(flightId);
     flightListOpenedFromStatistics = true;
     openModalsState.listFlights = true;
@@ -173,7 +154,8 @@
   seatUserId={effectiveSeatUserId}
   {showCountryStats}
   onOpenFlight={openFlightInList}
-  pauseDrilldownNavigation={flightListOpenedFromStatistics}
+  suppressEscapeNavigation={flightListOpenedFromStatistics &&
+    openModalsState.listFlights}
 />
 
 <Map bind:filters bind:tempFilters {flights} {filteredFlights} {flightTracks} />

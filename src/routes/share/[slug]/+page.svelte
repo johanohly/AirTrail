@@ -85,9 +85,6 @@
   let showFlightList = $state(false);
   let showStatistics = $state(false);
   let flightListOpenedFromStatistics = $state(false);
-  let releaseStatisticsNavigationPauseTimer: ReturnType<
-    typeof setTimeout
-  > | null = null;
   let filters: FlightFilters = $state(createDefaultFilters());
 
   const shareSettings = $derived($shareQuery.data?.settings);
@@ -99,22 +96,8 @@
   };
 
   $effect(() => {
-    if (showFlightList) {
-      if (releaseStatisticsNavigationPauseTimer) {
-        clearTimeout(releaseStatisticsNavigationPauseTimer);
-        releaseStatisticsNavigationPauseTimer = null;
-      }
-      return;
-    }
-
-    if (
-      flightListOpenedFromStatistics &&
-      !releaseStatisticsNavigationPauseTimer
-    ) {
-      releaseStatisticsNavigationPauseTimer = setTimeout(() => {
-        flightListOpenedFromStatistics = false;
-        releaseStatisticsNavigationPauseTimer = null;
-      }, 250);
+    if (!showFlightList) {
+      flightListOpenedFromStatistics = false;
     }
   });
 </script>
@@ -206,7 +189,8 @@
       onOpenFlight={shareSettings.showFlightList
         ? openSharedFlightInList
         : undefined}
-      pauseDrilldownNavigation={flightListOpenedFromStatistics}
+      suppressEscapeNavigation={flightListOpenedFromStatistics &&
+        showFlightList}
     />
   {/if}
 {:else if shareSettings}
