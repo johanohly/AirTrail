@@ -230,6 +230,66 @@ paths:
       security:
         - bearerAuth: []
 
+  /stats:
+    get:
+      tags:
+        - 'Stats'
+      summary: 'Get statistics'
+      description: "Get aggregated statistics for completed flights visible to the authenticated API key. Regular users can only retrieve their own statistics. Admins and owners can also request a specific user's statistics or statistics for all users."
+      operationId: 'get-stats'
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          description: 'Which flights to aggregate. `mine` is the default. `user` and `all` require an admin or owner API key.'
+          schema:
+            type: string
+            enum:
+              - 'mine'
+              - 'user'
+              - 'all'
+            default: 'mine'
+        - name: userId
+          in: query
+          required: false
+          description: 'The user ID whose statistics should be returned when `scope=user`.'
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'Aggregated statistics'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  stats:
+                    $ref: '#/components/schemas/Stats'
+        '400':
+          description: 'Invalid query parameters'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 'Invalid scope'
+        '401':
+          '$ref': '#/components/responses/401'
+        '403':
+          '$ref': '#/components/responses/403'
+        '500':
+          '$ref': '#/components/responses/500'
+      security:
+        - bearerAuth: []
+
 components:
   securitySchemes:
     bearerAuth:
@@ -674,6 +734,189 @@ components:
           example: 'This is a test flight.'
         customFields:
           '$ref': '#/components/schemas/CustomFieldsInput'
+    Stats:
+      type: object
+      required:
+        - flights
+        - distanceKm
+        - durationSeconds
+        - airports
+        - topAirline
+        - topAirport
+        - topAircraft
+        - topRoute
+      properties:
+        flights:
+          type: integer
+          description: 'Total number of completed flights.'
+          example: 42
+        distanceKm:
+          type: integer
+          description: 'Total great-circle distance flown by completed flights in kilometres, rounded to the nearest km.'
+          example: 87432
+        durationSeconds:
+          type: integer
+          description: 'Total time spent flying on completed flights in seconds.'
+          example: 561600
+        airports:
+          type: integer
+          description: 'Total number of unique airports visited by completed flights (origins and destinations combined).'
+          example: 31
+        topAirline:
+          nullable: true
+          description: 'The most frequently flown airline, or null if no flights have an airline set.'
+          allOf:
+            - $ref: '#/components/schemas/TopAirline'
+        topAirport:
+          nullable: true
+          description: 'The most frequently visited airport (as origin or destination), or null if no airports are recorded.'
+          allOf:
+            - $ref: '#/components/schemas/TopAirport'
+        topAircraft:
+          nullable: true
+          description: 'The most frequently flown aircraft model, or null if no flights have an aircraft model set.'
+          allOf:
+            - $ref: '#/components/schemas/TopAircraft'
+        topRoute:
+          nullable: true
+          description: 'The most frequently flown origin-destination pair, or null if no routes are recorded.'
+          allOf:
+            - $ref: '#/components/schemas/TopRoute'
+    TopAirline:
+      type: object
+      required:
+        - id
+        - name
+        - iata
+        - icao
+        - count
+      properties:
+        id:
+          type: integer
+          description: 'The unique ID of the airline in the AirTrail database.'
+          example: 1
+        name:
+          type: string
+          description: 'The name of the airline.'
+          example: 'British Airways'
+        iata:
+          type: [string, 'null']
+          description: 'The IATA code of the airline.'
+          example: 'BA'
+        icao:
+          type: [string, 'null']
+          description: 'The ICAO code of the airline.'
+          example: 'BAW'
+        count:
+          type: integer
+          description: 'Number of flights with this airline.'
+          example: 10
+    TopAirport:
+      type: object
+      required:
+        - id
+        - name
+        - icao
+        - iata
+        - count
+      properties:
+        id:
+          type: integer
+          description: 'The unique ID of the airport in the AirTrail database.'
+          example: 42
+        name:
+          type: string
+          description: 'The name of the airport.'
+          example: 'John F Kennedy International Airport'
+        icao:
+          type: string
+          description: 'The ICAO code of the airport.'
+          example: 'KJFK'
+        iata:
+          type: [string, 'null']
+          description: 'The IATA code of the airport.'
+          example: 'JFK'
+        count:
+          type: integer
+          description: 'Number of flights where this airport appears as origin or destination.'
+          example: 20
+    TopAircraft:
+      type: object
+      required:
+        - id
+        - name
+        - icao
+        - count
+      properties:
+        id:
+          type: integer
+          description: 'The unique ID of the aircraft model in the AirTrail database.'
+          example: 5
+        name:
+          type: string
+          description: 'The name of the aircraft model.'
+          example: 'Airbus A380-800'
+        icao:
+          type: [string, 'null']
+          description: 'The ICAO aircraft type code.'
+          example: 'A388'
+        count:
+          type: integer
+          description: 'Number of flights flown on this aircraft model.'
+          example: 8
+    TopRoute:
+      type: object
+      required:
+        - from
+        - to
+        - count
+      properties:
+        from:
+          type: object
+          description: 'The origin airport.'
+          required:
+            - id
+            - name
+            - icao
+            - iata
+          properties:
+            id:
+              type: integer
+              example: 42
+            name:
+              type: string
+              example: 'John F Kennedy International Airport'
+            icao:
+              type: string
+              example: 'KJFK'
+            iata:
+              type: [string, 'null']
+              example: 'JFK'
+        to:
+          type: object
+          description: 'The destination airport.'
+          required:
+            - id
+            - name
+            - icao
+            - iata
+          properties:
+            id:
+              type: integer
+              example: 15
+            name:
+              type: string
+              example: 'Los Angeles International Airport'
+            icao:
+              type: string
+              example: 'KLAX'
+            iata:
+              type: [string, 'null']
+              example: 'LAX'
+        count:
+          type: integer
+          description: 'Number of times this route has been flown.'
+          example: 5
   responses:
     200:
       description: 'Success'
@@ -728,3 +971,5 @@ components:
 tags:
   - name: 'Flight'
     description: 'Operations related to flights'
+  - name: 'Stats'
+    description: 'Operations related to statistics'
