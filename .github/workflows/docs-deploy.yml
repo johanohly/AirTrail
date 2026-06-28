@@ -2,8 +2,7 @@ name: Deploy docs
 
 on:
   release:
-    types: [published]
-  workflow_dispatch:
+    types: [released, published]
 
 permissions:
   contents: read
@@ -35,25 +34,47 @@ jobs:
         with:
           egress-policy: audit
 
+      - name: Check latest release
+        id: latest-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_RELEASE_ID: ${{ github.event.release.id }}
+        run: |
+          LATEST_RELEASE_ID="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq ".id")"
+
+          if [ "$EVENT_RELEASE_ID" = "$LATEST_RELEASE_ID" ]; then
+            echo "deploy=true" >>"$GITHUB_OUTPUT"
+            echo "Release is latest; deploying docs."
+          else
+            echo "deploy=false" >>"$GITHUB_OUTPUT"
+            echo "Release is not latest; skipping docs deployment."
+          fi
+
       - name: Checkout
+        if: steps.latest-release.outputs.deploy == 'true'
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Set up Bun
+        if: steps.latest-release.outputs.deploy == 'true'
         uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2
 
       - name: Install dependencies
+        if: steps.latest-release.outputs.deploy == 'true'
         working-directory: docs
         run: bun install --frozen-lockfile
 
       - name: Build docs
+        if: steps.latest-release.outputs.deploy == 'true'
         working-directory: docs
         run: bun run build
 
       - name: Sync Algolia index
+        if: steps.latest-release.outputs.deploy == 'true'
         working-directory: docs
         run: bun run sync:algolia
 
       - name: Deploy Pages project
+        if: steps.latest-release.outputs.deploy == 'true'
         working-directory: docs
         run: |
           : "${CLOUDFLARE_PAGES_PROJECT_NAME:?Set the CLOUDFLARE_PAGES_PROJECT_NAME repository variable}"
