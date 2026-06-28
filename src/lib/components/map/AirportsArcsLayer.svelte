@@ -17,9 +17,17 @@
 
   import {
     normalizeRoute,
-    type Route,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
+  import {
+    buildArcFrequencyPercentileByRoute,
+    buildFlightTrackPaths,
+    findFullyTrackedRouteKeys,
+    getRouteKey,
+    routeMatchesArc,
+    type FlightArc,
+    type FlightTrackPath,
+  } from '$lib/map/flight-layer-data';
   import { GlobeOcclusionExtension } from '$lib/map/globe-occlusion';
   import { mapPreferences } from '$lib/map/map-preferences.svelte';
   import {
@@ -28,15 +36,8 @@
     openAirportDetails,
     openRouteDetails,
   } from '$lib/state.svelte';
-  import {
-    type FlightData,
-    prepareFlightArcData,
-    prepareVisitedAirports,
-  } from '$lib/utils';
-  import type {
-    FlightTrackCoordinate,
-    FlightTrackRow,
-  } from '$lib/track/schema';
+  import { type FlightData, prepareVisitedAirports } from '$lib/utils';
+  import type { FlightTrackRow } from '$lib/track/schema';
   import { isMediumScreen } from '$lib/utils/size';
 
   const AIRPORT_COLOR = (alpha: number): Color => [16, 185, 129, alpha]; // Tailwind emerald-500
@@ -95,7 +96,7 @@
     tempFilters = $bindable(),
   }: {
     flights: FlightData[];
-    flightArcs: ReturnType<typeof prepareFlightArcData>;
+    flightArcs: FlightArc[];
     flightTracks?: FlightTrackRow[];
     tempFilters?: TempFilters;
   } = $props();
@@ -108,63 +109,8 @@
   });
 
   type VisitedAirport = (typeof visitedAirports)[0];
-  type FlightArc = (typeof flightArcs)[0];
-  type FlightTrackPath = FlightArc & {
-    flightId: number;
-    path: FlightTrackCoordinate[];
-  };
-  const getRouteKey = (fromId: number, toId: number) =>
-    fromId <= toId ? `${fromId}:${toId}` : `${toId}:${fromId}`;
-
-  const unwrapTrackPath = (path: FlightTrackCoordinate[]) => {
-    if (!path.length) return path;
-    const unwrapped: FlightTrackCoordinate[] = [path[0]!];
-
-    for (let index = 1; index < path.length; index++) {
-      const previous = unwrapped[index - 1]!;
-      const current = path[index]!;
-      let lon = current[0];
-      while (lon - previous[0] > 180) lon -= 360;
-      while (lon - previous[0] < -180) lon += 360;
-      unwrapped.push(
-        current[2] === undefined
-          ? [lon, current[1]]
-          : [lon, current[1], current[2]],
-      );
-    }
-
-    return unwrapped;
-  };
-
-  // Rank routes by frequency so the full 0..1 range is always used,
-  // even when one outlier route dominates absolute counts.
   const arcFrequencyPercentileByRoute = $derived.by(() => {
-    const percentileByRoute: Record<string, number> = {};
-    if (!flightArcs || flightArcs.length === 0) return percentileByRoute;
-
-    const frequencies = [
-      ...new Set(flightArcs.map((arc) => arc.frequency)),
-    ].sort((a, b) => a - b);
-    if (frequencies.length === 1) {
-      for (const arc of flightArcs) {
-        percentileByRoute[getRouteKey(arc.from.id, arc.to.id)] = 0;
-      }
-      return percentileByRoute;
-    }
-
-    const denominator = frequencies.length - 1;
-    const percentileByFrequency = new Map<number, number>();
-
-    for (const [rank, frequency] of frequencies.entries()) {
-      percentileByFrequency.set(frequency, rank / denominator);
-    }
-
-    for (const arc of flightArcs) {
-      percentileByRoute[getRouteKey(arc.from.id, arc.to.id)] =
-        percentileByFrequency.get(arc.frequency) ?? 0;
-    }
-
-    return percentileByRoute;
+    return buildArcFrequencyPercentileByRoute(flightArcs);
   });
 
   const getArcFrequencyPercentile = (d: FlightArc) => {
@@ -172,31 +118,12 @@
     return arcFrequencyPercentileByRoute[routeKey] ?? 0;
   };
 
-  const flightById = $derived.by(() => {
-    return new Map(flights.map((flight) => [flight.id, flight]));
-  });
-
-  const arcByRoute = $derived.by(() => {
-    return new Map(
-      flightArcs.map((arc) => [getRouteKey(arc.from.id, arc.to.id), arc]),
-    );
-  });
-
   const trackFlightIds = $derived.by(() => {
     return new Set(flightTracks.map((track) => track.flightId));
   });
 
   const fullyTrackedRouteKeys = $derived.by(() => {
-    const keys = new Set<string>();
-    for (const arc of flightArcs) {
-      if (
-        arc.flights.length > 0 &&
-        arc.flights.every((flight) => trackFlightIds.has(flight.id))
-      ) {
-        keys.add(getRouteKey(arc.from.id, arc.to.id));
-      }
-    }
-    return keys;
+    return findFullyTrackedRouteKeys(flightArcs, trackFlightIds);
   });
 
   const visibleFlightArcs = $derived.by(() => {
@@ -206,21 +133,7 @@
   });
 
   const flightTrackPaths = $derived.by(() => {
-    const paths: FlightTrackPath[] = [];
-    for (const track of flightTracks) {
-      const flight = flightById.get(track.flightId);
-      if (!flight?.from || !flight.to) continue;
-
-      const arc = arcByRoute.get(getRouteKey(flight.from.id, flight.to.id));
-      if (!arc) continue;
-
-      paths.push({
-        ...arc,
-        flightId: track.flightId,
-        path: unwrapTrackPath(track.coordinates),
-      });
-    }
-    return paths;
+    return buildFlightTrackPaths(flights, flightArcs, flightTracks);
   });
 
   // deck's picking coordinate is unprojected through deck's own globe
@@ -419,16 +332,6 @@
     return selection?.type === 'route' ? selection.route : null;
   });
 
-  const routeMatches = (arc: FlightArc, route: Route | null | undefined) => {
-    if (!route) return false;
-    const fromId = arc.from.id.toString();
-    const toId = arc.to.id.toString();
-    return (
-      (fromId === route.a && toId === route.b) ||
-      (fromId === route.b && toId === route.a)
-    );
-  };
-
   const selectedRouteAirportIds = $derived.by(() => {
     if (!selectedRoute) return [];
     return [Number(selectedRoute.a), Number(selectedRoute.b)];
@@ -514,7 +417,7 @@
     return (d: (typeof flightArcs)[number]) => {
       if (hoveredArc?.from === d.from && hoveredArc?.to === d.to) {
         return HOVER_COLOR;
-      } else if (routeMatches(d, selectedRoute)) {
+      } else if (routeMatchesArc(d, selectedRoute)) {
         return HOVER_COLOR;
       } else if (hoveredArc) {
         return INACTIVE_COLOR(200);
@@ -572,7 +475,7 @@
 
   const getVisibleArcWidth = (d: FlightArc) => {
     const width = getArcWidth(d);
-    return routeMatches(d, selectedRoute) ? Math.max(width + 1.5, 3) : width;
+    return routeMatchesArc(d, selectedRoute) ? Math.max(width + 1.5, 3) : width;
   };
 
   const airportOptions = $derived.by(() => {
@@ -689,7 +592,7 @@
     return (d: FlightTrackPath): Color => {
       if (hoveredArc?.from === d.from && hoveredArc?.to === d.to) {
         return HOVER_COLOR;
-      } else if (routeMatches(d, selectedRoute)) {
+      } else if (routeMatchesArc(d, selectedRoute)) {
         return HOVER_COLOR;
       } else if (hoveredArc) {
         return INACTIVE_COLOR(200);

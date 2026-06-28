@@ -4,10 +4,10 @@ import type { FilterModel, FiltersState } from 'bits-ui';
 
 import type {
   FlightFilters,
+  LocationFilters,
   MultiOptionFilterOperator,
   OptionFilterOperator,
   Route,
-  TempFilters,
 } from './types';
 
 import { getSeatPassengerToken, type FlightData } from '$lib/utils';
@@ -769,14 +769,6 @@ export function multiOptionMatches(
       return !setEquals(values, selectedValues);
   }
 }
-
-type LocationFilters = Pick<
-  TempFilters,
-  'departureAirports' | 'arrivalAirports' | 'airportsEither' | 'routes'
-> &
-  Partial<
-    Pick<FlightFilters, 'departureAirportsOperator' | 'arrivalAirportsOperator'>
-  >;
 
 export function matchesLocationFilters(
   flight: FlightData,

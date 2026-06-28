@@ -3,7 +3,11 @@ import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 
 import type { DB } from './schema';
 import type { CreateFlight } from './types';
-import type { FlightTrackInput } from '$lib/track/schema';
+import {
+  flightTrackInputSchema,
+  type FlightTrackInput,
+  type FlightTrackPayload,
+} from '$lib/track/schema';
 
 const airportDisplayName = sql<string>`regexp_replace("name", '\\s+International(\\s+Airport)?$', ' Intl.', 'i')`;
 
@@ -206,6 +210,14 @@ export const updateFlightPrimitiveWithConnection = async (
     .where('id', '=', id)
     .executeTakeFirstOrThrow();
 
+  if (track !== undefined) {
+    if (track === null) {
+      await deleteFlightTrackPrimitiveWithConnection(db, id);
+    } else {
+      await upsertFlightTrackPrimitiveWithConnection(db, id, track);
+    }
+  }
+
   if (!seats.length) return;
 
   await db.deleteFrom('seat').where('flightId', '=', id).execute();
@@ -220,49 +232,42 @@ export const updateFlightPrimitiveWithConnection = async (
   }));
 
   await db.insertInto('seat').values(seatData).executeTakeFirstOrThrow();
-
-  if (track !== undefined) {
-    if (track === null) {
-      await deleteFlightTrackPrimitiveWithConnection(db, id);
-    } else {
-      await upsertFlightTrackPrimitiveWithConnection(db, id, track);
-    }
-  }
 };
+
+const normalizeFlightTrackInput = (track: FlightTrackInput): FlightTrackInput =>
+  flightTrackInputSchema.parse(track);
+
+const toFlightTrackPayload = (track: FlightTrackInput): FlightTrackPayload => ({
+  coordinates: track.coordinates,
+  ...(track.times ? { times: track.times } : {}),
+  ...(track.groundSpeedKt ? { groundSpeedKt: track.groundSpeedKt } : {}),
+  ...(track.trackDeg ? { trackDeg: track.trackDeg } : {}),
+});
 
 export const upsertFlightTrackPrimitiveWithConnection = async (
   db: Kysely<DB>,
   flightId: number,
   track: FlightTrackInput,
 ) => {
+  const validTrack = normalizeFlightTrackInput(track);
+  const payload = toFlightTrackPayload(validTrack);
+
   await db
     .insertInto('flightTrack')
     .values({
       flightId,
-      track: {
-        coordinates: track.coordinates,
-        ...(track.times ? { times: track.times } : {}),
-        ...(track.groundSpeedKt ? { groundSpeedKt: track.groundSpeedKt } : {}),
-        ...(track.trackDeg ? { trackDeg: track.trackDeg } : {}),
-      },
-      sourceFormat: track.sourceFormat,
-      sourceName: track.sourceName ?? null,
-      pointCount: track.coordinates.length,
+      track: payload,
+      sourceFormat: validTrack.sourceFormat,
+      sourceName: validTrack.sourceName ?? null,
+      pointCount: validTrack.coordinates.length,
       updatedAt: new Date(),
     })
     .onConflict((oc) =>
       oc.column('flightId').doUpdateSet({
-        track: {
-          coordinates: track.coordinates,
-          ...(track.times ? { times: track.times } : {}),
-          ...(track.groundSpeedKt
-            ? { groundSpeedKt: track.groundSpeedKt }
-            : {}),
-          ...(track.trackDeg ? { trackDeg: track.trackDeg } : {}),
-        },
-        sourceFormat: track.sourceFormat,
-        sourceName: track.sourceName ?? null,
-        pointCount: track.coordinates.length,
+        track: payload,
+        sourceFormat: validTrack.sourceFormat,
+        sourceName: validTrack.sourceName ?? null,
+        pointCount: validTrack.coordinates.length,
         updatedAt: sql`CURRENT_TIMESTAMP`,
       }),
     )
@@ -325,19 +330,14 @@ export const createManyFlightsPrimitive = async (
     await trx.insertInto('seat').values(seatData).execute();
 
     const trackData = flights.flatMap((flight, index) => {
-      const track = data[index]?.track;
+      const track = data[index]?.track
+        ? normalizeFlightTrackInput(data[index].track)
+        : null;
       if (!track) return [];
       return [
         {
           flightId: flight.id,
-          track: {
-            coordinates: track.coordinates,
-            ...(track.times ? { times: track.times } : {}),
-            ...(track.groundSpeedKt
-              ? { groundSpeedKt: track.groundSpeedKt }
-              : {}),
-            ...(track.trackDeg ? { trackDeg: track.trackDeg } : {}),
-          },
+          track: toFlightTrackPayload(track),
           sourceFormat: track.sourceFormat,
           sourceName: track.sourceName ?? null,
           pointCount: track.coordinates.length,

@@ -7,6 +7,17 @@
   import { page } from '$app/state';
 
   import AppearanceTile from './AppearanceTile.svelte';
+  import {
+    AIRPORT_CIRCLE_OPTIONS,
+    AIRPORT_CIRCLE_RADIUS_OPTIONS,
+    AIRPORT_DETAIL_OPTIONS,
+    ARC_COLOR_OPTIONS,
+    ARC_SCALE_OPTIONS,
+    ARC_THICKNESS_OPTIONS,
+    BASEMAP_OPTIONS,
+    OPENAIP_GROUP_OPTIONS,
+    PROJECTION_OPTIONS,
+  } from './map-appearance-options';
 
   import aptSymbol from '$lib/assets/openaip/symbols/apt-medium.svg';
   import navaidRoseSymbol from '$lib/assets/openaip/symbols/navaid_rose-medium.svg';
@@ -14,23 +25,11 @@
   import { Button } from '$lib/components/ui/button';
   import * as Popover from '$lib/components/ui/popover';
   import { Switch } from '$lib/components/ui/switch';
-  import type { MapBasemap } from '$lib/map/basemap';
   import {
     mapPreferences,
     resetMapPreferences,
     toggleOpenAipGroup,
-    type AirportCircleRadiusMode,
-    type AirportOverlayDetail,
-    type AirportCirclesMode,
-    type ArcColorMode,
-    type ArcThicknessMode,
-    type ArcThicknessScale,
-    type MapProjection,
   } from '$lib/map/map-preferences.svelte';
-  import {
-    OPENAIP_OVERLAY_GROUPS,
-    type OpenAipOverlayGroup,
-  } from '$lib/map/openaip';
   import { openModalsState } from '$lib/state.svelte';
   import { cn } from '$lib/utils';
 
@@ -44,87 +43,6 @@
     openModalsState.settingsTab = 'integrations';
     openModalsState.settings = true;
   };
-
-  const AIRPORT_CIRCLE_OPTIONS: Array<{
-    value: AirportCirclesMode;
-    label: string;
-  }> = [
-    { value: 'off', label: 'Off' },
-    { value: 'small', label: 'Small' },
-    { value: 'medium', label: 'Medium' },
-    { value: 'large', label: 'Large' },
-  ];
-
-  const AIRPORT_CIRCLE_RADIUS_OPTIONS: Array<{
-    value: AirportCircleRadiusMode;
-    label: string;
-  }> = [
-    { value: 'byFrequency', label: 'By frequency' },
-    { value: 'uniform', label: 'Uniform' },
-  ];
-
-  const ARC_COLOR_OPTIONS: Array<{
-    value: ArcColorMode;
-    label: string;
-  }> = [
-    { value: 'default', label: 'Default' },
-    { value: 'byFrequency', label: 'By frequency' },
-  ];
-
-  const ARC_THICKNESS_OPTIONS: Array<{
-    value: ArcThicknessMode;
-    label: string;
-  }> = [
-    { value: 'uniform', label: 'Uniform' },
-    { value: 'byFrequency', label: 'By frequency' },
-  ];
-
-  const ARC_SCALE_OPTIONS: Array<{
-    value: ArcThicknessScale;
-    label: string;
-  }> = [
-    { value: 'thin', label: 'Thin' },
-    { value: 'normal', label: 'Normal' },
-    { value: 'thick', label: 'Thick' },
-  ];
-
-  const AIRPORT_DETAIL_OPTIONS: Array<{
-    value: AirportOverlayDetail;
-    label: string;
-  }> = [
-    { value: 'standard', label: 'Standard' },
-    { value: 'detailed', label: 'Detailed' },
-  ];
-
-  const OPENAIP_GROUP_OPTIONS: Array<{
-    value: OpenAipOverlayGroup;
-    label: string;
-  }> = [
-    { value: 'airspaces', label: 'Airspaces' },
-    { value: 'airspaceLabels', label: 'Airspace labels' },
-    { value: 'airports', label: 'Airports' },
-    { value: 'navaids', label: 'Navaids' },
-    { value: 'reportingPoints', label: 'Reporting points' },
-  ];
-
-  // Sanity assertion: make sure we render a tile for every known group.
-  OPENAIP_OVERLAY_GROUPS satisfies readonly OpenAipOverlayGroup[];
-
-  const BASEMAP_OPTIONS: Array<{
-    value: MapBasemap;
-    label: string;
-  }> = [
-    { value: 'default', label: 'Default' },
-    { value: 'satellite', label: 'Satellite' },
-  ];
-
-  const PROJECTION_OPTIONS: Array<{
-    value: MapProjection;
-    label: string;
-  }> = [
-    { value: 'mercator', label: 'Flat' },
-    { value: 'globe', label: 'Globe' },
-  ];
 
   const basemapPreviewTheme = $derived(
     mode.current === 'dark' ? 'dark' : 'light',

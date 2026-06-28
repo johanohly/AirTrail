@@ -14,6 +14,7 @@ import {
   listFlightPrimitive,
   updateFlightPrimitive,
   updateFlightPrimitiveWithConnection,
+  upsertFlightTrackPrimitiveWithConnection,
 } from '$lib/db/queries';
 import type { DB } from '$lib/db/schema';
 import type { CreateFlight, Flight, User } from '$lib/db/types';
@@ -546,11 +547,19 @@ export const createManyFlights = async (
   const flightsToInsert: CreateFlight[] = [];
   type SeatInsert = Insertable<DB['seat']>;
   const seatsToAttach: SeatInsert[] = [];
+  const tracksToUpsert: Array<{
+    flightId: number;
+    track: NonNullable<CreateFlight['track']>;
+  }> = [];
 
   for (const f of uniqueFlights) {
     const key = signature(f);
     const existingId = existingBySig.get(key);
     if (existingId) {
+      if (f.track) {
+        tracksToUpsert.push({ flightId: existingId, track: f.track });
+      }
+
       // If user already has a seat on this flight, skip entirely
       if (userSeatByFlight.has(existingId)) {
         continue;
@@ -580,7 +589,7 @@ export const createManyFlights = async (
 
   // Attach seats to existing flights (dedup seats per user/flight)
   let attachedSeats = 0;
-  if (seatsToAttach.length) {
+  if (seatsToAttach.length || tracksToUpsert.length) {
     const seatKey = (s: { flightId: number; userId: string | null }) =>
       `${s.flightId}|${s.userId ?? ''}`;
     const uniqueSeatsMap = new Map<string, (typeof seatsToAttach)[number]>();
@@ -589,10 +598,17 @@ export const createManyFlights = async (
       if (!uniqueSeatsMap.has(k)) uniqueSeatsMap.set(k, s);
     }
     const uniqueSeats = Array.from(uniqueSeatsMap.values());
-    if (uniqueSeats.length) {
-      await db.insertInto('seat').values(uniqueSeats).execute();
-      attachedSeats = uniqueSeats.length;
-    }
+
+    await db.transaction().execute(async (trx) => {
+      for (const { flightId, track } of tracksToUpsert) {
+        await upsertFlightTrackPrimitiveWithConnection(trx, flightId, track);
+      }
+
+      if (uniqueSeats.length) {
+        await trx.insertInto('seat').values(uniqueSeats).execute();
+        attachedSeats = uniqueSeats.length;
+      }
+    });
   }
 
   return { insertedFlights, attachedSeats };

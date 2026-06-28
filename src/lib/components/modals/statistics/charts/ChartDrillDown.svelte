@@ -13,14 +13,17 @@
   import { AirlineIcon } from '$lib/components/display';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
-  import { ContinentMap, type Airline, type Airport } from '$lib/db/types';
+  import type { Airline, Airport } from '$lib/db/types';
   import {
     type ChartKey,
     type FlightChartKey,
     FLIGHT_CHARTS,
     COUNTRY_CHARTS,
+    codeForAirport,
+    flightMatchesChartBucket,
+    routeLabelForFlight,
   } from '$lib/stats/aggregations';
-  import { cn, type FlightData, toTitleCase } from '$lib/utils';
+  import { cn, type FlightData } from '$lib/utils';
 
   const FLIGHT_PREVIEW_LIMIT = 5;
 
@@ -118,88 +121,14 @@
       ? '#71717a'
       : `linear-gradient(45deg, ${colorAt(index)}, ${colorNextAt(index)})`;
 
-  const codeForAirport = (airport: Airport | null | undefined) =>
-    airport?.iata || airport?.icao || null;
-
-  const routeLabelForFlight = (flight: FlightData) => {
-    const fromCode = codeForAirport(flight.from);
-    const toCode = codeForAirport(flight.to);
-    if (!fromCode || !toCode) return null;
-    return `${fromCode}-${toCode}`;
-  };
-
-  const labelForFlight = (
-    flight: FlightData,
-    key: FlightChartKey,
-  ): string | null => {
-    switch (key) {
-      case 'airlines':
-        return flight.airline?.name ?? 'No Data';
-      case 'aircraft-models':
-        return flight.aircraft?.name ?? 'No Data';
-      case 'aircraft-regs':
-        return flight.aircraftReg ?? 'No Data';
-      case 'reason':
-        return flight.flightReason
-          ? toTitleCase(flight.flightReason)
-          : 'No Data';
-      case 'continents':
-        return flight.to?.continent
-          ? ContinentMap[flight.to.continent]
-          : 'No Data';
-      case 'routes':
-        return routeLabelForFlight(flight);
-      default:
-        return null;
-    }
-  };
-
-  const hasMatchingSeat = (
-    flight: FlightData,
-    field: 'seat' | 'seatClass',
-    key: string,
-  ) => {
-    const seats = seatUserId
-      ? flight.seats.filter((seat) => seat.userId === seatUserId)
-      : flight.seats;
-
-    if (key === 'No Data') {
-      if (seatUserId) {
-        return seats.length === 0 || seats.some((seat) => !seat[field]);
-      }
-      return seats.some((seat) => !seat[field]);
-    }
-
-    return seats.some(
-      (seat) => seat[field] && toTitleCase(seat[field]) === key,
-    );
-  };
-
   const flightsForRow = (key: string): FlightData[] => {
     if (!isFlightChart) return [];
 
-    const flightChartKey = chartKey as FlightChartKey;
-
-    switch (flightChartKey) {
-      case 'seat':
-        return flights.filter((flight) => hasMatchingSeat(flight, 'seat', key));
-      case 'seat-class':
-        return flights.filter((flight) =>
-          hasMatchingSeat(flight, 'seatClass', key),
-        );
-      case 'airports':
-        return flights.filter(
-          (flight) =>
-            codeForAirport(flight.from) === key ||
-            codeForAirport(flight.to) === key,
-        );
-      case 'routes':
-        return flights.filter((flight) => routeLabelForFlight(flight) === key);
-      default:
-        return flights.filter(
-          (flight) => labelForFlight(flight, flightChartKey) === key,
-        );
-    }
+    return flights.filter((flight) =>
+      flightMatchesChartBucket(flight, chartKey as FlightChartKey, key, {
+        userId: seatUserId,
+      }),
+    );
   };
 
   const airportForKey = (key: string) => {

@@ -17,33 +17,38 @@ export type MultiOptionFilterOperator =
   | 'exclude if all'
   | 'exclude exactly';
 
-export type FlightFilters = {
+export type LocationFilterValues = {
   departureAirports: string[];
-  departureAirportsOperator: OptionFilterOperator;
   arrivalAirports: string[];
-  arrivalAirportsOperator: OptionFilterOperator;
   airportsEither: string[];
   routes: Route[];
-  years: string[];
-  yearsOperator: OptionFilterOperator;
-  fromDate: CalendarDate | undefined;
-  toDate: CalendarDate | undefined;
-  passengers: string[];
-  passengersOperator: MultiOptionFilterOperator;
-  airline: string[];
-  airlineOperator: OptionFilterOperator;
-  aircraft: string[];
-  aircraftOperator: OptionFilterOperator;
-  aircraftRegs: string[];
-  aircraftRegsOperator: OptionFilterOperator;
 };
 
-export type TempFilters = {
-  departureAirports: string[];
-  arrivalAirports: string[];
-  airportsEither: string[];
-  routes: Route[];
+export type LocationFilterOperators = {
+  departureAirportsOperator: OptionFilterOperator;
+  arrivalAirportsOperator: OptionFilterOperator;
 };
+
+export type FlightFilters = LocationFilterValues &
+  LocationFilterOperators & {
+    years: string[];
+    yearsOperator: OptionFilterOperator;
+    fromDate: CalendarDate | undefined;
+    toDate: CalendarDate | undefined;
+    passengers: string[];
+    passengersOperator: MultiOptionFilterOperator;
+    airline: string[];
+    airlineOperator: OptionFilterOperator;
+    aircraft: string[];
+    aircraftOperator: OptionFilterOperator;
+    aircraftRegs: string[];
+    aircraftRegsOperator: OptionFilterOperator;
+  };
+
+export type TempFilters = LocationFilterValues;
+
+export type LocationFilters = LocationFilterValues &
+  Partial<LocationFilterOperators>;
 
 export const createDefaultTempFilters = (): TempFilters => ({
   departureAirports: [],
