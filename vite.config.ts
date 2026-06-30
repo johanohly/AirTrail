@@ -19,8 +19,8 @@ const pwaOptions = {
     'countries-bounds.json',
   ],
   manifest: {
-    name: 'JFlights',
-    short_name: 'JFlights',
+    name: 'JTrail',
+    short_name: 'JTrail',
     description: 'A modern, open-source personal flight tracking system',
     categories: ['travel', 'navigation', 'utilities'],
     start_url: '/',

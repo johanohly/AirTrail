@@ -109,7 +109,7 @@
 </script>
 
 <svelte:head>
-  <title>Shared Flight Map - JFlights</title>
+  <title>Shared Flight Map - JTrail</title>
   <meta name="description" content="View shared flight data on AirTrail" />
 </svelte:head>
 
