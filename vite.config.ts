@@ -19,8 +19,8 @@ const pwaOptions = {
     'countries-bounds.json',
   ],
   manifest: {
-    name: 'AirTrail',
-    short_name: 'AirTrail',
+    name: 'JFlights',
+    short_name: 'JFlights',
     description: 'A modern, open-source personal flight tracking system',
     categories: ['travel', 'navigation', 'utilities'],
     start_url: '/',
