@@ -1,9 +1,10 @@
 <script lang="ts">
   import { PlaneLanding, PlaneTakeoff } from '@o7/icon/lucide';
   import NumberFlow from '@number-flow/svelte';
+  import { isAfter, isBefore } from 'date-fns';
 
-  import type { FlightData } from '$lib/utils';
-  import { formatAsFlightDate } from '$lib/utils/datetime';
+  import { cn, type FlightData } from '$lib/utils';
+  import { formatAsFlightDate, nowIn } from '$lib/utils/datetime';
 
   let {
     flights,
@@ -32,28 +33,58 @@
     return set.size;
   });
 
-  const mostRecent = $derived.by(() => {
+  // The moment this flight actually touches the airport: landing time when
+  // arriving here, takeoff time when departing from here.
+  const touchTime = (f: FlightData) =>
+    (f.to?.id === airportId
+      ? (f.arrival ?? f.dateEnd)
+      : (f.departure ?? f.dateStart)) ?? f.date;
+
+  const lastVisit = $derived.by(() => {
+    const now = nowIn('UTC');
     let best: FlightData | null = null;
-    let bestTs = -Infinity;
+    let bestDate: ReturnType<typeof touchTime> = null;
     for (const f of flights) {
-      const ts = f.date?.getTime();
-      if (ts && ts > bestTs) {
-        bestTs = ts;
+      const date = touchTime(f);
+      if (
+        date &&
+        isBefore(date, now) &&
+        (!bestDate || isAfter(date, bestDate))
+      ) {
+        bestDate = date;
         best = f;
       }
     }
     return best;
   });
 
-  const lastVisitLabel = $derived.by(() => {
-    if (!mostRecent?.date) return null;
-    return formatAsFlightDate(
-      mostRecent.date,
-      mostRecent.datePrecision ?? 'day',
-      false,
-      true,
-    );
+  const nextVisit = $derived.by(() => {
+    const now = nowIn('UTC');
+    let best: FlightData | null = null;
+    let bestDate: ReturnType<typeof touchTime> = null;
+    for (const f of flights) {
+      const date = touchTime(f);
+      if (
+        date &&
+        isAfter(date, now) &&
+        (!bestDate || isBefore(date, bestDate))
+      ) {
+        bestDate = date;
+        best = f;
+      }
+    }
+    return best;
   });
+
+  const formatVisit = (flight: FlightData | null) => {
+    if (!flight) return null;
+    const date = touchTime(flight);
+    if (!date) return null;
+    return formatAsFlightDate(date, flight.datePrecision ?? 'day', false, true);
+  };
+
+  const lastVisitLabel = $derived(formatVisit(lastVisit));
+  const nextVisitLabel = $derived(formatVisit(nextVisit));
 </script>
 
 <section class="px-4 py-4">
@@ -86,8 +117,33 @@
     </div>
   </div>
 
+  {#if lastVisitLabel || nextVisitLabel}
+    <div
+      class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-3 text-xs text-muted-foreground"
+    >
+      {#if lastVisitLabel}
+        <span>
+          last visit <span class="text-foreground">{lastVisitLabel}</span>
+        </span>
+      {/if}
+      {#if nextVisitLabel}
+        <span class="inline-flex items-center gap-2">
+          {#if lastVisitLabel}
+            <span aria-hidden="true">·</span>
+          {/if}
+          <span>
+            next visit <span class="text-foreground">{nextVisitLabel}</span>
+          </span>
+        </span>
+      {/if}
+    </div>
+  {/if}
+
   <div
-    class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-3 text-xs text-muted-foreground"
+    class={cn(
+      'flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground',
+      lastVisitLabel || nextVisitLabel ? 'mt-1' : 'mt-3',
+    )}
   >
     <span>
       <span class="font-semibold text-foreground tabular-nums">
@@ -95,18 +151,14 @@
       </span>
       airlines
     </span>
-    <span aria-hidden="true">·</span>
-    <span>
-      <span class="font-semibold text-foreground tabular-nums">
-        {distinctRoutes}
-      </span>
-      routes
-    </span>
-    {#if lastVisitLabel}
+    <span class="inline-flex items-center gap-2">
       <span aria-hidden="true">·</span>
-      <span
-        >last visit <span class="text-foreground">{lastVisitLabel}</span></span
-      >
-    {/if}
+      <span>
+        <span class="font-semibold text-foreground tabular-nums">
+          {distinctRoutes}
+        </span>
+        routes
+      </span>
+    </span>
   </div>
 </section>
