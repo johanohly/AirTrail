@@ -80,12 +80,7 @@
     if (!flight) return null;
     const date = touchTime(flight);
     if (!date) return null;
-    return formatAsFlightDate(
-      date,
-      flight.datePrecision ?? 'day',
-      false,
-      true,
-    );
+    return formatAsFlightDate(date, flight.datePrecision ?? 'day', false, true);
   };
 
   const lastVisitLabel = $derived(formatVisit(lastVisit));
