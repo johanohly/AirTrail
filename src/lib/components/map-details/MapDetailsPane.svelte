@@ -105,6 +105,7 @@
         lastFlownLabel={route.lastFlownLabel}
         prefs={route.prefs}
         onShowAll={route.showAllFlights}
+        onShowFlight={route.showFlight}
       />
     {/if}
   </MapDetailsFrame>

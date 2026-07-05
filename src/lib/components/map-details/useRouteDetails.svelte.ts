@@ -9,7 +9,7 @@ import {
   setTempRoute,
 } from '$lib/components/flight-filters/types';
 import {
-  focusFlightInList,
+  closeMapDetails,
   mapDetailsState,
   openModalsState,
 } from '$lib/state.svelte';
@@ -120,11 +120,19 @@ export function useRouteDetails(
     f.routes = [normalizeRoute(selectedRoute.a, selectedRoute.b)];
   };
 
-  const showAllFlights = (flightId?: number) => {
+  const showAllFlights = () => {
     const tf = tempFilters();
+    const f = filters();
+    if (f) f.flightIds = [];
     if (selectedRoute && tf) setTempRoute(tf, selectedRoute);
-    if (flightId) focusFlightInList(flightId);
     openModalsState.listFlights = true;
+  };
+
+  const showFlight = (flightId: number) => {
+    const f = filters();
+    if (!f) return;
+    f.flightIds = [flightId.toString()];
+    closeMapDetails();
   };
 
   return {
@@ -157,5 +165,6 @@ export function useRouteDetails(
     },
     toggleRouteFilter,
     showAllFlights,
+    showFlight,
   };
 }

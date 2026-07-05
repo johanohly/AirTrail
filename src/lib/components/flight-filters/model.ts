@@ -95,6 +95,7 @@ export function createDefaultFilters(): FlightFilters {
     aircraftOperator: 'is any of',
     aircraftRegs: [],
     aircraftRegsOperator: 'is any of',
+    flightIds: [],
   };
 }
 
@@ -113,6 +114,7 @@ export function cloneFlightFilters(
     airline: [...source.airline],
     aircraft: [...source.aircraft],
     aircraftRegs: [...source.aircraftRegs],
+    flightIds: [...source.flightIds],
     ...next,
   };
 }
@@ -130,7 +132,8 @@ export function hasFlightFilters(filters: FlightFilters | undefined): boolean {
       filters.passengers.length > 0 ||
       filters.airline.length > 0 ||
       filters.aircraft.length > 0 ||
-      filters.aircraftRegs.length > 0)
+      filters.aircraftRegs.length > 0 ||
+      filters.flightIds.length > 0)
   );
 }
 
@@ -715,6 +718,7 @@ export function flightSignature(source: FlightFilters) {
     aircraftOperator: source.aircraftOperator,
     aircraftRegs: source.aircraftRegs,
     aircraftRegsOperator: source.aircraftRegsOperator,
+    flightIds: source.flightIds,
   });
 }
 
@@ -912,6 +916,13 @@ export function matchesNonLocationFilters(
       filters.aircraftRegs,
       filters.aircraftRegsOperator,
     )
+  ) {
+    return false;
+  }
+
+  if (
+    filters.flightIds.length &&
+    !filters.flightIds.includes(flight.id.toString())
   ) {
     return false;
   }

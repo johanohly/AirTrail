@@ -16,13 +16,15 @@
     lastFlownLabel,
     prefs,
     onShowAll,
+    onShowFlight,
   }: {
     routeFlights: FlightData[];
     airlineCount: number;
     distance: number | null;
     lastFlownLabel: string | null;
     prefs: Preferences;
-    onShowAll: (flightId?: number) => void;
+    onShowAll: () => void;
+    onShowFlight: (flightId: number) => void;
   } = $props();
 
   const formatFlightNumber = (flightNumber: string | null | undefined) => {
@@ -49,7 +51,7 @@
     <button
       type="button"
       class="group grid w-full cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors hover:bg-background/55 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
-      onclick={() => onShowAll(flight.id)}
+      onclick={() => onShowFlight(flight.id)}
       aria-label="Open flight {flight.from?.iata ??
         flight.from?.icao ??
         'N/A'} to {flight.to?.iata ?? flight.to?.icao ?? 'N/A'} in flight list"

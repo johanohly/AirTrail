@@ -43,6 +43,9 @@ export type FlightFilters = LocationFilterValues &
     aircraftOperator: OptionFilterOperator;
     aircraftRegs: string[];
     aircraftRegsOperator: OptionFilterOperator;
+    // Programmatic single-flight isolation (set from the map / list "show on
+    // map" flows), not a user-facing filter-bar column.
+    flightIds: string[];
   };
 
 export type TempFilters = LocationFilterValues;
