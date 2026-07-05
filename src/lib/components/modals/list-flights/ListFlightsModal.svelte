@@ -4,6 +4,7 @@
   import autoAnimate from '@formkit/auto-animate';
   import {
     ArrowLeftRight,
+    MapPin,
     Plane,
     PlaneTakeoff,
     PlaneLanding,
@@ -254,6 +255,13 @@
       await deleteFlight?.(deleteFlightData.id);
       deleteFlightData = null;
     }
+  };
+
+  const showFlightOnMap = (flightId: number) => {
+    if (!filters) return;
+    filters.flightIds = [flightId.toString()];
+    if (tempFilters) clearTempFilterValues(tempFilters);
+    open = false;
   };
 
   const hasTempFilters = $derived.by(() => hasActiveTempFilters(tempFilters));
@@ -628,6 +636,16 @@
 
 {#snippet actions(flight)}
   <div class="flex items-center gap-2">
+    <Button
+      variant="outline"
+      size="icon"
+      disabled={selecting}
+      aria-label="Show on map"
+      title="Show on map"
+      onclick={() => showFlightOnMap(flight.id)}
+    >
+      <MapPin size="20" />
+    </Button>
     {#key flight}
       <EditFlightModal {flight} triggerDisabled={selecting} />
     {/key}
