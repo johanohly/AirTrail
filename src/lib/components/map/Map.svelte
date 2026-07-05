@@ -477,9 +477,19 @@
         targetCenter = [airport.lon, airport.lat];
         targetZoom = 13;
       } else {
-        const arc = allFlightArcs.find((item) =>
-          routeMatches(item, selection.route),
-        );
+        // route or flight — both fit a single great-circle arc between two
+        // airports. For a flight, derive its route from its endpoints.
+        const arcRoute =
+          selection.type === 'route'
+            ? selection.route
+            : (() => {
+                const f = flights.find((fl) => fl.id === selection.flightId);
+                if (!f?.from || !f?.to) return null;
+                return { a: f.from.id.toString(), b: f.to.id.toString() };
+              })();
+        if (!arcRoute) return;
+
+        const arc = allFlightArcs.find((item) => routeMatches(item, arcRoute));
         if (!arc) return;
 
         if (mapPreferences.projection === 'globe') {

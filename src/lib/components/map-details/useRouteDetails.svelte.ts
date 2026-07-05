@@ -5,12 +5,13 @@ import type {
   TempFilters,
 } from '$lib/components/flight-filters/types';
 import {
+  clearTempFilters,
   normalizeRoute,
   setTempRoute,
 } from '$lib/components/flight-filters/types';
 import {
-  closeMapDetails,
   mapDetailsState,
+  openFlightDetails,
   openModalsState,
 } from '$lib/state.svelte';
 import { type FlightData } from '$lib/utils';
@@ -131,8 +132,16 @@ export function useRouteDetails(
   const showFlight = (flightId: number) => {
     const f = filters();
     if (!f) return;
+    // Isolate the flight on the map so the details pane's flight is the only
+    // one drawn, then open the flight details pane focused on it.
+    f.departureAirports = [];
+    f.arrivalAirports = [];
+    f.airportsEither = [];
+    f.routes = [];
     f.flightIds = [flightId.toString()];
-    closeMapDetails();
+    const tf = tempFilters();
+    if (tf) clearTempFilters(tf);
+    openFlightDetails(flightId);
   };
 
   return {

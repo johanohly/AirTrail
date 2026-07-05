@@ -59,7 +59,8 @@ export const openModalsState = $state<OpenModalsState>({
 
 export type MapDetailsSelection =
   | { type: 'airport'; airportId: number }
-  | { type: 'route'; route: Route };
+  | { type: 'route'; route: Route }
+  | { type: 'flight'; flightId: number };
 
 export const mapDetailsState = $state<{
   selection: MapDetailsSelection | null;
@@ -81,6 +82,11 @@ export const openRouteDetails = (route: Route) => {
     type: 'route',
     route: normalizeRoute(route.a, route.b),
   };
+  mapDetailsState.focusRequest += 1;
+};
+
+export const openFlightDetails = (flightId: number) => {
+  mapDetailsState.selection = { type: 'flight', flightId };
   mapDetailsState.focusRequest += 1;
 };
 

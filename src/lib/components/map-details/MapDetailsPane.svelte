@@ -11,22 +11,29 @@
   import AirportDetailsBody from './AirportDetailsBody.svelte';
   import AirportDetailsContent from './AirportDetailsContent.svelte';
   import AirportDetailsHeader from './AirportDetailsHeader.svelte';
+  import FlightDetailsActions from './FlightDetailsActions.svelte';
+  import FlightDetailsBody from './FlightDetailsBody.svelte';
+  import FlightDetailsContent from './FlightDetailsContent.svelte';
+  import FlightDetailsHeader from './FlightDetailsHeader.svelte';
   import MapDetailsFrame from './MapDetailsFrame.svelte';
   import RouteDetailsActions from './RouteDetailsActions.svelte';
   import RouteDetailsBody from './RouteDetailsBody.svelte';
   import RouteDetailsContent from './RouteDetailsContent.svelte';
   import RouteDetailsHeader from './RouteDetailsHeader.svelte';
   import { useAirportDetails } from './useAirportDetails.svelte';
+  import { useFlightDetails } from './useFlightDetails.svelte';
   import { useRouteDetails } from './useRouteDetails.svelte';
 
   let {
     flights,
     filters = $bindable(),
     tempFilters = $bindable(),
+    seatUserId,
   }: {
     flights: FlightData[];
     filters?: FlightFilters;
     tempFilters?: TempFilters;
+    seatUserId?: string;
   } = $props();
 
   const airport = useAirportDetails(
@@ -41,10 +48,16 @@
     () => tempFilters,
   );
 
+  const flight = useFlightDetails(
+    () => flights,
+    () => filters,
+  );
+
   const mobileOpen = $derived.by(() => {
     const selection = mapDetailsState.selection;
     if (selection?.type === 'airport') return !!airport.airport;
     if (selection?.type === 'route') return !!route.routeAirports;
+    if (selection?.type === 'flight') return !!flight.flight;
     return false;
   });
 </script>
@@ -52,6 +65,7 @@
 {#if $isMediumScreen}
   <AirportDetailsContent details={airport} hasFilters={!!filters} />
   <RouteDetailsContent details={route} hasFilters={!!filters} />
+  <FlightDetailsContent details={flight} hasFilters={!!filters} {seatUserId} />
 {:else}
   {#snippet mobileHeader()}
     {#if mapDetailsState.selection?.type === 'airport' && airport.airport}
@@ -62,6 +76,11 @@
         prefs={route.prefs}
         now={route.now}
         distance={route.distance}
+      />
+    {:else if mapDetailsState.selection?.type === 'flight' && flight.flight}
+      <FlightDetailsHeader
+        flight={flight.flight}
+        onShowRoute={flight.showRoute}
       />
     {/if}
   {/snippet}
@@ -78,6 +97,12 @@
         hasFilters={!!filters}
         filterActive={route.routeFilterActive}
         onToggleFilter={route.toggleRouteFilter}
+      />
+    {:else if mapDetailsState.selection?.type === 'flight' && flight.flight}
+      <FlightDetailsActions
+        hasFilters={!!filters}
+        filterActive={flight.flightFilterActive}
+        onToggleFilter={flight.toggleFlightFilter}
       />
     {/if}
   {/snippet}
@@ -106,6 +131,12 @@
         prefs={route.prefs}
         onShowAll={route.showAllFlights}
         onShowFlight={route.showFlight}
+      />
+    {:else if mapDetailsState.selection?.type === 'flight' && flight.flight}
+      <FlightDetailsBody
+        flight={flight.flight}
+        prefs={flight.prefs}
+        {seatUserId}
       />
     {/if}
   </MapDetailsFrame>

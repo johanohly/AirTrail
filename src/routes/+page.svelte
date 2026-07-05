@@ -159,4 +159,9 @@
 />
 
 <Map bind:filters bind:tempFilters {flights} {filteredFlights} {flightTracks} />
-<MapDetailsPane {flights} bind:filters bind:tempFilters />
+<MapDetailsPane
+  {flights}
+  bind:filters
+  bind:tempFilters
+  seatUserId={effectiveSeatUserId}
+/>

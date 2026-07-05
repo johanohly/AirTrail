@@ -34,10 +34,10 @@
   import { LabelledSeparator, Separator } from '$lib/components/ui/separator';
   import * as Tooltip from '$lib/components/ui/tooltip';
   import {
-    closeMapDetails,
     flightAddedState,
     flightListFocusState,
     flightScopeState,
+    openFlightDetails,
   } from '$lib/state.svelte';
   import {
     cn,
@@ -258,7 +258,7 @@
     }
   };
 
-  const showFlightOnMap = (flightId: number) => {
+  const showFlightOnMap = async (flightId: number) => {
     if (!filters) return;
     // Clear the persistent location filters as well: during a temp-filter
     // drilldown the visible rows are matched against tempFilters, so they can
@@ -268,10 +268,14 @@
     filters.arrivalAirports = [];
     filters.airportsEither = [];
     filters.routes = [];
-    closeMapDetails();
     filters.flightIds = [flightId.toString()];
     if (tempFilters) clearTempFilterValues(tempFilters);
+    // Close the list first, then open the flight pane on the next tick. Opening
+    // it before the modal tears down lets the modal's history/focus-trap
+    // teardown swallow the newly-opened pane.
     open = false;
+    await tick();
+    openFlightDetails(flightId);
   };
 
   const hasTempFilters = $derived.by(() => hasActiveTempFilters(tempFilters));
