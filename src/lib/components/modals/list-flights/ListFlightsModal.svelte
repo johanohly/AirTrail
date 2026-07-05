@@ -34,6 +34,7 @@
   import { LabelledSeparator, Separator } from '$lib/components/ui/separator';
   import * as Tooltip from '$lib/components/ui/tooltip';
   import {
+    closeMapDetails,
     flightAddedState,
     flightListFocusState,
     flightScopeState,
@@ -259,6 +260,15 @@
 
   const showFlightOnMap = (flightId: number) => {
     if (!filters) return;
+    // Clear the persistent location filters as well: during a temp-filter
+    // drilldown the visible rows are matched against tempFilters, so they can
+    // violate the persistent location criteria. Leaving those set would
+    // intersect with flightIds to an empty map that hides the selected flight.
+    filters.departureAirports = [];
+    filters.arrivalAirports = [];
+    filters.airportsEither = [];
+    filters.routes = [];
+    closeMapDetails();
     filters.flightIds = [flightId.toString()];
     if (tempFilters) clearTempFilterValues(tempFilters);
     open = false;

@@ -317,7 +317,16 @@
       previousFilteredCount > 0 &&
       !hasTempFilters
     ) {
-      fitFlights();
+      // Defer the fit to the next frame. When this change coincides with a
+      // details pane closing (e.g. "Show on map" from the flight list), the
+      // selection effect runs a padding easeTo in the same update that keeps
+      // the current center; running the fit synchronously here would be
+      // cancelled by it. Deferring lets the fit issue the final camera command.
+      requestAnimationFrame(() => {
+        // A pane re-claimed the camera in the meantime — let it win.
+        if (mapDetailsState.selection) return;
+        fitFlights();
+      });
     }
 
     // If there are temp filters, we don't want to fit as that means the user
