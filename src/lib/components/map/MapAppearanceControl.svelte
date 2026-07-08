@@ -17,6 +17,7 @@
     BASEMAP_OPTIONS,
     OPENAIP_GROUP_OPTIONS,
     PROJECTION_OPTIONS,
+    ROUTE_DISPLAY_OPTIONS,
   } from './map-appearance-options';
 
   import aptSymbol from '$lib/assets/openaip/symbols/apt-medium.svg';
@@ -753,6 +754,52 @@
                           stroke-width="2"
                           stroke-linecap="round"
                           class="text-red-500"
+                        />
+                      {/if}
+                    </svg>
+                  {/snippet}
+                </AppearanceTile>
+              {/each}
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <p class="text-xs font-medium">Tracks</p>
+            <div class="grid grid-cols-2 gap-2">
+              {#each ROUTE_DISPLAY_OPTIONS as option (option.value)}
+                <AppearanceTile
+                  selected={mapPreferences.routeDisplay === option.value}
+                  onclick={() => (mapPreferences.routeDisplay = option.value)}
+                  label={option.label}
+                >
+                  {#snippet illustration()}
+                    <svg
+                      viewBox="0 0 72 32"
+                      class="h-full w-full text-primary"
+                      aria-hidden="true"
+                    >
+                      {#if option.value === 'tracks'}
+                        <path
+                          d="M4 24 C12 16, 20 12, 28 14 S44 24, 52 18 S64 10, 68 8"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                        />
+                      {:else}
+                        <path
+                          d="M4 24 Q36 2 68 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                        />
+                        <path
+                          d="M4 28 Q36 8 68 28"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
                         />
                       {/if}
                     </svg>
