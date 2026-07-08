@@ -586,7 +586,10 @@
     <GeolocateControl position="top-right" />
     <Control position="top-right">
       <ControlGroup>
-        <MapAppearanceControl {openAipConfigured} />
+        <MapAppearanceControl
+          {openAipConfigured}
+          showTracksSection={flightTracks.length > 0}
+        />
       </ControlGroup>
     </Control>
     {#if flights.length}
