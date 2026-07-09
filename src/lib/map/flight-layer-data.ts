@@ -7,6 +7,8 @@ export type FlightArc = ReturnType<typeof prepareFlightArcData>[number];
 export type FlightTrackPath = FlightArc & {
   flightId: number;
   path: FlightTrackCoordinate[];
+  ground?: boolean[];
+  estimated?: boolean[];
 };
 
 export const getRouteKey = (fromId: number, toId: number) =>
@@ -112,6 +114,8 @@ export const buildFlightTrackPaths = (
       ...arc,
       flightId: track.flightId,
       path: unwrapTrackPath(track.coordinates),
+      ground: track.ground,
+      estimated: track.estimated,
     });
   }
 

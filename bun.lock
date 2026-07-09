@@ -13,6 +13,7 @@
       "devDependencies": {
         "@date-fns/tz": "^1.4.1",
         "@deck.gl/core": "~9.2.11",
+        "@deck.gl/extensions": "~9.2.11",
         "@deck.gl/layers": "~9.2.11",
         "@deck.gl/mapbox": "~9.2.11",
         "@dnd-kit-svelte/svelte": "^0.1.6",
@@ -305,6 +306,8 @@
     "@date-fns/tz": ["@date-fns/tz@1.5.0", "", {}, "sha512-lwYN/vDPeNRULcepoE/LO2Pgx+7/RV+S9ARfbc9lr2DtGkOD7pAiruHvbR1RX3Qyf6ja47EWJDMsNK5vK08DJg=="],
 
     "@deck.gl/core": ["@deck.gl/core@9.2.11", "", { "dependencies": { "@loaders.gl/core": "~4.3.4", "@loaders.gl/images": "~4.3.4", "@luma.gl/constants": "~9.2.6", "@luma.gl/core": "~9.2.6", "@luma.gl/engine": "~9.2.6", "@luma.gl/shadertools": "~9.2.6", "@luma.gl/webgl": "~9.2.6", "@math.gl/core": "^4.1.0", "@math.gl/sun": "^4.1.0", "@math.gl/types": "^4.1.0", "@math.gl/web-mercator": "^4.1.0", "@probe.gl/env": "^4.1.1", "@probe.gl/log": "^4.1.1", "@probe.gl/stats": "^4.1.1", "@types/offscreencanvas": "^2019.6.4", "gl-matrix": "^3.0.0", "mjolnir.js": "^3.0.0" } }, "sha512-lpdxXQuFSkd6ET7M6QxPI8QMhsLRY6vzLyk83sPGFb7JSb4OhrNHYt9sfIhcA/hxJW7bdBSMWWphf2GvQetVuA=="],
+
+    "@deck.gl/extensions": ["@deck.gl/extensions@9.2.11", "", { "dependencies": { "@luma.gl/constants": "~9.2.6", "@luma.gl/shadertools": "~9.2.6", "@math.gl/core": "^4.1.0" }, "peerDependencies": { "@deck.gl/core": "~9.2.0", "@luma.gl/core": "~9.2.6", "@luma.gl/engine": "~9.2.6" } }, "sha512-zlpM4Bg1ifBziW1Juiii9NY5gyW2rEhyVTWnhagH/bpTCZ2E73OhnToYt1ouqmoxL6lMtIjhRXz6LPb7tJbHHQ=="],
 
     "@deck.gl/layers": ["@deck.gl/layers@9.2.11", "", { "dependencies": { "@loaders.gl/images": "~4.3.4", "@loaders.gl/schema": "~4.3.4", "@luma.gl/shadertools": "~9.2.6", "@mapbox/tiny-sdf": "^2.0.5", "@math.gl/core": "^4.1.0", "@math.gl/polygon": "^4.1.0", "@math.gl/web-mercator": "^4.1.0", "earcut": "^2.2.4" }, "peerDependencies": { "@deck.gl/core": "~9.2.0", "@loaders.gl/core": "~4.3.4", "@luma.gl/core": "~9.2.6", "@luma.gl/engine": "~9.2.6" } }, "sha512-2FSb0Qa6YR+Rg6GWhYOGTUug3vtZ4uKcFdnrdiJoVXGyibKJMScKZIsivY0r/yQQZsaBjYqty5QuVJvdtEHxSA=="],
 

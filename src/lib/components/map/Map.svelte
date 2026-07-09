@@ -16,6 +16,7 @@
   import MapAppearanceControl from './MapAppearanceControl.svelte';
   import MapFallback from './MapFallback.svelte';
   import MapStatusShelf from './MapStatusShelf.svelte';
+  import FlightTrackLegend from './FlightTrackLegend.svelte';
   import OpenAipOverlay from './OpenAipOverlay.svelte';
   import RainViewerLayer from './RainViewerLayer.svelte';
   import TimeOfDayLayer from './TimeOfDayLayer.svelte';
@@ -681,6 +682,10 @@
         if (filters) filters.routes = [];
       }}
     />
+
+    {#if flightTracks.length > 0 && mapPreferences.flightTrackStyle === 'altitude'}
+      <FlightTrackLegend />
+    {/if}
 
     {#if mapPreferences.timeOfDayEnabled}
       <TimeOfDayLayer />
