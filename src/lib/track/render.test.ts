@@ -35,6 +35,42 @@ describe('flight track map reduction', () => {
     expect(reduceFlightTrackForMap(track)).toBe(track);
   });
 
+  it('marks gaps using tar1090 current-point timeouts', () => {
+    const track: FlightTrackPayload = {
+      coordinates: [
+        [12.65, 55.62],
+        [12.66, 55.63],
+        [12.67, 55.64],
+      ],
+      times: [0, 94, 95],
+      ground: [true, true, true],
+    };
+
+    expect(reduceFlightTrackForMap(track).estimated).toEqual([
+      false,
+      true,
+      false,
+    ]);
+  });
+
+  it('uses the destination ground state for the gap timeout', () => {
+    const track: FlightTrackPayload = {
+      coordinates: [
+        [12.65, 55.62],
+        [12.66, 55.63],
+        [12.67, 55.64],
+      ],
+      times: [0, 80, 160],
+      ground: [true, false, true],
+    };
+
+    expect(reduceFlightTrackForMap(track).estimated).toEqual([
+      false,
+      true,
+      false,
+    ]);
+  });
+
   it('keeps altitude extrema and semantic transitions', () => {
     const track = buildDetailedTrack();
     const reduced = reduceFlightTrackForMap(track, 50);

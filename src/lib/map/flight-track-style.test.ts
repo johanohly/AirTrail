@@ -86,7 +86,7 @@ describe('flight track styling', () => {
           [12, 57, 365.76],
           [13, 58, 368.8],
         ],
-        { estimated: [false, false, true, true] },
+        { estimated: [false, false, false, true] },
       ),
     ]);
 
@@ -110,7 +110,7 @@ describe('flight track styling', () => {
     });
   });
 
-  it('uses the starting point flags for each edge', () => {
+  it('uses starting-point flight state and destination-point uncertainty', () => {
     const runs = buildFlightTrackRuns([
       track(
         [
@@ -123,8 +123,8 @@ describe('flight track styling', () => {
     ]);
 
     expect(runs).toHaveLength(2);
-    expect(runs[0]).toMatchObject({ ground: true, estimated: false });
-    expect(runs[1]).toMatchObject({ ground: false, estimated: true });
+    expect(runs[0]).toMatchObject({ ground: true, estimated: true });
+    expect(runs[1]).toMatchObject({ ground: false, estimated: false });
   });
 
   it('keeps ground runs together when recorded altitude changes', () => {

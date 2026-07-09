@@ -139,7 +139,7 @@ export const getFlightTrackColor = ({
   return estimated ? darkenEstimated(color) : color;
 };
 
-const getPointStyle = (track: FlightTrackPath, index: number) => {
+const getEdgeStyle = (track: FlightTrackPath, index: number) => {
   const coordinate = track.path[index]!;
   const ground = track.ground?.[index] ?? false;
   const altitudeFeet =
@@ -149,13 +149,14 @@ const getPointStyle = (track: FlightTrackPath, index: number) => {
   return {
     altitudeFeet,
     ground,
-    estimated: track.estimated?.[index] ?? false,
+    // readsb marks the current point when the interval leading to it is stale.
+    estimated: track.estimated?.[index + 1] ?? false,
   };
 };
 
 const stylesMatch = (
-  left: ReturnType<typeof getPointStyle>,
-  right: ReturnType<typeof getPointStyle>,
+  left: ReturnType<typeof getEdgeStyle>,
+  right: ReturnType<typeof getEdgeStyle>,
 ) =>
   left.altitudeFeet === right.altitudeFeet &&
   left.ground === right.ground &&
@@ -167,11 +168,11 @@ export const buildFlightTrackRuns = (tracks: FlightTrackPath[]) => {
   for (const track of tracks) {
     if (track.path.length < 2) continue;
 
-    let style = getPointStyle(track, 0);
+    let style = getEdgeStyle(track, 0);
     let path: FlightTrackCoordinate[] = [track.path[0]!];
 
     for (let index = 0; index < track.path.length - 1; index++) {
-      const edgeStyle = getPointStyle(track, index);
+      const edgeStyle = getEdgeStyle(track, index);
       if (!stylesMatch(style, edgeStyle)) {
         if (path.length >= 2) runs.push({ ...track, ...style, path });
         style = edgeStyle;

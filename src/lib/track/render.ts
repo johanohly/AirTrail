@@ -6,6 +6,35 @@ import {
 
 const METERS_PER_DEGREE = 111_320;
 const SPATIAL_CORNER_THRESHOLD_METERS = 10;
+// tar1090 subtracts up to 60 seconds between history samples, then applies
+// a 15-second airborne or 30-second ground stale timeout.
+const AIRBORNE_ESTIMATED_GAP_SECONDS = 75;
+const GROUND_ESTIMATED_GAP_SECONDS = 90;
+
+const materializeEstimatedGaps = (
+  track: FlightTrackPayload,
+): FlightTrackPayload => {
+  if (!track.times) return track;
+
+  let estimated = track.estimated;
+
+  for (let index = 1; index < track.coordinates.length; index++) {
+    const previousTime = track.times[index - 1];
+    const currentTime = track.times[index];
+    if (previousTime === undefined || currentTime === undefined) continue;
+
+    const timeout = track.ground?.[index]
+      ? GROUND_ESTIMATED_GAP_SECONDS
+      : AIRBORNE_ESTIMATED_GAP_SECONDS;
+    if (Math.abs(currentTime - previousTime) <= timeout) continue;
+    if (estimated?.[index]) continue;
+
+    estimated = estimated ? [...estimated] : track.coordinates.map(() => false);
+    estimated[index] = true;
+  }
+
+  return estimated === track.estimated ? track : { ...track, estimated };
+};
 
 const addTransitionIndices = <T>(
   selected: Set<number>,
@@ -117,16 +146,18 @@ export const reduceFlightTrackForMap = (
   track: FlightTrackPayload,
   maxPoints = MAX_RENDERED_FLIGHT_TRACK_POINTS,
 ): FlightTrackPayload => {
-  if (track.coordinates.length <= maxPoints) return track;
+  const renderTrack = materializeEstimatedGaps(track);
+
+  if (renderTrack.coordinates.length <= maxPoints) return renderTrack;
   if (maxPoints < 2) throw new RangeError('A rendered track needs two points');
 
-  const lastIndex = track.coordinates.length - 1;
+  const lastIndex = renderTrack.coordinates.length - 1;
   const semanticIndices = new Set<number>([0, lastIndex]);
-  addTransitionIndices(semanticIndices, track.ground);
-  addTransitionIndices(semanticIndices, track.estimated);
+  addTransitionIndices(semanticIndices, renderTrack.ground);
+  addTransitionIndices(semanticIndices, renderTrack.estimated);
   addTransitionIndices(
     semanticIndices,
-    track.coordinates.map((coordinate) => coordinate[2] !== undefined),
+    renderTrack.coordinates.map((coordinate) => coordinate[2] !== undefined),
   );
 
   if (semanticIndices.size > maxPoints) {
@@ -136,21 +167,25 @@ export const reduceFlightTrackForMap = (
     const selected = new Set([0, lastIndex]);
     takeEvenly(interior, maxPoints - 2).forEach((index) => selected.add(index));
     return pickFlightTrackPoints(
-      track,
+      renderTrack,
       [...selected].sort((a, b) => a - b),
     );
   }
 
-  addUntilFull(semanticIndices, collectAltitudeIndices(track), maxPoints);
-  addUntilFull(semanticIndices, collectSpatialCornerIndices(track), maxPoints);
+  addUntilFull(semanticIndices, collectAltitudeIndices(renderTrack), maxPoints);
   addUntilFull(
     semanticIndices,
-    Array.from({ length: track.coordinates.length }, (_, index) => index),
+    collectSpatialCornerIndices(renderTrack),
+    maxPoints,
+  );
+  addUntilFull(
+    semanticIndices,
+    Array.from({ length: renderTrack.coordinates.length }, (_, index) => index),
     maxPoints,
   );
 
   return pickFlightTrackPoints(
-    track,
+    renderTrack,
     [...semanticIndices].sort((a, b) => a - b),
   );
 };
