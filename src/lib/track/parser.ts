@@ -13,6 +13,15 @@ export type ParsedTrackFile = FlightTrackInput & {
   originalPointCount: number;
 };
 
+export type ParsedTrackCandidate = {
+  track: ParsedTrackFile;
+  legIndex: number | null;
+  startTime: number | null;
+  endTime: number | null;
+  startCoordinate: FlightTrackCoordinate;
+  endCoordinate: FlightTrackCoordinate;
+};
+
 type RawTrack = {
   coordinates: FlightTrackCoordinate[];
   times?: number[];
@@ -37,14 +46,40 @@ type GeoJsonGeometry =
   | { type: 'GeometryCollection'; geometries: GeoJsonGeometry[] }
   | { type: string };
 
-export const parseTrackFile = async (file: File): Promise<ParsedTrackFile> => {
+type ReadsbTracePoint = {
+  coordinate: FlightTrackCoordinate;
+  time: number;
+  groundSpeedKt: number | null;
+  trackDeg: number | null;
+  ground: boolean;
+  estimated: boolean;
+  legStart: boolean;
+};
+
+export const parseTrackFile = async (
+  file: File,
+): Promise<ParsedTrackCandidate[]> => {
   const sourceFormat = detectTrackSourceFormat(file.name);
   if (!sourceFormat) {
     throw new Error('Unsupported track file type');
   }
 
   const content = await file.text();
-  return parseTrackContent(content, sourceFormat, file.name);
+  return parseTrackCandidates(content, sourceFormat, file.name);
+};
+
+export const parseTrackCandidates = (
+  content: string,
+  sourceFormat: FlightTrackSourceFormat,
+  sourceName?: string,
+): ParsedTrackCandidate[] => {
+  if (sourceFormat === 'readsb') {
+    return parseReadsbTrackCandidates(content, sourceName);
+  }
+
+  return [
+    toTrackCandidate(parseTrackContent(content, sourceFormat, sourceName)),
+  ];
 };
 
 export const parseTrackContent = (
@@ -52,11 +87,27 @@ export const parseTrackContent = (
   sourceFormat: FlightTrackSourceFormat,
   sourceName?: string,
 ): ParsedTrackFile => {
+  if (sourceFormat === 'readsb') {
+    const candidates = parseReadsbTrackCandidates(content, sourceName);
+    if (candidates.length !== 1) {
+      throw new Error('readsb trace contains multiple flight legs');
+    }
+    return candidates[0]!.track;
+  }
+
   const raw =
     sourceFormat === 'csv'
       ? parseCsvTrack(content)
       : parseXmlTrack(content, sourceFormat);
 
+  return toParsedTrackFile(raw, sourceFormat, sourceName);
+};
+
+const toParsedTrackFile = (
+  raw: RawTrack,
+  sourceFormat: FlightTrackSourceFormat,
+  sourceName?: string,
+): ParsedTrackFile => {
   if (raw.coordinates.length < 2) {
     throw new Error('Track must contain at least two points');
   }
@@ -76,6 +127,18 @@ export const parseTrackContent = (
   };
 };
 
+const toTrackCandidate = (
+  track: ParsedTrackFile,
+  legIndex: number | null = null,
+): ParsedTrackCandidate => ({
+  track,
+  legIndex,
+  startTime: track.times?.[0] ?? null,
+  endTime: track.times?.at(-1) ?? null,
+  startCoordinate: track.coordinates[0]!,
+  endCoordinate: track.coordinates.at(-1)!,
+});
+
 const detectTrackSourceFormat = (
   name: string,
 ): FlightTrackSourceFormat | null => {
@@ -83,12 +146,130 @@ const detectTrackSourceFormat = (
   if (lower.endsWith('.gpx')) return 'gpx';
   if (lower.endsWith('.kml')) return 'kml';
   if (lower.endsWith('.csv')) return 'csv';
+  if (lower.endsWith('.json')) return 'readsb';
   return null;
+};
+
+const toFiniteNumber = (value: unknown): number | null =>
+  typeof value === 'number' && Number.isFinite(value) ? value : null;
+
+const parseReadsbTracePoint = (
+  value: unknown,
+  baseTimestamp: number,
+): ReadsbTracePoint | null => {
+  if (!Array.isArray(value)) return null;
+
+  const offset = toFiniteNumber(value[0]);
+  const lat = toFiniteNumber(value[1]);
+  const lon = toFiniteNumber(value[2]);
+  if (offset === null || lat === null || lon === null) return null;
+
+  const altitude = toFiniteNumber(value[3]);
+  const ground = value[3] === 'ground';
+  const coordinate: FlightTrackCoordinate = ground
+    ? [lon, lat, 0]
+    : altitude === null
+      ? [lon, lat]
+      : [lon, lat, altitude * 0.3048];
+  const flags = Math.trunc(toFiniteNumber(value[6]) ?? 0);
+  const track = toFiniteNumber(value[5]);
+
+  return {
+    coordinate,
+    time: Math.round(baseTimestamp + offset),
+    groundSpeedKt: toFiniteNumber(value[4]),
+    trackDeg: track === null ? null : normalizeTrackDegrees(track),
+    ground,
+    estimated: (flags & 1) !== 0,
+    legStart: (flags & 2) !== 0,
+  };
+};
+
+const readsbLegSourceName = (
+  sourceName: string | undefined,
+  legIndex: number,
+  legCount: number,
+) => {
+  if (!sourceName || legCount === 1) return sourceName;
+  const suffix = ` (leg ${legIndex})`;
+  return `${sourceName.slice(0, Math.max(0, 255 - suffix.length))}${suffix}`;
+};
+
+const readsbPointsToRawTrack = (points: ReadsbTracePoint[]): RawTrack => {
+  const groundSpeedKt = points.map((point) => point.groundSpeedKt);
+  const trackDeg = points.map((point) => point.trackDeg);
+
+  return {
+    coordinates: points.map((point) => point.coordinate),
+    times: points.map((point) => point.time),
+    groundSpeedKt: groundSpeedKt.every(
+      (value): value is number => value !== null,
+    )
+      ? groundSpeedKt
+      : undefined,
+    trackDeg: trackDeg.every((value): value is number => value !== null)
+      ? trackDeg
+      : undefined,
+    ground: points.map((point) => point.ground),
+    estimated: points.map((point) => point.estimated),
+  };
+};
+
+const parseReadsbTrackCandidates = (
+  content: string,
+  sourceName?: string,
+): ParsedTrackCandidate[] => {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    throw new Error('Invalid readsb trace JSON');
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('Invalid readsb trace JSON');
+  }
+
+  const trace = (parsed as { trace?: unknown }).trace;
+  const baseTimestamp = toFiniteNumber(
+    (parsed as { timestamp?: unknown }).timestamp,
+  );
+  if (!Array.isArray(trace) || baseTimestamp === null) {
+    throw new Error('readsb trace JSON needs timestamp and trace fields');
+  }
+
+  const points = trace
+    .map((value) => parseReadsbTracePoint(value, baseTimestamp))
+    .filter((point): point is ReadsbTracePoint => point !== null);
+  if (points.length < 2) {
+    throw new Error('readsb trace must contain at least two usable points');
+  }
+
+  const legStarts = [
+    0,
+    ...points.flatMap((point, index) =>
+      index > 0 && point.legStart ? [index] : [],
+    ),
+  ];
+
+  const legs = legStarts
+    .map((start, index) => points.slice(start, legStarts[index + 1]))
+    .filter((leg) => leg.length >= 2);
+
+  return legs.map((leg, index) => {
+    const legIndex = index + 1;
+    const track = toParsedTrackFile(
+      readsbPointsToRawTrack(leg),
+      'readsb',
+      readsbLegSourceName(sourceName, legIndex, legs.length),
+    );
+    return toTrackCandidate(track, legs.length > 1 ? legIndex : null);
+  });
 };
 
 const parseXmlTrack = (
   content: string,
-  sourceFormat: Exclude<FlightTrackSourceFormat, 'csv'>,
+  sourceFormat: Extract<FlightTrackSourceFormat, 'gpx' | 'kml'>,
 ): RawTrack => {
   if (typeof DOMParser === 'undefined') {
     throw new TypeError(

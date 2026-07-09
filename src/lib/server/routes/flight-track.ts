@@ -20,7 +20,7 @@ const parseTrackRow = (
   row: {
     flightId: number;
     track: unknown;
-    sourceFormat: 'gpx' | 'kml' | 'csv';
+    sourceFormat: 'gpx' | 'kml' | 'csv' | 'readsb';
     sourceName: string | null;
     pointCount: number;
   },

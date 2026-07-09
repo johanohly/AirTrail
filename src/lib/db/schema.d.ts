@@ -147,9 +147,9 @@ export type flight_track = {
     flightId: number;
     track: unknown;
     /**
-     * @kyselyType('gpx' | 'kml' | 'csv')
+     * @kyselyType('gpx' | 'kml' | 'csv' | 'readsb')
      */
-    sourceFormat: 'gpx' | 'kml' | 'csv';
+    sourceFormat: 'gpx' | 'kml' | 'csv' | 'readsb';
     sourceName: string | null;
     pointCount: number;
     createdAt: Generated<Timestamp>;

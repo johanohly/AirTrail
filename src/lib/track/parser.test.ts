@@ -1,7 +1,7 @@
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, it, beforeAll } from 'vitest';
 
-import { parseTrackContent } from './parser';
+import { parseTrackCandidates, parseTrackContent } from './parser';
 import {
   MAX_STORED_FLIGHT_TRACK_POINTS,
   flightTrackInputSchema,
@@ -12,6 +12,82 @@ beforeAll(() => {
 });
 
 describe('track parser', () => {
+  it('parses readsb trace tuples and splits authoritative leg markers', () => {
+    const candidates = parseTrackCandidates(
+      JSON.stringify({
+        icao: '4cac8e',
+        timestamp: 1_700_000_000,
+        trace: [
+          [0, 55, 12, 'ground', 4.2, 312.2, 3],
+          [10.4, 55.1, 12.1, 1_000, 120, 90, 0],
+          [1_000, 51.4, -0.4, 'ground', 0, null, 2],
+          [1_010, 51.5, -0.5, 2_000, 140, 361, 1],
+        ],
+      }),
+      'readsb',
+      'trace.json',
+    );
+
+    expect(candidates).toHaveLength(2);
+    expect(candidates[0]).toMatchObject({
+      legIndex: 1,
+      startTime: 1_700_000_000,
+      endTime: 1_700_000_010,
+      startCoordinate: [12, 55, 0],
+      endCoordinate: [12.1, 55.1, 304.8],
+      track: {
+        sourceFormat: 'readsb',
+        sourceName: 'trace.json (leg 1)',
+        originalPointCount: 2,
+        times: [1_700_000_000, 1_700_000_010],
+        groundSpeedKt: [4.2, 120],
+        ground: [true, false],
+        estimated: [true, false],
+      },
+    });
+    expect(candidates[0]!.track.trackDeg?.[0]).toBeCloseTo(312.2);
+    expect(candidates[0]!.track.trackDeg?.[1]).toBe(90);
+    expect(candidates[1]).toMatchObject({
+      legIndex: 2,
+      track: {
+        sourceName: 'trace.json (leg 2)',
+        trackDeg: undefined,
+        ground: [true, false],
+        estimated: [false, true],
+      },
+    });
+    expect(candidates[1]!.track.coordinates[1]![2]).toBeCloseTo(609.6);
+  });
+
+  it('keeps an unmarked readsb trace as one candidate', () => {
+    const [candidate] = parseTrackCandidates(
+      JSON.stringify({
+        timestamp: 1_700_000_000,
+        trace: [
+          [0, 55, 12, 'ground', 0, 90, 0],
+          [10, 56, 13, 1_000, 100, 91, 0],
+        ],
+      }),
+      'readsb',
+      'trace.json',
+    );
+
+    expect(candidate).toMatchObject({
+      legIndex: null,
+      track: {
+        sourceFormat: 'readsb',
+        sourceName: 'trace.json',
+        originalPointCount: 2,
+      },
+    });
+  });
+
+  it('rejects JSON that is not a readsb trace', () => {
+    expect(() =>
+      parseTrackCandidates('{"flights":[]}', 'readsb', 'flights.json'),
+    ).toThrow('needs timestamp and trace fields');
+  });
+
   it('parses GPX coordinates, altitude, and times', () => {
     const result = parseTrackContent(
       `<?xml version="1.0" encoding="UTF-8"?>

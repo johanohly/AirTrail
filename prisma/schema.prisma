@@ -167,7 +167,7 @@ model flight_track {
   flight_id Int  @id
   track     Json
 
-  /// @kyselyType('gpx' | 'kml' | 'csv')
+  /// @kyselyType('gpx' | 'kml' | 'csv' | 'readsb')
   source_format String
   source_name   String?
   point_count   Int
