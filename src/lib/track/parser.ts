@@ -1,21 +1,13 @@
 import { gpx, kml } from '@tmcw/togeojson';
 
 import {
-  copyFlightTrackAlignedProperties,
-  flightTrackAlignedPropertyKeys,
   type FlightTrackCoordinate,
-  type FlightTrackAlignedPropertyKey,
   type FlightTrackInput,
-  type FlightTrackPayload,
   type FlightTrackSourceFormat,
-  MAX_FLIGHT_TRACK_POINTS,
+  MAX_STORED_FLIGHT_TRACK_POINTS,
 } from './schema';
 
 import { parseCsvLine, sanitizeHeader } from '$lib/utils/csv';
-
-const SIMPLIFY_THRESHOLD = 2_000;
-const SIMPLIFY_TOLERANCE_METERS = 10;
-const METERS_PER_DEGREE = 111_320;
 
 export type ParsedTrackFile = FlightTrackInput & {
   originalPointCount: number;
@@ -68,19 +60,16 @@ export const parseTrackContent = (
   if (raw.coordinates.length < 2) {
     throw new Error('Track must contain at least two points');
   }
+  if (raw.coordinates.length > MAX_STORED_FLIGHT_TRACK_POINTS) {
+    throw new Error(
+      `Track contains ${raw.coordinates.length.toLocaleString()} points. The maximum is ${MAX_STORED_FLIGHT_TRACK_POINTS.toLocaleString()}.`,
+    );
+  }
 
   const originalPointCount = raw.coordinates.length;
-  const simplifiedTrack =
-    raw.coordinates.length > SIMPLIFY_THRESHOLD
-      ? simplifyTrack(raw, SIMPLIFY_TOLERANCE_METERS)
-      : raw;
-  const track =
-    simplifiedTrack.coordinates.length > MAX_FLIGHT_TRACK_POINTS
-      ? limitTrackPoints(simplifiedTrack, MAX_FLIGHT_TRACK_POINTS)
-      : simplifiedTrack;
 
   return {
-    ...track,
+    ...raw,
     sourceFormat,
     sourceName: sourceName ?? null,
     originalPointCount,
@@ -576,153 +565,4 @@ const toEpochSeconds = (value: unknown): number | null => {
 
 const hasExplicitTimezone = (value: string) => {
   return /(?:z|utc|[+-]\d{2}:?\d{2})$/i.test(value.trim());
-};
-
-export const simplifyTrack = (
-  track: FlightTrackPayload,
-  toleranceMeters = SIMPLIFY_TOLERANCE_METERS,
-): FlightTrackPayload => {
-  if (track.coordinates.length <= 2) return track;
-
-  const points = projectCoordinates(track.coordinates);
-  const keep = new Uint8Array(points.length);
-  keep[0] = 1;
-  keep[points.length - 1] = 1;
-
-  const stack: [number, number][] = [[0, points.length - 1]];
-  const toleranceSquared = toleranceMeters * toleranceMeters;
-
-  while (stack.length) {
-    const [start, end] = stack.pop()!;
-    let maxDistanceSquared = -1;
-    let maxIndex = -1;
-
-    for (let index = start + 1; index < end; index++) {
-      const point = points[index];
-      const startPoint = points[start];
-      const endPoint = points[end];
-      if (!point || !startPoint || !endPoint) continue;
-
-      const distanceSquared = perpendicularDistanceSquared(
-        point,
-        startPoint,
-        endPoint,
-      );
-      if (distanceSquared > maxDistanceSquared) {
-        maxDistanceSquared = distanceSquared;
-        maxIndex = index;
-      }
-    }
-
-    if (maxDistanceSquared > toleranceSquared && maxIndex !== -1) {
-      keep[maxIndex] = 1;
-      stack.push([start, maxIndex], [maxIndex, end]);
-    }
-  }
-
-  const coordinates: FlightTrackCoordinate[] = [];
-  const pickedProperties = createAlignedPropertyPicker(track);
-  track.coordinates.forEach((coordinate, index) => {
-    if (!keep[index]) return;
-    coordinates.push(coordinate);
-    pickedProperties.pick(index);
-  });
-
-  return {
-    coordinates,
-    ...pickedProperties.toPayload(),
-  };
-};
-
-const limitTrackPoints = (
-  track: FlightTrackPayload,
-  maxPoints: number,
-): FlightTrackPayload => {
-  if (track.coordinates.length <= maxPoints) return track;
-
-  const coordinates: FlightTrackCoordinate[] = [];
-  const pickedProperties = createAlignedPropertyPicker(track);
-  const lastIndex = track.coordinates.length - 1;
-
-  for (let index = 0; index < maxPoints; index++) {
-    const sourceIndex = Math.round((index * lastIndex) / (maxPoints - 1));
-    const coordinate = track.coordinates[sourceIndex];
-    if (!coordinate) continue;
-
-    coordinates.push(coordinate);
-    pickedProperties.pick(sourceIndex);
-  }
-
-  return {
-    coordinates,
-    ...pickedProperties.toPayload(),
-  };
-};
-
-const createAlignedPropertyPicker = (track: FlightTrackPayload) => {
-  const pickedProperties: Partial<
-    Pick<FlightTrackPayload, FlightTrackAlignedPropertyKey>
-  > = {};
-
-  flightTrackAlignedPropertyKeys.forEach((key) => {
-    if (track[key]) pickedProperties[key] = [] as never;
-  });
-
-  return {
-    pick(index: number) {
-      flightTrackAlignedPropertyKeys.forEach((key) => {
-        const target = pickedProperties[key] as
-          | Array<number | boolean>
-          | undefined;
-        const value = track[key]?.[index];
-        if (target && value !== undefined) target.push(value);
-      });
-    },
-    toPayload(): Omit<FlightTrackPayload, 'coordinates'> {
-      return copyFlightTrackAlignedProperties(pickedProperties);
-    },
-  };
-};
-
-const projectCoordinates = (coordinates: FlightTrackCoordinate[]) => {
-  const referenceLat =
-    coordinates.reduce((sum, coordinate) => sum + coordinate[1], 0) /
-    coordinates.length;
-  const xScale = METERS_PER_DEGREE * Math.cos((referenceLat * Math.PI) / 180);
-
-  return coordinates.map(
-    ([lon, lat]) => [lon * xScale, lat * METERS_PER_DEGREE] as const,
-  );
-};
-
-const perpendicularDistanceSquared = (
-  point: readonly [number, number],
-  start: readonly [number, number],
-  end: readonly [number, number],
-) => {
-  const dx = end[0] - start[0];
-  const dy = end[1] - start[1];
-
-  if (dx === 0 && dy === 0) {
-    return squaredDistance(point, start);
-  }
-
-  const t = Math.max(
-    0,
-    Math.min(
-      1,
-      ((point[0] - start[0]) * dx + (point[1] - start[1]) * dy) /
-        (dx * dx + dy * dy),
-    ),
-  );
-  return squaredDistance(point, [start[0] + t * dx, start[1] + t * dy]);
-};
-
-const squaredDistance = (
-  a: readonly [number, number],
-  b: readonly [number, number],
-) => {
-  const dx = a[0] - b[0];
-  const dy = a[1] - b[1];
-  return dx * dx + dy * dy;
 };

@@ -12,6 +12,7 @@ import type {
   PublicShare,
 } from '$lib/db/types';
 import { generateRandomString } from '$lib/server/utils/random';
+import { reduceFlightTrackForMap } from '$lib/track/render';
 import {
   flightTrackPayloadSchema,
   toFlightTrackInput,
@@ -245,11 +246,12 @@ export async function getPublicShareData(slug: string) {
   const tracksByFlight = new Map<number, FlightTrackInput>(
     trackRows.map((row) => {
       const track = flightTrackPayloadSchema.parse(row.track);
+      const renderTrack = reduceFlightTrackForMap(track);
       return [
         row.flightId,
         toFlightTrackInput(
           {
-            ...track,
+            ...renderTrack,
             sourceFormat: row.sourceFormat,
             sourceName: row.sourceName,
           },

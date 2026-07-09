@@ -4,7 +4,11 @@
   import { Control } from 'svelte-maplibre';
 
   import { page } from '$app/state';
-  import { getFlightTrackColor } from '$lib/map/flight-track-style';
+  import {
+    FLIGHT_TRACK_ALTITUDE_COLOR_STOPS,
+    FLIGHT_TRACK_MAX_ALTITUDE_FEET,
+    getFlightTrackColor,
+  } from '$lib/map/flight-track-style';
   import {
     altitudeUnitLabel,
     convertAltitude,
@@ -12,15 +16,15 @@
   } from '$lib/utils/preferences';
 
   const mobile = new MediaQuery('(max-width: 639px)');
-  const gradientAltitudes = [0, 10_000, 20_000, 30_000, 40_000, 51_000];
-  const labelAltitudes = [0, 10_000, 20_000, 30_000, 40_000];
+  const labelAltitudes = [0, 10_000, 20_000, 30_000, 40_000, 51_000];
   const cssColor = (color: readonly number[]) =>
     `rgb(${color[0]} ${color[1]} ${color[2]})`;
   const colorAt = (altitudeFeet: number | null, ground = false) =>
     cssColor(getFlightTrackColor({ altitudeFeet, ground }));
-  const gradient = `linear-gradient(90deg, ${gradientAltitudes
-    .map((altitude) => `${colorAt(altitude)} ${(altitude / 51_000) * 100}%`)
-    .join(', ')})`;
+  const gradient = `linear-gradient(90deg in oklab, ${FLIGHT_TRACK_ALTITUDE_COLOR_STOPS.map(
+    ({ at, color }) =>
+      `${cssColor(color)} ${(at / FLIGHT_TRACK_MAX_ALTITUDE_FEET) * 100}%`,
+  ).join(', ')})`;
   const estimatedColor = colorAt(20_000);
   const prefs = $derived(getPreferences(page.data.user));
   const unit = $derived(altitudeUnitLabel(prefs));
@@ -75,11 +79,19 @@
           style:background={gradient}
         ></div>
         <div
-          class="text-muted-foreground mt-1 flex justify-between text-[9px] tabular-nums"
+          class="text-muted-foreground relative mt-1 h-3 text-[9px] tabular-nums"
           aria-hidden="true"
         >
-          {#each labels as label (label)}
-            <span>{label}</span>
+          {#each labels as label, index (labelAltitudes[index])}
+            <span
+              class="absolute top-0 {index === 0
+                ? ''
+                : index === labels.length - 1
+                  ? '-translate-x-full'
+                  : '-translate-x-1/2'}"
+              style:left={`${(labelAltitudes[index]! / FLIGHT_TRACK_MAX_ALTITUDE_FEET) * 100}%`}
+              >{label}</span
+            >
           {/each}
         </div>
         <div

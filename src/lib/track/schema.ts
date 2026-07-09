@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 export const flightTrackSourceFormats = ['gpx', 'kml', 'csv'] as const;
-export const MAX_FLIGHT_TRACK_POINTS = 2_000;
+export const MAX_STORED_FLIGHT_TRACK_POINTS = 100_000;
+export const MAX_RENDERED_FLIGHT_TRACK_POINTS = 5_000;
 
 export const flightTrackCoordinateSchema = z
   .union([
@@ -17,33 +18,40 @@ export const flightTrackCoordinateSchema = z
   );
 
 const flightTrackAlignedPropertySchemas = {
-  times: z.number().int().array().max(MAX_FLIGHT_TRACK_POINTS).optional(),
-  groundSpeedKt: z.number().array().max(MAX_FLIGHT_TRACK_POINTS).optional(),
-  trackDeg: z.number().array().max(MAX_FLIGHT_TRACK_POINTS).optional(),
-  ground: z.boolean().array().max(MAX_FLIGHT_TRACK_POINTS).optional(),
-  estimated: z.boolean().array().max(MAX_FLIGHT_TRACK_POINTS).optional(),
+  times: z
+    .number()
+    .int()
+    .array()
+    .max(MAX_STORED_FLIGHT_TRACK_POINTS)
+    .optional(),
+  groundSpeedKt: z
+    .number()
+    .array()
+    .max(MAX_STORED_FLIGHT_TRACK_POINTS)
+    .optional(),
+  trackDeg: z.number().array().max(MAX_STORED_FLIGHT_TRACK_POINTS).optional(),
+  ground: z.boolean().array().max(MAX_STORED_FLIGHT_TRACK_POINTS).optional(),
+  estimated: z.boolean().array().max(MAX_STORED_FLIGHT_TRACK_POINTS).optional(),
 };
-
-export type FlightTrackAlignedPropertyKey =
-  keyof typeof flightTrackAlignedPropertySchemas;
-
-export const flightTrackAlignedPropertyKeys = Object.keys(
-  flightTrackAlignedPropertySchemas,
-) as FlightTrackAlignedPropertyKey[];
 
 const flightTrackPayloadBaseSchema = z.object({
   coordinates: flightTrackCoordinateSchema
     .array()
     .min(2)
-    .max(MAX_FLIGHT_TRACK_POINTS),
+    .max(MAX_STORED_FLIGHT_TRACK_POINTS),
   ...flightTrackAlignedPropertySchemas,
 });
 
 const hasAlignedTrackProperties = (
   track: z.infer<typeof flightTrackPayloadBaseSchema>,
 ) => {
-  return flightTrackAlignedPropertyKeys.every(
-    (key) => !track[key] || track[key].length === track.coordinates.length,
+  return (
+    (!track.times || track.times.length === track.coordinates.length) &&
+    (!track.groundSpeedKt ||
+      track.groundSpeedKt.length === track.coordinates.length) &&
+    (!track.trackDeg || track.trackDeg.length === track.coordinates.length) &&
+    (!track.ground || track.ground.length === track.coordinates.length) &&
+    (!track.estimated || track.estimated.length === track.coordinates.length)
   );
 };
 
@@ -71,24 +79,52 @@ export type FlightTrackRow = FlightTrackInput & {
   pointCount: number;
 };
 
+export type FlightTrackAlignedProperties = Pick<
+  FlightTrackPayload,
+  'times' | 'groundSpeedKt' | 'trackDeg' | 'ground' | 'estimated'
+>;
+
 type FlightTrackPayloadSource = Pick<FlightTrackPayload, 'coordinates'> &
-  Partial<Pick<FlightTrackPayload, FlightTrackAlignedPropertyKey>>;
+  FlightTrackAlignedProperties;
 
 type FlightTrackCopyOptions = {
   includeTimes?: boolean;
 };
 
 export const copyFlightTrackAlignedProperties = (
-  track: Partial<Pick<FlightTrackPayload, FlightTrackAlignedPropertyKey>>,
+  track: FlightTrackAlignedProperties,
   { includeTimes = true }: FlightTrackCopyOptions = {},
-) =>
-  Object.fromEntries(
-    flightTrackAlignedPropertyKeys.flatMap((key) => {
-      if (key === 'times' && !includeTimes) return [];
-      const value = track[key];
-      return value ? [[key, value]] : [];
-    }),
-  ) as Partial<Pick<FlightTrackPayload, FlightTrackAlignedPropertyKey>>;
+): FlightTrackAlignedProperties => ({
+  ...(includeTimes && track.times ? { times: track.times } : {}),
+  ...(track.groundSpeedKt ? { groundSpeedKt: track.groundSpeedKt } : {}),
+  ...(track.trackDeg ? { trackDeg: track.trackDeg } : {}),
+  ...(track.ground ? { ground: track.ground } : {}),
+  ...(track.estimated ? { estimated: track.estimated } : {}),
+});
+
+export const pickFlightTrackPoints = (
+  track: FlightTrackPayload,
+  indices: number[],
+): FlightTrackPayload => ({
+  coordinates: indices.map((index) => track.coordinates[index]!),
+  ...(track.times
+    ? { times: indices.map((index) => track.times![index]!) }
+    : {}),
+  ...(track.groundSpeedKt
+    ? {
+        groundSpeedKt: indices.map((index) => track.groundSpeedKt![index]!),
+      }
+    : {}),
+  ...(track.trackDeg
+    ? { trackDeg: indices.map((index) => track.trackDeg![index]!) }
+    : {}),
+  ...(track.ground
+    ? { ground: indices.map((index) => track.ground![index]!) }
+    : {}),
+  ...(track.estimated
+    ? { estimated: indices.map((index) => track.estimated![index]!) }
+    : {}),
+});
 
 export const toFlightTrackPayload = (
   track: FlightTrackPayloadSource,

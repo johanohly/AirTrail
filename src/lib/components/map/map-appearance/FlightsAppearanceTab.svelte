@@ -12,21 +12,16 @@
     ROUTE_DISPLAY_OPTIONS,
   } from '../map-appearance-options';
 
-  import { getFlightTrackColor } from '$lib/map/flight-track-style';
+  import {
+    FLIGHT_TRACK_ALTITUDE_COLOR_STOPS,
+    FLIGHT_TRACK_MAX_ALTITUDE_FEET,
+  } from '$lib/map/flight-track-style';
   import { mapPreferences } from '$lib/map/map-preferences.svelte';
 
   let { showTracksSection = false }: { showTracksSection?: boolean } = $props();
 
-  const previewAltitudes = [0, 6_000, 11_000, 30_000, 40_000, 51_000];
   const cssColor = (color: readonly number[]) =>
     `rgb(${color[0]} ${color[1]} ${color[2]})`;
-  const previewColor = (altitudeFeet: number) =>
-    cssColor(
-      getFlightTrackColor({
-        altitudeFeet,
-        ground: false,
-      }),
-    );
 </script>
 
 <div class="divide-y divide-border/60">
@@ -208,16 +203,29 @@
                       class="text-primary"
                     />
                   {:else}
-                    {#each previewAltitudes as altitude, index (altitude)}
-                      <path
-                        d={`M${4 + index * 10.6} ${23 - index * 2.2} L${15 + index * 10.6} ${20 - index * 2.2}`}
-                        fill="none"
-                        stroke={previewColor(altitude)}
-                        stroke-width="2.25"
-                        stroke-linecap="round"
-                        stroke-dasharray={index === 4 ? '3 3' : undefined}
-                      />
-                    {/each}
+                    <defs>
+                      <linearGradient
+                        id="flight-track-altitude-preview"
+                        x1="0"
+                        y1="0"
+                        x2="1"
+                        y2="0"
+                      >
+                        {#each FLIGHT_TRACK_ALTITUDE_COLOR_STOPS as stop (stop.at)}
+                          <stop
+                            offset={`${(stop.at / FLIGHT_TRACK_MAX_ALTITUDE_FEET) * 100}%`}
+                            stop-color={cssColor(stop.color)}
+                          />
+                        {/each}
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M4 23 C15 12, 24 14, 34 18 S51 20, 68 7"
+                      fill="none"
+                      stroke="url(#flight-track-altitude-preview)"
+                      stroke-width="2.25"
+                      stroke-linecap="round"
+                    />
                   {/if}
                 </svg>
               {/snippet}
@@ -242,7 +250,7 @@
                 class="h-full w-full text-primary"
                 aria-hidden="true"
               >
-                {#each [0, 1, 2] as line}
+                {#each [0, 1, 2] as line (line)}
                   <path
                     d={`M4 ${22 + line * 3} Q36 ${2 + line * 6} 68 ${22 + line * 3}`}
                     fill="none"
@@ -312,7 +320,7 @@
                   class="h-full w-full"
                   aria-hidden="true"
                 >
-                  {#each [0, 1, 2] as line}
+                  {#each [0, 1, 2] as line (line)}
                     <path
                       d={`M4 ${22 + line * 3} Q36 ${2 + line * 6} 68 ${22 + line * 3}`}
                       fill="none"

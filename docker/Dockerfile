@@ -36,6 +36,7 @@ COPY ./docker/airtrail-healthcheck /app/bin/
 RUN chmod +x /app/bin/entrypoint.sh /app/bin/airtrail-admin /app/bin/airtrail-healthcheck
 
 ENV PATH="${PATH}:/app/bin"
+ENV BODY_SIZE_LIMIT=20M
 
 USER node
 EXPOSE 3000/tcp

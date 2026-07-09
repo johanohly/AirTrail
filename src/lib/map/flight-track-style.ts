@@ -14,21 +14,28 @@ export type FlightTrackRun = Omit<
   estimated: boolean;
 };
 
-type RgbStop = { at: number; color: readonly [number, number, number] };
+export type FlightTrackAltitudeColorStop = {
+  at: number;
+  color: readonly [number, number, number];
+};
 
 const METERS_TO_FEET = 3.280839895013123;
 
-const AIRTRAIL_COLOR_STOPS: RgbStop[] = [
-  { at: 0, color: [249, 115, 22] },
-  { at: 2_000, color: [245, 158, 11] },
-  { at: 4_000, color: [234, 179, 8] },
-  { at: 6_000, color: [132, 204, 22] },
-  { at: 8_000, color: [34, 197, 94] },
-  { at: 9_000, color: [16, 185, 129] },
-  { at: 11_000, color: [6, 182, 212] },
-  { at: 40_000, color: [139, 92, 246] },
-  { at: 51_000, color: [239, 68, 68] },
-];
+export const FLIGHT_TRACK_ALTITUDE_COLOR_STOPS: readonly FlightTrackAltitudeColorStop[] =
+  [
+    { at: 0, color: [249, 115, 22] },
+    { at: 2_000, color: [245, 158, 11] },
+    { at: 4_000, color: [234, 179, 8] },
+    { at: 6_000, color: [132, 204, 22] },
+    { at: 8_000, color: [34, 197, 94] },
+    { at: 9_000, color: [16, 185, 129] },
+    { at: 11_000, color: [6, 182, 212] },
+    { at: 40_000, color: [139, 92, 246] },
+    { at: 51_000, color: [239, 68, 68] },
+  ];
+
+export const FLIGHT_TRACK_MAX_ALTITUDE_FEET =
+  FLIGHT_TRACK_ALTITUDE_COLOR_STOPS.at(-1)!.at;
 
 const toLinear = (value: number) => {
   const normalized = value / 255;
@@ -75,16 +82,20 @@ const oklabToRgb = (color: readonly [number, number, number]): Color => {
 };
 
 const interpolateAirTrailColor = (altitudeFeet: number): Color => {
-  if (altitudeFeet <= AIRTRAIL_COLOR_STOPS[0]!.at) {
-    return [...AIRTRAIL_COLOR_STOPS[0]!.color];
+  if (altitudeFeet <= FLIGHT_TRACK_ALTITUDE_COLOR_STOPS[0]!.at) {
+    return [...FLIGHT_TRACK_ALTITUDE_COLOR_STOPS[0]!.color];
   }
-  const last = AIRTRAIL_COLOR_STOPS.at(-1)!;
+  const last = FLIGHT_TRACK_ALTITUDE_COLOR_STOPS.at(-1)!;
   if (altitudeFeet >= last.at) return [...last.color];
 
-  for (let index = 1; index < AIRTRAIL_COLOR_STOPS.length; index++) {
-    const upper = AIRTRAIL_COLOR_STOPS[index]!;
+  for (
+    let index = 1;
+    index < FLIGHT_TRACK_ALTITUDE_COLOR_STOPS.length;
+    index++
+  ) {
+    const upper = FLIGHT_TRACK_ALTITUDE_COLOR_STOPS[index]!;
     if (altitudeFeet > upper.at) continue;
-    const lower = AIRTRAIL_COLOR_STOPS[index - 1]!;
+    const lower = FLIGHT_TRACK_ALTITUDE_COLOR_STOPS[index - 1]!;
     const progress = (altitudeFeet - lower.at) / (upper.at - lower.at);
     const from = rgbToOklab(lower.color);
     const to = rgbToOklab(upper.color);

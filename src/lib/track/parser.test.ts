@@ -1,8 +1,11 @@
 import { DOMParser } from '@xmldom/xmldom';
 import { describe, expect, it, beforeAll } from 'vitest';
 
-import { parseTrackContent, simplifyTrack } from './parser';
-import { MAX_FLIGHT_TRACK_POINTS, flightTrackInputSchema } from './schema';
+import { parseTrackContent } from './parser';
+import {
+  MAX_STORED_FLIGHT_TRACK_POINTS,
+  flightTrackInputSchema,
+} from './schema';
 
 beforeAll(() => {
   Object.defineProperty(globalThis, 'DOMParser', { value: DOMParser });
@@ -214,58 +217,31 @@ describe('track parser', () => {
     expect(result.estimated).toBeUndefined();
   });
 
-  it('keeps track properties aligned when simplifying', () => {
-    const coordinates = Array.from({ length: 20 }, (_, index) => [
-      index * 0.001,
-      index === 10 ? 0.01 : 0,
-    ]) as [number, number][];
-    const times = coordinates.map((_, index) => index);
-    const groundSpeedKt = coordinates.map((_, index) => index * 10);
-    const trackDeg = coordinates.map((_, index) => index);
-    const ground = coordinates.map((_, index) => index < 2);
-    const estimated = coordinates.map((_, index) => index % 2 === 0);
-
-    const simplified = simplifyTrack(
-      { coordinates, times, groundSpeedKt, trackDeg, ground, estimated },
-      10,
-    );
-
-    expect(simplified.coordinates.length).toBeLessThan(coordinates.length);
-    expect(simplified.coordinates[0]).toEqual(coordinates[0]);
-    expect(simplified.coordinates.at(-1)).toEqual(coordinates.at(-1));
-    expect(simplified.coordinates).toContainEqual(coordinates[10]);
-    expect(simplified.times).toHaveLength(simplified.coordinates.length);
-    expect(simplified.times).toContain(10);
-    expect(simplified.groundSpeedKt).toHaveLength(
-      simplified.coordinates.length,
-    );
-    expect(simplified.groundSpeedKt).toContain(100);
-    expect(simplified.trackDeg).toHaveLength(simplified.coordinates.length);
-    expect(simplified.trackDeg).toContain(10);
-    expect(simplified.ground).toEqual(
-      simplified.coordinates.map(([lon]) => lon / 0.001 < 2),
-    );
-    expect(simplified.estimated).toEqual(
-      simplified.coordinates.map(([lon]) => (lon / 0.001) % 2 === 0),
-    );
-  });
-
-  it('limits parsed tracks to the server-side point cap', () => {
-    const rows = Array.from({ length: MAX_FLIGHT_TRACK_POINTS + 500 }, (_, i) =>
-      [i % 2 ? '0.002' : '0', (i * 0.001).toString()].join(','),
+  it('stores detailed tracks without simplifying them', () => {
+    const rows = Array.from({ length: 2_500 }, (_, index) =>
+      [index * 0.001, index === 1_250 ? 0.01 : 0].join(','),
     );
 
     const result = parseTrackContent(
-      ['Latitude,Longitude', ...rows].join('\n'),
+      ['Longitude,Latitude', ...rows].join('\n'),
       'csv',
     );
 
-    expect(result.coordinates).toHaveLength(MAX_FLIGHT_TRACK_POINTS);
+    expect(result.coordinates).toHaveLength(2_500);
     expect(result.coordinates[0]).toEqual([0, 0]);
-    expect(result.coordinates.at(-1)).toEqual([
-      (MAX_FLIGHT_TRACK_POINTS + 499) * 0.001,
-      0.002,
-    ]);
+    expect(result.coordinates[1_250]).toEqual([1.25, 0.01]);
+    expect(result.coordinates.at(-1)).toEqual([2.499, 0]);
     expect(flightTrackInputSchema.safeParse(result).success).toBe(true);
+  });
+
+  it('rejects tracks above the storage safety limit', () => {
+    const rows = Array.from(
+      { length: MAX_STORED_FLIGHT_TRACK_POINTS + 1 },
+      (_, index) => `${index * 0.000_001},0`,
+    );
+
+    expect(() =>
+      parseTrackContent(['Longitude,Latitude', ...rows].join('\n'), 'csv'),
+    ).toThrow('The maximum is 100,000');
   });
 });

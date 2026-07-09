@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Layer, PickingInfo, Color } from '@deck.gl/core';
   import { PathStyleExtension } from '@deck.gl/extensions';
-  import { ArcLayer, PathLayer, ScatterplotLayer } from '@deck.gl/layers';
+  import { ArcLayer, ScatterplotLayer } from '@deck.gl/layers';
   import { MapboxOverlay } from '@deck.gl/mapbox';
   import { isTouchDevice } from '@melt-ui/svelte/internal/helpers';
   import { onDestroy } from 'svelte';
@@ -29,6 +29,7 @@
     type FlightArc,
     type FlightTrackPath,
   } from '$lib/map/flight-layer-data';
+  import { buildFlightTrackLayers } from '$lib/map/flight-track-layers';
   import {
     buildFlightTrackRuns,
     getFlightTrackColor,
@@ -42,8 +43,8 @@
     openAirportDetails,
     openRouteDetails,
   } from '$lib/state.svelte';
-  import { type FlightData, prepareVisitedAirports } from '$lib/utils';
   import type { FlightTrackRow } from '$lib/track/schema';
+  import { type FlightData, prepareVisitedAirports } from '$lib/utils';
   import { isMediumScreen } from '$lib/utils/size';
 
   const AIRPORT_COLOR = (alpha: number): Color => [16, 185, 129, alpha]; // Tailwind emerald-500
@@ -338,13 +339,17 @@
     const syncMapProjection = () => {
       currentMapProjection = getProjectionType();
     };
+    const projectionEvents = map as unknown as {
+      on(event: 'projectiontransition', listener: () => void): void;
+      off(event: 'projectiontransition', listener: () => void): void;
+    };
 
     syncMapProjection();
-    (map.on as any)('projectiontransition', syncMapProjection);
+    projectionEvents.on('projectiontransition', syncMapProjection);
     map.on('styledata', syncMapProjection);
 
     return () => {
-      (map.off as any)('projectiontransition', syncMapProjection);
+      projectionEvents.off('projectiontransition', syncMapProjection);
       map.off('styledata', syncMapProjection);
     };
   });
@@ -657,19 +662,34 @@
       }),
     );
 
-  const pathOptions = $derived.by(() => ({
-    id: 'track-path-layer',
+  const pathWidthUpdateTriggers = $derived([
+    mapPreferences.arcThickness,
+    mapPreferences.arcThicknessScale,
+    selectedRoute,
+    arcFrequencyPercentileByRoute,
+  ]);
+
+  const sharedPathOptions = $derived.by(() => ({
     parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
+    getWidth: getVisibleArcWidth,
+    widthUnits: 'pixels' as const,
+    jointRounded: true,
+    updateTriggers: {
+      getWidth: pathWidthUpdateTriggers,
+    },
+  }));
+
+  const pathOptions = $derived.by(() => ({
+    ...sharedPathOptions,
+    id: 'track-path-layer',
     extensions: [globeOcclusion],
     data:
       mapPreferences.flightTrackStyle === 'standard' ? flightTrackPaths : [],
     getPath: (data: FlightTrackPath) => data.path,
     getColor: getTrackColor(),
-    getWidth: getVisibleArcWidth,
-    widthUnits: 'pixels',
-    jointRounded: true,
     capRounded: true,
     updateTriggers: {
+      ...sharedPathOptions.updateTriggers,
       getColor: [
         hoveredArc,
         hoveredAirport,
@@ -678,90 +698,53 @@
         mapPreferences.arcColor,
         arcFrequencyPercentileByRoute,
       ],
-      getWidth: [
-        mapPreferences.arcThickness,
-        mapPreferences.arcThicknessScale,
-        selectedRoute,
-        arcFrequencyPercentileByRoute,
-      ],
     },
   }));
 
   const altitudePathOptions = $derived.by(() => ({
+    ...sharedPathOptions,
     id: 'altitude-track-path-layer',
-    parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
     extensions: [globeOcclusion],
     data: solidFlightTrackRuns,
     getPath: (data: FlightTrackRun) => data.path,
     getColor: getAltitudeTrackColor(),
-    getWidth: getVisibleArcWidth,
-    widthUnits: 'pixels',
-    jointRounded: true,
     capRounded: true,
     updateTriggers: {
+      ...sharedPathOptions.updateTriggers,
       getColor: [hoveredArc, hoveredAirport, selectedAirportId, selectedRoute],
-      getWidth: [
-        mapPreferences.arcThickness,
-        mapPreferences.arcThicknessScale,
-        selectedRoute,
-        arcFrequencyPercentileByRoute,
-      ],
     },
   }));
 
   const estimatedPathUnderlayOptions = $derived.by(() => ({
+    ...sharedPathOptions,
     id: 'estimated-track-underlay-layer',
-    parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
     extensions: [globeOcclusion],
     data: estimatedFlightTrackRuns,
     getPath: (data: FlightTrackRun) => data.path,
     getColor: [24, 24, 27, 190],
     getWidth: (data: FlightTrackRun) =>
       Math.max(1, getVisibleArcWidth(data) * 0.3),
-    widthUnits: 'pixels',
-    jointRounded: true,
     capRounded: false,
-    updateTriggers: {
-      getWidth: [
-        mapPreferences.arcThickness,
-        mapPreferences.arcThicknessScale,
-        selectedRoute,
-        arcFrequencyPercentileByRoute,
-      ],
-    },
   }));
 
   const estimatedPathOptions = $derived.by(() => ({
+    ...sharedPathOptions,
     id: 'estimated-track-path-layer',
-    parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
     extensions: [globeOcclusion, estimatedPathStyle],
     data: estimatedFlightTrackRuns,
     getPath: (data: FlightTrackRun) => data.path,
     getColor: getAltitudeTrackColor(),
-    getWidth: getVisibleArcWidth,
     getDashArray: (data: FlightTrackRun) => {
       const width = Math.max(1, getVisibleArcWidth(data));
       return [10 / width, (20 + 3 * width) / width];
     },
     dashJustified: false,
     dashGapPickable: false,
-    widthUnits: 'pixels',
-    jointRounded: true,
     capRounded: false,
     updateTriggers: {
+      ...sharedPathOptions.updateTriggers,
       getColor: [hoveredArc, hoveredAirport, selectedAirportId, selectedRoute],
-      getWidth: [
-        mapPreferences.arcThickness,
-        mapPreferences.arcThicknessScale,
-        selectedRoute,
-        arcFrequencyPercentileByRoute,
-      ],
-      getDashArray: [
-        mapPreferences.arcThickness,
-        mapPreferences.arcThicknessScale,
-        selectedRoute,
-        arcFrequencyPercentileByRoute,
-      ],
+      getDashArray: pathWidthUpdateTriggers,
     },
   }));
 
@@ -785,11 +768,15 @@
     const layers: Layer[] = [];
     layers.push(new ArcLayer(arcOptions));
     layers.push(new ArcLayer(ghostArcOptions));
-    layers.push(new PathLayer<FlightTrackPath>(pathOptions));
-    layers.push(new PathLayer<FlightTrackRun>(altitudePathOptions));
-    layers.push(new PathLayer<FlightTrackRun>(estimatedPathUnderlayOptions));
-    layers.push(new PathLayer<FlightTrackRun>(estimatedPathOptions));
-    layers.push(new PathLayer<FlightTrackPath>(ghostPathOptions));
+    layers.push(
+      ...buildFlightTrackLayers({
+        standard: pathOptions,
+        altitude: altitudePathOptions,
+        estimatedUnderlay: estimatedPathUnderlayOptions,
+        estimated: estimatedPathOptions,
+        interaction: ghostPathOptions,
+      }),
+    );
     if (mapPreferences.airportCircles !== 'off') {
       layers.push(new ScatterplotLayer<VisitedAirport>(airportOptions));
     }

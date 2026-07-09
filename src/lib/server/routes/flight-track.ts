@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { db } from '$lib/db';
 import { authedProcedure, router } from '$lib/server/trpc';
+import { reduceFlightTrackForMap } from '$lib/track/render';
 import {
   flightTrackPayloadSchema,
   type FlightTrackRow,
@@ -15,17 +16,20 @@ const flightTrackListInput = z
   })
   .optional();
 
-const parseTrackRow = (row: {
-  flightId: number;
-  track: unknown;
-  sourceFormat: 'gpx' | 'kml' | 'csv';
-  sourceName: string | null;
-  pointCount: number;
-}): FlightTrackRow => {
+const parseTrackRow = (
+  row: {
+    flightId: number;
+    track: unknown;
+    sourceFormat: 'gpx' | 'kml' | 'csv';
+    sourceName: string | null;
+    pointCount: number;
+  },
+  reduceForMap = false,
+): FlightTrackRow => {
   const track = flightTrackPayloadSchema.parse(row.track);
   return {
     flightId: row.flightId,
-    ...track,
+    ...(reduceForMap ? reduceFlightTrackForMap(track) : track),
     sourceFormat: row.sourceFormat,
     sourceName: row.sourceName,
     pointCount: row.pointCount,
@@ -80,7 +84,7 @@ export const flightTrackRouter = router({
       }
 
       const rows = await query.execute();
-      return rows.map(parseTrackRow);
+      return rows.map((row) => parseTrackRow(row, true));
     }),
   get: authedProcedure
     .input(z.number())
