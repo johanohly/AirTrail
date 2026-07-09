@@ -37,6 +37,8 @@
       hasTimes: Boolean(track.times?.length),
       hasGroundSpeed: Boolean(track.groundSpeedKt?.length),
       hasTrackDegrees: Boolean(track.trackDeg?.length),
+      hasGroundFlags: Boolean(track.ground?.length),
+      hasEstimatedFlags: Boolean(track.estimated?.length),
       sourceFormat: track.sourceFormat.toUpperCase(),
     };
   });
@@ -140,6 +142,12 @@
                 {/if}
                 {#if trackSummary.hasTrackDegrees}
                   &middot; heading
+                {/if}
+                {#if trackSummary.hasGroundFlags}
+                  &middot; ground flags
+                {/if}
+                {#if trackSummary.hasEstimatedFlags}
+                  &middot; uncertainty flags
                 {/if}
               </p>
             </div>

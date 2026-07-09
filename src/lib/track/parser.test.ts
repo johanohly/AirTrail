@@ -151,12 +151,20 @@ describe('track parser', () => {
         <Document>
           <Placemark>
             <description><![CDATA[Altitude: 0 ft Speed: 3 kt Heading: 98&deg;]]></description>
+            <ExtendedData>
+              <Data name="ground"><value>true</value></Data>
+              <Data name="estimated"><value>false</value></Data>
+            </ExtendedData>
             <TimeStamp><when>2026-06-13T05:15:10+00:00</when></TimeStamp>
             <LookAt><heading>98</heading></LookAt>
             <Point><coordinates>12.644255,55.626736,0</coordinates></Point>
           </Placemark>
           <Placemark>
             <description><![CDATA[Altitude: 1000 ft Speed: 8 kt Heading: 120&deg;]]></description>
+            <ExtendedData>
+              <Data name="ground"><value>false</value></Data>
+              <Data name="estimated"><value>true</value></Data>
+            </ExtendedData>
             <TimeStamp><when>2026-06-13T05:15:17+00:00</when></TimeStamp>
             <LookAt><heading>120</heading></LookAt>
             <Point><coordinates>12.644036,55.626755,304.8</coordinates></Point>
@@ -178,6 +186,32 @@ describe('track parser', () => {
     expect(result.times).toEqual([1781327710, 1781327717]);
     expect(result.groundSpeedKt).toEqual([3, 8]);
     expect(result.trackDeg).toEqual([98, 120]);
+    expect(result.ground).toEqual([true, false]);
+    expect(result.estimated).toEqual([false, true]);
+  });
+
+  it('parses helper KML ground descriptions as aligned point flags', () => {
+    const result = parseTrackContent(
+      `<?xml version="1.0" encoding="UTF-8"?>
+      <kml xmlns="http://www.opengis.net/kml/2.2">
+        <Document>
+          <Placemark>
+            <description><![CDATA[<div><span><b>Ground/taxi:</b></span> <span>yes</span></div>]]></description>
+            <TimeStamp><when>2026-06-13T05:15:10+00:00</when></TimeStamp>
+            <Point><coordinates>12.644255,55.626736,0</coordinates></Point>
+          </Placemark>
+          <Placemark>
+            <description><![CDATA[<div><span><b>Altitude:</b></span> <span>1000 ft</span></div>]]></description>
+            <TimeStamp><when>2026-06-13T05:15:17+00:00</when></TimeStamp>
+            <Point><coordinates>12.644036,55.626755,304.8</coordinates></Point>
+          </Placemark>
+        </Document>
+      </kml>`,
+      'kml',
+    );
+
+    expect(result.ground).toEqual([true, false]);
+    expect(result.estimated).toBeUndefined();
   });
 
   it('keeps track properties aligned when simplifying', () => {
@@ -188,9 +222,11 @@ describe('track parser', () => {
     const times = coordinates.map((_, index) => index);
     const groundSpeedKt = coordinates.map((_, index) => index * 10);
     const trackDeg = coordinates.map((_, index) => index);
+    const ground = coordinates.map((_, index) => index < 2);
+    const estimated = coordinates.map((_, index) => index % 2 === 0);
 
     const simplified = simplifyTrack(
-      { coordinates, times, groundSpeedKt, trackDeg },
+      { coordinates, times, groundSpeedKt, trackDeg, ground, estimated },
       10,
     );
 
@@ -206,6 +242,12 @@ describe('track parser', () => {
     expect(simplified.groundSpeedKt).toContain(100);
     expect(simplified.trackDeg).toHaveLength(simplified.coordinates.length);
     expect(simplified.trackDeg).toContain(10);
+    expect(simplified.ground).toEqual(
+      simplified.coordinates.map(([lon]) => lon / 0.001 < 2),
+    );
+    expect(simplified.estimated).toEqual(
+      simplified.coordinates.map(([lon]) => (lon / 0.001) % 2 === 0),
+    );
   });
 
   it('limits parsed tracks to the server-side point cap', () => {

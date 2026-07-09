@@ -20,6 +20,7 @@
     ModalFooter,
   } from '$lib/components/ui/modal';
   import { openModalsState } from '$lib/state.svelte';
+  import { toFlightTrackInput } from '$lib/track/schema';
   import { api, trpc } from '$lib/trpc';
   import { type FlightData } from '$lib/utils';
   import { decomposeToLocal, isUsingAmPm } from '$lib/utils/datetime';
@@ -83,18 +84,7 @@
         const track = await api.flightTrack.get.query(flight.id);
         formData.update((current) => ({
           ...current,
-          track: track
-            ? {
-                coordinates: track.coordinates,
-                ...(track.times ? { times: track.times } : {}),
-                ...(track.groundSpeedKt
-                  ? { groundSpeedKt: track.groundSpeedKt }
-                  : {}),
-                ...(track.trackDeg ? { trackDeg: track.trackDeg } : {}),
-                sourceFormat: track.sourceFormat,
-                sourceName: track.sourceName,
-              }
-            : undefined,
+          track: track ? toFlightTrackInput(track) : undefined,
         }));
       } catch (e) {
         console.error(e);

@@ -1,7 +1,10 @@
 import { gpx, kml } from '@tmcw/togeojson';
 
 import {
+  copyFlightTrackAlignedProperties,
+  flightTrackAlignedPropertyKeys,
   type FlightTrackCoordinate,
+  type FlightTrackAlignedPropertyKey,
   type FlightTrackInput,
   type FlightTrackPayload,
   type FlightTrackSourceFormat,
@@ -23,6 +26,8 @@ type RawTrack = {
   times?: number[];
   groundSpeedKt?: number[];
   trackDeg?: number[];
+  ground?: boolean[];
+  estimated?: boolean[];
 };
 
 type GeoJsonFeature = {
@@ -204,6 +209,14 @@ const extractTimestampedPointTrack = (document: Document): RawTrack | null => {
   const times: number[] = [];
   const groundSpeedKt: number[] = [];
   const trackDeg: number[] = [];
+  const ground: boolean[] = [];
+  const estimated: boolean[] = [];
+  const shouldParseGround = hasKmlBooleanProperty(document, 'ground', [
+    'Ground/taxi',
+  ]);
+  const shouldParseEstimated = hasKmlBooleanProperty(document, 'estimated', [
+    'Estimated',
+  ]);
 
   for (const placemark of Array.from(
     document.getElementsByTagName('Placemark'),
@@ -220,12 +233,21 @@ const extractTimestampedPointTrack = (document: Document): RawTrack | null => {
     const coordinate = normalizeCoordinate(parseKmlCoordinate(coordinateText));
     if (!coordinate) continue;
 
-    coordinates.push(coordinate);
-    times.push(time);
-
     const description = placemark
       .getElementsByTagName('description')[0]
       ?.textContent?.trim();
+    const groundFlag =
+      parseExtendedDataBoolean(placemark, 'ground') ??
+      parseDescriptionBoolean(description, 'Ground/taxi');
+    const estimatedFlag =
+      parseExtendedDataBoolean(placemark, 'estimated') ??
+      parseDescriptionBoolean(description, 'Estimated');
+
+    coordinates.push(coordinate);
+    times.push(time);
+    if (shouldParseGround) ground.push(groundFlag ?? false);
+    if (shouldParseEstimated) estimated.push(estimatedFlag ?? false);
+
     const speed = parseDescriptionNumber(description, 'Speed', 'kt');
     if (speed !== null) groundSpeedKt.push(speed);
 
@@ -244,6 +266,8 @@ const extractTimestampedPointTrack = (document: Document): RawTrack | null => {
     groundSpeedKt:
       groundSpeedKt.length === coordinates.length ? groundSpeedKt : undefined,
     trackDeg: trackDeg.length === coordinates.length ? trackDeg : undefined,
+    ground: ground.length === coordinates.length ? ground : undefined,
+    estimated: estimated.length === coordinates.length ? estimated : undefined,
   };
 };
 
@@ -456,6 +480,78 @@ const parseDescriptionNumber = (
   return match?.[1] ? parseNumber(match[1]) : null;
 };
 
+const parseBoolean = (value: string | null | undefined) => {
+  if (!value) return null;
+  const normalized = value.trim().toLowerCase();
+  if (['true', 'yes', '1'].includes(normalized)) return true;
+  if (['false', 'no', '0'].includes(normalized)) return false;
+  return null;
+};
+
+const normalizeDescription = (description: string | null | undefined) =>
+  description
+    ?.replace(/<[^>]*>/g, ' ')
+    .replace(/&deg;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const parseDescriptionBoolean = (
+  description: string | null | undefined,
+  label: string,
+) => {
+  const normalizedDescription = normalizeDescription(description);
+  if (!normalizedDescription) return null;
+  const match = new RegExp(`${label}:\\s*(true|false|yes|no|1|0)`, 'i').exec(
+    normalizedDescription,
+  );
+  return parseBoolean(match?.[1]);
+};
+
+const getExtendedDataValue = (placemark: Element, name: string) => {
+  for (const data of Array.from(placemark.getElementsByTagName('Data'))) {
+    if (data.getAttribute('name') !== name) continue;
+    return data.getElementsByTagName('value')[0]?.textContent;
+  }
+
+  for (const data of Array.from(placemark.getElementsByTagName('SimpleData'))) {
+    if (data.getAttribute('name') === name) return data.textContent;
+  }
+};
+
+const parseExtendedDataBoolean = (placemark: Element, name: string) =>
+  parseBoolean(getExtendedDataValue(placemark, name));
+
+const hasKmlBooleanProperty = (
+  document: Document,
+  dataName: string,
+  descriptionLabels: string[],
+) => {
+  if (
+    Array.from(document.getElementsByTagName('Data')).some(
+      (data) => data.getAttribute('name') === dataName,
+    ) ||
+    Array.from(document.getElementsByTagName('SimpleData')).some(
+      (data) => data.getAttribute('name') === dataName,
+    )
+  ) {
+    return true;
+  }
+
+  return Array.from(document.getElementsByTagName('description')).some(
+    (description) => {
+      const normalized = normalizeDescription(description.textContent);
+      return (
+        !!normalized &&
+        descriptionLabels.some((label) =>
+          new RegExp(`${label}:\\s*(true|false|yes|no|1|0)`, 'i').test(
+            normalized,
+          ),
+        )
+      );
+    },
+  );
+};
+
 const normalizeTrackDegrees = (value: number) => ((value % 360) + 360) % 360;
 
 const toEpochSeconds = (value: unknown): number | null => {
@@ -564,27 +660,26 @@ const limitTrackPoints = (
 };
 
 const createAlignedPropertyPicker = (track: FlightTrackPayload) => {
-  const times: number[] = [];
-  const groundSpeedKt: number[] = [];
-  const trackDeg: number[] = [];
+  const pickedProperties: Partial<
+    Pick<FlightTrackPayload, FlightTrackAlignedPropertyKey>
+  > = {};
+
+  flightTrackAlignedPropertyKeys.forEach((key) => {
+    if (track[key]) pickedProperties[key] = [] as never;
+  });
 
   return {
     pick(index: number) {
-      const time = track.times?.[index];
-      if (time !== undefined) times.push(time);
-
-      const groundSpeed = track.groundSpeedKt?.[index];
-      if (groundSpeed !== undefined) groundSpeedKt.push(groundSpeed);
-
-      const trackDirection = track.trackDeg?.[index];
-      if (trackDirection !== undefined) trackDeg.push(trackDirection);
+      flightTrackAlignedPropertyKeys.forEach((key) => {
+        const target = pickedProperties[key] as
+          | Array<number | boolean>
+          | undefined;
+        const value = track[key]?.[index];
+        if (target && value !== undefined) target.push(value);
+      });
     },
     toPayload(): Omit<FlightTrackPayload, 'coordinates'> {
-      return {
-        ...(track.times ? { times } : {}),
-        ...(track.groundSpeedKt ? { groundSpeedKt } : {}),
-        ...(track.trackDeg ? { trackDeg } : {}),
-      };
+      return copyFlightTrackAlignedProperties(pickedProperties);
     },
   };
 };

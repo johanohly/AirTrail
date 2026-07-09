@@ -14,6 +14,7 @@ import type {
 import { generateRandomString } from '$lib/server/utils/random';
 import {
   flightTrackPayloadSchema,
+  toFlightTrackInput,
   type FlightTrackInput,
 } from '$lib/track/schema';
 import type { ErrorActionResult } from '$lib/utils/forms';
@@ -246,16 +247,14 @@ export async function getPublicShareData(slug: string) {
       const track = flightTrackPayloadSchema.parse(row.track);
       return [
         row.flightId,
-        {
-          coordinates: track.coordinates,
-          ...(share.showTimes && track.times ? { times: track.times } : {}),
-          ...(track.groundSpeedKt
-            ? { groundSpeedKt: track.groundSpeedKt }
-            : {}),
-          ...(track.trackDeg ? { trackDeg: track.trackDeg } : {}),
-          sourceFormat: row.sourceFormat,
-          sourceName: row.sourceName,
-        },
+        toFlightTrackInput(
+          {
+            ...track,
+            sourceFormat: row.sourceFormat,
+            sourceName: row.sourceName,
+          },
+          { includeTimes: share.showTimes },
+        ),
       ];
     }),
   );

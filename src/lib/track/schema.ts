@@ -16,24 +16,34 @@ export const flightTrackCoordinateSchema = z
     'Invalid track coordinate',
   );
 
+const flightTrackAlignedPropertySchemas = {
+  times: z.number().int().array().max(MAX_FLIGHT_TRACK_POINTS).optional(),
+  groundSpeedKt: z.number().array().max(MAX_FLIGHT_TRACK_POINTS).optional(),
+  trackDeg: z.number().array().max(MAX_FLIGHT_TRACK_POINTS).optional(),
+  ground: z.boolean().array().max(MAX_FLIGHT_TRACK_POINTS).optional(),
+  estimated: z.boolean().array().max(MAX_FLIGHT_TRACK_POINTS).optional(),
+};
+
+export type FlightTrackAlignedPropertyKey =
+  keyof typeof flightTrackAlignedPropertySchemas;
+
+export const flightTrackAlignedPropertyKeys = Object.keys(
+  flightTrackAlignedPropertySchemas,
+) as FlightTrackAlignedPropertyKey[];
+
 const flightTrackPayloadBaseSchema = z.object({
   coordinates: flightTrackCoordinateSchema
     .array()
     .min(2)
     .max(MAX_FLIGHT_TRACK_POINTS),
-  times: z.number().int().array().max(MAX_FLIGHT_TRACK_POINTS).optional(),
-  groundSpeedKt: z.number().array().max(MAX_FLIGHT_TRACK_POINTS).optional(),
-  trackDeg: z.number().array().max(MAX_FLIGHT_TRACK_POINTS).optional(),
+  ...flightTrackAlignedPropertySchemas,
 });
 
 const hasAlignedTrackProperties = (
   track: z.infer<typeof flightTrackPayloadBaseSchema>,
 ) => {
-  return (
-    (!track.times || track.times.length === track.coordinates.length) &&
-    (!track.groundSpeedKt ||
-      track.groundSpeedKt.length === track.coordinates.length) &&
-    (!track.trackDeg || track.trackDeg.length === track.coordinates.length)
+  return flightTrackAlignedPropertyKeys.every(
+    (key) => !track[key] || track[key].length === track.coordinates.length,
   );
 };
 
@@ -60,3 +70,42 @@ export type FlightTrackRow = FlightTrackInput & {
   flightId: number;
   pointCount: number;
 };
+
+type FlightTrackPayloadSource = Pick<FlightTrackPayload, 'coordinates'> &
+  Partial<Pick<FlightTrackPayload, FlightTrackAlignedPropertyKey>>;
+
+type FlightTrackCopyOptions = {
+  includeTimes?: boolean;
+};
+
+export const copyFlightTrackAlignedProperties = (
+  track: Partial<Pick<FlightTrackPayload, FlightTrackAlignedPropertyKey>>,
+  { includeTimes = true }: FlightTrackCopyOptions = {},
+) =>
+  Object.fromEntries(
+    flightTrackAlignedPropertyKeys.flatMap((key) => {
+      if (key === 'times' && !includeTimes) return [];
+      const value = track[key];
+      return value ? [[key, value]] : [];
+    }),
+  ) as Partial<Pick<FlightTrackPayload, FlightTrackAlignedPropertyKey>>;
+
+export const toFlightTrackPayload = (
+  track: FlightTrackPayloadSource,
+  options?: FlightTrackCopyOptions,
+): FlightTrackPayload => ({
+  coordinates: track.coordinates,
+  ...copyFlightTrackAlignedProperties(track, options),
+});
+
+export const toFlightTrackInput = (
+  track: FlightTrackPayloadSource & {
+    sourceFormat: FlightTrackSourceFormat;
+    sourceName?: string | null;
+  },
+  options?: FlightTrackCopyOptions,
+): FlightTrackInput => ({
+  ...toFlightTrackPayload(track, options),
+  sourceFormat: track.sourceFormat,
+  sourceName: track.sourceName,
+});
