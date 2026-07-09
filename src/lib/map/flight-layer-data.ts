@@ -29,11 +29,48 @@ export const routeMatchesArc = (
 
 export const unwrapTrackPath = (path: FlightTrackCoordinate[]) => {
   if (!path.length) return path;
-  const unwrapped: FlightTrackCoordinate[] = [path[0]!];
 
-  for (let index = 1; index < path.length; index++) {
+  const interpolatedPath: FlightTrackCoordinate[] = [path[0]!];
+  const maxDegrees = 3;
+
+  for (let i = 1; i < path.length; i++) {
+    const prev = interpolatedPath[interpolatedPath.length - 1]!;
+    const curr = path[i]!;
+
+    const dLon = Math.abs(curr[0] - prev[0]);
+    const dLat = Math.abs(curr[1] - prev[1]);
+
+    if (dLon > maxDegrees || dLat > maxDegrees) {
+      try {
+        const startPoint = point([prev[0], prev[1]]);
+        const endPoint = point([curr[0], curr[1]]);
+
+        const arc = greatCircle(startPoint, endPoint, { npoints: 20 });
+        let arcCoords: [number, number][] = [];
+
+        if (arc.geometry.type === 'MultiLineString') {
+          arcCoords = arc.geometry.coordinates.flat() as [number, number][];
+        } else {
+          arcCoords = arc.geometry.coordinates as [number, number][];
+        }
+        const interpolatedArcCoords = arcCoords.slice(1).map((coord) => {
+          return prev[2] !== undefined ? [coord[0], coord[1], prev[2]] : coord;
+        }) as FlightTrackCoordinate[];
+
+        interpolatedPath.push(...interpolatedArcCoords);
+      } catch (error) {
+        interpolatedPath.push(curr);
+      }
+    } else {
+      interpolatedPath.push(curr);
+    }
+  }
+
+  const unwrapped: FlightTrackCoordinate[] = [interpolatedPath[0]!];
+
+  for (let index = 1; index < interpolatedPath.length; index++) {
     const previous = unwrapped[index - 1]!;
-    const current = path[index]!;
+    const current = interpolatedPath[index]!;
     let lon = current[0];
     while (lon - previous[0] > 180) lon -= 360;
     while (lon - previous[0] < -180) lon += 360;
