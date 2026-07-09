@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { Layer, PickingInfo, Color } from '@deck.gl/core';
-  import { PathStyleExtension } from '@deck.gl/extensions';
   import { ArcLayer, ScatterplotLayer } from '@deck.gl/layers';
   import { MapboxOverlay } from '@deck.gl/mapbox';
   import { isTouchDevice } from '@melt-ui/svelte/internal/helpers';
@@ -29,9 +28,11 @@
     type FlightArc,
     type FlightTrackPath,
   } from '$lib/map/flight-layer-data';
-  import { buildFlightTrackLayers } from '$lib/map/flight-track-layers';
   import {
-    buildFlightTrackRuns,
+    buildFlightTrackLayers,
+    prepareFlightTrackLayerData,
+  } from '$lib/map/flight-track-layers';
+  import {
     getFlightTrackColor,
     type FlightTrackRun,
   } from '$lib/map/flight-track-style';
@@ -83,10 +84,6 @@
     depthWriteEnabled: false,
   } as const;
   const globeOcclusion = new GlobeOcclusionExtension();
-  const estimatedPathStyle = new PathStyleExtension({
-    dash: true,
-    highPrecisionDash: true,
-  });
 
   const interpolateColor = (
     from: readonly [number, number, number],
@@ -152,16 +149,11 @@
     return buildFlightTrackPaths(flights, flightArcs, activeFlightTracks);
   });
 
-  const flightTrackRuns = $derived.by(() => {
-    if (mapPreferences.flightTrackStyle !== 'altitude') return [];
-    return buildFlightTrackRuns(flightTrackPaths);
-  });
-
-  const solidFlightTrackRuns = $derived(
-    flightTrackRuns.filter((run) => !run.estimated),
-  );
-  const estimatedFlightTrackRuns = $derived(
-    flightTrackRuns.filter((run) => run.estimated),
+  const flightTrackLayerData = $derived.by(() =>
+    prepareFlightTrackLayerData(
+      flightTrackPaths,
+      mapPreferences.flightTrackStyle,
+    ),
   );
 
   // deck's picking coordinate is unprojected through deck's own globe
@@ -669,112 +661,36 @@
     arcFrequencyPercentileByRoute,
   ]);
 
-  const sharedPathOptions = $derived.by(() => ({
-    parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
-    getWidth: getVisibleArcWidth,
-    widthUnits: 'pixels' as const,
-    jointRounded: true,
-    updateTriggers: {
-      getWidth: pathWidthUpdateTriggers,
-    },
-  }));
-
-  const pathOptions = $derived.by(() => ({
-    ...sharedPathOptions,
-    id: 'track-path-layer',
-    extensions: [globeOcclusion],
-    data:
-      mapPreferences.flightTrackStyle === 'standard' ? flightTrackPaths : [],
-    getPath: (data: FlightTrackPath) => data.path,
-    getColor: getTrackColor(),
-    capRounded: true,
-    updateTriggers: {
-      ...sharedPathOptions.updateTriggers,
-      getColor: [
-        hoveredArc,
-        hoveredAirport,
-        selectedAirportId,
-        selectedRoute,
-        mapPreferences.arcColor,
-        arcFrequencyPercentileByRoute,
-      ],
-    },
-  }));
-
-  const altitudePathOptions = $derived.by(() => ({
-    ...sharedPathOptions,
-    id: 'altitude-track-path-layer',
-    extensions: [globeOcclusion],
-    data: solidFlightTrackRuns,
-    getPath: (data: FlightTrackRun) => data.path,
-    getColor: getAltitudeTrackColor(),
-    capRounded: true,
-    updateTriggers: {
-      ...sharedPathOptions.updateTriggers,
-      getColor: [hoveredArc, hoveredAirport, selectedAirportId, selectedRoute],
-    },
-  }));
-
-  const estimatedPathUnderlayOptions = $derived.by(() => ({
-    ...sharedPathOptions,
-    id: 'estimated-track-underlay-layer',
-    extensions: [globeOcclusion],
-    data: estimatedFlightTrackRuns,
-    getPath: (data: FlightTrackRun) => data.path,
-    getColor: [24, 24, 27, 190],
-    getWidth: (data: FlightTrackRun) =>
-      Math.max(1, getVisibleArcWidth(data) * 0.3),
-    capRounded: false,
-  }));
-
-  const estimatedPathOptions = $derived.by(() => ({
-    ...sharedPathOptions,
-    id: 'estimated-track-path-layer',
-    extensions: [globeOcclusion, estimatedPathStyle],
-    data: estimatedFlightTrackRuns,
-    getPath: (data: FlightTrackRun) => data.path,
-    getColor: getAltitudeTrackColor(),
-    getDashArray: (data: FlightTrackRun) => {
-      const width = Math.max(1, getVisibleArcWidth(data));
-      return [10 / width, (20 + 3 * width) / width];
-    },
-    dashJustified: false,
-    dashGapPickable: false,
-    capRounded: false,
-    updateTriggers: {
-      ...sharedPathOptions.updateTriggers,
-      getColor: [hoveredArc, hoveredAirport, selectedAirportId, selectedRoute],
-      getDashArray: pathWidthUpdateTriggers,
-    },
-  }));
-
-  const ghostPathOptions = $derived({
-    id: 'ghost-track-path',
-    parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
-    extensions: [globeOcclusion],
-    data: flightTrackPaths,
-    getPath: (data: FlightTrackPath) => data.path,
-    getColor: [0, 0, 0, 0],
-    getWidth: 3 * 6,
-    widthUnits: 'pixels',
-    pickable: true,
-    onHover: handleTrackHover,
-    onClick: handleTrackClick,
-    jointRounded: true,
-    capRounded: true,
-  });
-
   const buildLayers = () => {
     const layers: Layer[] = [];
     layers.push(new ArcLayer(arcOptions));
     layers.push(new ArcLayer(ghostArcOptions));
     layers.push(
       ...buildFlightTrackLayers({
-        standard: pathOptions,
-        altitude: altitudePathOptions,
-        estimatedUnderlay: estimatedPathUnderlayOptions,
-        estimated: estimatedPathOptions,
-        interaction: ghostPathOptions,
+        data: flightTrackLayerData,
+        style: mapPreferences.flightTrackStyle,
+        parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
+        extensions: [globeOcclusion],
+        getWidth: getVisibleArcWidth,
+        getStandardColor: getTrackColor(),
+        getAltitudeColor: getAltitudeTrackColor(),
+        widthUpdateTriggers: pathWidthUpdateTriggers,
+        standardColorUpdateTriggers: [
+          hoveredArc,
+          hoveredAirport,
+          selectedAirportId,
+          selectedRoute,
+          mapPreferences.arcColor,
+          arcFrequencyPercentileByRoute,
+        ],
+        altitudeColorUpdateTriggers: [
+          hoveredArc,
+          hoveredAirport,
+          selectedAirportId,
+          selectedRoute,
+        ],
+        onHover: handleTrackHover,
+        onClick: handleTrackClick,
       }),
     );
     if (mapPreferences.airportCircles !== 'off') {
