@@ -4,8 +4,6 @@ import type { FlightTrackPath } from './flight-layer-data';
 
 import type { FlightTrackCoordinate } from '$lib/track/schema';
 
-export type FlightTrackPalette = 'tar1090' | 'airtrail';
-
 export type FlightTrackRun = Omit<
   FlightTrackPath,
   'path' | 'ground' | 'estimated'
@@ -16,53 +14,9 @@ export type FlightTrackRun = Omit<
   estimated: boolean;
 };
 
-type NumericStop = { at: number; value: number };
 type RgbStop = { at: number; color: readonly [number, number, number] };
 
 const METERS_TO_FEET = 3.280839895013123;
-
-const TAR1090_HUE_STOPS: NumericStop[] = [
-  { at: 0, value: 20 },
-  { at: 2_000, value: 32.5 },
-  { at: 4_000, value: 43 },
-  { at: 6_000, value: 54 },
-  { at: 8_000, value: 72 },
-  { at: 9_000, value: 85 },
-  { at: 11_000, value: 140 },
-  { at: 40_000, value: 300 },
-  { at: 51_000, value: 360 },
-];
-
-const TAR1090_LIGHTNESS_STOPS: NumericStop[] = [
-  { at: 0, value: 53 },
-  { at: 20, value: 50 },
-  { at: 32, value: 54 },
-  { at: 40, value: 52 },
-  { at: 46, value: 51 },
-  { at: 50, value: 46 },
-  { at: 60, value: 43 },
-  { at: 80, value: 41 },
-  { at: 100, value: 41 },
-  { at: 120, value: 41 },
-  { at: 140, value: 41 },
-  { at: 160, value: 40 },
-  { at: 180, value: 40 },
-  { at: 190, value: 44 },
-  { at: 198, value: 50 },
-  { at: 200, value: 58 },
-  { at: 220, value: 58 },
-  { at: 240, value: 58 },
-  { at: 255, value: 55 },
-  { at: 266, value: 55 },
-  { at: 270, value: 58 },
-  { at: 280, value: 58 },
-  { at: 290, value: 47 },
-  { at: 300, value: 43 },
-  { at: 310, value: 48 },
-  { at: 320, value: 48 },
-  { at: 340, value: 52 },
-  { at: 360, value: 53 },
-];
 
 const AIRTRAIL_COLOR_STOPS: RgbStop[] = [
   { at: 0, color: [249, 115, 22] },
@@ -75,46 +29,6 @@ const AIRTRAIL_COLOR_STOPS: RgbStop[] = [
   { at: 40_000, color: [139, 92, 246] },
   { at: 51_000, color: [239, 68, 68] },
 ];
-
-const interpolateStops = (stops: NumericStop[], input: number) => {
-  if (input <= stops[0]!.at) return stops[0]!.value;
-  const last = stops.at(-1)!;
-  if (input >= last.at) return last.value;
-
-  for (let index = 1; index < stops.length; index++) {
-    const upper = stops[index]!;
-    if (input > upper.at) continue;
-    const lower = stops[index - 1]!;
-    const progress = (input - lower.at) / (upper.at - lower.at);
-    return lower.value + (upper.value - lower.value) * progress;
-  }
-
-  return last.value;
-};
-
-const hslToRgb = (
-  hue: number,
-  saturation: number,
-  lightness: number,
-): Color => {
-  const h = ((hue % 360) + 360) % 360;
-  const s = saturation / 100;
-  const l = lightness / 100;
-  const chroma = (1 - Math.abs(2 * l - 1)) * s;
-  const section = h / 60;
-  const x = chroma * (1 - Math.abs((section % 2) - 1));
-  let rgb: [number, number, number];
-
-  if (section < 1) rgb = [chroma, x, 0];
-  else if (section < 2) rgb = [x, chroma, 0];
-  else if (section < 3) rgb = [0, chroma, x];
-  else if (section < 4) rgb = [0, x, chroma];
-  else if (section < 5) rgb = [x, 0, chroma];
-  else rgb = [chroma, 0, x];
-
-  const match = l - chroma / 2;
-  return rgb.map((component) => Math.round((component + match) * 255)) as Color;
-};
 
 const toLinear = (value: number) => {
   const normalized = value / 255;
@@ -200,35 +114,16 @@ export const getFlightTrackColor = ({
   altitudeFeet,
   ground,
   estimated = false,
-  palette,
 }: {
   altitudeFeet: number | null;
   ground: boolean;
   estimated?: boolean;
-  palette: FlightTrackPalette;
 }): Color => {
-  let color: Color;
-
-  if (palette === 'airtrail') {
-    color = ground
-      ? [82, 82, 91]
-      : altitudeFeet === null
-        ? [161, 161, 170]
-        : interpolateAirTrailColor(altitudeFeet);
-  } else {
-    const hue = ground
-      ? 220
-      : altitudeFeet === null
-        ? 0
-        : interpolateStops(TAR1090_HUE_STOPS, altitudeFeet);
-    const saturation = ground || altitudeFeet === null ? 0 : 88;
-    const lightness = ground
-      ? 30
-      : altitudeFeet === null
-        ? 75
-        : interpolateStops(TAR1090_LIGHTNESS_STOPS, hue);
-    color = hslToRgb(hue, saturation, lightness);
-  }
+  const color: Color = ground
+    ? [82, 82, 91]
+    : altitudeFeet === null
+      ? [161, 161, 170]
+      : interpolateAirTrailColor(altitudeFeet);
 
   return estimated ? darkenEstimated(color) : color;
 };

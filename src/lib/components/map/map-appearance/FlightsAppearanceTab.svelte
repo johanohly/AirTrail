@@ -8,7 +8,6 @@
     ARC_COLOR_OPTIONS,
     ARC_SCALE_OPTIONS,
     ARC_THICKNESS_OPTIONS,
-    FLIGHT_TRACK_PALETTE_OPTIONS,
     FLIGHT_TRACK_STYLE_OPTIONS,
     ROUTE_DISPLAY_OPTIONS,
   } from '../map-appearance-options';
@@ -26,7 +25,6 @@
       getFlightTrackColor({
         altitudeFeet,
         ground: false,
-        palette: mapPreferences.flightTrackPalette,
       }),
     );
 </script>
@@ -221,51 +219,6 @@
                       />
                     {/each}
                   {/if}
-                </svg>
-              {/snippet}
-            </AppearanceTile>
-          {/each}
-        </div>
-      </div>
-    {/if}
-
-    {#if showTracksSection &&
-    mapPreferences.routeDisplay === 'tracks' &&
-    mapPreferences.flightTrackStyle === 'altitude'}
-      <div class="space-y-2" transition:fly={{ y: -8, duration: 160 }}>
-        <div>
-          <p class="text-xs font-medium">Palette preview</p>
-          <p class="text-muted-foreground mt-0.5 text-[11px] leading-snug">
-            Temporary while the altitude style is being evaluated.
-          </p>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          {#each FLIGHT_TRACK_PALETTE_OPTIONS as option (option.value)}
-            <AppearanceTile
-              selected={mapPreferences.flightTrackPalette === option.value}
-              onclick={() => (mapPreferences.flightTrackPalette = option.value)}
-              label={option.label}
-            >
-              {#snippet illustration()}
-                <svg
-                  viewBox="0 0 72 32"
-                  class="h-full w-full"
-                  aria-hidden="true"
-                >
-                  {#each previewAltitudes as altitude, index (altitude)}
-                    <path
-                      d={`M${5 + index * 10.4} 22 L${16 + index * 10.4} 10`}
-                      fill="none"
-                      stroke={cssColor(
-                        getFlightTrackColor({
-                          altitudeFeet: altitude,
-                          ground: false,
-                          palette: option.value,
-                        }),
-                      )}
-                      stroke-width="3"
-                    />
-                  {/each}
                 </svg>
               {/snippet}
             </AppearanceTile>

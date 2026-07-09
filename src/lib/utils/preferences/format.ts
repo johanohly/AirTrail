@@ -1,5 +1,6 @@
 import {
   cToF,
+  feetToMeters,
   hpaToInhg,
   kmToMiles,
   kmToNauticalMiles,
@@ -11,6 +12,7 @@ import {
 import type { Preferences } from '$lib/zod/user';
 
 type DistancePrefs = Pick<Preferences, 'distanceUnit'>;
+type AltitudePrefs = Pick<Preferences, 'distanceUnit'>;
 type WindPrefs = Pick<Preferences, 'windSpeedUnit'>;
 type TempPrefs = Pick<Preferences, 'temperatureUnit'>;
 type PressurePrefs = Pick<Preferences, 'pressureUnit'>;
@@ -67,6 +69,14 @@ export const formatDistance = (
     ...opts,
   }).format(value);
 };
+
+// ----- Altitude ---------------------------------------------------------
+
+export const convertAltitude = (feet: number, prefs: AltitudePrefs): number =>
+  prefs.distanceUnit === 'km' ? feetToMeters(feet) : feet;
+
+export const altitudeUnitLabel = (prefs: AltitudePrefs): 'm' | 'ft' =>
+  prefs.distanceUnit === 'km' ? 'm' : 'ft';
 
 // ----- Wind speed -------------------------------------------------------
 

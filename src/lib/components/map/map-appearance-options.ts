@@ -6,7 +6,6 @@ import {
   type ArcColorMode,
   type ArcThicknessMode,
   type ArcThicknessScale,
-  type FlightTrackPalette,
   type FlightTrackStyle,
   type MapProjection,
   type RouteDisplayMode,
@@ -65,13 +64,6 @@ export const FLIGHT_TRACK_STYLE_OPTIONS: Array<
 > = [
   { value: 'standard', label: 'Standard' },
   { value: 'altitude', label: 'Altitude' },
-];
-
-export const FLIGHT_TRACK_PALETTE_OPTIONS: Array<
-  AppearanceOption<FlightTrackPalette>
-> = [
-  { value: 'tar1090', label: 'tar1090' },
-  { value: 'airtrail', label: 'AirTrail' },
 ];
 
 export const AIRPORT_DETAIL_OPTIONS: Array<

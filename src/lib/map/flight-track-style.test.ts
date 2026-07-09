@@ -31,16 +31,14 @@ describe('flight track styling', () => {
       getFlightTrackColor({
         altitudeFeet: 30_000,
         ground: true,
-        palette: 'tar1090',
       }),
-    ).toEqual([77, 77, 77]);
+    ).toEqual([82, 82, 91]);
     expect(
       getFlightTrackColor({
         altitudeFeet: null,
         ground: false,
-        palette: 'tar1090',
       }),
-    ).toEqual([191, 191, 191]);
+    ).toEqual([161, 161, 170]);
   });
 
   it('exposes exact AirTrail palette anchors', () => {
@@ -48,36 +46,31 @@ describe('flight track styling', () => {
       getFlightTrackColor({
         altitudeFeet: 0,
         ground: false,
-        palette: 'airtrail',
       }),
     ).toEqual([249, 115, 22]);
     expect(
       getFlightTrackColor({
         altitudeFeet: 11_000,
         ground: false,
-        palette: 'airtrail',
       }),
     ).toEqual([6, 182, 212]);
     expect(
       getFlightTrackColor({
         altitudeFeet: 51_000,
         ground: false,
-        palette: 'airtrail',
       }),
     ).toEqual([239, 68, 68]);
   });
 
   it('darkens estimated segments in addition to dashing them', () => {
     const actual = getFlightTrackColor({
-      altitudeFeet: 10_000,
+      altitudeFeet: 0,
       ground: false,
-      palette: 'tar1090',
     });
     const estimated = getFlightTrackColor({
-      altitudeFeet: 10_000,
+      altitudeFeet: 0,
       ground: false,
       estimated: true,
-      palette: 'tar1090',
     });
     expect(estimated[0]).toBeLessThan(actual[0]);
     expect(estimated[1]).toBeLessThan(actual[1]);

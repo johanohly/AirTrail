@@ -654,7 +654,6 @@
         altitudeFeet: run.altitudeFeet,
         ground: run.ground,
         estimated: run.estimated,
-        palette: mapPreferences.flightTrackPalette,
       }),
     );
 
@@ -700,13 +699,7 @@
     jointRounded: true,
     capRounded: true,
     updateTriggers: {
-      getColor: [
-        hoveredArc,
-        hoveredAirport,
-        selectedAirportId,
-        selectedRoute,
-        mapPreferences.flightTrackPalette,
-      ],
+      getColor: [hoveredArc, hoveredAirport, selectedAirportId, selectedRoute],
       getWidth: [
         mapPreferences.arcThickness,
         mapPreferences.arcThicknessScale,
@@ -756,13 +749,7 @@
     jointRounded: true,
     capRounded: false,
     updateTriggers: {
-      getColor: [
-        hoveredArc,
-        hoveredAirport,
-        selectedAirportId,
-        selectedRoute,
-        mapPreferences.flightTrackPalette,
-      ],
+      getColor: [hoveredArc, hoveredAirport, selectedAirportId, selectedRoute],
       getWidth: [
         mapPreferences.arcThickness,
         mapPreferences.arcThicknessScale,
