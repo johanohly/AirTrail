@@ -7,6 +7,7 @@ import {
   type ArcThicknessMode,
   type ArcThicknessScale,
   type MapProjection,
+  type RouteDisplayMode,
 } from '$lib/map/map-preferences.svelte';
 import {
   OPENAIP_OVERLAY_GROUPS,
@@ -50,6 +51,12 @@ export const ARC_SCALE_OPTIONS: Array<AppearanceOption<ArcThicknessScale>> = [
   { value: 'normal', label: 'Normal' },
   { value: 'thick', label: 'Thick' },
 ];
+
+export const ROUTE_DISPLAY_OPTIONS: Array<AppearanceOption<RouteDisplayMode>> =
+  [
+    { value: 'tracks', label: 'Flight tracks' },
+    { value: 'points', label: 'Point to point' },
+  ];
 
 export const AIRPORT_DETAIL_OPTIONS: Array<
   AppearanceOption<AirportOverlayDetail>

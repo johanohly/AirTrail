@@ -118,8 +118,13 @@
     return arcFrequencyPercentileByRoute[routeKey] ?? 0;
   };
 
+  const activeFlightTracks = $derived.by(() => {
+    if (mapPreferences.routeDisplay !== 'tracks') return [];
+    return flightTracks;
+  });
+
   const trackFlightIds = $derived.by(() => {
-    return new Set(flightTracks.map((track) => track.flightId));
+    return new Set(activeFlightTracks.map((track) => track.flightId));
   });
 
   const fullyTrackedRouteKeys = $derived.by(() => {
@@ -133,7 +138,7 @@
   });
 
   const flightTrackPaths = $derived.by(() => {
-    return buildFlightTrackPaths(flights, flightArcs, flightTracks);
+    return buildFlightTrackPaths(flights, flightArcs, activeFlightTracks);
   });
 
   // deck's picking coordinate is unprojected through deck's own globe
