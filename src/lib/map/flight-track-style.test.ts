@@ -150,4 +150,27 @@ describe('flight track styling', () => {
       ],
     });
   });
+
+  it('only splits standard runs at estimated boundaries', () => {
+    const runs = buildFlightTrackRuns(
+      [
+        track(
+          [
+            [10, 55, 0],
+            [11, 56, 304.8],
+            [12, 57, 609.6],
+          ],
+          { ground: [true, false, false], estimated: [false, false, false] },
+        ),
+      ],
+      { splitByAltitude: false },
+    );
+
+    expect(runs).toHaveLength(1);
+    expect(runs[0]).toMatchObject({
+      altitudeFeet: null,
+      ground: false,
+      estimated: false,
+    });
+  });
 });

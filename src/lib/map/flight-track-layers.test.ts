@@ -57,16 +57,49 @@ describe('flight track layers', () => {
     }
   });
 
-  it('only prepares altitude runs when the altitude style is active', () => {
-    expect(prepareFlightTrackLayerData(paths, 'standard')).toEqual({
-      paths,
-      solidRuns: [],
-      estimatedRuns: [],
+  it('prepares estimated runs for every track style', () => {
+    const standardData = prepareFlightTrackLayerData(paths, 'standard');
+    expect(standardData.solidRuns).toHaveLength(1);
+    expect(standardData.estimatedRuns).toHaveLength(1);
+    expect(standardData.solidRuns[0]).toMatchObject({
+      altitudeFeet: null,
+      estimated: false,
     });
 
     const altitudeData = prepareFlightTrackLayerData(paths, 'altitude');
     expect(altitudeData.solidRuns).toHaveLength(1);
     expect(altitudeData.estimatedRuns).toHaveLength(1);
+  });
+
+  it('renders estimated standard segments through the dotted layers', () => {
+    const data = prepareFlightTrackLayerData(paths, 'standard');
+    const layers = buildFlightTrackLayers({
+      data,
+      style: 'standard',
+      parameters: {},
+      extensions: [],
+      getWidth: () => 2,
+      getStandardColor: () => [1, 2, 3],
+      getAltitudeColor: () => [4, 5, 6],
+      getEstimatedUnderlayColor: () => [24, 24, 27, 190],
+      widthUpdateTriggers: [],
+      standardColorUpdateTriggers: [],
+      altitudeColorUpdateTriggers: [],
+      onHover: undefined,
+      onClick: undefined,
+    });
+
+    expect(layers[0]!.props.data).toBe(data.solidRuns);
+    expect(layers[1]!.props.data).toEqual([]);
+    expect(layers[2]!.props.data).toBe(data.estimatedRuns);
+    expect(layers[3]!.props.data).toBe(data.estimatedRuns);
+    expect(
+      layers[3]!.props.getColor(data.estimatedRuns[0], {
+        index: 0,
+        data: data.estimatedRuns,
+        target: [],
+      }),
+    ).toEqual([1, 2, 3]);
   });
 
   it('owns the complete ordered flight-track layer stack', () => {

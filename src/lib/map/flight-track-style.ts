@@ -139,11 +139,15 @@ export const getFlightTrackColor = ({
   return estimated ? darkenEstimated(color) : color;
 };
 
-const getEdgeStyle = (track: FlightTrackPath, index: number) => {
+const getEdgeStyle = (
+  track: FlightTrackPath,
+  index: number,
+  splitByAltitude: boolean,
+) => {
   const coordinate = track.path[index]!;
-  const ground = track.ground?.[index] ?? false;
+  const ground = splitByAltitude && (track.ground?.[index] ?? false);
   const altitudeFeet =
-    ground || coordinate[2] === undefined
+    !splitByAltitude || ground || coordinate[2] === undefined
       ? null
       : roundFlightTrackAltitude(metersToFeet(coordinate[2]));
   return {
@@ -162,17 +166,20 @@ const stylesMatch = (
   left.ground === right.ground &&
   left.estimated === right.estimated;
 
-export const buildFlightTrackRuns = (tracks: FlightTrackPath[]) => {
+export const buildFlightTrackRuns = (
+  tracks: FlightTrackPath[],
+  { splitByAltitude = true }: { splitByAltitude?: boolean } = {},
+) => {
   const runs: FlightTrackRun[] = [];
 
   for (const track of tracks) {
     if (track.path.length < 2) continue;
 
-    let style = getEdgeStyle(track, 0);
+    let style = getEdgeStyle(track, 0, splitByAltitude);
     let path: FlightTrackCoordinate[] = [track.path[0]!];
 
     for (let index = 0; index < track.path.length - 1; index++) {
-      const edgeStyle = getEdgeStyle(track, index);
+      const edgeStyle = getEdgeStyle(track, index, splitByAltitude);
       if (!stylesMatch(style, edgeStyle)) {
         if (path.length >= 2) runs.push({ ...track, ...style, path });
         style = edgeStyle;

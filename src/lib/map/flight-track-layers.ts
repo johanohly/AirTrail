@@ -3,12 +3,12 @@ import { PathStyleExtension } from '@deck.gl/extensions';
 import { PathLayer, type PathLayerProps } from '@deck.gl/layers';
 import { distance, greatCircle, point } from '@turf/turf';
 
-import type { FlightTrackStyle } from './map-preferences.svelte';
 import type { FlightArc, FlightTrackPath } from './flight-layer-data';
 import {
   buildFlightTrackRuns,
   type FlightTrackRun,
 } from './flight-track-style';
+import type { FlightTrackStyle } from './map-preferences.svelte';
 
 type PathParameters = PathLayerProps<FlightTrackPath>['parameters'];
 type PathHoverHandler = PathLayerProps<FlightTrackPath>['onHover'];
@@ -138,7 +138,9 @@ export const prepareFlightTrackLayerData = (
   paths: FlightTrackPath[],
   style: FlightTrackStyle,
 ): FlightTrackLayerData => {
-  const runs = style === 'altitude' ? buildFlightTrackRuns(paths) : [];
+  const runs = buildFlightTrackRuns(paths, {
+    splitByAltitude: style === 'altitude',
+  });
 
   return {
     paths,
@@ -177,7 +179,7 @@ export const buildFlightTrackLayers = ({
       ...sharedPathOptions,
       id: 'track-path-layer',
       extensions,
-      data: style === 'standard' ? data.paths : [],
+      data: style === 'standard' ? data.solidRuns : [],
       getPath: getSurfacePath,
       getColor: getStandardColor,
       capRounded: true,
@@ -190,7 +192,7 @@ export const buildFlightTrackLayers = ({
       ...sharedPathOptions,
       id: 'altitude-track-path-layer',
       extensions,
-      data: data.solidRuns,
+      data: style === 'altitude' ? data.solidRuns : [],
       getPath: getSurfacePath,
       getColor: getAltitudeColor,
       capRounded: true,
@@ -219,7 +221,7 @@ export const buildFlightTrackLayers = ({
       extensions: [...extensions, estimatedPathStyle],
       data: data.estimatedRuns,
       getPath: getSurfacePath,
-      getColor: getAltitudeColor,
+      getColor: style === 'standard' ? getStandardColor : getAltitudeColor,
       getDashArray: (run) => {
         const width = Math.max(1, getWidth(run));
         return [10 / width, (20 + 3 * width) / width];
@@ -229,7 +231,10 @@ export const buildFlightTrackLayers = ({
       capRounded: false,
       updateTriggers: {
         ...sharedPathOptions.updateTriggers,
-        getColor: altitudeColorUpdateTriggers,
+        getColor:
+          style === 'standard'
+            ? standardColorUpdateTriggers
+            : altitudeColorUpdateTriggers,
         getDashArray: widthUpdateTriggers,
       },
     }),
