@@ -134,7 +134,7 @@ export const getFlightTrackColor = ({
 }): Color => {
   const color: Color = ground
     ? darkMode
-      ? [161, 161, 170]
+      ? [228, 228, 231]
       : [82, 82, 91]
     : altitudeFeet === null
       ? [161, 161, 170]

@@ -39,7 +39,7 @@ describe('flight track styling', () => {
         ground: true,
         darkMode: true,
       }),
-    ).toEqual([161, 161, 170]);
+    ).toEqual([228, 228, 231]);
     expect(
       getFlightTrackColor({
         altitudeFeet: null,
@@ -56,7 +56,7 @@ describe('flight track styling', () => {
         estimated: true,
         darkMode: true,
       }),
-    ).toEqual([129, 129, 136]);
+    ).toEqual([182, 182, 185]);
   });
 
   it('exposes exact AirTrail palette anchors', () => {

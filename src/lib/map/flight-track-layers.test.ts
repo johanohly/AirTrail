@@ -16,6 +16,7 @@ const paths = [
       [12, 57, 609.6],
     ],
     estimated: [false, false, true],
+    ground: [true, false, false],
   },
 ] as FlightTrackPath[];
 
@@ -61,6 +62,7 @@ describe('flight track layers', () => {
     const standardData = prepareFlightTrackLayerData(paths, 'standard');
     expect(standardData.solidRuns).toHaveLength(1);
     expect(standardData.estimatedRuns).toHaveLength(1);
+    expect(standardData.groundRuns).toHaveLength(0);
     expect(standardData.solidRuns[0]).toMatchObject({
       altitudeFeet: null,
       estimated: false,
@@ -69,6 +71,7 @@ describe('flight track layers', () => {
     const altitudeData = prepareFlightTrackLayerData(paths, 'altitude');
     expect(altitudeData.solidRuns).toHaveLength(1);
     expect(altitudeData.estimatedRuns).toHaveLength(1);
+    expect(altitudeData.groundRuns).toHaveLength(1);
   });
 
   it('renders estimated standard segments through the dotted layers', () => {
@@ -81,6 +84,7 @@ describe('flight track layers', () => {
       getWidth: () => 2,
       getStandardColor: () => [1, 2, 3],
       getAltitudeColor: () => [4, 5, 6],
+      getGroundCasingColor: () => [9, 9, 11, 220],
       getEstimatedUnderlayColor: () => [24, 24, 27, 190],
       widthUpdateTriggers: [],
       standardColorUpdateTriggers: [],
@@ -91,10 +95,11 @@ describe('flight track layers', () => {
 
     expect(layers[0]!.props.data).toBe(data.solidRuns);
     expect(layers[1]!.props.data).toEqual([]);
-    expect(layers[2]!.props.data).toBe(data.estimatedRuns);
+    expect(layers[2]!.props.data).toEqual([]);
     expect(layers[3]!.props.data).toBe(data.estimatedRuns);
+    expect(layers[4]!.props.data).toBe(data.estimatedRuns);
     expect(
-      layers[3]!.props.getColor(data.estimatedRuns[0], {
+      layers[4]!.props.getColor(data.estimatedRuns[0], {
         index: 0,
         data: data.estimatedRuns,
         target: [],
@@ -112,6 +117,7 @@ describe('flight track layers', () => {
       getWidth: () => 2,
       getStandardColor: () => [0, 0, 0],
       getAltitudeColor: () => [0, 0, 0],
+      getGroundCasingColor: () => [9, 9, 11, 220],
       getEstimatedUnderlayColor: () => [24, 24, 27, 190],
       widthUpdateTriggers: [],
       standardColorUpdateTriggers: [],
@@ -122,15 +128,18 @@ describe('flight track layers', () => {
 
     expect(layers.map((layer) => layer.id)).toEqual([
       'track-path-layer',
+      'ground-track-casing-layer',
       'altitude-track-path-layer',
       'estimated-track-underlay-layer',
       'estimated-track-path-layer',
       'ghost-track-path',
     ]);
     expect(layers[0]!.props.data).toEqual([]);
-    expect(layers[1]!.props.data).toBe(data.solidRuns);
-    expect(layers[2]!.props.data).toBe(data.estimatedRuns);
-    expect(layers[4]!.props.data).toBe(paths);
+    expect(layers[1]!.props.data).toBe(data.groundRuns);
+    expect(layers[1]!.props.getWidth(data.groundRuns[0])).toBe(4.5);
+    expect(layers[2]!.props.data).toBe(data.solidRuns);
+    expect(layers[3]!.props.data).toBe(data.estimatedRuns);
+    expect(layers[5]!.props.data).toBe(paths);
   });
 
   it('renders tracks on the map surface while retaining stored altitude', () => {
@@ -143,6 +152,7 @@ describe('flight track layers', () => {
       getWidth: () => 2,
       getStandardColor: () => [0, 0, 0],
       getAltitudeColor: () => [0, 0, 0],
+      getGroundCasingColor: () => [9, 9, 11, 220],
       getEstimatedUnderlayColor: () => [24, 24, 27, 60],
       widthUpdateTriggers: [],
       standardColorUpdateTriggers: [],
@@ -151,12 +161,12 @@ describe('flight track layers', () => {
       onClick: undefined,
     });
 
-    const visiblePath = layers[1]!.props.getPath(data.solidRuns[0], {
+    const visiblePath = layers[2]!.props.getPath(data.solidRuns[0], {
       index: 0,
       data: data.solidRuns,
       target: [],
     });
-    const pickingPath = layers[4]!.props.getPath(paths[0], {
+    const pickingPath = layers[5]!.props.getPath(paths[0], {
       index: 0,
       data: paths,
       target: [],
@@ -173,7 +183,7 @@ describe('flight track layers', () => {
     ]);
     expect(paths[0]!.path[1]).toEqual([11, 56, 304.8]);
     expect(
-      layers[2]!.props.getColor(data.estimatedRuns[0], {
+      layers[3]!.props.getColor(data.estimatedRuns[0], {
         index: 0,
         data: data.estimatedRuns,
         target: [],

@@ -672,6 +672,14 @@
       ];
     };
 
+  const getGroundCasingColor =
+    () =>
+    (run: FlightTrackRun): Color => {
+      const state = getTrackInteractionState(run);
+      const alpha = typeof state === 'number' ? Math.round(state * 0.75) : 220;
+      return isDarkMode ? [9, 9, 11, alpha] : [250, 250, 250, alpha];
+    };
+
   const pathWidthUpdateTriggers = $derived([
     mapPreferences.arcThickness,
     mapPreferences.arcThicknessScale,
@@ -692,6 +700,7 @@
         getWidth: getVisibleArcWidth,
         getStandardColor: getTrackColor(),
         getAltitudeColor: getAltitudeTrackColor(),
+        getGroundCasingColor: getGroundCasingColor(),
         getEstimatedUnderlayColor: getEstimatedUnderlayColor(),
         widthUpdateTriggers: pathWidthUpdateTriggers,
         standardColorUpdateTriggers: [
