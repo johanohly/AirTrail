@@ -27,6 +27,7 @@ type FlightTrackLayerOptions = {
   getWidth: (track: FlightArc) => number;
   getStandardColor: (track: FlightTrackPath) => Color;
   getAltitudeColor: (run: FlightTrackRun) => Color;
+  getEstimatedUnderlayColor: (run: FlightTrackRun) => Color;
   widthUpdateTriggers: unknown[];
   standardColorUpdateTriggers: unknown[];
   altitudeColorUpdateTriggers: unknown[];
@@ -76,6 +77,7 @@ export const buildFlightTrackLayers = ({
   getWidth,
   getStandardColor,
   getAltitudeColor,
+  getEstimatedUnderlayColor,
   widthUpdateTriggers,
   standardColorUpdateTriggers,
   altitudeColorUpdateTriggers,
@@ -125,9 +127,13 @@ export const buildFlightTrackLayers = ({
       extensions,
       data: data.estimatedRuns,
       getPath: getSurfacePath,
-      getColor: [24, 24, 27, 190],
+      getColor: getEstimatedUnderlayColor,
       getWidth: (run) => Math.max(1, getWidth(run) * 0.3),
       capRounded: false,
+      updateTriggers: {
+        ...sharedPathOptions.updateTriggers,
+        getColor: altitudeColorUpdateTriggers,
+      },
     }),
     new PathLayer<FlightTrackRun>({
       ...sharedPathOptions,

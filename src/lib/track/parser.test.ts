@@ -88,6 +88,38 @@ describe('track parser', () => {
     ).toThrow('needs timestamp and trace fields');
   });
 
+  it('rejects readsb traces without a usable multi-point leg', () => {
+    expect(() =>
+      parseTrackCandidates(
+        JSON.stringify({
+          timestamp: 1_700_000_000,
+          trace: [
+            [0, 55, 12, 'ground', 0, 90, 2],
+            [10, 56, 13, 1_000, 100, 91, 2],
+          ],
+        }),
+        'readsb',
+        'trace.json',
+      ),
+    ).toThrow('no flight leg with at least two points');
+  });
+
+  it('rejects malformed readsb tuples instead of merging leg boundaries', () => {
+    expect(() =>
+      parseTrackCandidates(
+        JSON.stringify({
+          timestamp: 1_700_000_000,
+          trace: [
+            [0, 55, 12, 'ground', 0, 90, 0],
+            [10, null, 13, 1_000, 100, 91, 2],
+          ],
+        }),
+        'readsb',
+        'trace.json',
+      ),
+    ).toThrow('point 2 needs finite offset, latitude, and longitude');
+  });
+
   it('parses GPX coordinates, altitude, and times', () => {
     const result = parseTrackContent(
       `<?xml version="1.0" encoding="UTF-8"?>

@@ -41,6 +41,7 @@ describe('flight track layers', () => {
       getWidth: () => 2,
       getStandardColor: () => [0, 0, 0],
       getAltitudeColor: () => [0, 0, 0],
+      getEstimatedUnderlayColor: () => [24, 24, 27, 190],
       widthUpdateTriggers: [],
       standardColorUpdateTriggers: [],
       altitudeColorUpdateTriggers: [],
@@ -71,6 +72,7 @@ describe('flight track layers', () => {
       getWidth: () => 2,
       getStandardColor: () => [0, 0, 0],
       getAltitudeColor: () => [0, 0, 0],
+      getEstimatedUnderlayColor: () => [24, 24, 27, 60],
       widthUpdateTriggers: [],
       standardColorUpdateTriggers: [],
       altitudeColorUpdateTriggers: [],
@@ -99,5 +101,12 @@ describe('flight track layers', () => {
       [12, 57],
     ]);
     expect(paths[0]!.path[1]).toEqual([11, 56, 304.8]);
+    expect(
+      layers[2]!.props.getColor(data.estimatedRuns[0], {
+        index: 0,
+        data: data.estimatedRuns,
+        target: [],
+      }),
+    ).toEqual([24, 24, 27, 60]);
   });
 });

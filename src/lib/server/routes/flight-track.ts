@@ -7,6 +7,7 @@ import { reduceFlightTrackForMap } from '$lib/track/render';
 import {
   flightTrackPayloadSchema,
   type FlightTrackRow,
+  type FlightTrackSourceFormat,
 } from '$lib/track/schema';
 
 const flightTrackListInput = z
@@ -20,7 +21,7 @@ const parseTrackRow = (
   row: {
     flightId: number;
     track: unknown;
-    sourceFormat: 'gpx' | 'kml' | 'csv' | 'readsb';
+    sourceFormat: FlightTrackSourceFormat;
     sourceName: string | null;
     pointCount: number;
   },

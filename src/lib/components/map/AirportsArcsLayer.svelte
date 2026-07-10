@@ -610,38 +610,41 @@
     greatCircle: true,
   });
 
+  type TrackInteractionState = 'active' | 'highlighted' | 170 | 200;
+
+  const getTrackInteractionState = <T extends FlightArc>(
+    d: T,
+  ): TrackInteractionState => {
+    if (
+      (hoveredArc?.from === d.from && hoveredArc?.to === d.to) ||
+      routeMatchesArc(d, selectedRoute)
+    ) {
+      return 'highlighted';
+    }
+    if (hoveredArc) return 200;
+    if (hoveredAirport) {
+      return hoveredAirport.id === d.from.id || hoveredAirport.id === d.to.id
+        ? 'active'
+        : 200;
+    }
+    if (selectedAirportId) {
+      return selectedAirportId === d.from.id || selectedAirportId === d.to.id
+        ? 'active'
+        : 170;
+    }
+    return selectedRoute ? 170 : 'active';
+  };
+
   const getTrackColor = <T extends FlightArc>(
     getBaseColor?: (data: T) => Color,
   ) => {
     const baseArcColor = getBaseArcColor('source');
 
     return (d: T): Color => {
-      const color = () => getBaseColor?.(d) ?? baseArcColor(d);
-      if (hoveredArc?.from === d.from && hoveredArc?.to === d.to) {
-        return HOVER_COLOR;
-      } else if (routeMatchesArc(d, selectedRoute)) {
-        return HOVER_COLOR;
-      } else if (hoveredArc) {
-        return INACTIVE_COLOR(200);
-      } else if (
-        hoveredAirport?.id === d.from.id ||
-        hoveredAirport?.id === d.to.id
-      ) {
-        return color();
-      } else if (hoveredAirport) {
-        return INACTIVE_COLOR(200);
-      } else if (
-        selectedAirportId &&
-        (d.from.id === selectedAirportId || d.to.id === selectedAirportId)
-      ) {
-        return color();
-      } else if (selectedAirportId) {
-        return INACTIVE_COLOR(170);
-      } else if (selectedRoute) {
-        return INACTIVE_COLOR(170);
-      } else {
-        return color();
-      }
+      const state = getTrackInteractionState(d);
+      if (state === 'highlighted') return HOVER_COLOR;
+      if (typeof state === 'number') return INACTIVE_COLOR(state);
+      return getBaseColor?.(d) ?? baseArcColor(d);
     };
   };
 
@@ -653,6 +656,18 @@
         estimated: run.estimated,
       }),
     );
+
+  const getEstimatedUnderlayColor =
+    () =>
+    (run: FlightTrackRun): Color => {
+      const state = getTrackInteractionState(run);
+      return [
+        24,
+        24,
+        27,
+        typeof state === 'number' ? Math.round(state * 0.3) : 190,
+      ];
+    };
 
   const pathWidthUpdateTriggers = $derived([
     mapPreferences.arcThickness,
@@ -674,6 +689,7 @@
         getWidth: getVisibleArcWidth,
         getStandardColor: getTrackColor(),
         getAltitudeColor: getAltitudeTrackColor(),
+        getEstimatedUnderlayColor: getEstimatedUnderlayColor(),
         widthUpdateTriggers: pathWidthUpdateTriggers,
         standardColorUpdateTriggers: [
           hoveredArc,
