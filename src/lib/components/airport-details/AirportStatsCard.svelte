@@ -3,7 +3,11 @@
   import NumberFlow from '@number-flow/svelte';
 
   import { cn, type FlightData } from '$lib/utils';
-  import { formatAsFlightDate, parseLocalizeISO } from '$lib/utils/datetime';
+  import {
+    formatAsFlightDate,
+    getFlightDateRange,
+    parseLocalizeISO,
+  } from '$lib/utils/datetime';
 
   let {
     flights,
@@ -44,9 +48,15 @@
         const exact =
           actual ??
           (scheduled ? parseLocalizeISO(scheduled, tz ?? 'UTC') : null);
-        const start = exact ?? flight.dateStart;
-        const end = exact ?? flight.dateEnd;
-        const date = exact ?? flight.date;
+        const range = exact
+          ? { start: exact, end: exact }
+          : getFlightDateRange(
+              flight.raw.date,
+              flight.datePrecision,
+              tz ?? 'UTC',
+            );
+        const { start, end } = range;
+        const date = exact ?? start;
         if (!start || !end || !date) continue;
 
         const label = formatAsFlightDate(
