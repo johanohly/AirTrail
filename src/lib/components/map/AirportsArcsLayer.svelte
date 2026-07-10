@@ -3,6 +3,7 @@
   import { ArcLayer, ScatterplotLayer } from '@deck.gl/layers';
   import { MapboxOverlay } from '@deck.gl/mapbox';
   import { isTouchDevice } from '@melt-ui/svelte/internal/helpers';
+  import { mode } from 'mode-watcher';
   import { onDestroy } from 'svelte';
   import {
     Box,
@@ -84,6 +85,7 @@
     depthWriteEnabled: false,
   } as const;
   const globeOcclusion = new GlobeOcclusionExtension();
+  const isDarkMode = $derived(mode.current === 'dark');
 
   const interpolateColor = (
     from: readonly [number, number, number],
@@ -654,6 +656,7 @@
         altitudeFeet: run.altitudeFeet,
         ground: run.ground,
         estimated: run.estimated,
+        darkMode: isDarkMode,
       }),
     );
 
@@ -704,6 +707,7 @@
           hoveredAirport,
           selectedAirportId,
           selectedRoute,
+          isDarkMode,
         ],
         onHover: handleTrackHover,
         onClick: handleTrackClick,

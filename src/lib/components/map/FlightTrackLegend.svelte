@@ -1,5 +1,6 @@
 <script lang="ts">
   import { ChevronDown } from '@o7/icon/lucide';
+  import { mode } from 'mode-watcher';
   import { MediaQuery } from 'svelte/reactivity';
   import { Control } from 'svelte-maplibre';
 
@@ -19,18 +20,22 @@
   const labelAltitudes = [0, 10_000, 20_000, 30_000, 40_000, 51_000];
   const cssColor = (color: readonly number[]) =>
     `rgb(${color[0]} ${color[1]} ${color[2]})`;
+  const darkMode = $derived(mode.current === 'dark');
   const colorAt = (altitudeFeet: number | null, ground = false) =>
-    cssColor(getFlightTrackColor({ altitudeFeet, ground }));
+    cssColor(getFlightTrackColor({ altitudeFeet, ground, darkMode }));
   const gradient = `linear-gradient(90deg in oklab, ${FLIGHT_TRACK_ALTITUDE_COLOR_STOPS.map(
     ({ at, color }) =>
       `${cssColor(color)} ${(at / FLIGHT_TRACK_MAX_ALTITUDE_FEET) * 100}%`,
   ).join(', ')})`;
-  const estimatedColor = cssColor(
-    getFlightTrackColor({
-      altitudeFeet: 20_000,
-      ground: false,
-      estimated: true,
-    }),
+  const estimatedColor = $derived(
+    cssColor(
+      getFlightTrackColor({
+        altitudeFeet: 20_000,
+        ground: false,
+        estimated: true,
+        darkMode,
+      }),
+    ),
   );
   const prefs = $derived(getPreferences(page.data.user));
   const unit = $derived(altitudeUnitLabel(prefs));

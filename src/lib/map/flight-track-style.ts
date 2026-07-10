@@ -125,13 +125,17 @@ export const getFlightTrackColor = ({
   altitudeFeet,
   ground,
   estimated = false,
+  darkMode = false,
 }: {
   altitudeFeet: number | null;
   ground: boolean;
   estimated?: boolean;
+  darkMode?: boolean;
 }): Color => {
   const color: Color = ground
-    ? [82, 82, 91]
+    ? darkMode
+      ? [161, 161, 170]
+      : [82, 82, 91]
     : altitudeFeet === null
       ? [161, 161, 170]
       : interpolateAirTrailColor(altitudeFeet);
