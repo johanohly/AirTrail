@@ -39,6 +39,22 @@ const estimatedPathStyle = new PathStyleExtension({
   highPrecisionDash: true,
 });
 
+const surfacePathCache = new WeakMap<
+  FlightTrackPath['path'],
+  [number, number][]
+>();
+
+const getSurfacePath = (track: Pick<FlightTrackPath, 'path'>) => {
+  const cached = surfacePathCache.get(track.path);
+  if (cached) return cached;
+
+  const path = track.path.map(
+    (coordinate) => [coordinate[0], coordinate[1]] as [number, number],
+  );
+  surfacePathCache.set(track.path, path);
+  return path;
+};
+
 export const prepareFlightTrackLayerData = (
   paths: FlightTrackPath[],
   style: FlightTrackStyle,
@@ -82,7 +98,7 @@ export const buildFlightTrackLayers = ({
       id: 'track-path-layer',
       extensions,
       data: style === 'standard' ? data.paths : [],
-      getPath: (track) => track.path,
+      getPath: getSurfacePath,
       getColor: getStandardColor,
       capRounded: true,
       updateTriggers: {
@@ -95,7 +111,7 @@ export const buildFlightTrackLayers = ({
       id: 'altitude-track-path-layer',
       extensions,
       data: data.solidRuns,
-      getPath: (run) => run.path,
+      getPath: getSurfacePath,
       getColor: getAltitudeColor,
       capRounded: true,
       updateTriggers: {
@@ -108,7 +124,7 @@ export const buildFlightTrackLayers = ({
       id: 'estimated-track-underlay-layer',
       extensions,
       data: data.estimatedRuns,
-      getPath: (run) => run.path,
+      getPath: getSurfacePath,
       getColor: [24, 24, 27, 190],
       getWidth: (run) => Math.max(1, getWidth(run) * 0.3),
       capRounded: false,
@@ -118,7 +134,7 @@ export const buildFlightTrackLayers = ({
       id: 'estimated-track-path-layer',
       extensions: [...extensions, estimatedPathStyle],
       data: data.estimatedRuns,
-      getPath: (run) => run.path,
+      getPath: getSurfacePath,
       getColor: getAltitudeColor,
       getDashArray: (run) => {
         const width = Math.max(1, getWidth(run));
@@ -138,7 +154,7 @@ export const buildFlightTrackLayers = ({
       parameters,
       extensions,
       data: data.paths,
-      getPath: (track) => track.path,
+      getPath: getSurfacePath,
       getColor: [0, 0, 0, 0],
       getWidth: 18,
       widthUnits: 'pixels',

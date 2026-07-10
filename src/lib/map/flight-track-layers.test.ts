@@ -60,4 +60,44 @@ describe('flight track layers', () => {
     expect(layers[2]!.props.data).toBe(data.estimatedRuns);
     expect(layers[4]!.props.data).toBe(paths);
   });
+
+  it('renders tracks on the map surface while retaining stored altitude', () => {
+    const data = prepareFlightTrackLayerData(paths, 'altitude');
+    const layers = buildFlightTrackLayers({
+      data,
+      style: 'altitude',
+      parameters: {},
+      extensions: [],
+      getWidth: () => 2,
+      getStandardColor: () => [0, 0, 0],
+      getAltitudeColor: () => [0, 0, 0],
+      widthUpdateTriggers: [],
+      standardColorUpdateTriggers: [],
+      altitudeColorUpdateTriggers: [],
+      onHover: undefined,
+      onClick: undefined,
+    });
+
+    const visiblePath = layers[1]!.props.getPath(data.solidRuns[0], {
+      index: 0,
+      data: data.solidRuns,
+      target: [],
+    });
+    const pickingPath = layers[4]!.props.getPath(paths[0], {
+      index: 0,
+      data: paths,
+      target: [],
+    });
+
+    expect(visiblePath).toEqual([
+      [10, 55],
+      [11, 56],
+    ]);
+    expect(pickingPath).toEqual([
+      [10, 55],
+      [11, 56],
+      [12, 57],
+    ]);
+    expect(paths[0]!.path[1]).toEqual([11, 56, 304.8]);
+  });
 });
