@@ -15,7 +15,7 @@
     getPreferences,
   } from '$lib/utils/preferences';
 
-  const mobile = new MediaQuery('(max-width: 639px)');
+  const mobile = new MediaQuery('(max-width: 767px)');
   const labelAltitudes = [0, 10_000, 20_000, 30_000, 40_000, 51_000];
   const cssColor = (color: readonly number[]) =>
     `rgb(${color[0]} ${color[1]} ${color[2]})`;
@@ -25,7 +25,13 @@
     ({ at, color }) =>
       `${cssColor(color)} ${(at / FLIGHT_TRACK_MAX_ALTITUDE_FEET) * 100}%`,
   ).join(', ')})`;
-  const estimatedColor = colorAt(20_000);
+  const estimatedColor = cssColor(
+    getFlightTrackColor({
+      altitudeFeet: 20_000,
+      ground: false,
+      estimated: true,
+    }),
+  );
   const prefs = $derived(getPreferences(page.data.user));
   const unit = $derived(altitudeUnitLabel(prefs));
   const labels = $derived(
@@ -109,17 +115,27 @@
               class="size-2 rounded-full"
               style:background-color={colorAt(null)}
             ></span>
-            Unknown
+            No altitude
           </span>
           <span class="inline-flex items-center gap-1.5">
-            <span class="relative h-1 w-7" aria-hidden="true">
-              <span class="absolute inset-x-0 top-[1px] h-px bg-zinc-900/70"
-              ></span>
-              <span
-                class="absolute inset-0"
-                style={`background: repeating-linear-gradient(90deg, ${estimatedColor} 0 5px, transparent 5px 9px)`}
-              ></span>
-            </span>
+            <svg viewBox="0 0 36 10" class="h-2.5 w-9" aria-hidden="true">
+              <path
+                d="M2 5 H34"
+                fill="none"
+                stroke="rgb(24 24 27)"
+                stroke-opacity="0.75"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <path
+                d="M2 5 H34"
+                fill="none"
+                stroke={estimatedColor}
+                stroke-width="4"
+                stroke-dasharray="5 8.5"
+                stroke-linecap="round"
+              />
+            </svg>
             Estimated
           </span>
         </div>
