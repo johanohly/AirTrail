@@ -3,10 +3,11 @@ import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 
 import type { DB } from './schema';
 import type { CreateFlight } from './types';
+
 import {
   flightTrackInputSchema,
+  toFlightTrackPayload,
   type FlightTrackInput,
-  type FlightTrackPayload,
 } from '$lib/track/schema';
 
 const airportDisplayName = sql<string>`regexp_replace("name", '\\s+International(\\s+Airport)?$', ' Intl.', 'i')`;
@@ -236,13 +237,6 @@ export const updateFlightPrimitiveWithConnection = async (
 
 const normalizeFlightTrackInput = (track: FlightTrackInput): FlightTrackInput =>
   flightTrackInputSchema.parse(track);
-
-const toFlightTrackPayload = (track: FlightTrackInput): FlightTrackPayload => ({
-  coordinates: track.coordinates,
-  ...(track.times ? { times: track.times } : {}),
-  ...(track.groundSpeedKt ? { groundSpeedKt: track.groundSpeedKt } : {}),
-  ...(track.trackDeg ? { trackDeg: track.trackDeg } : {}),
-});
 
 export const upsertFlightTrackPrimitiveWithConnection = async (
   db: Kysely<DB>,

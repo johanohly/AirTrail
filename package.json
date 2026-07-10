@@ -45,6 +45,7 @@
   "devDependencies": {
     "@date-fns/tz": "^1.4.1",
     "@deck.gl/core": "~9.2.11",
+    "@deck.gl/extensions": "~9.2.11",
     "@deck.gl/layers": "~9.2.11",
     "@deck.gl/mapbox": "~9.2.11",
     "@dnd-kit-svelte/svelte": "^0.1.6",

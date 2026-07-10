@@ -4,7 +4,8 @@
 
   import { Button } from '$lib/components/ui/button';
   import { Modal, ModalBody, ModalHeader } from '$lib/components/ui/modal';
-  import { parseTrackFile } from '$lib/track/parser';
+  import { findAutomaticTrackCandidate } from '$lib/track/candidates';
+  import { parseTrackFile, type ParsedTrackCandidate } from '$lib/track/parser';
   import type { FlightTrackInput } from '$lib/track/schema';
   import { isSmallScreen } from '$lib/utils/size';
   import type { FlightFormData } from '$lib/zod/flight';
@@ -22,6 +23,16 @@
   let parsing = $state(false);
   let error: string | null = $state(null);
   let originalPointCount: number | null = $state(null);
+  let trackCandidates: ParsedTrackCandidate[] = $state([]);
+
+  const legTimeFormatter = new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'UTC',
+    timeZoneName: 'short',
+  });
 
   const track = $derived($formData.track);
   const hasTrack = $derived(!!track);
@@ -37,6 +48,8 @@
       hasTimes: Boolean(track.times?.length),
       hasGroundSpeed: Boolean(track.groundSpeedKt?.length),
       hasTrackDegrees: Boolean(track.trackDeg?.length),
+      hasGroundFlags: Boolean(track.ground?.length),
+      hasEstimatedFlags: Boolean(track.estimated?.length),
       sourceFormat: track.sourceFormat.toUpperCase(),
     };
   });
@@ -48,6 +61,27 @@
     }));
   };
 
+  const automaticCandidate = (candidates: ParsedTrackCandidate[]) => {
+    return findAutomaticTrackCandidate(candidates, {
+      from: $formData.from,
+      to: $formData.to,
+    });
+  };
+
+  const formatLegRange = (candidate: ParsedTrackCandidate) => {
+    if (candidate.startTime === null || candidate.endTime === null) {
+      return 'Time unavailable';
+    }
+    return `${legTimeFormatter.format(candidate.startTime * 1_000)} – ${legTimeFormatter.format(candidate.endTime * 1_000)}`;
+  };
+
+  const applyCandidate = (candidate: ParsedTrackCandidate) => {
+    const { originalPointCount: count, ...trackInput } = candidate.track;
+    originalPointCount = count;
+    trackCandidates = [];
+    setTrack(trackInput);
+  };
+
   const handleFileChange = async (event: Event) => {
     const input = event.currentTarget as HTMLInputElement;
     const file = input.files?.[0];
@@ -56,12 +90,13 @@
     parsing = true;
     error = null;
     originalPointCount = null;
+    trackCandidates = [];
 
     try {
-      const parsed = await parseTrackFile(file);
-      const { originalPointCount: count, ...trackInput } = parsed;
-      originalPointCount = count;
-      setTrack(trackInput);
+      const candidates = await parseTrackFile(file);
+      const candidate = automaticCandidate(candidates);
+      if (candidate) applyCandidate(candidate);
+      else trackCandidates = candidates;
     } catch (e) {
       error = e instanceof Error ? e.message : 'Failed to parse track file';
     } finally {
@@ -93,7 +128,7 @@
     <div class="grid min-w-0 gap-4">
       <div class="space-y-1">
         <p class="text-sm text-muted-foreground">
-          Add a GPX, KML, FR24 CSV, or FlightAware CSV track to draw the actual
+          Add a GPX, KML, CSV, or readsb trace JSON track to draw the actual
           flown route.
         </p>
       </div>
@@ -102,9 +137,46 @@
         bind:this={fileInput}
         class="sr-only"
         type="file"
-        accept=".gpx,.kml,.csv"
+        accept=".gpx,.kml,.csv,.json"
         onchange={handleFileChange}
       />
+
+      {#if trackCandidates.length > 1}
+        <div class="space-y-2 rounded-md border bg-muted/20 p-3">
+          <div>
+            <p class="text-sm font-medium">Choose a flight leg</p>
+            <p class="mt-0.5 text-xs text-muted-foreground">
+              This trace contains {trackCandidates.length} recorded legs and none
+              matched the selected route uniquely.
+            </p>
+          </div>
+          <div class="grid gap-1.5">
+            {#each trackCandidates as candidate (candidate.legIndex)}
+              <button
+                type="button"
+                class="flex w-full items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-left transition-colors hover:bg-muted"
+                onclick={() => applyCandidate(candidate)}
+              >
+                <span class="min-w-0">
+                  <span class="block text-xs font-medium">
+                    Leg {candidate.legIndex}
+                  </span>
+                  <span
+                    class="block truncate text-[11px] text-muted-foreground"
+                  >
+                    {formatLegRange(candidate)}
+                  </span>
+                </span>
+                <span
+                  class="shrink-0 text-[11px] tabular-nums text-muted-foreground"
+                >
+                  {candidate.track.coordinates.length.toLocaleString()} points
+                </span>
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/if}
 
       {#if trackSummary}
         <div
@@ -141,6 +213,12 @@
                 {#if trackSummary.hasTrackDegrees}
                   &middot; heading
                 {/if}
+                {#if trackSummary.hasGroundFlags}
+                  &middot; ground flags
+                {/if}
+                {#if trackSummary.hasEstimatedFlags}
+                  &middot; uncertainty flags
+                {/if}
               </p>
             </div>
             <Button
@@ -150,6 +228,7 @@
               class="shrink-0 self-center"
               onclick={() => {
                 originalPointCount = null;
+                trackCandidates = [];
                 setTrack(null);
               }}
               title="Remove track"

@@ -13,6 +13,7 @@ export type ArcColorMode = 'default' | 'byFrequency';
 export type ArcThicknessMode = 'uniform' | 'byFrequency';
 export type ArcThicknessScale = 'thin' | 'normal' | 'thick';
 export type RouteDisplayMode = 'points' | 'tracks';
+export type FlightTrackStyle = 'standard' | 'altitude';
 export type AirportOverlayDetail = 'standard' | 'detailed';
 export type MapProjection = 'mercator' | 'globe';
 
@@ -27,6 +28,7 @@ export type MapPreferences = {
   arcThickness: ArcThicknessMode;
   arcThicknessScale: ArcThicknessScale;
   routeDisplay: RouteDisplayMode;
+  flightTrackStyle: FlightTrackStyle;
   airportOverlayDetail: AirportOverlayDetail;
   openAipEnabled: boolean;
   openAipGroups: OpenAipOverlayGroup[];
@@ -56,6 +58,10 @@ const ARC_THICKNESS_SCALES: readonly ArcThicknessScale[] = [
   'thick',
 ];
 const ROUTE_DISPLAY_MODES: readonly RouteDisplayMode[] = ['points', 'tracks'];
+const FLIGHT_TRACK_STYLES: readonly FlightTrackStyle[] = [
+  'standard',
+  'altitude',
+];
 const AIRPORT_OVERLAY_DETAIL_MODES: readonly AirportOverlayDetail[] = [
   'standard',
   'detailed',
@@ -73,6 +79,7 @@ export const MAP_PREFERENCE_DEFAULTS: MapPreferences = {
   arcThickness: 'uniform',
   arcThicknessScale: 'normal',
   routeDisplay: 'tracks',
+  flightTrackStyle: 'standard',
   airportOverlayDetail: 'detailed',
   openAipEnabled: false,
   openAipGroups: [...OPENAIP_DEFAULT_ENABLED_GROUPS],
@@ -150,6 +157,12 @@ const sanitize = (raw: unknown): MapPreferences => {
     result.routeDisplay = input.routeDisplay as RouteDisplayMode;
   }
   if (
+    typeof input.flightTrackStyle === 'string' &&
+    FLIGHT_TRACK_STYLES.includes(input.flightTrackStyle as FlightTrackStyle)
+  ) {
+    result.flightTrackStyle = input.flightTrackStyle as FlightTrackStyle;
+  }
+  if (
     typeof input.airportOverlayDetail === 'string' &&
     AIRPORT_OVERLAY_DETAIL_MODES.includes(
       input.airportOverlayDetail as AirportOverlayDetail,
@@ -210,6 +223,7 @@ export const initMapPreferences = () => {
   mapPreferences.arcThickness = hydrated.arcThickness;
   mapPreferences.arcThicknessScale = hydrated.arcThicknessScale;
   mapPreferences.routeDisplay = hydrated.routeDisplay;
+  mapPreferences.flightTrackStyle = hydrated.flightTrackStyle;
   mapPreferences.airportOverlayDetail = hydrated.airportOverlayDetail;
   mapPreferences.openAipEnabled = hydrated.openAipEnabled;
   mapPreferences.openAipGroups = hydrated.openAipGroups;
@@ -227,6 +241,7 @@ export const initMapPreferences = () => {
         arcThickness: mapPreferences.arcThickness,
         arcThicknessScale: mapPreferences.arcThicknessScale,
         routeDisplay: mapPreferences.routeDisplay,
+        flightTrackStyle: mapPreferences.flightTrackStyle,
         airportOverlayDetail: mapPreferences.airportOverlayDetail,
         openAipEnabled: mapPreferences.openAipEnabled,
         openAipGroups: [...mapPreferences.openAipGroups],
@@ -252,6 +267,7 @@ export const resetMapPreferences = () => {
   mapPreferences.arcThickness = MAP_PREFERENCE_DEFAULTS.arcThickness;
   mapPreferences.arcThicknessScale = MAP_PREFERENCE_DEFAULTS.arcThicknessScale;
   mapPreferences.routeDisplay = MAP_PREFERENCE_DEFAULTS.routeDisplay;
+  mapPreferences.flightTrackStyle = MAP_PREFERENCE_DEFAULTS.flightTrackStyle;
   mapPreferences.airportOverlayDetail =
     MAP_PREFERENCE_DEFAULTS.airportOverlayDetail;
   mapPreferences.openAipEnabled = MAP_PREFERENCE_DEFAULTS.openAipEnabled;

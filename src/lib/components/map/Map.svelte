@@ -16,6 +16,7 @@
   import MapAppearanceControl from './MapAppearanceControl.svelte';
   import MapFallback from './MapFallback.svelte';
   import MapStatusShelf from './MapStatusShelf.svelte';
+  import FlightTrackLegend from './FlightTrackLegend.svelte';
   import OpenAipOverlay from './OpenAipOverlay.svelte';
   import RainViewerLayer from './RainViewerLayer.svelte';
   import TimeOfDayLayer from './TimeOfDayLayer.svelte';
@@ -44,6 +45,7 @@
     getConfiguredAppMapStyleUrl,
   } from '$lib/map/app-style';
   import { globeCameraForArcs } from '$lib/map/globe-fit';
+  import { hasFallbackFlightArcs } from '$lib/map/flight-layer-data';
   import {
     initMapPreferences,
     mapPreferences,
@@ -163,6 +165,12 @@
   const flightArcs = $derived.by(() => {
     return prepareFlightArcData(filteredFlights);
   });
+  const trackFlightIds = $derived(
+    new Set(flightTracks.map((track) => track.flightId)),
+  );
+  const hasFallbackArcs = $derived(
+    hasFallbackFlightArcs(flightArcs, trackFlightIds),
+  );
 
   const allVisitedAirports = $derived(prepareVisitedAirports(flights));
   const allFlightArcs = $derived(prepareFlightArcData(flights));
@@ -588,6 +596,7 @@
       <ControlGroup>
         <MapAppearanceControl
           {openAipConfigured}
+          {hasFallbackArcs}
           showTracksSection={flightTracks.length > 0}
         />
       </ControlGroup>
@@ -681,6 +690,10 @@
         if (filters) filters.routes = [];
       }}
     />
+
+    {#if flightTracks.length > 0 && mapPreferences.routeDisplay === 'tracks' && mapPreferences.flightTrackStyle === 'altitude'}
+      <FlightTrackLegend />
+    {/if}
 
     {#if mapPreferences.timeOfDayEnabled}
       <TimeOfDayLayer />

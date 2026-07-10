@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Layer, PickingInfo, Color } from '@deck.gl/core';
-  import { ArcLayer, PathLayer, ScatterplotLayer } from '@deck.gl/layers';
+  import { ArcLayer, ScatterplotLayer } from '@deck.gl/layers';
   import { MapboxOverlay } from '@deck.gl/mapbox';
   import { isTouchDevice } from '@melt-ui/svelte/internal/helpers';
   import { onDestroy } from 'svelte';
@@ -28,6 +28,14 @@
     type FlightArc,
     type FlightTrackPath,
   } from '$lib/map/flight-layer-data';
+  import {
+    buildFlightTrackLayers,
+    prepareFlightTrackLayerData,
+  } from '$lib/map/flight-track-layers';
+  import {
+    getFlightTrackColor,
+    type FlightTrackRun,
+  } from '$lib/map/flight-track-style';
   import { GlobeOcclusionExtension } from '$lib/map/globe-occlusion';
   import { mapPreferences } from '$lib/map/map-preferences.svelte';
   import {
@@ -36,8 +44,8 @@
     openAirportDetails,
     openRouteDetails,
   } from '$lib/state.svelte';
-  import { type FlightData, prepareVisitedAirports } from '$lib/utils';
   import type { FlightTrackRow } from '$lib/track/schema';
+  import { type FlightData, prepareVisitedAirports } from '$lib/utils';
   import { isMediumScreen } from '$lib/utils/size';
 
   const AIRPORT_COLOR = (alpha: number): Color => [16, 185, 129, alpha]; // Tailwind emerald-500
@@ -140,6 +148,13 @@
   const flightTrackPaths = $derived.by(() => {
     return buildFlightTrackPaths(flights, flightArcs, activeFlightTracks);
   });
+
+  const flightTrackLayerData = $derived.by(() =>
+    prepareFlightTrackLayerData(
+      flightTrackPaths,
+      mapPreferences.flightTrackStyle,
+    ),
+  );
 
   // deck's picking coordinate is unprojected through deck's own globe
   // viewport, which drifts from MapLibre during the globe<->mercator
@@ -316,13 +331,17 @@
     const syncMapProjection = () => {
       currentMapProjection = getProjectionType();
     };
+    const projectionEvents = map as unknown as {
+      on(event: 'projectiontransition', listener: () => void): void;
+      off(event: 'projectiontransition', listener: () => void): void;
+    };
 
     syncMapProjection();
-    (map.on as any)('projectiontransition', syncMapProjection);
+    projectionEvents.on('projectiontransition', syncMapProjection);
     map.on('styledata', syncMapProjection);
 
     return () => {
-      (map.off as any)('projectiontransition', syncMapProjection);
+      projectionEvents.off('projectiontransition', syncMapProjection);
       map.off('styledata', syncMapProjection);
     };
   });
@@ -591,91 +610,105 @@
     greatCircle: true,
   });
 
-  const getTrackColor = () => {
+  type TrackInteractionState = 'active' | 'highlighted' | 170 | 200;
+
+  const getTrackInteractionState = <T extends FlightArc>(
+    d: T,
+  ): TrackInteractionState => {
+    if (
+      (hoveredArc?.from === d.from && hoveredArc?.to === d.to) ||
+      routeMatchesArc(d, selectedRoute)
+    ) {
+      return 'highlighted';
+    }
+    if (hoveredArc) return 200;
+    if (hoveredAirport) {
+      return hoveredAirport.id === d.from.id || hoveredAirport.id === d.to.id
+        ? 'active'
+        : 200;
+    }
+    if (selectedAirportId) {
+      return selectedAirportId === d.from.id || selectedAirportId === d.to.id
+        ? 'active'
+        : 170;
+    }
+    return selectedRoute ? 170 : 'active';
+  };
+
+  const getTrackColor = <T extends FlightArc>(
+    getBaseColor?: (data: T) => Color,
+  ) => {
     const baseArcColor = getBaseArcColor('source');
 
-    return (d: FlightTrackPath): Color => {
-      if (hoveredArc?.from === d.from && hoveredArc?.to === d.to) {
-        return HOVER_COLOR;
-      } else if (routeMatchesArc(d, selectedRoute)) {
-        return HOVER_COLOR;
-      } else if (hoveredArc) {
-        return INACTIVE_COLOR(200);
-      } else if (
-        hoveredAirport?.id === d.from.id ||
-        hoveredAirport?.id === d.to.id
-      ) {
-        return baseArcColor(d);
-      } else if (hoveredAirport) {
-        return INACTIVE_COLOR(200);
-      } else if (
-        selectedAirportId &&
-        (d.from.id === selectedAirportId || d.to.id === selectedAirportId)
-      ) {
-        return baseArcColor(d);
-      } else if (selectedAirportId) {
-        return INACTIVE_COLOR(170);
-      } else if (selectedRoute) {
-        return INACTIVE_COLOR(170);
-      } else {
-        return baseArcColor(d);
-      }
+    return (d: T): Color => {
+      const state = getTrackInteractionState(d);
+      if (state === 'highlighted') return HOVER_COLOR;
+      if (typeof state === 'number') return INACTIVE_COLOR(state);
+      return getBaseColor?.(d) ?? baseArcColor(d);
     };
   };
 
-  const pathOptions = $derived.by(() => ({
-    id: 'track-path-layer',
-    parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
-    extensions: [globeOcclusion],
-    data: flightTrackPaths,
-    getPath: (data: FlightTrackPath) => data.path,
-    getColor: getTrackColor(),
-    getWidth: getVisibleArcWidth,
-    widthUnits: 'pixels',
-    rounded: true,
-    jointRounded: true,
-    capRounded: true,
-    updateTriggers: {
-      getColor: [
-        hoveredArc,
-        hoveredAirport,
-        selectedAirportId,
-        selectedRoute,
-        mapPreferences.arcColor,
-        arcFrequencyPercentileByRoute,
-      ],
-      getWidth: [
-        mapPreferences.arcThickness,
-        mapPreferences.arcThicknessScale,
-        selectedRoute,
-        arcFrequencyPercentileByRoute,
-      ],
-    },
-  }));
+  const getAltitudeTrackColor = () =>
+    getTrackColor<FlightTrackRun>((run) =>
+      getFlightTrackColor({
+        altitudeFeet: run.altitudeFeet,
+        ground: run.ground,
+        estimated: run.estimated,
+      }),
+    );
 
-  const ghostPathOptions = $derived({
-    id: 'ghost-track-path',
-    parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
-    extensions: [globeOcclusion],
-    data: flightTrackPaths,
-    getPath: (data: FlightTrackPath) => data.path,
-    getColor: [0, 0, 0, 0],
-    getWidth: 3 * 6,
-    widthUnits: 'pixels',
-    pickable: true,
-    onHover: handleTrackHover,
-    onClick: handleTrackClick,
-    rounded: true,
-    jointRounded: true,
-    capRounded: true,
-  });
+  const getEstimatedUnderlayColor =
+    () =>
+    (run: FlightTrackRun): Color => {
+      const state = getTrackInteractionState(run);
+      return [
+        24,
+        24,
+        27,
+        typeof state === 'number' ? Math.round(state * 0.3) : 190,
+      ];
+    };
+
+  const pathWidthUpdateTriggers = $derived([
+    mapPreferences.arcThickness,
+    mapPreferences.arcThicknessScale,
+    selectedRoute,
+    arcFrequencyPercentileByRoute,
+  ]);
 
   const buildLayers = () => {
     const layers: Layer[] = [];
     layers.push(new ArcLayer(arcOptions));
     layers.push(new ArcLayer(ghostArcOptions));
-    layers.push(new PathLayer<FlightTrackPath>(pathOptions));
-    layers.push(new PathLayer<FlightTrackPath>(ghostPathOptions));
+    layers.push(
+      ...buildFlightTrackLayers({
+        data: flightTrackLayerData,
+        style: mapPreferences.flightTrackStyle,
+        parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
+        extensions: [globeOcclusion],
+        getWidth: getVisibleArcWidth,
+        getStandardColor: getTrackColor(),
+        getAltitudeColor: getAltitudeTrackColor(),
+        getEstimatedUnderlayColor: getEstimatedUnderlayColor(),
+        widthUpdateTriggers: pathWidthUpdateTriggers,
+        standardColorUpdateTriggers: [
+          hoveredArc,
+          hoveredAirport,
+          selectedAirportId,
+          selectedRoute,
+          mapPreferences.arcColor,
+          arcFrequencyPercentileByRoute,
+        ],
+        altitudeColorUpdateTriggers: [
+          hoveredArc,
+          hoveredAirport,
+          selectedAirportId,
+          selectedRoute,
+        ],
+        onHover: handleTrackHover,
+        onClick: handleTrackClick,
+      }),
+    );
     if (mapPreferences.airportCircles !== 'off') {
       layers.push(new ScatterplotLayer<VisitedAirport>(airportOptions));
     }

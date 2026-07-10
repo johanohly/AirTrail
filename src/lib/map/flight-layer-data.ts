@@ -7,6 +7,8 @@ export type FlightArc = ReturnType<typeof prepareFlightArcData>[number];
 export type FlightTrackPath = FlightArc & {
   flightId: number;
   path: FlightTrackCoordinate[];
+  ground?: boolean[];
+  estimated?: boolean[];
 };
 
 export const getRouteKey = (fromId: number, toId: number) =>
@@ -90,6 +92,19 @@ export const findFullyTrackedRouteKeys = (
   return keys;
 };
 
+export const hasFallbackFlightArcs = (
+  flightArcs: FlightArc[],
+  trackFlightIds: Set<number>,
+) => {
+  const fullyTrackedRouteKeys = findFullyTrackedRouteKeys(
+    flightArcs,
+    trackFlightIds,
+  );
+  return flightArcs.some(
+    (arc) => !fullyTrackedRouteKeys.has(getRouteKey(arc.from.id, arc.to.id)),
+  );
+};
+
 export const buildFlightTrackPaths = (
   flights: FlightData[],
   flightArcs: FlightArc[],
@@ -112,6 +127,8 @@ export const buildFlightTrackPaths = (
       ...arc,
       flightId: track.flightId,
       path: unwrapTrackPath(track.coordinates),
+      ground: track.ground,
+      estimated: track.estimated,
     });
   }
 

@@ -12,8 +12,10 @@ import type {
   PublicShare,
 } from '$lib/db/types';
 import { generateRandomString } from '$lib/server/utils/random';
+import { reduceFlightTrackForMap } from '$lib/track/render';
 import {
   flightTrackPayloadSchema,
+  toFlightTrackInput,
   type FlightTrackInput,
 } from '$lib/track/schema';
 import type { ErrorActionResult } from '$lib/utils/forms';
@@ -244,18 +246,17 @@ export async function getPublicShareData(slug: string) {
   const tracksByFlight = new Map<number, FlightTrackInput>(
     trackRows.map((row) => {
       const track = flightTrackPayloadSchema.parse(row.track);
+      const renderTrack = reduceFlightTrackForMap(track);
       return [
         row.flightId,
-        {
-          coordinates: track.coordinates,
-          ...(share.showTimes && track.times ? { times: track.times } : {}),
-          ...(track.groundSpeedKt
-            ? { groundSpeedKt: track.groundSpeedKt }
-            : {}),
-          ...(track.trackDeg ? { trackDeg: track.trackDeg } : {}),
-          sourceFormat: row.sourceFormat,
-          sourceName: row.sourceName,
-        },
+        toFlightTrackInput(
+          {
+            ...renderTrack,
+            sourceFormat: row.sourceFormat,
+            sourceName: row.sourceName,
+          },
+          { includeTimes: share.showTimes },
+        ),
       ];
     }),
   );

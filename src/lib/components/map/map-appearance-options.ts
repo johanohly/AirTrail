@@ -6,6 +6,7 @@ import {
   type ArcColorMode,
   type ArcThicknessMode,
   type ArcThicknessScale,
+  type FlightTrackStyle,
   type MapProjection,
   type RouteDisplayMode,
 } from '$lib/map/map-preferences.svelte';
@@ -57,6 +58,13 @@ export const ROUTE_DISPLAY_OPTIONS: Array<AppearanceOption<RouteDisplayMode>> =
     { value: 'tracks', label: 'Flight tracks' },
     { value: 'points', label: 'Point to point' },
   ];
+
+export const FLIGHT_TRACK_STYLE_OPTIONS: Array<
+  AppearanceOption<FlightTrackStyle>
+> = [
+  { value: 'standard', label: 'Standard' },
+  { value: 'altitude', label: 'Altitude' },
+];
 
 export const AIRPORT_DETAIL_OPTIONS: Array<
   AppearanceOption<AirportOverlayDetail>
