@@ -683,7 +683,7 @@
       }}
     />
 
-    {#if flightTracks.length > 0 && mapPreferences.flightTrackStyle === 'altitude'}
+    {#if flightTracks.length > 0 && mapPreferences.routeDisplay === 'tracks' && mapPreferences.flightTrackStyle === 'altitude'}
       <FlightTrackLegend />
     {/if}
 

@@ -302,9 +302,7 @@
       </div>
     </div>
 
-    {#if mapPreferences.flightTrackStyle !== 'altitude' ||
-    !showTracksSection ||
-    mapPreferences.routeDisplay !== 'tracks'}
+    {#if mapPreferences.flightTrackStyle !== 'altitude' || !showTracksSection || mapPreferences.routeDisplay !== 'tracks'}
       <div class="space-y-2" transition:fly={{ y: -8, duration: 160 }}>
         <p class="text-xs font-medium">Color</p>
         <div class="grid grid-cols-2 gap-2">
