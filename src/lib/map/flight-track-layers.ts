@@ -1,6 +1,7 @@
 import type { Color, Layer, LayerExtension } from '@deck.gl/core';
 import { PathStyleExtension } from '@deck.gl/extensions';
 import { PathLayer, type PathLayerProps } from '@deck.gl/layers';
+import { distance, greatCircle, point } from '@turf/turf';
 
 import type { FlightTrackStyle } from './map-preferences.svelte';
 import type { FlightArc, FlightTrackPath } from './flight-layer-data';
@@ -45,13 +46,90 @@ const surfacePathCache = new WeakMap<
   [number, number][]
 >();
 
+const MAX_SURFACE_SEGMENT_DEGREES = 3;
+
+const normalizeLongitude = (longitude: number) =>
+  ((((longitude + 180) % 360) + 360) % 360) - 180;
+
+const unwrapLongitude = (longitude: number, previous: number) => {
+  let unwrapped = longitude;
+  while (unwrapped - previous > 180) unwrapped -= 360;
+  while (unwrapped - previous < -180) unwrapped += 360;
+  return unwrapped;
+};
+
+const interpolateLinearSegment = (
+  path: [number, number][],
+  start: FlightTrackPath['path'][number],
+  end: FlightTrackPath['path'][number],
+  segmentCount: number,
+) => {
+  for (let index = 1; index < segmentCount; index++) {
+    const progress = index / segmentCount;
+    path.push([
+      start[0] + (end[0] - start[0]) * progress,
+      start[1] + (end[1] - start[1]) * progress,
+    ]);
+  }
+};
+
+export const buildFlightTrackDisplayPath = (
+  sourcePath: FlightTrackPath['path'],
+) => {
+  if (!sourcePath.length) return [];
+
+  const displayPath: [number, number][] = [
+    [sourcePath[0]![0], sourcePath[0]![1]],
+  ];
+
+  for (let index = 1; index < sourcePath.length; index++) {
+    const start = sourcePath[index - 1]!;
+    const end = sourcePath[index]!;
+    const startPoint = point([normalizeLongitude(start[0]), start[1]]);
+    const endPoint = point([normalizeLongitude(end[0]), end[1]]);
+    const angularDistance = distance(startPoint, endPoint, {
+      units: 'degrees',
+    });
+    const segmentCount = Math.max(
+      1,
+      Math.ceil(angularDistance / MAX_SURFACE_SEGMENT_DEGREES),
+    );
+
+    if (segmentCount > 1) {
+      try {
+        const arc = greatCircle(startPoint, endPoint, {
+          npoints: segmentCount + 1,
+        });
+        const coordinates =
+          arc.geometry.type === 'MultiLineString'
+            ? arc.geometry.coordinates.flat()
+            : arc.geometry.coordinates;
+
+        for (const coordinate of coordinates.slice(1, -1)) {
+          const previousLongitude = displayPath.at(-1)![0];
+          displayPath.push([
+            unwrapLongitude(coordinate[0]!, previousLongitude),
+            coordinate[1]!,
+          ]);
+        }
+      } catch {
+        // Antipodal points have no unique great-circle route. A deterministic
+        // surface interpolation still avoids drawing a chord through the globe.
+        interpolateLinearSegment(displayPath, start, end, segmentCount);
+      }
+    }
+
+    displayPath.push([end[0], end[1]]);
+  }
+
+  return displayPath;
+};
+
 const getSurfacePath = (track: Pick<FlightTrackPath, 'path'>) => {
   const cached = surfacePathCache.get(track.path);
   if (cached) return cached;
 
-  const path = track.path.map(
-    (coordinate) => [coordinate[0], coordinate[1]] as [number, number],
-  );
+  const path = buildFlightTrackDisplayPath(track.path);
   surfacePathCache.set(track.path, path);
   return path;
 };

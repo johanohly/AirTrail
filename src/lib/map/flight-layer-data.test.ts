@@ -42,7 +42,9 @@ describe('flight track layer data', () => {
       },
     ] as FlightTrackRow[];
 
-    expect(buildFlightTrackPaths(flights, arcs, tracks)).toMatchObject([
+    const paths = buildFlightTrackPaths(flights, arcs, tracks);
+
+    expect(paths).toMatchObject([
       {
         flightId: 7,
         path: [
@@ -53,6 +55,7 @@ describe('flight track layer data', () => {
         estimated: [false, true],
       },
     ]);
+    expect(paths[0]!.path).toHaveLength(paths[0]!.estimated!.length);
   });
 
   it('detects whether route arcs remain after tracked flights are replaced', () => {

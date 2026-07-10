@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { FlightTrackPath } from './flight-layer-data';
 import {
+  buildFlightTrackDisplayPath,
   buildFlightTrackLayers,
   prepareFlightTrackLayerData,
 } from './flight-track-layers';
@@ -19,6 +20,43 @@ const paths = [
 ] as FlightTrackPath[];
 
 describe('flight track layers', () => {
+  it('adaptively follows the globe without changing source coordinates', () => {
+    const source = [
+      [0, 0, 100],
+      [179, 0, 1_000],
+    ] as FlightTrackPath['path'];
+
+    const display = buildFlightTrackDisplayPath(source);
+
+    expect(display).toHaveLength(61);
+    expect(display[0]).toEqual([0, 0]);
+    expect(display.at(-1)).toEqual([179, 0]);
+    expect(source).toEqual([
+      [0, 0, 100],
+      [179, 0, 1_000],
+    ]);
+    for (let index = 1; index < display.length; index++) {
+      expect(
+        Math.abs(display[index]![0] - display[index - 1]![0]),
+      ).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it('keeps generated antimeridian geometry continuous', () => {
+    const display = buildFlightTrackDisplayPath([
+      [170, 10],
+      [190, 10],
+    ]);
+
+    expect(display[0]).toEqual([170, 10]);
+    expect(display.at(-1)).toEqual([190, 10]);
+    for (let index = 1; index < display.length; index++) {
+      expect(
+        Math.abs(display[index]![0] - display[index - 1]![0]),
+      ).toBeLessThanOrEqual(3);
+    }
+  });
+
   it('only prepares altitude runs when the altitude style is active', () => {
     expect(prepareFlightTrackLayerData(paths, 'standard')).toEqual({
       paths,
