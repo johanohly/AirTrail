@@ -18,14 +18,21 @@
     onShowDepartures: (flightId?: number) => void;
     onShowArrivals: (flightId?: number) => void;
   } = $props();
+
+  let now = $state(new Date());
+  $effect(() => {
+    const id = setInterval(() => (now = new Date()), 30_000);
+    return () => clearInterval(id);
+  });
 </script>
 
 <AirportStatsCard
   flights={relatedFlights}
   airportId={airport.id}
   airlineCount={airport.airlines.length}
+  {now}
 />
-<AirportTimeCard tz={airport.tz} />
+<AirportTimeCard tz={airport.tz} {now} />
 <AirportWeatherCard icao={airport.icao} tz={airport.tz} lon={airport.lon} />
 <AirportFlightsCard
   flights={relatedFlights}

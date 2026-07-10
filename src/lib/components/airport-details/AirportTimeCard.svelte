@@ -4,17 +4,9 @@
   import { page } from '$app/state';
   import { formatTime, getPreferences } from '$lib/utils/preferences';
 
-  let { tz }: { tz?: string | null } = $props();
+  let { tz, now }: { tz?: string | null; now: Date } = $props();
 
   const prefs = $derived(getPreferences(page.data.user));
-
-  let now = $state(new Date());
-  $effect(() => {
-    const id = setInterval(() => {
-      now = new Date();
-    }, 30_000);
-    return () => clearInterval(id);
-  });
 
   const resolvedTz = $derived(tz ?? 'UTC');
 

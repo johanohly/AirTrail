@@ -1,20 +1,70 @@
 <script lang="ts">
   import { PlaneLanding, PlaneTakeoff } from '@o7/icon/lucide';
   import NumberFlow from '@number-flow/svelte';
-  import { isAfter, isBefore } from 'date-fns';
 
   import { cn, type FlightData } from '$lib/utils';
-  import { formatAsFlightDate, nowIn } from '$lib/utils/datetime';
+  import { formatAsFlightDate, parseLocalizeISO } from '$lib/utils/datetime';
 
   let {
     flights,
     airportId,
     airlineCount,
+    now,
   }: {
     flights: FlightData[];
     airportId: number;
     airlineCount: number;
+    now: Date;
   } = $props();
+
+  type Visit = { label: string; time: number };
+
+  const getVisitSummary = (flights: FlightData[], id: number, now: Date) => {
+    let last: Visit | null = null;
+    let next: Visit | null = null;
+
+    for (const flight of flights) {
+      const touches = [
+        [
+          flight.from?.id === id,
+          flight.departure,
+          flight.departureScheduled,
+          flight.from?.tz,
+        ],
+        [
+          flight.to?.id === id,
+          flight.arrival,
+          flight.arrivalScheduled,
+          flight.to?.tz,
+        ],
+      ] as const;
+
+      for (const [matches, actual, scheduled, tz] of touches) {
+        if (!matches) continue;
+        const exact =
+          actual ??
+          (scheduled ? parseLocalizeISO(scheduled, tz ?? 'UTC') : null);
+        const start = exact ?? flight.dateStart;
+        const end = exact ?? flight.dateEnd;
+        const date = exact ?? flight.date;
+        if (!start || !end || !date) continue;
+
+        const label = formatAsFlightDate(
+          date,
+          flight.datePrecision ?? 'day',
+          false,
+          true,
+        );
+
+        if (end < now && (!last || end.getTime() > last.time)) {
+          last = { label, time: end.getTime() };
+        } else if (start > now && (!next || start.getTime() < next.time)) {
+          next = { label, time: start.getTime() };
+        }
+      }
+    }
+    return { last, next };
+  };
 
   const departures = $derived(
     flights.filter((f) => f.from?.id === airportId).length,
@@ -33,58 +83,9 @@
     return set.size;
   });
 
-  // The moment this flight actually touches the airport: landing time when
-  // arriving here, takeoff time when departing from here.
-  const touchTime = (f: FlightData) =>
-    (f.to?.id === airportId
-      ? (f.arrival ?? f.dateEnd)
-      : (f.departure ?? f.dateStart)) ?? f.date;
-
-  const lastVisit = $derived.by(() => {
-    const now = nowIn('UTC');
-    let best: FlightData | null = null;
-    let bestDate: ReturnType<typeof touchTime> = null;
-    for (const f of flights) {
-      const date = touchTime(f);
-      if (
-        date &&
-        isBefore(date, now) &&
-        (!bestDate || isAfter(date, bestDate))
-      ) {
-        bestDate = date;
-        best = f;
-      }
-    }
-    return best;
-  });
-
-  const nextVisit = $derived.by(() => {
-    const now = nowIn('UTC');
-    let best: FlightData | null = null;
-    let bestDate: ReturnType<typeof touchTime> = null;
-    for (const f of flights) {
-      const date = touchTime(f);
-      if (
-        date &&
-        isAfter(date, now) &&
-        (!bestDate || isBefore(date, bestDate))
-      ) {
-        bestDate = date;
-        best = f;
-      }
-    }
-    return best;
-  });
-
-  const formatVisit = (flight: FlightData | null) => {
-    if (!flight) return null;
-    const date = touchTime(flight);
-    if (!date) return null;
-    return formatAsFlightDate(date, flight.datePrecision ?? 'day', false, true);
-  };
-
-  const lastVisitLabel = $derived(formatVisit(lastVisit));
-  const nextVisitLabel = $derived(formatVisit(nextVisit));
+  const visits = $derived(getVisitSummary(flights, airportId, now));
+  const lastVisitLabel = $derived(visits.last?.label ?? null);
+  const nextVisitLabel = $derived(visits.next?.label ?? null);
 </script>
 
 <section class="px-4 py-4">
