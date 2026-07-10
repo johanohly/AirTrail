@@ -42,22 +42,7 @@ describe('flight track candidate matching', () => {
     ).toBe(3);
   });
 
-  it('uses departure time to choose repeated routes', () => {
-    const candidates = [
-      candidate(1, [12.656, 55.618], [-0.1821, 51.1537], 1_000),
-      candidate(2, [12.656, 55.618], [-0.1821, 51.1537], 10_000),
-    ];
-
-    expect(
-      findAutomaticTrackCandidate(candidates, {
-        from: copenhagen,
-        to: gatwick,
-        departureTimestamp: 9_500,
-      })?.legIndex,
-    ).toBe(2);
-  });
-
-  it('leaves repeated routes ambiguous without a departure time', () => {
+  it('leaves repeated route matches for explicit selection', () => {
     const candidates = [
       candidate(1, [12.656, 55.618], [-0.1821, 51.1537], 1_000),
       candidate(2, [12.656, 55.618], [-0.1821, 51.1537], 10_000),

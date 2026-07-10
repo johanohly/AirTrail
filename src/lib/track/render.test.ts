@@ -96,4 +96,36 @@ describe('flight track map reduction', () => {
     expect(reduced.estimated).toContain(true);
     expect(reduced.ground).toContain(true);
   });
+
+  it('keeps semantic transition groups intact when they exceed the limit', () => {
+    const coordinates: FlightTrackPayload['coordinates'] = Array.from(
+      { length: 12 },
+      (_, index) =>
+        index >= 9
+          ? [index, 55]
+          : ([index, 55, 1_000] as [number, number, number]),
+    );
+    const track: FlightTrackPayload = {
+      coordinates,
+      ground: coordinates.map((_, index) => index === 2),
+      estimated: coordinates.map((_, index) => index >= 6),
+    };
+
+    const reduced = reduceFlightTrackForMap(track, 7);
+    const retained = new Set(
+      reduced.coordinates.map(([longitude]) => longitude),
+    );
+
+    for (const group of [
+      [1, 2, 3],
+      [5, 6],
+      [8, 9],
+    ]) {
+      const retainedCount = group.filter((index) => retained.has(index)).length;
+      expect(retainedCount === 0 || retainedCount === group.length).toBe(true);
+    }
+    expect(reduced.coordinates.length).toBeLessThanOrEqual(7);
+    expect(reduced.ground).toHaveLength(reduced.coordinates.length);
+    expect(reduced.estimated).toHaveLength(reduced.coordinates.length);
+  });
 });

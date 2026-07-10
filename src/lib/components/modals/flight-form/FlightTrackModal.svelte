@@ -7,7 +7,6 @@
   import { findAutomaticTrackCandidate } from '$lib/track/candidates';
   import { parseTrackFile, type ParsedTrackCandidate } from '$lib/track/parser';
   import type { FlightTrackInput } from '$lib/track/schema';
-  import { mergeTimeWithDate } from '$lib/utils/datetime';
   import { isSmallScreen } from '$lib/utils/size';
   import type { FlightFormData } from '$lib/zod/flight';
 
@@ -62,34 +61,10 @@
     }));
   };
 
-  const departureTimestamp = () => {
-    const from = $formData.from;
-    if (!from) return null;
-
-    const fields = [
-      [$formData.departure, $formData.departureTime],
-      [$formData.takeoffActual, $formData.takeoffActualTime],
-      [$formData.departureScheduled, $formData.departureScheduledTime],
-      [$formData.takeoffScheduled, $formData.takeoffScheduledTime],
-    ] as const;
-
-    for (const [date, time] of fields) {
-      if (!date || !time) continue;
-      try {
-        return mergeTimeWithDate(date, time, from.tz).getTime() / 1_000;
-      } catch {
-        // Keep looking for another complete date/time pair.
-      }
-    }
-
-    return null;
-  };
-
   const automaticCandidate = (candidates: ParsedTrackCandidate[]) => {
     return findAutomaticTrackCandidate(candidates, {
       from: $formData.from,
       to: $formData.to,
-      departureTimestamp: departureTimestamp(),
     });
   };
 

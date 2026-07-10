@@ -36,17 +36,40 @@ const materializeEstimatedGaps = (
   return estimated === track.estimated ? track : { ...track, estimated };
 };
 
-const addTransitionIndices = <T>(
-  selected: Set<number>,
+const addTransitionBoundaries = <T>(
+  boundaries: Set<number>,
   values: T[] | undefined,
 ) => {
   if (!values) return;
 
   for (let index = 1; index < values.length; index++) {
     if (values[index] === values[index - 1]) continue;
-    selected.add(index - 1);
-    selected.add(index);
+    boundaries.add(index);
   }
+};
+
+const collectTransitionGroups = (track: FlightTrackPayload) => {
+  const boundaries = new Set<number>();
+  addTransitionBoundaries(boundaries, track.ground);
+  addTransitionBoundaries(boundaries, track.estimated);
+  addTransitionBoundaries(
+    boundaries,
+    track.coordinates.map((coordinate) => coordinate[2] !== undefined),
+  );
+
+  const sorted = [...boundaries].sort((a, b) => a - b);
+  const groups: number[][] = [];
+
+  for (const boundary of sorted) {
+    const previous = groups.at(-1);
+    if (previous?.at(-1) === boundary - 1) {
+      previous.push(boundary);
+    } else {
+      groups.push([boundary - 1, boundary]);
+    }
+  }
+
+  return groups;
 };
 
 const getAltitude = (track: FlightTrackPayload, index: number) =>
@@ -120,14 +143,48 @@ const collectSpatialCornerIndices = (track: FlightTrackPayload) => {
   return selected;
 };
 
-const takeEvenly = (indices: number[], count: number) => {
-  if (indices.length <= count) return indices;
+const takeEvenly = <T>(values: T[], count: number) => {
+  if (values.length <= count) return values;
   if (count <= 0) return [];
 
   return Array.from({ length: count }, (_, slot) => {
-    const position = Math.floor(((slot + 0.5) * indices.length) / count);
-    return indices[Math.min(position, indices.length - 1)]!;
+    const position = Math.floor(((slot + 0.5) * values.length) / count);
+    return values[Math.min(position, values.length - 1)]!;
   });
+};
+
+const addTransitionGroupsUntilFull = (
+  selected: Set<number>,
+  groups: number[][],
+  maxPoints: number,
+) => {
+  let candidates = groups;
+
+  while (candidates.length > 0) {
+    const remaining = maxPoints - selected.size;
+    const fitting = candidates.filter(
+      (group) =>
+        group.filter((index) => !selected.has(index)).length <= remaining,
+    );
+    if (fitting.length === 0) return;
+
+    const batch = takeEvenly(
+      fitting,
+      Math.min(fitting.length, Math.max(1, Math.floor(remaining / 2))),
+    );
+    let added = false;
+
+    for (const group of batch) {
+      const missing = group.filter((index) => !selected.has(index));
+      if (missing.length > maxPoints - selected.size) continue;
+      missing.forEach((index) => selected.add(index));
+      added = true;
+    }
+
+    if (!added) return;
+    const addedGroups = new Set(batch);
+    candidates = candidates.filter((group) => !addedGroups.has(group));
+  }
 };
 
 const addUntilFull = (
@@ -152,20 +209,15 @@ export const reduceFlightTrackForMap = (
   if (maxPoints < 2) throw new RangeError('A rendered track needs two points');
 
   const lastIndex = renderTrack.coordinates.length - 1;
+  const transitionGroups = collectTransitionGroups(renderTrack);
   const semanticIndices = new Set<number>([0, lastIndex]);
-  addTransitionIndices(semanticIndices, renderTrack.ground);
-  addTransitionIndices(semanticIndices, renderTrack.estimated);
-  addTransitionIndices(
-    semanticIndices,
-    renderTrack.coordinates.map((coordinate) => coordinate[2] !== undefined),
+  transitionGroups.forEach((group) =>
+    group.forEach((index) => semanticIndices.add(index)),
   );
 
   if (semanticIndices.size > maxPoints) {
-    const interior = [...semanticIndices]
-      .filter((index) => index !== 0 && index !== lastIndex)
-      .sort((a, b) => a - b);
     const selected = new Set([0, lastIndex]);
-    takeEvenly(interior, maxPoints - 2).forEach((index) => selected.add(index));
+    addTransitionGroupsUntilFull(selected, transitionGroups, maxPoints);
     return pickFlightTrackPoints(
       renderTrack,
       [...selected].sort((a, b) => a - b),

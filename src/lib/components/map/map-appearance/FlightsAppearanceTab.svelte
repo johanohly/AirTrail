@@ -18,7 +18,13 @@
   } from '$lib/map/flight-track-style';
   import { mapPreferences } from '$lib/map/map-preferences.svelte';
 
-  let { showTracksSection = false }: { showTracksSection?: boolean } = $props();
+  let {
+    showTracksSection = false,
+    hasFallbackArcs = true,
+  }: {
+    showTracksSection?: boolean;
+    hasFallbackArcs?: boolean;
+  } = $props();
 
   const cssColor = (color: readonly number[]) =>
     `rgb(${color[0]} ${color[1]} ${color[2]})`;
@@ -302,7 +308,7 @@
       </div>
     </div>
 
-    {#if mapPreferences.flightTrackStyle !== 'altitude' || !showTracksSection || mapPreferences.routeDisplay !== 'tracks'}
+    {#if mapPreferences.flightTrackStyle !== 'altitude' || !showTracksSection || mapPreferences.routeDisplay !== 'tracks' || hasFallbackArcs}
       <div class="space-y-2" transition:fly={{ y: -8, duration: 160 }}>
         <p class="text-xs font-medium">Color</p>
         <div class="grid grid-cols-2 gap-2">

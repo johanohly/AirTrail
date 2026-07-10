@@ -14,9 +14,11 @@
   let {
     openAipConfigured = false,
     showTracksSection = false,
+    hasFallbackArcs = true,
   }: {
     openAipConfigured?: boolean;
     showTracksSection?: boolean;
+    hasFallbackArcs?: boolean;
   } = $props();
 
   let popoverOpen = $state(false);
@@ -93,7 +95,7 @@
           <MapAppearanceTab />
         </Tabs.Content>
         <Tabs.Content value="flights" class="min-h-0 overflow-y-auto">
-          <FlightsAppearanceTab {showTracksSection} />
+          <FlightsAppearanceTab {showTracksSection} {hasFallbackArcs} />
         </Tabs.Content>
         <Tabs.Content value="layers" class="min-h-0 overflow-y-auto">
           <LayersAppearanceTab

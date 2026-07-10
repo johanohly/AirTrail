@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildFlightTrackPaths,
+  hasFallbackFlightArcs,
   type FlightArc,
   unwrapTrackPath,
 } from './flight-layer-data';
@@ -52,5 +53,18 @@ describe('flight track layer data', () => {
         estimated: [false, true],
       },
     ]);
+  });
+
+  it('detects whether route arcs remain after tracked flights are replaced', () => {
+    const arcs = [
+      {
+        from: { id: 1 },
+        to: { id: 2 },
+        flights: [{ id: 7 }, { id: 8 }],
+      },
+    ] as FlightArc[];
+
+    expect(hasFallbackFlightArcs(arcs, new Set([7]))).toBe(true);
+    expect(hasFallbackFlightArcs(arcs, new Set([7, 8]))).toBe(false);
   });
 });

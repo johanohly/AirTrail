@@ -92,6 +92,19 @@ export const findFullyTrackedRouteKeys = (
   return keys;
 };
 
+export const hasFallbackFlightArcs = (
+  flightArcs: FlightArc[],
+  trackFlightIds: Set<number>,
+) => {
+  const fullyTrackedRouteKeys = findFullyTrackedRouteKeys(
+    flightArcs,
+    trackFlightIds,
+  );
+  return flightArcs.some(
+    (arc) => !fullyTrackedRouteKeys.has(getRouteKey(arc.from.id, arc.to.id)),
+  );
+};
+
 export const buildFlightTrackPaths = (
   flights: FlightData[],
   flightArcs: FlightArc[],

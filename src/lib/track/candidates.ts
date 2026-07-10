@@ -5,7 +5,6 @@ type Location = { lat: number; lon: number };
 type TrackCandidateMatchContext = {
   from: Location | null | undefined;
   to: Location | null | undefined;
-  departureTimestamp?: number | null;
   maxAirportDistanceMeters?: number;
 };
 
@@ -23,12 +22,7 @@ const distanceMeters = (coordinate: readonly number[], airport: Location) => {
 
 export const findAutomaticTrackCandidate = (
   candidates: ParsedTrackCandidate[],
-  {
-    from,
-    to,
-    departureTimestamp = null,
-    maxAirportDistanceMeters = 75_000,
-  }: TrackCandidateMatchContext,
+  { from, to, maxAirportDistanceMeters = 75_000 }: TrackCandidateMatchContext,
 ): ParsedTrackCandidate | null => {
   if (candidates.length === 1) return candidates[0]!;
   if (!from || !to) return null;
@@ -40,17 +34,5 @@ export const findAutomaticTrackCandidate = (
       distanceMeters(candidate.endCoordinate, to) <= maxAirportDistanceMeters,
   );
   if (routeMatches.length === 1) return routeMatches[0]!;
-  if (routeMatches.length < 2 || departureTimestamp === null) return null;
-
-  return routeMatches.reduce<ParsedTrackCandidate | null>(
-    (closest, candidate) => {
-      if (candidate.startTime === null) return closest;
-      if (closest?.startTime === null || !closest) return candidate;
-      return Math.abs(candidate.startTime - departureTimestamp) <
-        Math.abs(closest.startTime - departureTimestamp)
-        ? candidate
-        : closest;
-    },
-    null,
-  );
+  return null;
 };
