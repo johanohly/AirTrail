@@ -61,7 +61,7 @@
 
         const label = formatAsFlightDate(
           date,
-          flight.datePrecision ?? 'day',
+          exact ? 'day' : (flight.datePrecision ?? 'day'),
           false,
           true,
         );
