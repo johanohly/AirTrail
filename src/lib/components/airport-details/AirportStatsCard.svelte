@@ -118,32 +118,26 @@
     </div>
   </div>
 
-  {#if lastVisitLabel || nextVisitLabel}
+  {#if lastVisitLabel && nextVisitLabel}
     <div
       class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-3 text-xs text-muted-foreground"
     >
-      {#if lastVisitLabel}
+      <span>
+        last visit <span class="text-foreground">{lastVisitLabel}</span>
+      </span>
+      <span class="inline-flex items-center gap-2">
+        <span aria-hidden="true">·</span>
         <span>
-          last visit <span class="text-foreground">{lastVisitLabel}</span>
+          next visit <span class="text-foreground">{nextVisitLabel}</span>
         </span>
-      {/if}
-      {#if nextVisitLabel}
-        <span class="inline-flex items-center gap-2">
-          {#if lastVisitLabel}
-            <span aria-hidden="true">·</span>
-          {/if}
-          <span>
-            next visit <span class="text-foreground">{nextVisitLabel}</span>
-          </span>
-        </span>
-      {/if}
+      </span>
     </div>
   {/if}
 
   <div
     class={cn(
       'flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground',
-      lastVisitLabel || nextVisitLabel ? 'mt-1' : 'mt-3',
+      lastVisitLabel && nextVisitLabel ? 'mt-1' : 'mt-3',
     )}
   >
     <span>
@@ -161,5 +155,16 @@
         routes
       </span>
     </span>
+    {#if Boolean(lastVisitLabel) !== Boolean(nextVisitLabel)}
+      <span class="inline-flex items-center gap-2">
+        <span aria-hidden="true">·</span>
+        <span>
+          {lastVisitLabel ? 'last' : 'next'} visit
+          <span class="text-foreground">
+            {lastVisitLabel ?? nextVisitLabel}
+          </span>
+        </span>
+      </span>
+    {/if}
   </div>
 </section>
