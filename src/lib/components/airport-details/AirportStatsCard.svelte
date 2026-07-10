@@ -1,18 +1,20 @@
 <script lang="ts">
-  import { PlaneLanding, PlaneTakeoff } from '@o7/icon/lucide';
   import NumberFlow from '@number-flow/svelte';
+  import { PlaneLanding, PlaneTakeoff } from '@o7/icon/lucide';
 
-  import type { FlightData } from '$lib/utils';
-  import { formatAsFlightDate } from '$lib/utils/datetime';
+  import { cn, type FlightData } from '$lib/utils';
+  import { getAirportVisitSummary } from '$lib/utils/data/airport-visits';
 
   let {
     flights,
     airportId,
     airlineCount,
+    now,
   }: {
     flights: FlightData[];
     airportId: number;
     airlineCount: number;
+    now: Date;
   } = $props();
 
   const departures = $derived(
@@ -32,28 +34,9 @@
     return set.size;
   });
 
-  const mostRecent = $derived.by(() => {
-    let best: FlightData | null = null;
-    let bestTs = -Infinity;
-    for (const f of flights) {
-      const ts = f.date?.getTime();
-      if (ts && ts > bestTs) {
-        bestTs = ts;
-        best = f;
-      }
-    }
-    return best;
-  });
-
-  const lastVisitLabel = $derived.by(() => {
-    if (!mostRecent?.date) return null;
-    return formatAsFlightDate(
-      mostRecent.date,
-      mostRecent.datePrecision ?? 'day',
-      false,
-      true,
-    );
-  });
+  const visits = $derived(getAirportVisitSummary(flights, airportId, now));
+  const lastVisitLabel = $derived(visits.last);
+  const nextVisitLabel = $derived(visits.next);
 </script>
 
 <section class="px-4 py-4">
@@ -86,8 +69,27 @@
     </div>
   </div>
 
+  {#if lastVisitLabel && nextVisitLabel}
+    <div
+      class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-3 text-xs text-muted-foreground"
+    >
+      <span>
+        last visit <span class="text-foreground">{lastVisitLabel}</span>
+      </span>
+      <span class="inline-flex items-center gap-2">
+        <span aria-hidden="true">·</span>
+        <span>
+          next visit <span class="text-foreground">{nextVisitLabel}</span>
+        </span>
+      </span>
+    </div>
+  {/if}
+
   <div
-    class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-3 text-xs text-muted-foreground"
+    class={cn(
+      'flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground',
+      lastVisitLabel && nextVisitLabel ? 'mt-1' : 'mt-3',
+    )}
   >
     <span>
       <span class="font-semibold text-foreground tabular-nums">
@@ -95,18 +97,25 @@
       </span>
       airlines
     </span>
-    <span aria-hidden="true">·</span>
-    <span>
-      <span class="font-semibold text-foreground tabular-nums">
-        {distinctRoutes}
-      </span>
-      routes
-    </span>
-    {#if lastVisitLabel}
+    <span class="inline-flex items-center gap-2">
       <span aria-hidden="true">·</span>
-      <span
-        >last visit <span class="text-foreground">{lastVisitLabel}</span></span
-      >
+      <span>
+        <span class="font-semibold text-foreground tabular-nums">
+          {distinctRoutes}
+        </span>
+        routes
+      </span>
+    </span>
+    {#if Boolean(lastVisitLabel) !== Boolean(nextVisitLabel)}
+      <span class="inline-flex items-center gap-2">
+        <span aria-hidden="true">·</span>
+        <span>
+          {lastVisitLabel ? 'last' : 'next'} visit
+          <span class="text-foreground">
+            {lastVisitLabel ?? nextVisitLabel}
+          </span>
+        </span>
+      </span>
     {/if}
   </div>
 </section>
