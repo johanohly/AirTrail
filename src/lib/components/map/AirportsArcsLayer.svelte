@@ -3,6 +3,7 @@
   import { ArcLayer, ScatterplotLayer } from '@deck.gl/layers';
   import { MapboxOverlay } from '@deck.gl/mapbox';
   import { isTouchDevice } from '@melt-ui/svelte/internal/helpers';
+  import type { Popup as MaplibrePopup } from 'maplibre-gl';
   import { mode } from 'mode-watcher';
   import { onDestroy } from 'svelte';
   import {
@@ -159,6 +160,17 @@
     ),
   );
 
+  const getPointerPixel = (
+    e: PickingInfo,
+    event?: DeckPointerEvent,
+  ): { x: number; y: number } | undefined =>
+    event?.srcEvent?.point ??
+    event?.offsetCenter ??
+    (e.pixel ? { x: e.pixel[0], y: e.pixel[1] } : undefined) ??
+    (Number.isFinite(e.x) && Number.isFinite(e.y)
+      ? { x: e.x, y: e.y }
+      : undefined);
+
   // deck's picking coordinate is unprojected through deck's own globe
   // viewport, which drifts from MapLibre during the globe<->mercator
   // transition zooms — anchor popups via the raw pointer position instead.
@@ -166,13 +178,7 @@
     e: PickingInfo,
     event?: DeckPointerEvent,
   ): [number, number] | undefined => {
-    const point =
-      event?.srcEvent?.point ??
-      event?.offsetCenter ??
-      (e.pixel ? { x: e.pixel[0], y: e.pixel[1] } : undefined) ??
-      (Number.isFinite(e.x) && Number.isFinite(e.y)
-        ? { x: e.x, y: e.y }
-        : undefined);
+    const point = getPointerPixel(e, event);
 
     if (event?.srcEvent?.lngLat) {
       return [event.srcEvent.lngLat.lng, event.srcEvent.lngLat.lat];
@@ -212,6 +218,27 @@
     };
   };
 
+  const POPUP_OFFSET = 20;
+  const POPUP_FALLBACK_SIZE = { width: 320, height: 280 };
+  let popupInstance: MaplibrePopup | undefined;
+
+  // MapLibre re-reads options.anchor on every popup position update, so
+  // mutating it flips the popup at screen edges without recreating it.
+  const updatePopupAnchor = (point: { x: number; y: number } | undefined) => {
+    if (!popupInstance || !map || !point) return;
+    const container = map.getContainer();
+    const el = popupInstance.getElement();
+    const width = el?.offsetWidth || POPUP_FALLBACK_SIZE.width;
+    const height = el?.offsetHeight || POPUP_FALLBACK_SIZE.height;
+    const vertical =
+      point.y + POPUP_OFFSET + height > container.clientHeight
+        ? 'bottom'
+        : 'top';
+    const horizontal =
+      point.x + POPUP_OFFSET + width > container.clientWidth ? 'right' : 'left';
+    popupInstance.options.anchor = `${vertical}-${horizontal}`;
+  };
+
   let id = getId('deckgl-layer');
   let hoveredAirport: VisitedAirport | undefined = $state.raw(undefined);
   let hoveredArc: FlightArc | FlightTrackPath | undefined =
@@ -239,6 +266,7 @@
     if (!isTouchDevice()) {
       mapDetailsState.hoveredFlightTrackId = null;
       hoveredAirport = e.object ?? undefined;
+      updatePopupAnchor(getPointerPixel(e, event));
       const type = e.index !== -1 ? 'mousemove' : 'mouseleave';
       layerEvent.value = {
         ...e,
@@ -256,6 +284,7 @@
     if (!isTouchDevice()) {
       mapDetailsState.hoveredFlightTrackId = null;
       hoveredArc = e.object ?? undefined;
+      updatePopupAnchor(getPointerPixel(e, event));
       const type = e.index !== -1 ? 'mousemove' : 'mouseleave';
       layerEvent.value = {
         ...e,
@@ -273,6 +302,7 @@
     if (!isTouchDevice()) {
       mapDetailsState.hoveredFlightTrackId = e.object?.flightId ?? null;
       hoveredArc = e.object ?? undefined;
+      updatePopupAnchor(getPointerPixel(e, event));
       const type = e.index !== -1 ? 'mousemove' : 'mouseleave';
       layerEvent.value = {
         ...e,
@@ -795,7 +825,12 @@
 </script>
 
 {#if layer}
-  <Popup openOn="hover" anchor="top-left" offset={20}>
+  <Popup
+    openOn="hover"
+    anchor="top-left"
+    offset={POPUP_OFFSET}
+    onopen={(popup) => (popupInstance = popup)}
+  >
     {#snippet children({ data })}
       {#if data?.country}
         <AirportPopup {data} {clickable} />
