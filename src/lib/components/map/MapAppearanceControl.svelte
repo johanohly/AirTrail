@@ -1,11 +1,12 @@
 <script lang="ts">
   import { ControlButton } from 'svelte-maplibre';
-  import { page } from '$app/state';
 
   import FlightsAppearanceTab from './map-appearance/FlightsAppearanceTab.svelte';
   import LayersAppearanceTab from './map-appearance/LayersAppearanceTab.svelte';
   import MapAppearanceTab from './map-appearance/MapAppearanceTab.svelte';
 
+  import { page } from '$app/state';
+  import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
   import * as Popover from '$lib/components/ui/popover';
   import * as Tabs from '$lib/components/ui/tabs';
   import { resetMapPreferences } from '$lib/map/map-preferences.svelte';
@@ -65,46 +66,48 @@
     sideOffset={8}
     class="w-[min(calc(100vw-2rem),340px)] overflow-hidden p-0"
   >
-    <div class="flex max-h-[calc(100vh-6rem)] flex-col">
-      <div
-        class="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3"
-      >
-        <h2 class="text-sm font-semibold leading-none">Map appearance</h2>
-        <button
-          type="button"
-          class="text-muted-foreground hover:text-foreground rounded-sm px-1.5 py-0.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
-          onclick={resetMapPreferences}
+    <AnimatedSizeContainer height class="max-h-[calc(100vh-6rem)]">
+      <div class="flex max-h-[calc(100vh-6rem)] flex-col">
+        <div
+          class="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3"
         >
-          Reset
-        </button>
-      </div>
-
-      <Tabs.Root
-        bind:value={activeTab}
-        class="min-h-0 flex-1 gap-0 overflow-hidden"
-      >
-        <div class="shrink-0 border-b px-3 py-2">
-          <Tabs.List class="grid w-full grid-cols-3">
-            <Tabs.Trigger value="map">Map</Tabs.Trigger>
-            <Tabs.Trigger value="flights">Flights</Tabs.Trigger>
-            <Tabs.Trigger value="layers">Layers</Tabs.Trigger>
-          </Tabs.List>
+          <h2 class="text-sm font-semibold leading-none">Map appearance</h2>
+          <button
+            type="button"
+            class="text-muted-foreground hover:text-foreground rounded-sm px-1.5 py-0.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+            onclick={resetMapPreferences}
+          >
+            Reset
+          </button>
         </div>
 
-        <Tabs.Content value="map" class="min-h-0 overflow-y-auto">
-          <MapAppearanceTab />
-        </Tabs.Content>
-        <Tabs.Content value="flights" class="min-h-0 overflow-y-auto">
-          <FlightsAppearanceTab {showTracksSection} {hasFallbackArcs} />
-        </Tabs.Content>
-        <Tabs.Content value="layers" class="min-h-0 overflow-y-auto">
-          <LayersAppearanceTab
-            {openAipConfigured}
-            {isAdmin}
-            onOpenIntegrationSettings={openIntegrationSettings}
-          />
-        </Tabs.Content>
-      </Tabs.Root>
-    </div>
+        <Tabs.Root
+          bind:value={activeTab}
+          class="min-h-0 flex-1 gap-0 overflow-hidden"
+        >
+          <div class="shrink-0 border-b px-3 py-2">
+            <Tabs.List class="grid w-full grid-cols-3">
+              <Tabs.Trigger value="map">Map</Tabs.Trigger>
+              <Tabs.Trigger value="flights">Flights</Tabs.Trigger>
+              <Tabs.Trigger value="layers">Layers</Tabs.Trigger>
+            </Tabs.List>
+          </div>
+
+          <Tabs.Content value="map" class="min-h-0 overflow-y-auto">
+            <MapAppearanceTab />
+          </Tabs.Content>
+          <Tabs.Content value="flights" class="min-h-0 overflow-y-auto">
+            <FlightsAppearanceTab {showTracksSection} {hasFallbackArcs} />
+          </Tabs.Content>
+          <Tabs.Content value="layers" class="min-h-0 overflow-y-auto">
+            <LayersAppearanceTab
+              {openAipConfigured}
+              {isAdmin}
+              onOpenIntegrationSettings={openIntegrationSettings}
+            />
+          </Tabs.Content>
+        </Tabs.Root>
+      </div>
+    </AnimatedSizeContainer>
   </Popover.Content>
 </Popover.Root>

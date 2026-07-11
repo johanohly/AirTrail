@@ -47,15 +47,21 @@ describe('flight track layer data', () => {
     expect(paths).toMatchObject([
       {
         flightId: 7,
-        path: [
-          [10, 55, 0],
-          [11, 56, 304.8],
+        samples: [
+          {
+            coordinate: [10, 55, 0],
+            point: { ground: true },
+            incomingEdge: { estimated: false },
+          },
+          {
+            coordinate: [11, 56, 304.8],
+            point: { ground: false },
+            incomingEdge: { estimated: true },
+          },
         ],
-        ground: [true, false],
-        estimated: [false, true],
       },
     ]);
-    expect(paths[0]!.path).toHaveLength(paths[0]!.estimated!.length);
+    expect(paths[0]!.samples).toHaveLength(2);
   });
 
   it('detects whether route arcs remain after tracked flights are replaced', () => {

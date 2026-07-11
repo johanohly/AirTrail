@@ -1,32 +1,78 @@
-import { describe, expect, it } from 'vitest';
+import type { Color } from '@deck.gl/core';
 import { distance, point } from '@turf/turf';
+import { describe, expect, it } from 'vitest';
 
 import type { FlightTrackPath } from './flight-layer-data';
 import {
   buildFlightTrackDisplayPath,
+  MAX_FLIGHT_TRACK_DISPLAY_POINTS,
+} from './flight-track-display-geometry';
+import {
   buildFlightTrackLayers,
+  type FlightTrackRenderContext,
   prepareFlightTrackLayerData,
+  type RenderableFlightTrackPath,
+  type RenderableFlightTrackRun,
 } from './flight-track-layers';
+
+import {
+  toFlightTrackSamples,
+  type FlightTrackCoordinate,
+} from '$lib/track/schema';
 
 const paths = [
   {
     flightId: 1,
-    path: [
-      [10, 55, 0],
-      [11, 56, 304.8],
-      [12, 57, 609.6],
-    ],
-    estimated: [false, false, true],
-    ground: [true, false, false],
+    samples: toFlightTrackSamples({
+      coordinates: [
+        [10, 55, 0],
+        [11, 56, 304.8],
+        [12, 57, 609.6],
+      ],
+      estimated: [false, false, true],
+      ground: [true, false, false],
+    }),
   },
 ] as FlightTrackPath[];
+
+const renderContext = ({
+  standardColor = [0, 0, 0],
+  estimatedUnderlayColor = [24, 24, 27, 190],
+}: {
+  standardColor?: Color;
+  estimatedUnderlayColor?: Color;
+} = {}): FlightTrackRenderContext => ({
+  geometry: { parameters: {}, extensions: [] },
+  appearance: {
+    getWidth: () => 2,
+    getStandardColor: () => standardColor,
+    getAltitudeColor: () => [4, 5, 6],
+    getGroundCasingColor: () => [9, 9, 11, 220],
+    getEstimatedUnderlayColor: () => estimatedUnderlayColor,
+    updateTriggers: { width: [], standardColor: [], altitudeColor: [] },
+  },
+  interaction: { onHover: undefined, onClick: undefined },
+});
+
+type RuntimePathLayerProps<T> = {
+  data: T[];
+  getWidth: (value: T) => number;
+  getColor: (value: T, info?: unknown) => Color;
+  getPath: (value: T, info?: unknown) => [number, number][];
+  getDashArray: (value: T) => [number, number];
+  widthMinPixels: number;
+  capRounded: boolean;
+};
+
+const runtimeProps = <T>(layer: { props: unknown }) =>
+  layer.props as RuntimePathLayerProps<T>;
 
 describe('flight track layers', () => {
   it('adaptively follows the globe without changing source coordinates', () => {
     const source = [
       [0, 0, 100],
       [179, 0, 1_000],
-    ] as FlightTrackPath['path'];
+    ] as FlightTrackCoordinate[];
 
     const display = buildFlightTrackDisplayPath(source);
 
@@ -78,6 +124,49 @@ describe('flight track layers', () => {
     ).toHaveLength(5);
   });
 
+  it('bounds tessellation for pathological maximum-size tracks', () => {
+    const source: FlightTrackCoordinate[] = Array.from(
+      { length: 5_000 },
+      (_, index): FlightTrackCoordinate =>
+        index % 2 === 0 ? [0, 0] : [179, 0],
+    );
+
+    const display = buildFlightTrackDisplayPath(source);
+
+    expect(display.length).toBeLessThanOrEqual(MAX_FLIGHT_TRACK_DISPLAY_POINTS);
+    expect(display[0]).toEqual(source[0]);
+    expect(display.at(-1)).toEqual(source.at(-1));
+  });
+
+  it('shares the display budget across every layer generated for a track', () => {
+    const coordinates: FlightTrackCoordinate[] = Array.from(
+      { length: 100 },
+      (_, index) => [index % 2 === 0 ? 0 : 179, 0, index * 100],
+    );
+    const data = prepareFlightTrackLayerData(
+      [
+        {
+          flightId: 2,
+          samples: toFlightTrackSamples({ coordinates }),
+        } as FlightTrackPath,
+      ],
+      'altitude',
+    );
+    const renderedPointCount =
+      data.paths.reduce((total, path) => total + path.displayPath.length, 0) +
+      data.solidRuns.reduce((total, run) => total + run.displayPath.length, 0) +
+      2 *
+        data.estimatedRuns.reduce(
+          (total, run) => total + run.displayPath.length,
+          0,
+        ) +
+      data.groundRuns.reduce((total, run) => total + run.displayPath.length, 0);
+
+    expect(renderedPointCount).toBeLessThanOrEqual(
+      MAX_FLIGHT_TRACK_DISPLAY_POINTS,
+    );
+  });
+
   it('prepares estimated runs for every track style', () => {
     const standardData = prepareFlightTrackLayerData(paths, 'standard');
     expect(standardData.solidRuns).toHaveLength(1);
@@ -99,18 +188,7 @@ describe('flight track layers', () => {
     const layers = buildFlightTrackLayers({
       data,
       style: 'standard',
-      parameters: {},
-      extensions: [],
-      getWidth: () => 2,
-      getStandardColor: () => [1, 2, 3],
-      getAltitudeColor: () => [4, 5, 6],
-      getGroundCasingColor: () => [9, 9, 11, 220],
-      getEstimatedUnderlayColor: () => [24, 24, 27, 190],
-      widthUpdateTriggers: [],
-      standardColorUpdateTriggers: [],
-      altitudeColorUpdateTriggers: [],
-      onHover: undefined,
-      onClick: undefined,
+      context: renderContext({ standardColor: [1, 2, 3] }),
     });
 
     expect(layers[0]!.props.data).toBe(data.solidRuns);
@@ -118,15 +196,17 @@ describe('flight track layers', () => {
     expect(layers[2]!.props.data).toEqual([]);
     expect(layers[3]!.props.data).toBe(data.estimatedRuns);
     expect(layers[4]!.props.data).toBe(data.estimatedRuns);
-    expect(layers[3]!.props.getWidth(data.estimatedRuns[0])).toBeCloseTo(1.12);
-    expect(layers[3]!.props.widthMinPixels).toBe(1);
-    expect(layers[3]!.props.capRounded).toBe(true);
-    expect(layers[4]!.props.capRounded).toBe(true);
-    expect(layers[4]!.props.getWidth(data.estimatedRuns[0])).toBe(2);
-    const dashArray = layers[4]!.props.getDashArray(data.estimatedRuns[0]);
+    const underlayProps = runtimeProps<RenderableFlightTrackRun>(layers[3]!);
+    const estimatedProps = runtimeProps<RenderableFlightTrackRun>(layers[4]!);
+    expect(underlayProps.getWidth(data.estimatedRuns[0]!)).toBeCloseTo(1.12);
+    expect(underlayProps.widthMinPixels).toBe(1);
+    expect(underlayProps.capRounded).toBe(true);
+    expect(estimatedProps.capRounded).toBe(true);
+    expect(estimatedProps.getWidth(data.estimatedRuns[0]!)).toBe(2);
+    const dashArray = estimatedProps.getDashArray(data.estimatedRuns[0]!);
     expect(dashArray).toEqual([10, 23]);
     expect(
-      layers[4]!.props.getColor(data.estimatedRuns[0], {
+      estimatedProps.getColor(data.estimatedRuns[0]!, {
         index: 0,
         data: data.estimatedRuns,
         target: [],
@@ -139,18 +219,7 @@ describe('flight track layers', () => {
     const layers = buildFlightTrackLayers({
       data,
       style: 'altitude',
-      parameters: {},
-      extensions: [],
-      getWidth: () => 2,
-      getStandardColor: () => [0, 0, 0],
-      getAltitudeColor: () => [0, 0, 0],
-      getGroundCasingColor: () => [9, 9, 11, 220],
-      getEstimatedUnderlayColor: () => [24, 24, 27, 190],
-      widthUpdateTriggers: [],
-      standardColorUpdateTriggers: [],
-      altitudeColorUpdateTriggers: [],
-      onHover: undefined,
-      onClick: undefined,
+      context: renderContext(),
     });
 
     expect(layers.map((layer) => layer.id)).toEqual([
@@ -163,10 +232,14 @@ describe('flight track layers', () => {
     ]);
     expect(layers[0]!.props.data).toEqual([]);
     expect(layers[1]!.props.data).toBe(data.groundRuns);
-    expect(layers[1]!.props.getWidth(data.groundRuns[0])).toBe(4.5);
+    expect(
+      runtimeProps<RenderableFlightTrackRun>(layers[1]!).getWidth(
+        data.groundRuns[0]!,
+      ),
+    ).toBe(4.5);
     expect(layers[2]!.props.data).toBe(data.solidRuns);
     expect(layers[3]!.props.data).toBe(data.estimatedRuns);
-    expect(layers[5]!.props.data).toBe(paths);
+    expect(layers[5]!.props.data).toBe(data.paths);
   });
 
   it('renders tracks on the map surface while retaining stored altitude', () => {
@@ -174,28 +247,21 @@ describe('flight track layers', () => {
     const layers = buildFlightTrackLayers({
       data,
       style: 'altitude',
-      parameters: {},
-      extensions: [],
-      getWidth: () => 2,
-      getStandardColor: () => [0, 0, 0],
-      getAltitudeColor: () => [0, 0, 0],
-      getGroundCasingColor: () => [9, 9, 11, 220],
-      getEstimatedUnderlayColor: () => [24, 24, 27, 60],
-      widthUpdateTriggers: [],
-      standardColorUpdateTriggers: [],
-      altitudeColorUpdateTriggers: [],
-      onHover: undefined,
-      onClick: undefined,
+      context: renderContext({ estimatedUnderlayColor: [24, 24, 27, 60] }),
     });
 
-    const visiblePath = layers[2]!.props.getPath(data.solidRuns[0], {
+    const visiblePath = runtimeProps<RenderableFlightTrackRun>(
+      layers[2]!,
+    ).getPath(data.solidRuns[0]!, {
       index: 0,
       data: data.solidRuns,
       target: [],
     });
-    const pickingPath = layers[5]!.props.getPath(paths[0], {
+    const pickingPath = runtimeProps<RenderableFlightTrackPath>(
+      layers[5]!,
+    ).getPath(data.paths[0]!, {
       index: 0,
-      data: paths,
+      data: data.paths,
       target: [],
     });
 
@@ -207,13 +273,16 @@ describe('flight track layers', () => {
     expect(pickingPath.every((coordinate) => coordinate.length === 2)).toBe(
       true,
     );
-    expect(paths[0]!.path[1]).toEqual([11, 56, 304.8]);
+    expect(paths[0]!.samples[1]!.coordinate).toEqual([11, 56, 304.8]);
     expect(
-      layers[3]!.props.getColor(data.estimatedRuns[0], {
-        index: 0,
-        data: data.estimatedRuns,
-        target: [],
-      }),
+      runtimeProps<RenderableFlightTrackRun>(layers[3]!).getColor(
+        data.estimatedRuns[0]!,
+        {
+          index: 0,
+          data: data.estimatedRuns,
+          target: [],
+        },
+      ),
     ).toEqual([24, 24, 27, 60]);
   });
 });

@@ -1,284 +1,256 @@
-import { browser } from '$app/environment';
-
+import { MAP_BASEMAPS, type MapBasemap } from './basemap';
 import {
   OPENAIP_DEFAULT_ENABLED_GROUPS,
   OPENAIP_OVERLAY_GROUPS,
   type OpenAipOverlayGroup,
 } from './openaip';
-import { MAP_BASEMAPS, type MapBasemap } from './basemap';
 
-export type AirportCirclesMode = 'off' | 'small' | 'medium' | 'large';
-export type AirportCircleRadiusMode = 'byFrequency' | 'uniform';
-export type ArcColorMode = 'default' | 'byFrequency';
-export type ArcThicknessMode = 'uniform' | 'byFrequency';
-export type ArcThicknessScale = 'thin' | 'normal' | 'thick';
-export type RouteDisplayMode = 'points' | 'tracks';
-export type FlightTrackStyle = 'standard' | 'altitude';
-export type AirportOverlayDetail = 'standard' | 'detailed';
-export type MapProjection = 'mercator' | 'globe';
+import { browser } from '$app/environment';
+
+export type AppearanceOption<T extends string> = {
+  value: T;
+  label: string;
+};
+
+const airportCircleOptions = [
+  { value: 'off', label: 'Off' },
+  { value: 'small', label: 'Small' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'large', label: 'Large' },
+] as const;
+const airportCircleRadiusOptions = [
+  { value: 'byFrequency', label: 'By frequency' },
+  { value: 'uniform', label: 'Uniform' },
+] as const;
+const arcColorOptions = [
+  { value: 'default', label: 'Default' },
+  { value: 'byFrequency', label: 'By frequency' },
+] as const;
+const arcThicknessOptions = [
+  { value: 'uniform', label: 'Uniform' },
+  { value: 'byFrequency', label: 'By frequency' },
+] as const;
+const arcThicknessScaleOptions = [
+  { value: 'thin', label: 'Thin' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'thick', label: 'Thick' },
+] as const;
+const routeDisplayOptions = [
+  { value: 'tracks', label: 'Flight tracks' },
+  { value: 'points', label: 'Point to point' },
+] as const;
+const flightTrackStyleOptions = [
+  { value: 'standard', label: 'Standard' },
+  { value: 'altitude', label: 'Altitude' },
+] as const;
+const airportOverlayDetailOptions = [
+  { value: 'standard', label: 'Standard' },
+  { value: 'detailed', label: 'Detailed' },
+] as const;
+const projectionOptions = [
+  { value: 'mercator', label: 'Flat' },
+  { value: 'globe', label: 'Globe' },
+] as const;
+const basemapLabels = {
+  default: 'Default',
+  satellite: 'Satellite',
+} as const satisfies Record<MapBasemap, string>;
+const basemapOptions = MAP_BASEMAPS.map((value) => ({
+  value,
+  label: basemapLabels[value],
+}));
+
+const openAipGroupLabels = {
+  airspaces: 'Airspaces',
+  airspaceLabels: 'Airspace labels',
+  airports: 'Airports',
+  navaids: 'Navaids',
+  reportingPoints: 'Reporting points',
+} as const satisfies Record<OpenAipOverlayGroup, string>;
+const openAipGroupOptions = OPENAIP_OVERLAY_GROUPS.map((value) => ({
+  value,
+  label: openAipGroupLabels[value],
+}));
+
+type OptionValue<T extends readonly AppearanceOption<string>[]> =
+  T[number]['value'];
+
+export type AirportCirclesMode = OptionValue<typeof airportCircleOptions>;
+export type AirportCircleRadiusMode = OptionValue<
+  typeof airportCircleRadiusOptions
+>;
+export type ArcColorMode = OptionValue<typeof arcColorOptions>;
+export type ArcThicknessMode = OptionValue<typeof arcThicknessOptions>;
+export type ArcThicknessScale = OptionValue<typeof arcThicknessScaleOptions>;
+export type RouteDisplayMode = OptionValue<typeof routeDisplayOptions>;
+export type FlightTrackStyle = OptionValue<typeof flightTrackStyleOptions>;
+export type AirportOverlayDetail = OptionValue<
+  typeof airportOverlayDetailOptions
+>;
+export type MapProjection = OptionValue<typeof projectionOptions>;
+
+type PreferenceDefinition<T> = {
+  defaultValue: T;
+  sanitize: (raw: unknown) => T;
+};
+
+const choicePreference = <T extends string>(
+  options: readonly AppearanceOption<T>[],
+  defaultValue: T,
+): PreferenceDefinition<T> & { options: readonly AppearanceOption<T>[] } => {
+  const values = new Set(options.map((option) => option.value));
+  return {
+    defaultValue,
+    options,
+    sanitize: (raw) =>
+      typeof raw === 'string' && values.has(raw as T)
+        ? (raw as T)
+        : defaultValue,
+  };
+};
+
+const booleanPreference = (
+  defaultValue: boolean,
+): PreferenceDefinition<boolean> => ({
+  defaultValue,
+  sanitize: (raw) => (typeof raw === 'boolean' ? raw : defaultValue),
+});
+
+const choiceArrayPreference = <T extends string>(
+  options: readonly AppearanceOption<T>[],
+  defaultValue: readonly T[],
+): PreferenceDefinition<T[]> & { options: readonly AppearanceOption<T>[] } => {
+  const values = new Set(options.map((option) => option.value));
+  return {
+    defaultValue: [...defaultValue],
+    options,
+    sanitize: (raw) =>
+      Array.isArray(raw)
+        ? raw.filter(
+            (value): value is T =>
+              typeof value === 'string' && values.has(value as T),
+          )
+        : [...defaultValue],
+  };
+};
+
+export const MAP_PREFERENCE_DEFINITIONS = {
+  basemap: choicePreference(basemapOptions, 'default'),
+  projection: choicePreference(projectionOptions, 'mercator'),
+  timeOfDayEnabled: booleanPreference(false),
+  rainViewerEnabled: booleanPreference(false),
+  airportCircles: choicePreference(airportCircleOptions, 'large'),
+  airportCircleRadius: choicePreference(
+    airportCircleRadiusOptions,
+    'byFrequency',
+  ),
+  arcColor: choicePreference(arcColorOptions, 'default'),
+  arcThickness: choicePreference(arcThicknessOptions, 'uniform'),
+  arcThicknessScale: choicePreference(arcThicknessScaleOptions, 'normal'),
+  routeDisplay: choicePreference(routeDisplayOptions, 'tracks'),
+  flightTrackStyle: choicePreference(flightTrackStyleOptions, 'standard'),
+  airportOverlayDetail: choicePreference(
+    airportOverlayDetailOptions,
+    'detailed',
+  ),
+  openAipEnabled: booleanPreference(false),
+  openAipGroups: choiceArrayPreference(
+    openAipGroupOptions,
+    OPENAIP_DEFAULT_ENABLED_GROUPS,
+  ),
+} as const;
+
+type DefinitionValue<T> =
+  T extends PreferenceDefinition<infer Value> ? Value : never;
 
 export type MapPreferences = {
-  basemap: MapBasemap;
-  projection: MapProjection;
-  timeOfDayEnabled: boolean;
-  rainViewerEnabled: boolean;
-  airportCircles: AirportCirclesMode;
-  airportCircleRadius: AirportCircleRadiusMode;
-  arcColor: ArcColorMode;
-  arcThickness: ArcThicknessMode;
-  arcThicknessScale: ArcThicknessScale;
-  routeDisplay: RouteDisplayMode;
-  flightTrackStyle: FlightTrackStyle;
-  airportOverlayDetail: AirportOverlayDetail;
-  openAipEnabled: boolean;
-  openAipGroups: OpenAipOverlayGroup[];
+  -readonly [Key in keyof typeof MAP_PREFERENCE_DEFINITIONS]: DefinitionValue<
+    (typeof MAP_PREFERENCE_DEFINITIONS)[Key]
+  >;
+};
+
+const preferenceKeys = Object.keys(
+  MAP_PREFERENCE_DEFINITIONS,
+) as (keyof MapPreferences)[];
+
+const clonePreferenceValue = <T>(value: T): T =>
+  (Array.isArray(value) ? [...value] : value) as T;
+
+const buildDefaults = () =>
+  Object.fromEntries(
+    preferenceKeys.map((key) => [
+      key,
+      clonePreferenceValue(MAP_PREFERENCE_DEFINITIONS[key].defaultValue),
+    ]),
+  ) as MapPreferences;
+
+export const MAP_PREFERENCE_DEFAULTS = buildDefaults();
+export const mapPreferences = $state<MapPreferences>(buildDefaults());
+
+export const sanitizeMapPreferences = (raw: unknown): MapPreferences => {
+  const input =
+    raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  return Object.fromEntries(
+    preferenceKeys.map((key) => [
+      key,
+      MAP_PREFERENCE_DEFINITIONS[key].sanitize(input[key]),
+    ]),
+  ) as MapPreferences;
+};
+
+const assignMapPreferences = (preferences: MapPreferences) => {
+  Object.assign(mapPreferences, preferences);
 };
 
 const STORAGE_KEY = 'airtrail:map:prefs';
 const LEGACY_OPENAIP_KEY = 'airtrail:map:openaip-overlay';
-
-const AIRPORT_CIRCLES_MODES: readonly AirportCirclesMode[] = [
-  'off',
-  'small',
-  'medium',
-  'large',
-];
-const AIRPORT_CIRCLE_RADIUS_MODES: readonly AirportCircleRadiusMode[] = [
-  'byFrequency',
-  'uniform',
-];
-const ARC_COLOR_MODES: readonly ArcColorMode[] = ['default', 'byFrequency'];
-const ARC_THICKNESS_MODES: readonly ArcThicknessMode[] = [
-  'uniform',
-  'byFrequency',
-];
-const ARC_THICKNESS_SCALES: readonly ArcThicknessScale[] = [
-  'thin',
-  'normal',
-  'thick',
-];
-const ROUTE_DISPLAY_MODES: readonly RouteDisplayMode[] = ['points', 'tracks'];
-const FLIGHT_TRACK_STYLES: readonly FlightTrackStyle[] = [
-  'standard',
-  'altitude',
-];
-const AIRPORT_OVERLAY_DETAIL_MODES: readonly AirportOverlayDetail[] = [
-  'standard',
-  'detailed',
-];
-const MAP_PROJECTIONS: readonly MapProjection[] = ['mercator', 'globe'];
-
-export const MAP_PREFERENCE_DEFAULTS: MapPreferences = {
-  basemap: 'default',
-  projection: 'mercator',
-  timeOfDayEnabled: false,
-  rainViewerEnabled: false,
-  airportCircles: 'large',
-  airportCircleRadius: 'byFrequency',
-  arcColor: 'default',
-  arcThickness: 'uniform',
-  arcThicknessScale: 'normal',
-  routeDisplay: 'tracks',
-  flightTrackStyle: 'standard',
-  airportOverlayDetail: 'detailed',
-  openAipEnabled: false,
-  openAipGroups: [...OPENAIP_DEFAULT_ENABLED_GROUPS],
-};
-
-export const mapPreferences = $state<MapPreferences>({
-  ...MAP_PREFERENCE_DEFAULTS,
-  openAipGroups: [...MAP_PREFERENCE_DEFAULTS.openAipGroups],
-});
-
-const sanitize = (raw: unknown): MapPreferences => {
-  const result: MapPreferences = {
-    ...MAP_PREFERENCE_DEFAULTS,
-    openAipGroups: [...MAP_PREFERENCE_DEFAULTS.openAipGroups],
-  };
-
-  if (!raw || typeof raw !== 'object') return result;
-  const input = raw as Partial<Record<keyof MapPreferences, unknown>>;
-
-  if (
-    typeof input.basemap === 'string' &&
-    MAP_BASEMAPS.includes(input.basemap as MapBasemap)
-  ) {
-    result.basemap = input.basemap as MapBasemap;
-  }
-  if (
-    typeof input.projection === 'string' &&
-    MAP_PROJECTIONS.includes(input.projection as MapProjection)
-  ) {
-    result.projection = input.projection as MapProjection;
-  }
-  if (typeof input.timeOfDayEnabled === 'boolean') {
-    result.timeOfDayEnabled = input.timeOfDayEnabled;
-  }
-  if (typeof input.rainViewerEnabled === 'boolean') {
-    result.rainViewerEnabled = input.rainViewerEnabled;
-  }
-  if (
-    typeof input.airportCircles === 'string' &&
-    AIRPORT_CIRCLES_MODES.includes(input.airportCircles as AirportCirclesMode)
-  ) {
-    result.airportCircles = input.airportCircles as AirportCirclesMode;
-  }
-  if (
-    typeof input.airportCircleRadius === 'string' &&
-    AIRPORT_CIRCLE_RADIUS_MODES.includes(
-      input.airportCircleRadius as AirportCircleRadiusMode,
-    )
-  ) {
-    result.airportCircleRadius =
-      input.airportCircleRadius as AirportCircleRadiusMode;
-  }
-  if (
-    typeof input.arcColor === 'string' &&
-    ARC_COLOR_MODES.includes(input.arcColor as ArcColorMode)
-  ) {
-    result.arcColor = input.arcColor as ArcColorMode;
-  }
-  if (
-    typeof input.arcThickness === 'string' &&
-    ARC_THICKNESS_MODES.includes(input.arcThickness as ArcThicknessMode)
-  ) {
-    result.arcThickness = input.arcThickness as ArcThicknessMode;
-  }
-  if (
-    typeof input.arcThicknessScale === 'string' &&
-    ARC_THICKNESS_SCALES.includes(input.arcThicknessScale as ArcThicknessScale)
-  ) {
-    result.arcThicknessScale = input.arcThicknessScale as ArcThicknessScale;
-  }
-  if (
-    typeof input.routeDisplay === 'string' &&
-    ROUTE_DISPLAY_MODES.includes(input.routeDisplay as RouteDisplayMode)
-  ) {
-    result.routeDisplay = input.routeDisplay as RouteDisplayMode;
-  }
-  if (
-    typeof input.flightTrackStyle === 'string' &&
-    FLIGHT_TRACK_STYLES.includes(input.flightTrackStyle as FlightTrackStyle)
-  ) {
-    result.flightTrackStyle = input.flightTrackStyle as FlightTrackStyle;
-  }
-  if (
-    typeof input.airportOverlayDetail === 'string' &&
-    AIRPORT_OVERLAY_DETAIL_MODES.includes(
-      input.airportOverlayDetail as AirportOverlayDetail,
-    )
-  ) {
-    result.airportOverlayDetail =
-      input.airportOverlayDetail as AirportOverlayDetail;
-  }
-  if (typeof input.openAipEnabled === 'boolean') {
-    result.openAipEnabled = input.openAipEnabled;
-  }
-  if (Array.isArray(input.openAipGroups)) {
-    const validGroups = new Set<string>(OPENAIP_OVERLAY_GROUPS);
-    result.openAipGroups = input.openAipGroups.filter(
-      (g): g is OpenAipOverlayGroup =>
-        typeof g === 'string' && validGroups.has(g),
-    );
-  }
-
-  return result;
-};
-
 let initialized = false;
 
 export const initMapPreferences = () => {
   if (!browser || initialized) return;
   initialized = true;
 
-  let parsed: unknown = undefined;
+  let parsed: unknown;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) parsed = JSON.parse(raw);
   } catch {
-    // corrupt JSON — fall through to defaults
+    // Corrupt JSON falls back to defaults.
   }
 
   const legacyOpenAip = localStorage.getItem(LEGACY_OPENAIP_KEY);
   if (legacyOpenAip !== null) {
-    const legacyValue = legacyOpenAip === 'true';
     const base =
       parsed && typeof parsed === 'object'
         ? (parsed as Record<string, unknown>)
         : {};
     if (!('openAipEnabled' in base)) {
-      parsed = { ...base, openAipEnabled: legacyValue };
+      parsed = { ...base, openAipEnabled: legacyOpenAip === 'true' };
     }
     localStorage.removeItem(LEGACY_OPENAIP_KEY);
   }
 
-  const hydrated = sanitize(parsed);
-  mapPreferences.basemap = hydrated.basemap;
-  mapPreferences.projection = hydrated.projection;
-  mapPreferences.timeOfDayEnabled = hydrated.timeOfDayEnabled;
-  mapPreferences.rainViewerEnabled = hydrated.rainViewerEnabled;
-  mapPreferences.airportCircles = hydrated.airportCircles;
-  mapPreferences.airportCircleRadius = hydrated.airportCircleRadius;
-  mapPreferences.arcColor = hydrated.arcColor;
-  mapPreferences.arcThickness = hydrated.arcThickness;
-  mapPreferences.arcThicknessScale = hydrated.arcThicknessScale;
-  mapPreferences.routeDisplay = hydrated.routeDisplay;
-  mapPreferences.flightTrackStyle = hydrated.flightTrackStyle;
-  mapPreferences.airportOverlayDetail = hydrated.airportOverlayDetail;
-  mapPreferences.openAipEnabled = hydrated.openAipEnabled;
-  mapPreferences.openAipGroups = hydrated.openAipGroups;
+  assignMapPreferences(sanitizeMapPreferences(parsed));
 
   $effect.root(() => {
     $effect(() => {
-      const snapshot: MapPreferences = {
-        basemap: mapPreferences.basemap,
-        projection: mapPreferences.projection,
-        timeOfDayEnabled: mapPreferences.timeOfDayEnabled,
-        rainViewerEnabled: mapPreferences.rainViewerEnabled,
-        airportCircles: mapPreferences.airportCircles,
-        airportCircleRadius: mapPreferences.airportCircleRadius,
-        arcColor: mapPreferences.arcColor,
-        arcThickness: mapPreferences.arcThickness,
-        arcThicknessScale: mapPreferences.arcThicknessScale,
-        routeDisplay: mapPreferences.routeDisplay,
-        flightTrackStyle: mapPreferences.flightTrackStyle,
-        airportOverlayDetail: mapPreferences.airportOverlayDetail,
-        openAipEnabled: mapPreferences.openAipEnabled,
-        openAipGroups: [...mapPreferences.openAipGroups],
-      };
+      const snapshot = sanitizeMapPreferences(mapPreferences);
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
       } catch {
-        // quota or private mode — ignore
+        // Storage can fail in private mode or when quota is exhausted.
       }
     });
   });
 };
 
 export const resetMapPreferences = () => {
-  mapPreferences.basemap = MAP_PREFERENCE_DEFAULTS.basemap;
-  mapPreferences.projection = MAP_PREFERENCE_DEFAULTS.projection;
-  mapPreferences.timeOfDayEnabled = MAP_PREFERENCE_DEFAULTS.timeOfDayEnabled;
-  mapPreferences.rainViewerEnabled = MAP_PREFERENCE_DEFAULTS.rainViewerEnabled;
-  mapPreferences.airportCircles = MAP_PREFERENCE_DEFAULTS.airportCircles;
-  mapPreferences.airportCircleRadius =
-    MAP_PREFERENCE_DEFAULTS.airportCircleRadius;
-  mapPreferences.arcColor = MAP_PREFERENCE_DEFAULTS.arcColor;
-  mapPreferences.arcThickness = MAP_PREFERENCE_DEFAULTS.arcThickness;
-  mapPreferences.arcThicknessScale = MAP_PREFERENCE_DEFAULTS.arcThicknessScale;
-  mapPreferences.routeDisplay = MAP_PREFERENCE_DEFAULTS.routeDisplay;
-  mapPreferences.flightTrackStyle = MAP_PREFERENCE_DEFAULTS.flightTrackStyle;
-  mapPreferences.airportOverlayDetail =
-    MAP_PREFERENCE_DEFAULTS.airportOverlayDetail;
-  mapPreferences.openAipEnabled = MAP_PREFERENCE_DEFAULTS.openAipEnabled;
-  mapPreferences.openAipGroups = [...MAP_PREFERENCE_DEFAULTS.openAipGroups];
+  assignMapPreferences(buildDefaults());
 };
 
 export const toggleOpenAipGroup = (group: OpenAipOverlayGroup) => {
   const current = mapPreferences.openAipGroups;
-  if (current.includes(group)) {
-    mapPreferences.openAipGroups = current.filter((g) => g !== group);
-  } else {
-    mapPreferences.openAipGroups = [...current, group];
-  }
+  mapPreferences.openAipGroups = current.includes(group)
+    ? current.filter((value) => value !== group)
+    : [...current, group];
 };

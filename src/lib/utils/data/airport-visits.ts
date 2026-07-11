@@ -1,94 +1,14 @@
-import { TZDate } from '@date-fns/tz';
-
-import type { FlightDatePrecision } from '$lib/db/types';
+import { formatAsFlightDate } from '$lib/utils/datetime';
+import type { FlightData } from './data';
 import {
-  formatAsFlightDate,
-  getFlightDateRange,
-  parseLocalizeISO,
-} from '$lib/utils/datetime';
-
-type AirportRef = { id: number; tz: string };
-
-export type AirportVisitFlight = {
-  from: AirportRef | null;
-  to: AirportRef | null;
-  datePrecision: FlightDatePrecision;
-  duration: number | null;
-  departure: TZDate | null;
-  arrival: TZDate | null;
-  departureScheduled: string | null;
-  arrivalScheduled: string | null;
-  takeoffScheduled: string | null;
-  takeoffActual: string | null;
-  landingScheduled: string | null;
-  landingActual: string | null;
-  raw: { date: string };
-};
-
-type VisitWindow = {
-  start: TZDate;
-  end: TZDate;
-  precision: FlightDatePrecision;
-};
-
-const parseTime = (value: string | null, tz: string) =>
-  value ? parseLocalizeISO(value, tz) : null;
-
-const exactWindow = (date: TZDate): VisitWindow => ({
-  start: date,
-  end: date,
-  precision: 'day',
-});
-
-const departureTime = (flight: AirportVisitFlight) => {
-  const tz = flight.from?.tz ?? 'UTC';
-  return (
-    flight.departure ??
-    parseTime(flight.takeoffActual, tz) ??
-    parseTime(flight.departureScheduled, tz) ??
-    parseTime(flight.takeoffScheduled, tz)
-  );
-};
-
-const arrivalTime = (flight: AirportVisitFlight, departure: TZDate | null) => {
-  const tz = flight.to?.tz ?? 'UTC';
-  const recorded =
-    flight.arrival ??
-    parseTime(flight.landingActual, tz) ??
-    parseTime(flight.arrivalScheduled, tz) ??
-    parseTime(flight.landingScheduled, tz);
-
-  if (recorded || !departure || flight.duration === null) return recorded;
-  return new TZDate(departure.getTime() + flight.duration * 1_000, tz);
-};
-
-const visitWindow = (
-  flight: AirportVisitFlight,
-  direction: 'departure' | 'arrival',
-): VisitWindow | null => {
-  const departure = departureTime(flight);
-  const exact =
-    direction === 'departure' ? departure : arrivalTime(flight, departure);
-  if (exact) return exactWindow(exact);
-  if (direction === 'arrival') return null;
-
-  const range = getFlightDateRange(
-    flight.raw.date,
-    flight.datePrecision,
-    flight.from?.tz ?? 'UTC',
-  );
-  if (!range.start || !range.end) return null;
-  return {
-    start: range.start,
-    end: range.end,
-    precision: flight.datePrecision,
-  };
-};
+  getFlightTimelineWindow,
+  resolveFlightTimeline,
+} from './flight-timeline';
 
 type Visit = { label: string; time: number };
 
 export const getAirportVisitSummary = (
-  flights: AirportVisitFlight[],
+  flights: FlightData[],
   airportId: number,
   now: Date,
 ) => {
@@ -96,9 +16,14 @@ export const getAirportVisitSummary = (
   let next: Visit | null = null;
 
   for (const flight of flights) {
+    const timeline = resolveFlightTimeline(flight.raw);
     const windows = [
-      flight.from?.id === airportId ? visitWindow(flight, 'departure') : null,
-      flight.to?.id === airportId ? visitWindow(flight, 'arrival') : null,
+      flight.from?.id === airportId
+        ? getFlightTimelineWindow(timeline, 'departure')
+        : null,
+      flight.to?.id === airportId
+        ? getFlightTimelineWindow(timeline, 'arrival')
+        : null,
     ];
 
     for (const window of windows) {

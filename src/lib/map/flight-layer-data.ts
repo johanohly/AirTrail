@@ -1,14 +1,20 @@
 import type { Route } from '$lib/components/flight-filters/types';
-import type { FlightTrackCoordinate, FlightTrackRow } from '$lib/track/schema';
+import {
+  toFlightTrackSamples,
+  type FlightTrackCoordinate,
+  type FlightTrackRow,
+  type FlightTrackSample,
+} from '$lib/track/schema';
 import type { prepareFlightArcData, FlightData } from '$lib/utils';
 
 export type FlightArc = ReturnType<typeof prepareFlightArcData>[number];
 
-export type FlightTrackPath = FlightArc & {
+export type FlightTrackIdentity = FlightArc & {
   flightId: number;
-  path: FlightTrackCoordinate[];
-  ground?: boolean[];
-  estimated?: boolean[];
+};
+
+export type FlightTrackPath = FlightTrackIdentity & {
+  samples: FlightTrackSample[];
 };
 
 export const getRouteKey = (fromId: number, toId: number) =>
@@ -123,12 +129,18 @@ export const buildFlightTrackPaths = (
     const arc = arcByRoute.get(getRouteKey(flight.from.id, flight.to.id));
     if (!arc) continue;
 
+    const samples = toFlightTrackSamples(track);
+    const unwrappedCoordinates = unwrapTrackPath(
+      samples.map((sample) => sample.coordinate),
+    );
+
     paths.push({
       ...arc,
       flightId: track.flightId,
-      path: unwrapTrackPath(track.coordinates),
-      ground: track.ground,
-      estimated: track.estimated,
+      samples: samples.map((sample, index) => ({
+        ...sample,
+        coordinate: unwrappedCoordinates[index]!,
+      })),
     });
   }
 

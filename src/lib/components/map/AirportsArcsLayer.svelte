@@ -3,7 +3,6 @@
   import { ArcLayer, ScatterplotLayer } from '@deck.gl/layers';
   import { MapboxOverlay } from '@deck.gl/mapbox';
   import { isTouchDevice } from '@melt-ui/svelte/internal/helpers';
-  import type { Popup as MaplibrePopup } from 'maplibre-gl';
   import { mode } from 'mode-watcher';
   import { onDestroy } from 'svelte';
   import {
@@ -31,6 +30,12 @@
     type FlightTrackPath,
   } from '$lib/map/flight-layer-data';
   import {
+    applyFlightTrackInteractionColor,
+    getEstimatedTrackUnderlayColor,
+    getGroundTrackCasingColor,
+    resolveRouteInteraction,
+  } from '$lib/map/flight-track-interaction';
+  import {
     buildFlightTrackLayers,
     prepareFlightTrackLayerData,
   } from '$lib/map/flight-track-layers';
@@ -39,6 +44,12 @@
     type FlightTrackRun,
   } from '$lib/map/flight-track-style';
   import { GlobeOcclusionExtension } from '$lib/map/globe-occlusion';
+  import {
+    createPopupPositionController,
+    getDeckPointerLngLat,
+    getDeckPointerPixel,
+    type DeckPointerEvent,
+  } from '$lib/map/map-popup-position';
   import { mapPreferences } from '$lib/map/map-preferences.svelte';
   import {
     closeMapDetails,
@@ -55,9 +66,7 @@
   const FROM_COLOR = [59, 130, 246] as const; // Also the primary color
   const TO_COLOR = [139, 92, 246] as const; // TW violet-500
   const HIGH_FREQUENCY_COLOR = [239, 68, 68] as const; // TW red-500
-  const HOVER_COLOR = [16, 185, 129];
-  const SECONDARY_TRACK_HOVER_COLOR = [14, 165, 233]; // TW sky-500
-  const FUTURE_COLOR = [102, 217, 239, 100];
+  const FUTURE_COLOR: Color = [102, 217, 239, 100];
 
   const MERCATOR_ROUTE_PARAMETERS = {
     cullMode: 'none',
@@ -160,85 +169,6 @@
     ),
   );
 
-  const getPointerPixel = (
-    e: PickingInfo,
-    event?: DeckPointerEvent,
-  ): { x: number; y: number } | undefined =>
-    event?.srcEvent?.point ??
-    event?.offsetCenter ??
-    (e.pixel ? { x: e.pixel[0], y: e.pixel[1] } : undefined) ??
-    (Number.isFinite(e.x) && Number.isFinite(e.y)
-      ? { x: e.x, y: e.y }
-      : undefined);
-
-  // deck's picking coordinate is unprojected through deck's own globe
-  // viewport, which drifts from MapLibre during the globe<->mercator
-  // transition zooms — anchor popups via the raw pointer position instead.
-  const getPointerLngLat = (
-    e: PickingInfo,
-    event?: DeckPointerEvent,
-  ): [number, number] | undefined => {
-    const point = getPointerPixel(e, event);
-
-    if (event?.srcEvent?.lngLat) {
-      return [event.srcEvent.lngLat.lng, event.srcEvent.lngLat.lat];
-    }
-
-    if (map && point) {
-      const lngLat = map.unproject([point.x, point.y]);
-      return [lngLat.lng, lngLat.lat];
-    }
-
-    const srcEvent = event?.srcEvent;
-    if (
-      map &&
-      typeof srcEvent?.clientX === 'number' &&
-      typeof srcEvent.clientY === 'number'
-    ) {
-      const rect = map.getContainer().getBoundingClientRect();
-      const lngLat = map.unproject([
-        srcEvent.clientX - rect.left,
-        srcEvent.clientY - rect.top,
-      ]);
-      return [lngLat.lng, lngLat.lat];
-    }
-
-    return e.coordinate?.length
-      ? ([e.coordinate[0], e.coordinate[1]] as [number, number])
-      : undefined;
-  };
-
-  type DeckPointerEvent = {
-    offsetCenter?: { x: number; y: number };
-    srcEvent?: Event & {
-      point?: { x: number; y: number };
-      lngLat?: { lng: number; lat: number };
-      clientX?: number;
-      clientY?: number;
-    };
-  };
-
-  const POPUP_OFFSET = 20;
-  const POPUP_FALLBACK_SIZE = { width: 320, height: 280 };
-  let popupInstance: MaplibrePopup | undefined;
-
-  // MapLibre re-reads options.anchor on every popup position update, so
-  // mutating it flips the popup at screen edges without recreating it.
-  const updatePopupAnchor = (point: { x: number; y: number } | undefined) => {
-    if (!popupInstance || !map || !point) return;
-    const container = map.getContainer();
-    const el = popupInstance.getElement();
-    const width = el?.offsetWidth || POPUP_FALLBACK_SIZE.width;
-    const height = el?.offsetHeight || POPUP_FALLBACK_SIZE.height;
-    const vertical =
-      point.y + POPUP_OFFSET + height > container.clientHeight
-        ? 'bottom'
-        : 'top';
-    const horizontal =
-      point.x + POPUP_OFFSET + width > container.clientWidth ? 'right' : 'left';
-    popupInstance.options.anchor = `${vertical}-${horizontal}`;
-  };
-
   let id = getId('deckgl-layer');
   let hoveredAirport: VisitedAirport | undefined = $state.raw(undefined);
   let hoveredArc: FlightArc | FlightTrackPath | undefined =
@@ -247,6 +177,7 @@
 
   const context = getMapContext();
   const { map, loaded } = $derived(context);
+  const popupPosition = createPopupPositionController(() => map);
 
   const { layer: layerId, layerEvent } = updatedDeckGlContext();
   layerId.value = id;
@@ -266,11 +197,11 @@
     if (!isTouchDevice()) {
       mapDetailsState.hoveredFlightTrackId = null;
       hoveredAirport = e.object ?? undefined;
-      updatePopupAnchor(getPointerPixel(e, event));
+      popupPosition.update(getDeckPointerPixel(e, event));
       const type = e.index !== -1 ? 'mousemove' : 'mouseleave';
       layerEvent.value = {
         ...e,
-        coordinate: getPointerLngLat(e, event),
+        coordinate: getDeckPointerLngLat(e, event, map),
         layerType: 'deckgl',
         type,
       };
@@ -284,11 +215,11 @@
     if (!isTouchDevice()) {
       mapDetailsState.hoveredFlightTrackId = null;
       hoveredArc = e.object ?? undefined;
-      updatePopupAnchor(getPointerPixel(e, event));
+      popupPosition.update(getDeckPointerPixel(e, event));
       const type = e.index !== -1 ? 'mousemove' : 'mouseleave';
       layerEvent.value = {
         ...e,
-        coordinate: getPointerLngLat(e, event),
+        coordinate: getDeckPointerLngLat(e, event, map),
         layerType: 'deckgl',
         type,
       };
@@ -302,11 +233,11 @@
     if (!isTouchDevice()) {
       mapDetailsState.hoveredFlightTrackId = e.object?.flightId ?? null;
       hoveredArc = e.object ?? undefined;
-      updatePopupAnchor(getPointerPixel(e, event));
+      popupPosition.update(getDeckPointerPixel(e, event));
       const type = e.index !== -1 ? 'mousemove' : 'mouseleave';
       layerEvent.value = {
         ...e,
-        coordinate: getPointerLngLat(e, event),
+        coordinate: getDeckPointerLngLat(e, event, map),
         layerType: 'deckgl',
         type,
       };
@@ -476,33 +407,11 @@
   const getArcColor = (point: 'source' | 'target') => {
     const baseArcColor = getBaseArcColor(point);
 
-    return (d: (typeof flightArcs)[number]) => {
-      if (hoveredArc?.from === d.from && hoveredArc?.to === d.to) {
-        return HOVER_COLOR;
-      } else if (routeMatchesArc(d, selectedRoute)) {
-        return HOVER_COLOR;
-      } else if (hoveredArc) {
-        return INACTIVE_COLOR(200);
-      } else if (
-        hoveredAirport?.id === d.from.id ||
-        hoveredAirport?.id === d.to.id
-      ) {
-        return baseArcColor(d);
-      } else if (hoveredAirport) {
-        return INACTIVE_COLOR(200);
-      } else if (
-        selectedAirportId &&
-        (d.from.id === selectedAirportId || d.to.id === selectedAirportId)
-      ) {
-        return baseArcColor(d);
-      } else if (selectedAirportId) {
-        return INACTIVE_COLOR(170);
-      } else if (selectedRoute) {
-        return INACTIVE_COLOR(170);
-      } else {
-        return baseArcColor(d);
-      }
-    };
+    return (arc: (typeof flightArcs)[number]) =>
+      applyFlightTrackInteractionColor(
+        getRouteInteraction(arc),
+        baseArcColor(arc),
+      );
   };
 
   const AIRPORT_CIRCLE_SIZE = {
@@ -648,53 +557,13 @@
     greatCircle: true,
   });
 
-  type TrackInteractionState =
-    | 'active'
-    | 'highlighted'
-    | 'secondary'
-    | 170
-    | 200;
-
-  const getHoveredTrackFlightId = () =>
-    hoveredArc && 'flightId' in hoveredArc ? hoveredArc.flightId : undefined;
-
-  const arcsShareRoute = (left: FlightArc, right: FlightArc) =>
-    getRouteKey(left.from.id, left.to.id) ===
-    getRouteKey(right.from.id, right.to.id);
-
-  const getTrackInteractionState = <T extends FlightArc>(
-    d: T,
-  ): TrackInteractionState => {
-    const hoveredTrackFlightId = getHoveredTrackFlightId();
-    if (hoveredTrackFlightId !== undefined) {
-      if (
-        'flightId' in d &&
-        (d as FlightTrackPath).flightId === hoveredTrackFlightId
-      ) {
-        return 'highlighted';
-      }
-      return hoveredArc && arcsShareRoute(d, hoveredArc) ? 'secondary' : 200;
-    }
-
-    if (
-      (hoveredArc?.from === d.from && hoveredArc?.to === d.to) ||
-      routeMatchesArc(d, selectedRoute)
-    ) {
-      return 'highlighted';
-    }
-    if (hoveredArc) return 200;
-    if (hoveredAirport) {
-      return hoveredAirport.id === d.from.id || hoveredAirport.id === d.to.id
-        ? 'active'
-        : 200;
-    }
-    if (selectedAirportId) {
-      return selectedAirportId === d.from.id || selectedAirportId === d.to.id
-        ? 'active'
-        : 170;
-    }
-    return selectedRoute ? 170 : 'active';
-  };
+  const getRouteInteraction = (arc: FlightArc) =>
+    resolveRouteInteraction(arc, {
+      hoveredArc,
+      hoveredAirportId: hoveredAirport?.id,
+      selectedAirportId,
+      selectedRoute,
+    });
 
   const getTrackColor = <T extends FlightArc>(
     getBaseColor?: (data: T) => Color,
@@ -702,11 +571,10 @@
     const baseArcColor = getBaseArcColor('source');
 
     return (d: T): Color => {
-      const state = getTrackInteractionState(d);
-      if (state === 'highlighted') return HOVER_COLOR;
-      if (state === 'secondary') return SECONDARY_TRACK_HOVER_COLOR;
-      if (typeof state === 'number') return INACTIVE_COLOR(state);
-      return getBaseColor?.(d) ?? baseArcColor(d);
+      return applyFlightTrackInteractionColor(
+        getRouteInteraction(d),
+        getBaseColor?.(d) ?? baseArcColor(d),
+      );
     };
   };
 
@@ -723,21 +591,13 @@
   const getEstimatedUnderlayColor =
     () =>
     (run: FlightTrackRun): Color => {
-      const state = getTrackInteractionState(run);
-      return [
-        0,
-        0,
-        0,
-        typeof state === 'number' ? Math.round(state * 0.3) : 176,
-      ];
+      return getEstimatedTrackUnderlayColor(getRouteInteraction(run));
     };
 
   const getGroundCasingColor =
     () =>
     (run: FlightTrackRun): Color => {
-      const state = getTrackInteractionState(run);
-      const alpha = typeof state === 'number' ? Math.round(state * 0.75) : 220;
-      return isDarkMode ? [9, 9, 11, alpha] : [250, 250, 250, alpha];
+      return getGroundTrackCasingColor(getRouteInteraction(run), isDarkMode);
     };
 
   const flightTrackWidthUpdateTriggers = $derived([
@@ -755,31 +615,43 @@
       ...buildFlightTrackLayers({
         data: flightTrackLayerData,
         style: mapPreferences.flightTrackStyle,
-        parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
-        extensions: [globeOcclusion],
-        getWidth: getVisibleArcWidth,
-        getStandardColor: getTrackColor(),
-        getAltitudeColor: getAltitudeTrackColor(),
-        getGroundCasingColor: getGroundCasingColor(),
-        getEstimatedUnderlayColor: getEstimatedUnderlayColor(),
-        widthUpdateTriggers: flightTrackWidthUpdateTriggers,
-        standardColorUpdateTriggers: [
-          hoveredArc,
-          hoveredAirport,
-          selectedAirportId,
-          selectedRoute,
-          mapPreferences.arcColor,
-          arcFrequencyPercentileByRoute,
-        ],
-        altitudeColorUpdateTriggers: [
-          hoveredArc,
-          hoveredAirport,
-          selectedAirportId,
-          selectedRoute,
-          isDarkMode,
-        ],
-        onHover: handleTrackHover,
-        onClick: handleTrackClick,
+        context: {
+          geometry: {
+            parameters: isGlobe
+              ? GLOBE_ARC_PARAMETERS
+              : MERCATOR_ROUTE_PARAMETERS,
+            extensions: [globeOcclusion],
+          },
+          appearance: {
+            getWidth: getVisibleArcWidth,
+            getStandardColor: getTrackColor(),
+            getAltitudeColor: getAltitudeTrackColor(),
+            getGroundCasingColor: getGroundCasingColor(),
+            getEstimatedUnderlayColor: getEstimatedUnderlayColor(),
+            updateTriggers: {
+              width: flightTrackWidthUpdateTriggers,
+              standardColor: [
+                hoveredArc,
+                hoveredAirport,
+                selectedAirportId,
+                selectedRoute,
+                mapPreferences.arcColor,
+                arcFrequencyPercentileByRoute,
+              ],
+              altitudeColor: [
+                hoveredArc,
+                hoveredAirport,
+                selectedAirportId,
+                selectedRoute,
+                isDarkMode,
+              ],
+            },
+          },
+          interaction: {
+            onHover: handleTrackHover,
+            onClick: handleTrackClick,
+          },
+        },
       }),
     );
     if (mapPreferences.airportCircles !== 'off') {
@@ -828,8 +700,8 @@
   <Popup
     openOn="hover"
     anchor="top-left"
-    offset={POPUP_OFFSET}
-    onopen={(popup) => (popupInstance = popup)}
+    offset={20}
+    onopen={popupPosition.setPopup}
   >
     {#snippet children({ data })}
       {#if data?.country}

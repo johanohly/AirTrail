@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  fromFlightTrackSamples,
   flightTrackPayloadSchema,
+  toFlightTrackSamples,
   toFlightTrackInput,
   toFlightTrackPayload,
 } from './schema';
@@ -29,8 +31,43 @@ describe('flight track schema helpers', () => {
     ).toBe(false);
   });
 
+  it('rejects coordinates outside valid longitude and latitude ranges', () => {
+    expect(
+      flightTrackPayloadSchema.safeParse({
+        coordinates: [
+          [181, 55],
+          [11, 56],
+        ],
+      }).success,
+    ).toBe(false);
+    expect(
+      flightTrackPayloadSchema.safeParse({
+        coordinates: [
+          [10, -91],
+          [11, 56],
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
   it('copies every aligned property into database payloads', () => {
     expect(toFlightTrackPayload(track)).toEqual(track);
+  });
+
+  it('converts persistence columns to explicit point and edge samples', () => {
+    const samples = toFlightTrackSamples(track);
+
+    expect(samples[1]).toEqual({
+      coordinate: [11, 56, 304.8],
+      point: {
+        time: 1_700_000_060,
+        groundSpeedKt: 120,
+        trackDeg: 95,
+        ground: false,
+      },
+      incomingEdge: { estimated: true },
+    });
+    expect(fromFlightTrackSamples(samples)).toEqual(track);
   });
 
   it('can omit shared timestamps without dropping point flags', () => {

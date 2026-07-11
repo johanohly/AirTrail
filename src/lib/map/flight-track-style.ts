@@ -1,13 +1,10 @@
 import type { Color } from '@deck.gl/core';
 
-import type { FlightTrackPath } from './flight-layer-data';
+import type { FlightTrackIdentity, FlightTrackPath } from './flight-layer-data';
 
 import type { FlightTrackCoordinate } from '$lib/track/schema';
 
-export type FlightTrackRun = Omit<
-  FlightTrackPath,
-  'path' | 'ground' | 'estimated'
-> & {
+export type FlightTrackRun = FlightTrackIdentity & {
   path: FlightTrackCoordinate[];
   altitudeFeet: number | null;
   ground: boolean;
@@ -205,8 +202,9 @@ const getEdgeStyle = (
   index: number,
   splitByAltitude: boolean,
 ) => {
-  const coordinate = track.path[index]!;
-  const ground = splitByAltitude && (track.ground?.[index] ?? false);
+  const sample = track.samples[index]!;
+  const coordinate = sample.coordinate;
+  const ground = splitByAltitude && (sample.point.ground ?? false);
   const altitudeFeet =
     !splitByAltitude || ground || coordinate[2] === undefined
       ? null
@@ -214,8 +212,7 @@ const getEdgeStyle = (
   return {
     altitudeFeet,
     ground,
-    // readsb marks the current point when the interval leading to it is stale.
-    estimated: track.estimated?.[index + 1] ?? false,
+    estimated: track.samples[index + 1]?.incomingEdge.estimated ?? false,
   };
 };
 
@@ -234,22 +231,23 @@ export const buildFlightTrackRuns = (
   const runs: FlightTrackRun[] = [];
 
   for (const track of tracks) {
-    if (track.path.length < 2) continue;
+    const { samples, ...identity } = track;
+    if (samples.length < 2) continue;
 
     let style = getEdgeStyle(track, 0, splitByAltitude);
-    let path: FlightTrackCoordinate[] = [track.path[0]!];
+    let path: FlightTrackCoordinate[] = [samples[0]!.coordinate];
 
-    for (let index = 0; index < track.path.length - 1; index++) {
+    for (let index = 0; index < samples.length - 1; index++) {
       const edgeStyle = getEdgeStyle(track, index, splitByAltitude);
       if (!stylesMatch(style, edgeStyle)) {
-        if (path.length >= 2) runs.push({ ...track, ...style, path });
+        if (path.length >= 2) runs.push({ ...identity, ...style, path });
         style = edgeStyle;
-        path = [track.path[index]!];
+        path = [samples[index]!.coordinate];
       }
-      path.push(track.path[index + 1]!);
+      path.push(samples[index + 1]!.coordinate);
     }
 
-    if (path.length >= 2) runs.push({ ...track, ...style, path });
+    if (path.length >= 2) runs.push({ ...identity, ...style, path });
   }
 
   return runs;

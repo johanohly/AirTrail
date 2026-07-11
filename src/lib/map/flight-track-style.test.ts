@@ -8,14 +8,18 @@ import {
   roundFlightTrackAltitude,
 } from './flight-track-style';
 
+import {
+  toFlightTrackSamples,
+  type FlightTrackCoordinate,
+} from '$lib/track/schema';
+
 const track = (
-  path: FlightTrackPath['path'],
-  options: Pick<FlightTrackPath, 'ground' | 'estimated'> = {},
+  coordinates: FlightTrackCoordinate[],
+  options: { ground?: boolean[]; estimated?: boolean[] } = {},
 ) =>
   ({
     flightId: 1,
-    path,
-    ...options,
+    samples: toFlightTrackSamples({ coordinates, ...options }),
   }) as FlightTrackPath;
 
 describe('flight track styling', () => {
@@ -191,5 +195,6 @@ describe('flight track styling', () => {
       ground: false,
       estimated: false,
     });
+    expect(runs[0]).not.toHaveProperty('samples');
   });
 });
