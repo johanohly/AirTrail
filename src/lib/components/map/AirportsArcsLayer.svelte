@@ -665,10 +665,10 @@
     (run: FlightTrackRun): Color => {
       const state = getTrackInteractionState(run);
       return [
-        24,
-        24,
-        27,
-        typeof state === 'number' ? Math.round(state * 0.3) : 190,
+        0,
+        0,
+        0,
+        typeof state === 'number' ? Math.round(state * 0.3) : 176,
       ];
     };
 
@@ -680,7 +680,7 @@
       return isDarkMode ? [9, 9, 11, alpha] : [250, 250, 250, alpha];
     };
 
-  const pathWidthUpdateTriggers = $derived([
+  const flightTrackWidthUpdateTriggers = $derived([
     mapPreferences.arcThickness,
     mapPreferences.arcThicknessScale,
     selectedRoute,
@@ -702,7 +702,7 @@
         getAltitudeColor: getAltitudeTrackColor(),
         getGroundCasingColor: getGroundCasingColor(),
         getEstimatedUnderlayColor: getEstimatedUnderlayColor(),
-        widthUpdateTriggers: pathWidthUpdateTriggers,
+        widthUpdateTriggers: flightTrackWidthUpdateTriggers,
         standardColorUpdateTriggers: [
           hoveredArc,
           hoveredAirport,

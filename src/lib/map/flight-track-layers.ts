@@ -1,7 +1,7 @@
 import type { Color, Layer, LayerExtension } from '@deck.gl/core';
 import { PathStyleExtension } from '@deck.gl/extensions';
 import { PathLayer, type PathLayerProps } from '@deck.gl/layers';
-import { distance, greatCircle, point } from '@turf/turf';
+import { distance, point } from '@turf/turf';
 
 import type { FlightArc, FlightTrackPath } from './flight-layer-data';
 import {
@@ -48,7 +48,9 @@ const surfacePathCache = new WeakMap<
   [number, number][]
 >();
 
-const MAX_SURFACE_SEGMENT_DEGREES = 3;
+const GREAT_CIRCLE_MIN_DISTANCE_METERS = 30_000;
+const GREAT_CIRCLE_TARGET_SEGMENT_METERS = 19_000;
+const ESTIMATED_UNDERLAY_WIDTH_SCALE = 0.56;
 
 const normalizeLongitude = (longitude: number) =>
   ((((longitude + 180) % 360) + 360) % 360) - 180;
@@ -75,6 +77,56 @@ const interpolateLinearSegment = (
   }
 };
 
+const greatCircleMidpoint = (
+  from: [number, number],
+  to: [number, number],
+): [number, number] | null => {
+  const longitude1 = (from[0] * Math.PI) / 180;
+  const latitude1 = (from[1] * Math.PI) / 180;
+  const longitude2 = (to[0] * Math.PI) / 180;
+  const latitude2 = (to[1] * Math.PI) / 180;
+  const longitudeDifference = longitude2 - longitude1;
+  const bx = Math.cos(latitude2) * Math.cos(longitudeDifference);
+  const by = Math.cos(latitude2) * Math.sin(longitudeDifference);
+  const x = Math.cos(latitude1) + bx;
+  const y = by;
+
+  if (Math.hypot(x, y) < Number.EPSILON) return null;
+
+  const latitude = Math.atan2(
+    Math.sin(latitude1) + Math.sin(latitude2),
+    Math.hypot(x, y),
+  );
+  const longitude = longitude1 + Math.atan2(by, x);
+  return [
+    normalizeLongitude((longitude * 180) / Math.PI),
+    (latitude * 180) / Math.PI,
+  ];
+};
+
+const subdivideGreatCircle = (
+  start: [number, number],
+  end: [number, number],
+  depth: number,
+) => {
+  let coordinates = [start, end];
+
+  for (let level = 0; level < depth; level++) {
+    const subdivided: [number, number][] = [coordinates[0]!];
+    for (let index = 1; index < coordinates.length; index++) {
+      const midpoint = greatCircleMidpoint(
+        coordinates[index - 1]!,
+        coordinates[index]!,
+      );
+      if (!midpoint) return null;
+      subdivided.push(midpoint, coordinates[index]!);
+    }
+    coordinates = subdivided;
+  }
+
+  return coordinates;
+};
+
 export const buildFlightTrackDisplayPath = (
   sourcePath: FlightTrackPath['path'],
 ) => {
@@ -87,37 +139,52 @@ export const buildFlightTrackDisplayPath = (
   for (let index = 1; index < sourcePath.length; index++) {
     const start = sourcePath[index - 1]!;
     const end = sourcePath[index]!;
-    const startPoint = point([normalizeLongitude(start[0]), start[1]]);
-    const endPoint = point([normalizeLongitude(end[0]), end[1]]);
-    const angularDistance = distance(startPoint, endPoint, {
-      units: 'degrees',
-    });
-    const segmentCount = Math.max(
-      1,
-      Math.ceil(angularDistance / MAX_SURFACE_SEGMENT_DEGREES),
+    const normalizedStart: [number, number] = [
+      normalizeLongitude(start[0]),
+      start[1],
+    ];
+    const normalizedEnd: [number, number] = [
+      normalizeLongitude(end[0]),
+      end[1],
+    ];
+    const segmentDistance = distance(
+      point(normalizedStart),
+      point(normalizedEnd),
+      {
+        units: 'meters',
+      },
     );
+    const subdivisionDepth =
+      segmentDistance > GREAT_CIRCLE_MIN_DISTANCE_METERS
+        ? Math.ceil(
+            Math.log2(segmentDistance / GREAT_CIRCLE_TARGET_SEGMENT_METERS),
+          )
+        : 0;
 
-    if (segmentCount > 1) {
-      try {
-        const arc = greatCircle(startPoint, endPoint, {
-          npoints: segmentCount + 1,
-        });
-        const coordinates =
-          arc.geometry.type === 'MultiLineString'
-            ? arc.geometry.coordinates.flat()
-            : arc.geometry.coordinates;
+    if (subdivisionDepth > 0) {
+      const arc = subdivideGreatCircle(
+        normalizedStart,
+        normalizedEnd,
+        subdivisionDepth,
+      );
 
-        for (const coordinate of coordinates.slice(1, -1)) {
+      if (arc) {
+        for (const coordinate of arc.slice(1, -1)) {
           const previousLongitude = displayPath.at(-1)![0];
           displayPath.push([
-            unwrapLongitude(coordinate[0]!, previousLongitude),
-            coordinate[1]!,
+            unwrapLongitude(coordinate[0], previousLongitude),
+            coordinate[1],
           ]);
         }
-      } catch {
+      } else {
         // Antipodal points have no unique great-circle route. A deterministic
         // surface interpolation still avoids drawing a chord through the globe.
-        interpolateLinearSegment(displayPath, start, end, segmentCount);
+        interpolateLinearSegment(
+          displayPath,
+          start,
+          end,
+          2 ** subdivisionDepth,
+        );
       }
     }
 
@@ -226,8 +293,9 @@ export const buildFlightTrackLayers = ({
       data: data.estimatedRuns,
       getPath: getSurfacePath,
       getColor: getEstimatedUnderlayColor,
-      getWidth: (run) => Math.max(1, getWidth(run) * 0.3),
-      capRounded: false,
+      getWidth: (run) => getWidth(run) * ESTIMATED_UNDERLAY_WIDTH_SCALE,
+      widthMinPixels: 1,
+      capRounded: true,
       updateTriggers: {
         ...sharedPathOptions.updateTriggers,
         getColor: altitudeColorUpdateTriggers,
@@ -242,11 +310,12 @@ export const buildFlightTrackLayers = ({
       getColor: style === 'standard' ? getStandardColor : getAltitudeColor,
       getDashArray: (run) => {
         const width = Math.max(1, getWidth(run));
-        return [10 / width, (20 + 3 * width) / width];
+        const halfWidth = width / 2;
+        return [10 / halfWidth, (20 + 1.5 * width) / halfWidth];
       },
       dashJustified: false,
       dashGapPickable: false,
-      capRounded: false,
+      capRounded: true,
       updateTriggers: {
         ...sharedPathOptions.updateTriggers,
         getColor:

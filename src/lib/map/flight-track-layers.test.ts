@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { distance, point } from '@turf/turf';
 
 import type { FlightTrackPath } from './flight-layer-data';
 import {
@@ -29,7 +30,7 @@ describe('flight track layers', () => {
 
     const display = buildFlightTrackDisplayPath(source);
 
-    expect(display).toHaveLength(61);
+    expect(display).toHaveLength(2_049);
     expect(display[0]).toEqual([0, 0]);
     expect(display.at(-1)).toEqual([179, 0]);
     expect(source).toEqual([
@@ -38,8 +39,10 @@ describe('flight track layers', () => {
     ]);
     for (let index = 1; index < display.length; index++) {
       expect(
-        Math.abs(display[index]![0] - display[index - 1]![0]),
-      ).toBeLessThanOrEqual(3);
+        distance(point(display[index - 1]!), point(display[index]!), {
+          units: 'meters',
+        }),
+      ).toBeLessThanOrEqual(19_000.001);
     }
   });
 
@@ -53,9 +56,26 @@ describe('flight track layers', () => {
     expect(display.at(-1)).toEqual([190, 10]);
     for (let index = 1; index < display.length; index++) {
       expect(
-        Math.abs(display[index]![0] - display[index - 1]![0]),
-      ).toBeLessThanOrEqual(3);
+        distance(point(display[index - 1]!), point(display[index]!), {
+          units: 'meters',
+        }),
+      ).toBeLessThanOrEqual(19_000.001);
     }
+  });
+
+  it('uses tar1090 distance thresholds and power-of-two subdivision', () => {
+    expect(
+      buildFlightTrackDisplayPath([
+        [0, 0],
+        [0.2, 0],
+      ]),
+    ).toHaveLength(2);
+    expect(
+      buildFlightTrackDisplayPath([
+        [0, 0],
+        [0.4, 0],
+      ]),
+    ).toHaveLength(5);
   });
 
   it('prepares estimated runs for every track style', () => {
@@ -98,6 +118,13 @@ describe('flight track layers', () => {
     expect(layers[2]!.props.data).toEqual([]);
     expect(layers[3]!.props.data).toBe(data.estimatedRuns);
     expect(layers[4]!.props.data).toBe(data.estimatedRuns);
+    expect(layers[3]!.props.getWidth(data.estimatedRuns[0])).toBeCloseTo(1.12);
+    expect(layers[3]!.props.widthMinPixels).toBe(1);
+    expect(layers[3]!.props.capRounded).toBe(true);
+    expect(layers[4]!.props.capRounded).toBe(true);
+    expect(layers[4]!.props.getWidth(data.estimatedRuns[0])).toBe(2);
+    const dashArray = layers[4]!.props.getDashArray(data.estimatedRuns[0]);
+    expect(dashArray).toEqual([10, 23]);
     expect(
       layers[4]!.props.getColor(data.estimatedRuns[0], {
         index: 0,
@@ -172,15 +199,14 @@ describe('flight track layers', () => {
       target: [],
     });
 
-    expect(visiblePath).toEqual([
-      [10, 55],
-      [11, 56],
-    ]);
-    expect(pickingPath).toEqual([
-      [10, 55],
-      [11, 56],
-      [12, 57],
-    ]);
+    expect(visiblePath[0]).toEqual([10, 55]);
+    expect(visiblePath.at(-1)).toEqual([11, 56]);
+    expect(visiblePath).toHaveLength(9);
+    expect(pickingPath[0]).toEqual([10, 55]);
+    expect(pickingPath.at(-1)).toEqual([12, 57]);
+    expect(pickingPath.every((coordinate) => coordinate.length === 2)).toBe(
+      true,
+    );
     expect(paths[0]!.path[1]).toEqual([11, 56, 304.8]);
     expect(
       layers[3]!.props.getColor(data.estimatedRuns[0], {

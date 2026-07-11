@@ -109,10 +109,67 @@ const interpolateAirTrailColor = (altitudeFeet: number): Color => {
   return [...last.color];
 };
 
-const darkenEstimated = (color: Color): Color =>
-  color.map((component, index) =>
-    index < 3 ? Math.round(component * 0.8) : component,
-  ) as Color;
+const rgbToHsl = (color: Color) => {
+  const red = color[0] / 255;
+  const green = color[1] / 255;
+  const blue = color[2] / 255;
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const lightness = (max + min) / 2;
+
+  if (max === min) return [0, 0, lightness] as const;
+
+  const difference = max - min;
+  const saturation =
+    lightness > 0.5 ? difference / (2 - max - min) : difference / (max + min);
+  const hue =
+    max === red
+      ? (green - blue) / difference + (green < blue ? 6 : 0)
+      : max === green
+        ? (blue - red) / difference + 2
+        : (red - green) / difference + 4;
+
+  return [hue / 6, saturation, lightness] as const;
+};
+
+const hueToRgb = (lower: number, upper: number, hue: number) => {
+  let wrappedHue = hue;
+  if (wrappedHue < 0) wrappedHue += 1;
+  if (wrappedHue > 1) wrappedHue -= 1;
+  if (wrappedHue < 1 / 6) return lower + (upper - lower) * 6 * wrappedHue;
+  if (wrappedHue < 1 / 2) return upper;
+  if (wrappedHue < 2 / 3)
+    return lower + (upper - lower) * (2 / 3 - wrappedHue) * 6;
+  return lower;
+};
+
+const hslToRgb = (
+  hue: number,
+  saturation: number,
+  lightness: number,
+): [number, number, number] => {
+  if (saturation === 0) {
+    const channel = Math.round(lightness * 255);
+    return [channel, channel, channel];
+  }
+
+  const upper =
+    lightness < 0.5
+      ? lightness * (1 + saturation)
+      : lightness + saturation - lightness * saturation;
+  const lower = 2 * lightness - upper;
+  return [
+    Math.round(hueToRgb(lower, upper, hue + 1 / 3) * 255),
+    Math.round(hueToRgb(lower, upper, hue) * 255),
+    Math.round(hueToRgb(lower, upper, hue - 1 / 3) * 255),
+  ];
+};
+
+const darkenEstimated = (color: Color): Color => {
+  const [hue, saturation, lightness] = rgbToHsl(color);
+  const darkened = hslToRgb(hue, saturation, lightness * 0.8);
+  return color[3] === undefined ? darkened : [...darkened, color[3]];
+};
 
 export const metersToFeet = (meters: number) => meters * METERS_TO_FEET;
 

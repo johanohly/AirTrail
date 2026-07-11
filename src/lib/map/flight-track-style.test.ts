@@ -56,7 +56,7 @@ describe('flight track styling', () => {
         estimated: true,
         darkMode: true,
       }),
-    ).toEqual([182, 182, 185]);
+    ).toEqual([179, 179, 188]);
   });
 
   it('exposes exact AirTrail palette anchors', () => {
@@ -80,7 +80,7 @@ describe('flight track styling', () => {
     ).toEqual([239, 68, 68]);
   });
 
-  it('darkens estimated segments in addition to dashing them', () => {
+  it('darkens estimated segments in HSL like tar1090', () => {
     const actual = getFlightTrackColor({
       altitudeFeet: 0,
       ground: false,
@@ -93,6 +93,7 @@ describe('flight track styling', () => {
     expect(estimated[0]).toBeLessThan(actual[0]);
     expect(estimated[1]).toBeLessThan(actual[1]);
     expect(estimated[2]).toBeLessThan(actual[2]);
+    expect(estimated).toEqual([211, 90, 5]);
   });
 
   it('merges consecutive edges with the same rounded style', () => {
