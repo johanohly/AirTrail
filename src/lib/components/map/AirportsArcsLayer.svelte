@@ -55,6 +55,7 @@
   const TO_COLOR = [139, 92, 246] as const; // TW violet-500
   const HIGH_FREQUENCY_COLOR = [239, 68, 68] as const; // TW red-500
   const HOVER_COLOR = [16, 185, 129];
+  const SECONDARY_TRACK_HOVER_COLOR = [14, 165, 233]; // TW sky-500
   const FUTURE_COLOR = [102, 217, 239, 100];
 
   const MERCATOR_ROUTE_PARAMETERS = {
@@ -213,7 +214,8 @@
 
   let id = getId('deckgl-layer');
   let hoveredAirport: VisitedAirport | undefined = $state.raw(undefined);
-  let hoveredArc: FlightArc | undefined = $state.raw(undefined);
+  let hoveredArc: FlightArc | FlightTrackPath | undefined =
+    $state.raw(undefined);
   const clickable = $derived(tempFilters !== undefined);
 
   const context = getMapContext();
@@ -235,6 +237,7 @@
     event?: DeckPointerEvent,
   ) => {
     if (!isTouchDevice()) {
+      mapDetailsState.hoveredFlightTrackId = null;
       hoveredAirport = e.object ?? undefined;
       const type = e.index !== -1 ? 'mousemove' : 'mouseleave';
       layerEvent.value = {
@@ -251,6 +254,7 @@
     event?: DeckPointerEvent,
   ) => {
     if (!isTouchDevice()) {
+      mapDetailsState.hoveredFlightTrackId = null;
       hoveredArc = e.object ?? undefined;
       const type = e.index !== -1 ? 'mousemove' : 'mouseleave';
       layerEvent.value = {
@@ -267,6 +271,7 @@
     event?: DeckPointerEvent,
   ) => {
     if (!isTouchDevice()) {
+      mapDetailsState.hoveredFlightTrackId = e.object?.flightId ?? null;
       hoveredArc = e.object ?? undefined;
       const type = e.index !== -1 ? 'mousemove' : 'mouseleave';
       layerEvent.value = {
@@ -316,6 +321,7 @@
   const isGlobe = $derived(mapPreferences.projection === 'globe');
 
   onDestroy(() => {
+    mapDetailsState.hoveredFlightTrackId = null;
     if (loaded && layer) {
       map.removeControl(layer);
     }
@@ -612,11 +618,34 @@
     greatCircle: true,
   });
 
-  type TrackInteractionState = 'active' | 'highlighted' | 170 | 200;
+  type TrackInteractionState =
+    | 'active'
+    | 'highlighted'
+    | 'secondary'
+    | 170
+    | 200;
+
+  const getHoveredTrackFlightId = () =>
+    hoveredArc && 'flightId' in hoveredArc ? hoveredArc.flightId : undefined;
+
+  const arcsShareRoute = (left: FlightArc, right: FlightArc) =>
+    getRouteKey(left.from.id, left.to.id) ===
+    getRouteKey(right.from.id, right.to.id);
 
   const getTrackInteractionState = <T extends FlightArc>(
     d: T,
   ): TrackInteractionState => {
+    const hoveredTrackFlightId = getHoveredTrackFlightId();
+    if (hoveredTrackFlightId !== undefined) {
+      if (
+        'flightId' in d &&
+        (d as FlightTrackPath).flightId === hoveredTrackFlightId
+      ) {
+        return 'highlighted';
+      }
+      return hoveredArc && arcsShareRoute(d, hoveredArc) ? 'secondary' : 200;
+    }
+
     if (
       (hoveredArc?.from === d.from && hoveredArc?.to === d.to) ||
       routeMatchesArc(d, selectedRoute)
@@ -645,6 +674,7 @@
     return (d: T): Color => {
       const state = getTrackInteractionState(d);
       if (state === 'highlighted') return HOVER_COLOR;
+      if (state === 'secondary') return SECONDARY_TRACK_HOVER_COLOR;
       if (typeof state === 'number') return INACTIVE_COLOR(state);
       return getBaseColor?.(d) ?? baseArcColor(d);
     };

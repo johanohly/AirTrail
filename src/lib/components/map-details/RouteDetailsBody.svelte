@@ -4,6 +4,7 @@
 
   import { AirlineIcon, RouteArrow } from '$lib/components/display';
   import { Button } from '$lib/components/ui/button';
+  import { mapDetailsState } from '$lib/state.svelte';
   import type { FlightData } from '$lib/utils';
   import { formatAsFlightDate } from '$lib/utils/datetime';
   import { distanceUnitLabel } from '$lib/utils/preferences';
@@ -74,6 +75,13 @@
               {flightNumber}
             </span>
           {/if}
+          <span
+            class="size-2 shrink-0 rounded-full bg-emerald-500 transition-opacity"
+            class:opacity-100={mapDetailsState.hoveredFlightTrackId ===
+              flight.id}
+            class:opacity-0={mapDetailsState.hoveredFlightTrackId !== flight.id}
+            aria-hidden="true"
+          ></span>
         </div>
         {#if subtitle}
           <p class="mt-0.5 truncate text-xs text-muted-foreground">
