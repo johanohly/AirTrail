@@ -85,14 +85,11 @@ export const visitedCountriesRouter = router({
     const result = await db
       .insertInto('visitedCountry')
       .values(
-        countries
-          .values()
-          .toArray()
-          .map((country) => ({
-            userId: ctx.user.id,
-            code: country,
-            status: 'visited',
-          })),
+        Array.from(countries.values()).map((country) => ({
+          userId: ctx.user.id,
+          code: country,
+          status: 'visited',
+        })),
       )
       .onConflict((oc) => oc.columns(['userId', 'code']).doNothing())
       .execute();
