@@ -21,9 +21,10 @@
   import * as Table from '$lib/components/ui/table';
   import { api } from '$lib/trpc';
   import { prepareFlightData } from '$lib/utils';
-  import { formatAsFlightDate } from '$lib/utils/datetime';
+  import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
 
   let { data }: PageProps = $props();
+  const prefs = $derived(getPreferences(data.user));
   const flights = $derived.by(() => prepareFlightData(data.flights));
 
   let rowSelection = $state<RowSelectionState>({});
@@ -71,12 +72,7 @@
               side: 'top',
             });
           }
-          return formatAsFlightDate(
-            f.date,
-            f.datePrecision ?? 'day',
-            false,
-            true,
-          );
+          return formatFlightDate(f.date, f.datePrecision ?? 'day', prefs);
         },
       },
       {

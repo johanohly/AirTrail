@@ -6,8 +6,7 @@
   import { Button } from '$lib/components/ui/button';
   import { mapDetailsState } from '$lib/state.svelte';
   import type { FlightData } from '$lib/utils';
-  import { formatAsFlightDate } from '$lib/utils/datetime';
-  import { distanceUnitLabel } from '$lib/utils/preferences';
+  import { distanceUnitLabel, formatFlightDate } from '$lib/utils/preferences';
   import type { Preferences } from '$lib/zod/user';
 
   let {
@@ -42,7 +41,7 @@
 
 {#snippet flightRow(flight: FlightData)}
   {@const dateLabel = flight.date
-    ? formatAsFlightDate(flight.date, flight.datePrecision ?? 'day', true, true)
+    ? formatFlightDate(flight.date, flight.datePrecision ?? 'day', prefs)
     : 'Unknown date'}
   {@const flightNumber = formatFlightNumber(flight.flightNumber)}
   {@const subtitle = flightSubtitle(flight)}

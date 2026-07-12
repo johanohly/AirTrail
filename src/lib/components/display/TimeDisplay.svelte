@@ -11,9 +11,15 @@
   import { page } from '$app/state';
   import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
   import { cn } from '$lib/utils';
-  import { formatTime, getPreferences } from '$lib/utils/preferences';
+  import {
+    formatCompactDate,
+    formatDate,
+    formatTime,
+    getPreferences,
+  } from '$lib/utils/preferences';
 
   type Variant = 'time' | 'date' | 'datetime';
+  type DateStyle = 'preference' | 'compact';
 
   let {
     date,
@@ -21,6 +27,7 @@
     airportLabel = null,
     mode = 'flight',
     variant = 'datetime',
+    dateStyle = 'preference',
     side = 'top',
     class: className,
     children,
@@ -30,6 +37,7 @@
     airportLabel?: string | null;
     mode?: TimeDisplayMode;
     variant?: Variant;
+    dateStyle?: DateStyle;
     side?: TimeDisplaySide;
     class?: string;
     children?: Snippet;
@@ -54,11 +62,10 @@
     if (!date) return '';
     if (variant === 'time') return formatTime(date, prefs, primaryTz);
 
-    const dateLabel = new Intl.DateTimeFormat(undefined, {
-      day: 'numeric',
-      month: 'short',
-      timeZone: primaryTz,
-    }).format(date);
+    const dateLabel =
+      dateStyle === 'compact'
+        ? formatCompactDate(date, primaryTz)
+        : formatDate(date, prefs, primaryTz);
     if (variant === 'date') return dateLabel;
 
     return `${dateLabel}, ${formatTime(date, prefs, primaryTz)}`;

@@ -14,8 +14,11 @@ import {
   openModalsState,
 } from '$lib/state.svelte';
 import { type FlightData } from '$lib/utils';
-import { formatAsFlightDate } from '$lib/utils/datetime';
-import { convertDistance, getPreferences } from '$lib/utils/preferences';
+import {
+  convertDistance,
+  formatCompactFlightDate,
+  getPreferences,
+} from '$lib/utils/preferences';
 
 export function useRouteDetails(
   flights: () => FlightData[],
@@ -86,12 +89,7 @@ export function useRouteDetails(
   const lastFlownLabel = $derived.by(() => {
     const flight = routeFlights.find((f) => f.date);
     if (!flight?.date) return null;
-    return formatAsFlightDate(
-      flight.date,
-      flight.datePrecision ?? 'day',
-      false,
-      true,
-    );
+    return formatCompactFlightDate(flight.date, flight.datePrecision ?? 'day');
   });
 
   const routeFilterActive = $derived.by(() => {

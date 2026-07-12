@@ -1,10 +1,11 @@
 <script lang="ts">
   import type { TZDate } from '@date-fns/tz';
 
+  import { page } from '$app/state';
   import { AirlineIcon, RouteArrow } from '$lib/components/display';
   import { Badge } from '$lib/components/ui/badge';
   import type { Airline, Airport, FlightDatePrecision } from '$lib/db/types';
-  import { formatAsFlightDate } from '$lib/utils/datetime';
+  import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
 
   type Flight = {
     from: Airport | null;
@@ -24,14 +25,11 @@
     showMeta?: boolean;
   } = $props();
 
+  const prefs = $derived(getPreferences(page.data.user));
+
   const formatDate = (flight: Flight) => {
     if (!flight.date) return null;
-    return formatAsFlightDate(
-      flight.date,
-      flight.datePrecision ?? 'day',
-      false,
-      true,
-    );
+    return formatFlightDate(flight.date, flight.datePrecision ?? 'day', prefs);
   };
 
   const getFlightNumber = (flight: Flight) => {

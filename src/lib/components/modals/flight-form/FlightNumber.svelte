@@ -1,6 +1,12 @@
 <script lang="ts">
   import { tz, TZDate } from '@date-fns/tz';
-  import { format, isToday, parseJSON } from 'date-fns';
+  import {
+    format,
+    isToday,
+    isTomorrow,
+    isYesterday,
+    parseJSON,
+  } from 'date-fns';
   import { toast } from 'svelte-sonner';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
@@ -13,14 +19,21 @@
   import { appConfig } from '$lib/state.svelte';
   import { api } from '$lib/trpc';
   import {
-    formatAsTime,
-    formatRelativeDate,
-    isUsingAmPm,
-  } from '$lib/utils/datetime';
+    formatDate,
+    formatTime,
+    getPreferences,
+  } from '$lib/utils/preferences';
   import type { flightSchema } from '$lib/zod/flight';
 
-  const displayLocale = () =>
-    isUsingAmPm(page.data.user?.timeFormat) ? 'en-US' : 'fr-FR';
+  const prefs = $derived(getPreferences(page.data.user));
+
+  const resultDateLabel = (date: TZDate) =>
+    formatDate(date, prefs, date.timeZone);
+  const resultRelativeLabel = (date: TZDate) => {
+    if (isYesterday(date)) return 'Yesterday';
+    if (isTomorrow(date)) return 'Tomorrow';
+    return null;
+  };
 
   type FlightFormData = z.infer<typeof flightSchema>;
   type TimetableTab = 'scheduled' | 'actual';
@@ -127,13 +140,21 @@
         result.departure,
         "yyyy-MM-dd'T'00:00:00.000'Z'",
       );
-      $formData.departureTime = formatAsTime(result.departure, displayLocale());
+      $formData.departureTime = formatTime(
+        result.departure,
+        prefs,
+        result.departure.timeZone,
+      );
 
       $formData.arrival = format(
         result.arrival,
         "yyyy-MM-dd'T'00:00:00.000'Z'",
       );
-      $formData.arrivalTime = formatAsTime(result.arrival, displayLocale());
+      $formData.arrivalTime = formatTime(
+        result.arrival,
+        prefs,
+        result.arrival.timeZone,
+      );
     }
 
     // Apply scheduled times. For future flights, fallback to lookup time when schedule is missing.
@@ -145,9 +166,10 @@
         departureScheduleSource,
         "yyyy-MM-dd'T'00:00:00.000'Z'",
       );
-      $formData.departureScheduledTime = formatAsTime(
+      $formData.departureScheduledTime = formatTime(
         departureScheduleSource,
-        displayLocale(),
+        prefs,
+        departureScheduleSource.timeZone,
       );
     }
 
@@ -159,9 +181,10 @@
         arrivalScheduleSource,
         "yyyy-MM-dd'T'00:00:00.000'Z'",
       );
-      $formData.arrivalScheduledTime = formatAsTime(
+      $formData.arrivalScheduledTime = formatTime(
         arrivalScheduleSource,
-        displayLocale(),
+        prefs,
+        arrivalScheduleSource.timeZone,
       );
     }
 
@@ -331,13 +354,8 @@
                 : 'border-border bg-muted/50'} flex-shrink-0"
             >
               {#if primaryDate}
-                <div class="text-xl font-bold leading-none tabular-nums">
-                  {format(primaryDate, 'd')}
-                </div>
-                <div
-                  class="text-[10px] font-medium uppercase leading-none mt-0.5 opacity-80"
-                >
-                  {format(primaryDate, 'MMM')}
+                <div class="text-xs font-bold leading-none tabular-nums">
+                  {resultDateLabel(primaryDate)}
                 </div>
               {:else}
                 <div class="text-xs">?</div>
@@ -352,9 +370,9 @@
                   >
                     Today
                   </span>
-                {:else if primaryDate}
+                {:else if primaryDate && resultRelativeLabel(primaryDate)}
                   <span class="text-xs font-medium text-muted-foreground">
-                    {formatRelativeDate(primaryDate)}
+                    {resultRelativeLabel(primaryDate)}
                   </span>
                 {/if}
               </div>
@@ -369,7 +387,11 @@
                 <div
                   class="text-sm font-medium tabular-nums text-muted-foreground"
                 >
-                  {formatAsTime(r.departure)} – {formatAsTime(r.arrival)}
+                  {formatTime(r.departure, prefs, r.departure.timeZone)} – {formatTime(
+                    r.arrival,
+                    prefs,
+                    r.arrival.timeZone,
+                  )}
                 </div>
               {/if}
 

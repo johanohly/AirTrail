@@ -1,11 +1,12 @@
 <script lang="ts">
   import { PlaneLanding, PlaneTakeoff } from '@o7/icon/lucide';
 
+  import { page } from '$app/state';
   import { AirlineIcon } from '$lib/components/display';
   import { Button } from '$lib/components/ui/button';
   import { mapDetailsState } from '$lib/state.svelte';
   import type { FlightData } from '$lib/utils';
-  import { formatAsFlightDate } from '$lib/utils/datetime';
+  import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
 
   let {
     flights,
@@ -18,6 +19,8 @@
     onShowAllDepartures?: (flightId?: number) => void;
     onShowAllArrivals?: (flightId?: number) => void;
   } = $props();
+
+  const prefs = $derived(getPreferences(page.data.user));
 
   const inlineFlightTarget = 14;
 
@@ -66,7 +69,7 @@
 {#snippet flightRow(flight: FlightData, direction: 'departure' | 'arrival')}
   {@const other = direction === 'departure' ? flight.to : flight.from}
   {@const dateLabel = flight.date
-    ? formatAsFlightDate(flight.date, flight.datePrecision ?? 'day', true, true)
+    ? formatFlightDate(flight.date, flight.datePrecision ?? 'day', prefs)
     : 'Unknown date'}
   {@const flightNumber = formatFlightNumber(flight.flightNumber)}
   {@const subtitle = [other?.name, flightSubtitle(flight)]

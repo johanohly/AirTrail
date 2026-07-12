@@ -2,11 +2,13 @@
   import { FileUp, Route, Trash2 } from '@o7/icon/lucide';
   import type { SuperForm } from 'sveltekit-superforms';
 
+  import { page } from '$app/state';
   import { Button } from '$lib/components/ui/button';
   import { Modal, ModalBody, ModalHeader } from '$lib/components/ui/modal';
   import { findAutomaticTrackCandidate } from '$lib/track/candidates';
   import { parseTrackFile, type ParsedTrackCandidate } from '$lib/track/parser';
   import type { FlightTrackInput } from '$lib/track/schema';
+  import { formatDateTime, getPreferences } from '$lib/utils/preferences';
   import { isSmallScreen } from '$lib/utils/size';
   import type { FlightFormData } from '$lib/zod/flight';
 
@@ -25,14 +27,7 @@
   let originalPointCount: number | null = $state(null);
   let trackCandidates: ParsedTrackCandidate[] = $state([]);
 
-  const legTimeFormatter = new Intl.DateTimeFormat(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'UTC',
-    timeZoneName: 'short',
-  });
+  const prefs = $derived(getPreferences(page.data.user));
 
   const track = $derived($formData.track);
   const hasTrack = $derived(!!track);
@@ -72,7 +67,17 @@
     if (candidate.startTime === null || candidate.endTime === null) {
       return 'Time unavailable';
     }
-    return `${legTimeFormatter.format(candidate.startTime * 1_000)} – ${legTimeFormatter.format(candidate.endTime * 1_000)}`;
+    const start = formatDateTime(
+      new Date(candidate.startTime * 1_000),
+      prefs,
+      'UTC',
+    );
+    const end = formatDateTime(
+      new Date(candidate.endTime * 1_000),
+      prefs,
+      'UTC',
+    );
+    return `${start} UTC – ${end} UTC`;
   };
 
   const applyCandidate = (candidate: ParsedTrackCandidate) => {

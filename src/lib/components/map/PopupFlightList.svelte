@@ -1,9 +1,12 @@
 <script lang="ts">
+  import { page } from '$app/state';
   import { AirlineIcon, RouteArrow } from '$lib/components/display';
   import type { SimpleFlight } from '$lib/utils';
-  import { formatAsFlightDate } from '$lib/utils/datetime';
+  import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
 
   let { flights }: { flights: SimpleFlight[] } = $props();
+
+  const prefs = $derived(getPreferences(page.data.user));
 
   const recentFlights = $derived(
     [...flights]
@@ -51,11 +54,10 @@
           class="shrink-0 text-right text-xs font-medium text-muted-foreground tabular-nums"
         >
           {flight.date
-            ? formatAsFlightDate(
+            ? formatFlightDate(
                 flight.date,
                 flight.datePrecision ?? 'day',
-                true,
-                true,
+                prefs,
               )
             : 'Unknown date'}
         </div>

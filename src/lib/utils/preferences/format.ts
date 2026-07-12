@@ -10,6 +10,7 @@ import {
 } from './convert';
 
 import type { Preferences } from '$lib/zod/user';
+import type { FlightDatePrecision } from '$lib/db/types';
 
 type DistancePrefs = Pick<Preferences, 'distanceUnit'>;
 type AltitudePrefs = Pick<Preferences, 'distanceUnit'>;
@@ -157,6 +158,25 @@ const localeForDateFormat = (
   }
 };
 
+const timeZoneFor = (date: Date, timeZone?: string): string | undefined =>
+  timeZone ?? (date as Date & { timeZone?: string }).timeZone;
+
+const dateParts = (date: Date, timeZone?: string) => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: timeZoneFor(date, timeZone),
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((candidate) => candidate.type === type)?.value ?? '';
+  return {
+    year: part('year'),
+    month: part('month'),
+    day: part('day'),
+  };
+};
+
 export const formatTime = (
   date: Date,
   prefs: TimePrefs,
@@ -166,7 +186,8 @@ export const formatTime = (
     hour: 'numeric',
     minute: 'numeric',
   };
-  if (timeZone) opts.timeZone = timeZone;
+  const resolvedTimeZone = timeZoneFor(date, timeZone);
+  if (resolvedTimeZone) opts.timeZone = resolvedTimeZone;
   if (prefs.timeFormat === '12h') opts.hour12 = true;
   else if (prefs.timeFormat === '24h') opts.hourCycle = 'h23';
   return new Intl.DateTimeFormat(undefined, opts).format(date);
@@ -177,13 +198,103 @@ export const formatDate = (
   prefs: DatePrefs,
   timeZone?: string,
 ): string => {
+  const resolvedTimeZone = timeZoneFor(date, timeZone);
+  if (prefs.dateFormat === 'iso') {
+    const { year, month, day } = dateParts(date, resolvedTimeZone);
+    return `${year}-${month}-${day}`;
+  }
   const locale = localeForDateFormat(prefs.dateFormat);
   return new Intl.DateTimeFormat(locale, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-    timeZone,
+    timeZone: resolvedTimeZone,
   }).format(date);
+};
+
+export const formatFlightDate = (
+  date: Date,
+  precision: FlightDatePrecision,
+  prefs: DatePrefs,
+  timeZone?: string,
+): string => {
+  const resolvedTimeZone = timeZoneFor(date, timeZone);
+  if (precision === 'day') {
+    return formatDate(date, prefs, resolvedTimeZone);
+  }
+
+  if (precision === 'year') {
+    return new Intl.DateTimeFormat('en', {
+      year: 'numeric',
+      timeZone: resolvedTimeZone,
+    }).format(date);
+  }
+
+  if (prefs.dateFormat === 'iso') {
+    const { year, month } = dateParts(date, resolvedTimeZone);
+    return `${year}-${month}`;
+  }
+
+  return new Intl.DateTimeFormat(localeForDateFormat(prefs.dateFormat), {
+    year: 'numeric',
+    month: '2-digit',
+    timeZone: resolvedTimeZone,
+  }).format(date);
+};
+
+export const formatCompactDate = (
+  date: Date,
+  timeZone?: string,
+  includeYear = false,
+): string =>
+  new Intl.DateTimeFormat(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: includeYear ? 'numeric' : undefined,
+    timeZone: timeZoneFor(date, timeZone),
+  }).format(date);
+
+export const formatCompactFlightDate = (
+  date: Date,
+  precision: FlightDatePrecision,
+  timeZone?: string,
+  includeYear = true,
+): string => {
+  const resolvedTimeZone = timeZoneFor(date, timeZone);
+  if (precision === 'day') {
+    return formatCompactDate(date, resolvedTimeZone, includeYear);
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: precision === 'month' ? 'short' : undefined,
+    year: 'numeric',
+    timeZone: resolvedTimeZone,
+  }).format(date);
+};
+
+export const formatCompactDateWithWeekday = (
+  date: Date,
+  timeZone?: string,
+): string => {
+  const resolvedTimeZone = timeZoneFor(date, timeZone);
+  const weekday = new Intl.DateTimeFormat(undefined, {
+    weekday: 'short',
+    timeZone: resolvedTimeZone,
+  }).format(date);
+  return `${weekday}, ${formatCompactDate(date, resolvedTimeZone)}`;
+};
+
+export const formatDateWithWeekday = (
+  date: Date,
+  prefs: DatePrefs,
+  timeZone?: string,
+): string => {
+  const resolvedTimeZone = timeZoneFor(date, timeZone);
+  const weekday = new Intl.DateTimeFormat(undefined, {
+    weekday: 'short',
+    timeZone: resolvedTimeZone,
+  }).format(date);
+  return `${weekday}, ${formatDate(date, prefs, resolvedTimeZone)}`;
 };
 
 export const formatDateTime = (

@@ -3,6 +3,7 @@
   import { ChevronLeft, ChevronRight } from '@o7/icon';
   import { DateRangePicker } from 'bits-ui';
 
+  import { page } from '$app/state';
   import {
     cloneFlightFilters,
     dateFilterSummary,
@@ -12,12 +13,15 @@
   import { Button } from '$lib/components/ui/button';
   import * as CalendarParts from '$lib/components/ui/calendar';
   import { cn } from '$lib/utils';
+  import { getPreferences } from '$lib/utils/preferences';
 
   let {
     filters = $bindable(),
   }: {
     filters: FlightFilters;
   } = $props();
+
+  const prefs = $derived(getPreferences(page.data.user));
 
   let calendarPlaceholder = $state<DateValue | undefined>(undefined);
 
@@ -117,7 +121,7 @@
 <AnimatedSizeContainer height class="max-h-[72dvh]">
   <div class="max-h-[72dvh] overflow-y-auto p-4">
     <div class="mb-3 text-sm text-muted-foreground">
-      {dateFilterSummary(filters)}
+      {dateFilterSummary(filters, prefs)}
     </div>
     <div class="mb-4 flex gap-2 overflow-x-auto">
       {#each [{ value: 'single', label: 'Exact' }, { value: 'range', label: 'Range' }, { value: 'from', label: 'From' }, { value: 'to', label: 'Until' }] as mode (mode.value)}
