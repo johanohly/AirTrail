@@ -16,6 +16,7 @@
   import type { Component } from 'svelte';
 
   import MobileDateFilterScreen from './MobileDateFilterScreen.svelte';
+  import { page } from '$app/state';
   import UserAvatar from '$lib/components/display/UserAvatar.svelte';
   import {
     clearFilterColumn,
@@ -55,6 +56,7 @@
     getSeatPassengerToken,
     type FlightData,
   } from '$lib/utils';
+  import { getPreferences } from '$lib/utils/preferences';
 
   type Screen =
     | { kind: 'home' }
@@ -95,6 +97,8 @@
     tempFilters?: TempFilters;
     hasTempFilters?: boolean;
   } = $props();
+
+  const prefs = $derived(getPreferences(page.data.user));
 
   let screen = $state<Screen>({ kind: 'home' });
   let search = $state('');
@@ -344,7 +348,7 @@
   });
 
   function dateSummary() {
-    return dateFilterSummary(filters);
+    return dateFilterSummary(filters, prefs);
   }
 
   function selectedOptions(columnId: OptionColumnId) {

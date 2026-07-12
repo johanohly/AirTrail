@@ -1,4 +1,4 @@
-import { formatAsFlightDate } from '$lib/utils/datetime';
+import { formatCompactFlightDate } from '$lib/utils/preferences';
 import type { FlightData } from './data';
 import {
   getFlightTimelineWindow,
@@ -28,12 +28,7 @@ export const getAirportVisitSummary = (
 
     for (const window of windows) {
       if (!window) continue;
-      const label = formatAsFlightDate(
-        window.start,
-        window.precision,
-        false,
-        true,
-      );
+      const label = formatCompactFlightDate(window.start, window.precision);
 
       if (window.end < now && (!last || window.end.getTime() > last.time)) {
         last = { label, time: window.end.getTime() };

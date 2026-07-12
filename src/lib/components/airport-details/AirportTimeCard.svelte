@@ -2,7 +2,11 @@
   import { Moon, Sun } from '@o7/icon/lucide';
 
   import { page } from '$app/state';
-  import { formatTime, getPreferences } from '$lib/utils/preferences';
+  import {
+    formatCompactDateWithWeekday,
+    formatTime,
+    getPreferences,
+  } from '$lib/utils/preferences';
 
   let { tz, now }: { tz?: string | null; now: Date } = $props();
 
@@ -13,12 +17,7 @@
   const localTime = $derived(formatTime(now, prefs, resolvedTz));
 
   const localDateLabel = $derived(
-    new Intl.DateTimeFormat(undefined, {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      timeZone: resolvedTz,
-    }).format(now),
+    formatCompactDateWithWeekday(now, resolvedTz),
   );
 
   const offsetLabel = $derived.by(() => {

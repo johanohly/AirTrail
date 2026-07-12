@@ -13,7 +13,11 @@
     type ModalContext,
   } from '$lib/components/ui/modal/Modal.svelte';
   import * as Popover from '$lib/components/ui/popover';
-  import { formatTime, getPreferences } from '$lib/utils/preferences';
+  import {
+    formatDate,
+    formatTime,
+    getPreferences,
+  } from '$lib/utils/preferences';
 
   const prefs = $derived(getPreferences(page.data.user));
 
@@ -44,12 +48,7 @@
   };
 
   const buildRow = (tz: string, badge: string, date: Date): Row => {
-    const dateLabel = new Intl.DateTimeFormat(undefined, {
-      timeZone: tz,
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(date);
+    const dateLabel = formatDate(date, prefs, tz);
     const timeLabel = formatTime(date, prefs, tz);
     return { badge, dateLabel, timeLabel };
   };

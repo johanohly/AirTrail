@@ -6,12 +6,16 @@
   import EditShare from './EditShare.svelte';
   import PageHeader from './PageHeader.svelte';
 
+  import { page } from '$app/state';
   import { Confirm } from '$lib/components/helpers';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { Input } from '$lib/components/ui/input';
   import { TextTooltip } from '$lib/components/ui/tooltip/index.js';
   import { api, trpc } from '$lib/trpc';
+  import { formatDate, getPreferences } from '$lib/utils/preferences';
+
+  const prefs = $derived(getPreferences(page.data.user));
 
   const sharesQuery = trpc.share.list.query();
 
@@ -83,9 +87,9 @@
                 <div>
                   <h4 class="font-semibold text-lg">{share.slug}</h4>
                   <p class="text-sm text-muted-foreground mt-1">
-                    Created {new Date(share.createdAt).toLocaleDateString()}
+                    Created {formatDate(new Date(share.createdAt), prefs)}
                     {#if share.expiresAt}
-                      • Expires {new Date(share.expiresAt).toLocaleDateString()}
+                      • Expires {formatDate(new Date(share.expiresAt), prefs)}
                     {:else}
                       • Never expires
                     {/if}
