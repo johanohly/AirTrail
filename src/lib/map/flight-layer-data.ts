@@ -1,7 +1,6 @@
 import type { Route } from '$lib/components/flight-filters/types';
 import {
   toFlightTrackSamples,
-  type FlightTrackCoordinate,
   type FlightTrackRow,
   type FlightTrackSample,
 } from '$lib/track/schema';
@@ -31,26 +30,6 @@ export const routeMatchesArc = (
     (fromId === route.a && toId === route.b) ||
     (fromId === route.b && toId === route.a)
   );
-};
-
-export const unwrapTrackPath = (path: FlightTrackCoordinate[]) => {
-  if (!path.length) return path;
-  const unwrapped: FlightTrackCoordinate[] = [path[0]!];
-
-  for (let index = 1; index < path.length; index++) {
-    const previous = unwrapped[index - 1]!;
-    const current = path[index]!;
-    let lon = current[0];
-    while (lon - previous[0] > 180) lon -= 360;
-    while (lon - previous[0] < -180) lon += 360;
-    unwrapped.push(
-      current[2] === undefined
-        ? [lon, current[1]]
-        : [lon, current[1], current[2]],
-    );
-  }
-
-  return unwrapped;
 };
 
 export const buildArcFrequencyPercentileByRoute = (flightArcs: FlightArc[]) => {
@@ -129,18 +108,10 @@ export const buildFlightTrackPaths = (
     const arc = arcByRoute.get(getRouteKey(flight.from.id, flight.to.id));
     if (!arc) continue;
 
-    const samples = toFlightTrackSamples(track);
-    const unwrappedCoordinates = unwrapTrackPath(
-      samples.map((sample) => sample.coordinate),
-    );
-
     paths.push({
       ...arc,
       flightId: track.flightId,
-      samples: samples.map((sample, index) => ({
-        ...sample,
-        coordinate: unwrappedCoordinates[index]!,
-      })),
+      samples: toFlightTrackSamples(track),
     });
   }
 

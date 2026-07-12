@@ -4,25 +4,27 @@ import {
   buildFlightTrackPaths,
   hasFallbackFlightArcs,
   type FlightArc,
-  unwrapTrackPath,
 } from './flight-layer-data';
 
 import type { FlightTrackRow } from '$lib/track/schema';
 import type { FlightData } from '$lib/utils';
 
 describe('flight track layer data', () => {
-  it('unwraps dateline crossings without dropping altitude', () => {
-    expect(
-      unwrapTrackPath([
-        [179, 55, 1_000],
-        [-179, 56, 2_000],
-        [-178, 57],
-      ]),
-    ).toEqual([
+  it('preserves canonical source coordinates in render paths', () => {
+    const flights = [{ id: 7, from: { id: 1 }, to: { id: 2 } }] as FlightData[];
+    const arcs = [{ from: { id: 1 }, to: { id: 2 } }] as FlightArc[];
+    const coordinates = [
       [179, 55, 1_000],
-      [181, 56, 2_000],
-      [182, 57],
-    ]);
+      [-179, 56, 2_000],
+      [-178, 57],
+    ] as FlightTrackRow['coordinates'];
+    const tracks = [{ flightId: 7, coordinates }] as FlightTrackRow[];
+
+    const paths = buildFlightTrackPaths(flights, arcs, tracks);
+
+    expect(paths[0]!.samples.map((sample) => sample.coordinate)).toEqual(
+      coordinates,
+    );
   });
 
   it('carries aligned flags into render paths', () => {

@@ -2,7 +2,11 @@ import type { Color } from '@deck.gl/core';
 import { distance, point } from '@turf/turf';
 import { describe, expect, it } from 'vitest';
 
-import type { FlightTrackPath } from './flight-layer-data';
+import {
+  buildFlightTrackPaths,
+  type FlightArc,
+  type FlightTrackPath,
+} from './flight-layer-data';
 import {
   buildFlightTrackDisplayPath,
   MAX_FLIGHT_TRACK_DISPLAY_POINTS,
@@ -18,7 +22,9 @@ import {
 import {
   toFlightTrackSamples,
   type FlightTrackCoordinate,
+  type FlightTrackRow,
 } from '$lib/track/schema';
+import type { FlightData } from '$lib/utils';
 
 const paths = [
   {
@@ -93,19 +99,73 @@ describe('flight track layers', () => {
   });
 
   it('keeps generated antimeridian geometry continuous', () => {
-    const display = buildFlightTrackDisplayPath([
+    const source = [
       [170, 10],
-      [190, 10],
-    ]);
+      [-170, 10],
+    ] as FlightTrackCoordinate[];
+    const display = buildFlightTrackDisplayPath(source);
 
     expect(display[0]).toEqual([170, 10]);
     expect(display.at(-1)).toEqual([190, 10]);
+    expect(source).toEqual([
+      [170, 10],
+      [-170, 10],
+    ]);
     for (let index = 1; index < display.length; index++) {
+      expect(
+        Math.abs(display[index]![0] - display[index - 1]![0]),
+      ).toBeLessThan(180);
       expect(
         distance(point(display[index - 1]!), point(display[index]!), {
           units: 'meters',
         }),
       ).toBeLessThanOrEqual(19_000.001);
+    }
+  });
+
+  it('unwraps short antimeridian crossings without tessellation', () => {
+    const source = [
+      [179.9, 10],
+      [-179.9, 10],
+    ] as FlightTrackCoordinate[];
+
+    const display = buildFlightTrackDisplayPath(source);
+
+    expect(display).toHaveLength(2);
+    expect(display[0]).toEqual([179.9, 10]);
+    expect(display[1]![0]).toBeCloseTo(180.1);
+    expect(display[1]![1]).toBe(10);
+    expect(source).toEqual([
+      [179.9, 10],
+      [-179.9, 10],
+    ]);
+  });
+
+  it('unwraps canonical crossings only in full-pipeline display geometry', () => {
+    const coordinates = [
+      [170, 10, 1_000],
+      [-170, 10, 2_000],
+    ] as FlightTrackRow['coordinates'];
+    const trackPaths = buildFlightTrackPaths(
+      [{ id: 7, from: { id: 1 }, to: { id: 2 } }] as FlightData[],
+      [{ from: { id: 1 }, to: { id: 2 } }] as FlightArc[],
+      [{ flightId: 7, coordinates }] as FlightTrackRow[],
+    );
+
+    const data = prepareFlightTrackLayerData(trackPaths, 'standard');
+
+    expect(trackPaths[0]!.samples.map((sample) => sample.coordinate)).toEqual(
+      coordinates,
+    );
+    expect(data.paths[0]!.displayPath[0]).toEqual([170, 10]);
+    expect(data.paths[0]!.displayPath.at(-1)).toEqual([190, 10]);
+    for (let index = 1; index < data.paths[0]!.displayPath.length; index++) {
+      expect(
+        Math.abs(
+          data.paths[0]!.displayPath[index]![0] -
+            data.paths[0]!.displayPath[index - 1]![0],
+        ),
+      ).toBeLessThan(180);
     }
   });
 

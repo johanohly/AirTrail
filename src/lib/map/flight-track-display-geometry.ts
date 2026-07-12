@@ -207,7 +207,11 @@ const buildDisplayPath = (
       }
     }
 
-    displayPath.push([segment.end[0], segment.end[1]]);
+    const previousLongitude = displayPath.at(-1)![0];
+    displayPath.push([
+      unwrapLongitude(segment.normalizedEnd[0], previousLongitude),
+      segment.end[1],
+    ]);
   }
 
   return displayPath;
