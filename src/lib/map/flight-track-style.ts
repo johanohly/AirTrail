@@ -1,13 +1,10 @@
 import type { Color } from '@deck.gl/core';
 
-import type { FlightTrackPath } from './flight-layer-data';
+import type { FlightTrackIdentity, FlightTrackPath } from './flight-layer-data';
 
 import type { FlightTrackCoordinate } from '$lib/track/schema';
 
-export type FlightTrackRun = Omit<
-  FlightTrackPath,
-  'path' | 'ground' | 'estimated'
-> & {
+export type FlightTrackRun = FlightTrackIdentity & {
   path: FlightTrackCoordinate[];
   altitudeFeet: number | null;
   ground: boolean;
@@ -109,10 +106,67 @@ const interpolateAirTrailColor = (altitudeFeet: number): Color => {
   return [...last.color];
 };
 
-const darkenEstimated = (color: Color): Color =>
-  color.map((component, index) =>
-    index < 3 ? Math.round(component * 0.8) : component,
-  ) as Color;
+const rgbToHsl = (color: Color) => {
+  const red = color[0] / 255;
+  const green = color[1] / 255;
+  const blue = color[2] / 255;
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const lightness = (max + min) / 2;
+
+  if (max === min) return [0, 0, lightness] as const;
+
+  const difference = max - min;
+  const saturation =
+    lightness > 0.5 ? difference / (2 - max - min) : difference / (max + min);
+  const hue =
+    max === red
+      ? (green - blue) / difference + (green < blue ? 6 : 0)
+      : max === green
+        ? (blue - red) / difference + 2
+        : (red - green) / difference + 4;
+
+  return [hue / 6, saturation, lightness] as const;
+};
+
+const hueToRgb = (lower: number, upper: number, hue: number) => {
+  let wrappedHue = hue;
+  if (wrappedHue < 0) wrappedHue += 1;
+  if (wrappedHue > 1) wrappedHue -= 1;
+  if (wrappedHue < 1 / 6) return lower + (upper - lower) * 6 * wrappedHue;
+  if (wrappedHue < 1 / 2) return upper;
+  if (wrappedHue < 2 / 3)
+    return lower + (upper - lower) * (2 / 3 - wrappedHue) * 6;
+  return lower;
+};
+
+const hslToRgb = (
+  hue: number,
+  saturation: number,
+  lightness: number,
+): [number, number, number] => {
+  if (saturation === 0) {
+    const channel = Math.round(lightness * 255);
+    return [channel, channel, channel];
+  }
+
+  const upper =
+    lightness < 0.5
+      ? lightness * (1 + saturation)
+      : lightness + saturation - lightness * saturation;
+  const lower = 2 * lightness - upper;
+  return [
+    Math.round(hueToRgb(lower, upper, hue + 1 / 3) * 255),
+    Math.round(hueToRgb(lower, upper, hue) * 255),
+    Math.round(hueToRgb(lower, upper, hue - 1 / 3) * 255),
+  ];
+};
+
+const darkenEstimated = (color: Color): Color => {
+  const [hue, saturation, lightness] = rgbToHsl(color);
+  const darkened = hslToRgb(hue, saturation, lightness * 0.8);
+  return color[3] === undefined ? darkened : [...darkened, color[3]];
+};
 
 export const metersToFeet = (meters: number) => meters * METERS_TO_FEET;
 
@@ -125,13 +179,17 @@ export const getFlightTrackColor = ({
   altitudeFeet,
   ground,
   estimated = false,
+  darkMode = false,
 }: {
   altitudeFeet: number | null;
   ground: boolean;
   estimated?: boolean;
+  darkMode?: boolean;
 }): Color => {
   const color: Color = ground
-    ? [82, 82, 91]
+    ? darkMode
+      ? [228, 228, 231]
+      : [82, 82, 91]
     : altitudeFeet === null
       ? [161, 161, 170]
       : interpolateAirTrailColor(altitudeFeet);
@@ -139,18 +197,22 @@ export const getFlightTrackColor = ({
   return estimated ? darkenEstimated(color) : color;
 };
 
-const getEdgeStyle = (track: FlightTrackPath, index: number) => {
-  const coordinate = track.path[index]!;
-  const ground = track.ground?.[index] ?? false;
+const getEdgeStyle = (
+  track: FlightTrackPath,
+  index: number,
+  splitByAltitude: boolean,
+) => {
+  const sample = track.samples[index]!;
+  const coordinate = sample.coordinate;
+  const ground = splitByAltitude && (sample.point.ground ?? false);
   const altitudeFeet =
-    ground || coordinate[2] === undefined
+    !splitByAltitude || ground || coordinate[2] === undefined
       ? null
       : roundFlightTrackAltitude(metersToFeet(coordinate[2]));
   return {
     altitudeFeet,
     ground,
-    // readsb marks the current point when the interval leading to it is stale.
-    estimated: track.estimated?.[index + 1] ?? false,
+    estimated: track.samples[index + 1]?.incomingEdge.estimated ?? false,
   };
 };
 
@@ -162,26 +224,30 @@ const stylesMatch = (
   left.ground === right.ground &&
   left.estimated === right.estimated;
 
-export const buildFlightTrackRuns = (tracks: FlightTrackPath[]) => {
+export const buildFlightTrackRuns = (
+  tracks: FlightTrackPath[],
+  { splitByAltitude = true }: { splitByAltitude?: boolean } = {},
+) => {
   const runs: FlightTrackRun[] = [];
 
   for (const track of tracks) {
-    if (track.path.length < 2) continue;
+    const { samples, ...identity } = track;
+    if (samples.length < 2) continue;
 
-    let style = getEdgeStyle(track, 0);
-    let path: FlightTrackCoordinate[] = [track.path[0]!];
+    let style = getEdgeStyle(track, 0, splitByAltitude);
+    let path: FlightTrackCoordinate[] = [samples[0]!.coordinate];
 
-    for (let index = 0; index < track.path.length - 1; index++) {
-      const edgeStyle = getEdgeStyle(track, index);
+    for (let index = 0; index < samples.length - 1; index++) {
+      const edgeStyle = getEdgeStyle(track, index, splitByAltitude);
       if (!stylesMatch(style, edgeStyle)) {
-        if (path.length >= 2) runs.push({ ...track, ...style, path });
+        if (path.length >= 2) runs.push({ ...identity, ...style, path });
         style = edgeStyle;
-        path = [track.path[index]!];
+        path = [samples[index]!.coordinate];
       }
-      path.push(track.path[index + 1]!);
+      path.push(samples[index + 1]!.coordinate);
     }
 
-    if (path.length >= 2) runs.push({ ...track, ...style, path });
+    if (path.length >= 2) runs.push({ ...identity, ...style, path });
   }
 
   return runs;

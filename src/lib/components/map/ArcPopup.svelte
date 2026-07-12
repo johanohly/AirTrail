@@ -2,94 +2,82 @@
   import NumberFlow from '@number-flow/svelte';
 
   import { page } from '$app/state';
+  import type { FlightArc } from '$lib/map/flight-layer-data';
   import { pluralize } from '$lib/utils';
-  import { formatAsFlightDate } from '$lib/utils/datetime';
   import {
     convertDistance,
     distanceUnitLabel,
     getPreferences,
   } from '$lib/utils/preferences';
 
+  import PopupFlightList from './PopupFlightList.svelte';
+
   const prefs = $derived(getPreferences(page.data.user));
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let { data, clickable }: { data: any; clickable: boolean } = $props();
+  let { data, clickable }: { data: FlightArc; clickable: boolean } = $props();
+
+  const airportCode = (airport: typeof data.from) =>
+    airport.iata ?? airport.icao;
 </script>
 
-<div class="flex flex-col px-3 pt-3">
-  <h3 class="font-thin text-muted-foreground">Route</h3>
-  <h4 class="flex items-center text-lg">
+{#snippet routeStop(airport: typeof data.from)}
+  <div class="flex items-center gap-2 py-1">
     <img
-      src="https://flagcdn.com/{data.from.country.toLowerCase()}.svg"
-      alt={data.from.country}
-      class="w-8 h-5 mr-2"
+      src="https://flagcdn.com/{airport.country.toLowerCase()}.svg"
+      alt={airport.country}
+      class="h-4 w-6 shrink-0 rounded-sm object-cover ring-1 ring-black/10 dark:ring-white/15"
     />
-    {data.from.iata ?? data.from.icao} - {data.from.name}
-  </h4>
-  <h4 class="flex items-center text-lg">
-    <img
-      src="https://flagcdn.com/{data.to.country.toLowerCase()}.svg"
-      alt={data.to.country}
-      class="w-8 h-5 mr-2"
-    />
-    {data.to.iata ?? data.to.icao} - {data.to.name}
-  </h4>
-</div>
-<div class="h-px bg-muted my-3" />
-<div class="grid grid-cols-[repeat(3,1fr)] px-3">
-  <h4 class="font-semibold">
-    <NumberFlow value={Math.round(convertDistance(data.distance, prefs))} />
-    <span class="font-thin text-muted-foreground">
-      {distanceUnitLabel(prefs)}
+    <span class="text-xl leading-none font-semibold tracking-tight">
+      {airportCode(airport)}
     </span>
-  </h4>
-  <h4 class="font-semibold">
-    <NumberFlow value={data.flights.length} />
-    <span class="font-thin text-muted-foreground"
-      >{pluralize(data.flights.length, 'trip')}</span
-    >
-  </h4>
-  <h4 class="font-semibold">
-    <NumberFlow value={data.airlines.length} />
-    <span class="font-thin text-muted-foreground"
-      >{pluralize(data.airlines.length, 'airline')}</span
-    >
-  </h4>
-</div>
-<div class="h-px bg-muted my-3" />
-<div class="px-3 pb-3">
-  <div class="grid grid-cols-[repeat(3,1fr)]">
-    <h3 class="font-semibold">Route</h3>
-    <h3 class="font-semibold">Date</h3>
-    <h3 class="font-semibold">Airline</h3>
+    <span class="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+      {airport.name}
+    </span>
   </div>
-  {#each data.flights
-    .slice(0, 5)
-    .sort( (a, b) => (a.date && b.date ? b.date.getTime() - a.date.getTime() : 0), ) as flight}
-    <div class="grid grid-cols-[repeat(3,1fr)]">
-      <h4 class="font-thin">{flight.route}</h4>
-      <h4 class="font-thin">
-        {flight.date
-          ? formatAsFlightDate(
-              flight.date,
-              flight.datePrecision ?? 'day',
-              true,
-              true,
-            )
-          : ''}
-      </h4>
-      <h4 class="font-thin">{flight.airline.name}</h4>
+{/snippet}
+
+<div class="w-80 max-w-[calc(100vw-2rem)]">
+  <div class="px-4 pt-3 pb-2.5">
+    <h3 class="text-xs font-medium text-muted-foreground">Route</h3>
+    <div class="mt-2">
+      {@render routeStop(data.from)}
+
+      <div
+        class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 py-1.5 text-[11px] text-muted-foreground tabular-nums"
+      >
+        <div class="h-px bg-border/60"></div>
+        <div class="flex items-center gap-1.5 whitespace-nowrap">
+          <span>
+            <NumberFlow
+              value={Math.round(convertDistance(data.distance, prefs))}
+            />
+            {distanceUnitLabel(prefs)}
+          </span>
+          <span aria-hidden="true">·</span>
+          <span>
+            <NumberFlow value={data.flights.length} />
+            {pluralize(data.flights.length, 'trip')}
+          </span>
+          <span aria-hidden="true">·</span>
+          <span>
+            <NumberFlow value={data.airlines.length} />
+            {pluralize(data.airlines.length, 'airline')}
+          </span>
+        </div>
+        <div class="h-px bg-border/60"></div>
+      </div>
+
+      {@render routeStop(data.to)}
     </div>
-  {/each}
-  {#if data.flights.length > 5}
-    <h4 class="font-thin text-muted-foreground">
-      +{data.flights.length - 5} more
-    </h4>
+  </div>
+
+  <PopupFlightList flights={data.flights} />
+
+  {#if clickable}
+    <div class="border-t border-border/50 px-4 py-2">
+      <p class="text-center text-xs text-muted-foreground">
+        Click for route details
+      </p>
+    </div>
   {/if}
 </div>
-{#if clickable}
-  <div class="h-px bg-muted my-2" />
-  <div class="px-3 pb-2">
-    <p class="text-xs text-muted-foreground text-center">Click for details</p>
-  </div>
-{/if}

@@ -8,14 +8,18 @@ import {
   roundFlightTrackAltitude,
 } from './flight-track-style';
 
+import {
+  toFlightTrackSamples,
+  type FlightTrackCoordinate,
+} from '$lib/track/schema';
+
 const track = (
-  path: FlightTrackPath['path'],
-  options: Pick<FlightTrackPath, 'ground' | 'estimated'> = {},
+  coordinates: FlightTrackCoordinate[],
+  options: { ground?: boolean[]; estimated?: boolean[] } = {},
 ) =>
   ({
     flightId: 1,
-    path,
-    ...options,
+    samples: toFlightTrackSamples({ coordinates, ...options }),
   }) as FlightTrackPath;
 
 describe('flight track styling', () => {
@@ -35,10 +39,28 @@ describe('flight track styling', () => {
     ).toEqual([82, 82, 91]);
     expect(
       getFlightTrackColor({
+        altitudeFeet: 30_000,
+        ground: true,
+        darkMode: true,
+      }),
+    ).toEqual([228, 228, 231]);
+    expect(
+      getFlightTrackColor({
         altitudeFeet: null,
         ground: false,
       }),
     ).toEqual([161, 161, 170]);
+  });
+
+  it('keeps estimated ground tracks visible in dark mode', () => {
+    expect(
+      getFlightTrackColor({
+        altitudeFeet: null,
+        ground: true,
+        estimated: true,
+        darkMode: true,
+      }),
+    ).toEqual([179, 179, 188]);
   });
 
   it('exposes exact AirTrail palette anchors', () => {
@@ -62,7 +84,7 @@ describe('flight track styling', () => {
     ).toEqual([239, 68, 68]);
   });
 
-  it('darkens estimated segments in addition to dashing them', () => {
+  it('darkens estimated segments in HSL like tar1090', () => {
     const actual = getFlightTrackColor({
       altitudeFeet: 0,
       ground: false,
@@ -75,6 +97,7 @@ describe('flight track styling', () => {
     expect(estimated[0]).toBeLessThan(actual[0]);
     expect(estimated[1]).toBeLessThan(actual[1]);
     expect(estimated[2]).toBeLessThan(actual[2]);
+    expect(estimated).toEqual([211, 90, 5]);
   });
 
   it('merges consecutive edges with the same rounded style', () => {
@@ -149,5 +172,29 @@ describe('flight track styling', () => {
         [12, 57, 200],
       ],
     });
+  });
+
+  it('only splits standard runs at estimated boundaries', () => {
+    const runs = buildFlightTrackRuns(
+      [
+        track(
+          [
+            [10, 55, 0],
+            [11, 56, 304.8],
+            [12, 57, 609.6],
+          ],
+          { ground: [true, false, false], estimated: [false, false, false] },
+        ),
+      ],
+      { splitByAltitude: false },
+    );
+
+    expect(runs).toHaveLength(1);
+    expect(runs[0]).toMatchObject({
+      altitudeFeet: null,
+      ground: false,
+      estimated: false,
+    });
+    expect(runs[0]).not.toHaveProperty('samples');
   });
 });

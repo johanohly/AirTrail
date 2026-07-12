@@ -17,27 +17,82 @@ export const flightTrackCoordinateSchema = z
   .refine(
     ([lon, lat, alt]) =>
       Number.isFinite(lon) &&
+      lon >= -180 &&
+      lon <= 180 &&
       Number.isFinite(lat) &&
+      lat >= -90 &&
+      lat <= 90 &&
       (alt === undefined || Number.isFinite(alt)),
     'Invalid track coordinate',
   );
 
-const flightTrackAlignedPropertySchemas = {
-  times: z
-    .number()
-    .int()
-    .array()
-    .max(MAX_STORED_FLIGHT_TRACK_POINTS)
-    .optional(),
-  groundSpeedKt: z
-    .number()
-    .array()
-    .max(MAX_STORED_FLIGHT_TRACK_POINTS)
-    .optional(),
-  trackDeg: z.number().array().max(MAX_STORED_FLIGHT_TRACK_POINTS).optional(),
-  ground: z.boolean().array().max(MAX_STORED_FLIGHT_TRACK_POINTS).optional(),
-  estimated: z.boolean().array().max(MAX_STORED_FLIGHT_TRACK_POINTS).optional(),
+export type FlightTrackSample = {
+  coordinate: FlightTrackCoordinate;
+  point: {
+    time?: number;
+    groundSpeedKt?: number;
+    trackDeg?: number;
+    ground?: boolean;
+  };
+  incomingEdge: {
+    estimated?: boolean;
+  };
 };
+
+const alignedProperty = <T>(
+  schema: z.ZodType<T>,
+  get: (sample: FlightTrackSample) => T | undefined,
+  set: (sample: FlightTrackSample, value: T) => void,
+) => ({
+  schema,
+  get,
+  set: (sample: FlightTrackSample, value: unknown) => set(sample, value as T),
+});
+
+const flightTrackAlignedPropertyDefinitions = {
+  times: alignedProperty(
+    z.number().int(),
+    (sample) => sample.point.time,
+    (sample, value) => (sample.point.time = value),
+  ),
+  groundSpeedKt: alignedProperty(
+    z.number(),
+    (sample) => sample.point.groundSpeedKt,
+    (sample, value) => (sample.point.groundSpeedKt = value),
+  ),
+  trackDeg: alignedProperty(
+    z.number(),
+    (sample) => sample.point.trackDeg,
+    (sample, value) => (sample.point.trackDeg = value),
+  ),
+  ground: alignedProperty(
+    z.boolean(),
+    (sample) => sample.point.ground,
+    (sample, value) => (sample.point.ground = value),
+  ),
+  estimated: alignedProperty(
+    z.boolean(),
+    (sample) => sample.incomingEdge.estimated,
+    (sample, value) => (sample.incomingEdge.estimated = value),
+  ),
+} as const;
+
+type AlignedPropertySchemas<
+  Definitions extends Record<string, { schema: z.ZodTypeAny }>,
+> = {
+  [Key in keyof Definitions]: z.ZodOptional<
+    z.ZodArray<Definitions[Key]['schema']>
+  >;
+};
+
+const flightTrackAlignedPropertySchemas = Object.fromEntries(
+  Object.entries(flightTrackAlignedPropertyDefinitions).map(
+    ([key, definition]) => [
+      key,
+      definition.schema.array().max(MAX_STORED_FLIGHT_TRACK_POINTS).optional(),
+    ],
+  ),
+) as AlignedPropertySchemas<typeof flightTrackAlignedPropertyDefinitions>;
 type FlightTrackAlignedPropertyKey =
   keyof typeof flightTrackAlignedPropertySchemas;
 const flightTrackAlignedPropertyKeys = Object.keys(
@@ -105,10 +160,62 @@ export const copyFlightTrackAlignedProperties = (
   for (const key of flightTrackAlignedPropertyKeys) {
     if (key === 'times' && !includeTimes) continue;
     const values = track[key];
-    if (values !== undefined) Object.assign(properties, { [key]: values });
+    if (values !== undefined) {
+      Object.assign(properties, { [key]: values });
+    }
   }
 
   return properties;
+};
+
+export const toFlightTrackSamples = (
+  track: FlightTrackPayloadSource,
+): FlightTrackSample[] => {
+  const samples = track.coordinates.map((coordinate) => ({
+    coordinate,
+    point: {},
+    incomingEdge: {},
+  }));
+
+  for (const key of flightTrackAlignedPropertyKeys) {
+    const values = track[key];
+    if (values === undefined) continue;
+    const definition = flightTrackAlignedPropertyDefinitions[key];
+    values.forEach((value, index) => definition.set(samples[index]!, value));
+  }
+
+  return samples;
+};
+
+const collectSampleProperty = <T>(
+  samples: FlightTrackSample[],
+  getValue: (sample: FlightTrackSample) => T | undefined,
+) => {
+  const values = samples.map(getValue);
+  if (values.every((value) => value === undefined)) return undefined;
+  if (values.some((value) => value === undefined)) {
+    throw new Error('Track sample properties must be present for every point');
+  }
+  return values as T[];
+};
+
+export const fromFlightTrackSamples = (
+  samples: FlightTrackSample[],
+): FlightTrackPayload => {
+  const properties: FlightTrackAlignedProperties = {};
+
+  for (const key of flightTrackAlignedPropertyKeys) {
+    const definition = flightTrackAlignedPropertyDefinitions[key];
+    const values = collectSampleProperty(samples, definition.get);
+    if (values !== undefined) {
+      Object.assign(properties, { [key]: values });
+    }
+  }
+
+  return {
+    coordinates: samples.map((sample) => sample.coordinate),
+    ...properties,
+  };
 };
 
 export const pickFlightTrackPoints = (
@@ -119,10 +226,11 @@ export const pickFlightTrackPoints = (
 
   for (const key of flightTrackAlignedPropertyKeys) {
     const values = track[key];
-    if (values === undefined) continue;
-    Object.assign(properties, {
-      [key]: indices.map((index) => values[index]!),
-    });
+    if (values !== undefined) {
+      Object.assign(properties, {
+        [key]: indices.map((index) => values[index]!),
+      });
+    }
   }
 
   return {

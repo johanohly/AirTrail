@@ -64,9 +64,11 @@ export type MapDetailsSelection =
 export const mapDetailsState = $state<{
   selection: MapDetailsSelection | null;
   focusRequest: number;
+  hoveredFlightTrackId: number | null;
 }>({
   selection: null,
   focusRequest: 0,
+  hoveredFlightTrackId: null,
 });
 
 export const openAirportDetails = (airportId: number) => {

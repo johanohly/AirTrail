@@ -1,7 +1,9 @@
 import {
+  fromFlightTrackSamples,
   MAX_RENDERED_FLIGHT_TRACK_POINTS,
-  pickFlightTrackPoints,
+  toFlightTrackSamples,
   type FlightTrackPayload,
+  type FlightTrackSample,
 } from './schema';
 
 const METERS_PER_DEGREE = 111_320;
@@ -12,28 +14,39 @@ const AIRBORNE_ESTIMATED_GAP_SECONDS = 75;
 const GROUND_ESTIMATED_GAP_SECONDS = 90;
 
 const materializeEstimatedGaps = (
-  track: FlightTrackPayload,
-): FlightTrackPayload => {
-  if (!track.times) return track;
+  samples: FlightTrackSample[],
+): FlightTrackSample[] => {
+  if (!samples.some((sample) => sample.point.time !== undefined)) {
+    return samples;
+  }
 
-  let estimated = track.estimated;
+  let result = samples;
 
-  for (let index = 1; index < track.coordinates.length; index++) {
-    const previousTime = track.times[index - 1];
-    const currentTime = track.times[index];
+  for (let index = 1; index < samples.length; index++) {
+    const previousTime = samples[index - 1]?.point.time;
+    const currentTime = samples[index]?.point.time;
     if (previousTime === undefined || currentTime === undefined) continue;
 
-    const timeout = track.ground?.[index]
+    const timeout = samples[index]?.point.ground
       ? GROUND_ESTIMATED_GAP_SECONDS
       : AIRBORNE_ESTIMATED_GAP_SECONDS;
     if (Math.abs(currentTime - previousTime) <= timeout) continue;
-    if (estimated?.[index]) continue;
+    if (samples[index]?.incomingEdge.estimated) continue;
 
-    estimated = estimated ? [...estimated] : track.coordinates.map(() => false);
-    estimated[index] = true;
+    if (result === samples) {
+      result = samples.map((sample) => ({
+        ...sample,
+        point: { ...sample.point },
+        incomingEdge: {
+          ...sample.incomingEdge,
+          estimated: sample.incomingEdge.estimated ?? false,
+        },
+      }));
+    }
+    result[index]!.incomingEdge.estimated = true;
   }
 
-  return estimated === track.estimated ? track : { ...track, estimated };
+  return result;
 };
 
 const addTransitionBoundaries = <T>(
@@ -48,13 +61,19 @@ const addTransitionBoundaries = <T>(
   }
 };
 
-const collectTransitionGroups = (track: FlightTrackPayload) => {
+const collectTransitionGroups = (samples: FlightTrackSample[]) => {
   const boundaries = new Set<number>();
-  addTransitionBoundaries(boundaries, track.ground);
-  addTransitionBoundaries(boundaries, track.estimated);
   addTransitionBoundaries(
     boundaries,
-    track.coordinates.map((coordinate) => coordinate[2] !== undefined),
+    samples.map((sample) => sample.point.ground),
+  );
+  addTransitionBoundaries(
+    boundaries,
+    samples.map((sample) => sample.incomingEdge.estimated),
+  );
+  addTransitionBoundaries(
+    boundaries,
+    samples.map((sample) => sample.coordinate[2] !== undefined),
   );
 
   const sorted = [...boundaries].sort((a, b) => a - b);
@@ -72,16 +91,16 @@ const collectTransitionGroups = (track: FlightTrackPayload) => {
   return groups;
 };
 
-const getAltitude = (track: FlightTrackPayload, index: number) =>
-  track.coordinates[index]?.[2] ?? null;
+const getAltitude = (samples: FlightTrackSample[], index: number) =>
+  samples[index]?.coordinate[2] ?? null;
 
-const collectAltitudeIndices = (track: FlightTrackPayload) => {
+const collectAltitudeIndices = (samples: FlightTrackSample[]) => {
   const selected = new Set<number>();
 
-  for (let index = 1; index < track.coordinates.length - 1; index++) {
-    const previous = getAltitude(track, index - 1);
-    const current = getAltitude(track, index);
-    const next = getAltitude(track, index + 1);
+  for (let index = 1; index < samples.length - 1; index++) {
+    const previous = getAltitude(samples, index - 1);
+    const current = getAltitude(samples, index);
+    const next = getAltitude(samples, index + 1);
 
     if (
       previous === null ||
@@ -120,14 +139,15 @@ const squaredDistanceToSegment = (
   return (point[0] - projectedX) ** 2 + (point[1] - projectedY) ** 2;
 };
 
-const collectSpatialCornerIndices = (track: FlightTrackPayload) => {
+const collectSpatialCornerIndices = (samples: FlightTrackSample[]) => {
   const selected = new Set<number>();
   const referenceLat =
-    track.coordinates.reduce((sum, coordinate) => sum + coordinate[1], 0) /
-    track.coordinates.length;
+    samples.reduce((sum, sample) => sum + sample.coordinate[1], 0) /
+    samples.length;
   const xScale = METERS_PER_DEGREE * Math.cos((referenceLat * Math.PI) / 180);
-  const points = track.coordinates.map(
-    ([lon, lat]) => [lon * xScale, lat * METERS_PER_DEGREE] as const,
+  const points = samples.map(
+    ({ coordinate: [lon, lat] }) =>
+      [lon * xScale, lat * METERS_PER_DEGREE] as const,
   );
   const thresholdSquared = SPATIAL_CORNER_THRESHOLD_METERS ** 2;
 
@@ -203,13 +223,18 @@ export const reduceFlightTrackForMap = (
   track: FlightTrackPayload,
   maxPoints = MAX_RENDERED_FLIGHT_TRACK_POINTS,
 ): FlightTrackPayload => {
-  const renderTrack = materializeEstimatedGaps(track);
+  const samples = toFlightTrackSamples(track);
+  const renderSamples = materializeEstimatedGaps(samples);
 
-  if (renderTrack.coordinates.length <= maxPoints) return renderTrack;
+  if (renderSamples.length <= maxPoints) {
+    return renderSamples === samples
+      ? track
+      : fromFlightTrackSamples(renderSamples);
+  }
   if (maxPoints < 2) throw new RangeError('A rendered track needs two points');
 
-  const lastIndex = renderTrack.coordinates.length - 1;
-  const transitionGroups = collectTransitionGroups(renderTrack);
+  const lastIndex = renderSamples.length - 1;
+  const transitionGroups = collectTransitionGroups(renderSamples);
   const semanticIndices = new Set<number>([0, lastIndex]);
   transitionGroups.forEach((group) =>
     group.forEach((index) => semanticIndices.add(index)),
@@ -218,26 +243,30 @@ export const reduceFlightTrackForMap = (
   if (semanticIndices.size > maxPoints) {
     const selected = new Set([0, lastIndex]);
     addTransitionGroupsUntilFull(selected, transitionGroups, maxPoints);
-    return pickFlightTrackPoints(
-      renderTrack,
-      [...selected].sort((a, b) => a - b),
+    return fromFlightTrackSamples(
+      [...selected].sort((a, b) => a - b).map((index) => renderSamples[index]!),
     );
   }
 
-  addUntilFull(semanticIndices, collectAltitudeIndices(renderTrack), maxPoints);
   addUntilFull(
     semanticIndices,
-    collectSpatialCornerIndices(renderTrack),
+    collectAltitudeIndices(renderSamples),
     maxPoints,
   );
   addUntilFull(
     semanticIndices,
-    Array.from({ length: renderTrack.coordinates.length }, (_, index) => index),
+    collectSpatialCornerIndices(renderSamples),
+    maxPoints,
+  );
+  addUntilFull(
+    semanticIndices,
+    Array.from({ length: renderSamples.length }, (_, index) => index),
     maxPoints,
   );
 
-  return pickFlightTrackPoints(
-    renderTrack,
-    [...semanticIndices].sort((a, b) => a - b),
+  return fromFlightTrackSamples(
+    [...semanticIndices]
+      .sort((a, b) => a - b)
+      .map((index) => renderSamples[index]!),
   );
 };
