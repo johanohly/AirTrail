@@ -141,6 +141,29 @@ describe('flight track layers', () => {
     ]);
   });
 
+  it('keeps antipodal fallback geometry continuous after a crossing', () => {
+    const source = [
+      [170, 10],
+      [-170, 10],
+      [10, -10],
+    ] as FlightTrackCoordinate[];
+
+    const display = buildFlightTrackDisplayPath(source);
+
+    expect(display[0]).toEqual([170, 10]);
+    expect(display.at(-1)).toEqual([370, -10]);
+    expect(source).toEqual([
+      [170, 10],
+      [-170, 10],
+      [10, -10],
+    ]);
+    for (let index = 1; index < display.length; index++) {
+      expect(
+        Math.abs(display[index]![0] - display[index - 1]![0]),
+      ).toBeLessThan(180);
+    }
+  });
+
   it('unwraps canonical crossings only in full-pipeline display geometry', () => {
     const coordinates = [
       [170, 10, 1_000],

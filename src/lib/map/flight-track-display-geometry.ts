@@ -23,14 +23,18 @@ const unwrapLongitude = (longitude: number, previous: number) => {
 
 const interpolateLinearSegment = (
   path: [number, number][],
-  start: FlightTrackCoordinate,
-  end: FlightTrackCoordinate,
+  start: [number, number],
+  end: [number, number],
   segmentCount: number,
 ) => {
   for (let index = 1; index < segmentCount; index++) {
     const progress = index / segmentCount;
+    const previousLongitude = path.at(-1)![0];
     path.push([
-      start[0] + (end[0] - start[0]) * progress,
+      unwrapLongitude(
+        start[0] + (end[0] - start[0]) * progress,
+        previousLongitude,
+      ),
       start[1] + (end[1] - start[1]) * progress,
     ]);
   }
@@ -110,8 +114,6 @@ const prepareDisplaySegments = (path: FlightTrackCoordinate[]) =>
         : 0;
 
     return {
-      start,
-      end,
       normalizedStart,
       normalizedEnd,
       subdivisionDepth,
@@ -200,8 +202,8 @@ const buildDisplayPath = (
         // surface interpolation still avoids drawing a chord through the globe.
         interpolateLinearSegment(
           displayPath,
-          segment.start,
-          segment.end,
+          segment.normalizedStart,
+          segment.normalizedEnd,
           2 ** subdivisionDepth,
         );
       }
@@ -210,7 +212,7 @@ const buildDisplayPath = (
     const previousLongitude = displayPath.at(-1)![0];
     displayPath.push([
       unwrapLongitude(segment.normalizedEnd[0], previousLongitude),
-      segment.end[1],
+      segment.normalizedEnd[1],
     ]);
   }
 
