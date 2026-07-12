@@ -2,9 +2,6 @@
   "name": "airtrail",
   "version": "3.11.1",
   "type": "module",
-  "engines": {
-    "node": ">=22.0.0"
-  },
   "scripts": {
     "build": "vite build",
     "preview": "vite preview",
