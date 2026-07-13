@@ -225,5 +225,4 @@
       </ControlButton>
     </ControlGroup>
   </Control>
-
 </MapLibre>
