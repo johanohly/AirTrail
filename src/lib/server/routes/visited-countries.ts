@@ -6,12 +6,17 @@ import { db } from '$lib/db';
 import { VisitedCountryStatus } from '$lib/db/types';
 import { listFlights } from '$lib/server/utils/flight';
 import {
+  countryCodesFromFlights,
   countryFromAlpha2,
-  countryFromNumeric,
 } from '$lib/utils/data/countries';
 
 const VisitedCountrySchema = z.object({
-  code: z.number(),
+  code: z
+    .string()
+    .length(2)
+    .refine((code) => countryFromAlpha2(code), {
+      message: 'Unknown country code',
+    }),
   status: z.enum(VisitedCountryStatus).nullable(),
   note: z.string().nullable(),
 });
@@ -24,11 +29,7 @@ export const visitedCountriesRouter = router({
       .where('userId', '=', ctx.user.id)
       .execute();
 
-    return list.map((country) => ({
-      ...country,
-      numeric: country.code,
-      alpha3: countryFromNumeric(country.code)?.alpha3 || 'DNK',
-    }));
+    return list.filter((country) => countryFromAlpha2(country.code));
   }),
   save: authedProcedure
     .input(VisitedCountrySchema)
@@ -61,22 +62,7 @@ export const visitedCountriesRouter = router({
     }),
   importFlights: authedProcedure.mutation(async ({ ctx }) => {
     const flights = await listFlights(ctx.user.id);
-    const countries: Set<number> = new Set();
-
-    for (const flight of flights) {
-      if (!flight.from || !flight.to) {
-        continue;
-      }
-
-      const originCountry = countryFromAlpha2(flight.from.country);
-      const destinationCountry = countryFromAlpha2(flight.to.country);
-      if (!originCountry || !destinationCountry) {
-        continue;
-      }
-
-      countries.add(originCountry.numeric);
-      countries.add(destinationCountry.numeric);
-    }
+    const countries = countryCodesFromFlights(flights);
 
     if (countries.size === 0) {
       return 0;
@@ -85,7 +71,7 @@ export const visitedCountriesRouter = router({
     const result = await db
       .insertInto('visitedCountry')
       .values(
-        Array.from(countries.values()).map((country) => ({
+        Array.from(countries).map((country) => ({
           userId: ctx.user.id,
           code: country,
           status: 'visited',
