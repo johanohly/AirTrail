@@ -92,7 +92,9 @@ If you find an issue, please report it on the [issue tracker](https://github.com
 
 > [Airport Data](https://ourairports.com)
 
-> [Country Borders](https://gisco-services.ec.europa.eu/distribution/v2/countries/geojson/CNTR_RG_01M_2024_4326.geojson)
+> [Country Borders](https://gisco-services.ec.europa.eu/distribution/v2/countries/geojson/CNTR_RG_01M_2024_4326.geojson), [NUTS Level 0 Borders](https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_01M_2024_4326_LEVL_0.geojson), and [Natural Earth Admin 0 Countries](https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-admin-0-countries/)
+
+> [EU Countries and Territories Vocabulary](https://op.europa.eu/en/web/eu-vocabularies/countries-and-territories)
 
 > [Country Flags](https://flagpedia.net)
 

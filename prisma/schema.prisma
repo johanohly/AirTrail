@@ -201,8 +201,8 @@ model seat {
 model visited_country {
   id Int @id @default(autoincrement())
 
-  /// ISO 3166-1 numeric code
-  code   Int
+  /// ISO 3166-1 alpha-2 or EU user-assigned country code
+  code   String  @db.VarChar(2)
   /// @kyselyType('lived' | 'visited' | 'layover' | 'wishlist')
   status String
   note   String?

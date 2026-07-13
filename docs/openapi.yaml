@@ -470,7 +470,7 @@ components:
           example: 'NA'
         country:
           type: string
-          description: 'The country code where the airport is located.'
+          description: 'The ISO 3166-1 alpha-2 or EU user-assigned country code where the airport is located.'
           example: 'US'
         tz:
           type: string

@@ -56,12 +56,12 @@ export function visitedCountryStatusDistribution(
 export function countriesByContinentDistribution(
   visitedCountries: VisitedCountryStats[],
 ): Record<string, { visited: number; total: number }> {
-  const continentByNumeric = new Map<number, string>();
+  const continentByCode = new Map<string, string>();
   const result: Record<string, { visited: number; total: number }> = {};
 
   for (const country of COUNTRIES) {
     if (country.continent) {
-      continentByNumeric.set(country.numeric, country.continent);
+      continentByCode.set(country.alpha2, country.continent);
 
       if (!result[country.continent]) {
         result[country.continent] = { visited: 0, total: 0 };
@@ -72,7 +72,7 @@ export function countriesByContinentDistribution(
 
   for (const visitedCountry of visitedCountries) {
     if (wasVisited(visitedCountry)) {
-      const continent = continentByNumeric.get(visitedCountry.code);
+      const continent = continentByCode.get(visitedCountry.code);
       if (continent && result[continent]) {
         result[continent].visited++;
       }
@@ -84,14 +84,14 @@ export function countriesByContinentDistribution(
 
 export type CountryDetail = {
   name: string;
-  numeric: number;
+  code: string;
   visited: boolean;
 };
 
 export function countriesByContinentDetails(
   visitedCountries: VisitedCountryStats[],
 ): Record<string, CountryDetail[]> {
-  const visitedCodes: Set<number> = new Set();
+  const visitedCodes: Set<string> = new Set();
   for (const country of visitedCountries) {
     if (wasVisited(country)) {
       visitedCodes.add(country.code);
@@ -109,8 +109,8 @@ export function countriesByContinentDetails(
 
     result[country.continent]!.push({
       name: country.name,
-      numeric: country.numeric,
-      visited: visitedCodes.has(country.numeric),
+      code: country.alpha2,
+      visited: visitedCodes.has(country.alpha2),
     });
   }
 

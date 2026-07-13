@@ -33,7 +33,7 @@
   import { appConfig } from '$lib/state.svelte';
   import { api, trpc } from '$lib/trpc';
   import { pluralize } from '$lib/utils';
-  import { countryFromAlpha3 } from '$lib/utils/data/countries';
+  import { countryFromAlpha2 } from '$lib/utils/data/countries';
 
   const unregisterPmtiles = browser ? registerPmtilesProtocol() : null;
 
@@ -58,18 +58,18 @@
     countries.length
       ? ([
           'match',
-          ['get', 'ISO3_CODE'],
+          ['get', 'COUNTRY_CODE'],
           ...(livedCountries.length
-            ? [livedCountries.map((c) => c.alpha3), '#4ade80']
+            ? [livedCountries.map((country) => country.code), '#4ade80']
             : []),
           ...(visitedCountries.length
-            ? [visitedCountries.map((c) => c.alpha3), '#3C82F6']
+            ? [visitedCountries.map((country) => country.code), '#3C82F6']
             : []),
           ...(layoverCountries.length
-            ? [layoverCountries.map((c) => c.alpha3), '#66d9ef']
+            ? [layoverCountries.map((country) => country.code), '#66d9ef']
             : []),
           ...(wishlistCountries.length
-            ? [wishlistCountries.map((c) => c.alpha3), '#8b5cf6']
+            ? [wishlistCountries.map((country) => country.code), '#8b5cf6']
             : []),
           'rgba(0,0,0,0)',
         ] as unknown as maplibregl.ExpressionSpecification)
@@ -84,7 +84,7 @@
 
   let editing = $state(false);
   let editingInfo: {
-    id: number;
+    code: string;
     status: (typeof VisitedCountryStatus)[number] | null;
     note: string | null;
   } | null = $state(null);
@@ -112,12 +112,11 @@
   const handleCountryClick = (event: LayerClickInfo) => {
     if (event.features?.length) {
       const country = event.features[0];
-      const code = country?.properties?.['ISO3_CODE'];
-      const numeric = countryFromAlpha3(code)?.numeric;
-      if (numeric) {
-        const countryData = countries.find((c) => c.numeric === numeric);
+      const code = country?.properties?.['COUNTRY_CODE'];
+      if (countryFromAlpha2(code)) {
+        const countryData = countries.find((country) => country.code === code);
         editingInfo = {
-          id: numeric,
+          code,
           status: countryData?.status ?? null,
           note: countryData?.note ?? null,
         };
@@ -134,7 +133,7 @@
       ...visitedCountries,
       ...layoverCountries,
       ...wishlistCountries,
-    ].map((c) => c.alpha3);
+    ].map((country) => country.code);
 
     if (!map || !codes.length) return;
 
@@ -226,4 +225,5 @@
       </ControlButton>
     </ControlGroup>
   </Control>
+
 </MapLibre>

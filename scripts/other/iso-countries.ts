@@ -1,4 +1,5 @@
-import { writeFileSync } from 'fs';
+import { writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 interface RawCountry {
   name: string;
@@ -13,9 +14,18 @@ interface Country {
   name: string;
   alpha2: string;
   alpha3: string;
-  numeric: number;
+  numeric?: number;
   continent: string;
 }
+
+const COUNTRY_ADDITIONS: Country[] = [
+  {
+    name: 'Kosovo',
+    alpha2: 'XK',
+    alpha3: 'XKX',
+    continent: 'Europe',
+  },
+];
 
 const NAME_OVERRIDES: Record<string, string> = {
   BS: 'Bahamas',
@@ -94,23 +104,27 @@ async function main() {
     );
   }
 
-  const countries: Country[] = json.map((country) => ({
-    name: NAME_OVERRIDES[country['alpha-2']] ?? country.name,
-    alpha2: country['alpha-2'],
-    alpha3: country['alpha-3'],
-    numeric: parseInt(country['country-code'], 10),
-    continent: mapContinentFromRawCountry(country),
-  }));
+  const countries: Country[] = [
+    ...json.map((country) => ({
+      name: NAME_OVERRIDES[country['alpha-2']] ?? country.name,
+      alpha2: country['alpha-2'],
+      alpha3: country['alpha-3'],
+      numeric: parseInt(country['country-code'], 10),
+      continent: mapContinentFromRawCountry(country),
+    })),
+    ...COUNTRY_ADDITIONS,
+  ].sort((a, b) => a.name.localeCompare(b.name, 'en'));
 
   // Generate the TypeScript file content
   const fileContent = `// Auto-generated from ISO-3166-Countries-with-Regional-Codes
 // Source: https://github.com/lukes/ISO-3166-Countries-with-Regional-Codes
+// EU additions: https://op.europa.eu/en/web/eu-vocabularies/countries-and-territories
 
 export interface Country {
     name: string;
     alpha2: string;
     alpha3: string;
-    numeric: number;
+    numeric?: number;
     continent: string;
 }
 
@@ -118,7 +132,9 @@ export const COUNTRIES: Country[] = ${JSON.stringify(countries, null, 2)};
 `;
 
   // Write to file
-  const outputPath = '../../src/lib/data/countries.ts';
+  const outputPath = fileURLToPath(
+    new URL('../../src/lib/data/countries.ts', import.meta.url),
+  );
   writeFileSync(outputPath, fileContent, 'utf-8');
 
   console.log(`✓ Generated countries.ts with ${countries.length} countries`);

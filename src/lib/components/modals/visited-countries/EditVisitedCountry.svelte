@@ -10,7 +10,7 @@
   import type { VisitedCountryStatus } from '$lib/db/types';
   import { api, trpc } from '$lib/trpc';
   import { cn } from '$lib/utils';
-  import { type Country, countryFromNumeric } from '$lib/utils/data/countries';
+  import { type Country, countryFromAlpha2 } from '$lib/utils/data/countries';
 
   let {
     open = $bindable(),
@@ -18,7 +18,7 @@
   }: {
     open: boolean;
     editingInfo: {
-      id: number;
+      code: string;
       status: (typeof VisitedCountryStatus)[number] | null;
       note: string | null;
     } | null;
@@ -34,7 +34,7 @@
       return;
     }
 
-    countryData = countryFromNumeric(+editingInfo.id);
+    countryData = countryFromAlpha2(editingInfo.code);
     status = editingInfo?.status;
     note = editingInfo.note ?? '';
   });
@@ -45,7 +45,7 @@
 
     loading = true;
     const success = await api.visitedCountries.save.mutate({
-      code: countryData.numeric,
+      code: countryData.alpha2,
       status,
       note: note ?? undefined,
     });

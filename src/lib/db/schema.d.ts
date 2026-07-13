@@ -251,9 +251,9 @@ export type user = {
 export type visited_country = {
     id: Generated<number>;
     /**
-     * ISO 3166-1 numeric code
+     * ISO 3166-1 alpha-2 or EU user-assigned country code
      */
-    code: number;
+    code: string;
     /**
      * @kyselyType('lived' | 'visited' | 'layover' | 'wishlist')
      */

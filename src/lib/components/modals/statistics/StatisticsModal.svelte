@@ -37,11 +37,6 @@
     getPreferences,
   } from '$lib/utils/preferences';
 
-  type VisitedCountryList = VisitedCountry & {
-    numeric: number;
-    alpha3: string;
-  };
-
   let {
     open = $bindable<boolean>(),
     flights,
@@ -58,7 +53,7 @@
     flights: FlightData[];
     filteredFlights: FlightData[];
     filters: FlightFilters;
-    visitedCountries?: VisitedCountryList[];
+    visitedCountries?: VisitedCountry[];
     showFilters?: boolean;
     seatUserId?: string;
     showCountryStats?: boolean;

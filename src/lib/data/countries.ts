@@ -1,11 +1,12 @@
 // Auto-generated from ISO-3166-Countries-with-Regional-Codes
 // Source: https://github.com/lukes/ISO-3166-Countries-with-Regional-Codes
+// EU additions: https://op.europa.eu/en/web/eu-vocabularies/countries-and-territories
 
 export interface Country {
   name: string;
   alpha2: string;
   alpha3: string;
-  numeric: number;
+  numeric?: number;
   continent: string;
 }
 
@@ -242,6 +243,13 @@ export const COUNTRIES: Country[] = [
     continent: 'Africa',
   },
   {
+    name: 'British Virgin Islands',
+    alpha2: 'VG',
+    alpha3: 'VGB',
+    numeric: 92,
+    continent: 'North America',
+  },
+  {
     name: 'Brunei',
     alpha2: 'BN',
     alpha3: 'BRN',
@@ -361,17 +369,17 @@ export const COUNTRIES: Country[] = [
     continent: 'Africa',
   },
   {
-    name: 'Congo, Republic of the',
-    alpha2: 'CG',
-    alpha3: 'COG',
-    numeric: 178,
-    continent: 'Africa',
-  },
-  {
     name: 'Congo, Democratic Republic of the',
     alpha2: 'CD',
     alpha3: 'COD',
     numeric: 180,
+    continent: 'Africa',
+  },
+  {
+    name: 'Congo, Republic of the',
+    alpha2: 'CG',
+    alpha3: 'COG',
+    numeric: 178,
     continent: 'Africa',
   },
   {
@@ -837,18 +845,10 @@ export const COUNTRIES: Country[] = [
     continent: 'Oceania',
   },
   {
-    name: 'North Korea',
-    alpha2: 'KP',
-    alpha3: 'PRK',
-    numeric: 408,
-    continent: 'Asia',
-  },
-  {
-    name: 'South Korea',
-    alpha2: 'KR',
-    alpha3: 'KOR',
-    numeric: 410,
-    continent: 'Asia',
+    name: 'Kosovo',
+    alpha2: 'XK',
+    alpha3: 'XKX',
+    continent: 'Europe',
   },
   {
     name: 'Kuwait',
@@ -1159,6 +1159,13 @@ export const COUNTRIES: Country[] = [
     continent: 'Oceania',
   },
   {
+    name: 'North Korea',
+    alpha2: 'KP',
+    alpha3: 'PRK',
+    numeric: 408,
+    continent: 'Asia',
+  },
+  {
     name: 'North Macedonia',
     alpha2: 'MK',
     alpha3: 'MKD',
@@ -1467,6 +1474,13 @@ export const COUNTRIES: Country[] = [
     continent: 'South America',
   },
   {
+    name: 'South Korea',
+    alpha2: 'KR',
+    alpha3: 'KOR',
+    numeric: 410,
+    continent: 'Asia',
+  },
+  {
     name: 'South Sudan',
     alpha2: 'SS',
     alpha3: 'SSD',
@@ -1703,13 +1717,6 @@ export const COUNTRIES: Country[] = [
     alpha3: 'VNM',
     numeric: 704,
     continent: 'Asia',
-  },
-  {
-    name: 'British Virgin Islands',
-    alpha2: 'VG',
-    alpha3: 'VGB',
-    numeric: 92,
-    continent: 'North America',
   },
   {
     name: 'Virgin Islands (U.S.)',
