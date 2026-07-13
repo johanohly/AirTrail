@@ -177,3 +177,16 @@ Once you have the JSON file, you can import it into AirTrail by following these 
 6. Click on the "Import" button to start the import process.
 
 After the import process is complete, you will see your flights on the map.
+
+AirTrail offers two import modes:
+
+- Personal import is available to every user. Select the account in the export
+  that belongs to you. AirTrail imports only that account's flights and adds
+  other passengers as guests.
+- Instance restore is available to admins and owners. Enable "Restore flights
+  for all mapped users" to preserve user assignments and deduplicate against
+  every flight on the instance.
+
+AirTrail treats uploaded files as untrusted. The server rejects personal
+imports that assign flights to another local user, even if the file or client
+requests those assignments.

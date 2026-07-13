@@ -9,6 +9,7 @@ const {
   getAircraftByIcao,
   getAircraftByName,
   userListQuery,
+  currentUser,
 } = vi.hoisted(() => ({
   getAirportByIcao: vi.fn(async (icao: string) => ({
     id: 1,
@@ -42,15 +43,17 @@ const {
       displayName: 'John Local',
     },
   ]),
+  currentUser: {
+    id: 'local-user',
+    username: 'john',
+    role: 'user',
+  },
 }));
 
 vi.mock('$app/state', () => ({
   page: {
     data: {
-      user: {
-        id: 'local-user',
-        username: 'john',
-      },
+      user: currentUser,
     },
   },
 }));
@@ -82,6 +85,7 @@ vi.mock('$lib/utils/data/aircraft', () => ({
 const baseOptions = {
   filterOwner: false,
   airlineFromFlightNumber: false,
+  importMode: 'personal' as const,
 };
 
 const exportedUsers = [
@@ -130,6 +134,18 @@ const airportObject = (icao: string, id?: number) => ({
 describe('processAirTrailFile', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.assign(currentUser, {
+      id: 'local-user',
+      username: 'john',
+      role: 'user',
+    });
+    userListQuery.mockResolvedValue([
+      {
+        id: 'local-user',
+        username: 'john',
+        displayName: 'John Local',
+      },
+    ]);
   });
 
   it('imports later v3 JSON exports with nested airport, airline, and aircraft objects', async () => {
@@ -255,5 +271,142 @@ describe('processAirTrailFile', () => {
     expect(result.flights[0]?.aircraft).toMatchObject({
       name: 'Unknown Aircraft',
     });
+  });
+
+  it('limits personal imports to the selected exported account', async () => {
+    const otherUser = {
+      id: 'export-other',
+      username: 'jane',
+      displayName: 'Jane Export',
+    };
+    userListQuery.mockResolvedValue([
+      {
+        id: 'local-user',
+        username: 'john',
+        displayName: 'John Local',
+      },
+      {
+        id: 'local-other',
+        username: 'jane',
+        displayName: 'Jane Local',
+      },
+    ]);
+
+    const content = JSON.stringify({
+      users: [...exportedUsers, otherUser],
+      flights: [
+        {
+          ...flightBase,
+          from: airportObject('EKCH'),
+          to: airportObject('EIDW'),
+          airline: null,
+          aircraft: null,
+          seats: [
+            seat,
+            {
+              ...seat,
+              userId: otherUser.id,
+              seatNumber: '12B',
+            },
+          ],
+        },
+        {
+          ...flightBase,
+          flightNumber: 'SK456',
+          from: airportObject('EIDW'),
+          to: airportObject('EKCH'),
+          airline: null,
+          aircraft: null,
+          seats: [{ ...seat, userId: otherUser.id }],
+        },
+      ],
+    });
+
+    const result = await processAirTrailFile(content, {
+      ...baseOptions,
+      userMapping: { 'export-user': 'local-user' },
+    });
+
+    expect(result.flights).toHaveLength(1);
+    expect(result.flights[0]?.seats).toEqual([
+      { ...seat, userId: 'local-user' },
+      {
+        ...seat,
+        userId: null,
+        guestName: 'Jane Export',
+        seatNumber: '12B',
+      },
+    ]);
+  });
+
+  it('restores mapped passengers without adding the importing admin', async () => {
+    Object.assign(currentUser, {
+      id: 'import-admin',
+      username: 'admin',
+      role: 'admin',
+    });
+    userListQuery.mockResolvedValue([
+      {
+        id: 'import-admin',
+        username: 'admin',
+        displayName: 'Import Admin',
+      },
+      {
+        id: 'local-user',
+        username: 'john',
+        displayName: 'John Local',
+      },
+    ]);
+
+    const content = JSON.stringify({
+      users: exportedUsers,
+      flights: [
+        {
+          ...flightBase,
+          from: airportObject('EKCH'),
+          to: airportObject('EIDW'),
+          airline: null,
+          aircraft: null,
+        },
+      ],
+    });
+
+    const result = await processAirTrailFile(content, {
+      ...baseOptions,
+      importMode: 'restore',
+      userMapping: { 'export-user': 'local-user' },
+    });
+
+    expect(result.flights[0]?.seats).toEqual([
+      { ...seat, userId: 'local-user' },
+    ]);
+    expect(result.flights[0]?.seats).not.toContainEqual(
+      expect.objectContaining({ userId: 'import-admin' }),
+    );
+  });
+
+  it('treats an explicit empty restore mapping as guest passengers', async () => {
+    const content = JSON.stringify({
+      users: exportedUsers,
+      flights: [
+        {
+          ...flightBase,
+          from: airportObject('EKCH'),
+          to: airportObject('EIDW'),
+          airline: null,
+          aircraft: null,
+        },
+      ],
+    });
+
+    const result = await processAirTrailFile(content, {
+      ...baseOptions,
+      importMode: 'restore',
+      userMapping: {},
+    });
+
+    expect(result.flights[0]?.seats).toEqual([
+      { ...seat, userId: null, guestName: 'John Export' },
+    ]);
   });
 });

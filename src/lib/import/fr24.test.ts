@@ -47,6 +47,7 @@ describe('processFR24File', () => {
     const result = await processFR24File(content, {
       filterOwner: false,
       airlineFromFlightNumber: true,
+      importMode: 'personal',
     });
 
     expect(result.flights).toHaveLength(1);
@@ -62,6 +63,7 @@ describe('processFR24File', () => {
     const result = await processFR24File(content, {
       filterOwner: false,
       airlineFromFlightNumber: true,
+      importMode: 'personal',
     });
 
     expect(result.flights).toHaveLength(1);
@@ -77,6 +79,7 @@ describe('processFR24File', () => {
     const result = await processFR24File(content, {
       filterOwner: false,
       airlineFromFlightNumber: true,
+      importMode: 'personal',
     });
 
     expect(result.flights).toHaveLength(0);
@@ -89,6 +92,7 @@ describe('processFR24File', () => {
     const result = await processFR24File(content, {
       filterOwner: false,
       airlineFromFlightNumber: true,
+      importMode: 'personal',
     });
 
     expect(result.flights).toHaveLength(0);
@@ -103,6 +107,7 @@ describe('processFR24File', () => {
     const result = await processFR24File(content, {
       filterOwner: false,
       airlineFromFlightNumber: true,
+      importMode: 'personal',
     });
 
     expect(result.flights).toHaveLength(1);
@@ -116,6 +121,7 @@ describe('processFR24File', () => {
     const result = await processFR24File(content, {
       filterOwner: false,
       airlineFromFlightNumber: true,
+      importMode: 'personal',
     });
 
     expect(result.flights).toHaveLength(1);
@@ -130,6 +136,7 @@ describe('processFR24File', () => {
     const result = await processFR24File(content, {
       filterOwner: false,
       airlineFromFlightNumber: true,
+      importMode: 'personal',
     });
 
     expect(result.flights).toHaveLength(1);

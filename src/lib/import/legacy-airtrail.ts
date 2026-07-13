@@ -8,7 +8,6 @@ import {
   SeatClasses,
   SeatTypes,
 } from '$lib/db/types';
-import { api } from '$lib/trpc';
 import { getAircraftByIcao } from '$lib/utils/data/aircraft';
 import { getAirlineByIcao } from '$lib/utils/data/airlines';
 import { getAirportByIcao } from '$lib/utils/data/airports/cache';
@@ -117,22 +116,19 @@ export const processLegacyAirTrailFile = async (
     acc[user.id] = user;
     return acc;
   }, {});
-  const users = await api.user.list.query();
-
   const unknownAirports: Record<string, number[]> = {};
   const unknownAirlines: Record<string, number[]> = {};
   for (const rawFlight of data.flights) {
     const seats = rawFlight.seats.map((seat) => {
       const dataUser = dataUsers?.[seat.userId ?? ''];
-      const user = dataUser
-        ? users.find((user) => user.username === dataUser?.username)
-        : null;
+      const mappedUserId =
+        dataUser?.username === user.username ? user.id : null;
       /*
         1. If the user is known, no guest name is needed.
         2. If the user is unknown, but the guest name is known, use the guest name.
         3. If the user is unknown and the guest name is unknown, use the provided display name (this could happen if the user is not in the database).
          */
-      const guestName = user
+      const guestName = mappedUserId
         ? null
         : seat.guestName
           ? seat.guestName
@@ -142,19 +138,13 @@ export const processLegacyAirTrailFile = async (
 
       return {
         ...seat,
-        userId: user?.id ?? null,
+        userId: mappedUserId,
         guestName,
       };
     });
 
     // If exported with a different username, add the user to the list manually.
-    if (
-      !seats.some(
-        (seat) =>
-          users.find((usr) => usr.id === seat.userId)?.username ===
-          user.username,
-      )
-    ) {
+    if (!seats.some((seat) => seat.userId === user.id)) {
       seats.push({
         userId: user.id,
         guestName: null,

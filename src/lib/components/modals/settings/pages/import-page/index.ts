@@ -8,6 +8,7 @@ export type ImportFailure = {
 export type PlatformOptions = {
   filterOwner: boolean;
   airlineFromFlightNumber: boolean;
+  importMode: 'personal' | 'restore';
   airportMapping?: Record<string, Airport>;
   airlineMapping?: Record<string, Airline>;
   userMapping?: Record<string, string>; // exported user id -> local user id
