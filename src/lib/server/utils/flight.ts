@@ -22,7 +22,10 @@ import {
   CustomFieldValidationError,
   persistEntityCustomFields,
 } from '$lib/server/utils/custom-fields';
-import type { FlightImportMode } from '$lib/server/utils/flight-import';
+import {
+  getMissingImportSeats,
+  type FlightImportMode,
+} from '$lib/server/utils/flight-import';
 import { distanceBetween } from '$lib/utils';
 import {
   estimateFlightDuration,
@@ -535,15 +538,12 @@ export const createManyFlights = async (
   }
 
   const userSeatByFlight = new Set<number>();
-  const existingSeatKeys = new Map<number, Set<string>>();
-  const seatKey = (seat: {
-    userId: string | null;
-    guestName: string | null;
-  }) => (seat.userId ? `user:${seat.userId}` : `guest:${seat.guestName ?? ''}`);
+  const existingSeatsByFlight = new Map<number, Flight['seats'][number][]>();
   for (const flight of existingFlights) {
-    const keys = new Set(flight.seats.map(seatKey));
-    existingSeatKeys.set(flight.id, keys);
-    if (keys.has(`user:${userId}`)) userSeatByFlight.add(flight.id);
+    existingSeatsByFlight.set(flight.id, flight.seats);
+    if (flight.seats.some((seat) => seat.userId === userId)) {
+      userSeatByFlight.add(flight.id);
+    }
   }
 
   const flightsToInsert: CreateFlight[] = [];
@@ -567,12 +567,11 @@ export const createManyFlights = async (
         continue;
       }
 
-      const existingKeys =
-        existingSeatKeys.get(existingId) ?? new Set<string>();
-      for (const seat of f.seats) {
-        const key = seatKey(seat);
-        if (existingKeys.has(key)) continue;
-        existingKeys.add(key);
+      const missingSeats = getMissingImportSeats(
+        existingSeatsByFlight.get(existingId) ?? [],
+        f.seats,
+      );
+      for (const seat of missingSeats) {
         seatsToAttach.push({
           flightId: existingId,
           userId: seat.userId,
@@ -597,21 +596,14 @@ export const createManyFlights = async (
   // Attach seats to existing flights.
   let attachedSeats = 0;
   if (seatsToAttach.length || tracksToUpsert.length) {
-    const uniqueSeatsMap = new Map<string, (typeof seatsToAttach)[number]>();
-    for (const s of seatsToAttach) {
-      const k = `${s.flightId}|${seatKey(s)}`;
-      if (!uniqueSeatsMap.has(k)) uniqueSeatsMap.set(k, s);
-    }
-    const uniqueSeats = Array.from(uniqueSeatsMap.values());
-
     await db.transaction().execute(async (trx) => {
       for (const { flightId, track } of tracksToUpsert) {
         await upsertFlightTrackPrimitiveWithConnection(trx, flightId, track);
       }
 
-      if (uniqueSeats.length) {
-        await trx.insertInto('seat').values(uniqueSeats).execute();
-        attachedSeats = uniqueSeats.length;
+      if (seatsToAttach.length) {
+        await trx.insertInto('seat').values(seatsToAttach).execute();
+        attachedSeats = seatsToAttach.length;
       }
     });
   }
