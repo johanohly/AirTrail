@@ -16,6 +16,7 @@ import {
 } from '$lib/server/utils/flight';
 import { getAircraftFromReg } from '$lib/server/utils/flight-lookup/aerodatabox';
 import { getFlightRoute } from '$lib/server/utils/flight-lookup/flight-lookup';
+import { validateFlightImportPermissions } from '$lib/server/utils/flight-import';
 import { generateCsv } from '$lib/utils/csv';
 import { generateBackup, serializeBackup } from '$lib/server/utils/backup';
 
@@ -189,6 +190,7 @@ export const flightRouter = router({
       z.object({
         flights: z.custom<CreateFlight[]>(),
         dedupe: z.boolean().optional(),
+        mode: z.enum(['personal', 'restore']).default('personal'),
       }),
     )
     .mutation(async ({ ctx: { user }, input }) => {
@@ -198,10 +200,20 @@ export const flightRouter = router({
           throw new Error(dateError);
         }
       }
+      const permissionError = validateFlightImportPermissions(
+        user,
+        input.flights,
+        input.mode,
+      );
+      if (permissionError) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: permissionError });
+      }
+
       return await createManyFlights(
         input.flights,
         user.id,
         input.dedupe ?? true,
+        input.mode,
       );
     }),
   exportJson: authedProcedure.query(async ({ ctx: { user } }) => {

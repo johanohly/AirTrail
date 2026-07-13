@@ -165,12 +165,30 @@ export const processAirTrailFile = async (
     return acc;
   }, {});
   const users = await api.user.list.query();
+  const localUsers =
+    options.importMode === 'restore'
+      ? users
+      : users.filter((localUser) => localUser.id === user.id);
+
+  const getMappedUserId = (exportedUserId: string) => {
+    const exportedUser = dataUsers[exportedUserId];
+    if (!exportedUser) return null;
+
+    const requestedUserId = options.userMapping?.[exportedUser.id];
+    const requestedUser = requestedUserId
+      ? localUsers.find((localUser) => localUser.id === requestedUserId)
+      : null;
+    if (options.userMapping) return requestedUser?.id ?? null;
+
+    return (
+      localUsers.find(
+        (localUser) => localUser.username === exportedUser.username,
+      )?.id ?? null
+    );
+  };
 
   const exportedUsers = data.users.map((exportedUser) => {
-    const mappedUserId =
-      options.userMapping?.[exportedUser.id] ??
-      users.find((user) => user.username === exportedUser.username)?.id ??
-      null;
+    const mappedUserId = getMappedUserId(exportedUser.id);
 
     return {
       id: exportedUser.id,
@@ -192,19 +210,27 @@ export const processAirTrailFile = async (
     records[key] = flightIndexes;
     flightIndexes.push(flightIndex);
   };
-  for (const rawFlight of data.flights) {
+  const rawFlights =
+    options.importMode === 'restore'
+      ? data.flights
+      : data.flights.filter((flight) =>
+          flight.seats.some(
+            (seat) =>
+              seat.userId != null && getMappedUserId(seat.userId) === user.id,
+          ),
+        );
+
+  for (const rawFlight of rawFlights) {
     const flightIndex = flights.length;
 
     const seats = rawFlight.seats.map((seat) => {
       const dataUser = dataUsers?.[seat.userId ?? ''];
-      const mappedUserId = dataUser
-        ? exportedUsers.find((u) => u.id === dataUser.id)?.mappedUserId
-        : null;
+      const mappedUserId = dataUser ? getMappedUserId(dataUser.id) : null;
       const user = mappedUserId
         ? users.find((user) => user.id === mappedUserId)
         : null;
 
-      if (dataUser && !user) {
+      if (options.importMode === 'restore' && dataUser && !user) {
         const key = `${dataUser.id}|${dataUser.username}|${dataUser.displayName}`;
         addUnknownFlightIndex(unknownUsers, key, flightIndex);
       }
@@ -227,23 +253,6 @@ export const processAirTrailFile = async (
         guestName,
       };
     });
-
-    // If exported with a different username, add the user to the list manually.
-    if (
-      !seats.some(
-        (seat) =>
-          users.find((usr) => usr.id === seat.userId)?.username ===
-          user.username,
-      )
-    ) {
-      seats.push({
-        userId: user.id,
-        guestName: null,
-        seat: null,
-        seatClass: null,
-        seatNumber: null,
-      });
-    }
 
     const fromCode = getAirportCode(rawFlight.from);
     const toCode = getAirportCode(rawFlight.to);

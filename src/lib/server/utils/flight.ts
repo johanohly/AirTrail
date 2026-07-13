@@ -22,6 +22,7 @@ import {
   CustomFieldValidationError,
   persistEntityCustomFields,
 } from '$lib/server/utils/custom-fields';
+import type { FlightImportMode } from '$lib/server/utils/flight-import';
 import { distanceBetween } from '$lib/utils';
 import {
   estimateFlightDuration,
@@ -482,6 +483,7 @@ export const createManyFlights = async (
   data: CreateFlight[],
   userId: string,
   dedupe = true,
+  mode: FlightImportMode = 'personal',
 ): Promise<{ insertedFlights: number; attachedSeats: number }> => {
   if (!dedupe) {
     const insertedFlights = data.length;
@@ -517,7 +519,8 @@ export const createManyFlights = async (
   let existingFlights: Flight[] = [];
 
   if (dates.size && froms.size && tos.size) {
-    const listQuery = listFlightsQuery(userId);
+    const listQuery =
+      mode === 'restore' ? listFlightBaseQuery(db) : listFlightsQuery(userId);
     existingFlights = await listQuery
       .where('date', 'in', Array.from(dates))
       .where('fromId', 'in', Array.from(froms))
@@ -531,17 +534,16 @@ export const createManyFlights = async (
     if (!existingBySig.has(key)) existingBySig.set(key, ef.id);
   }
 
-  // Fetch user's existing seats among those flights
-  const existingIds = Array.from(new Set(existingFlights.map((f) => f.id)));
   const userSeatByFlight = new Set<number>();
-  if (existingIds.length) {
-    const userSeats = await db
-      .selectFrom('seat')
-      .select(['flightId'])
-      .where('userId', '=', userId)
-      .where('flightId', 'in', existingIds)
-      .execute();
-    userSeats.forEach((s) => userSeatByFlight.add(s.flightId));
+  const existingSeatKeys = new Map<number, Set<string>>();
+  const seatKey = (seat: {
+    userId: string | null;
+    guestName: string | null;
+  }) => (seat.userId ? `user:${seat.userId}` : `guest:${seat.guestName ?? ''}`);
+  for (const flight of existingFlights) {
+    const keys = new Set(flight.seats.map(seatKey));
+    existingSeatKeys.set(flight.id, keys);
+    if (keys.has(`user:${userId}`)) userSeatByFlight.add(flight.id);
   }
 
   const flightsToInsert: CreateFlight[] = [];
@@ -560,12 +562,17 @@ export const createManyFlights = async (
         tracksToUpsert.push({ flightId: existingId, track: f.track });
       }
 
-      // If user already has a seat on this flight, skip entirely
-      if (userSeatByFlight.has(existingId)) {
+      // Personal imports only deduplicate flights already owned by the importer.
+      if (mode === 'personal' && userSeatByFlight.has(existingId)) {
         continue;
       }
-      // Otherwise, attach incoming seats to existing flight
+
+      const existingKeys =
+        existingSeatKeys.get(existingId) ?? new Set<string>();
       for (const seat of f.seats) {
+        const key = seatKey(seat);
+        if (existingKeys.has(key)) continue;
+        existingKeys.add(key);
         seatsToAttach.push({
           flightId: existingId,
           userId: seat.userId,
@@ -587,14 +594,12 @@ export const createManyFlights = async (
     insertedFlights = flightsToInsert.length;
   }
 
-  // Attach seats to existing flights (dedup seats per user/flight)
+  // Attach seats to existing flights.
   let attachedSeats = 0;
   if (seatsToAttach.length || tracksToUpsert.length) {
-    const seatKey = (s: { flightId: number; userId: string | null }) =>
-      `${s.flightId}|${s.userId ?? ''}`;
     const uniqueSeatsMap = new Map<string, (typeof seatsToAttach)[number]>();
     for (const s of seatsToAttach) {
-      const k = seatKey(s);
+      const k = `${s.flightId}|${seatKey(s)}`;
       if (!uniqueSeatsMap.has(k)) uniqueSeatsMap.set(k, s);
     }
     const uniqueSeats = Array.from(uniqueSeatsMap.values());

@@ -51,6 +51,7 @@ describe('processJetLoversFile', () => {
     const result = await processJetLoversFile(content, {
       filterOwner: false,
       airlineFromFlightNumber: true,
+      importMode: 'personal',
     });
 
     expect(result.flights).toHaveLength(1);

@@ -9,6 +9,7 @@
 
   import { Info } from '@o7/icon/lucide';
 
+  import { page } from '$app/state';
   import * as Alert from '$lib/components/ui/alert';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
@@ -52,6 +53,14 @@
   let ownerOnly = $state(false);
   let matchAirlineFromFlightNumber = $state(true);
   let dedupeImportedFlights = $state(true);
+  let restoreMode = $state(false);
+
+  const importMode = $derived<'personal' | 'restore'>(
+    platform.value === 'airtrail' && restoreMode ? 'restore' : 'personal',
+  );
+  const canRestore = $derived(
+    !!page.data.user && page.data.user.role !== 'user',
+  );
 
   const steps = $derived(
     platform.value === 'airtrail'
@@ -116,6 +125,7 @@
       const stats = await $createMany.mutateAsync({
         flights: batch.map(({ flight }) => flight),
         dedupe: dedupeImportedFlights,
+        mode: importMode,
       });
 
       return {
@@ -159,6 +169,7 @@
     const result = await processFile(originalFile, platform.value, {
       filterOwner: ownerOnly,
       airlineFromFlightNumber: matchAirlineFromFlightNumber,
+      importMode,
       airportMapping: mapping?.airportMapping,
       airlineMapping: mapping?.airlineMapping,
       userMapping: mapping?.userMapping,
@@ -244,14 +255,8 @@
       const result = await processFile(file, platform.value, {
         filterOwner: ownerOnly,
         airlineFromFlightNumber: matchAirlineFromFlightNumber,
+        importMode,
       });
-
-      if (!result.flights.length) {
-        toast.error('No flights found in the file');
-        files = null;
-        importing = false;
-        return;
-      }
 
       unknownUsers = result.unknownUsers;
       exportedUsers = result.exportedUsers;
@@ -265,6 +270,13 @@
         files = null;
         importing = false;
         step = 4;
+        return;
+      }
+
+      if (!result.flights.length) {
+        toast.error('No flights found in the file');
+        files = null;
+        importing = false;
         return;
       }
 
@@ -325,6 +337,7 @@
     ownerOnly = false;
     matchAirlineFromFlightNumber = true;
     dedupeImportedFlights = true;
+    restoreMode = false;
     platform = platforms[0];
     step = 1;
     open = false;
@@ -386,6 +399,10 @@
         <Alert.Description>
           Custom field values are included in the export for reference, but are
           not restored during import.
+          {#if !canRestore}
+            Only flights belonging to the exported account you map to yourself
+            will be imported. Other passengers will be added as guests.
+          {/if}
         </Alert.Description>
       </Alert.Root>
     {/if}
@@ -405,9 +422,11 @@
     <OptionsStep
       showAirlineFromFlightNumber={platform.options.airlineFromFlightNumber}
       showFilterOwner={platform.options.filterOwner}
+      showRestoreMode={platform.value === 'airtrail' && canRestore}
       bind:ownerOnly
       bind:matchAirlineFromFlightNumber
       bind:dedupeImportedFlights
+      bind:restoreMode
       {importing}
       {canImport}
       onback={() => (step = 2)}
@@ -417,6 +436,7 @@
     <UserMappingStep
       {exportedUsers}
       {userMapping}
+      {restoreMode}
       busy={importing}
       onback={() => (step = 3)}
       onnext={handleUserMappingNext}
