@@ -5,7 +5,7 @@
   import { AirlineIcon, RouteArrow } from '$lib/components/display';
   import { Button } from '$lib/components/ui/button';
   import { mapDetailsState } from '$lib/state.svelte';
-  import type { FlightData } from '$lib/utils';
+  import { type FlightData } from '$lib/utils';
   import { distanceUnitLabel, formatFlightDate } from '$lib/utils/preferences';
   import type { Preferences } from '$lib/zod/user';
 
@@ -39,6 +39,12 @@
     }
     return flight.aircraft?.name ?? flight.aircraftReg ?? null;
   };
+
+  // A programmatic pane swap (row click) can skip pointerleave, so clear the
+  // shared hover token when the body unmounts to avoid a stuck map highlight.
+  $effect(() => () => {
+    mapDetailsState.hoveredFlightTrackId = null;
+  });
 </script>
 
 {#snippet flightRow(flight: FlightData)}
@@ -51,6 +57,8 @@
     <button
       type="button"
       class="group grid w-full cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors hover:bg-background/55 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+      onpointerenter={() => (mapDetailsState.hoveredFlightTrackId = flight.id)}
+      onpointerleave={() => (mapDetailsState.hoveredFlightTrackId = null)}
       onclick={() => onShowFlight(flight.id)}
       aria-label="Open flight {flight.from?.iata ??
         flight.from?.icao ??

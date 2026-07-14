@@ -4,15 +4,11 @@ import type {
   Route,
   TempFilters,
 } from '$lib/components/flight-filters/types';
-import {
-  clearTempFilters,
-  normalizeRoute,
-  setTempRoute,
-} from '$lib/components/flight-filters/types';
+import { normalizeRoute } from '$lib/components/flight-filters/types';
 import {
   mapDetailsState,
-  openFlightDetails,
-  openModalsState,
+  openFlightOnMap,
+  openRouteInList,
 } from '$lib/state.svelte';
 import { type FlightData } from '$lib/utils';
 import {
@@ -122,26 +118,14 @@ export function useRouteDetails(
   };
 
   const showAllFlights = () => {
-    const tf = tempFilters();
-    const f = filters();
-    if (f) f.flightIds = [];
-    if (selectedRoute && tf) setTempRoute(tf, selectedRoute);
-    openModalsState.listFlights = true;
+    if (!selectedRoute) return;
+    openRouteInList(filters(), tempFilters(), selectedRoute);
   };
 
   const showFlight = (flightId: number) => {
-    const f = filters();
-    if (!f) return;
-    // Isolate the flight on the map so the details pane's flight is the only
-    // one drawn, then open the flight details pane focused on it.
-    f.departureAirports = [];
-    f.arrivalAirports = [];
-    f.airportsEither = [];
-    f.routes = [];
-    f.flightIds = [flightId.toString()];
-    const tf = tempFilters();
-    if (tf) clearTempFilters(tf);
-    openFlightDetails(flightId);
+    // Isolate the flight on the map (so the pane's flight is the only one drawn)
+    // and open its Flight Details pane.
+    openFlightOnMap(filters(), tempFilters(), flightId);
   };
 
   return {

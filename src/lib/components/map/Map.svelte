@@ -733,6 +733,7 @@
       flights={filteredFlights}
       {flightArcs}
       {flightTracks}
+      bind:filters
       bind:tempFilters
     />
   </MapLibre>
