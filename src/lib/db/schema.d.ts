@@ -199,6 +199,10 @@ export type seat = {
      * @kyselyType('economy' | 'economy+' | 'business' | 'first' | 'private')
      */
     seatClass: 'economy' | 'economy+' | 'business' | 'first' | 'private' | null;
+    /**
+     * @kyselyType(('extra_legroom' | 'exit_row' | 'bulkhead' | 'overwing' | 'preferred' | 'front_row' | 'last_row' | 'bassinet'))
+     */
+    seatExtras: Generated<('extra_legroom' | 'exit_row' | 'bulkhead' | 'overwing' | 'preferred' | 'front_row' | 'last_row' | 'bassinet')[]>;
 };
 export type session = {
     id: string;

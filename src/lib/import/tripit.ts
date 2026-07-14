@@ -233,6 +233,7 @@ export const processTripItFile = async (
           seat: null,
           seatNumber: null,
           seatClass: null,
+          seatExtras: [],
           guestName: null,
         },
       ],

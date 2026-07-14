@@ -579,6 +579,7 @@ export const createManyFlights = async (
           seat: seat.seat,
           seatNumber: seat.seatNumber,
           seatClass: seat.seatClass,
+          seatExtras: seat.seatExtras ?? [],
         });
       }
       continue;

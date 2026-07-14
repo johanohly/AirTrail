@@ -190,6 +190,8 @@ model seat {
   seat_number String?
   /// @kyselyType('economy' | 'economy+' | 'business' | 'first' | 'private')
   seat_class  String?
+  /// @kyselyType(('extra_legroom' | 'exit_row' | 'bulkhead' | 'overwing' | 'preferred' | 'front_row' | 'last_row' | 'bassinet'))
+  seat_extras String[] @default([])
 
   user   user?  @relation(fields: [user_id], references: [id], onDelete: Cascade)
   flight flight @relation(fields: [flight_id], references: [id], onDelete: Cascade)

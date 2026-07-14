@@ -271,6 +271,7 @@ export const processFR24File = async (
           seat: seatType,
           seatNumber: row.seat_number,
           seatClass,
+          seatExtras: [],
           guestName: null,
         },
       ],

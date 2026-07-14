@@ -193,6 +193,7 @@ export const processJetLogFile = async (
           seat: row.seat as Seat['seat'],
           seatClass: seatClass as Seat['seatClass'],
           seatNumber: null,
+          seatExtras: [],
           guestName: null,
         },
       ],

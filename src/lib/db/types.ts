@@ -107,6 +107,17 @@ export const SeatClasses = [
   'first',
   'private',
 ] as const;
+export const SeatExtras = [
+  'extra_legroom',
+  'exit_row',
+  'bulkhead',
+  'overwing',
+  'preferred',
+  'front_row',
+  'last_row',
+  'bassinet',
+] as const;
+export type SeatExtra = (typeof SeatExtras)[number];
 export const FlightReasons = ['leisure', 'business', 'crew', 'other'] as const;
 export const FlightDatePrecisions = ['day', 'month', 'year'] as const;
 export type FlightDatePrecision = (typeof FlightDatePrecisions)[number];

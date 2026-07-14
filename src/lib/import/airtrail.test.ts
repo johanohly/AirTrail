@@ -102,6 +102,7 @@ const seat = {
   seat: 'window',
   seatNumber: '12A',
   seatClass: 'economy',
+  seatExtras: [],
 };
 
 const flightBase = {

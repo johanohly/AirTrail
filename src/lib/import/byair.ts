@@ -253,6 +253,7 @@ export const processByAirFile = async (
             mapSeatTypeFromClass(row.seat_class) ?? mapSeatType(row.seat_type),
           seatClass: mapSeatClass(row.seat_class),
           seatNumber: row.seat_number ? row.seat_number.substring(0, 5) : null,
+          seatExtras: [],
           guestName: null,
         },
       ],

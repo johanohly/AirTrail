@@ -486,6 +486,7 @@ export const processOpenFlightsFile = async (
           seat: mapSeatType(row.seat_type),
           seatNumber: row.seat,
           seatClass: mapSeatClass(row.class),
+          seatExtras: [],
           guestName: null,
         },
       ],

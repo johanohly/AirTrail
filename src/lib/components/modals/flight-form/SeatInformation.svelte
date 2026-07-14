@@ -1,6 +1,6 @@
 <script lang="ts">
   import autoAnimate from '@formkit/auto-animate';
-  import { Plus, X } from '@o7/icon/lucide';
+  import { Armchair, Plus, Tags, X } from '@o7/icon/lucide';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
 
@@ -12,7 +12,7 @@
   import { Input } from '$lib/components/ui/input';
   import * as Select from '$lib/components/ui/select';
   import { Separator } from '$lib/components/ui/separator';
-  import { SeatClasses, SeatTypes } from '$lib/db/types';
+  import { SeatClasses, SeatExtras, SeatTypes } from '$lib/db/types';
   import { cn, toTitleCase } from '$lib/utils';
   import type { flightSchema } from '$lib/zod/flight';
   import {
@@ -35,6 +35,17 @@
     copilot: 'Co-pilot',
     jumpseat: 'Jumpseat',
     other: 'Other',
+  };
+
+  const seatExtraLabels: Record<string, string> = {
+    extra_legroom: 'Extra Leg Room',
+    exit_row: 'Exit Row',
+    bulkhead: 'Bulkhead',
+    overwing: 'Over Wing',
+    preferred: 'Preferred',
+    front_row: 'Front Row',
+    last_row: 'Last Row',
+    bassinet: 'Bassinet',
   };
 
   const getExcludedUserIds = (currentIndex: number): string[] => {
@@ -154,7 +165,10 @@
               <Form.ElementField {form} name="seats[{index}].seat">
                 <Form.Control>
                   {#snippet children({ props })}
-                    <Form.Label class="sr-only">Seat Type</Form.Label>
+                    <Form.Label
+                      class="flex items-center gap-1 text-xs text-muted-foreground"
+                      ><Armchair size={12} />Position</Form.Label
+                    >
                     <div class="flex flex-wrap gap-1.5">
                       {#each SeatTypes as type}
                         <button
@@ -186,6 +200,47 @@
                   {/snippet}
                 </Form.Control>
               </Form.ElementField>
+
+              <Form.ElementField {form} name="seats[{index}].seatExtras">
+                <Form.Control>
+                  {#snippet children({ props })}
+                    <Form.Label
+                      class="flex items-center gap-1 text-xs text-muted-foreground"
+                      ><Tags size={12} />Extras</Form.Label
+                    >
+                    <div class="flex flex-wrap gap-1.5">
+                      {#each SeatExtras as extra}
+                        {@const selected = (
+                          $formData.seats[index]?.seatExtras ?? []
+                        ).includes(extra)}
+                        <button
+                          type="button"
+                          class={cn(
+                            'px-2.5 py-1 rounded-md text-xs font-medium border transition-colors',
+                            selected
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-background text-muted-foreground border-input hover:border-foreground/20 hover:text-foreground',
+                          )}
+                          onclick={() => {
+                            if ($formData.seats[index]) {
+                              const current =
+                                $formData.seats[index].seatExtras ?? [];
+                              $formData.seats[index].seatExtras = selected
+                                ? current.filter((e) => e !== extra)
+                                : [...current, extra];
+                            }
+                          }}
+                        >
+                          {seatExtraLabels[extra] ?? toTitleCase(extra)}
+                        </button>
+                      {/each}
+                    </div>
+                    {#each $formData.seats[index]?.seatExtras ?? [] as extra}
+                      <input type="hidden" value={extra} name={props.name} />
+                    {/each}
+                  {/snippet}
+                </Form.Control>
+              </Form.ElementField>
             </div>
           </Card>
         {/if}
@@ -203,6 +258,7 @@
             seat: null,
             seatNumber: null,
             seatClass: null,
+            seatExtras: [],
           },
         ];
       }}

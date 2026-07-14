@@ -24,6 +24,7 @@ const guestSeat = (
   seat: null,
   seatNumber,
   seatClass: null,
+  seatExtras: [],
 });
 
 describe('getMissingImportSeats', () => {
@@ -76,6 +77,7 @@ describe('validateFlightImportPermissions', () => {
             seat: null,
             seatNumber: null,
             seatClass: null,
+            seatExtras: [],
           },
           {
             userId: null,
@@ -83,6 +85,7 @@ describe('validateFlightImportPermissions', () => {
             seat: null,
             seatNumber: null,
             seatClass: null,
+            seatExtras: [],
           },
         ]),
       ],
@@ -103,6 +106,7 @@ describe('validateFlightImportPermissions', () => {
             seat: null,
             seatNumber: null,
             seatClass: null,
+            seatExtras: [],
           },
           {
             userId: 'other-user',
@@ -110,6 +114,7 @@ describe('validateFlightImportPermissions', () => {
             seat: null,
             seatNumber: null,
             seatClass: null,
+            seatExtras: [],
           },
         ]),
       ],
@@ -130,6 +135,7 @@ describe('validateFlightImportPermissions', () => {
             seat: null,
             seatNumber: null,
             seatClass: null,
+            seatExtras: [],
           },
         ]),
       ],
@@ -147,6 +153,7 @@ describe('validateFlightImportPermissions', () => {
         seat: null,
         seatNumber: null,
         seatClass: null,
+        seatExtras: [],
       },
     ]);
 

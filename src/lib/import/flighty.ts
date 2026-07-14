@@ -290,6 +290,7 @@ export const processFlightyFile = async (
           seat: mapSeatType(row.seat_type),
           seatClass: mapSeatClass(row.cabin_class),
           seatNumber: row.seat ? row.seat.substring(0, 5) : null,
+          seatExtras: [],
           guestName: null,
         },
       ],

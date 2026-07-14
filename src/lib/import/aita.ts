@@ -136,6 +136,7 @@ export const processAITAFile = async (
             seat: null,
             seatNumber,
             seatClass,
+            seatExtras: [],
             guestName: null,
           },
         ],

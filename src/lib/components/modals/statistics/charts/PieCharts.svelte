@@ -24,6 +24,9 @@
   const seatClassDistribution = $derived.by(() =>
     FLIGHT_CHARTS['seat-class'].aggregate(flights, ctx),
   );
+  const seatExtrasDistribution = $derived.by(() =>
+    FLIGHT_CHARTS['seat-extras'].aggregate(flights, ctx),
+  );
   const reasonDistribution = $derived.by(() =>
     FLIGHT_CHARTS['reason'].aggregate(flights, ctx),
   );
@@ -54,6 +57,9 @@
   </div>
   <div class="cursor-pointer" onclick={() => onOpenChart?.('seat')}>
     <PieChart data={seatDistribution} title="Seat Preference" />
+  </div>
+  <div class="cursor-pointer" onclick={() => onOpenChart?.('seat-extras')}>
+    <PieChart data={seatExtrasDistribution} title="Seat Extras" />
   </div>
   <div class="cursor-pointer" onclick={() => onOpenChart?.('reason')}>
     <PieChart data={reasonDistribution} title="Flight Reasons" />

@@ -4,6 +4,7 @@ import {
   FlightDatePrecisions,
   FlightReasons,
   SeatClasses,
+  SeatExtras,
   SeatTypes,
 } from '$lib/db/types';
 import { flightAirportSchema } from '$lib/zod/airport';
@@ -108,6 +109,7 @@ export const flightSeatInformationSchema = z.object({
       seat: z.enum(SeatTypes).nullable(),
       seatNumber: z.string().max(5, 'Seat number is too long').nullable(), // 12A-1 for example
       seatClass: z.enum(SeatClasses).nullable(),
+      seatExtras: z.array(z.enum(SeatExtras)).default([]),
     })
     .refine((data) => data.userId ?? data.guestName, {
       message: 'Select a user or add a guest name',

@@ -171,6 +171,7 @@ export const createFlightPrimitiveWithConnection = async (
     seat: seat.seat,
     seatNumber: seat.seatNumber,
     seatClass: seat.seatClass,
+    seatExtras: seat.seatExtras ?? [],
   }));
 
   await db.insertInto('seat').values(seatData).executeTakeFirstOrThrow();
@@ -230,6 +231,7 @@ export const updateFlightPrimitiveWithConnection = async (
     seat: seat.seat,
     seatNumber: seat.seatNumber,
     seatClass: seat.seatClass,
+    seatExtras: seat.seatExtras ?? [],
   }));
 
   await db.insertInto('seat').values(seatData).executeTakeFirstOrThrow();
@@ -315,6 +317,7 @@ export const createManyFlightsPrimitive = async (
           seat: seat.seat,
           seatNumber: seat.seatNumber,
           seatClass: seat.seatClass,
+          seatExtras: seat.seatExtras ?? [],
         }));
       }
 

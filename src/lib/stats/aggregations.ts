@@ -1,5 +1,6 @@
 import {
   ContinentMap,
+  SeatExtras,
   type VisitedCountry,
   VisitedCountryStatus,
   wasVisited,
@@ -10,6 +11,7 @@ import { type FlightData, toTitleCase } from '$lib/utils';
 export type FlightChartKey =
   | 'seat-class'
   | 'seat'
+  | 'seat-extras'
   | 'reason'
   | 'continents'
   | 'airlines'
@@ -160,7 +162,10 @@ export const routeLabelForFlight = (flight: FlightData): string | null => {
 
 export const flightChartBucketForFlight = (
   flight: FlightData,
-  key: Exclude<FlightChartKey, 'seat' | 'seat-class' | 'airports'>,
+  key: Exclude<
+    FlightChartKey,
+    'seat' | 'seat-class' | 'seat-extras' | 'airports'
+  >,
 ): string | null => {
   switch (key) {
     case 'airlines':
@@ -203,6 +208,25 @@ export const flightMatchesChartBucket = (
 
     return seats.some(
       (seat) => seat[field] && toTitleCase(seat[field]) === bucket,
+    );
+  }
+
+  if (chartKey === 'seat-extras') {
+    const seats = ctx.userId
+      ? flight.seats.filter((seat) => seat.userId === ctx.userId)
+      : flight.seats;
+
+    if (bucket === 'No Data') {
+      if (ctx.userId) {
+        return (
+          seats.length === 0 || seats.some((seat) => !seat.seatExtras?.length)
+        );
+      }
+      return seats.some((seat) => !seat.seatExtras?.length);
+    }
+
+    return seats.some((seat) =>
+      seat.seatExtras?.some((e) => seatExtraLabel(e) === bucket),
     );
   }
 
@@ -359,6 +383,66 @@ export function continentDistribution(
   return sortAndLimit(counts, options);
 }
 
+const SEAT_EXTRA_LABELS: Record<string, string> = {
+  extra_legroom: 'Extra Leg Room',
+  exit_row: 'Exit Row',
+  bulkhead: 'Bulkhead',
+  overwing: 'Over Wing',
+  preferred: 'Preferred',
+  front_row: 'Front Row',
+  last_row: 'Last Row',
+  bassinet: 'Bassinet',
+};
+
+export const seatExtraLabel = (extra: string): string =>
+  SEAT_EXTRA_LABELS[extra] ?? toTitleCase(extra);
+
+export function seatExtrasDistribution(
+  flights: FlightData[],
+  ctx: StatsContext,
+  options?: AggregationOptions,
+): Record<string, number> {
+  const categories = [...SeatExtras];
+
+  if (!ctx.userId) {
+    const seats = flights.flatMap((flight) => flight.seats);
+    const counts = categories.reduce<Record<string, number>>((acc, extra) => {
+      acc[seatExtraLabel(extra)] = seats.filter((seat) =>
+        seat.seatExtras?.includes(extra),
+      ).length;
+      return acc;
+    }, {});
+
+    const totalClassified = Object.values(counts).reduce((a, b) => a + b, 0);
+    const noData = seats.filter((s) => !s.seatExtras?.length).length;
+    if (totalClassified === 0 || noData > 0) {
+      counts['No Data'] = noData;
+    }
+
+    return sortAndLimit(counts, options);
+  }
+
+  const counts = categories.reduce<Record<string, number>>((acc, extra) => {
+    acc[seatExtraLabel(extra)] = flights.filter((f) =>
+      f.seats.some(
+        (v) => v.userId === ctx.userId && v.seatExtras?.includes(extra),
+      ),
+    ).length;
+    return acc;
+  }, {});
+
+  const totalClassified = Object.values(counts).reduce((a, b) => a + b, 0);
+  const noData = flights.filter(
+    (f) =>
+      !f.seats.some((v) => v.userId === ctx.userId && v.seatExtras?.length),
+  ).length;
+  if (totalClassified === 0 || noData > 0) {
+    counts['No Data'] = noData;
+  }
+
+  return sortAndLimit(counts, options);
+}
+
 export function routeDistribution(
   flights: FlightData[],
   _ctx: StatsContext,
@@ -444,6 +528,7 @@ export const FLIGHT_CHARTS: Record<
 > = {
   'seat-class': { title: 'Seat Class', aggregate: seatClassDistribution },
   seat: { title: 'Seat Preference', aggregate: seatDistribution },
+  'seat-extras': { title: 'Seat Extras', aggregate: seatExtrasDistribution },
   reason: { title: 'Flight Reasons', aggregate: reasonDistribution },
   continents: { title: 'Continents', aggregate: continentDistribution },
   airlines: { title: 'Airlines', aggregate: airlineDistribution },
