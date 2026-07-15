@@ -478,18 +478,25 @@
         targetZoom = 13;
       } else {
         // route or flight — both fit a single great-circle arc between two
-        // airports. For a flight, derive its route from its endpoints.
-        const arcRoute =
-          selection.type === 'route'
-            ? selection.route
-            : (() => {
-                const f = flights.find((fl) => fl.id === selection.flightId);
-                if (!f?.from || !f?.to) return null;
-                return { a: f.from.id.toString(), b: f.to.id.toString() };
-              })();
-        if (!arcRoute) return;
-
-        const arc = allFlightArcs.find((item) => routeMatches(item, arcRoute));
+        // airports, resolved by airport ID straight from the flights. The
+        // deduplicated arc list (allFlightArcs) is keyed by airport *name*, so
+        // two distinct airport pairs sharing a name collapse into one arc under
+        // the first pair's IDs; an ID lookup there would miss the second pair
+        // and leave the map unfocused.
+        const arc = (() => {
+          if (selection.type === 'flight') {
+            const f = flights.find((fl) => fl.id === selection.flightId);
+            return f?.from && f.to ? { from: f.from, to: f.to } : null;
+          }
+          const route = selection.route;
+          const f = flights.find(
+            (fl) =>
+              fl.from != null &&
+              fl.to != null &&
+              routeMatches({ from: fl.from, to: fl.to }, route),
+          );
+          return f?.from && f.to ? { from: f.from, to: f.to } : null;
+        })();
         if (!arc) return;
 
         if (mapPreferences.projection === 'globe') {
