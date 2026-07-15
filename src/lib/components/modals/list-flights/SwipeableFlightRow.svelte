@@ -338,7 +338,12 @@
       e.stopPropagation();
       return;
     }
-    triggerAction(onShowOnMap);
+    // Unlike Edit/Delete (which open a sub-modal over the retained list and get
+    // reset via resetAllRows on close), "Map" closes the whole list and has no
+    // reset path — so it must NOT go through triggerAction, which would strand
+    // the row in actionPending forever. Reset the revealed row and fire directly.
+    resetPosition();
+    onShowOnMap?.();
   };
 </script>
 
