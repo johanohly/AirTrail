@@ -133,6 +133,12 @@ export const openRouteInList = (
   openModalsState.listFlights = true;
 };
 
+/** Open the List Flights modal scrolled to and highlighting a single flight. */
+export const openFlightInList = (flightId: number) => {
+  focusFlightInList(flightId);
+  openModalsState.listFlights = true;
+};
+
 export const appConfig = $state<{
   config: ClientAppConfig | null;
   configured: DeepBoolean<FullAppConfig, boolean> | null;

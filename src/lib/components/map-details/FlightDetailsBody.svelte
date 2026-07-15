@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { List } from '@o7/icon/lucide';
+
+  import { Button } from '$lib/components/ui/button';
   import { formatAircraft } from '$lib/utils/data/aircraft';
   import {
     formatSeatForUser,
@@ -15,10 +18,12 @@
     flight,
     prefs,
     seatUserId,
+    onShowInList,
   }: {
     flight: FlightData;
     prefs: Preferences;
     seatUserId?: string;
+    onShowInList: () => void;
   } = $props();
 
   const distanceLabel = $derived(
@@ -134,4 +139,16 @@
       No additional details for this flight.
     </p>
   {/if}
+</section>
+
+<section class="px-4 py-3">
+  <Button
+    variant="ghost"
+    size="sm"
+    class="w-full justify-center gap-2 text-muted-foreground hover:text-foreground"
+    onclick={onShowInList}
+  >
+    <List size={16} />
+    Open list
+  </Button>
 </section>

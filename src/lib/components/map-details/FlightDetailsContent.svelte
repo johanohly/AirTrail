@@ -52,6 +52,7 @@
       flight={details.flight}
       prefs={details.prefs}
       {seatUserId}
+      onShowInList={details.showInList}
     />
   {/if}
 </MapDetailsFrame>

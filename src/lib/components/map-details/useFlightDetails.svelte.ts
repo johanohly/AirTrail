@@ -1,6 +1,10 @@
 import { page } from '$app/state';
 import type { FlightFilters } from '$lib/components/flight-filters/types';
-import { mapDetailsState, openRouteDetails } from '$lib/state.svelte';
+import {
+  mapDetailsState,
+  openFlightInList,
+  openRouteDetails,
+} from '$lib/state.svelte';
 import { type FlightData } from '$lib/utils';
 import { getPreferences } from '$lib/utils/preferences';
 
@@ -62,6 +66,11 @@ export function useFlightDetails(
     });
   };
 
+  const showInList = () => {
+    if (!flight) return;
+    openFlightInList(flight.id);
+  };
+
   return {
     get prefs() {
       return prefs;
@@ -74,5 +83,6 @@ export function useFlightDetails(
     },
     toggleFlightFilter,
     showRoute,
+    showInList,
   };
 }
