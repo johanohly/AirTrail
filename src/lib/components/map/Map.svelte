@@ -162,8 +162,21 @@
     });
   };
 
+  // While the flight details panel is open, the map isolates that one flight;
+  // dismissing the panel returns the map to the full filtered set. This is a
+  // derived view of the panel state, not a persistent filter.
+  const highlightedFlightId = $derived(
+    mapDetailsState.selection?.type === 'flight'
+      ? mapDetailsState.selection.flightId
+      : null,
+  );
+  const drawnFlights = $derived(
+    highlightedFlightId !== null
+      ? flights.filter((flight) => flight.id === highlightedFlightId)
+      : filteredFlights,
+  );
   const flightArcs = $derived.by(() => {
-    return prepareFlightArcData(filteredFlights);
+    return prepareFlightArcData(drawnFlights);
   });
   const trackFlightIds = $derived(
     new Set(flightTracks.map((track) => track.flightId)),
@@ -737,10 +750,9 @@
     {/if}
 
     <AirportsArcsLayer
-      flights={filteredFlights}
+      flights={drawnFlights}
       {flightArcs}
       {flightTracks}
-      bind:filters
       bind:tempFilters
     />
   </MapLibre>

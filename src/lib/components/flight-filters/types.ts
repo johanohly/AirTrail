@@ -43,10 +43,6 @@ export type FlightFilters = LocationFilterValues &
     aircraftOperator: OptionFilterOperator;
     aircraftRegs: string[];
     aircraftRegsOperator: OptionFilterOperator;
-    // Single flight instances. Set from the map / list "show on map" flows and
-    // also selectable from the filter bar's "Flight" column.
-    flightIds: string[];
-    flightIdsOperator: OptionFilterOperator;
   };
 
 export type TempFilters = LocationFilterValues;

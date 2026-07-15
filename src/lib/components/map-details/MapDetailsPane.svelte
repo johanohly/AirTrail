@@ -48,10 +48,7 @@
     () => tempFilters,
   );
 
-  const flight = useFlightDetails(
-    () => flights,
-    () => filters,
-  );
+  const flight = useFlightDetails(() => flights);
 
   const mobileOpen = $derived.by(() => {
     const selection = mapDetailsState.selection;
@@ -65,7 +62,7 @@
 {#if $isMediumScreen}
   <AirportDetailsContent details={airport} hasFilters={!!filters} />
   <RouteDetailsContent details={route} hasFilters={!!filters} />
-  <FlightDetailsContent details={flight} hasFilters={!!filters} {seatUserId} />
+  <FlightDetailsContent details={flight} {seatUserId} />
 {:else}
   {#snippet mobileHeader()}
     {#if mapDetailsState.selection?.type === 'airport' && airport.airport}
@@ -99,11 +96,7 @@
         onToggleFilter={route.toggleRouteFilter}
       />
     {:else if mapDetailsState.selection?.type === 'flight' && flight.flight}
-      <FlightDetailsActions
-        hasFilters={!!filters}
-        filterActive={flight.flightFilterActive}
-        onToggleFilter={flight.toggleFlightFilter}
-      />
+      <FlightDetailsActions />
     {/if}
   {/snippet}
 

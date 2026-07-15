@@ -18,7 +18,6 @@
 
   import {
     normalizeRoute,
-    type FlightFilters,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
   import {
@@ -56,7 +55,7 @@
     closeMapDetails,
     mapDetailsState,
     openAirportDetails,
-    openFlightOnMap,
+    openFlightDetails,
     openRouteDetails,
     openRouteInList,
   } from '$lib/state.svelte';
@@ -117,13 +116,11 @@
     flights,
     flightArcs,
     flightTracks = [],
-    filters = $bindable(),
     tempFilters = $bindable(),
   }: {
     flights: FlightData[];
     flightArcs: FlightArc[];
     flightTracks?: FlightTrackRow[];
-    filters?: FlightFilters;
     tempFilters?: TempFilters;
   } = $props();
 
@@ -267,11 +264,10 @@
     );
     // While this route's pane is open, clicking its point-to-point line opens
     // the flight list drilled down to the whole route; otherwise open (or
-    // switch to) that route's details and drop any single-flight isolation.
+    // switch to) that route's details.
     if (selectedRoute && routeMatchesArc(e.object, selectedRoute)) {
-      openRouteInList(filters, tempFilters, route);
+      openRouteInList(tempFilters, route);
     } else {
-      if (filters) filters.flightIds = [];
       openRouteDetails(route);
     }
   };
@@ -279,12 +275,12 @@
   const handleTrackClick = (e: PickingInfo<FlightTrackPath>) => {
     if (!e.object || !tempFilters) return;
     // While this route's pane is open, clicking a specific flight's track opens
-    // its Flight Details pane (same as clicking the flight in the route pane);
-    // otherwise open the route details and drop any single-flight isolation.
+    // its Flight Details pane (same as clicking the flight in the route pane) —
+    // which isolates that flight on the map for as long as the pane is open;
+    // otherwise open the route details.
     if (selectedRoute && routeMatchesArc(e.object, selectedRoute)) {
-      openFlightOnMap(filters, tempFilters, e.object.flightId);
+      openFlightDetails(e.object.flightId);
     } else {
-      if (filters) filters.flightIds = [];
       openRouteDetails(
         normalizeRoute(e.object.from.id.toString(), e.object.to.id.toString()),
       );

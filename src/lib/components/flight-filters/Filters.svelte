@@ -81,7 +81,6 @@
     FlightFilters,
     TempFilters,
   } from '$lib/components/flight-filters/types';
-  import { page } from '$app/state';
   import UserAvatar from '$lib/components/display/UserAvatar.svelte';
   import {
     cn,
@@ -89,7 +88,6 @@
     getSeatPassengerToken,
     type FlightData,
   } from '$lib/utils';
-  import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
   import type { Aircraft, Airline, Airport } from '$lib/db/types';
   import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
 
@@ -101,8 +99,7 @@
     | ColumnConfig<FlightData, 'multiOption', string[], 'passengers'>
     | ColumnConfig<FlightData, 'option', string, 'airline'>
     | ColumnConfig<FlightData, 'option', string, 'aircraft'>
-    | ColumnConfig<FlightData, 'option', string, 'aircraftRegs'>
-    | ColumnConfig<FlightData, 'option', string, 'flight'>;
+    | ColumnConfig<FlightData, 'option', string, 'aircraftRegs'>;
 
   let {
     flights = $bindable(),
@@ -385,38 +382,6 @@
       }));
   });
 
-  const prefs = $derived(getPreferences(page.data.user));
-
-  const flightOptions = $derived.by(() => {
-    return [...scopedFlights]
-      .sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0))
-      .map((flight) => {
-        const number = flight.flightNumber?.trim()
-          ? flight.flightNumber.replace(/([a-zA-Z]{2})(\d+)/, '$1 $2')
-          : null;
-        const route = [
-          flight.from?.iata ?? flight.from?.icao,
-          flight.to?.iata ?? flight.to?.icao,
-        ]
-          .filter(Boolean)
-          .join(' → ');
-        const dateLabel = flight.date
-          ? formatFlightDate(flight.date, flight.datePrecision ?? 'day', prefs)
-          : null;
-        const label = [number ?? route, number ? route : null, dateLabel]
-          .filter(Boolean)
-          .join(' · ');
-        return {
-          value: flight.id.toString(),
-          label: label || `Flight #${flight.id}`,
-          shortLabel: number ?? route ?? `#${flight.id}`,
-          keywords: [number, route].filter(
-            (keyword): keyword is string => !!keyword,
-          ),
-        };
-      });
-  });
-
   const columnsConfig = $derived.by(() => {
     return [
       {
@@ -487,14 +452,6 @@
         accessor: (flight) => flight.aircraftReg ?? '',
         icon: Hash,
         options: columnOptions(aircraftRegOptions),
-      },
-      {
-        id: 'flight',
-        displayName: 'Flight',
-        type: 'option',
-        accessor: (flight) => flight.id.toString(),
-        icon: Plane,
-        options: columnOptions(flightOptions),
       },
     ] satisfies ReadonlyArray<FlightFilterColumnConfig>;
   });

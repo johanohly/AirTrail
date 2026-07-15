@@ -1,8 +1,6 @@
 import {
-  clearTempFilters,
   normalizeRoute,
   setTempRoute,
-  type FlightFilters,
   type Route,
   type TempFilters,
 } from '$lib/components/flight-filters/types';
@@ -103,32 +101,11 @@ export const closeMapDetails = () => {
   mapDetailsState.selection = null;
 };
 
-const isolateFlightInFilters = (filters: FlightFilters, flightId: number) => {
-  filters.departureAirports = [];
-  filters.arrivalAirports = [];
-  filters.airportsEither = [];
-  filters.routes = [];
-  filters.flightIds = [flightId.toString()];
-};
-
-/** Isolate a single flight on the map and open its Flight Details pane. */
-export const openFlightOnMap = (
-  filters: FlightFilters | undefined,
-  tempFilters: TempFilters | undefined,
-  flightId: number,
-) => {
-  if (filters) isolateFlightInFilters(filters, flightId);
-  if (tempFilters) clearTempFilters(tempFilters);
-  openFlightDetails(flightId);
-};
-
 /** Open the List Flights modal drilled down to all flights on a route. */
 export const openRouteInList = (
-  filters: FlightFilters | undefined,
   tempFilters: TempFilters | undefined,
   route: Route,
 ) => {
-  if (filters) filters.flightIds = [];
   if (tempFilters) setTempRoute(tempFilters, route);
   openModalsState.listFlights = true;
 };

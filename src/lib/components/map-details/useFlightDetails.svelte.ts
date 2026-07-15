@@ -1,5 +1,4 @@
 import { page } from '$app/state';
-import type { FlightFilters } from '$lib/components/flight-filters/types';
 import {
   mapDetailsState,
   openFlightInList,
@@ -8,10 +7,7 @@ import {
 import { type FlightData } from '$lib/utils';
 import { getPreferences } from '$lib/utils/preferences';
 
-export function useFlightDetails(
-  flights: () => FlightData[],
-  filters: () => FlightFilters | undefined,
-) {
+export function useFlightDetails(flights: () => FlightData[]) {
   const prefs = $derived(getPreferences(page.data.user));
 
   const selectedFlightId = $derived.by(() => {
@@ -25,41 +21,10 @@ export function useFlightDetails(
     return flights().find((f) => f.id === id) ?? null;
   });
 
-  const flightFilterActive = $derived.by(() => {
-    const f = filters();
-    if (!f || !flight) return false;
-    return (
-      f.flightIds.length === 1 &&
-      f.flightIds[0] === flight.id.toString() &&
-      f.departureAirports.length === 0 &&
-      f.arrivalAirports.length === 0 &&
-      f.airportsEither.length === 0 &&
-      f.routes.length === 0
-    );
-  });
-
-  const toggleFlightFilter = () => {
-    const f = filters();
-    if (!f || !flight) return;
-
-    if (flightFilterActive) {
-      f.flightIds = [];
-      return;
-    }
-
-    f.departureAirports = [];
-    f.arrivalAirports = [];
-    f.airportsEither = [];
-    f.routes = [];
-    f.flightIds = [flight.id.toString()];
-  };
-
   const showRoute = () => {
     if (!flight?.from || !flight.to) return;
-    // Drop the single-flight isolation so the route's flights are all visible
-    // again, then swap the pane over to the route details.
-    const f = filters();
-    if (f) f.flightIds = [];
+    // Swap the pane over to the route details; the map follows the pane, so it
+    // returns to the whole route's flights on its own.
     openRouteDetails({
       a: flight.from.id.toString(),
       b: flight.to.id.toString(),
@@ -78,10 +43,6 @@ export function useFlightDetails(
     get flight() {
       return flight;
     },
-    get flightFilterActive() {
-      return flightFilterActive;
-    },
-    toggleFlightFilter,
     showRoute,
     showInList,
   };

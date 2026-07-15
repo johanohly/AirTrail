@@ -9,11 +9,9 @@
 
   let {
     details,
-    hasFilters,
     seatUserId,
   }: {
     details: ReturnType<typeof useFlightDetails>;
-    hasFilters: boolean;
     seatUserId?: string;
   } = $props();
 </script>
@@ -29,11 +27,7 @@
 
 {#snippet actions()}
   {#if details.flight}
-    <FlightDetailsActions
-      {hasFilters}
-      filterActive={details.flightFilterActive}
-      onToggleFilter={details.toggleFlightFilter}
-    />
+    <FlightDetailsActions />
   {/if}
 {/snippet}
 

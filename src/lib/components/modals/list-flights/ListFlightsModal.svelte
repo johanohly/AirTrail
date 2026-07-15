@@ -259,20 +259,12 @@
   };
 
   const showFlightOnMap = async (flightId: number) => {
-    if (!filters) return;
-    // Clear the persistent location filters as well: during a temp-filter
-    // drilldown the visible rows are matched against tempFilters, so they can
-    // violate the persistent location criteria. Leaving those set would
-    // intersect with flightIds to an empty map that hides the selected flight.
-    filters.departureAirports = [];
-    filters.arrivalAirports = [];
-    filters.airportsEither = [];
-    filters.routes = [];
-    filters.flightIds = [flightId.toString()];
+    // Leave any list drilldown behind, then close the list and open the flight's
+    // pane on the next tick — opening it before the modal tears down lets the
+    // modal's history/focus-trap teardown swallow the newly-opened pane. While
+    // the pane is open the map isolates this flight on its own (a derived view
+    // of the pane state); dismissing it returns the map to the filtered view.
     if (tempFilters) clearTempFilterValues(tempFilters);
-    // Close the list first, then open the flight pane on the next tick. Opening
-    // it before the modal tears down lets the modal's history/focus-trap
-    // teardown swallow the newly-opened pane.
     open = false;
     await tick();
     openFlightDetails(flightId);

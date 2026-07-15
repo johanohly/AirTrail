@@ -7,7 +7,7 @@ import type {
 import { normalizeRoute } from '$lib/components/flight-filters/types';
 import {
   mapDetailsState,
-  openFlightOnMap,
+  openFlightDetails,
   openRouteInList,
 } from '$lib/state.svelte';
 import { type FlightData } from '$lib/utils';
@@ -119,13 +119,13 @@ export function useRouteDetails(
 
   const showAllFlights = () => {
     if (!selectedRoute) return;
-    openRouteInList(filters(), tempFilters(), selectedRoute);
+    openRouteInList(tempFilters(), selectedRoute);
   };
 
   const showFlight = (flightId: number) => {
-    // Isolate the flight on the map (so the pane's flight is the only one drawn)
-    // and open its Flight Details pane.
-    openFlightOnMap(filters(), tempFilters(), flightId);
+    // Open the flight's details pane; while it's open the map isolates that
+    // flight (a derived view of the pane state, not a persistent filter).
+    openFlightDetails(flightId);
   };
 
   return {

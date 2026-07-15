@@ -22,8 +22,7 @@ export type FilterColumnId =
   | 'passengers'
   | 'airline'
   | 'aircraft'
-  | 'aircraftRegs'
-  | 'flight';
+  | 'aircraftRegs';
 
 export type OptionColumnId = Exclude<FilterColumnId, 'date'>;
 export type NonPassengerOptionColumnId = Exclude<OptionColumnId, 'passengers'>;
@@ -96,8 +95,6 @@ export function createDefaultFilters(): FlightFilters {
     aircraftOperator: 'is any of',
     aircraftRegs: [],
     aircraftRegsOperator: 'is any of',
-    flightIds: [],
-    flightIdsOperator: 'is any of',
   };
 }
 
@@ -116,7 +113,6 @@ export function cloneFlightFilters(
     airline: [...source.airline],
     aircraft: [...source.aircraft],
     aircraftRegs: [...source.aircraftRegs],
-    flightIds: [...source.flightIds],
     ...next,
   };
 }
@@ -134,8 +130,7 @@ export function hasFlightFilters(filters: FlightFilters | undefined): boolean {
       filters.passengers.length > 0 ||
       filters.airline.length > 0 ||
       filters.aircraft.length > 0 ||
-      filters.aircraftRegs.length > 0 ||
-      filters.flightIds.length > 0)
+      filters.aircraftRegs.length > 0)
   );
 }
 
@@ -185,7 +180,6 @@ export function optionColumnValues(
   filters: FlightFilters,
   columnId: OptionColumnId,
 ): string[] {
-  if (columnId === 'flight') return filters.flightIds;
   return filters[columnId];
 }
 
@@ -214,8 +208,6 @@ export function rawOptionColumnOperator(
       return filters.aircraftOperator;
     case 'aircraftRegs':
       return filters.aircraftRegsOperator;
-    case 'flight':
-      return filters.flightIdsOperator;
   }
 }
 
@@ -280,10 +272,6 @@ export function setOptionColumnOperator(
       return cloneFlightFilters(filters, {
         aircraftRegsOperator: operator as OptionFilterOperator,
       });
-    case 'flight':
-      return cloneFlightFilters(filters, {
-        flightIdsOperator: operator as OptionFilterOperator,
-      });
   }
 }
 
@@ -339,11 +327,6 @@ export function setOptionColumnValues(
       return cloneFlightFilters(filters, {
         aircraftRegs: values,
         aircraftRegsOperator: operator as OptionFilterOperator,
-      });
-    case 'flight':
-      return cloneFlightFilters(filters, {
-        flightIds: values,
-        flightIdsOperator: operator as OptionFilterOperator,
       });
   }
 }
@@ -573,7 +556,6 @@ export function flightFiltersToBits(source: FlightFilters): FiltersState {
       source.aircraftRegs,
       source.aircraftRegsOperator,
     ),
-    optionFilter('flight', source.flightIds, source.flightIdsOperator),
   ]) {
     if (filter) nextFilters.push(filter);
   }
@@ -636,8 +618,6 @@ function resetBitsManagedFilters(base?: FlightFilters): FlightFilters {
     aircraftOperator: 'is any of',
     aircraftRegs: [],
     aircraftRegsOperator: 'is any of',
-    flightIds: [],
-    flightIdsOperator: 'is any of',
   });
 }
 
@@ -677,10 +657,6 @@ export function bitsFiltersToFlightFilters(
         nextFilters.aircraftRegs = stringValues(filter);
         nextFilters.aircraftRegsOperator =
           filter.operator as OptionFilterOperator;
-        break;
-      case 'flight':
-        nextFilters.flightIds = stringValues(filter);
-        nextFilters.flightIdsOperator = filter.operator as OptionFilterOperator;
         break;
       case 'year':
         nextFilters.years = stringValues(filter);
@@ -739,8 +715,6 @@ export function flightSignature(source: FlightFilters) {
     aircraftOperator: source.aircraftOperator,
     aircraftRegs: source.aircraftRegs,
     aircraftRegsOperator: source.aircraftRegsOperator,
-    flightIds: source.flightIds,
-    flightIdsOperator: source.flightIdsOperator,
   });
 }
 
@@ -937,16 +911,6 @@ export function matchesNonLocationFilters(
       flight.aircraftReg,
       filters.aircraftRegs,
       filters.aircraftRegsOperator,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    !optionMatches(
-      flight.id.toString(),
-      filters.flightIds,
-      filters.flightIdsOperator,
     )
   ) {
     return false;
