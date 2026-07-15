@@ -426,6 +426,9 @@
         bind:selectedFlights
         onEdit={readonly ? undefined : handleMobileEdit}
         onDelete={readonly ? undefined : handleDelete}
+        onShowOnMap={readonly
+          ? undefined
+          : (flight) => showFlightOnMap(flight.id)}
         {readonly}
       />
       <div class="h-[130px] sm:h-[90px]"></div>

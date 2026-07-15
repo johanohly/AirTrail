@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { SquarePen, Trash2 } from '@o7/icon/lucide';
+  import { MapPin, SquarePen, Trash2 } from '@o7/icon/lucide';
 
   import { getDrawerContext } from '$lib/components/ui/drawer/drawer.svelte';
   import { cn } from '$lib/utils';
@@ -13,11 +13,13 @@
     disabled = false,
     onEdit,
     onDelete,
+    onShowOnMap,
     children,
   }: {
     disabled?: boolean;
     onEdit?: () => void;
     onDelete?: () => void;
+    onShowOnMap?: () => void;
     children: Snippet<[{ isInteracting: boolean }]>;
   } = $props();
 
@@ -329,6 +331,15 @@
     }
     triggerAction(onDelete);
   };
+
+  const handleShowOnMapClick = (e: MouseEvent) => {
+    if (hasMoved || actionPending) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    triggerAction(onShowOnMap);
+  };
 </script>
 
 <div class="relative overflow-hidden" bind:this={rowElement}>
@@ -343,6 +354,17 @@
     style:touch-action="none"
     onpointerdown={handlePointerDown}
   >
+    {#if onShowOnMap}
+      <button
+        type="button"
+        class="flex-1 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors"
+        onclick={handleShowOnMapClick}
+      >
+        <MapPin size={22} />
+        <span class="text-xs font-medium">Map</span>
+      </button>
+      <div class="w-px bg-border"></div>
+    {/if}
     <button
       type="button"
       class="flex-1 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors"
