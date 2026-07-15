@@ -1,4 +1,4 @@
-import type { Airline, Airport } from '$lib/db/types';
+import type { Airline, Airport, Aircraft } from '$lib/db/types';
 
 export type ImportFailure = {
   index: number;
@@ -11,6 +11,7 @@ export type PlatformOptions = {
   importMode: 'personal' | 'restore';
   airportMapping?: Record<string, Airport>;
   airlineMapping?: Record<string, Airline>;
+  aircraftMapping?: Record<string, Aircraft>;
   userMapping?: Record<string, string>; // exported user id -> local user id
 };
 

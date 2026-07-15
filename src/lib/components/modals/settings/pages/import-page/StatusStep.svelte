@@ -5,13 +5,14 @@
 
   import AirlinePicker from '$lib/components/form-fields/AirlinePicker.svelte';
   import AirportPicker from '$lib/components/form-fields/AirportPicker.svelte';
+  import AircraftPicker from '$lib/components/form-fields/AircraftPicker.svelte';
   import CreateAirline from '$lib/components/modals/settings/pages/data-page/airline/CreateAirline.svelte';
   import CreateAirport from '$lib/components/modals/settings/pages/data-page/airport/CreateAirport.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { Separator } from '$lib/components/ui/separator';
-  import type { Airline, Airport } from '$lib/db/types';
+  import type { Airline, Airport, Aircraft } from '$lib/db/types';
   import { pluralize } from '$lib/utils';
   import type { ImportFailure } from './';
 
@@ -21,6 +22,7 @@
     importFailures = [],
     unknownAirports = {},
     unknownAirlines = {},
+    unknownAircraft = {},
     busy = false,
     onreprocess,
     onclose,
@@ -30,32 +32,39 @@
     importFailures?: ImportFailure[];
     unknownAirports?: Record<string, number[]>;
     unknownAirlines?: Record<string, number[]>;
+    unknownAircraft?: Record<string, number[]>;
     busy?: boolean;
     onreprocess?: (
       airportMapping: Record<string, Airport>,
       airlineMapping: Record<string, Airline>,
+      aircraftMapping: Record<string, Aircraft>,
     ) => void;
     onclose?: () => void;
   } = $props();
 
   const unknownAirportCodes = $derived(Object.keys(unknownAirports));
   const unknownAirlineCodes = $derived(Object.keys(unknownAirlines));
+  const unknownAircraftCodes = $derived(Object.keys(unknownAircraft));
 
   let airportMapping: Record<string, Airport> = $state({});
   let airlineMapping: Record<string, Airline> = $state({});
+  let aircraftMapping: Record<string, Aircraft> = $state({});
 
   const canReprocess = $derived(
     (Object.values(airportMapping).some(Boolean) ||
-      Object.values(airlineMapping).some(Boolean)) &&
+      Object.values(airlineMapping).some(Boolean) ||
+      Object.values(aircraftMapping).some(Boolean)) &&
       !busy,
   );
   const mappedAirportCount = $derived(Object.keys(airportMapping).length);
   const mappedAirlineCount = $derived(Object.keys(airlineMapping).length);
+  const mappedAircraftCount = $derived(Object.keys(aircraftMapping).length);
 
   const isAdmin = $derived(page.data.user?.role !== 'user');
 
   let createAirport = $state(false);
   let createAirline = $state(false);
+  let createAircraft = $state(false);
 
   const setAirportMapping = (code: string, airport: Airport | null) => {
     if (airport) {
@@ -73,8 +82,16 @@
     }
   };
 
+  const setAircraftMapping = (code: string, aircraft: Aircraft | null) => {
+    if (aircraft) {
+      aircraftMapping[code] = aircraft;
+    } else {
+      delete aircraftMapping[code];
+    }
+  };
+
   const handleReprocess = () => {
-    onreprocess?.(airportMapping, airlineMapping);
+    onreprocess?.(airportMapping, airlineMapping, aircraftMapping);
   };
 </script>
 
@@ -142,7 +159,7 @@
       </div>
     {/if}
 
-    {#if unknownAirportCodes.length || unknownAirlineCodes.length}
+    {#if unknownAirportCodes.length || unknownAirlineCodes.length || unknownAircraftCodes.length}
       <Separator class="my-4" />
 
       <div class="flex items-start gap-3">
@@ -152,14 +169,14 @@
         />
         <div class="flex-1">
           <p class="font-medium text-sm">
-            {unknownAirportCodes.length + unknownAirlineCodes.length} Unknown
+            {unknownAirportCodes.length + unknownAirlineCodes.length + unknownAircraftCodes.length} Unknown
             {pluralize(
-              unknownAirportCodes.length + unknownAirlineCodes.length,
+              unknownAirportCodes.length + unknownAirlineCodes.length + unknownAircraftCodes.length,
               'Code',
             )}
           </p>
           <p class="text-sm text-muted-foreground mt-0.5">
-            Match unknown airports and airlines, then re-import.
+            Match unknown airports, airlines, and aircraft, then re-import.
           </p>
         </div>
       </div>
@@ -221,23 +238,58 @@
               {/each}
             </div>
           {/if}
+
+          {#if unknownAircraftCodes.length}
+            <div class="space-y-2" class:mt-4={unknownAircraftCodes.length}>
+              <p class="text-xs font-medium text-muted-foreground uppercase">
+                Aircraft ({unknownAircraftCodes.length})
+              </p>
+              {#each unknownAircraftCodes as code (code)}
+                <div class="flex items-center gap-3">
+                  <div
+                    class="flex items-center justify-center w-20 h-9 bg-muted/50 rounded-md border shrink-0"
+                  >
+                    <span class="text-sm font-mono font-medium">{code}</span>
+                  </div>
+                  <div class="flex-1">
+                  <AircraftPicker
+                      placeholder="Search for aircraft..."
+                      onchange={(aircraft) => setAircraftMapping(code, aircraft)}
+                      disabled={busy}
+                      compact
+                    />
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
         </div>
       </ScrollArea>
 
-      {#if mappedAirportCount > 0 || mappedAirlineCount > 0}
+      {#if mappedAirportCount > 0 || mappedAirlineCount > 0 || mappedAircraftCount > 0}
         <div class="mt-4 p-3 bg-muted/30 rounded-md border border-muted">
           <p class="text-xs text-muted-foreground">
-            {#if mappedAirportCount > 0}
-              {mappedAirportCount} of {unknownAirportCodes.length}
-              {pluralize(unknownAirportCodes.length, 'airport')} mapped
-            {/if}
-            {#if mappedAirportCount > 0 && mappedAirlineCount > 0}
-              <span class="mx-1">•</span>
-            {/if}
-            {#if mappedAirlineCount > 0}
-              {mappedAirlineCount} of {unknownAirlineCodes.length}
-              {pluralize(unknownAirlineCodes.length, 'airline')} mapped
-            {/if}
+            { 
+              [
+                mappedAirportCount > 0
+                  ? `${mappedAirportCount} of ${unknownAirportCodes.length} ${pluralize(
+                      unknownAirportCodes.length,
+                      'airport',
+                    )} mapped`
+                  : null,
+                mappedAirlineCount > 0
+                  ? `${mappedAirlineCount} of ${unknownAirlineCodes.length} ${pluralize(
+                      unknownAirlineCodes.length,
+                      'airline',
+                    )} mapped`
+                  : null,
+                mappedAircraftCount > 0
+                  ? `${mappedAircraftCount} of ${unknownAircraftCodes.length} ${pluralize(
+                      unknownAircraftCodes.length,
+                      'aircraft',
+                    )} mapped`
+                  : null,
+              ].filter(s => s !== null).join(' • ') }
           </p>
         </div>
       {/if}
