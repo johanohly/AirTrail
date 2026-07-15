@@ -432,7 +432,11 @@ export const processOpenFlightsFile = async (
       openFlightsData,
       options,
     );
-    const { aircraft, mappingKey: aircraftKey } = await lookupAircraft(row, openFlightsData, options);
+    const { aircraft, mappingKey: aircraftKey } = await lookupAircraft(
+      row,
+      openFlightsData,
+      options,
+    );
     const duration = parseDuration(row.duration);
 
     const departure =

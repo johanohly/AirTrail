@@ -16,12 +16,14 @@
     disabled = false,
     compact = false,
     onchange,
+    onCreateNew,
   }: {
     value?: Aircraft | null;
     placeholder?: string;
     disabled?: boolean;
     compact?: boolean;
     onchange?: (aircraft: Aircraft | null) => void;
+    onCreateNew?: () => void;
   } = $props();
 
   const selected = writable(
@@ -199,6 +201,17 @@
                 {compact ? 'Type to search' : 'Start typing to search...'}
               {/if}
             </li>
+          {:else if onCreateNew}
+            <button
+              onclick={() => {
+                open.set(false);
+                onCreateNew?.();
+              }}
+              class="flex flex-col relative cursor-pointer scroll-my-2 rounded-md p-2 bg-popover dark:bg-dark-1 border text-left hover:bg-accent transition-colors"
+            >
+              <span class="text-sm">No results found</span>
+              <span class="text-xs opacity-75">Create a new aircraft?</span>
+            </button>
           {:else}
             <li
               class="relative cursor-default scroll-my-2 rounded-md p-2 bg-popover dark:bg-dark-1 border text-sm text-muted-foreground"

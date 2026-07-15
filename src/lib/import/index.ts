@@ -37,8 +37,19 @@ type Processor = (
   options: PlatformOptions,
 ) => Promise<ProcessResult>;
 
+type DefaultedProcessResult = Pick<
+  ProcessResult,
+  'unknownAircraft' | 'unknownUsers' | 'exportedUsers'
+>;
+
+type ProcessResultWithDefaults = Omit<
+  ProcessResult,
+  keyof DefaultedProcessResult
+> &
+  Partial<DefaultedProcessResult>;
+
 const withDefaultUnknownValues = async (
-  fn: () => Promise<Partial<ProcessResult>>,
+  fn: () => Promise<ProcessResultWithDefaults>,
 ): Promise<ProcessResult> => {
   const res = await fn();
   return {
@@ -46,11 +57,11 @@ const withDefaultUnknownValues = async (
     unknownUsers: res.unknownUsers ?? {},
     exportedUsers: res.exportedUsers ?? [],
     unknownAircraft: res.unknownAircraft ?? {},
-  } as ProcessResult;
+  };
 };
 
 const processors: Record<PlatformValue, Processor> = {
-  airtrail: async (content, options) => 
+  airtrail: async (content, options) =>
     withDefaultUnknownValues(() => processAirTrailFile(content, options)),
   'legacy-airtrail': async (content, options) =>
     withDefaultUnknownValues(() => processLegacyAirTrailFile(content, options)),

@@ -51,6 +51,9 @@
 
   let platform = $state<(typeof platforms)[0]>(platforms[0]);
   let userMapping = $state<Record<string, string>>({});
+  let appliedAirportMapping = $state<Record<string, Airport>>({});
+  let appliedAirlineMapping = $state<Record<string, Airline>>({});
+  let appliedAircraftMapping = $state<Record<string, Aircraft>>({});
   let ownerOnly = $state(false);
   let matchAirlineFromFlightNumber = $state(true);
   let dedupeImportedFlights = $state(true);
@@ -315,14 +318,37 @@
     airportMapping: Record<string, Airport>,
     airlineMapping: Record<string, Airline>,
     aircraftMapping: Record<string, Aircraft>,
-  ) => {
-    if (!originalFile) return;
+  ): Promise<boolean> => {
+    if (!originalFile) return false;
+    const nextAirportMapping = {
+      ...appliedAirportMapping,
+      ...airportMapping,
+    };
+    const nextAirlineMapping = {
+      ...appliedAirlineMapping,
+      ...airlineMapping,
+    };
+    const nextAircraftMapping = {
+      ...appliedAircraftMapping,
+      ...aircraftMapping,
+    };
+
     importing = true;
     try {
-      await executeImport({ airportMapping, airlineMapping, aircraftMapping, userMapping });
+      await executeImport({
+        airportMapping: nextAirportMapping,
+        airlineMapping: nextAirlineMapping,
+        aircraftMapping: nextAircraftMapping,
+        userMapping,
+      });
+      appliedAirportMapping = nextAirportMapping;
+      appliedAirlineMapping = nextAirlineMapping;
+      appliedAircraftMapping = nextAircraftMapping;
+      return true;
     } catch (error) {
       toast.error(getImportErrorMessage(error, 'Failed to reprocess file'));
       console.error(error);
+      return false;
     } finally {
       importing = false;
     }
@@ -331,9 +357,13 @@
   const closeAndReset = () => {
     unknownAirports = {};
     unknownAirlines = {};
+    unknownAircraft = {};
     unknownUsers = {};
     exportedUsers = [];
     userMapping = {};
+    appliedAirportMapping = {};
+    appliedAirlineMapping = {};
+    appliedAircraftMapping = {};
     importedCount = 0;
     skippedRows = 0;
     importFailures = [];
