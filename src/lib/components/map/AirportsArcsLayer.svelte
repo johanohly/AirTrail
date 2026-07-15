@@ -359,7 +359,9 @@
       flight.from.id.toString(),
       flight.to.id.toString(),
     );
-    const arc = flightArcs.find((candidate) => routeMatchesArc(candidate, route));
+    const arc = flightArcs.find((candidate) =>
+      routeMatchesArc(candidate, route),
+    );
     if (!arc) return undefined;
     // A tracked flight is emphasised via its track (carries flightId); a
     // point-to-point flight is emphasised via its route's straight arc.

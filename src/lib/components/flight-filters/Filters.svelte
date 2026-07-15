@@ -75,11 +75,13 @@
     flightFiltersToBits,
     flightSignature,
     hasFlightFilters,
+    matchesLocationFilters,
   } from '$lib/components/flight-filters/model';
   import type {
     FlightFilters,
     TempFilters,
   } from '$lib/components/flight-filters/types';
+  import { page } from '$app/state';
   import UserAvatar from '$lib/components/display/UserAvatar.svelte';
   import {
     cn,
@@ -87,6 +89,7 @@
     getSeatPassengerToken,
     type FlightData,
   } from '$lib/utils';
+  import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
   import type { Aircraft, Airline, Airport } from '$lib/db/types';
   import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
 
@@ -98,7 +101,8 @@
     | ColumnConfig<FlightData, 'multiOption', string[], 'passengers'>
     | ColumnConfig<FlightData, 'option', string, 'airline'>
     | ColumnConfig<FlightData, 'option', string, 'aircraft'>
-    | ColumnConfig<FlightData, 'option', string, 'aircraftRegs'>;
+    | ColumnConfig<FlightData, 'option', string, 'aircraftRegs'>
+    | ColumnConfig<FlightData, 'option', string, 'flight'>;
 
   let {
     flights = $bindable(),
@@ -188,6 +192,15 @@
           tempFilters.routes.length)
       ),
   );
+
+  // When viewing a route/airport drilldown, scope the filter options to the
+  // flights on that route/airport so only relevant values are offered.
+  const scopedFlights = $derived.by(() => {
+    if (!tempLocationFiltersActive || !tempFilters) return flights ?? [];
+    return (flights ?? []).filter((flight) =>
+      matchesLocationFilters(flight, tempFilters),
+    );
+  });
   const modalCtx = getModalContext();
   const filterContentZIndex = $derived.by(() => {
     const modalZ = modalCtx?.getContentZIndex();
@@ -229,17 +242,17 @@
   }
 
   const departureAirports = $derived.by(() => {
-    return uniqueAirports(flights ?? [], (flight) => flight.from);
+    return uniqueAirports(scopedFlights, (flight) => flight.from);
   });
 
   const arrivalAirports = $derived.by(() => {
-    return uniqueAirports(flights ?? [], (flight) => flight.to);
+    return uniqueAirports(scopedFlights, (flight) => flight.to);
   });
 
   const passengerOptions = $derived.by(() => {
     const options = new Map<string, OptionSource>();
 
-    for (const flight of flights ?? []) {
+    for (const flight of scopedFlights) {
       for (const seat of flight.seats) {
         const value = getSeatPassengerToken(seat);
         const label = getSeatPassengerLabel(seat);
@@ -277,7 +290,7 @@
       }
     >();
 
-    for (const flight of flights ?? []) {
+    for (const flight of scopedFlights) {
       if (!flight.airline) continue;
       const existing = frequencyMap.get(flight.airline.name);
       if (existing) {
@@ -312,7 +325,7 @@
       }
     >();
 
-    for (const flight of flights ?? []) {
+    for (const flight of scopedFlights) {
       if (!flight.aircraft) continue;
       const existing = frequencyMap.get(flight.aircraft.name);
       if (existing) {
@@ -338,7 +351,7 @@
   const aircraftRegOptions = $derived.by(() => {
     const frequencyMap = new Map<string, number>();
 
-    for (const flight of flights ?? []) {
+    for (const flight of scopedFlights) {
       if (!flight.aircraftReg) continue;
       frequencyMap.set(
         flight.aircraftReg,
@@ -358,7 +371,7 @@
   const yearOptions = $derived.by(() => {
     const years = new Set<string>();
 
-    for (const flight of flights ?? []) {
+    for (const flight of scopedFlights) {
       if (flight.date) {
         years.add(flight.date.getFullYear().toString());
       }
@@ -370,6 +383,39 @@
         value: year,
         label: year,
       }));
+  });
+
+  const prefs = $derived(getPreferences(page.data.user));
+
+  const flightOptions = $derived.by(() => {
+    return [...scopedFlights]
+      .sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0))
+      .map((flight) => {
+        const number = flight.flightNumber?.replace(
+          /([a-zA-Z]{2})(\d+)/,
+          '$1 $2',
+        );
+        const route = [
+          flight.from?.iata ?? flight.from?.icao,
+          flight.to?.iata ?? flight.to?.icao,
+        ]
+          .filter(Boolean)
+          .join(' → ');
+        const dateLabel = flight.date
+          ? formatFlightDate(flight.date, flight.datePrecision ?? 'day', prefs)
+          : null;
+        const label = [number ?? route, number ? route : null, dateLabel]
+          .filter(Boolean)
+          .join(' · ');
+        return {
+          value: flight.id.toString(),
+          label: label || `Flight #${flight.id}`,
+          shortLabel: number ?? route ?? `#${flight.id}`,
+          keywords: [number, route].filter(
+            (keyword): keyword is string => !!keyword,
+          ),
+        };
+      });
   });
 
   const columnsConfig = $derived.by(() => {
@@ -442,6 +488,14 @@
         accessor: (flight) => flight.aircraftReg ?? '',
         icon: Hash,
         options: columnOptions(aircraftRegOptions),
+      },
+      {
+        id: 'flight',
+        displayName: 'Flight',
+        type: 'option',
+        accessor: (flight) => flight.id.toString(),
+        icon: Plane,
+        options: columnOptions(flightOptions),
       },
     ] satisfies ReadonlyArray<FlightFilterColumnConfig>;
   });

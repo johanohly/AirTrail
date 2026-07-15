@@ -1,13 +1,14 @@
 <script lang="ts">
   import { ChevronRight } from '@o7/icon/lucide';
 
+  import { page } from '$app/state';
   import {
     AirlineIcon,
     RouteArrow,
     TimeDisplay,
   } from '$lib/components/display';
   import type { FlightData } from '$lib/utils';
-  import { formatAsFlightDate } from '$lib/utils/datetime';
+  import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
 
   let {
     flight,
@@ -17,18 +18,15 @@
     onShowRoute?: () => void;
   } = $props();
 
+  const prefs = $derived(getPreferences(page.data.user));
+
   const flightNumber = $derived(
     flight.flightNumber?.replace(/([a-zA-Z]{2})(\d+)/, '$1 $2') ?? null,
   );
 
   const dateLabel = $derived(
     flight.date
-      ? formatAsFlightDate(
-          flight.date,
-          flight.datePrecision ?? 'day',
-          false,
-          true,
-        )
+      ? formatFlightDate(flight.date, flight.datePrecision ?? 'day', prefs)
       : null,
   );
 

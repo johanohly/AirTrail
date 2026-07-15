@@ -56,7 +56,7 @@
     getSeatPassengerToken,
     type FlightData,
   } from '$lib/utils';
-  import { getPreferences } from '$lib/utils/preferences';
+  import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
 
   type Screen =
     | { kind: 'home' }
@@ -133,6 +133,7 @@
     { id: 'airline', label: 'Airline', icon: Airlines, type: 'option' },
     { id: 'aircraft', label: 'Aircraft', icon: Plane, type: 'option' },
     { id: 'aircraftRegs', label: 'Tail Number', icon: Hash, type: 'option' },
+    { id: 'flight', label: 'Flight', icon: Plane, type: 'option' },
   ]);
 
   const visibleColumns = $derived(columns.filter((column) => !column.hidden));
@@ -275,6 +276,38 @@
             : null,
         ),
       ),
+      flight: [...(flights ?? [])]
+        .sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0))
+        .map((flight): FilterOption => {
+          const number = flight.flightNumber?.replace(
+            /([a-zA-Z]{2})(\d+)/,
+            '$1 $2',
+          );
+          const route = [
+            flight.from?.iata ?? flight.from?.icao,
+            flight.to?.iata ?? flight.to?.icao,
+          ]
+            .filter(Boolean)
+            .join(' → ');
+          const dateLabel = flight.date
+            ? formatFlightDate(
+                flight.date,
+                flight.datePrecision ?? 'day',
+                prefs,
+              )
+            : null;
+          const label = [number ?? route, number ? route : null, dateLabel]
+            .filter(Boolean)
+            .join(' · ');
+          return {
+            value: flight.id.toString(),
+            label: label || `Flight #${flight.id}`,
+            shortLabel: number ?? route ?? `#${flight.id}`,
+            keywords: [number, route].filter(
+              (keyword): keyword is string => !!keyword,
+            ),
+          };
+        }),
     } satisfies Record<OptionColumnId, FilterOption[]>;
   });
 
