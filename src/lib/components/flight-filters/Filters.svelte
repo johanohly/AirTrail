@@ -391,10 +391,9 @@
     return [...scopedFlights]
       .sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0))
       .map((flight) => {
-        const number = flight.flightNumber?.replace(
-          /([a-zA-Z]{2})(\d+)/,
-          '$1 $2',
-        );
+        const number = flight.flightNumber?.trim()
+          ? flight.flightNumber.replace(/([a-zA-Z]{2})(\d+)/, '$1 $2')
+          : null;
         const route = [
           flight.from?.iata ?? flight.from?.icao,
           flight.to?.iata ?? flight.to?.icao,

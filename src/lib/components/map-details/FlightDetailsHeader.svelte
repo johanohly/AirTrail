@@ -21,7 +21,9 @@
   const prefs = $derived(getPreferences(page.data.user));
 
   const flightNumber = $derived(
-    flight.flightNumber?.replace(/([a-zA-Z]{2})(\d+)/, '$1 $2') ?? null,
+    flight.flightNumber?.trim()
+      ? flight.flightNumber.replace(/([a-zA-Z]{2})(\d+)/, '$1 $2')
+      : null,
   );
 
   const dateLabel = $derived(
