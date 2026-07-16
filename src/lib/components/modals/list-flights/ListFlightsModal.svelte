@@ -44,6 +44,7 @@
     formatSeatForUser,
     getFlightPassengerLabels,
     highlightElement,
+    scrollElementIntoView,
     type FlightData,
   } from '$lib/utils';
   import { formatAircraft } from '$lib/utils/data/aircraft';
@@ -188,17 +189,25 @@
     );
     if (index >= 0) page = Math.floor(index / flightsPerPage) + 1;
 
-    const highlightFlight = () =>
-      highlightElement(`#flight-list-row-${flightId}`, {
-        duration: 1900,
-        scrollOffset: -100,
-        pulses: 3,
-      }).catch(() => {});
+    // Poll until the row is mounted (on mobile the list opens in a drawer that
+    // animates in, so it isn't in the DOM for the first few frames), then scroll
+    // to it and highlight. Re-scroll once more after a beat because the desktop
+    // grid paginates via auto-animate, so the row's position isn't final yet.
+    const focusRow = (attempts = 0) => {
+      const row = document.getElementById(`flight-list-row-${flightId}`);
+      if (row && row.getBoundingClientRect().height > 0) {
+        highlightElement(row, {
+          duration: 1900,
+          pulses: 3,
+          scrollOffset: 0,
+        }).catch(() => {});
+        setTimeout(() => scrollElementIntoView(row), 300);
+        return;
+      }
+      if (attempts < 25) setTimeout(() => focusRow(attempts + 1), 80);
+    };
 
-    tick().then(() => {
-      highlightFlight();
-      setTimeout(highlightFlight, 150);
-    });
+    tick().then(() => focusRow());
   });
 
   // Mobile edit state
