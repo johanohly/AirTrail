@@ -86,6 +86,40 @@ model airport {
   flights_from flight[] @relation("flights_from")
 
   flights_to flight[] @relation("flights_to")
+
+  runways runway[]
+}
+
+model runway {
+  id         Int     @id @default(autoincrement())
+  source_id  Int     @unique
+  airport_id Int
+  length     Int?
+  width      Int?
+  surface    String?
+  lighted    Boolean @default(false)
+  closed     Boolean @default(false)
+
+  le_ident          String?
+  le_lat            Float?
+  le_lon            Float?
+  le_ele            Int?
+  le_hdg            Float?
+  le_disp_threshold Float?
+
+  he_ident          String?
+  he_lat            Float?
+  he_lon            Float?
+  he_ele            Int?
+  he_hdg            Float?
+  he_disp_threshold Float?
+
+  airport airport @relation(fields: [airport_id], references: [id], onDelete: Cascade)
+
+  departures flight[] @relation("departure_runway")
+  arrivals   flight[] @relation("arrival_runway")
+
+  @@index([airport_id])
 }
 
 model aircraft {
@@ -147,6 +181,12 @@ model flight {
   aircraft_reg  String?
   note          String?
 
+  departure_runway_id Int?
+  arrival_runway_id   Int?
+
+  departure_runway runway? @relation("departure_runway", fields: [departure_runway_id], references: [id])
+  arrival_runway   runway? @relation("arrival_runway", fields: [arrival_runway_id], references: [id])
+
   from_id     Int?
   to_id       Int?
   aircraft_id Int?
@@ -161,6 +201,8 @@ model flight {
 
   @@index([from_id], map: "flight_from_id_idx")
   @@index([to_id], map: "flight_to_id_idx")
+  @@index([departure_runway_id])
+  @@index([arrival_runway_id])
 }
 
 model flight_track {

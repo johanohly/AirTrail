@@ -138,6 +138,8 @@ export type flight = {
     flightReason: 'leisure' | 'business' | 'crew' | 'other' | null;
     aircraftReg: string | null;
     note: string | null;
+    departureRunwayId: number | null;
+    arrivalRunwayId: number | null;
     fromId: number | null;
     toId: number | null;
     aircraftId: number | null;
@@ -181,6 +183,28 @@ export type public_share = {
     showTracks: Generated<boolean>;
     showDates: Generated<boolean>;
     showSeat: Generated<boolean>;
+};
+export type runway = {
+    id: Generated<number>;
+    sourceId: number;
+    airportId: number;
+    length: number | null;
+    width: number | null;
+    surface: string | null;
+    lighted: Generated<boolean>;
+    closed: Generated<boolean>;
+    leIdent: string | null;
+    leLat: number | null;
+    leLon: number | null;
+    leEle: number | null;
+    leHdg: number | null;
+    leDispThreshold: number | null;
+    heIdent: string | null;
+    heLat: number | null;
+    heLon: number | null;
+    heEle: number | null;
+    heHdg: number | null;
+    heDispThreshold: number | null;
 };
 export type seat = {
     id: Generated<number>;
@@ -273,6 +297,7 @@ export type DB = {
     flightTrack: flight_track;
     oauthLinkToken: oauth_link_token;
     publicShare: public_share;
+    runway: runway;
     seat: seat;
     session: session;
     user: user;
