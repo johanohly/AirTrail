@@ -27,8 +27,20 @@ export const init: ServerInit = async () => {
     process.exit(-1);
   }
 
-  await ensureAirports();
-  await ensureRunways();
+  // Airport and runway data are refreshed from an external endpoint
+  // (OurAirports). A transient outage there must not block startup — existing
+  // installations already have this data, so log and continue instead of
+  // crashing.
+  try {
+    await ensureAirports();
+  } catch (err) {
+    console.error('Error ensuring airport data (continuing startup):', err);
+  }
+  try {
+    await ensureRunways();
+  } catch (err) {
+    console.error('Error ensuring runway data (continuing startup):', err);
+  }
   await uploadManager.init();
   await ensureInitialDataSync();
   await validateAirlineIcons();
