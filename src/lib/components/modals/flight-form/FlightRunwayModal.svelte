@@ -34,7 +34,7 @@
     api.runway.getByAirport
       .query(id)
       .then(set)
-      .catch(() => set([]));
+      .catch(() => {});
   };
 
   // Clear a selected runway that no longer belongs to the chosen airport (e.g.
