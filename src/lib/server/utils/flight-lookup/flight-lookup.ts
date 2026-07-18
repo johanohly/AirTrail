@@ -3,7 +3,7 @@ import type { TZDate } from '@date-fns/tz';
 import { getFlightRoute as getAdsbdbFlightRoute } from './adsbdb';
 import { getFlightRoute as getAerodataboxFlightRoute } from './aerodatabox';
 
-import type { Airport, Aircraft, Airline } from '$lib/db/types';
+import type { Airport, Aircraft, Airline, RunwayEnd } from '$lib/db/types';
 import { appConfig } from '$lib/server/utils/config';
 
 export type FlightLookupOptions = {
@@ -22,8 +22,12 @@ export type FlightLookupResultItem = {
   aircraftReg?: string | null;
   departureTerminal?: string | null;
   departureGate?: string | null;
+  departureRunway?: number | null;
+  departureRunwayEnd?: RunwayEnd | null;
   arrivalTerminal?: string | null;
   arrivalGate?: string | null;
+  arrivalRunway?: number | null;
+  arrivalRunwayEnd?: RunwayEnd | null;
 };
 
 export type FlightLookupResult = FlightLookupResultItem[];

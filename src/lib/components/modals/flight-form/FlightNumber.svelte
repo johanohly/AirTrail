@@ -64,6 +64,10 @@
     departureGate?: FlightFormData['departureGate'];
     arrivalTerminal?: FlightFormData['arrivalTerminal'];
     arrivalGate?: FlightFormData['arrivalGate'];
+    departureRunway?: FlightFormData['departureRunwayId'];
+    departureRunwayEnd?: FlightFormData['departureRunwayEnd'];
+    arrivalRunway?: FlightFormData['arrivalRunwayId'];
+    arrivalRunwayEnd?: FlightFormData['arrivalRunwayEnd'];
   };
 
   let lookupResults: LookupResult[] | null = $state(null);
@@ -193,6 +197,12 @@
     $formData.departureGate = result.departureGate ?? null;
     $formData.arrivalTerminal = result.arrivalTerminal ?? null;
     $formData.arrivalGate = result.arrivalGate ?? null;
+
+    // Apply runway info
+    $formData.departureRunwayId = result.departureRunway ?? null;
+    $formData.departureRunwayEnd = result.departureRunwayEnd ?? null;
+    $formData.arrivalRunwayId = result.arrivalRunway ?? null;
+    $formData.arrivalRunwayEnd = result.arrivalRunwayEnd ?? null;
 
     const preferredTimetableTab = getPreferredTimetableTab(result);
 

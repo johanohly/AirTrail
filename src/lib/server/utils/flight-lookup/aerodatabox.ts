@@ -13,7 +13,7 @@ import type { FlightLookupOptions, FlightLookupResult } from './flight-lookup';
 import type { Aircraft, Airline } from '$lib/db/types';
 import { getAircraftByIcao } from '$lib/server/utils/aircraft';
 import { getAirlineByIcao, getAirlineByIata } from '$lib/server/utils/airline';
-import { getAirportByIcao } from '$lib/server/utils/airport';
+import { getAirportByIcao, getRunwayByIdent } from '$lib/server/utils/airport';
 import { appConfig } from '$lib/server/utils/config';
 import { RequestRateLimiter } from '$lib/utils/ratelimiter';
 
@@ -83,6 +83,7 @@ export async function getFlightRoute(
       airport: { icao?: string; timeZone?: string };
       terminal?: string;
       gate?: string;
+      runway?: string;
       scheduledTime?: { local: string };
       revisedTime?: { local: string };
       actualTime?: { local: string };
@@ -91,6 +92,7 @@ export async function getFlightRoute(
       airport: { icao?: string; timeZone?: string };
       terminal?: string;
       gate?: string;
+      runway?: string;
       scheduledTime?: { local: string };
       revisedTime?: { local: string };
       actualTime?: { local: string };
@@ -158,6 +160,13 @@ export async function getFlightRoute(
       airline = await getAirlineByIata(item.airline.iata);
     }
 
+    const departureRunway = item.departure.runway
+      ? await getRunwayByIdent(fromAirport.id, item.departure.runway)
+      : null;
+    const arrivalRunway = item.arrival.runway
+      ? await getRunwayByIdent(toAirport.id, item.arrival.runway)
+      : null;
+
     const flightInfo = {
       from: fromAirport,
       to: toAirport,
@@ -170,8 +179,12 @@ export async function getFlightRoute(
       aircraftReg: item.aircraft?.reg ?? null,
       departureTerminal: item.departure.terminal ?? null,
       departureGate: item.departure.gate ?? null,
+      departureRunway: departureRunway?.runwayId ?? null,
+      departureRunwayEnd: departureRunway?.end ?? null,
       arrivalTerminal: item.arrival.terminal ?? null,
       arrivalGate: item.arrival.gate ?? null,
+      arrivalRunway: arrivalRunway?.runwayId ?? null,
+      arrivalRunwayEnd: arrivalRunway?.end ?? null,
     };
 
     result.push(flightInfo);
