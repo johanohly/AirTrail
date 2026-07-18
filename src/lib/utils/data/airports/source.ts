@@ -230,9 +230,11 @@ const collectAirportSourceIdentSet = async () => {
  * or a keyword-backfilled ICAO - rather than its bare ident, so callers that
  * reference airports by their source ident (e.g. runway import, whose
  * `airport_ident` is the source ident) need this to resolve them. This mirrors
- * the code-assignment done in forEachFetchedAirport, minus the timezone lookup:
- * airports dropped there for a missing tz simply resolve to an icao that isn't
- * in the DB, so their entries are harmlessly ignored.
+ * the code-assignment done in forEachFetchedAirport, including its timezone
+ * drop: rows with no timezone are skipped before reserving their codes, so a
+ * dropped row can't claim a keyword-backfill code that belongs to a later valid
+ * airport (which would otherwise be assigned a different icao here than at
+ * import, leaving its runways unresolvable).
  */
 export const buildIdentToIcaoMap = async (): Promise<Map<string, string>> => {
   const identSet = await collectAirportSourceIdentSet();
@@ -246,24 +248,37 @@ export const buildIdentToIcaoMap = async (): Promise<Map<string, string>> => {
     keywords: string | null;
   }> = [];
 
-  await forEachAirportSourceRow((row) => {
-    const airport: AirportCode = {
-      icao: createAirportCode(row, identSet),
-      iata: row.iata_code === '' ? null : row.iata_code,
-    };
-    const ident = row.ident.toUpperCase();
+  await withBoundedGeoTzCache(async () => {
+    await forEachAirportSourceRow((row) => {
+      const icao = createAirportCode(row, identSet);
 
-    usedIcao.add(airport.icao);
-    if (airport.iata) {
-      usedIata.add(airport.iata);
-    }
+      // Drop rows the real import (toInsertAirport) drops for a missing
+      // timezone *before* reserving their codes. Otherwise a dropped row could
+      // claim a keyword-backfill code owed to a later valid airport, making
+      // this map assign that airport a different icao than the import - one
+      // absent from the DB - so its runways would silently fail to resolve.
+      if (!getAirportTimezone(icao, row.latitude_deg, row.longitude_deg)) {
+        return;
+      }
 
-    if (needsKeywordFill(airport, row.keywords)) {
-      pendingKeywordFill.push({ ident, airport, keywords: row.keywords });
-      return;
-    }
+      const airport: AirportCode = {
+        icao,
+        iata: row.iata_code === '' ? null : row.iata_code,
+      };
+      const ident = row.ident.toUpperCase();
 
-    map.set(ident, airport.icao.toUpperCase());
+      usedIcao.add(airport.icao);
+      if (airport.iata) {
+        usedIata.add(airport.iata);
+      }
+
+      if (needsKeywordFill(airport, row.keywords)) {
+        pendingKeywordFill.push({ ident, airport, keywords: row.keywords });
+        return;
+      }
+
+      map.set(ident, airport.icao.toUpperCase());
+    });
   });
 
   fillPendingKeywordCodes(pendingKeywordFill, usedIcao, usedIata);
