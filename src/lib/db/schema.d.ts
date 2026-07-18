@@ -139,8 +139,14 @@ export type flight = {
     aircraftReg: string | null;
     note: string | null;
     departureRunwayId: number | null;
-    departureRunwayEnd: 'le' | 'he' | null;
     arrivalRunwayId: number | null;
+    /**
+     * @kyselyType('le' | 'he')
+     */
+    departureRunwayEnd: 'le' | 'he' | null;
+    /**
+     * @kyselyType('le' | 'he')
+     */
     arrivalRunwayEnd: 'le' | 'he' | null;
     fromId: number | null;
     toId: number | null;

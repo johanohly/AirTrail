@@ -10,6 +10,7 @@ import { customFieldRouter } from '$lib/server/routes/custom-field';
 import { flightRouter } from '$lib/server/routes/flight';
 import { flightTrackRouter } from '$lib/server/routes/flight-track';
 import { oauthRouter } from '$lib/server/routes/oauth';
+import { runwayRouter } from '$lib/server/routes/runway';
 import { shareRouter } from '$lib/server/routes/share';
 import { sqlRouter } from '$lib/server/routes/sql';
 import { visitedCountriesRouter } from '$lib/server/routes/visited-countries';
@@ -20,6 +21,7 @@ export const appRouter = router({
   aircraft: aircraftRouter,
   airline: airlineRouter,
   airport: airportRouter,
+  runway: runwayRouter,
   flight: flightRouter,
   flightTrack: flightTrackRouter,
   customField: customFieldRouter,

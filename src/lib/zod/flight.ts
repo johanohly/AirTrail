@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   FlightDatePrecisions,
   FlightReasons,
+  RunwayEnds,
   SeatClasses,
   SeatTypes,
 } from '$lib/db/types';
@@ -142,8 +143,12 @@ export const flightOptionalInformationSchema = z.object({
   note: z.string().max(1000, 'Note is too long').nullable(),
   departureTerminal: z.string().max(10).nullable().optional(),
   departureGate: z.string().max(10).nullable().optional(),
+  departureRunwayId: z.number().nullable().optional(),
+  departureRunwayEnd: z.enum(RunwayEnds).nullable().optional(),
   arrivalTerminal: z.string().max(10).nullable().optional(),
   arrivalGate: z.string().max(10).nullable().optional(),
+  arrivalRunwayId: z.number().nullable().optional(),
+  arrivalRunwayEnd: z.enum(RunwayEnds).nullable().optional(),
 });
 
 export const flightCustomFieldsSchema = z.object({

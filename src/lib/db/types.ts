@@ -112,6 +112,8 @@ export const SeatClasses = [
 export const FlightReasons = ['leisure', 'business', 'crew', 'other'] as const;
 export const FlightDatePrecisions = ['day', 'month', 'year'] as const;
 export type FlightDatePrecision = (typeof FlightDatePrecisions)[number];
+export const RunwayEnds = ['le', 'he'] as const;
+export type RunwayEnd = (typeof RunwayEnds)[number];
 
 export const VisitedCountryStatus = [
   'lived',
