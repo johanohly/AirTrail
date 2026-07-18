@@ -17,7 +17,7 @@ import {
   upsertFlightTrackPrimitiveWithConnection,
 } from '$lib/db/queries';
 import type { DB } from '$lib/db/schema';
-import type { CreateFlight, Flight, User } from '$lib/db/types';
+import type { CreateFlight, Flight, RunwayEnd, User } from '$lib/db/types';
 import {
   CustomFieldValidationError,
   persistEntityCustomFields,
@@ -231,6 +231,65 @@ export const validateAndSaveFlight = async (
     customFields = {},
     track,
   } = data;
+
+  // Runway ids/ends are persisted straight from the submission, so verify each
+  // selected runway actually belongs to its airport and that the chosen end
+  // exists on that runway. Guards against stale submissions (airport changed
+  // after picking a runway) and crafted requests referencing an unrelated
+  // airport.
+  const validateRunwaySelection = async (
+    airportId: number,
+    runwayId: number | null | undefined,
+    runwayEnd: RunwayEnd | null | undefined,
+    idPath: string,
+    endPath: string,
+  ): Promise<ErrorActionResult | null> => {
+    if (runwayId == null && runwayEnd == null) return null;
+    if (runwayId == null || runwayEnd == null) {
+      return pathError(
+        runwayId == null ? idPath : endPath,
+        'Select both a runway and its end',
+      );
+    }
+
+    const runway = await db
+      .selectFrom('runway')
+      .select(['airportId', 'leIdent', 'heIdent'])
+      .where('id', '=', runwayId)
+      .executeTakeFirst();
+
+    if (!runway || runway.airportId !== airportId) {
+      return pathError(idPath, 'Selected runway does not belong to the airport');
+    }
+
+    const endIdent = runwayEnd === 'le' ? runway.leIdent : runway.heIdent;
+    if (!endIdent) {
+      return pathError(
+        endPath,
+        'Selected runway end is not valid for this runway',
+      );
+    }
+
+    return null;
+  };
+
+  const departureRunwayError = await validateRunwaySelection(
+    from.id,
+    departureRunwayId,
+    departureRunwayEnd,
+    'departureRunwayId',
+    'departureRunwayEnd',
+  );
+  if (departureRunwayError) return departureRunwayError;
+
+  const arrivalRunwayError = await validateRunwaySelection(
+    to.id,
+    arrivalRunwayId,
+    arrivalRunwayEnd,
+    'arrivalRunwayId',
+    'arrivalRunwayEnd',
+  );
+  if (arrivalRunwayError) return arrivalRunwayError;
 
   if (data.datePrecision !== 'day') {
     if (!data.departure) {
