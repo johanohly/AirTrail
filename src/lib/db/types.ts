@@ -52,6 +52,18 @@ export type Flight = Omit<
 };
 export type FlightTrack = Selectable<flight_track>;
 type CreateFlightAirport = Partial<Airport>;
+// aircraft/airline as attached to a flight via the form or an importer: an
+// Aircraft/Airline, but with a nullable id (a not-yet-created item has none)
+// and dropping the fields the form schema leaves out/optional (sourceId, and
+// iconPath for airline). Only the id is persisted (see aircraftId/airlineId in
+// db/queries.ts), so this stays loose enough that both the form schema outputs
+// and full records assign.
+type FlightAircraftInput = Omit<Aircraft, 'id' | 'sourceId'> & {
+  id: number | null;
+};
+type FlightAirlineInput = Omit<Airline, 'id' | 'sourceId' | 'iconPath'> & {
+  id: number | null;
+};
 type FlightRecord = Omit<
   Selectable<flight>,
   'id' | 'fromId' | 'toId' | 'aircraftId' | 'airlineId'
@@ -59,8 +71,8 @@ type FlightRecord = Omit<
 export type CreateFlight = FlightRecord & {
   from: CreateFlightAirport | null;
   to: CreateFlightAirport | null;
-  aircraft: Aircraft | null;
-  airline: Airline | null;
+  aircraft: FlightAircraftInput | null;
+  airline: FlightAirlineInput | null;
   seats: Omit<Seat, 'flightId' | 'id'>[];
   track?: FlightTrackInput | null;
 };
