@@ -11,6 +11,7 @@ import {
   syncAirlineIcons,
 } from '$lib/server/utils/sync';
 import { uploadManager } from '$lib/server/utils/uploads';
+import { ensureRunways } from '$lib/utils/data/airports/runways';
 import { ensureAirports } from '$lib/utils/data/airports/source';
 
 async function loadConfig() {
@@ -27,6 +28,7 @@ export const init: ServerInit = async () => {
   }
 
   await ensureAirports();
+  await ensureRunways();
   await uploadManager.init();
   await ensureInitialDataSync();
   await validateAirlineIcons();

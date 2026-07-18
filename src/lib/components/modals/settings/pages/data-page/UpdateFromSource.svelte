@@ -69,33 +69,46 @@
               <dt class="text-muted-foreground mb-2">Took</dt>
               <dd class="flex gap-2">
                 <span class="font-medium">
-                  {Duration.fromSeconds(result.time / 1000).toHuman()}
+                  {Duration.fromSeconds(
+                    (result.airports.time + result.runways.time) / 1000,
+                  ).toHuman()}
                 </span>
               </dd>
             </dl>
           {/if}
         </div>
         {#if result}
-          <div class="flex gap-5">
-            <dl class="flex flex-col text-sm">
-              <dt class="text-muted-foreground mb-2">Added</dt>
-              <dd class="flex gap-2">
-                <span class="font-medium font-mono">{result.created}</span>
-              </dd>
-            </dl>
-            <dl class="flex flex-col text-sm">
-              <dt class="text-muted-foreground mb-2">Updated</dt>
-              <dd class="flex gap-2">
-                <span class="font-medium font-mono">{result.updated}</span>
-              </dd>
-            </dl>
-            <dl class="flex flex-col text-sm">
-              <dt class="text-muted-foreground mb-2">Deleted</dt>
-              <dd class="flex gap-2">
-                <span class="font-medium font-mono">{result.removed}</span>
-              </dd>
-            </dl>
-          </div>
+          {@const stats = [
+            { label: 'Airports', value: result.airports },
+            { label: 'Runways', value: result.runways },
+          ]}
+          {#each stats as { label, value } (label)}
+            <div class="flex flex-col gap-2">
+              <span class="text-muted-foreground text-sm font-medium">
+                {label}
+              </span>
+              <div class="flex gap-5">
+                <dl class="flex flex-col text-sm">
+                  <dt class="text-muted-foreground mb-2">Added</dt>
+                  <dd class="flex gap-2">
+                    <span class="font-medium font-mono">{value.created}</span>
+                  </dd>
+                </dl>
+                <dl class="flex flex-col text-sm">
+                  <dt class="text-muted-foreground mb-2">Updated</dt>
+                  <dd class="flex gap-2">
+                    <span class="font-medium font-mono">{value.updated}</span>
+                  </dd>
+                </dl>
+                <dl class="flex flex-col text-sm">
+                  <dt class="text-muted-foreground mb-2">Deleted</dt>
+                  <dd class="flex gap-2">
+                    <span class="font-medium font-mono">{value.removed}</span>
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          {/each}
         {/if}
       </div>
     {/if}

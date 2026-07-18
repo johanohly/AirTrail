@@ -224,22 +224,78 @@ const collectAirportSourceIdentSet = async () => {
   return identSet;
 };
 
+/**
+ * Maps each source airport `ident` (upper-cased) to the `icao` we store it
+ * under. `createAirportCode` frequently stores an airport under its gps_code -
+ * or a keyword-backfilled ICAO - rather than its bare ident, so callers that
+ * reference airports by their source ident (e.g. runway import, whose
+ * `airport_ident` is the source ident) need this to resolve them. This mirrors
+ * the code-assignment done in forEachFetchedAirport, minus the timezone lookup:
+ * airports dropped there for a missing tz simply resolve to an icao that isn't
+ * in the DB, so their entries are harmlessly ignored.
+ */
+export const buildIdentToIcaoMap = async (): Promise<Map<string, string>> => {
+  const identSet = await collectAirportSourceIdentSet();
+
+  const map = new Map<string, string>();
+  const usedIcao = new Set<string>();
+  const usedIata = new Set<string>();
+  const pendingKeywordFill: Array<{
+    ident: string;
+    airport: AirportCode;
+    keywords: string | null;
+  }> = [];
+
+  await forEachAirportSourceRow((row) => {
+    const airport: AirportCode = {
+      icao: createAirportCode(row, identSet),
+      iata: row.iata_code === '' ? null : row.iata_code,
+    };
+    const ident = row.ident.toUpperCase();
+
+    usedIcao.add(airport.icao);
+    if (airport.iata) {
+      usedIata.add(airport.iata);
+    }
+
+    if (needsKeywordFill(airport, row.keywords)) {
+      pendingKeywordFill.push({ ident, airport, keywords: row.keywords });
+      return;
+    }
+
+    map.set(ident, airport.icao.toUpperCase());
+  });
+
+  fillPendingKeywordCodes(pendingKeywordFill, usedIcao, usedIata);
+
+  for (const { ident, airport } of pendingKeywordFill) {
+    map.set(ident, airport.icao.toUpperCase());
+  }
+
+  return map;
+};
+
 const forEachAirportSourceRow = async (
   onRow: (row: AirportSourceRow) => Promise<void> | void,
 ) => {
-  const resp = await fetch(AIRPORT_SOURCE_URL);
-  if (!resp.ok) {
+  const airports = await fetch(AIRPORT_SOURCE_URL);
+  if (!airports.ok) {
     throw new Error(
-      `Failed to fetch airport source CSV: ${resp.status} ${resp.statusText}`,
+      `Failed to fetch airport source CSV: ${airports.status} ${airports.statusText}`,
     );
   }
-  if (!resp.body) {
+  if (!airports.body) {
     throw new Error('Airport source CSV response did not include a body');
   }
 
-  await forEachCsvRow(resp.body, airportSourceSchema, onRow, (row, error) => {
-    console.error('Error parsing airport row:', row, error);
-  });
+  await forEachCsvRow(
+    airports.body,
+    airportSourceSchema,
+    onRow,
+    (row, error) => {
+      console.error('Error parsing airport row:', row, error);
+    },
+  );
 };
 
 const toInsertAirport = (
@@ -288,7 +344,7 @@ const createAirportCode = (
     : ident;
 };
 
-const needsKeywordFill = (airport: InsertAirport, keywords: string | null) => {
+const needsKeywordFill = (airport: AirportCode, keywords: string | null) => {
   if (ICAO_RE.test(airport.icao) && airport.iata !== null) {
     return false;
   }
@@ -322,7 +378,7 @@ const getKeywordCodeCandidate = (keywords: string | null) => {
  * we do not claim a code that is already used by a later airport row.
  */
 const fillPendingKeywordCodes = (
-  airports: Array<{ airport: InsertAirport; keywords: string | null }>,
+  airports: Array<{ airport: AirportCode; keywords: string | null }>,
   usedIcao: Set<string>,
   usedIata: Set<string>,
 ) => {
@@ -391,3 +447,6 @@ const updateAirportBatch = async (airports: Airport[]) => {
 type AirportSourceRow = z.infer<typeof airportSourceSchema>;
 
 type InsertAirport = Omit<Airport, 'id'>;
+
+// The subset of an airport the code-assignment logic reads/writes.
+type AirportCode = Pick<InsertAirport, 'icao' | 'iata'>;

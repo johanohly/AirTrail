@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db } from '$lib/db';
 import { adminProcedure, authedProcedure, router } from '$lib/server/trpc';
 import { getAirport } from '$lib/server/utils/airport';
+import { updateRunways } from '$lib/utils/data/airports/runways';
 import { updateAirports } from '$lib/utils/data/airports/source';
 
 export const airportRouter = router({
@@ -53,6 +54,9 @@ export const airportRouter = router({
     return result.length > 0;
   }),
   updateFromSource: adminProcedure.mutation(async () => {
-    return await updateAirports();
+    // Airports first: runway resolution depends on the current airport set.
+    const airports = await updateAirports();
+    const runways = await updateRunways();
+    return { airports, runways };
   }),
 });

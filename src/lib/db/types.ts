@@ -6,6 +6,7 @@ import type {
   flight,
   flight_track,
   public_share,
+  runway,
   seat,
   user,
   visited_country,
@@ -36,6 +37,7 @@ export type Aircraft = Selectable<aircraft>;
 export type Airline = Selectable<airline>;
 export type Airport = Selectable<airport>;
 export type CreateAirport = Insertable<airport>;
+export type Runway = Selectable<runway>;
 export type Seat = Selectable<seat>;
 export type FlightSeat = Seat & {
   user: Pick<User, 'id' | 'displayName' | 'username'> | null;
