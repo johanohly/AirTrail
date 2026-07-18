@@ -37,19 +37,40 @@
       .catch(() => set([]));
   };
 
+  // Clear a selected runway that no longer belongs to the chosen airport (e.g.
+  // the airport was changed or cleared after picking a runway). Runway ids are
+  // globally unique to one airport, so changing the airport always drops the
+  // previous runway — even when the new airport has a runway of the same
+  // number/ident.
+  const dropStaleRunway = (
+    runways: Runway[],
+    idField: 'departureRunwayId' | 'arrivalRunwayId',
+    endField: 'departureRunwayEnd' | 'arrivalRunwayEnd',
+  ) => {
+    const id = $formData[idField];
+    if (id != null && !runways.some((r) => r.id === id)) {
+      $formData[idField] = null;
+      $formData[endField] = null;
+    }
+  };
+
   // Guard against out-of-order responses: the cleanup runs before the effect
   // re-fires (or on unmount), so a stale in-flight request can't clobber state.
   $effect(() => {
     let cancelled = false;
     load($formData.from?.id, (r) => {
-      if (!cancelled) departureRunways = r;
+      if (cancelled) return;
+      departureRunways = r;
+      dropStaleRunway(r, 'departureRunwayId', 'departureRunwayEnd');
     });
     return () => (cancelled = true);
   });
   $effect(() => {
     let cancelled = false;
     load($formData.to?.id, (r) => {
-      if (!cancelled) arrivalRunways = r;
+      if (cancelled) return;
+      arrivalRunways = r;
+      dropStaleRunway(r, 'arrivalRunwayId', 'arrivalRunwayEnd');
     });
     return () => (cancelled = true);
   });
