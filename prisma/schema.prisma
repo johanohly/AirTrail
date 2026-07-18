@@ -184,6 +184,9 @@ model flight {
   departure_runway_id Int?
   arrival_runway_id   Int?
 
+  departure_runway_end String? /// @kyselyType('le' | 'he')
+  arrival_runway_end   String? /// @kyselyType('le' | 'he')
+
   departure_runway runway? @relation("departure_runway", fields: [departure_runway_id], references: [id])
   arrival_runway   runway? @relation("arrival_runway", fields: [arrival_runway_id], references: [id])
 

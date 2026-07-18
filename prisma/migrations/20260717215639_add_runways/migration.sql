@@ -1,6 +1,8 @@
 -- AlterTable
 ALTER TABLE "flight" ADD COLUMN     "arrival_runway_id" INTEGER,
-ADD COLUMN     "departure_runway_id" INTEGER;
+ADD COLUMN     "departure_runway_id" INTEGER,
+ADD COLUMN     "departure_runway_end" TEXT,
+ADD COLUMN     "arrival_runway_end" TEXT;
 
 -- CreateTable
 CREATE TABLE "runway" (
