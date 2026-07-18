@@ -88,12 +88,15 @@ const forEachRunwaySourceRow = async (
   });
 };
 
-const insertRunwayBatch = async (runways: InsertRunway[]) => {
+const insertRunwayBatch = async (
+  runways: InsertRunway[],
+  executor: typeof db = db,
+) => {
   if (runways.length === 0) {
     return;
   }
 
-  await db.insertInto('runway').values(runways).execute();
+  await executor.insertInto('runway').values(runways).execute();
   runways.length = 0;
 };
 
@@ -153,23 +156,30 @@ export const ensureRunways = async () => {
   console.time('Populate initial runway database');
 
   const identToAirportId = await buildIdentToAirportIdMap();
-  const batch: InsertRunway[] = [];
   let skipped = 0;
 
-  await forEachRunwaySourceRow(async (row) => {
-    const runway = toInsertRunway(row, identToAirportId);
-    if (!runway) {
-      skipped += 1;
-      return;
-    }
+  // Insert every batch in a single transaction so an interrupted download or a
+  // failed insert rolls the whole population back. Without this, a partial
+  // table would look "initialized" on the next startup (the check above returns
+  // early) and the missing runways would never be inserted.
+  await db.transaction().execute(async (trx) => {
+    const batch: InsertRunway[] = [];
 
-    batch.push(runway);
-    if (batch.length >= BATCH_SIZE) {
-      await insertRunwayBatch(batch);
-    }
+    await forEachRunwaySourceRow(async (row) => {
+      const runway = toInsertRunway(row, identToAirportId);
+      if (!runway) {
+        skipped += 1;
+        return;
+      }
+
+      batch.push(runway);
+      if (batch.length >= BATCH_SIZE) {
+        await insertRunwayBatch(batch, trx);
+      }
+    });
+
+    await insertRunwayBatch(batch, trx);
   });
-
-  await insertRunwayBatch(batch);
 
   if (skipped) {
     console.warn(`Skipped ${skipped} runways with no matching airport`);
