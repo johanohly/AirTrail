@@ -54,13 +54,28 @@
     return () => (cancelled = true);
   });
 
+  // Runway idents look like "16", "16L", "34R" — a heading number (01–36) with
+  // an optional L/C/R side. Sort ends by number, then side, so parallel ends
+  // group together, e.g. 16L, 16R, 34L, 34R.
+  const SIDE_ORDER: Record<string, number> = { '': 0, L: 1, C: 2, R: 3 };
+  const identKey = (ident: string) => {
+    const m = /^(\d{1,2})\s*([LCR]?)/.exec(ident);
+    return { num: m ? Number(m[1]) : 0, side: SIDE_ORDER[m?.[2] ?? ''] ?? 0 };
+  };
+
   // Each runway contributes both of its ends as separate options; the value
   // encodes the runway id and which end was chosen, e.g. "42:le".
   const toOptions = (runways: Runway[]) =>
-    runways.flatMap((r) => [
-      ...(r.leIdent ? [{ value: `${r.id}:le`, label: r.leIdent }] : []),
-      ...(r.heIdent ? [{ value: `${r.id}:he`, label: r.heIdent }] : []),
-    ]);
+    runways
+      .flatMap((r) => [
+        ...(r.leIdent ? [{ value: `${r.id}:le`, label: r.leIdent }] : []),
+        ...(r.heIdent ? [{ value: `${r.id}:he`, label: r.heIdent }] : []),
+      ])
+      .sort((a, b) => {
+        const ka = identKey(a.label);
+        const kb = identKey(b.label);
+        return ka.num - kb.num || ka.side - kb.side;
+      });
 
   const hasData = $derived(
     !!$formData.departureRunwayId || !!$formData.arrivalRunwayId,
@@ -122,8 +137,8 @@
                     {options.find((option) => option.value === current)
                       ?.label ??
                       (section.airport
-                        ? 'Select runway'
-                        : 'Select an airport first')}
+                        ? `Select ${section.label.toLowerCase()} runway`
+                        : `Select ${section.label.toLowerCase()} airport first`)}
                   </Select.Trigger>
                   <Select.Content>
                     {#each options as option (option.value)}
