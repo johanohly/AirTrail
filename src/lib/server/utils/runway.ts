@@ -1,9 +1,10 @@
 import { db } from '$lib/db';
 import type { RunwayEnd } from '$lib/db/types';
 
-// Looks up a non-closed runway at the given airport by either of its end
-// identifiers e.g. 23L (case-insensitive), returning the runway's id and 
-// which end ('le' or 'he') matched the provided ident.
+// ident -> runway: given a runway end identifier (e.g. '23L'), finds the
+// matching non-closed runway at the airport (case-insensitive, matches either
+// end) and returns its id plus which end matched ('le' for the low end like
+// '05', 'he' for the high end like '23L').
 export const getRunwayByIdent = async (
   airportId: number,
   ident: string,
@@ -22,4 +23,17 @@ export const getRunwayByIdent = async (
   const end: RunwayEnd =
     runway.leIdent?.toLowerCase() === id.toLowerCase() ? 'le' : 'he';
   return { runwayId: runway.id, end };
+};
+
+// airport -> runways: given an airport id, returns all of its non-closed
+// runways (each with its id and both end idents, e.g. leIdent '05' /
+// heIdent '23'), ordered by the low-end identifier.
+export const getRunwaysByAirport = async (airportId: number) => {
+  return await db
+    .selectFrom('runway')
+    .select(['id', 'leIdent', 'heIdent'])
+    .where('airportId', '=', airportId)
+    .where('closed', '=', false)
+    .orderBy('leIdent')
+    .execute();
 };
