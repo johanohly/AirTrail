@@ -4,7 +4,7 @@
   import { fly } from 'svelte/transition';
 
   import { Modal } from '$lib/components/ui/modal';
-  import { peekModalHistory } from '$lib/components/ui/modal/Modal.svelte';
+  import { peekModalHistory } from '$lib/components/ui/modal/modal-history';
   import { Separator } from '$lib/components/ui/separator';
   import { isMediumScreen } from '$lib/utils/size';
 

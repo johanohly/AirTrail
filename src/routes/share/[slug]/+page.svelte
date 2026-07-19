@@ -84,22 +84,14 @@
 
   let showFlightList = $state(false);
   let showStatistics = $state(false);
-  let flightListOpenedFromStatistics = $state(false);
   let filters: FlightFilters = $state(createDefaultFilters());
 
   const shareSettings = $derived($shareQuery.data?.settings);
 
   const openSharedFlightInList = (flightId: number) => {
     focusFlightInList(flightId);
-    flightListOpenedFromStatistics = true;
     showFlightList = true;
   };
-
-  $effect(() => {
-    if (!showFlightList) {
-      flightListOpenedFromStatistics = false;
-    }
-  });
 
   $effect(() => {
     return () => {
@@ -195,8 +187,6 @@
       onOpenFlight={shareSettings.showFlightList
         ? openSharedFlightInList
         : undefined}
-      suppressEscapeNavigation={flightListOpenedFromStatistics &&
-        showFlightList}
     />
   {/if}
 {:else if shareSettings}
