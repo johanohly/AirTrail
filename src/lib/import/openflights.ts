@@ -363,6 +363,7 @@ const lookupAirline = async (
 const lookupAircraft = async (
   row: z.infer<typeof OpenFlightsFlight>,
   data: OpenFlightsData,
+  options: PlatformOptions,
 ) => {
   const byOid = row.plane_oid
     ? data.planesByRowNumber.get(row.plane_oid)
@@ -376,11 +377,16 @@ const lookupAircraft = async (
       : (byOid ?? byName);
   const icao = openFlightsPlane?.icao ?? null;
   const name = openFlightsPlane?.name ?? row.plane;
+  const mappingKey = icao ?? name ?? row.plane_oid ?? null;
+
+  if (mappingKey && options.aircraftMapping?.[mappingKey]) {
+    return { aircraft: options.aircraftMapping[mappingKey], mappingKey };
+  }
 
   let aircraft = icao ? await getAircraftByIcao(icao) : null;
   aircraft ??= name ? await getAircraftByName(name) : null;
 
-  return aircraft;
+  return { aircraft, mappingKey };
 };
 
 export const processOpenFlightsFile = async (
@@ -400,6 +406,7 @@ export const processOpenFlightsFile = async (
   const flights: CreateFlight[] = [];
   const unknownAirports: Record<string, number[]> = {};
   const unknownAirlines: Record<string, number[]> = {};
+  const unknownAircraft: Record<string, number[]> = {};
   let skippedInvalidRows = 0;
 
   for (const row of data) {
@@ -425,7 +432,11 @@ export const processOpenFlightsFile = async (
       openFlightsData,
       options,
     );
-    const aircraft = await lookupAircraft(row, openFlightsData);
+    const { aircraft, mappingKey: aircraftKey } = await lookupAircraft(
+      row,
+      openFlightsData,
+      options,
+    );
     const duration = parseDuration(row.duration);
 
     const departure =
@@ -454,6 +465,10 @@ export const processOpenFlightsFile = async (
     if (!airline && airlineKey) {
       unknownAirlines[airlineKey] ??= [];
       unknownAirlines[airlineKey].push(flightIndex);
+    }
+    if (!aircraft && aircraftKey) {
+      unknownAircraft[aircraftKey] ??= [];
+      unknownAircraft[aircraftKey].push(flightIndex);
     }
 
     flights.push({
@@ -496,6 +511,7 @@ export const processOpenFlightsFile = async (
     flights,
     unknownAirports,
     unknownAirlines,
+    unknownAircraft,
     skippedRows: skipped.length + skippedInvalidRows,
   };
 };

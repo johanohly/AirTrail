@@ -154,6 +154,7 @@ export const processFlightyFile = async (
       flights: [],
       unknownAirports: {},
       unknownAirlines: {},
+      unknownAircraft: {},
       skippedRows: skipped.length,
     };
   }
@@ -161,6 +162,7 @@ export const processFlightyFile = async (
   const flights: CreateFlight[] = [];
   const unknownAirports: Record<string, number[]> = {};
   const unknownAirlines: Record<string, number[]> = {};
+  const unknownAircraft: Record<string, number[]> = {};
 
   for (const row of data) {
     const mappedFrom = options.airportMapping?.[row.from];
@@ -226,8 +228,10 @@ export const processFlightyFile = async (
       }
     }
 
-    const aircraft = row.aircraft_type_name
-      ? await getAircraftByName(row.aircraft_type_name)
+    const aircraftName = row.aircraft_type_name?.trim() || null;
+    const aircraft = aircraftName
+      ? (options.aircraftMapping?.[aircraftName] ??
+        (await getAircraftByName(aircraftName)))
       : null;
 
     const flightNumber =
@@ -250,6 +254,10 @@ export const processFlightyFile = async (
     if (!airline && airlineIcao) {
       if (!unknownAirlines[airlineIcao]) unknownAirlines[airlineIcao] = [];
       unknownAirlines[airlineIcao]!.push(flightIndex);
+    }
+    if (!aircraft && aircraftName) {
+      if (!unknownAircraft[aircraftName]) unknownAircraft[aircraftName] = [];
+      unknownAircraft[aircraftName]!.push(flightIndex);
     }
 
     flights.push({
@@ -300,6 +308,7 @@ export const processFlightyFile = async (
     flights,
     unknownAirports,
     unknownAirlines,
+    unknownAircraft,
     skippedRows: skipped.length,
   };
 };
