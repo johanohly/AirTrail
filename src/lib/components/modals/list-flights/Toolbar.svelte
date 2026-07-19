@@ -351,7 +351,7 @@
                     <Confirm
                       onConfirm={deleteSelectedFlights}
                       title="Delete selected flights"
-                      description="Are you sure you want to delete the selected flights? This will permanently delete the flights as well as their seats."
+                      description="Are you sure you want to delete the selected flights? This will permanently delete the flights as well as their passengers."
                       confirmText="Delete"
                     >
                       {#snippet triggerContent({ props })}

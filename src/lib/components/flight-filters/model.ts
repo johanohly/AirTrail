@@ -872,7 +872,7 @@ export function matchesNonLocationFilters(
 
   if (
     !multiOptionMatches(
-      flight.seats
+      flight.passengers
         .map((seat) => getSeatPassengerToken(seat))
         .filter((token): token is string => !!token),
       filters.passengers,

@@ -4,7 +4,7 @@ import { isAfter } from 'date-fns';
 import { resolveFlightTimeline } from './flight-timeline';
 
 import { page } from '$app/state';
-import type { Airport, Flight, FlightSeat } from '$lib/db/types';
+import type { Airport, Flight, FlightPassenger } from '$lib/db/types';
 import { distanceBetween, toTitleCase } from '$lib/utils';
 import { nowIn } from '$lib/utils/datetime';
 
@@ -208,9 +208,9 @@ export const formatSeatForUser = (
 
   let s;
   if (userId) {
-    s = f.seats.find((seat) => seat.userId === userId);
-  } else if (f.seats.length === 1) {
-    s = f.seats[0];
+    s = f.passengers.find((seat) => seat.userId === userId);
+  } else if (f.passengers.length === 1) {
+    s = f.passengers[0];
   }
   if (!s) return null;
 
@@ -232,11 +232,11 @@ export const formatSeatForUser = (
   return null;
 };
 
-export const getSeatPassengerLabel = (seat: FlightSeat) => {
+export const getSeatPassengerLabel = (seat: FlightPassenger) => {
   return seat.user?.displayName ?? seat.guestName ?? null;
 };
 
-export const getSeatPassengerToken = (seat: FlightSeat) => {
+export const getSeatPassengerToken = (seat: FlightPassenger) => {
   if (seat.userId) {
     return `user:${seat.userId}`;
   }
@@ -249,7 +249,7 @@ export const getSeatPassengerToken = (seat: FlightSeat) => {
 };
 
 export const getFlightPassengerLabels = (flight: FlightData) => {
-  return flight.seats
+  return flight.passengers
     .map((seat) => getSeatPassengerLabel(seat))
     .filter((value): value is string => Boolean(value));
 };

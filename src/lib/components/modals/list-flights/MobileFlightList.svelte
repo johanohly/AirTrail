@@ -17,7 +17,7 @@
     flightNumber: string | null;
     date: TZDate | null;
     month: string | null;
-    passengers?: string[];
+    passengerLabels?: string[];
   };
 
   type YearGroup = {
@@ -103,7 +103,10 @@
                     }
                   }}
                 >
-                  <FlightCard {flight} />
+                  <FlightCard
+                    {flight}
+                    passengerLabels={flight.passengerLabels}
+                  />
                 </button>
               {/snippet}
             </SwipeableFlightRow>

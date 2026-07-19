@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { page } from '$app/state';
 import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
-import type { CreateFlight, Seat } from '$lib/db/types';
+import type { CreateFlight, FlightPassenger } from '$lib/db/types';
 import { parseCsv } from '$lib/utils';
 import { getAirlineByIata, getAirlineByIcao } from '$lib/utils/data/airlines';
 import { getAirportByIata } from '$lib/utils/data/airports/cache';
@@ -42,7 +42,7 @@ const parseByAirTime = (
   return toUtc(parsed);
 };
 
-const mapSeatType = (seatType: string | null): Seat['seat'] => {
+const mapSeatType = (seatType: string | null): FlightPassenger['seat'] => {
   if (!seatType) return null;
   const normalized = seatType.toLowerCase().trim();
   switch (normalized) {
@@ -57,7 +57,9 @@ const mapSeatType = (seatType: string | null): Seat['seat'] => {
   }
 };
 
-const mapSeatTypeFromClass = (seatClass: string | null): Seat['seat'] => {
+const mapSeatTypeFromClass = (
+  seatClass: string | null,
+): FlightPassenger['seat'] => {
   if (!seatClass) return null;
   const normalized = seatClass.toLowerCase().trim();
   switch (normalized) {
@@ -70,7 +72,9 @@ const mapSeatTypeFromClass = (seatClass: string | null): Seat['seat'] => {
   }
 };
 
-const mapSeatClass = (seatClass: string | null): Seat['seatClass'] => {
+const mapSeatClass = (
+  seatClass: string | null,
+): FlightPassenger['seatClass'] => {
   if (!seatClass) return null;
   const normalized = seatClass.toLowerCase().trim();
   switch (normalized) {
@@ -246,7 +250,7 @@ export const processByAirFile = async (
       aircraft: null,
       aircraftReg: null,
       flightReason: mapFlightReason(row.purpose),
-      seats: [
+      passengers: [
         {
           userId,
           seat:

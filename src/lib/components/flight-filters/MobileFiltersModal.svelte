@@ -225,7 +225,7 @@
     const passengers = new Map<string, FilterOption>();
 
     for (const flight of scopedFlights) {
-      for (const seat of flight.seats) {
+      for (const seat of flight.passengers) {
         const value = getSeatPassengerToken(seat);
         const label = getSeatPassengerLabel(seat);
         if (!value || !label) continue;

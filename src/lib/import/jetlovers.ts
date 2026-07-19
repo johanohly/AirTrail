@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { page } from '$app/state';
 import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
-import type { CreateFlight, Seat } from '$lib/db/types';
+import type { CreateFlight, FlightPassenger } from '$lib/db/types';
 import { parseCsv } from '$lib/utils';
 import { getAircraftByName } from '$lib/utils/data/aircraft';
 import {
@@ -35,12 +35,12 @@ const JetLoversFlight = z.object({
   seat: z.string().transform(nullTransformer),
 });
 
-const JETLOVERS_SEAT_TYPE_MAP: Record<string, Seat['seat']> = {
+const JETLOVERS_SEAT_TYPE_MAP: Record<string, FlightPassenger['seat']> = {
   W: 'window',
   A: 'aisle',
   M: 'middle',
 };
-const JETLOVERS_SEAT_CLASS_MAP: Record<string, Seat['seatClass']> = {
+const JETLOVERS_SEAT_CLASS_MAP: Record<string, FlightPassenger['seatClass']> = {
   F: 'first',
   C: 'business',
   B: 'business',
@@ -62,11 +62,13 @@ const mapNullableCode = <T>(map: Record<string, T>, value: string | null) => {
   return map[value.trim().toUpperCase()] ?? null;
 };
 
-const mapSeatType = (seatType: string | null): Seat['seat'] => {
+const mapSeatType = (seatType: string | null): FlightPassenger['seat'] => {
   return mapNullableCode(JETLOVERS_SEAT_TYPE_MAP, seatType);
 };
 
-const mapSeatClass = (seatClass: string | null): Seat['seatClass'] => {
+const mapSeatClass = (
+  seatClass: string | null,
+): FlightPassenger['seatClass'] => {
   return mapNullableCode(JETLOVERS_SEAT_CLASS_MAP, seatClass);
 };
 
@@ -185,7 +187,7 @@ export const processJetLoversFile = async (
       aircraft,
       aircraftReg: row.aircraft_reg ? row.aircraft_reg.substring(0, 10) : null,
       flightReason: mapFlightReason(row.reason),
-      seats: [
+      passengers: [
         {
           userId,
           seat: mapSeatType(row.seat_type),

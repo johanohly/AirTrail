@@ -119,7 +119,8 @@ export const processLegacyAirTrailFile = async (
   const unknownAirports: Record<string, number[]> = {};
   const unknownAirlines: Record<string, number[]> = {};
   for (const rawFlight of data.flights) {
-    const seats = rawFlight.seats.map((seat) => {
+    const { seats, ...legacyFlight } = rawFlight;
+    const passengers = seats.map((seat) => {
       const dataUser = dataUsers?.[seat.userId ?? ''];
       const mappedUserId =
         dataUser?.username === user.username ? user.id : null;
@@ -144,8 +145,8 @@ export const processLegacyAirTrailFile = async (
     });
 
     // If exported with a different username, add the user to the list manually.
-    if (!seats.some((seat) => seat.userId === user.id)) {
-      seats.push({
+    if (!passengers.some((seat) => seat.userId === user.id)) {
+      passengers.push({
         userId: user.id,
         guestName: null,
         seat: null,
@@ -184,7 +185,7 @@ export const processLegacyAirTrailFile = async (
     }
 
     flights.push({
-      ...rawFlight,
+      ...legacyFlight,
       // Legacy format doesn't support scheduled/actual datetime fields
       departureScheduled: null,
       arrivalScheduled: null,
@@ -203,7 +204,7 @@ export const processLegacyAirTrailFile = async (
         : null,
       from: from || null,
       to: to || null,
-      seats,
+      passengers,
     });
   }
 

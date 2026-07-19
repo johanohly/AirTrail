@@ -144,7 +144,7 @@ export const generateBackup = async ({
     to: flight.to ? omit(flight.to, ['id']) : null,
     airline: flight.airline ? omit(flight.airline, ['id']) : null,
     aircraft: flight.aircraft ? omit(flight.aircraft, ['id']) : null,
-    seats: flight.seats.map((seat) => omit(seat, ['id', 'flightId'])),
+    passengers: flight.passengers.map((seat) => omit(seat, ['id', 'flightId'])),
     ...(tracksByFlight.has(flight.id)
       ? { track: tracksByFlight.get(flight.id) }
       : {}),

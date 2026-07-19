@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { page } from '$app/state';
 import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
-import type { CreateFlight, Seat } from '$lib/db/types';
+import type { CreateFlight, FlightPassenger } from '$lib/db/types';
 import { parseCsv } from '$lib/utils';
 import { parseCsvLine } from '$lib/utils/csv';
 import { getAircraftByIcao, getAircraftByName } from '$lib/utils/data/aircraft';
@@ -228,7 +228,7 @@ const parseDuration = (duration: string | null): number | null => {
   return hours * 3600 + minutes * 60 + seconds;
 };
 
-const mapSeatType = (seatType: string | null): Seat['seat'] => {
+const mapSeatType = (seatType: string | null): FlightPassenger['seat'] => {
   switch (seatType?.toUpperCase()) {
     case 'W':
       return 'window';
@@ -241,7 +241,9 @@ const mapSeatType = (seatType: string | null): Seat['seat'] => {
   }
 };
 
-const mapSeatClass = (seatClass: string | null): Seat['seatClass'] => {
+const mapSeatClass = (
+  seatClass: string | null,
+): FlightPassenger['seatClass'] => {
   switch (seatClass?.toUpperCase()) {
     case 'F':
       return 'first';
@@ -495,7 +497,7 @@ export const processOpenFlightsFile = async (
       aircraftReg: row.registration,
       airline,
       flightNumber: row.flight_number,
-      seats: [
+      passengers: [
         {
           userId,
           seat: mapSeatType(row.seat_type),

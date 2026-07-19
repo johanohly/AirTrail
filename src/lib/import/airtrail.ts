@@ -17,7 +17,7 @@ import { airlineSchema } from '$lib/zod/airline';
 import { flightAirportSchema } from '$lib/zod/airport';
 import {
   flightOptionalInformationSchema,
-  flightSeatInformationSchema,
+  flightPassengerInformationSchema,
 } from '$lib/zod/flight';
 import { usernameSchema } from '$lib/zod/user';
 import { flightTrackInputSchema } from '$lib/track/schema';
@@ -34,8 +34,21 @@ const airportRefSchema = z.union([
 const airlineRefSchema = airlineSchema.omit({ id: true }).nullable();
 const aircraftRefSchema = aircraftSchema.omit({ id: true }).nullable();
 
-const AirTrailFile = z.object({
-  flights: z
+const normalizePassengerProperty = (value: unknown) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+
+  const flight = value as Record<string, unknown>;
+  if (Array.isArray(flight.passengers) || !Array.isArray(flight.seats)) {
+    return value;
+  }
+
+  const { seats, ...rest } = flight;
+  return { ...rest, passengers: seats };
+};
+
+const airTrailFlightSchema = z.preprocess(
+  normalizePassengerProperty,
+  z
     .object({
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       datePrecision: z.enum(FlightDatePrecisions).default('day'),
@@ -63,7 +76,11 @@ const AirTrailFile = z.object({
     .merge(
       flightOptionalInformationSchema.omit({ airline: true, aircraft: true }),
     )
-    .merge(flightSeatInformationSchema)
+    .merge(flightPassengerInformationSchema),
+);
+
+const AirTrailFile = z.object({
+  flights: airTrailFlightSchema
     .array()
     .min(1, 'At least one flight is required'),
   users: z
@@ -214,7 +231,7 @@ export const processAirTrailFile = async (
     options.importMode === 'restore'
       ? data.flights
       : data.flights.filter((flight) =>
-          flight.seats.some(
+          flight.passengers.some(
             (seat) =>
               seat.userId != null && getMappedUserId(seat.userId) === user.id,
           ),
@@ -223,7 +240,7 @@ export const processAirTrailFile = async (
   for (const rawFlight of rawFlights) {
     const flightIndex = flights.length;
 
-    const seats = rawFlight.seats.map((seat) => {
+    const passengers = rawFlight.passengers.map((seat) => {
       const dataUser = dataUsers?.[seat.userId ?? ''];
       const mappedUserId = dataUser ? getMappedUserId(dataUser.id) : null;
       const user = mappedUserId
@@ -292,7 +309,7 @@ export const processAirTrailFile = async (
       airline,
       aircraft,
       track: rawFlight.track,
-      seats,
+      passengers,
     });
   }
 

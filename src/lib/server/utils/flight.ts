@@ -23,7 +23,7 @@ import {
   persistEntityCustomFields,
 } from '$lib/server/utils/custom-fields';
 import {
-  getMissingImportSeats,
+  getMissingImportPassengers,
   type FlightImportMode,
 } from '$lib/server/utils/flight-import';
 import { distanceBetween } from '$lib/utils';
@@ -103,7 +103,7 @@ export const validateAndSaveFlight = async (
   user: User,
   data: z.infer<typeof flightSchema>,
   options?: {
-    bypassSeatCheck?: boolean;
+    bypassPassengerCheck?: boolean;
   },
 ): Promise<ErrorActionResult & { id?: number }> => {
   const pathError = (path: string, message: string): ErrorActionResult => {
@@ -135,8 +135,8 @@ export const validateAndSaveFlight = async (
       const flight = await getFlight(updateId);
       if (
         !flight ||
-        (!options?.bypassSeatCheck &&
-          !flight.seats.some((seat) => seat.userId === user.id))
+        (!options?.bypassPassengerCheck &&
+          !flight.passengers.some((seat) => seat.userId === user.id))
       ) {
         return {
           success: false,
@@ -271,7 +271,7 @@ export const validateAndSaveFlight = async (
       airline,
       flightReason,
       note,
-      seats: data.seats,
+      passengers: data.passengers,
       track,
     };
 
@@ -452,7 +452,7 @@ export const validateAndSaveFlight = async (
     airline,
     flightReason,
     note,
-    seats: data.seats,
+    passengers: data.passengers,
     track,
   };
 
@@ -487,15 +487,15 @@ export const createManyFlights = async (
   userId: string,
   dedupe = true,
   mode: FlightImportMode = 'personal',
-): Promise<{ insertedFlights: number; attachedSeats: number }> => {
+): Promise<{ insertedFlights: number; attachedPassengers: number }> => {
   if (!dedupe) {
     const insertedFlights = data.length;
-    const attachedSeats = data.reduce(
-      (acc, f) => acc + (f.seats?.length ?? 0),
+    const attachedPassengers = data.reduce(
+      (acc, f) => acc + (f.passengers?.length ?? 0),
       0,
     );
     await createManyFlightsPrimitive(db, data);
-    return { insertedFlights, attachedSeats };
+    return { insertedFlights, attachedPassengers };
   }
 
   // Deduplicate within incoming data
@@ -507,7 +507,7 @@ export const createManyFlights = async (
   const uniqueFlights = Array.from(uniqueMap.values());
 
   if (uniqueFlights.length === 0)
-    return { insertedFlights: 0, attachedSeats: 0 };
+    return { insertedFlights: 0, attachedPassengers: 0 };
 
   // Gather candidate filters
   const dates = new Set(uniqueFlights.map((f) => f.date));
@@ -538,17 +538,20 @@ export const createManyFlights = async (
   }
 
   const userSeatByFlight = new Set<number>();
-  const existingSeatsByFlight = new Map<number, Flight['seats'][number][]>();
+  const existingPassengersByFlight = new Map<
+    number,
+    Flight['passengers'][number][]
+  >();
   for (const flight of existingFlights) {
-    existingSeatsByFlight.set(flight.id, flight.seats);
-    if (flight.seats.some((seat) => seat.userId === userId)) {
+    existingPassengersByFlight.set(flight.id, flight.passengers);
+    if (flight.passengers.some((seat) => seat.userId === userId)) {
       userSeatByFlight.add(flight.id);
     }
   }
 
   const flightsToInsert: CreateFlight[] = [];
-  type SeatInsert = Insertable<DB['seat']>;
-  const seatsToAttach: SeatInsert[] = [];
+  type PassengerInsert = Insertable<DB['flightPassenger']>;
+  const passengersToAttach: PassengerInsert[] = [];
   const tracksToUpsert: Array<{
     flightId: number;
     track: NonNullable<CreateFlight['track']>;
@@ -567,12 +570,12 @@ export const createManyFlights = async (
         continue;
       }
 
-      const missingSeats = getMissingImportSeats(
-        existingSeatsByFlight.get(existingId) ?? [],
-        f.seats,
+      const missingPassengers = getMissingImportPassengers(
+        existingPassengersByFlight.get(existingId) ?? [],
+        f.passengers,
       );
-      for (const seat of missingSeats) {
-        seatsToAttach.push({
+      for (const seat of missingPassengers) {
+        passengersToAttach.push({
           flightId: existingId,
           userId: seat.userId,
           guestName: seat.guestName,
@@ -586,27 +589,30 @@ export const createManyFlights = async (
     flightsToInsert.push(f);
   }
 
-  // Insert new flights and their seats
+  // Insert new flights and their passengers
   let insertedFlights = 0;
   if (flightsToInsert.length) {
     await createManyFlightsPrimitive(db, flightsToInsert);
     insertedFlights = flightsToInsert.length;
   }
 
-  // Attach seats to existing flights.
-  let attachedSeats = 0;
-  if (seatsToAttach.length || tracksToUpsert.length) {
+  // Attach passengers to existing flights.
+  let attachedPassengers = 0;
+  if (passengersToAttach.length || tracksToUpsert.length) {
     await db.transaction().execute(async (trx) => {
       for (const { flightId, track } of tracksToUpsert) {
         await upsertFlightTrackPrimitiveWithConnection(trx, flightId, track);
       }
 
-      if (seatsToAttach.length) {
-        await trx.insertInto('seat').values(seatsToAttach).execute();
-        attachedSeats = seatsToAttach.length;
+      if (passengersToAttach.length) {
+        await trx
+          .insertInto('flightPassenger')
+          .values(passengersToAttach)
+          .execute();
+        attachedPassengers = passengersToAttach.length;
       }
     });
   }
 
-  return { insertedFlights, attachedSeats };
+  return { insertedFlights, attachedPassengers };
 };

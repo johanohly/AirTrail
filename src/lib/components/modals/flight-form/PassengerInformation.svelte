@@ -38,7 +38,7 @@
   };
 
   const getExcludedUserIds = (currentIndex: number): string[] => {
-    return $formData.seats
+    return $formData.passengers
       .filter((_, i) => i !== currentIndex)
       .map((s) => s.userId)
       .filter((id): id is string => id !== null);
@@ -46,24 +46,25 @@
 </script>
 
 <section>
-  <h3 class="font-medium">Seat Information</h3>
+  <h3 class="font-medium">Passenger Details</h3>
   <Separator class="my-2" />
-  <Form.Fieldset {form} name="seats">
+  <Form.Fieldset {form} name="passengers">
     <div class="space-y-2" use:autoAnimate>
-      {#each $formData.seats as _, index}
-        {#if $formData.seats[index]}
+      {#each $formData.passengers as _, index}
+        {#if $formData.passengers[index]}
           <Card class="overflow-hidden">
             <div class="flex items-center gap-2 px-3 py-2">
               <div class="flex-1 min-w-0">
                 <PassengerPicker
-                  bind:userId={$formData.seats[index].userId}
-                  bind:guestName={$formData.seats[index].guestName}
+                  bind:userId={$formData.passengers[index].userId}
+                  bind:guestName={$formData.passengers[index].guestName}
                   excludeUserIds={getExcludedUserIds(index)}
-                  placeholderError={!!$errors?.seats?.[index]?.userId?.length}
+                  placeholderError={!!$errors?.passengers?.[index]?.userId
+                    ?.length}
                 />
               </div>
               <TextTooltip
-                content="Remove seat"
+                content="Remove passenger"
                 rootProps={{ delayDuration: 0 }}
               >
                 <Button
@@ -71,9 +72,9 @@
                   variant="ghost"
                   size="icon"
                   class="shrink-0 text-muted-foreground hover:text-destructive"
-                  disabled={$formData.seats.length === 1}
+                  disabled={$formData.passengers.length === 1}
                   onclick={() => {
-                    $formData.seats = $formData.seats.filter(
+                    $formData.passengers = $formData.passengers.filter(
                       (_, i) => i !== index,
                     );
                   }}
@@ -87,16 +88,17 @@
 
             <div class="px-3 pt-2.5 pb-3 bg-muted/30 space-y-2">
               <div class="grid grid-cols-[3fr_2fr] gap-2">
-                <Form.ElementField {form} name="seats[{index}].seatClass">
+                <Form.ElementField {form} name="passengers[{index}].seatClass">
                   <Form.Control>
                     {#snippet children({ props })}
                       <Form.Label class="text-xs">Class</Form.Label>
                       <Select.Root
                         type="single"
-                        value={$formData.seats[index]?.seatClass ?? undefined}
+                        value={$formData.passengers[index]?.seatClass ??
+                          undefined}
                         onValueChange={(value) => {
                           // @ts-expect-error - value is a SeatClass
-                          $formData.seats[index].seatClass =
+                          $formData.passengers[index].seatClass =
                             SeatClasses.includes(
                               // @ts-expect-error - value is a SeatClass
                               value,
@@ -107,8 +109,8 @@
                         allowDeselect
                       >
                         <Select.Trigger {...props} size="sm">
-                          {$formData.seats[index]?.seatClass
-                            ? toTitleCase($formData.seats[index].seatClass)
+                          {$formData.passengers[index]?.seatClass
+                            ? toTitleCase($formData.passengers[index].seatClass)
                             : 'Select class'}
                         </Select.Trigger>
                         <Select.Content>
@@ -121,7 +123,7 @@
                       </Select.Root>
                       <input
                         type="hidden"
-                        value={$formData.seats[index]?.seatClass}
+                        value={$formData.passengers[index]?.seatClass}
                         name={props.name}
                       />
                     {/snippet}
@@ -129,15 +131,15 @@
                   <Form.FieldErrors />
                 </Form.ElementField>
 
-                <Form.ElementField {form} name="seats[{index}].seatNumber">
+                <Form.ElementField {form} name="passengers[{index}].seatNumber">
                   <Form.Control>
                     {#snippet children({ props })}
                       <Form.Label class="text-xs">Seat #</Form.Label>
                       <Input
-                        value={$formData.seats[index]?.seatNumber ?? ''}
+                        value={$formData.passengers[index]?.seatNumber ?? ''}
                         oninput={(e) => {
-                          if ($formData.seats[index]) {
-                            $formData.seats[index].seatNumber =
+                          if ($formData.passengers[index]) {
+                            $formData.passengers[index].seatNumber =
                               e.currentTarget.value || null;
                           }
                         }}
@@ -151,7 +153,7 @@
                 </Form.ElementField>
               </div>
 
-              <Form.ElementField {form} name="seats[{index}].seat">
+              <Form.ElementField {form} name="passengers[{index}].seat">
                 <Form.Control>
                   {#snippet children({ props })}
                     <Form.Label class="sr-only">Seat Type</Form.Label>
@@ -161,14 +163,14 @@
                           type="button"
                           class={cn(
                             'px-2.5 py-1 rounded-md text-xs font-medium border transition-colors',
-                            $formData.seats[index]?.seat === type
+                            $formData.passengers[index]?.seat === type
                               ? 'bg-primary text-primary-foreground border-primary'
                               : 'bg-background text-muted-foreground border-input hover:border-foreground/20 hover:text-foreground',
                           )}
                           onclick={() => {
-                            if ($formData.seats[index]) {
-                              $formData.seats[index].seat =
-                                $formData.seats[index].seat === type
+                            if ($formData.passengers[index]) {
+                              $formData.passengers[index].seat =
+                                $formData.passengers[index].seat === type
                                   ? null
                                   : type;
                             }
@@ -180,7 +182,7 @@
                     </div>
                     <input
                       type="hidden"
-                      value={$formData.seats[index]?.seat}
+                      value={$formData.passengers[index]?.seat}
                       name={props.name}
                     />
                   {/snippet}
@@ -195,8 +197,8 @@
       class="w-full"
       variant="secondary"
       onclick={() => {
-        $formData.seats = [
-          ...$formData.seats,
+        $formData.passengers = [
+          ...$formData.passengers,
           {
             userId: null,
             guestName: null,
@@ -208,7 +210,7 @@
       }}
     >
       <Plus size={16} class="mr-1" />
-      Add Seat
+      Add Passenger
     </Button>
     <Form.FieldErrors />
   </Form.Fieldset>

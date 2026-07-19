@@ -164,7 +164,7 @@ async function assertEntityAccess(
     }
 
     const seat = await db
-      .selectFrom('seat')
+      .selectFrom('flightPassenger')
       .select('id')
       .where('flightId', '=', flightId)
       .where('userId', '=', user.id)

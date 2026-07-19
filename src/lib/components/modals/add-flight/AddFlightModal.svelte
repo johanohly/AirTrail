@@ -76,10 +76,10 @@
     const userId = page.data.user?.id;
     if (
       userId &&
-      $formData.seats[0] &&
-      $formData.seats[0].userId === '<USER_ID>'
+      $formData.passengers[0] &&
+      $formData.passengers[0].userId === '<USER_ID>'
     ) {
-      $formData.seats[0].userId = userId;
+      $formData.passengers[0].userId = userId;
     }
   });
 </script>

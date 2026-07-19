@@ -8,7 +8,7 @@ import type {
   Aircraft,
   Airline,
   FlightDatePrecision,
-  Seat,
+  FlightPassenger,
   PublicShare,
 } from '$lib/db/types';
 import { generateRandomString } from '$lib/server/utils/random';
@@ -29,7 +29,7 @@ interface SanitizedFlight {
   duration: number | null;
   flightReason: string | null;
   aircraftReg: string | null;
-  seats: Seat[];
+  passengers: FlightPassenger[];
   // Conditionally included fields based on privacy settings
   flightNumber?: string | null;
   airline?: Airline | null;
@@ -304,8 +304,8 @@ export function sanitizeFlightData(
   share: PublicShare,
 ): SanitizedFlight[] {
   return flights.map((flight) => {
-    // Create sanitized seats array (only include user's seats, remove sensitive data)
-    const userSeats = flight.seats
+    // Create sanitized passengers array (only include user's passengers, remove sensitive data)
+    const userSeats = flight.passengers
       .filter((seat) => seat.userId === share.userId)
       .map((seat) => ({
         ...seat,
@@ -322,7 +322,7 @@ export function sanitizeFlightData(
       duration: flight.duration,
       flightReason: flight.flightReason,
       aircraftReg: share.showAircraft ? flight.aircraftReg : null,
-      seats: userSeats,
+      passengers: userSeats,
     };
 
     // Apply privacy settings for conditional fields

@@ -14,14 +14,15 @@
     flightNumber?: string | null;
     date?: TZDate | null;
     datePrecision?: FlightDatePrecision;
-    passengers?: string[];
   };
 
   let {
     flight,
+    passengerLabels = [],
     showMeta = true,
   }: {
     flight: Flight;
+    passengerLabels?: string[];
     showMeta?: boolean;
   } = $props();
 
@@ -75,10 +76,10 @@
             {formatDate(flight)}
           </span>
         {/if}
-        {#if flight.passengers?.length}
+        {#if passengerLabels.length}
           <Badge variant="outline" class="max-w-[120px] truncate self-end">
-            {flight.passengers[0]}{flight.passengers.length > 1
-              ? ` +${flight.passengers.length - 1}`
+            {passengerLabels[0]}{passengerLabels.length > 1
+              ? ` +${passengerLabels.length - 1}`
               : ''}
           </Badge>
         {:else if getFlightNumber(flight)}

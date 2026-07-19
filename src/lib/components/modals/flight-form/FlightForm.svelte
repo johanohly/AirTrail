@@ -5,7 +5,7 @@
   import FlightInformation from './FlightInformation.svelte';
   import FlightNumber from './FlightNumber.svelte';
   import FlightTimetable from './FlightTimetable.svelte';
-  import SeatInformation from './SeatInformation.svelte';
+  import PassengerInformation from './PassengerInformation.svelte';
 
   import { confirmation } from '$lib/components/helpers/confirm';
   import { AirportField, DateTimeField } from '$lib/components/form-fields';
@@ -314,7 +314,7 @@
         class="absolute inset-0 rounded-xl border bg-neutral-50 dark:bg-input/30 [mask-image:linear-gradient(to_bottom,black,transparent)]"
       ></div>
       <div class="relative px-4 py-3">
-        <SeatInformation {form} />
+        <PassengerInformation {form} />
       </div>
     </div>
   </div>

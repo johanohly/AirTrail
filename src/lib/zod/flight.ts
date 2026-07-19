@@ -100,8 +100,8 @@ export const flightDateTimeSchema = z.object({
   landingActualTime: timePrimitive,
 });
 
-export const flightSeatInformationSchema = z.object({
-  seats: z
+export const flightPassengerInformationSchema = z.object({
+  passengers: z
     .object({
       userId: z.string().nullable(),
       guestName: z.string().max(50, 'Guest name is too long').nullable(),
@@ -114,9 +114,9 @@ export const flightSeatInformationSchema = z.object({
       path: ['userId'],
     })
     .array()
-    .min(1, 'Add at least one seat')
+    .min(1, 'Add at least one passenger')
     .refine((data) => data.some((seat) => seat.userId), {
-      message: 'At least one seat must be assigned to a user',
+      message: 'At least one passenger must be assigned to a user',
     })
     .default([
       {
@@ -158,7 +158,7 @@ export const flightTrackSchema = z.object({
 export const flightSchema = flightAirportsSchema
   .merge(flightDateTimeSchema)
   .merge(flightOptionalInformationSchema)
-  .merge(flightSeatInformationSchema)
+  .merge(flightPassengerInformationSchema)
   .merge(flightCustomFieldsSchema)
   .merge(flightTrackSchema);
 

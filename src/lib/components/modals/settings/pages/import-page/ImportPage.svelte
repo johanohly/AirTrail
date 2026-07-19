@@ -134,7 +134,7 @@
 
       return {
         inserted: stats?.insertedFlights ?? 0,
-        attached: stats?.attachedSeats ?? 0,
+        attached: stats?.attachedPassengers ?? 0,
         failures: [],
       };
     } catch (error) {

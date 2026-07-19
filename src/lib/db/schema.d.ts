@@ -143,6 +143,24 @@ export type flight = {
     aircraftId: number | null;
     airlineId: number | null;
 };
+export type flight_passenger = {
+    id: Generated<number>;
+    flightId: number;
+    userId: string | null;
+    guestName: string | null;
+    /**
+     * @kyselyType('window' | 'aisle' | 'middle' | 'pilot' | 'copilot' | 'jumpseat' | 'other')
+     */
+    seat: 'window' | 'aisle' | 'middle' | 'pilot' | 'copilot' | 'jumpseat' | 'other' | null;
+    /**
+     * Seat number (e.g. 12A)
+     */
+    seatNumber: string | null;
+    /**
+     * @kyselyType('economy' | 'economy+' | 'business' | 'first' | 'private')
+     */
+    seatClass: 'economy' | 'economy+' | 'business' | 'first' | 'private' | null;
+};
 export type flight_track = {
     flightId: number;
     track: unknown;
@@ -181,24 +199,6 @@ export type public_share = {
     showTracks: Generated<boolean>;
     showDates: Generated<boolean>;
     showSeat: Generated<boolean>;
-};
-export type seat = {
-    id: Generated<number>;
-    flightId: number;
-    userId: string | null;
-    guestName: string | null;
-    /**
-     * @kyselyType('window' | 'aisle' | 'middle' | 'pilot' | 'copilot' | 'jumpseat' | 'other')
-     */
-    seat: 'window' | 'aisle' | 'middle' | 'pilot' | 'copilot' | 'jumpseat' | 'other' | null;
-    /**
-     * Seat number (e.g. 12A)
-     */
-    seatNumber: string | null;
-    /**
-     * @kyselyType('economy' | 'economy+' | 'business' | 'first' | 'private')
-     */
-    seatClass: 'economy' | 'economy+' | 'business' | 'first' | 'private' | null;
 };
 export type session = {
     id: string;
@@ -270,10 +270,10 @@ export type DB = {
     customFieldDefinition: custom_field_definition;
     customFieldValue: custom_field_value;
     flight: flight;
+    flightPassenger: flight_passenger;
     flightTrack: flight_track;
     oauthLinkToken: oauth_link_token;
     publicShare: public_share;
-    seat: seat;
     session: session;
     user: user;
     visitedCountry: visited_country;

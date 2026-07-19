@@ -250,7 +250,7 @@
     const options = new Map<string, OptionSource>();
 
     for (const flight of scopedFlights) {
-      for (const seat of flight.seats) {
+      for (const seat of flight.passengers) {
         const value = getSeatPassengerToken(seat);
         const label = getSeatPassengerLabel(seat);
 
@@ -423,7 +423,7 @@
         displayName: 'Passenger',
         type: 'multiOption',
         accessor: (flight) =>
-          flight.seats
+          flight.passengers
             .map((seat) => getSeatPassengerToken(seat))
             .filter((value): value is string => !!value),
         icon: UsersRound,

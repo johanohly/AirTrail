@@ -113,7 +113,7 @@ const flightBase = {
   aircraftReg: null,
   flightReason: 'leisure',
   note: null,
-  seats: [seat],
+  passengers: [seat],
 };
 
 const airportObject = (icao: string, id?: number) => ({
@@ -190,7 +190,7 @@ describe('processAirTrailFile', () => {
     expect(flight.datePrecision).toBe('month');
     expect(flight.departureScheduled).toBe('2024-06-14T09:45:00.000Z');
     expect(flight.landingActual).toBe('2024-06-14T11:58:00.000Z');
-    expect(flight.seats).toEqual([
+    expect(flight.passengers).toEqual([
       {
         ...seat,
         userId: 'local-user',
@@ -301,7 +301,7 @@ describe('processAirTrailFile', () => {
           to: airportObject('EIDW'),
           airline: null,
           aircraft: null,
-          seats: [
+          passengers: [
             seat,
             {
               ...seat,
@@ -317,7 +317,7 @@ describe('processAirTrailFile', () => {
           to: airportObject('EKCH'),
           airline: null,
           aircraft: null,
-          seats: [{ ...seat, userId: otherUser.id }],
+          passengers: [{ ...seat, userId: otherUser.id }],
         },
       ],
     });
@@ -328,7 +328,7 @@ describe('processAirTrailFile', () => {
     });
 
     expect(result.flights).toHaveLength(1);
-    expect(result.flights[0]?.seats).toEqual([
+    expect(result.flights[0]?.passengers).toEqual([
       { ...seat, userId: 'local-user' },
       {
         ...seat,
@@ -377,10 +377,10 @@ describe('processAirTrailFile', () => {
       userMapping: { 'export-user': 'local-user' },
     });
 
-    expect(result.flights[0]?.seats).toEqual([
+    expect(result.flights[0]?.passengers).toEqual([
       { ...seat, userId: 'local-user' },
     ]);
-    expect(result.flights[0]?.seats).not.toContainEqual(
+    expect(result.flights[0]?.passengers).not.toContainEqual(
       expect.objectContaining({ userId: 'import-admin' }),
     );
   });
@@ -405,7 +405,7 @@ describe('processAirTrailFile', () => {
       userMapping: {},
     });
 
-    expect(result.flights[0]?.seats).toEqual([
+    expect(result.flights[0]?.passengers).toEqual([
       { ...seat, userId: null, guestName: 'John Export' },
     ]);
   });

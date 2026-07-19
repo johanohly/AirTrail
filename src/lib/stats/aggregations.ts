@@ -190,18 +190,20 @@ export const flightMatchesChartBucket = (
 
   if (chartKey === 'seat' || chartKey === 'seat-class') {
     const field = chartKey === 'seat' ? 'seat' : 'seatClass';
-    const seats = ctx.userId
-      ? flight.seats.filter((seat) => seat.userId === ctx.userId)
-      : flight.seats;
+    const passengers = ctx.userId
+      ? flight.passengers.filter((seat) => seat.userId === ctx.userId)
+      : flight.passengers;
 
     if (bucket === 'No Data') {
       if (ctx.userId) {
-        return seats.length === 0 || seats.some((seat) => !seat[field]);
+        return (
+          passengers.length === 0 || passengers.some((seat) => !seat[field])
+        );
       }
-      return seats.some((seat) => !seat[field]);
+      return passengers.some((seat) => !seat[field]);
     }
 
-    return seats.some(
+    return passengers.some(
       (seat) => seat[field] && toTitleCase(seat[field]) === bucket,
     );
   }
@@ -232,10 +234,10 @@ export function seatDistribution(
   ];
 
   if (!ctx.userId) {
-    const seats = flights.flatMap((flight) => flight.seats);
+    const passengers = flights.flatMap((flight) => flight.passengers);
     const counts = categories.reduce<Record<string, number>>(
       (acc, category) => {
-        acc[toTitleCase(category)] = seats.filter(
+        acc[toTitleCase(category)] = passengers.filter(
           (seat) => seat.seat === category,
         ).length;
         return acc;
@@ -244,7 +246,7 @@ export function seatDistribution(
     );
 
     const totalClassified = Object.values(counts).reduce((a, b) => a + b, 0);
-    const noData = seats.length - totalClassified;
+    const noData = passengers.length - totalClassified;
     if (noData > 0) {
       counts['No Data'] = noData;
     }
@@ -254,7 +256,7 @@ export function seatDistribution(
 
   const counts = categories.reduce<Record<string, number>>((acc, category) => {
     acc[toTitleCase(category)] = flights.filter((f) =>
-      f.seats.some((v) => v.userId === ctx.userId && v.seat === category),
+      f.passengers.some((v) => v.userId === ctx.userId && v.seat === category),
     ).length;
     return acc;
   }, {});
@@ -276,10 +278,10 @@ export function seatClassDistribution(
   const categories = ['economy', 'economy+', 'business', 'first', 'private'];
 
   if (!ctx.userId) {
-    const seats = flights.flatMap((flight) => flight.seats);
+    const passengers = flights.flatMap((flight) => flight.passengers);
     const counts = categories.reduce<Record<string, number>>(
       (acc, category) => {
-        acc[toTitleCase(category)] = seats.filter(
+        acc[toTitleCase(category)] = passengers.filter(
           (seat) => seat.seatClass === category,
         ).length;
         return acc;
@@ -288,7 +290,7 @@ export function seatClassDistribution(
     );
 
     const totalClassified = Object.values(counts).reduce((a, b) => a + b, 0);
-    const noData = seats.length - totalClassified;
+    const noData = passengers.length - totalClassified;
     if (noData > 0) {
       counts['No Data'] = noData;
     }
@@ -298,7 +300,9 @@ export function seatClassDistribution(
 
   const counts = categories.reduce<Record<string, number>>((acc, category) => {
     acc[toTitleCase(category)] = flights.filter((f) =>
-      f.seats.some((v) => v.userId === ctx.userId && v.seatClass === category),
+      f.passengers.some(
+        (v) => v.userId === ctx.userId && v.seatClass === category,
+      ),
     ).length;
     return acc;
   }, {});

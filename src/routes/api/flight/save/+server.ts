@@ -39,7 +39,7 @@ const defaultFlight = {
   customFields: {},
 };
 
-const defaultSeat = {
+const defaultPassenger = {
   guestName: null,
   seat: null,
   seatNumber: null,
@@ -76,9 +76,9 @@ export const POST: RequestHandler = async ({ request }) => {
   const filled = {
     ...defaultFlight,
     ...body,
-    seats: Array.isArray(body.seats)
-      ? body.seats.map((s: unknown) => ({
-          ...defaultSeat,
+    passengers: Array.isArray(body.passengers ?? body.seats)
+      ? (body.passengers ?? body.seats).map((s: unknown) => ({
+          ...defaultPassenger,
           ...(s && typeof s === 'object' ? s : {}),
         }))
       : [],
@@ -144,12 +144,12 @@ export const POST: RequestHandler = async ({ request }) => {
     airline,
   };
 
-  if (data.seats[0]?.userId === '<USER_ID>') {
-    data.seats[0].userId = user.id;
+  if (data.passengers[0]?.userId === '<USER_ID>') {
+    data.passengers[0].userId = user.id;
   }
 
   const result = await validateAndSaveFlight(user, data, {
-    bypassSeatCheck: user.role !== 'user',
+    bypassPassengerCheck: user.role !== 'user',
   });
   if (!result.success) {
     // @ts-expect-error - this should be valid
