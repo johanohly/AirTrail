@@ -52,7 +52,7 @@ The CSV file contains the following columns:
 - `arrival`: The arrival time in ISO 8601 format (if available).
 - `duration`: The duration of the flight in seconds.
 - `flightNumber`: The flight number (if available).
-- `flightReason`: The reason for the flight (if provided).
+- `flightReason`: The selected user's reason for taking the flight (if provided).
 - `airline`: The airline operating the flight (if available).
 - `aircraft`: The type of aircraft used (if available).
 - `aircraftReg`: The registration number of the aircraft (if available).
@@ -69,7 +69,7 @@ The CSV file contains the following columns:
 </Callout>
 
 The JSON export option provides a more structured format that is ideal for developers or when integrating the data into
-other systems. It contains nested objects for each flight and detailed data for each user and their seat information.
+other systems. It contains nested objects for each flight and detailed records for every passenger.
 
 #### Format
 
@@ -124,7 +124,6 @@ The JSON file follows this structure:
       "landingActual": "ISO_8601_DATETIME",
       "duration": flight_duration_in_seconds,
       "flightNumber": "FLIGHT_NUMBER",
-      "flightReason": "FLIGHT_REASON",
       "airline": {
         "name": "Airline Name",
         "icao": "ICAO_AIRLINE_CODE",
@@ -142,13 +141,17 @@ The JSON file follows this structure:
       "arrivalTerminal": "TERMINAL",
       "arrivalGate": "GATE",
       "note": "FLIGHT_NOTE",
-      "seats": [
+      "passengers": [
         {
           "userId": "USER_ID",
           "guestName": "GUEST_NAME",
           "seat": "SEAT_TYPE",
           "seatNumber": "SEAT_NUMBER",
-          "seatClass": "SEAT_CLASS"
+          "seatClass": "SEAT_CLASS",
+          "flightReason": "FLIGHT_REASON",
+          "customFields": {
+            "meal_preferences": ["Vegetarian", "Gluten-free"]
+          }
         }
       ]
     }
