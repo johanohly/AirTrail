@@ -103,11 +103,13 @@ export const flightDateTimeSchema = z.object({
 export const flightPassengerInformationSchema = z.object({
   passengers: z
     .object({
+      id: z.number().int().positive().optional(),
       userId: z.string().nullable(),
       guestName: z.string().max(50, 'Guest name is too long').nullable(),
       seat: z.enum(SeatTypes).nullable(),
       seatNumber: z.string().max(5, 'Seat number is too long').nullable(), // 12A-1 for example
       seatClass: z.enum(SeatClasses).nullable(),
+      flightReason: z.enum(FlightReasons).nullable().default(null),
     })
     .refine((data) => data.userId ?? data.guestName, {
       message: 'Select a user or add a guest name',
@@ -125,6 +127,7 @@ export const flightPassengerInformationSchema = z.object({
         seat: null,
         seatNumber: null,
         seatClass: null,
+        flightReason: null,
       },
     ]),
 });
@@ -138,7 +141,6 @@ export const flightOptionalInformationSchema = z.object({
     .string()
     .max(10, 'Aircraft registration is too long')
     .nullable(),
-  flightReason: z.enum(FlightReasons).nullable(),
   note: z.string().max(1000, 'Note is too long').nullable(),
   departureTerminal: z.string().max(10).nullable().optional(),
   departureGate: z.string().max(10).nullable().optional(),

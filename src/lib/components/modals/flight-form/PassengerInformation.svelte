@@ -12,7 +12,7 @@
   import { Input } from '$lib/components/ui/input';
   import * as Select from '$lib/components/ui/select';
   import { Separator } from '$lib/components/ui/separator';
-  import { SeatClasses, SeatTypes } from '$lib/db/types';
+  import { FlightReasons, SeatClasses, SeatTypes } from '$lib/db/types';
   import { cn, toTitleCase } from '$lib/utils';
   import type { flightSchema } from '$lib/zod/flight';
   import {
@@ -87,7 +87,7 @@
             <Separator />
 
             <div class="px-3 pt-2.5 pb-3 bg-muted/30 space-y-2">
-              <div class="grid grid-cols-[3fr_2fr] gap-2">
+              <div class="grid grid-cols-2 gap-2 md:grid-cols-[2fr_2fr_1.5fr]">
                 <Form.ElementField {form} name="passengers[{index}].seatClass">
                   <Form.Control>
                     {#snippet children({ props })}
@@ -124,6 +124,48 @@
                       <input
                         type="hidden"
                         value={$formData.passengers[index]?.seatClass}
+                        name={props.name}
+                      />
+                    {/snippet}
+                  </Form.Control>
+                  <Form.FieldErrors />
+                </Form.ElementField>
+
+                <Form.ElementField
+                  {form}
+                  name="passengers[{index}].flightReason"
+                >
+                  <Form.Control>
+                    {#snippet children({ props })}
+                      <Form.Label class="text-xs">Reason</Form.Label>
+                      <Select.Root
+                        type="single"
+                        value={$formData.passengers[index]?.flightReason ??
+                          undefined}
+                        onValueChange={(value) => {
+                          // @ts-expect-error - value is a FlightReason
+                          $formData.passengers[index].flightReason =
+                            FlightReasons.includes(value) ? value : null;
+                        }}
+                        allowDeselect
+                      >
+                        <Select.Trigger {...props} size="sm">
+                          {$formData.passengers[index]?.flightReason
+                            ? toTitleCase(
+                                $formData.passengers[index].flightReason,
+                              )
+                            : 'Select reason'}
+                        </Select.Trigger>
+                        <Select.Content>
+                          <Select.Item value="leisure" label="Leisure" />
+                          <Select.Item value="business" label="Business" />
+                          <Select.Item value="crew" label="Crew" />
+                          <Select.Item value="other" label="Other" />
+                        </Select.Content>
+                      </Select.Root>
+                      <input
+                        type="hidden"
+                        value={$formData.passengers[index]?.flightReason}
                         name={props.name}
                       />
                     {/snippet}
@@ -205,6 +247,7 @@
             seat: null,
             seatNumber: null,
             seatClass: null,
+            flightReason: null,
           },
         ];
       }}

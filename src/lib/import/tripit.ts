@@ -222,7 +222,6 @@ export const processTripItFile = async (
       arrivalGate: null,
       duration: differenceInSeconds(arrival, departure),
       flightNumber,
-      flightReason: null,
       airline,
       aircraft: null,
       aircraftReg: null,
@@ -234,6 +233,7 @@ export const processTripItFile = async (
           seatNumber: null,
           seatClass: null,
           guestName: null,
+          flightReason: null,
         },
       ],
     });

@@ -186,7 +186,6 @@ export const processJetLogFile = async (
       airline,
       aircraft,
       aircraftReg: row.tail_number ? row.tail_number.substring(0, 10) : null,
-      flightReason: row.purpose as CreateFlight['flightReason'],
       passengers: [
         {
           userId,
@@ -194,6 +193,7 @@ export const processJetLogFile = async (
           seatClass: seatClass as FlightPassenger['seatClass'],
           seatNumber: null,
           guestName: null,
+          flightReason: row.purpose as FlightPassenger['flightReason'],
         },
       ],
     });

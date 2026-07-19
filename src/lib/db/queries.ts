@@ -2,7 +2,7 @@ import { type Expression, type Kysely, sql } from 'kysely';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 
 import type { DB } from './schema';
-import type { CreateFlight } from './types';
+import type { CreateFlight, CreateFlightPassenger } from './types';
 
 import {
   flightTrackInputSchema,
@@ -54,6 +54,50 @@ const airline = (db: Kysely<DB>, id: Expression<number | null>) => {
   return jsonObjectFrom(
     db.selectFrom('airline').selectAll().where('airline.id', '=', id),
   ).as('airline');
+};
+
+type ExistingPassengerIdentity = Pick<
+  DB['flightPassenger'],
+  'id' | 'userId' | 'guestName'
+>;
+
+const passengerIdentity = (passenger: {
+  userId: string | null;
+  guestName: string | null;
+}) =>
+  passenger.userId
+    ? `user:${passenger.userId}`
+    : `guest:${passenger.guestName}`;
+
+export const resolveFlightPassengerChanges = (
+  existingPassengers: ExistingPassengerIdentity[],
+  incomingPassengers: CreateFlightPassenger[],
+) => {
+  const byId = new Map(
+    existingPassengers.map((passenger) => [passenger.id, passenger]),
+  );
+  const byIdentity = new Map(
+    existingPassengers.map((passenger) => [
+      passengerIdentity(passenger),
+      passenger,
+    ]),
+  );
+  const retainedIds = new Set<number>();
+  const resolved = incomingPassengers.map((passenger) => {
+    const existing = passenger.id
+      ? byId.get(passenger.id)
+      : byIdentity.get(passengerIdentity(passenger));
+    if (passenger.id && !existing) {
+      throw new Error('Passenger does not belong to this flight');
+    }
+    if (existing) retainedIds.add(existing.id);
+    return { passenger, existing };
+  });
+  const removedIds = existingPassengers
+    .filter((passenger) => !retainedIds.has(passenger.id))
+    .map((passenger) => passenger.id);
+
+  return { resolved, removedIds };
 };
 
 const passengers = (db: Kysely<DB>, flightId: Expression<number>) => {
@@ -165,18 +209,19 @@ export const createFlightPrimitiveWithConnection = async (
     .returning('id')
     .executeTakeFirstOrThrow();
 
-  const seatData = passengers.map((seat) => ({
+  const passengerData = passengers.map((passenger) => ({
     flightId: resp.id,
-    userId: seat.userId,
-    guestName: seat.guestName,
-    seat: seat.seat,
-    seatNumber: seat.seatNumber,
-    seatClass: seat.seatClass,
+    userId: passenger.userId,
+    guestName: passenger.guestName,
+    seat: passenger.seat,
+    seatNumber: passenger.seatNumber,
+    seatClass: passenger.seatClass,
+    flightReason: passenger.flightReason,
   }));
 
   await db
     .insertInto('flightPassenger')
-    .values(seatData)
+    .values(passengerData)
     .executeTakeFirstOrThrow();
 
   if (track) {
@@ -226,21 +271,44 @@ export const updateFlightPrimitiveWithConnection = async (
 
   if (!passengers.length) return;
 
-  await db.deleteFrom('flightPassenger').where('flightId', '=', id).execute();
+  const existingPassengers = await db
+    .selectFrom('flightPassenger')
+    .select(['id', 'userId', 'guestName'])
+    .where('flightId', '=', id)
+    .execute();
+  const { resolved, removedIds } = resolveFlightPassengerChanges(
+    existingPassengers,
+    passengers,
+  );
+  if (removedIds.length) {
+    await db
+      .deleteFrom('flightPassenger')
+      .where('id', 'in', removedIds)
+      .execute();
+  }
 
-  const seatData = passengers.map((seat) => ({
-    flightId: id,
-    userId: seat.userId,
-    guestName: seat.guestName,
-    seat: seat.seat,
-    seatNumber: seat.seatNumber,
-    seatClass: seat.seatClass,
-  }));
-
-  await db
-    .insertInto('flightPassenger')
-    .values(seatData)
-    .executeTakeFirstOrThrow();
+  for (const { passenger, existing } of resolved) {
+    const values = {
+      userId: passenger.userId,
+      guestName: passenger.guestName,
+      seat: passenger.seat,
+      seatNumber: passenger.seatNumber,
+      seatClass: passenger.seatClass,
+      flightReason: passenger.flightReason,
+    };
+    if (existing) {
+      await db
+        .updateTable('flightPassenger')
+        .set(values)
+        .where('id', '=', existing.id)
+        .executeTakeFirstOrThrow();
+    } else {
+      await db
+        .insertInto('flightPassenger')
+        .values({ ...values, flightId: id })
+        .executeTakeFirstOrThrow();
+    }
+  }
 };
 
 const normalizeFlightTrackInput = (track: FlightTrackInput): FlightTrackInput =>
@@ -312,24 +380,25 @@ export const createManyFlightsPrimitive = async (
       .returning('id')
       .execute();
 
-    const seatData = flights.flatMap((flight, index) => {
+    const passengerData = flights.flatMap((flight, index) => {
       const flightInput = data[index];
 
       if (flightInput && flightInput.passengers.length > 0) {
-        return flightInput.passengers.map((seat) => ({
+        return flightInput.passengers.map((passenger) => ({
           flightId: flight.id,
-          userId: seat.userId,
-          guestName: seat.guestName,
-          seat: seat.seat,
-          seatNumber: seat.seatNumber,
-          seatClass: seat.seatClass,
+          userId: passenger.userId,
+          guestName: passenger.guestName,
+          seat: passenger.seat,
+          seatNumber: passenger.seatNumber,
+          seatClass: passenger.seatClass,
+          flightReason: passenger.flightReason,
         }));
       }
 
       return [];
     });
 
-    await trx.insertInto('flightPassenger').values(seatData).execute();
+    await trx.insertInto('flightPassenger').values(passengerData).execute();
 
     const trackData = flights.flatMap((flight, index) => {
       const track = data[index]?.track

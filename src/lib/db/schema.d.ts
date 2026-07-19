@@ -132,10 +132,6 @@ export type flight = {
     arrivalTerminal: string | null;
     arrivalGate: string | null;
     flightNumber: string | null;
-    /**
-     * @kyselyType('leisure' | 'business' | 'crew' | 'other')
-     */
-    flightReason: 'leisure' | 'business' | 'crew' | 'other' | null;
     aircraftReg: string | null;
     note: string | null;
     fromId: number | null;
@@ -160,6 +156,10 @@ export type flight_passenger = {
      * @kyselyType('economy' | 'economy+' | 'business' | 'first' | 'private')
      */
     seatClass: 'economy' | 'economy+' | 'business' | 'first' | 'private' | null;
+    /**
+     * @kyselyType('leisure' | 'business' | 'crew' | 'other')
+     */
+    flightReason: 'leisure' | 'business' | 'crew' | 'other' | null;
 };
 export type flight_track = {
     flightId: number;

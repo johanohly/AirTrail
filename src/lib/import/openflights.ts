@@ -261,7 +261,7 @@ const mapSeatClass = (
 
 const mapFlightReason = (
   reason: string | null,
-): CreateFlight['flightReason'] => {
+): FlightPassenger['flightReason'] => {
   switch (reason?.toUpperCase()) {
     case 'B':
       return 'business';
@@ -491,7 +491,6 @@ export const processOpenFlightsFile = async (
       arrivalTerminal: null,
       arrivalGate: null,
       duration,
-      flightReason: mapFlightReason(row.reason),
       note: buildNote(row.note, row.trip, row.distance),
       aircraft,
       aircraftReg: row.registration,
@@ -504,6 +503,7 @@ export const processOpenFlightsFile = async (
           seatNumber: row.seat,
           seatClass: mapSeatClass(row.class),
           guestName: null,
+          flightReason: mapFlightReason(row.reason),
         },
       ],
     });

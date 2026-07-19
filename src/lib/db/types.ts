@@ -52,6 +52,10 @@ export type Flight = Omit<
 };
 export type FlightTrack = Selectable<flight_track>;
 type CreateFlightAirport = Partial<Airport>;
+export type CreateFlightPassenger = Omit<
+  FlightPassengerRecord,
+  'flightId' | 'id'
+> & { id?: number };
 type FlightRecord = Omit<
   Selectable<flight>,
   'id' | 'fromId' | 'toId' | 'aircraftId' | 'airlineId'
@@ -61,7 +65,7 @@ export type CreateFlight = FlightRecord & {
   to: CreateFlightAirport | null;
   aircraft: Aircraft | null;
   airline: Airline | null;
-  passengers: Omit<FlightPassengerRecord, 'flightId' | 'id'>[];
+  passengers: CreateFlightPassenger[];
   track?: FlightTrackInput | null;
 };
 export type PublicShare = Selectable<public_share>;

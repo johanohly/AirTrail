@@ -102,6 +102,7 @@ const seat = {
   seat: 'window',
   seatNumber: '12A',
   seatClass: 'economy',
+  flightReason: 'leisure',
 };
 
 const flightBase = {
@@ -111,7 +112,6 @@ const flightBase = {
   duration: 7200,
   flightNumber: 'SK123',
   aircraftReg: null,
-  flightReason: 'leisure',
   note: null,
   passengers: [seat],
 };
@@ -237,6 +237,28 @@ describe('processAirTrailFile', () => {
     expect(result.flights[0]?.takeoffActual).toBeNull();
     expect(result.flights[0]?.landingScheduled).toBeNull();
     expect(result.flights[0]?.landingActual).toBeNull();
+  });
+
+  it('moves legacy flight reasons onto legacy seats', async () => {
+    const { passengers, ...legacyFlight } = flightBase;
+    const content = JSON.stringify({
+      users: exportedUsers,
+      flights: [
+        {
+          ...legacyFlight,
+          flightReason: 'business',
+          seats: passengers.map(({ flightReason: _, ...seat }) => seat),
+          from: airportObject('EKCH'),
+          to: airportObject('EIDW'),
+          airline: null,
+          aircraft: null,
+        },
+      ],
+    });
+
+    const result = await processAirTrailFile(content, baseOptions);
+
+    expect(result.flights[0]?.passengers[0]?.flightReason).toBe('business');
   });
 
   it('falls back to names when nested airline or aircraft objects have no ICAO code', async () => {

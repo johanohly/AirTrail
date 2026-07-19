@@ -65,7 +65,7 @@ describe('processJetLoversFile', () => {
     expect(flight.date).toBe('2024-06-14');
     expect(flight.flightNumber).toBe('EI909');
     expect(flight.aircraftReg).toBe('EI-LRA');
-    expect(flight.flightReason).toBe('leisure');
+    expect(flight.passengers[0]?.flightReason).toBe('leisure');
     expect(flight.passengers[0]).toMatchObject({
       userId: 'user-1',
       seat: 'window',

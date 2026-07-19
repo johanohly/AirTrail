@@ -320,7 +320,7 @@ export function sanitizeFlightData(
       from: flight.from!, // Always include complete from airport
       to: flight.to!, // Always include complete to airport
       duration: flight.duration,
-      flightReason: flight.flightReason,
+      flightReason: userSeats[0]?.flightReason ?? null,
       aircraftReg: share.showAircraft ? flight.aircraftReg : null,
       passengers: userSeats,
     };

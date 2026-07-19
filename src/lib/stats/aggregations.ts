@@ -170,7 +170,7 @@ export const flightChartBucketForFlight = (
     case 'aircraft-regs':
       return flight.aircraftReg ?? 'No Data';
     case 'reason':
-      return flight.flightReason ? toTitleCase(flight.flightReason) : 'No Data';
+      return null;
     case 'continents':
       return flight.to?.continent
         ? ContinentMap[flight.to.continent]
@@ -188,8 +188,17 @@ export const flightMatchesChartBucket = (
 ): boolean => {
   if (bucket === 'Others') return false;
 
-  if (chartKey === 'seat' || chartKey === 'seat-class') {
-    const field = chartKey === 'seat' ? 'seat' : 'seatClass';
+  if (
+    chartKey === 'seat' ||
+    chartKey === 'seat-class' ||
+    chartKey === 'reason'
+  ) {
+    const field =
+      chartKey === 'seat'
+        ? 'seat'
+        : chartKey === 'seat-class'
+          ? 'seatClass'
+          : 'flightReason';
     const passengers = ctx.userId
       ? flight.passengers.filter((seat) => seat.userId === ctx.userId)
       : flight.passengers;
@@ -318,13 +327,35 @@ export function seatClassDistribution(
 
 export function reasonDistribution(
   flights: FlightData[],
-  _ctx: StatsContext,
+  ctx: StatsContext,
   options?: AggregationOptions,
 ): Record<string, number> {
   const categories = ['leisure', 'business', 'crew', 'other'];
+
+  if (!ctx.userId) {
+    const passengers = flights.flatMap((flight) => flight.passengers);
+    const counts = categories.reduce<Record<string, number>>(
+      (acc, category) => {
+        acc[toTitleCase(category)] = passengers.filter(
+          (passenger) => passenger.flightReason === category,
+        ).length;
+        return acc;
+      },
+      {},
+    );
+    const totalClassified = Object.values(counts).reduce((a, b) => a + b, 0);
+    const noData = passengers.length - totalClassified;
+    if (noData > 0) counts['No Data'] = noData;
+    return sortAndLimit(counts, options);
+  }
+
   const counts = categories.reduce<Record<string, number>>((acc, category) => {
-    acc[toTitleCase(category)] = flights.filter(
-      (f) => f.flightReason === category,
+    acc[toTitleCase(category)] = flights.filter((flight) =>
+      flight.passengers.some(
+        (passenger) =>
+          passenger.userId === ctx.userId &&
+          passenger.flightReason === category,
+      ),
     ).length;
     return acc;
   }, {});

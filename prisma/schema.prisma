@@ -142,8 +142,6 @@ model flight {
   arrival_gate       String?
 
   flight_number String?
-  /// @kyselyType('leisure' | 'business' | 'crew' | 'other')
-  flight_reason String?
   aircraft_reg  String?
   note          String?
 
@@ -190,6 +188,8 @@ model flight_passenger {
   seat_number String?
   /// @kyselyType('economy' | 'economy+' | 'business' | 'first' | 'private')
   seat_class  String?
+  /// @kyselyType('leisure' | 'business' | 'crew' | 'other')
+  flight_reason String?
 
   user   user?  @relation(fields: [user_id], references: [id], onDelete: Cascade)
   flight flight @relation(fields: [flight_id], references: [id], onDelete: Cascade)

@@ -25,6 +25,7 @@ const guestSeat = (
   seat: null,
   seatNumber,
   seatClass: null,
+  flightReason: null,
 });
 
 describe('getMissingImportPassengers', () => {

@@ -141,6 +141,7 @@ export const processLegacyAirTrailFile = async (
         ...seat,
         userId: mappedUserId,
         guestName,
+        flightReason: rawFlight.flightReason,
       };
     });
 
@@ -152,6 +153,7 @@ export const processLegacyAirTrailFile = async (
         seat: null,
         seatClass: null,
         seatNumber: null,
+        flightReason: rawFlight.flightReason,
       });
     }
 

@@ -234,6 +234,7 @@ export const flightRouter = router({
         seat: seat?.seat,
         seatNumber: seat?.seatNumber,
         seatClass: seat?.seatClass,
+        flightReason: seat?.flightReason,
       };
     });
 

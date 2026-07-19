@@ -34,7 +34,6 @@ const defaultFlight = {
   flightNumber: null,
   aircraft: null,
   aircraftReg: null,
-  flightReason: null,
   note: null,
   customFields: {},
 };
@@ -44,6 +43,7 @@ const defaultPassenger = {
   seat: null,
   seatNumber: null,
   seatClass: null,
+  flightReason: null,
 };
 
 const saveApiFlightSchema = flightSchema
@@ -83,6 +83,14 @@ export const POST: RequestHandler = async ({ request }) => {
         }))
       : [],
   };
+  const legacyFlightReason =
+    typeof body.flightReason === 'string' ? body.flightReason : null;
+  if (legacyFlightReason) {
+    filled.passengers = filled.passengers.map((passenger) => ({
+      ...passenger,
+      flightReason: passenger.flightReason ?? legacyFlightReason,
+    }));
+  }
   const flight = {
     ...filled,
     departure: dateTimeSchema.safeParse(filled.departure).success

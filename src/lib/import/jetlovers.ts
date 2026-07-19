@@ -49,7 +49,7 @@ const JETLOVERS_SEAT_CLASS_MAP: Record<string, FlightPassenger['seatClass']> = {
 };
 const JETLOVERS_FLIGHT_REASON_MAP: Record<
   string,
-  NonNullable<CreateFlight['flightReason']>
+  NonNullable<FlightPassenger['flightReason']>
 > = {
   B: 'business',
   L: 'leisure',
@@ -74,7 +74,7 @@ const mapSeatClass = (
 
 const mapFlightReason = (
   reason: string | null,
-): CreateFlight['flightReason'] => {
+): FlightPassenger['flightReason'] => {
   return mapNullableCode(JETLOVERS_FLIGHT_REASON_MAP, reason);
 };
 
@@ -186,7 +186,6 @@ export const processJetLoversFile = async (
       airline,
       aircraft,
       aircraftReg: row.aircraft_reg ? row.aircraft_reg.substring(0, 10) : null,
-      flightReason: mapFlightReason(row.reason),
       passengers: [
         {
           userId,
@@ -194,6 +193,7 @@ export const processJetLoversFile = async (
           seatClass: mapSeatClass(row.class),
           seatNumber: row.seat ? row.seat.substring(0, 5) : null,
           guestName: null,
+          flightReason: mapFlightReason(row.reason),
         },
       ],
     });

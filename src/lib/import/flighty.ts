@@ -99,7 +99,7 @@ const mapSeatClass = (
 
 const mapFlightReason = (
   reason: string | null,
-): CreateFlight['flightReason'] => {
+): FlightPassenger['flightReason'] => {
   if (!reason) return null;
   const normalized = reason.toLowerCase().trim();
   switch (normalized) {
@@ -293,7 +293,6 @@ export const processFlightyFile = async (
       airline,
       aircraft,
       aircraftReg: row.tail_number ? row.tail_number.substring(0, 10) : null,
-      flightReason: mapFlightReason(row.flight_reason),
       passengers: [
         {
           userId,
@@ -301,6 +300,7 @@ export const processFlightyFile = async (
           seatClass: mapSeatClass(row.cabin_class),
           seatNumber: row.seat ? row.seat.substring(0, 5) : null,
           guestName: null,
+          flightReason: mapFlightReason(row.flight_reason),
         },
       ],
     });

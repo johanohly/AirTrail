@@ -58,8 +58,16 @@
       .map((passenger) => ({
         name: getFlightPassengerLabel(passenger),
         seat: seatDescriptor(passenger),
+        reason: passenger.flightReason
+          ? toTitleCase(passenger.flightReason)
+          : null,
       }))
-      .filter((p): p is { name: string; seat: string | null } => !!p.name),
+      .filter(
+        (
+          p,
+        ): p is { name: string; seat: string | null; reason: string | null } =>
+          !!p.name,
+      ),
   );
 
   const gateLabel = (terminal: string | null, gate: string | null) => {
@@ -86,8 +94,6 @@
     if (distanceLabel) r.push({ label: 'Distance', value: distanceLabel });
     if (durationLabel) r.push({ label: 'Duration', value: durationLabel });
     if (seatLabel) r.push({ label: 'Seat', value: seatLabel });
-    if (flight.flightReason)
-      r.push({ label: 'Reason', value: toTitleCase(flight.flightReason) });
     if (departureGate) r.push({ label: 'Departure', value: departureGate });
     if (arrivalGate) r.push({ label: 'Arrival', value: arrivalGate });
     return r;
@@ -119,6 +125,9 @@
               <span class="text-muted-foreground tabular-nums">
                 {passenger.seat}
               </span>
+            {/if}
+            {#if passenger.reason}
+              <span class="text-muted-foreground">· {passenger.reason}</span>
             {/if}
           </span>
         {/each}

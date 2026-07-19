@@ -38,12 +38,30 @@ const normalizePassengerProperty = (value: unknown) => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
 
   const flight = value as Record<string, unknown>;
-  if (Array.isArray(flight.passengers) || !Array.isArray(flight.seats)) {
-    return value;
-  }
+  const sourcePassengers = Array.isArray(flight.passengers)
+    ? flight.passengers
+    : Array.isArray(flight.seats)
+      ? flight.seats
+      : null;
+  if (!sourcePassengers) return value;
 
-  const { seats, ...rest } = flight;
-  return { ...rest, passengers: seats };
+  const legacyReason = flight.flightReason ?? null;
+  const passengers = sourcePassengers.map((passenger) => {
+    if (
+      !passenger ||
+      typeof passenger !== 'object' ||
+      Array.isArray(passenger)
+    ) {
+      return passenger;
+    }
+    const record = passenger as Record<string, unknown>;
+    return {
+      ...record,
+      flightReason: record.flightReason ?? legacyReason,
+    };
+  });
+  const { seats: _seats, flightReason: _flightReason, ...rest } = flight;
+  return { ...rest, passengers };
 };
 
 const airTrailFlightSchema = z.preprocess(

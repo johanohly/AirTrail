@@ -218,7 +218,6 @@ export const validateAndSaveFlight = async (
     aircraft,
     aircraftReg,
     airline,
-    flightReason,
     note,
     departureTerminal,
     departureGate,
@@ -269,7 +268,6 @@ export const validateAndSaveFlight = async (
       aircraft,
       aircraftReg,
       airline,
-      flightReason,
       note,
       passengers: data.passengers,
       track,
@@ -450,7 +448,6 @@ export const validateAndSaveFlight = async (
     aircraft,
     aircraftReg,
     airline,
-    flightReason,
     note,
     passengers: data.passengers,
     track,
@@ -582,6 +579,7 @@ export const createManyFlights = async (
           seat: seat.seat,
           seatNumber: seat.seatNumber,
           seatClass: seat.seatClass,
+          flightReason: seat.flightReason,
         });
       }
       continue;

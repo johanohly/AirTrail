@@ -29,12 +29,13 @@ const FR24_FLIGHT_CLASS_MAP: Record<string, FlightPassenger['seatClass']> = {
   '4': 'economy+',
   '5': 'private',
 };
-const FR24_FLIGHT_REASON_MAP: Record<string, Flight['flightReason']> = {
-  '1': 'leisure',
-  '2': 'business',
-  '3': 'crew',
-  '4': 'other',
-};
+const FR24_FLIGHT_REASON_MAP: Record<string, FlightPassenger['flightReason']> =
+  {
+    '1': 'leisure',
+    '2': 'business',
+    '3': 'crew',
+    '4': 'other',
+  };
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
 const FR24_DATE_REGEX =
@@ -259,7 +260,6 @@ export const processFR24File = async (
       arrivalTerminal: null,
       arrivalGate: null,
       duration,
-      flightReason,
       note: row.note,
       aircraft,
       aircraftReg: row.registration,
@@ -272,6 +272,7 @@ export const processFR24File = async (
           seatNumber: row.seat_number,
           seatClass,
           guestName: null,
+          flightReason,
         },
       ],
     });
