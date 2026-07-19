@@ -13,8 +13,9 @@ import type { FlightLookupOptions, FlightLookupResult } from './flight-lookup';
 import type { Aircraft, Airline } from '$lib/db/types';
 import { getAircraftByIcao } from '$lib/server/utils/aircraft';
 import { getAirlineByIcao, getAirlineByIata } from '$lib/server/utils/airline';
-import { getAirportByIcao, getRunwayByIdent } from '$lib/server/utils/airport';
+import { getAirportByIcao } from '$lib/server/utils/airport';
 import { appConfig } from '$lib/server/utils/config';
+import { getRunwayByIdent } from '$lib/server/utils/runway';
 import { RequestRateLimiter } from '$lib/utils/ratelimiter';
 
 const BASE_URL = 'https://aerodatabox.p.rapidapi.com';

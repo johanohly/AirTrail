@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { db } from '$lib/db';
 import { findAirportsPrimitive } from '$lib/db/queries';
-import type { Airport, CreateAirport, RunwayEnd } from '$lib/db/types';
+import type { Airport, CreateAirport } from '$lib/db/types';
 import type { ErrorActionResult } from '$lib/utils/forms';
 import type { airportSchema } from '$lib/zod/airport';
 
@@ -50,26 +50,6 @@ export const createAirport = async (data: CreateAirport) => {
 
 export const updateAirport = async (data: Airport) => {
   await db.updateTable('airport').set(data).where('id', '=', data.id).execute();
-};
-
-export const getRunwayByIdent = async (
-  airportId: number,
-  ident: string,
-): Promise<{ runwayId: number; end: RunwayEnd } | null> => {
-  const id = ident.trim();
-  const runway = await db
-    .selectFrom('runway')
-    .select(['id', 'leIdent', 'heIdent'])
-    .where('airportId', '=', airportId)
-    .where('closed', '=', false)
-    .where((eb) =>
-      eb.or([eb('leIdent', 'ilike', id), eb('heIdent', 'ilike', id)]),
-    )
-    .executeTakeFirst();
-  if (!runway) return null;
-  const end: RunwayEnd =
-    runway.leIdent?.toLowerCase() === id.toLowerCase() ? 'le' : 'he';
-  return { runwayId: runway.id, end };
 };
 
 export const validateAndSaveAirport = async (
