@@ -124,7 +124,7 @@ describe('validateFlightImportPermissions', () => {
       'personal',
     );
 
-    expect(error).toBe('Flight 1 assigns a seat to another user');
+    expect(error).toBe('Flight 1 assigns another user as a passenger');
   });
 
   it('requires the importing user on every personal flight', () => {

@@ -200,16 +200,17 @@ export const flightMatchesChartBucket = (
           ? 'seatClass'
           : 'flightReason';
     const passengers = ctx.userId
-      ? flight.passengers.filter((seat) => seat.userId === ctx.userId)
+      ? flight.passengers.filter((passenger) => passenger.userId === ctx.userId)
       : flight.passengers;
 
     if (bucket === 'No Data') {
       if (ctx.userId) {
         return (
-          passengers.length === 0 || passengers.some((seat) => !seat[field])
+          passengers.length === 0 ||
+          passengers.some((passenger) => !passenger[field])
         );
       }
-      return passengers.some((seat) => !seat[field]);
+      return passengers.some((passenger) => !passenger[field]);
     }
 
     return passengers.some(

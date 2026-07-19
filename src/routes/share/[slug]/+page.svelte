@@ -41,9 +41,12 @@
       note: null,
       airline: flight.airline ?? null,
       aircraft: flight.aircraft ?? null,
-      passengers: flight.passengers.map((seat) => ({
-        ...seat,
-        user: 'user' in seat ? (seat.user as FlightPassenger['user']) : null,
+      passengers: flight.passengers.map((passenger) => ({
+        ...passenger,
+        user:
+          'user' in passenger
+            ? (passenger.user as FlightPassenger['user'])
+            : null,
       })),
     };
   }

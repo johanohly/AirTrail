@@ -3,7 +3,7 @@ import { sql } from 'kysely';
 
 import type { DB } from '$lib/db/schema';
 
-type EntityType = 'flight';
+type EntityType = 'flight' | 'flight_passenger';
 type FieldType =
   | 'text'
   | 'textarea'
@@ -11,6 +11,7 @@ type FieldType =
   | 'boolean'
   | 'date'
   | 'select'
+  | 'multi-select'
   | 'airport'
   | 'airline'
   | 'aircraft';
@@ -110,6 +111,20 @@ const checkValueType = (def: Definition, value: unknown): string | null => {
       : [];
     if (!options.includes(value)) return 'must be one of its options';
   }
+  if (def.fieldType === 'multi-select') {
+    if (
+      !Array.isArray(value) ||
+      value.some((item) => typeof item !== 'string')
+    ) {
+      return 'must be a list of its options';
+    }
+    const options = Array.isArray(def.options)
+      ? def.options.filter((x): x is string => typeof x === 'string')
+      : [];
+    if (value.some((item) => !options.includes(item))) {
+      return 'must contain only its options';
+    }
+  }
   if (ENTITY_TYPES.has(def.fieldType) && typeof value !== 'number') {
     return 'must use a numeric ID';
   }
@@ -170,7 +185,11 @@ const checkValidation = (def: Definition, value: unknown): string | null => {
 };
 
 const validateValue = (def: Definition, value: unknown): string | null => {
-  const isEmpty = value === undefined || value === null || value === '';
+  const isEmpty =
+    value === undefined ||
+    value === null ||
+    value === '' ||
+    (Array.isArray(value) && value.length === 0);
 
   if (def.required && isEmpty) return `Custom field "${def.label}" is required`;
   if (value == null) return null;
@@ -227,7 +246,11 @@ const mergeValues = (
     merged.set(fieldId, value);
   }
   for (const [fieldId, value] of incoming) {
-    if (value === null || value === '') {
+    if (
+      value === null ||
+      value === '' ||
+      (Array.isArray(value) && !value.length)
+    ) {
       merged.delete(fieldId);
     } else {
       merged.set(fieldId, value);
@@ -244,7 +267,11 @@ const persistEntry = async (
   fieldId: number,
   value: unknown | null,
 ) => {
-  if (value === null || value === '') {
+  if (
+    value === null ||
+    value === '' ||
+    (Array.isArray(value) && !value.length)
+  ) {
     await db
       .deleteFrom('customFieldValue')
       .where('fieldId', '=', fieldId)

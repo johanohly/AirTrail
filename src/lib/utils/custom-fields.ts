@@ -5,6 +5,7 @@ export type FieldType =
   | 'boolean'
   | 'date'
   | 'select'
+  | 'multi-select'
   | 'airport'
   | 'airline'
   | 'aircraft';
@@ -16,6 +17,7 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   boolean: 'Boolean',
   date: 'Date',
   select: 'Select',
+  'multi-select': 'Multi-select',
   airport: 'Airport',
   airline: 'Airline',
   aircraft: 'Aircraft',
@@ -24,7 +26,7 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
 /** Shape returned by `listDefinitions` query — shared across all custom field UI. */
 export type CustomFieldDefinition = {
   id: number;
-  entityType: 'flight';
+  entityType: EntityType;
   key: string;
   label: string;
   description: string | null;
@@ -35,6 +37,13 @@ export type CustomFieldDefinition = {
   options: unknown;
   defaultValue: unknown;
   validationJson: unknown;
+};
+
+export type EntityType = 'flight' | 'flight_passenger';
+
+export const ENTITY_TYPE_LABELS: Record<EntityType, string> = {
+  flight: 'Flight fields',
+  flight_passenger: 'Passenger fields',
 };
 
 export const isTextLike = (fieldType: string) =>

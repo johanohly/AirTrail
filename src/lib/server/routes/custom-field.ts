@@ -4,14 +4,14 @@ import { sql } from 'kysely';
 import { z } from 'zod';
 
 import { db } from '$lib/db';
+import { adminProcedure, authedProcedure, router } from '$lib/server/trpc';
 import {
   CustomFieldValidationError,
   persistEntityCustomFields,
 } from '$lib/server/utils/custom-fields';
-import { adminProcedure, authedProcedure, router } from '$lib/server/trpc';
 
-type EntityType = 'flight';
-const entityTypeSchema = z.enum(['flight']);
+type EntityType = 'flight' | 'flight_passenger';
+const entityTypeSchema = z.enum(['flight', 'flight_passenger']);
 
 /** Convert a JS value to a Kysely `::jsonb` expression, or null. */
 const toJsonb = (value: unknown): RawBuilder<unknown> | null =>
@@ -23,6 +23,7 @@ const fieldTypeSchema = z.enum([
   'boolean',
   'date',
   'select',
+  'multi-select',
   'airport',
   'airline',
   'aircraft',
@@ -77,6 +78,7 @@ const EXPECTED_DEFAULT_TYPES: Record<string, string> = {
   boolean: 'boolean',
   date: 'string',
   select: 'string',
+  'multi-select': 'object',
   airport: 'number',
   airline: 'number',
   aircraft: 'number',
@@ -96,6 +98,21 @@ const ensureDefaultValueIsValid = (input: DefinitionInput) => {
     const options = input.options ?? [];
     if (!options.includes(input.defaultValue as string)) {
       badRequest('Default value must be one of the select options');
+    }
+  }
+  if (input.fieldType === 'multi-select') {
+    if (
+      !Array.isArray(input.defaultValue) ||
+      input.defaultValue.some((value) => typeof value !== 'string')
+    ) {
+      badRequest('Default value must be a list for multi-select fields');
+    }
+    if (input.defaultValue.length === 0) {
+      badRequest('Multi-select defaults must include at least one option');
+    }
+    const options = input.options ?? [];
+    if (input.defaultValue.some((value) => !options.includes(value))) {
+      badRequest('Default values must be among the multi-select options');
     }
   }
 };
@@ -131,7 +148,10 @@ const ensureValidationRulesAreValid = (input: DefinitionInput) => {
 };
 
 const ensureDefinitionIsValid = (input: DefinitionInput) => {
-  if (input.fieldType === 'select' && (input.options ?? []).length === 0) {
+  if (
+    (input.fieldType === 'select' || input.fieldType === 'multi-select') &&
+    (input.options ?? []).length === 0
+  ) {
     badRequest('Select fields require at least one option');
   }
   ensureDefaultValueIsValid(input);
@@ -163,14 +183,38 @@ async function assertEntityAccess(
       return;
     }
 
-    const seat = await db
+    const passenger = await db
       .selectFrom('flightPassenger')
       .select('id')
       .where('flightId', '=', flightId)
       .where('userId', '=', user.id)
       .executeTakeFirst();
 
-    if (!seat) throw new TRPCError({ code: 'FORBIDDEN' });
+    if (!passenger) throw new TRPCError({ code: 'FORBIDDEN' });
+    return;
+  }
+
+  if (entityType === 'flight_passenger') {
+    const passengerId = Number(entityId);
+    if (!Number.isFinite(passengerId)) {
+      throw new TRPCError({ code: 'BAD_REQUEST' });
+    }
+
+    const passenger = await db
+      .selectFrom('flightPassenger')
+      .select(['id', 'flightId'])
+      .where('id', '=', passengerId)
+      .executeTakeFirst();
+
+    if (!passenger) throw new TRPCError({ code: 'NOT_FOUND' });
+    if (user.role === 'admin' || user.role === 'owner') return;
+    const sharedFlightPassenger = await db
+      .selectFrom('flightPassenger')
+      .select('id')
+      .where('flightId', '=', passenger.flightId)
+      .where('userId', '=', user.id)
+      .executeTakeFirst();
+    if (!sharedFlightPassenger) throw new TRPCError({ code: 'FORBIDDEN' });
     return;
   }
 

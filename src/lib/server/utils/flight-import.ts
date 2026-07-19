@@ -7,15 +7,15 @@ type FlightImportPassenger = Pick<
   'userId' | 'guestName' | 'seat' | 'seatNumber' | 'seatClass'
 >;
 
-const flightImportPassengerKey = (seat: FlightImportPassenger) =>
-  seat.userId
-    ? JSON.stringify(['user', seat.userId])
+const flightImportPassengerKey = (passenger: FlightImportPassenger) =>
+  passenger.userId
+    ? JSON.stringify(['user', passenger.userId])
     : JSON.stringify([
         'guest',
-        seat.guestName,
-        seat.seat,
-        seat.seatNumber,
-        seat.seatClass,
+        passenger.guestName,
+        passenger.seat,
+        passenger.seatNumber,
+        passenger.seatClass,
       ]);
 
 export const getMissingImportPassengers = <
@@ -25,17 +25,17 @@ export const getMissingImportPassengers = <
   incomingPassengers: readonly Passenger[],
 ): Passenger[] => {
   const remainingExisting = new Map<string, number>();
-  for (const seat of existingPassengers) {
-    const key = flightImportPassengerKey(seat);
+  for (const passenger of existingPassengers) {
+    const key = flightImportPassengerKey(passenger);
     remainingExisting.set(key, (remainingExisting.get(key) ?? 0) + 1);
   }
 
   const seenIncomingUsers = new Set<string>();
   const missingPassengers: Passenger[] = [];
-  for (const seat of incomingPassengers) {
-    const key = flightImportPassengerKey(seat);
+  for (const passenger of incomingPassengers) {
+    const key = flightImportPassengerKey(passenger);
 
-    if (seat.userId) {
+    if (passenger.userId) {
       if (seenIncomingUsers.has(key)) continue;
       seenIncomingUsers.add(key);
     }
@@ -46,7 +46,7 @@ export const getMissingImportPassengers = <
       continue;
     }
 
-    missingPassengers.push(seat);
+    missingPassengers.push(passenger);
   }
 
   return missingPassengers;
@@ -66,13 +66,13 @@ export const validateFlightImportPermissions = (
   for (const [index, flight] of flights.entries()) {
     if (
       flight.passengers.some(
-        (seat) => seat.userId != null && seat.userId !== user.id,
+        (passenger) => passenger.userId != null && passenger.userId !== user.id,
       )
     ) {
-      return `Flight ${index + 1} assigns a seat to another user`;
+      return `Flight ${index + 1} assigns another user as a passenger`;
     }
 
-    if (!flight.passengers.some((seat) => seat.userId === user.id)) {
+    if (!flight.passengers.some((passenger) => passenger.userId === user.id)) {
       return `Flight ${index + 1} must include the importing user`;
     }
   }

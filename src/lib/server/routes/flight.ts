@@ -104,9 +104,9 @@ export const flightRouter = router({
 
       if (
         user.role === 'user' &&
-        !passengers.some((seat) => seat.userId === user.id)
+        !passengers.some((passenger) => passenger.userId === user.id)
       ) {
-        throw new Error('You do not have a seat on this flight');
+        throw new Error('You are not a passenger on this flight');
       }
 
       const resp = await deleteFlight(input);
@@ -223,7 +223,9 @@ export const flightRouter = router({
   exportCsv: authedProcedure.query(async ({ ctx: { user } }) => {
     const res = await listFlights(user.id);
     const flights = res.map(({ id: _, passengers, ...flight }) => {
-      const seat = passengers.find((seat) => seat.userId === user.id);
+      const passenger = passengers.find(
+        (passenger) => passenger.userId === user.id,
+      );
 
       return {
         ...flight,
@@ -231,10 +233,10 @@ export const flightRouter = router({
         to: flight.to?.name,
         airline: flight.airline?.name,
         aircraft: flight.aircraft?.name,
-        seat: seat?.seat,
-        seatNumber: seat?.seatNumber,
-        seatClass: seat?.seatClass,
-        flightReason: seat?.flightReason,
+        seat: passenger?.seat,
+        seatNumber: passenger?.seatNumber,
+        seatClass: passenger?.seatClass,
+        flightReason: passenger?.flightReason,
       };
     });
 

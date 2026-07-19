@@ -103,6 +103,7 @@ const seat = {
   seatNumber: '12A',
   seatClass: 'economy',
   flightReason: 'leisure',
+  customFields: {},
 };
 
 const flightBase = {

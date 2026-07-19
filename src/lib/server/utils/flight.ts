@@ -129,6 +129,7 @@ export const validateAndSaveFlight = async (
   const saveFlightValues = async (
     values: CreateFlight,
     customFields: Record<string, unknown>,
+    passengerCustomFields: Record<string, unknown>[],
   ): Promise<ErrorActionResult & { id?: number }> => {
     const updateId = data.id;
     if (updateId) {
@@ -136,24 +137,35 @@ export const validateAndSaveFlight = async (
       if (
         !flight ||
         (!options?.bypassPassengerCheck &&
-          !flight.passengers.some((seat) => seat.userId === user.id))
+          !flight.passengers.some((passenger) => passenger.userId === user.id))
       ) {
         return {
           success: false,
           type: 'httpError',
           status: 404,
-          message: 'Flight not found or you do not have a seat on this flight',
+          message: 'Flight not found or you are not a passenger on this flight',
         };
       }
 
       try {
         await db.transaction().execute(async (trx) => {
-          await updateFlightPrimitiveWithConnection(trx, updateId, values);
+          const passengerIds = await updateFlightPrimitiveWithConnection(
+            trx,
+            updateId,
+            values,
+          );
           await persistEntityCustomFields(trx, {
             entityType: 'flight',
             entityId: String(updateId),
             values: customFields,
           });
+          for (let index = 0; index < passengerIds.length; index++) {
+            await persistEntityCustomFields(trx, {
+              entityType: 'flight_passenger',
+              entityId: String(passengerIds[index]),
+              values: passengerCustomFields[index],
+            });
+          }
         });
       } catch (e) {
         if (e instanceof CustomFieldValidationError) {
@@ -176,16 +188,20 @@ export const validateAndSaveFlight = async (
     let flightId: number;
     try {
       flightId = await db.transaction().execute(async (trx) => {
-        const createdFlightId = await createFlightPrimitiveWithConnection(
-          trx,
-          values,
-        );
+        const created = await createFlightPrimitiveWithConnection(trx, values);
         await persistEntityCustomFields(trx, {
           entityType: 'flight',
-          entityId: String(createdFlightId),
+          entityId: String(created.flightId),
           values: customFields,
         });
-        return createdFlightId;
+        for (let index = 0; index < created.passengerIds.length; index++) {
+          await persistEntityCustomFields(trx, {
+            entityType: 'flight_passenger',
+            entityId: String(created.passengerIds[index]),
+            values: passengerCustomFields[index],
+          });
+        }
+        return created.flightId;
       });
     } catch (e) {
       if (e instanceof CustomFieldValidationError) {
@@ -273,7 +289,11 @@ export const validateAndSaveFlight = async (
       track,
     };
 
-    return await saveFlightValues(values, customFields);
+    return await saveFlightValues(
+      values,
+      customFields,
+      data.passengers.map((passenger) => passenger.customFields),
+    );
   }
 
   // Either departure or departureScheduled must be set
@@ -453,7 +473,11 @@ export const validateAndSaveFlight = async (
     track,
   };
 
-  return await saveFlightValues(values, customFields);
+  return await saveFlightValues(
+    values,
+    customFields,
+    data.passengers.map((passenger) => passenger.customFields),
+  );
 };
 
 export const deleteFlight = async (id: number) => {
@@ -534,15 +558,15 @@ export const createManyFlights = async (
     if (!existingBySig.has(key)) existingBySig.set(key, ef.id);
   }
 
-  const userSeatByFlight = new Set<number>();
+  const userPassengerByFlight = new Set<number>();
   const existingPassengersByFlight = new Map<
     number,
     Flight['passengers'][number][]
   >();
   for (const flight of existingFlights) {
     existingPassengersByFlight.set(flight.id, flight.passengers);
-    if (flight.passengers.some((seat) => seat.userId === userId)) {
-      userSeatByFlight.add(flight.id);
+    if (flight.passengers.some((passenger) => passenger.userId === userId)) {
+      userPassengerByFlight.add(flight.id);
     }
   }
 
@@ -563,7 +587,7 @@ export const createManyFlights = async (
       }
 
       // Personal imports only deduplicate flights already owned by the importer.
-      if (mode === 'personal' && userSeatByFlight.has(existingId)) {
+      if (mode === 'personal' && userPassengerByFlight.has(existingId)) {
         continue;
       }
 
@@ -571,15 +595,15 @@ export const createManyFlights = async (
         existingPassengersByFlight.get(existingId) ?? [],
         f.passengers,
       );
-      for (const seat of missingPassengers) {
+      for (const passenger of missingPassengers) {
         passengersToAttach.push({
           flightId: existingId,
-          userId: seat.userId,
-          guestName: seat.guestName,
-          seat: seat.seat,
-          seatNumber: seat.seatNumber,
-          seatClass: seat.seatClass,
-          flightReason: seat.flightReason,
+          userId: passenger.userId,
+          guestName: passenger.guestName,
+          seat: passenger.seat,
+          seatNumber: passenger.seatNumber,
+          seatClass: passenger.seatClass,
+          flightReason: passenger.flightReason,
         });
       }
       continue;

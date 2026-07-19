@@ -84,8 +84,8 @@
   import UserAvatar from '$lib/components/display/UserAvatar.svelte';
   import {
     cn,
-    getSeatPassengerLabel,
-    getSeatPassengerToken,
+    getFlightPassengerLabel,
+    getFlightPassengerToken,
     type FlightData,
   } from '$lib/utils';
   import type { Aircraft, Airline, Airport } from '$lib/db/types';
@@ -250,9 +250,9 @@
     const options = new Map<string, OptionSource>();
 
     for (const flight of scopedFlights) {
-      for (const seat of flight.passengers) {
-        const value = getSeatPassengerToken(seat);
-        const label = getSeatPassengerLabel(seat);
+      for (const passenger of flight.passengers) {
+        const value = getFlightPassengerToken(passenger);
+        const label = getFlightPassengerLabel(passenger);
 
         if (!value || !label) continue;
 
@@ -265,7 +265,8 @@
             label,
             count: 1,
             icon: passengerAvatarIcon(
-              seat.user?.username ?? `guest:${seat.guestName ?? label}`,
+              passenger.user?.username ??
+                `guest:${passenger.guestName ?? label}`,
             ),
           });
         }
@@ -424,7 +425,7 @@
         type: 'multiOption',
         accessor: (flight) =>
           flight.passengers
-            .map((seat) => getSeatPassengerToken(seat))
+            .map((passenger) => getFlightPassengerToken(passenger))
             .filter((value): value is string => !!value),
         icon: UsersRound,
         options: columnOptions(passengerOptions),

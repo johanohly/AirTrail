@@ -110,6 +110,7 @@ export const flightPassengerInformationSchema = z.object({
       seatNumber: z.string().max(5, 'Seat number is too long').nullable(), // 12A-1 for example
       seatClass: z.enum(SeatClasses).nullable(),
       flightReason: z.enum(FlightReasons).nullable().default(null),
+      customFields: z.record(z.string(), z.unknown()).default({}),
     })
     .refine((data) => data.userId ?? data.guestName, {
       message: 'Select a user or add a guest name',
@@ -117,7 +118,7 @@ export const flightPassengerInformationSchema = z.object({
     })
     .array()
     .min(1, 'Add at least one passenger')
-    .refine((data) => data.some((seat) => seat.userId), {
+    .refine((data) => data.some((passenger) => passenger.userId), {
       message: 'At least one passenger must be assigned to a user',
     })
     .default([
@@ -128,6 +129,7 @@ export const flightPassengerInformationSchema = z.object({
         seatNumber: null,
         seatClass: null,
         flightReason: null,
+        customFields: {},
       },
     ]),
 });

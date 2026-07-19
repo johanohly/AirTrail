@@ -53,8 +53,8 @@
   } from '$lib/components/ui/modal';
   import {
     cn,
-    getSeatPassengerLabel,
-    getSeatPassengerToken,
+    getFlightPassengerLabel,
+    getFlightPassengerToken,
     type FlightData,
   } from '$lib/utils';
   import { getPreferences } from '$lib/utils/preferences';
@@ -225,9 +225,9 @@
     const passengers = new Map<string, FilterOption>();
 
     for (const flight of scopedFlights) {
-      for (const seat of flight.passengers) {
-        const value = getSeatPassengerToken(seat);
-        const label = getSeatPassengerLabel(seat);
+      for (const passenger of flight.passengers) {
+        const value = getFlightPassengerToken(passenger);
+        const label = getFlightPassengerLabel(passenger);
         if (!value || !label) continue;
         const existing = passengers.get(value);
         if (existing) {
@@ -238,7 +238,9 @@
             label,
             count: 1,
             kind: 'passenger',
-            username: seat.user?.username ?? `guest:${seat.guestName ?? label}`,
+            username:
+              passenger.user?.username ??
+              `guest:${passenger.guestName ?? label}`,
           });
         }
       }

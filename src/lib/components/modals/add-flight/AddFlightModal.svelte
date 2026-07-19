@@ -26,8 +26,13 @@
   const customFieldDefinitions = trpc.customField.listDefinitions.query({
     entityType: 'flight',
   });
+  const passengerCustomFieldDefinitions =
+    trpc.customField.listDefinitions.query({
+      entityType: 'flight_passenger',
+    });
   let customFieldValues = $state<Record<number, unknown>>({});
   let customFieldsModal = $state<ReturnType<typeof FlightCustomFieldsModal>>();
+  let flightForm = $state<ReturnType<typeof FlightForm>>();
 
   const toCustomFieldsPayload = (): Record<string, unknown> => {
     const defs = $customFieldDefinitions.data ?? [];
@@ -51,7 +56,10 @@
       validators: zod(flightFormSchema),
       onSubmit({ cancel }) {
         $formData.customFields = toCustomFieldsPayload();
-        if (!customFieldsModal?.validate()) {
+        const flightFieldsValid = customFieldsModal?.validate() ?? true;
+        const passengerFieldsValid =
+          flightForm?.validatePassengerCustomFields() ?? true;
+        if (!flightFieldsValid || !passengerFieldsValid) {
           cancel();
         }
       },
@@ -87,7 +95,12 @@
 <Modal bind:open closeOnOutsideClick={false} class="max-w-screen-lg">
   <ModalBreadcrumbHeader section="Flights" title="New flight" icon={Globe} />
   <form method="POST" action="/api/flight/save/form" use:enhance>
-    <FlightForm {form} />
+    <FlightForm
+      bind:this={flightForm}
+      {form}
+      passengerCustomFieldDefinitions={$passengerCustomFieldDefinitions.data ??
+        []}
+    />
     <ModalFooter>
       <div class="flex w-full items-center justify-between">
         <div class="flex items-center gap-2">

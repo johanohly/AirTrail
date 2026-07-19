@@ -171,9 +171,10 @@ export const createFlightPrimitive = async (
   db: Kysely<DB>,
   data: CreateFlight,
 ) => {
-  return await db
-    .transaction()
-    .execute(async (trx) => createFlightPrimitiveWithConnection(trx, data));
+  return await db.transaction().execute(async (trx) => {
+    const result = await createFlightPrimitiveWithConnection(trx, data);
+    return result.flightId;
+  });
 };
 
 export const updateFlightPrimitive = async (
@@ -209,26 +210,32 @@ export const createFlightPrimitiveWithConnection = async (
     .returning('id')
     .executeTakeFirstOrThrow();
 
-  const passengerData = passengers.map((passenger) => ({
-    flightId: resp.id,
-    userId: passenger.userId,
-    guestName: passenger.guestName,
-    seat: passenger.seat,
-    seatNumber: passenger.seatNumber,
-    seatClass: passenger.seatClass,
-    flightReason: passenger.flightReason,
-  }));
-
-  await db
-    .insertInto('flightPassenger')
-    .values(passengerData)
-    .executeTakeFirstOrThrow();
+  const passengerIds: number[] = [];
+  for (const passenger of passengers) {
+    const created = await db
+      .insertInto('flightPassenger')
+      .values({
+        flightId: resp.id,
+        userId: passenger.userId,
+        guestName: passenger.guestName,
+        seat: passenger.seat,
+        seatNumber: passenger.seatNumber,
+        seatClass: passenger.seatClass,
+        flightReason: passenger.flightReason,
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+    passengerIds.push(created.id);
+  }
 
   if (track) {
     await upsertFlightTrackPrimitiveWithConnection(db, resp.id, track);
   }
 
-  return resp.id;
+  return {
+    flightId: resp.id,
+    passengerIds,
+  };
 };
 
 export const updateFlightPrimitiveWithConnection = async (
@@ -269,7 +276,7 @@ export const updateFlightPrimitiveWithConnection = async (
     }
   }
 
-  if (!passengers.length) return;
+  if (!passengers.length) return [];
 
   const existingPassengers = await db
     .selectFrom('flightPassenger')
@@ -287,6 +294,7 @@ export const updateFlightPrimitiveWithConnection = async (
       .execute();
   }
 
+  const passengerIds: number[] = [];
   for (const { passenger, existing } of resolved) {
     const values = {
       userId: passenger.userId,
@@ -302,13 +310,17 @@ export const updateFlightPrimitiveWithConnection = async (
         .set(values)
         .where('id', '=', existing.id)
         .executeTakeFirstOrThrow();
+      passengerIds.push(existing.id);
     } else {
-      await db
+      const created = await db
         .insertInto('flightPassenger')
         .values({ ...values, flightId: id })
+        .returning('id')
         .executeTakeFirstOrThrow();
+      passengerIds.push(created.id);
     }
   }
+  return passengerIds;
 };
 
 const normalizeFlightTrackInput = (track: FlightTrackInput): FlightTrackInput =>

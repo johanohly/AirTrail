@@ -4,6 +4,7 @@
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
 
+  import FlightCustomFieldsModal from './FlightCustomFieldsModal.svelte';
   import PassengerPicker from './PassengerPicker.svelte';
 
   import { Button } from '$lib/components/ui/button';
@@ -14,6 +15,7 @@
   import { Separator } from '$lib/components/ui/separator';
   import { FlightReasons, SeatClasses, SeatTypes } from '$lib/db/types';
   import { cn, toTitleCase } from '$lib/utils';
+  import type { CustomFieldDefinition } from '$lib/utils/custom-fields';
   import type { flightSchema } from '$lib/zod/flight';
   import {
     HelpTooltip,
@@ -22,10 +24,24 @@
 
   let {
     form,
+    customFieldDefinitions = [],
+    savedFieldIds = {},
   }: {
     form: SuperForm<z.infer<typeof flightSchema>>;
+    customFieldDefinitions?: CustomFieldDefinition[];
+    savedFieldIds?: Record<number, Set<number>>;
   } = $props();
   const { form: formData, errors } = form;
+  let customFieldModals = $state<
+    Array<ReturnType<typeof FlightCustomFieldsModal>>
+  >([]);
+
+  export function validateCustomFields(): boolean {
+    for (const modal of customFieldModals) {
+      if (modal && !modal.validate()) return false;
+    }
+    return true;
+  }
 
   const seatTypeLabels: Record<string, string> = {
     window: 'Window',
@@ -63,6 +79,18 @@
                     ?.length}
                 />
               </div>
+              <FlightCustomFieldsModal
+                bind:this={customFieldModals[index]}
+                definitions={customFieldDefinitions}
+                bind:values={$formData.passengers[index].customFields}
+                savedFieldIds={$formData.passengers[index].id
+                  ? savedFieldIds[$formData.passengers[index].id]
+                  : undefined}
+                title="Passenger fields"
+                triggerLabel="Fields"
+                entityLabel="passenger"
+                emptyDescription="Track passenger-specific details such as meal preference, ticket number, or loyalty status."
+              />
               <TextTooltip
                 content="Remove passenger"
                 rootProps={{ delayDuration: 0 }}
@@ -248,6 +276,7 @@
             seatNumber: null,
             seatClass: null,
             flightReason: null,
+            customFields: {},
           },
         ];
       }}

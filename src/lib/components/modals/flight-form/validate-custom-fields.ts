@@ -43,6 +43,18 @@ const checkType = (def: FieldDef, value: unknown): string | null => {
     const options = normalizeOptions(def.options);
     if (!options.includes(value)) return 'Must be one of the available options';
   }
+  if (def.fieldType === 'multi-select') {
+    if (
+      !Array.isArray(value) ||
+      value.some((item) => typeof item !== 'string')
+    ) {
+      return 'Must select one or more options';
+    }
+    const options = normalizeOptions(def.options);
+    if (value.some((item) => !options.includes(item))) {
+      return 'Must use only the available options';
+    }
+  }
   if (isEntityType(def.fieldType) && typeof value !== 'number') {
     return 'Must select a valid option';
   }
@@ -103,7 +115,11 @@ const checkValidationRules = (def: FieldDef, value: unknown): string | null => {
 };
 
 const validateField = (def: FieldDef, value: unknown): string | null => {
-  const isEmpty = value === undefined || value === null || value === '';
+  const isEmpty =
+    value === undefined ||
+    value === null ||
+    value === '' ||
+    (Array.isArray(value) && value.length === 0);
 
   if (def.required && isEmpty) return `${def.label} is required`;
   if (isEmpty) return null;

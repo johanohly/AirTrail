@@ -32,9 +32,9 @@ export const POST: RequestHandler = async ({ request }) => {
 
   if (
     user.role === 'user' &&
-    !flight.passengers.some((seat) => seat.userId === user.id)
+    !flight.passengers.some((passenger) => passenger.userId === user.id)
   ) {
-    return apiError('You do not have a seat on this flight', 403);
+    return apiError('You are not a passenger on this flight', 403);
   }
 
   const result = await deleteFlight(parsed.data.id);

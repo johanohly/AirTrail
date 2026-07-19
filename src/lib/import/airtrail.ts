@@ -250,16 +250,17 @@ export const processAirTrailFile = async (
       ? data.flights
       : data.flights.filter((flight) =>
           flight.passengers.some(
-            (seat) =>
-              seat.userId != null && getMappedUserId(seat.userId) === user.id,
+            (passenger) =>
+              passenger.userId != null &&
+              getMappedUserId(passenger.userId) === user.id,
           ),
         );
 
   for (const rawFlight of rawFlights) {
     const flightIndex = flights.length;
 
-    const passengers = rawFlight.passengers.map((seat) => {
-      const dataUser = dataUsers?.[seat.userId ?? ''];
+    const passengers = rawFlight.passengers.map((passenger) => {
+      const dataUser = dataUsers?.[passenger.userId ?? ''];
       const mappedUserId = dataUser ? getMappedUserId(dataUser.id) : null;
       const user = mappedUserId
         ? users.find((user) => user.id === mappedUserId)
@@ -276,14 +277,14 @@ export const processAirTrailFile = async (
        */
       const guestName = user
         ? null
-        : seat.guestName
-          ? seat.guestName
+        : passenger.guestName
+          ? passenger.guestName
           : dataUser
             ? dataUser.displayName
             : null;
 
       return {
-        ...seat,
+        ...passenger,
         userId: user?.id ?? null,
         guestName,
       };

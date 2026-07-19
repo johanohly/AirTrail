@@ -78,6 +78,9 @@ export const generateBackup = async ({
     .execute();
   const res = await getFlightsForBackup(scope, userId);
   const flightIds = res.map((f) => f.id);
+  const passengerIds = res.flatMap((flight) =>
+    flight.passengers.map((passenger) => passenger.id),
+  );
   const trackRows =
     flightIds.length > 0
       ? await db
@@ -100,18 +103,29 @@ export const generateBackup = async ({
     }),
   );
 
-  const cfValueRows: CfValueRow[] =
-    flightIds.length > 0
+  const getCustomFieldValues = async (
+    entityType: 'flight' | 'flight_passenger',
+    entityIds: number[],
+  ): Promise<CfValueRow[]> =>
+    entityIds.length > 0
       ? await db
           .selectFrom('customFieldValue as v')
           .innerJoin('customFieldDefinition as d', 'd.id', 'v.fieldId')
           .select(['v.entityId', 'd.key', 'd.fieldType', 'v.value'])
-          .where('v.entityType', '=', 'flight')
-          .where('v.entityId', 'in', flightIds.map(String))
+          .where('v.entityType', '=', entityType)
+          .where('v.entityId', 'in', entityIds.map(String))
           .execute()
       : [];
 
-  const entityIds = collectEntityIds(cfValueRows);
+  const [flightCfValueRows, passengerCfValueRows] = await Promise.all([
+    getCustomFieldValues('flight', flightIds),
+    getCustomFieldValues('flight_passenger', passengerIds),
+  ]);
+
+  const entityIds = collectEntityIds([
+    ...flightCfValueRows,
+    ...passengerCfValueRows,
+  ]);
 
   const fetchEntity = (
     table: 'airport' | 'airline' | 'aircraft',
@@ -136,7 +150,8 @@ export const generateBackup = async ({
     aircraft: new Map(cfAircrafts.map((a) => [a.id, omit(a, ['id'])])),
   } as Record<string, Map<number, object>>;
 
-  const cfByFlight = buildCfByFlight(cfValueRows, entityLookup);
+  const cfByFlight = buildCfByFlight(flightCfValueRows, entityLookup);
+  const cfByPassenger = buildCfByFlight(passengerCfValueRows, entityLookup);
 
   const flights = res.map((flight: Flight) => ({
     ...omit(flight, ['id', 'fromId', 'toId', 'airlineId', 'aircraftId']),
@@ -144,7 +159,12 @@ export const generateBackup = async ({
     to: flight.to ? omit(flight.to, ['id']) : null,
     airline: flight.airline ? omit(flight.airline, ['id']) : null,
     aircraft: flight.aircraft ? omit(flight.aircraft, ['id']) : null,
-    passengers: flight.passengers.map((seat) => omit(seat, ['id', 'flightId'])),
+    passengers: flight.passengers.map((passenger) => ({
+      ...omit(passenger, ['id', 'flightId']),
+      ...(cfByPassenger.has(String(passenger.id))
+        ? { customFields: cfByPassenger.get(String(passenger.id)) }
+        : {}),
+    })),
     ...(tracksByFlight.has(flight.id)
       ? { track: tracksByFlight.get(flight.id) }
       : {}),

@@ -206,43 +206,43 @@ export const formatSeatForUser = (
 ) => {
   const t = (s: string) => toTitleCase(s);
 
-  let s;
+  let passenger;
   if (userId) {
-    s = f.passengers.find((seat) => seat.userId === userId);
+    passenger = f.passengers.find((item) => item.userId === userId);
   } else if (f.passengers.length === 1) {
-    s = f.passengers[0];
+    passenger = f.passengers[0];
   }
-  if (!s) return null;
+  if (!passenger) return null;
 
-  if (s.seat && s.seatNumber && s.seatClass) {
-    return `${t(s.seatClass)} (${s.seat} ${s.seatNumber})`;
+  if (passenger.seat && passenger.seatNumber && passenger.seatClass) {
+    return `${t(passenger.seatClass)} (${passenger.seat} ${passenger.seatNumber})`;
   }
-  if (s.seat && s.seatNumber) {
-    return `${s.seat} ${s.seatNumber}`;
+  if (passenger.seat && passenger.seatNumber) {
+    return `${passenger.seat} ${passenger.seatNumber}`;
   }
-  if (s.seat && s.seatClass) {
-    return `${t(s.seatClass)} (${s.seat})`;
+  if (passenger.seat && passenger.seatClass) {
+    return `${t(passenger.seatClass)} (${passenger.seat})`;
   }
-  if (s.seatClass) {
-    return t(s.seatClass);
+  if (passenger.seatClass) {
+    return t(passenger.seatClass);
   }
-  if (s.seat) {
-    return t(s.seat);
+  if (passenger.seat) {
+    return t(passenger.seat);
   }
   return null;
 };
 
-export const getSeatPassengerLabel = (seat: FlightPassenger) => {
-  return seat.user?.displayName ?? seat.guestName ?? null;
+export const getFlightPassengerLabel = (passenger: FlightPassenger) => {
+  return passenger.user?.displayName ?? passenger.guestName ?? null;
 };
 
-export const getSeatPassengerToken = (seat: FlightPassenger) => {
-  if (seat.userId) {
-    return `user:${seat.userId}`;
+export const getFlightPassengerToken = (passenger: FlightPassenger) => {
+  if (passenger.userId) {
+    return `user:${passenger.userId}`;
   }
 
-  if (seat.guestName) {
-    return `guest:${seat.guestName}`;
+  if (passenger.guestName) {
+    return `guest:${passenger.guestName}`;
   }
 
   return null;
@@ -250,6 +250,6 @@ export const getSeatPassengerToken = (seat: FlightPassenger) => {
 
 export const getFlightPassengerLabels = (flight: FlightData) => {
   return flight.passengers
-    .map((seat) => getSeatPassengerLabel(seat))
+    .map((passenger) => getFlightPassengerLabel(passenger))
     .filter((value): value is string => Boolean(value));
 };

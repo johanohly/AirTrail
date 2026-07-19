@@ -11,12 +11,22 @@
   import { AirportField, DateTimeField } from '$lib/components/form-fields';
   import { mergeTimeWithDate } from '$lib/utils/datetime';
   import type { FlightFormData } from '$lib/zod/flight';
+  import type { CustomFieldDefinition } from '$lib/utils/custom-fields';
 
   let {
     form,
+    passengerCustomFieldDefinitions = [],
+    passengerSavedFieldIds = {},
   }: {
     form: SuperForm<FlightFormData>;
+    passengerCustomFieldDefinitions?: CustomFieldDefinition[];
+    passengerSavedFieldIds?: Record<number, Set<number>>;
   } = $props();
+  let passengerInformation = $state<ReturnType<typeof PassengerInformation>>();
+
+  export function validatePassengerCustomFields(): boolean {
+    return passengerInformation?.validateCustomFields() ?? true;
+  }
 
   const { form: formData, errors } = form;
   type TimetableTab = 'scheduled' | 'actual';
@@ -314,7 +324,12 @@
         class="absolute inset-0 rounded-xl border bg-neutral-50 dark:bg-input/30 [mask-image:linear-gradient(to_bottom,black,transparent)]"
       ></div>
       <div class="relative px-4 py-3">
-        <PassengerInformation {form} />
+        <PassengerInformation
+          bind:this={passengerInformation}
+          {form}
+          customFieldDefinitions={passengerCustomFieldDefinitions}
+          savedFieldIds={passengerSavedFieldIds}
+        />
       </div>
     </div>
   </div>

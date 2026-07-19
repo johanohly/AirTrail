@@ -19,6 +19,7 @@
     FIELD_TYPE_LABELS,
     type DefinitionItem,
     type EditingState,
+    type EntityType,
     type FieldType,
   } from './types';
   import {
@@ -35,9 +36,11 @@
   let {
     open = $bindable(false),
     definitionCount = 0,
+    entityType,
   }: {
     open?: boolean;
     definitionCount?: number;
+    entityType: EntityType;
   } = $props();
 
   let editing = $state<EditingState | null>(null);
@@ -83,10 +86,9 @@
   };
 
   const invalidate = () => {
-    trpc.customField.listDefinitions.utils.invalidate({
-      entityType: 'flight',
-      includeInactive: true,
-    });
+    // No input: also refreshes the flight/passenger form queries,
+    // which fetch without `includeInactive`.
+    trpc.customField.listDefinitions.utils.invalidate();
   };
 
   const save = async () => {
@@ -94,7 +96,7 @@
 
     let payload: ReturnType<typeof buildPayload>;
     try {
-      payload = buildPayload(editing);
+      payload = buildPayload(editing, entityType);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Invalid default value');
       return;
@@ -174,11 +176,10 @@
               if (!editing) return;
 
               const nextType = (v as FieldType) ?? 'text';
-              editing.fieldType = nextType;
-
-              if (nextType !== 'select') {
+              if (nextType !== editing.fieldType) {
                 editing.defaultValue = null;
               }
+              editing.fieldType = nextType;
             }}
           >
             <Select.Trigger id="custom-field-type-trigger"
@@ -191,6 +192,7 @@
               <Select.Item value="boolean" label="Boolean" />
               <Select.Item value="date" label="Date" />
               <Select.Item value="select" label="Select" />
+              <Select.Item value="multi-select" label="Multi-select" />
               <Select.Item value="airport" label="Airport" />
               <Select.Item value="airline" label="Airline" />
               <Select.Item value="aircraft" label="Aircraft" />
@@ -263,7 +265,7 @@
           </div>
         {/if}
 
-        {#if editing.fieldType === 'select'}
+        {#if editing.fieldType === 'select' || editing.fieldType === 'multi-select'}
           <div class="grid gap-1">
             <label class="text-sm font-medium" for="custom-field-options"
               >Options (one per line)</label
@@ -319,7 +321,8 @@
               label={editing.label || 'Untitled field'}
               fieldType={editing.fieldType}
               required={editing.required}
-              options={editing.fieldType === 'select'
+              options={editing.fieldType === 'select' ||
+              editing.fieldType === 'multi-select'
                 ? editing.optionsText
                     .split('\n')
                     .map((x) => x.trim())

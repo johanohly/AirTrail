@@ -305,14 +305,14 @@ export function sanitizeFlightData(
 ): SanitizedFlight[] {
   return flights.map((flight) => {
     // Create sanitized passengers array (only include user's passengers, remove sensitive data)
-    const userSeats = flight.passengers
-      .filter((seat) => seat.userId === share.userId)
-      .map((seat) => ({
-        ...seat,
-        seat: share.showSeat ? seat.seat : null,
-        seatClass: share.showSeat ? seat.seatClass : null,
-        seatNumber: share.showSeat ? seat.seatNumber : null,
-        userId: seat.userId,
+    const userPassengers = flight.passengers
+      .filter((passenger) => passenger.userId === share.userId)
+      .map((passenger) => ({
+        ...passenger,
+        seat: share.showSeat ? passenger.seat : null,
+        seatClass: share.showSeat ? passenger.seatClass : null,
+        seatNumber: share.showSeat ? passenger.seatNumber : null,
+        userId: passenger.userId,
       }));
 
     const sanitized: SanitizedFlight = {
@@ -320,9 +320,9 @@ export function sanitizeFlightData(
       from: flight.from!, // Always include complete from airport
       to: flight.to!, // Always include complete to airport
       duration: flight.duration,
-      flightReason: userSeats[0]?.flightReason ?? null,
+      flightReason: userPassengers[0]?.flightReason ?? null,
       aircraftReg: share.showAircraft ? flight.aircraftReg : null,
-      passengers: userSeats,
+      passengers: userPassengers,
     };
 
     // Apply privacy settings for conditional fields

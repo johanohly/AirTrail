@@ -150,12 +150,12 @@ model flight {
   aircraft_id Int?
   airline_id  Int?
 
-  from     airport?      @relation("flights_from", fields: [from_id], references: [id])
-  to       airport?      @relation("flights_to", fields: [to_id], references: [id])
-  aircraft aircraft?     @relation(fields: [aircraft_id], references: [id])
-  airline  airline?      @relation(fields: [airline_id], references: [id])
+  from       airport?           @relation("flights_from", fields: [from_id], references: [id])
+  to         airport?           @relation("flights_to", fields: [to_id], references: [id])
+  aircraft   aircraft?          @relation(fields: [aircraft_id], references: [id])
+  airline    airline?           @relation(fields: [airline_id], references: [id])
   passengers flight_passenger[]
-  track    flight_track?
+  track      flight_track?
 
   @@index([from_id], map: "flight_from_id_idx")
   @@index([to_id], map: "flight_to_id_idx")
@@ -183,11 +183,11 @@ model flight_passenger {
   guest_name String?
 
   /// @kyselyType('window' | 'aisle' | 'middle' | 'pilot' | 'copilot' | 'jumpseat' | 'other')
-  seat        String?
+  seat          String?
   /// Seat number (e.g. 12A)
-  seat_number String?
+  seat_number   String?
   /// @kyselyType('economy' | 'economy+' | 'business' | 'first' | 'private')
-  seat_class  String?
+  seat_class    String?
   /// @kyselyType('leisure' | 'business' | 'crew' | 'other')
   flight_reason String?
 
@@ -265,13 +265,13 @@ model public_share {
 model custom_field_definition {
   id Int @id @default(autoincrement())
 
-  /// @kyselyType('flight')
+  /// @kyselyType('flight' | 'flight_passenger')
   entity_type String
   key         String
   label       String
   description String?
 
-  /// @kyselyType('text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select' | 'airport' | 'airline' | 'aircraft')
+  /// @kyselyType('text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select' | 'multi-select' | 'airport' | 'airline' | 'aircraft')
   field_type String
 
   required        Boolean @default(false)
@@ -296,7 +296,7 @@ model custom_field_value {
   field_id Int
   field    custom_field_definition @relation(fields: [field_id], references: [id], onDelete: Cascade)
 
-  /// @kyselyType('flight')
+  /// @kyselyType('flight' | 'flight_passenger')
   entity_type String
   entity_id   String
   value       Json

@@ -56,16 +56,16 @@ export type app_config = {
 export type custom_field_definition = {
     id: Generated<number>;
     /**
-     * @kyselyType('flight')
+     * @kyselyType('flight' | 'flight_passenger')
      */
-    entityType: 'flight';
+    entityType: 'flight' | 'flight_passenger';
     key: string;
     label: string;
     description: string | null;
     /**
-     * @kyselyType('text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select' | 'airport' | 'airline' | 'aircraft')
+     * @kyselyType('text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select' | 'multi-select' | 'airport' | 'airline' | 'aircraft')
      */
-    fieldType: 'text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select' | 'airport' | 'airline' | 'aircraft';
+    fieldType: 'text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select' | 'multi-select' | 'airport' | 'airline' | 'aircraft';
     required: Generated<boolean>;
     active: Generated<boolean>;
     order: Generated<number>;
@@ -79,9 +79,9 @@ export type custom_field_value = {
     id: Generated<number>;
     fieldId: number;
     /**
-     * @kyselyType('flight')
+     * @kyselyType('flight' | 'flight_passenger')
      */
-    entityType: 'flight';
+    entityType: 'flight' | 'flight_passenger';
     entityId: string;
     value: unknown;
     createdAt: Generated<Timestamp>;
