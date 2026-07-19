@@ -472,7 +472,7 @@
     {#if flights.length}
       <Control position="top-right">
         <ControlGroup>
-          <ControlButton onclick={fitFlights} title="Show all flights">
+          <ControlButton onclick={fitFlights} title="Fit visible flights">
             <Fullscreen size={20} />
           </ControlButton>
           {#if filters}
