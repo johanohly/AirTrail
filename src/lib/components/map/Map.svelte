@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Funnel, Fullscreen, Undo2 } from '@o7/icon/lucide';
-  import maplibregl from 'maplibre-gl';
+  import type { Map as MapLibreMap } from 'maplibre-gl';
   import { mode } from 'mode-watcher';
   import { onDestroy, onMount, untrack } from 'svelte';
   import {
@@ -13,10 +13,10 @@
     NavigationControl,
   } from 'svelte-maplibre';
 
+  import FlightTrackLegend from './FlightTrackLegend.svelte';
   import MapAppearanceControl from './MapAppearanceControl.svelte';
   import MapFallback from './MapFallback.svelte';
   import MapStatusShelf from './MapStatusShelf.svelte';
-  import FlightTrackLegend from './FlightTrackLegend.svelte';
   import OpenAipOverlay from './OpenAipOverlay.svelte';
   import RainViewerLayer from './RainViewerLayer.svelte';
   import TimeOfDayLayer from './TimeOfDayLayer.svelte';
@@ -41,13 +41,18 @@
   } from '$lib/components/flight-filters/types';
   import * as Popover from '$lib/components/ui/popover';
   import type { NavigateFlights } from '$lib/flight-navigation';
+  import { includeFocusedRouteOnMap } from '$lib/flight-visibility';
   import { AIRPORT_DETAIL_LAYER_IDS } from '$lib/map/airport-style';
   import {
     getDefaultAppMapStyleUrl,
     getAppMapImages,
     getConfiguredAppMapStyleUrl,
   } from '$lib/map/app-style';
-  import { globeCameraForArcs } from '$lib/map/globe-fit';
+  import {
+    createMapCameraController,
+    type CameraFocusTarget,
+    type MapCameraController,
+  } from '$lib/map/camera-controller';
   import { hasFallbackFlightArcs } from '$lib/map/flight-layer-data';
   import {
     initMapPreferences,
@@ -72,7 +77,6 @@
   } from '$lib/state.svelte';
   import type { FlightTrackRow } from '$lib/track/schema';
   import {
-    calculateBounds,
     cn,
     prepareFlightArcData,
     prepareVisitedAirports,
@@ -103,19 +107,11 @@
   const showScopeBanner = $derived(flightScopeState.scope !== 'mine');
   const alignStatusWithDetails = $derived(!!mapDetailsState.selection);
 
-  let map: maplibregl.Map | undefined = $state.raw(undefined);
+  let map: MapLibreMap | undefined = $state.raw(undefined);
+  let cameraController: MapCameraController | undefined = $state.raw(undefined);
   let canRenderMap = $state(!browser);
-  type CameraSnapshot = {
-    center: [number, number];
-    zoom: number;
-    bearing: number;
-    pitch: number;
-  };
-  let previousCamera: CameraSnapshot | null = $state(null);
   let filterDrawerOpen = $state(false);
   let showPreviousView = $state(false);
-  let programmaticCameraMove = false;
-  let handledFocusRequest = $state(-1);
   const currentTheme = $derived(mode.current ?? 'light');
   const style = $derived(
     getConfiguredAppMapStyleUrl(
@@ -155,32 +151,25 @@
       : 'none',
   );
 
-  const resetUnsupportedCamera = (m: maplibregl.Map) => {
-    const bearing = mapRotationEnabled ? m.getBearing() : 0;
-    if (m.getPitch() === 0 && m.getBearing() === bearing) return;
-    m.easeTo({
-      pitch: 0,
-      bearing,
-      duration: 0,
-      essential: true,
-    });
-  };
-
-  // While the flight details panel is open, the map isolates that one flight;
-  // dismissing the panel returns the map to the full filtered set. This is a
-  // derived view of the panel state, not a persistent filter.
-  const highlightedFlightId = $derived(
-    mapDetailsState.selection?.type === 'flight'
-      ? mapDetailsState.selection.flightId
-      : null,
-  );
-  const drawnFlights = $derived(
-    highlightedFlightId !== null
-      ? flights.filter((flight) => flight.id === highlightedFlightId)
-      : filteredFlights,
-  );
+  // Details focus is a temporary view, not a persistent filter. Flight details
+  // isolate one flight. Route details retain the filtered map and add any
+  // flights on the focused route that the persistent filters excluded.
+  const drawnFlights = $derived.by(() => {
+    const selection = mapDetailsState.selection;
+    if (selection?.type === 'flight') {
+      return flights.filter((flight) => flight.id === selection.flightId);
+    }
+    return includeFocusedRouteOnMap(
+      filteredFlights,
+      flights,
+      selection?.type === 'route' ? selection.route : null,
+    );
+  });
   const flightArcs = $derived.by(() => {
     return prepareFlightArcData(drawnFlights);
+  });
+  const overviewFlightArcs = $derived.by(() => {
+    return prepareFlightArcData(filteredFlights);
   });
   const trackFlightIds = $derived(
     new Set(flightTracks.map((track) => track.flightId)),
@@ -201,79 +190,20 @@
       : { top: 40, right: 20, bottom: window.innerHeight * 0.55, left: 20 };
   };
 
+  let automaticFitRequest = $state(0);
+  const requestAutomaticFit = () => {
+    automaticFitRequest += 1;
+  };
+
   export const fitFlights = () => {
-    if (!map || !flightArcs) return;
-
-    // Add breathing-room margin on top of any current panel padding so this
-    // also looks reasonable when a details panel is open. Set via setPadding
-    // (no `padding` option on fitBounds) to avoid maplibre's double-counting.
-    const base = detailsPanePadding();
-    const padding = {
-      top: base.top + 60,
-      right: base.right + 60,
-      bottom: base.bottom + 60,
-      left: base.left + 60,
-    };
-
-    // On the globe a bounding-box fit can be unsatisfiable (flights spanning
-    // more than a hemisphere make fitBounds silently give up), so fit a
-    // spherical cap around the flights instead.
-    if (mapPreferences.projection === 'globe') {
-      const canvas = map.getCanvas();
-      const camera = globeCameraForArcs(flightArcs, {
-        width: canvas.clientWidth,
-        height: canvas.clientHeight,
-        padding,
-      });
-      if (!camera) return;
-      map.setPadding(padding);
-      map.flyTo({
-        center: camera.center,
-        zoom: camera.zoom,
-        essential: true,
-      });
-      return;
-    }
-
-    const bounds = calculateBounds(flightArcs);
-    if (!bounds) return;
-
-    map.setPadding(padding);
-    map.fitBounds(bounds);
-  };
-
-  const snapshotCamera = (): CameraSnapshot | null => {
-    if (!map) return null;
-    const center = map.getCenter();
-    return {
-      center: [center.lng, center.lat],
-      zoom: map.getZoom(),
-      bearing: map.getBearing(),
-      pitch: map.getPitch(),
-    };
-  };
-
-  const markProgrammaticMove = () => {
-    if (!map) return;
-    programmaticCameraMove = true;
-    map.once('moveend', () => {
-      programmaticCameraMove = false;
+    cameraController?.fit(flightArcs, {
+      projection: mapPreferences.projection,
+      padding: detailsPanePadding(),
     });
   };
 
   const restorePreviousView = () => {
-    if (!map || !previousCamera) return;
-    markProgrammaticMove();
-    map.easeTo({
-      center: previousCamera.center,
-      zoom: previousCamera.zoom,
-      bearing: mapRotationEnabled ? previousCamera.bearing : 0,
-      pitch: 0,
-      duration: 650,
-      essential: true,
-    });
-    previousCamera = null;
-    showPreviousView = false;
+    cameraController?.restore(mapRotationEnabled);
   };
 
   const showClear = $derived(filters ? hasFlightFilters(filters) : false);
@@ -316,7 +246,7 @@
     if (!flights.length) return;
 
     if (filteredFlights.length) {
-      fitFlights();
+      requestAutomaticFit();
     }
 
     flightAddedState.added = false;
@@ -329,16 +259,7 @@
       previousFilteredCount > 0 &&
       !hasTempFilters
     ) {
-      // Defer the fit to the next frame. When this change coincides with a
-      // details pane closing (e.g. "Show on map" from the flight list), the
-      // selection effect runs a padding easeTo in the same update that keeps
-      // the current center; running the fit synchronously here would be
-      // cancelled by it. Deferring lets the fit issue the final camera command.
-      requestAnimationFrame(() => {
-        // A pane re-claimed the camera in the meantime — let it win.
-        if (mapDetailsState.selection) return;
-        fitFlights();
-      });
+      requestAutomaticFit();
     }
 
     // If there are temp filters, we don't want to fit as that means the user
@@ -408,31 +329,8 @@
         m.keyboard.disableRotation();
         m.touchZoomRotate.disableRotation();
       }
-      resetUnsupportedCamera(m);
+      cameraController?.normalizeOrientation(mapRotationEnabled);
     });
-  });
-
-  $effect(() => {
-    const m = map;
-    if (!m) return;
-
-    const clearPreviousView = () => {
-      if (programmaticCameraMove) return;
-      previousCamera = null;
-      showPreviousView = false;
-    };
-
-    m.on('dragstart', clearPreviousView);
-    m.on('zoomstart', clearPreviousView);
-    m.on('rotatestart', clearPreviousView);
-    m.on('pitchstart', clearPreviousView);
-
-    return () => {
-      m.off('dragstart', clearPreviousView);
-      m.off('zoomstart', clearPreviousView);
-      m.off('rotatestart', clearPreviousView);
-      m.off('pitchstart', clearPreviousView);
-    };
   });
 
   // Drive edge padding + camera focus from details-pane state.
@@ -445,49 +343,27 @@
   // airport/route after a deselect), use easeTo so `padding` is interpolated
   // smoothly — flyTo treats padding as an end-state and would snap.
   //
-  // Route fits go through cameraForBounds. maplibre's cameraForBounds adds
-  // edge + option padding for screen size but uses ONLY option for the
-  // center offset, so different (edge, option) splits with the same total
-  // produce different centers. The route compute path pins the split by
-  // temporarily setting persistent to target around the cameraForBounds
-  // call, so a reselect after a deselect computes the same center as the
-  // original open and `cameraMoved` correctly reports false.
-  //
-  // untrack guards every map mutation: svelte-maplibre's bind:map re-emits on
-  // internal map events, so a tracked mutation here would loop.
-  let prevHasSelection = false;
-  let prevMediumScreen: boolean | null = null;
-  let paddingInitialized = false;
   $effect(() => {
     const selection = mapDetailsState.selection;
     const focusRequest = mapDetailsState.focusRequest;
-    const mediumScreen = $isMediumScreen;
-    if (!map) return;
+    const controller = cameraController;
+    if (!controller) return;
 
-    const hasSelection = !!selection;
     const padding = detailsPanePadding();
-    const needsFocus = hasSelection && focusRequest !== handledFocusRequest;
-    const paddingChanged =
-      paddingInitialized &&
-      (prevHasSelection !== hasSelection || prevMediumScreen !== mediumScreen);
+    let focusTarget: CameraFocusTarget | undefined;
 
-    prevHasSelection = hasSelection;
-    prevMediumScreen = mediumScreen;
-    paddingInitialized = true;
-
-    if (needsFocus && selection) {
-      handledFocusRequest = focusRequest;
-
-      let targetCenter: [number, number];
-      let targetZoom: number;
-
+    if (selection) {
       if (selection.type === 'airport') {
         const airport = allVisitedAirports.find(
           (a) => a.id === selection.airportId,
         );
-        if (!airport) return;
-        targetCenter = [airport.lon, airport.lat];
-        targetZoom = 13;
+        if (airport) {
+          focusTarget = {
+            type: 'point',
+            center: [airport.lon, airport.lat],
+            zoom: 13,
+          };
+        }
       } else {
         // route or flight — both fit a single great-circle arc between two
         // airports, resolved by airport ID straight from the flights. The
@@ -509,88 +385,42 @@
           );
           return f?.from && f.to ? { from: f.from, to: f.to } : null;
         })();
-        if (!arc) return;
-
-        if (mapPreferences.projection === 'globe') {
-          // Same spherical-cap fit as fitFlights: cameraForBounds can
-          // silently fail on the globe for very long routes. The fit is a
-          // pure function of arc + padding, so a reselect after a deselect
-          // computes the same camera and `cameraMoved` stays false.
-          const canvas = map.getCanvas();
-          const camera = globeCameraForArcs([arc], {
-            width: canvas.clientWidth,
-            height: canvas.clientHeight,
-            padding,
-          });
-          if (!camera) return;
-          targetCenter = camera.center;
-          targetZoom = camera.zoom;
-        } else {
-          const bounds = calculateBounds([arc]);
-          if (!bounds) return;
-
-          // cameraForBounds uses (edge + option) for screen size but ONLY
-          // option for the center offset, so the same total split differently
-          // produces different centers. Pin the split to edge=target/option=0
-          // by setting persistent to target while computing — paired
-          // setPadding calls within the same JS task produce no render
-          // between, so no flicker.
-          const target = untrack(() => {
-            const saved = map!.getPadding();
-            map!.setPadding(padding);
-            const t = map!.cameraForBounds(bounds);
-            map!.setPadding(saved);
-            return t;
-          });
-          if (!target) return;
-          if (!target.center || target.zoom === undefined) return;
-          const center = maplibregl.LngLat.convert(target.center);
-          targetCenter = [center.lng, center.lat];
-          targetZoom = target.zoom;
+        if (arc) {
+          focusTarget = {
+            type: 'arcs',
+            arcs: [arc],
+            projection: mapPreferences.projection,
+          };
         }
       }
-
-      const currentCenter = map.getCenter();
-      const cameraMoved =
-        Math.abs(currentCenter.lng - targetCenter[0]) > 1e-4 ||
-        Math.abs(currentCenter.lat - targetCenter[1]) > 1e-4 ||
-        Math.abs(map.getZoom() - targetZoom) > 1e-2;
-
-      previousCamera = snapshotCamera();
-      showPreviousView = !!previousCamera;
-      markProgrammaticMove();
-
-      untrack(() => {
-        if (cameraMoved) {
-          map!.flyTo({
-            center: targetCenter,
-            zoom: targetZoom,
-            padding,
-            duration: 1200,
-            essential: true,
-          });
-        } else {
-          map!.easeTo({
-            center: targetCenter,
-            zoom: targetZoom,
-            padding,
-            duration: 300,
-            essential: true,
-          });
-        }
-      });
-      return;
     }
 
-    if (paddingChanged) {
-      untrack(() => {
-        map!.easeTo({
-          padding,
-          duration: 300,
-          essential: true,
-        });
-      });
-    }
+    controller.reconcile({
+      selectionActive: !!selection,
+      focusRequest,
+      focusTarget,
+      padding,
+      projection: mapPreferences.projection,
+      overviewArcs: overviewFlightArcs,
+      automaticFitRequest,
+    });
+  });
+
+  $effect(() => {
+    const m = map;
+    if (!m) return;
+
+    const controller = createMapCameraController(m, {
+      onPreviousViewChange: (available) => {
+        showPreviousView = available;
+      },
+    });
+    cameraController = controller;
+
+    return () => {
+      controller.destroy();
+      if (cameraController === controller) cameraController = undefined;
+    };
   });
 
   onMount(() => {
@@ -614,8 +444,8 @@
   <MapLibre
     onload={() => {
       map?.touchPitch.disable();
-      if (map) resetUnsupportedCamera(map);
-      fitFlights();
+      cameraController?.normalizeOrientation(mapRotationEnabled);
+      requestAutomaticFit();
     }}
     bind:map
     {style}
@@ -729,7 +559,7 @@
       }}
     />
 
-    {#if flightTracks.length > 0 && mapPreferences.routeDisplay === 'tracks' && mapPreferences.flightTrackStyle === 'altitude'}
+    {#if flightTracks.length > 0 && mapPreferences.routeDisplay === 'tracks' && mapPreferences.flightTrackStyle === 'altitude' && !showPreviousView}
       <FlightTrackLegend />
     {/if}
 
