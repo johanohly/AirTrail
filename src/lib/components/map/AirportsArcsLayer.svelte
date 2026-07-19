@@ -20,6 +20,7 @@
     normalizeRoute,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
+  import type { NavigateFlights } from '$lib/flight-navigation';
   import {
     buildArcFrequencyPercentileByRoute,
     buildFlightTrackPaths,
@@ -55,6 +56,7 @@
     closeMapDetails,
     mapDetailsState,
     openAirportDetails,
+    openFlightDetails,
     openRouteDetails,
   } from '$lib/state.svelte';
   import type { FlightTrackRow } from '$lib/track/schema';
@@ -115,11 +117,13 @@
     flightArcs,
     flightTracks = [],
     tempFilters = $bindable(),
+    onNavigate,
   }: {
     flights: FlightData[];
     flightArcs: FlightArc[];
     flightTracks?: FlightTrackRow[];
     tempFilters?: TempFilters;
+    onNavigate?: NavigateFlights;
   } = $props();
 
   const visitedAirports = $derived.by(() => {
@@ -160,6 +164,10 @@
 
   const flightTrackPaths = $derived.by(() => {
     return buildFlightTrackPaths(flights, flightArcs, activeFlightTracks);
+  });
+
+  const flightById = $derived.by(() => {
+    return new Map(flights.map((flight) => [flight.id, flight]));
   });
 
   const flightTrackLayerData = $derived.by(() =>
@@ -251,22 +259,36 @@
   };
 
   const handleArcClick = (e: PickingInfo<FlightArc>) => {
-    if (e.object && tempFilters) {
-      const route = normalizeRoute(
-        e.object.from.id.toString(),
-        e.object.to.id.toString(),
-      );
+    if (!e.object || !tempFilters) return;
+    const route = normalizeRoute(
+      e.object.from.id.toString(),
+      e.object.to.id.toString(),
+    );
+    // While this route's pane is open, clicking its point-to-point line opens
+    // the flight list drilled down to the whole route; otherwise open (or
+    // switch to) that route's details.
+    if (selectedRoute && routeMatchesArc(e.object, selectedRoute)) {
+      onNavigate?.({
+        destination: 'list',
+        focus: { type: 'route', route },
+      });
+    } else {
       openRouteDetails(route);
     }
   };
 
   const handleTrackClick = (e: PickingInfo<FlightTrackPath>) => {
-    if (e.object && tempFilters) {
-      const route = normalizeRoute(
-        e.object.from.id.toString(),
-        e.object.to.id.toString(),
+    if (!e.object || !tempFilters) return;
+    // While this route's pane is open, clicking a specific flight's track opens
+    // its Flight Details pane (same as clicking the flight in the route pane) —
+    // which isolates that flight on the map for as long as the pane is open;
+    // otherwise open the route details.
+    if (selectedRoute && routeMatchesArc(e.object, selectedRoute)) {
+      openFlightDetails(e.object.flightId);
+    } else {
+      openRouteDetails(
+        normalizeRoute(e.object.from.id.toString(), e.object.to.id.toString()),
       );
-      openRouteDetails(route);
     }
   };
 
@@ -320,9 +342,36 @@
     return selection?.type === 'airport' ? selection.airportId : null;
   });
 
+  const selectedFlightId = $derived.by(() => {
+    const selection = mapDetailsState.selection;
+    return selection?.type === 'flight' ? selection.flightId : null;
+  });
+
   const selectedRoute = $derived.by(() => {
     const selection = mapDetailsState.selection;
     return selection?.type === 'route' ? selection.route : null;
+  });
+
+  // Hovering a flight row in the route pane sets mapDetailsState.hoveredFlightTrackId
+  // but no map hover. Synthesise a hovered arc/track for that flight so the map
+  // highlights its line the same way a direct map hover would.
+  const effectiveHoveredArc = $derived.by(() => {
+    if (hoveredArc) return hoveredArc;
+    const id = mapDetailsState.hoveredFlightTrackId;
+    if (id == null) return undefined;
+    const flight = flightById.get(id);
+    if (!flight?.from || !flight.to) return undefined;
+    const route = normalizeRoute(
+      flight.from.id.toString(),
+      flight.to.id.toString(),
+    );
+    const arc = flightArcs.find((candidate) =>
+      routeMatchesArc(candidate, route),
+    );
+    if (!arc) return undefined;
+    // A tracked flight is emphasised via its track (carries flightId); a
+    // point-to-point flight is emphasised via its route's straight arc.
+    return trackFlightIds.has(id) ? { ...arc, flightId: id } : arc;
   });
 
   const selectedRouteAirportIds = $derived.by(() => {
@@ -445,7 +494,10 @@
   };
 
   const getVisibleArcWidth = (d: FlightArc) => {
-    const width = getArcWidth(d);
+    const width =
+      selectedFlightId === null
+        ? getArcWidth(d)
+        : UNIFORM_ARC_WIDTH[mapPreferences.arcThicknessScale];
     return routeMatchesArc(d, selectedRoute) ? Math.max(width + 1.5, 3) : width;
   };
 
@@ -513,6 +565,7 @@
       getSourceColor: [
         hoveredArc,
         hoveredAirport,
+        mapDetailsState.hoveredFlightTrackId,
         selectedAirportId,
         selectedRoute,
         mapPreferences.arcColor,
@@ -521,6 +574,7 @@
       getTargetColor: [
         hoveredArc,
         hoveredAirport,
+        mapDetailsState.hoveredFlightTrackId,
         selectedAirportId,
         selectedRoute,
         mapPreferences.arcColor,
@@ -529,6 +583,7 @@
       getWidth: [
         mapPreferences.arcThickness,
         mapPreferences.arcThicknessScale,
+        selectedFlightId,
         selectedRoute,
         arcFrequencyPercentileByRoute,
       ],
@@ -559,7 +614,7 @@
 
   const getRouteInteraction = (arc: FlightArc) =>
     resolveRouteInteraction(arc, {
-      hoveredArc,
+      hoveredArc: effectiveHoveredArc,
       hoveredAirportId: hoveredAirport?.id,
       selectedAirportId,
       selectedRoute,
@@ -603,6 +658,7 @@
   const flightTrackWidthUpdateTriggers = $derived([
     mapPreferences.arcThickness,
     mapPreferences.arcThicknessScale,
+    selectedFlightId,
     selectedRoute,
     arcFrequencyPercentileByRoute,
   ]);
@@ -633,6 +689,7 @@
               standardColor: [
                 hoveredArc,
                 hoveredAirport,
+                mapDetailsState.hoveredFlightTrackId,
                 selectedAirportId,
                 selectedRoute,
                 mapPreferences.arcColor,
@@ -641,6 +698,7 @@
               altitudeColor: [
                 hoveredArc,
                 hoveredAirport,
+                mapDetailsState.hoveredFlightTrackId,
                 selectedAirportId,
                 selectedRoute,
                 isDarkMode,

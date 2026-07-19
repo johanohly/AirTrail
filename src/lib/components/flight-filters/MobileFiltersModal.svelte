@@ -23,6 +23,7 @@
     createDefaultFilters,
     dateFilterSummary,
     isFilterColumnActive,
+    matchesLocationFilters,
     optionColumnOperator,
     optionColumnValues,
     pluralMultiOptionOperators,
@@ -108,6 +109,13 @@
     hasTempFilters || hasActiveTempFilters(tempFilters),
   );
 
+  const scopedFlights = $derived.by(() => {
+    if (!tempLocationFiltersActive || !tempFilters) return flights ?? [];
+    return (flights ?? []).filter((flight) =>
+      matchesLocationFilters(flight, tempFilters),
+    );
+  });
+
   const columns = $derived<FilterColumn[]>([
     {
       id: 'departureAirports',
@@ -164,7 +172,7 @@
     selector: (flight: FlightData) => FlightData['from'],
   ) {
     const options = new Map<string, FilterOption>();
-    for (const flight of flights ?? []) {
+    for (const flight of scopedFlights) {
       const airport = selector(flight);
       if (!airport) continue;
       const value = airport.id.toString();
@@ -216,7 +224,7 @@
   const optionsByColumn = $derived.by(() => {
     const passengers = new Map<string, FilterOption>();
 
-    for (const flight of flights ?? []) {
+    for (const flight of scopedFlights) {
       for (const seat of flight.seats) {
         const value = getSeatPassengerToken(seat);
         const label = getSeatPassengerLabel(seat);
@@ -241,7 +249,7 @@
       arrivalAirports: uniqueAirportOptions((flight) => flight.to),
       passengers: sortOptions(Array.from(passengers.values())),
       airline: countedOptions(
-        (flights ?? []).map((flight) =>
+        scopedFlights.map((flight) =>
           flight.airline
             ? {
                 value: flight.airline.name,
@@ -256,7 +264,7 @@
         ),
       ),
       aircraft: countedOptions(
-        (flights ?? []).map((flight) =>
+        scopedFlights.map((flight) =>
           flight.aircraft
             ? {
                 value: flight.aircraft.name,
@@ -269,7 +277,7 @@
         ),
       ),
       aircraftRegs: countedOptions(
-        (flights ?? []).map((flight) =>
+        scopedFlights.map((flight) =>
           flight.aircraftReg
             ? { value: flight.aircraftReg, label: flight.aircraftReg }
             : null,

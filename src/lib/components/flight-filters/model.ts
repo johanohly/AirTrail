@@ -2,12 +2,13 @@ import { CalendarDate } from '@internationalized/date';
 import { isAfter, isBefore } from 'date-fns';
 import type { FilterModel, FiltersState } from 'bits-ui';
 
-import type {
-  FlightFilters,
-  LocationFilters,
-  MultiOptionFilterOperator,
-  OptionFilterOperator,
-  Route,
+import {
+  routeMatchesEndpoints,
+  type FlightFilters,
+  type LocationFilters,
+  type MultiOptionFilterOperator,
+  type OptionFilterOperator,
+  type Route,
 } from './types';
 
 import { getSeatPassengerToken, type FlightData } from '$lib/utils';
@@ -719,12 +720,7 @@ export function flightSignature(source: FlightFilters) {
 }
 
 export function routeMatches(flight: FlightData, route: Route): boolean {
-  const fromId = flight.from?.id.toString();
-  const toId = flight.to?.id.toString();
-  return (
-    (fromId === route.a && toId === route.b) ||
-    (fromId === route.b && toId === route.a)
-  );
+  return routeMatchesEndpoints(flight.from?.id, flight.to?.id, route);
 }
 
 export function optionMatches(

@@ -86,29 +86,38 @@ const findScrollContainer = (element: HTMLElement) => {
   return null;
 };
 
-const scrollElementIntoView = (
+/**
+ * Center `element` within its nearest scrollable ancestor. Scrolls that
+ * container directly rather than via `element.scrollIntoView()`, which does not
+ * reliably move custom scroll containers (e.g. a bits-ui ScrollArea viewport or
+ * a dialog's overflow pane). `scrollOffset` shifts the final position.
+ */
+export const scrollElementIntoView = (
   element: HTMLElement,
-  scrollOffset: number,
-  behavior: ScrollBehavior,
+  scrollOffset = 0,
+  behavior: ScrollBehavior = 'smooth',
 ) => {
   const scrollContainer = findScrollContainer(element);
 
-  element.scrollIntoView({
-    block: 'center',
-    inline: 'nearest',
-    behavior,
-  });
-
   if (!scrollContainer) {
+    element.scrollIntoView({ block: 'center', inline: 'nearest', behavior });
     if (scrollOffset !== 0) {
       window.scrollBy({ top: scrollOffset, behavior });
     }
     return;
   }
 
-  if (scrollOffset !== 0) {
-    scrollContainer.scrollBy({ top: scrollOffset, behavior });
-  }
+  const elementRect = element.getBoundingClientRect();
+  const containerRect = scrollContainer.getBoundingClientRect();
+  const centerDelta =
+    elementRect.top -
+    containerRect.top -
+    (scrollContainer.clientHeight - elementRect.height) / 2;
+
+  scrollContainer.scrollTo({
+    top: scrollContainer.scrollTop + centerDelta + scrollOffset,
+    behavior,
+  });
 };
 
 export const highlightElement = (

@@ -18,6 +18,7 @@
   import { Button } from '$lib/components/ui/button';
   import { flightScopeState } from '$lib/state.svelte';
   import { Modal } from '$lib/components/ui/modal';
+  import type { ModalHistoryHandle } from '$lib/components/ui/modal/modal-history';
   import ResponsiveFilters from '$lib/components/flight-filters/ResponsiveFilters.svelte';
   import type { FlightFilters } from '$lib/components/flight-filters/types';
   import { type VisitedCountry, wasVisited } from '$lib/db/types';
@@ -47,7 +48,6 @@
     seatUserId,
     showCountryStats = true,
     onOpenFlight,
-    suppressEscapeNavigation = false,
   }: {
     open?: boolean;
     flights: FlightData[];
@@ -58,7 +58,6 @@
     seatUserId?: string;
     showCountryStats?: boolean;
     onOpenFlight?: (flightId: number) => void;
-    suppressEscapeNavigation?: boolean;
   } = $props();
 
   const showScopeBanner = $derived(flightScopeState.scope !== 'mine');
@@ -111,6 +110,7 @@
   // Expanded chart state
   let activeChart: ChartKey | null = $state(null);
   let activeContinent: string | null = $state(null);
+  let modalHistory: ModalHistoryHandle | undefined = $state();
   let wasOpen = $state(false);
   const ctx = $derived.by(() => ({ userId: seatUserId }));
 
@@ -140,7 +140,23 @@
   );
 
   const pushDrilldownHistory = () => {
-    history.pushState({ statisticsDrilldown: true }, '');
+    modalHistory?.push({ activeChart, activeContinent });
+  };
+
+  const restoreDrilldown = (state: unknown) => {
+    const drilldown = state as
+      | { activeChart?: unknown; activeContinent?: unknown }
+      | undefined;
+    const chart = drilldown?.activeChart;
+    activeChart =
+      typeof chart === 'string' &&
+      (chart in FLIGHT_CHARTS || chart in COUNTRY_CHARTS)
+        ? (chart as ChartKey)
+        : null;
+    activeContinent =
+      typeof drilldown?.activeContinent === 'string'
+        ? drilldown.activeContinent
+        : null;
   };
 
   $effect(() => {
@@ -151,7 +167,6 @@
     if (closedFromDrilldown) {
       activeChart = null;
       activeContinent = null;
-      history.back();
     }
 
     if (open) {
@@ -191,47 +206,28 @@
   });
 </script>
 
-<svelte:window
-  onpopstate={(event) => {
-    if (!open || event.state?.statisticsDrilldown) return;
-    if (activeContinent) {
-      activeContinent = null;
-    } else if (activeChart) {
-      activeChart = null;
-    }
-  }}
-  onkeydown={(e) => {
-    if (suppressEscapeNavigation) return;
-    if (e.key !== 'Escape') return;
-    if (activeContinent || activeChart) {
-      history.back();
-    } else if (open) {
-      open = false;
-    }
-  }}
-/>
-
 <Modal
   bind:open
+  bind:historyHandle={modalHistory}
   class="max-w-full h-full overflow-y-auto rounded-none!"
   dialogOnly
   dialogNoPadding={Boolean(activeChart || activeContinent)}
   drawerNoPadding={Boolean(activeChart || activeContinent)}
-  closeOnEscape={false}
   closeButton={true}
+  onHistoryStateChange={restoreDrilldown}
 >
   {#if activeContinent}
     <BarChartDrillDown
       continent={activeContinent}
       countries={countriesByContinentDetailsData[activeContinent] || []}
-      onBack={() => history.back()}
+      onBack={() => modalHistory?.back()}
     />
   {:else if activeChart}
     <ChartDrillDown
       chartKey={activeChart}
       data={activeChartData}
       flights={completedFlights}
-      onBack={() => history.back()}
+      onBack={() => modalHistory?.back()}
       {onOpenFlight}
       {seatUserId}
     />

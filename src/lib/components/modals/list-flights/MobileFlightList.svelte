@@ -31,6 +31,7 @@
     selectedFlights = $bindable<number[]>([]),
     onEdit,
     onDelete,
+    onShowOnMap,
     readonly = false,
   }: {
     flightsByYear: YearGroup[];
@@ -38,6 +39,7 @@
     selectedFlights?: number[];
     onEdit?: (flight: Flight) => void;
     onDelete?: (flight: Flight) => void;
+    onShowOnMap?: (flight: Flight) => void;
     readonly?: boolean;
   } = $props();
 
@@ -79,6 +81,12 @@
               disabled={selecting || readonly}
               onEdit={readonly ? undefined : () => onEdit?.(flight)}
               onDelete={readonly ? undefined : () => onDelete?.(flight)}
+              onShowOnMap={readonly ||
+              !onShowOnMap ||
+              !flight.from ||
+              !flight.to
+                ? undefined
+                : () => onShowOnMap?.(flight)}
             >
               {#snippet children({ isInteracting })}
                 <button

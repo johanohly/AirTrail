@@ -75,6 +75,7 @@
     flightFiltersToBits,
     flightSignature,
     hasFlightFilters,
+    matchesLocationFilters,
   } from '$lib/components/flight-filters/model';
   import type {
     FlightFilters,
@@ -188,6 +189,15 @@
           tempFilters.routes.length)
       ),
   );
+
+  // When viewing a route/airport drilldown, scope the filter options to the
+  // flights on that route/airport so only relevant values are offered.
+  const scopedFlights = $derived.by(() => {
+    if (!tempLocationFiltersActive || !tempFilters) return flights ?? [];
+    return (flights ?? []).filter((flight) =>
+      matchesLocationFilters(flight, tempFilters),
+    );
+  });
   const modalCtx = getModalContext();
   const filterContentZIndex = $derived.by(() => {
     const modalZ = modalCtx?.getContentZIndex();
@@ -229,17 +239,17 @@
   }
 
   const departureAirports = $derived.by(() => {
-    return uniqueAirports(flights ?? [], (flight) => flight.from);
+    return uniqueAirports(scopedFlights, (flight) => flight.from);
   });
 
   const arrivalAirports = $derived.by(() => {
-    return uniqueAirports(flights ?? [], (flight) => flight.to);
+    return uniqueAirports(scopedFlights, (flight) => flight.to);
   });
 
   const passengerOptions = $derived.by(() => {
     const options = new Map<string, OptionSource>();
 
-    for (const flight of flights ?? []) {
+    for (const flight of scopedFlights) {
       for (const seat of flight.seats) {
         const value = getSeatPassengerToken(seat);
         const label = getSeatPassengerLabel(seat);
@@ -277,7 +287,7 @@
       }
     >();
 
-    for (const flight of flights ?? []) {
+    for (const flight of scopedFlights) {
       if (!flight.airline) continue;
       const existing = frequencyMap.get(flight.airline.name);
       if (existing) {
@@ -312,7 +322,7 @@
       }
     >();
 
-    for (const flight of flights ?? []) {
+    for (const flight of scopedFlights) {
       if (!flight.aircraft) continue;
       const existing = frequencyMap.get(flight.aircraft.name);
       if (existing) {
@@ -338,7 +348,7 @@
   const aircraftRegOptions = $derived.by(() => {
     const frequencyMap = new Map<string, number>();
 
-    for (const flight of flights ?? []) {
+    for (const flight of scopedFlights) {
       if (!flight.aircraftReg) continue;
       frequencyMap.set(
         flight.aircraftReg,
@@ -358,7 +368,7 @@
   const yearOptions = $derived.by(() => {
     const years = new Set<string>();
 
-    for (const flight of flights ?? []) {
+    for (const flight of scopedFlights) {
       if (flight.date) {
         years.add(flight.date.getFullYear().toString());
       }
