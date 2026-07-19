@@ -259,7 +259,10 @@ export const validateAndSaveFlight = async (
       .executeTakeFirst();
 
     if (!runway || runway.airportId !== airportId) {
-      return pathError(idPath, 'Selected runway does not belong to the airport');
+      return pathError(
+        idPath,
+        'Selected runway does not belong to the airport',
+      );
     }
 
     const endIdent = runwayEnd === 'le' ? runway.leIdent : runway.heIdent;
