@@ -1,13 +1,14 @@
 import { z } from 'zod';
 
 import { page } from '$app/state';
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import {
   FlightDatePrecisions,
   type Airline,
   type Airport,
   type CreateFlight,
 } from '$lib/db/types';
+import type { PlatformOptions } from '$lib/import/model';
+import { flightTrackInputSchema } from '$lib/track/schema';
 import { api } from '$lib/trpc';
 import { getAircraftByIcao, getAircraftByName } from '$lib/utils/data/aircraft';
 import { getAirlineByIcao, getAirlineByName } from '$lib/utils/data/airlines';
@@ -20,7 +21,6 @@ import {
   flightPassengerInformationSchema,
 } from '$lib/zod/flight';
 import { usernameSchema } from '$lib/zod/user';
-import { flightTrackInputSchema } from '$lib/track/schema';
 
 const dateTimePrimitive = z
   .string()
@@ -235,7 +235,6 @@ export const processAirTrailFile = async (
 
   const unknownAirports: Record<string, number[]> = {};
   const unknownAirlines: Record<string, number[]> = {};
-  const unknownUsers: Record<string, number[]> = {};
   const addUnknownFlightIndex = (
     records: Record<string, number[]>,
     key: string,
@@ -266,10 +265,6 @@ export const processAirTrailFile = async (
         ? users.find((user) => user.id === mappedUserId)
         : null;
 
-      if (options.importMode === 'restore' && dataUser && !user) {
-        const key = `${dataUser.id}|${dataUser.username}|${dataUser.displayName}`;
-        addUnknownFlightIndex(unknownUsers, key, flightIndex);
-      }
       /*
       1. If the user is known, no guest name is needed.
       2. If the user is unknown, but the guest name is known, use the guest name.
@@ -334,9 +329,11 @@ export const processAirTrailFile = async (
 
   return {
     flights,
-    unknownAirports,
-    unknownAirlines,
-    unknownUsers,
+    unknowns: {
+      airports: unknownAirports,
+      airlines: unknownAirlines,
+      aircraft: {},
+    },
     exportedUsers,
   };
 };

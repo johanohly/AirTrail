@@ -126,7 +126,7 @@ describe('processOpenFlightsFile', () => {
 
     expect(unresolved.flights).toHaveLength(1);
     expect(unresolved.flights[0]?.aircraft).toBeNull();
-    expect(unresolved.unknownAircraft).toEqual({ B733: [0] });
+    expect(unresolved.unknowns.aircraft).toEqual({ B733: [0] });
 
     const mappedAircraft = {
       id: 8,
@@ -140,6 +140,6 @@ describe('processOpenFlightsFile', () => {
     });
 
     expect(resolved.flights[0]?.aircraft).toEqual(mappedAircraft);
-    expect(resolved.unknownAircraft).toEqual({});
+    expect(resolved.unknowns.aircraft).toEqual({});
   });
 });

@@ -3,8 +3,8 @@ import { addDays, differenceInSeconds, isBefore } from 'date-fns';
 import { z } from 'zod';
 
 import { page } from '$app/state';
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type { CreateFlight, FlightPassenger } from '$lib/db/types';
+import type { PlatformOptions } from '$lib/import/model';
 import { parseCsv } from '$lib/utils';
 import { getAircraftByName } from '$lib/utils/data/aircraft';
 import { getAirlineByIata, getAirlineByIcao } from '$lib/utils/data/airlines';
@@ -154,9 +154,8 @@ export const processFlightyFile = async (
   if (data.length === 0) {
     return {
       flights: [],
-      unknownAirports: {},
-      unknownAirlines: {},
-      unknownAircraft: {},
+      unknowns: { airports: {}, airlines: {}, aircraft: {} },
+      exportedUsers: [],
       skippedRows: skipped.length,
     };
   }
@@ -308,9 +307,12 @@ export const processFlightyFile = async (
 
   return {
     flights,
-    unknownAirports,
-    unknownAirlines,
-    unknownAircraft,
+    unknowns: {
+      airports: unknownAirports,
+      airlines: unknownAirlines,
+      aircraft: unknownAircraft,
+    },
+    exportedUsers: [],
     skippedRows: skipped.length,
   };
 };

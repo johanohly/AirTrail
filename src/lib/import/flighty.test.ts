@@ -112,7 +112,7 @@ describe('processFlightyFile', () => {
 
     expect(unresolved.flights).toHaveLength(1);
     expect(unresolved.flights[0]?.aircraft).toBeNull();
-    expect(unresolved.unknownAircraft).toEqual({
+    expect(unresolved.unknowns.aircraft).toEqual({
       'Boeing 737-900ER': [0],
     });
     expect(getAircraftByName).toHaveBeenCalledWith('Boeing 737-900ER');
@@ -131,7 +131,7 @@ describe('processFlightyFile', () => {
     });
 
     expect(resolved.flights[0]?.aircraft).toEqual(mappedAircraft);
-    expect(resolved.unknownAircraft).toEqual({});
+    expect(resolved.unknowns.aircraft).toEqual({});
     expect(getAircraftByName).toHaveBeenCalledTimes(1);
   });
 });

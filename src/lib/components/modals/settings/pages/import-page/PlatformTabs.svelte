@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { platforms } from './';
-
   import { Label } from '$lib/components/ui/label';
+  import { platforms } from '$lib/import/platforms';
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import { Badge } from '$lib/components/ui/badge';
 

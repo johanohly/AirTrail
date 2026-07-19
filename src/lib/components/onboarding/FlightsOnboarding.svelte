@@ -6,7 +6,7 @@
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { Modal } from '$lib/components/ui/modal';
-  import { platforms } from '$lib/components/modals/settings/pages/import-page';
+  import { platforms } from '$lib/import/platforms';
   import { openModalsState } from '$lib/state.svelte';
 
   let { flightsCount = 0 }: { flightsCount?: number } = $props();

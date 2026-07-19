@@ -3,13 +3,12 @@ import { addDays, isBefore } from 'date-fns';
 import { z } from 'zod';
 
 import { page } from '$app/state';
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type {
-  Flight,
   CreateFlight,
   FlightDatePrecision,
   FlightPassenger,
 } from '$lib/db/types';
+import type { PlatformOptions } from '$lib/import/model';
 import { parseCsv } from '$lib/utils';
 import { getAircraftByIcao } from '$lib/utils/data/aircraft';
 import { getAirlineByIcao } from '$lib/utils/data/airlines';
@@ -280,8 +279,12 @@ export const processFR24File = async (
 
   return {
     flights,
-    unknownAirports,
-    unknownAirlines,
+    unknowns: {
+      airports: unknownAirports,
+      airlines: unknownAirlines,
+      aircraft: {},
+    },
+    exportedUsers: [],
     skippedRows: skipped.length,
   };
 };

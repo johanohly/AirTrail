@@ -1,8 +1,8 @@
 import { differenceInSeconds, format } from 'date-fns';
 
 import { page } from '$app/state';
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type { Airline, CreateFlight } from '$lib/db/types';
+import type { PlatformOptions } from '$lib/import/model';
 import { getAirlineByIata } from '$lib/utils/data/airlines';
 import { getAirportByIata } from '$lib/utils/data/airports/cache';
 import { parseLocalISO } from '$lib/utils/datetime';
@@ -239,5 +239,13 @@ export const processTripItFile = async (
     });
   }
 
-  return { flights, unknownAirports, unknownAirlines };
+  return {
+    flights,
+    unknowns: {
+      airports: unknownAirports,
+      airlines: unknownAirlines,
+      aircraft: {},
+    },
+    exportedUsers: [],
+  };
 };

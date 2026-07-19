@@ -180,8 +180,8 @@ describe('processAirTrailFile', () => {
     const result = await processAirTrailFile(content, baseOptions);
 
     expect(result.flights).toHaveLength(1);
-    expect(result.unknownAirports).toEqual({});
-    expect(result.unknownAirlines).toEqual({});
+    expect(result.unknowns.airports).toEqual({});
+    expect(result.unknowns.airlines).toEqual({});
     expect(getAirportByIcao).toHaveBeenCalledWith('EKCH');
     expect(getAirportByIcao).toHaveBeenCalledWith('EIDW');
     expect(getAirlineByIcao).toHaveBeenCalledWith('SAS');
