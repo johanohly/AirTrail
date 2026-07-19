@@ -1,8 +1,6 @@
 import {
   normalizeRoute,
-  setTempRoute,
   type Route,
-  type TempFilters,
 } from '$lib/components/flight-filters/types';
 import type { ClientAppConfig, FullAppConfig } from '$lib/server/utils/config';
 import type { DeepBoolean } from '$lib/utils';
@@ -99,21 +97,6 @@ export const focusMapDetails = () => {
 
 export const closeMapDetails = () => {
   mapDetailsState.selection = null;
-};
-
-/** Open the List Flights modal drilled down to all flights on a route. */
-export const openRouteInList = (
-  tempFilters: TempFilters | undefined,
-  route: Route,
-) => {
-  if (tempFilters) setTempRoute(tempFilters, route);
-  openModalsState.listFlights = true;
-};
-
-/** Open the List Flights modal scrolled to and highlighting a single flight. */
-export const openFlightInList = (flightId: number) => {
-  focusFlightInList(flightId);
-  openModalsState.listFlights = true;
 };
 
 export const appConfig = $state<{

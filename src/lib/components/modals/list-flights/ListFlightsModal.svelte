@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { tick } from 'svelte';
-
   import autoAnimate from '@formkit/auto-animate';
   import {
     ArrowLeftRight,
@@ -11,6 +9,7 @@
     X,
   } from '@o7/icon/lucide';
   import { isBefore, isAfter } from 'date-fns';
+  import { tick } from 'svelte';
 
   import DeleteFlightModal from './DeleteFlightModal.svelte';
   import EmptyFlightsState from './EmptyFlightsState.svelte';
@@ -22,25 +21,28 @@
   import {
     clearTempFilters as clearTempFilterValues,
     hasTempFilters as hasActiveTempFilters,
+    routeMatchesEndpoints,
     type FlightFilters,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
   import { AddFlightModal, EditFlightModal } from '$lib/components/modals';
-  import { Button } from '$lib/components/ui/button';
   import { Badge } from '$lib/components/ui/badge';
+  import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { Modal } from '$lib/components/ui/modal';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { LabelledSeparator, Separator } from '$lib/components/ui/separator';
   import * as Tooltip from '$lib/components/ui/tooltip';
+  import type { NavigateFlights } from '$lib/flight-navigation';
+  import { canShowFlightOnMap } from '$lib/flight-visibility';
   import {
     flightAddedState,
     flightListFocusState,
     flightScopeState,
-    openFlightDetails,
   } from '$lib/state.svelte';
   import {
     cn,
+    cancelHighlight,
     formatSeatForUser,
     getFlightPassengerLabels,
     highlightElement,
@@ -58,20 +60,24 @@
     tempFilters = $bindable<TempFilters | undefined>(),
     flights,
     filteredFlights,
+    focusedFlightOutsideFilters = false,
     deleteFlight,
     readonly = false,
     seatUserId,
     showPassengerDetails = false,
+    onNavigate,
   }: {
     open?: boolean;
     filters?: FlightFilters;
     tempFilters?: TempFilters;
     flights: FlightData[];
     filteredFlights: FlightData[];
+    focusedFlightOutsideFilters?: boolean;
     deleteFlight?: (id: number) => Promise<void>;
     readonly?: boolean;
     seatUserId?: string;
     showPassengerDetails?: boolean;
+    onNavigate?: NavigateFlights;
   } = $props();
 
   const prefs = $derived(getPreferences(appPage.data.user));
@@ -166,7 +172,7 @@
 
   let selecting = $state(false);
   let selectedFlights = $state<number[]>([]);
-  let handledFocusRequest = $state(0);
+  let handledFocusRequest = 0;
 
   // Add flight state
   let addFlightOpen = $state(false);
@@ -184,6 +190,17 @@
     handledFocusRequest = flightListFocusState.request;
     if (!flightId) return;
 
+    let cancelled = false;
+    let highlightedRow: HTMLElement | null = null;
+    const timers = new Set<ReturnType<typeof setTimeout>>();
+    const schedule = (callback: () => void, delay: number) => {
+      const timer = setTimeout(() => {
+        timers.delete(timer);
+        if (!cancelled) callback();
+      }, delay);
+      timers.add(timer);
+    };
+
     const index = formattedFlights.findIndex(
       (flight) => flight.id === flightId,
     );
@@ -196,18 +213,28 @@
     const focusRow = (attempts = 0) => {
       const row = document.getElementById(`flight-list-row-${flightId}`);
       if (row && row.getBoundingClientRect().height > 0) {
+        highlightedRow = row;
         highlightElement(row, {
           duration: 1900,
           pulses: 3,
           scrollOffset: 0,
         }).catch(() => {});
-        setTimeout(() => scrollElementIntoView(row), 300);
+        schedule(() => scrollElementIntoView(row), 300);
         return;
       }
-      if (attempts < 25) setTimeout(() => focusRow(attempts + 1), 80);
+      if (attempts < 25) schedule(() => focusRow(attempts + 1), 80);
     };
 
-    tick().then(() => focusRow());
+    tick().then(() => {
+      if (!cancelled) focusRow();
+    });
+
+    return () => {
+      cancelled = true;
+      for (const timer of timers) clearTimeout(timer);
+      timers.clear();
+      if (highlightedRow) cancelHighlight(highlightedRow);
+    };
   });
 
   // Mobile edit state
@@ -267,16 +294,12 @@
     }
   };
 
-  const showFlightOnMap = async (flightId: number) => {
-    // Leave any list drilldown behind, then close the list and open the flight's
-    // pane on the next tick — opening it before the modal tears down lets the
-    // modal's history/focus-trap teardown swallow the newly-opened pane. While
-    // the pane is open the map isolates this flight on its own (a derived view
-    // of the pane state); dismissing it returns the map to the filtered view.
-    if (tempFilters) clearTempFilterValues(tempFilters);
-    open = false;
-    await tick();
-    openFlightDetails(flightId);
+  const showFlightOnMap = (flight: FlightData) => {
+    if (!canShowFlightOnMap(flight)) return;
+    onNavigate?.({
+      destination: 'map',
+      focus: { type: 'flight', flightId: flight.id },
+    });
   };
 
   const hasTempFilters = $derived.by(() => hasActiveTempFilters(tempFilters));
@@ -320,11 +343,8 @@
   const tempFilterRoute = $derived.by(() => {
     if (!tempFilters?.routes.length) return null;
     const route = tempFilters.routes[0]!;
-    const flight = flights.find(
-      (f) =>
-        (f.from?.id.toString() === route.a &&
-          f.to?.id.toString() === route.b) ||
-        (f.from?.id.toString() === route.b && f.to?.id.toString() === route.a),
+    const flight = flights.find((f) =>
+      routeMatchesEndpoints(f.from?.id, f.to?.id, route),
     );
     if (!flight?.from || !flight.to) return null;
     return {
@@ -385,6 +405,12 @@
         <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
       {/if}
 
+      {#if focusedFlightOutsideFilters}
+        <p class="text-xs text-muted-foreground">
+          Selected flight is shown outside the active filters.
+        </p>
+      {/if}
+
       {#if filters}
         <Toolbar
           bind:filters
@@ -427,9 +453,7 @@
         bind:selectedFlights
         onEdit={readonly ? undefined : handleMobileEdit}
         onDelete={readonly ? undefined : handleDelete}
-        onShowOnMap={readonly
-          ? undefined
-          : (flight) => showFlightOnMap(flight.id)}
+        onShowOnMap={readonly || !onNavigate ? undefined : showFlightOnMap}
         {readonly}
       />
       <div class="h-[130px] sm:h-[90px]"></div>
@@ -654,16 +678,18 @@
 
 {#snippet actions(flight)}
   <div class="flex items-center gap-2">
-    <Button
-      variant="outline"
-      size="icon"
-      disabled={selecting}
-      aria-label="Show on map"
-      title="Show on map"
-      onclick={() => showFlightOnMap(flight.id)}
-    >
-      <MapPin size="20" />
-    </Button>
+    {#if onNavigate && canShowFlightOnMap(flight)}
+      <Button
+        variant="outline"
+        size="icon"
+        disabled={selecting}
+        aria-label="Show on map"
+        title="Show on map"
+        onclick={() => showFlightOnMap(flight)}
+      >
+        <MapPin size="20" />
+      </Button>
+    {/if}
     {#key flight}
       <EditFlightModal {flight} triggerDisabled={selecting} />
     {/key}

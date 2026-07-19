@@ -1,8 +1,6 @@
 <script lang="ts">
-  import type {
-    FlightFilters,
-    TempFilters,
-  } from '$lib/components/flight-filters/types';
+  import type { FlightFilters } from '$lib/components/flight-filters/types';
+  import type { NavigateFlights } from '$lib/flight-navigation';
   import { closeMapDetails, mapDetailsState } from '$lib/state.svelte';
   import type { FlightData } from '$lib/utils';
   import { isMediumScreen } from '$lib/utils/size';
@@ -27,28 +25,30 @@
   let {
     flights,
     filters = $bindable(),
-    tempFilters = $bindable(),
     seatUserId,
+    onNavigate,
   }: {
     flights: FlightData[];
     filters?: FlightFilters;
-    tempFilters?: TempFilters;
     seatUserId?: string;
+    onNavigate: NavigateFlights;
   } = $props();
+
+  const navigateFlights: NavigateFlights = (intent) => onNavigate(intent);
 
   const airport = useAirportDetails(
     () => flights,
     () => filters,
-    () => tempFilters,
+    navigateFlights,
   );
 
   const route = useRouteDetails(
     () => flights,
     () => filters,
-    () => tempFilters,
+    navigateFlights,
   );
 
-  const flight = useFlightDetails(() => flights);
+  const flight = useFlightDetails(() => flights, navigateFlights);
 
   const mobileOpen = $derived.by(() => {
     const selection = mapDetailsState.selection;

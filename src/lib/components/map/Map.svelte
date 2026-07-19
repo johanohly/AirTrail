@@ -34,11 +34,14 @@
   } from '$lib/components/flight-filters/model';
   import {
     hasTempFilters as hasActiveTempFilters,
+    routeMatchesEndpoints,
     type FlightFilters,
     type Route,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
   import * as Popover from '$lib/components/ui/popover';
+  import type { NavigateFlights } from '$lib/flight-navigation';
+  import { AIRPORT_DETAIL_LAYER_IDS } from '$lib/map/airport-style';
   import {
     getDefaultAppMapStyleUrl,
     getAppMapImages,
@@ -55,7 +58,6 @@
     OPENAIP_TILE_URL_TEMPLATE,
     type OpenAipTheme,
   } from '$lib/map/openaip';
-  import { AIRPORT_DETAIL_LAYER_IDS } from '$lib/map/airport-style';
   import { registerPmtilesProtocol } from '$lib/map/pmtiles';
   import {
     bindRuntimeMapImages,
@@ -88,12 +90,14 @@
     flightTracks = [],
     filters = $bindable(),
     tempFilters = $bindable(),
+    onNavigate,
   }: {
     flights: FlightData[];
     filteredFlights: FlightData[];
     flightTracks?: FlightTrackRow[];
     filters?: FlightFilters;
     tempFilters?: TempFilters;
+    onNavigate?: NavigateFlights;
   } = $props();
 
   const showScopeBanner = $derived(flightScopeState.scope !== 'mine');
@@ -278,12 +282,7 @@
     item: { from: { id: number }; to: { id: number } },
     route: Route,
   ) => {
-    const fromId = item.from.id.toString();
-    const toId = item.to.id.toString();
-    return (
-      (fromId === route.a && toId === route.b) ||
-      (fromId === route.b && toId === route.a)
-    );
+    return routeMatchesEndpoints(item.from.id, item.to.id, route);
   };
 
   const activeAirportFilter = $derived.by(() => {
@@ -754,6 +753,7 @@
       {flightArcs}
       {flightTracks}
       bind:tempFilters
+      {onNavigate}
     />
   </MapLibre>
 

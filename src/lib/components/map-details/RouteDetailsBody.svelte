@@ -60,9 +60,9 @@
       onpointerenter={() => (mapDetailsState.hoveredFlightTrackId = flight.id)}
       onpointerleave={() => (mapDetailsState.hoveredFlightTrackId = null)}
       onclick={() => onShowFlight(flight.id)}
-      aria-label="Open flight {flight.from?.iata ??
+      aria-label="Open flight details for {flight.from?.iata ??
         flight.from?.icao ??
-        'N/A'} to {flight.to?.iata ?? flight.to?.icao ?? 'N/A'} in flight list"
+        'N/A'} to {flight.to?.iata ?? flight.to?.icao ?? 'N/A'}"
     >
       <div class="flex w-8 shrink-0 justify-center">
         <AirlineIcon airline={flight.airline} size={28} fallback="plane" />

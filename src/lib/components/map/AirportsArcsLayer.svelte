@@ -20,6 +20,7 @@
     normalizeRoute,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
+  import type { NavigateFlights } from '$lib/flight-navigation';
   import {
     buildArcFrequencyPercentileByRoute,
     buildFlightTrackPaths,
@@ -57,7 +58,6 @@
     openAirportDetails,
     openFlightDetails,
     openRouteDetails,
-    openRouteInList,
   } from '$lib/state.svelte';
   import type { FlightTrackRow } from '$lib/track/schema';
   import { type FlightData, prepareVisitedAirports } from '$lib/utils';
@@ -117,11 +117,13 @@
     flightArcs,
     flightTracks = [],
     tempFilters = $bindable(),
+    onNavigate,
   }: {
     flights: FlightData[];
     flightArcs: FlightArc[];
     flightTracks?: FlightTrackRow[];
     tempFilters?: TempFilters;
+    onNavigate?: NavigateFlights;
   } = $props();
 
   const visitedAirports = $derived.by(() => {
@@ -266,7 +268,10 @@
     // the flight list drilled down to the whole route; otherwise open (or
     // switch to) that route's details.
     if (selectedRoute && routeMatchesArc(e.object, selectedRoute)) {
-      openRouteInList(tempFilters, route);
+      onNavigate?.({
+        destination: 'list',
+        focus: { type: 'route', route },
+      });
     } else {
       openRouteDetails(route);
     }
@@ -335,6 +340,11 @@
   const selectedAirportId = $derived.by(() => {
     const selection = mapDetailsState.selection;
     return selection?.type === 'airport' ? selection.airportId : null;
+  });
+
+  const selectedFlightId = $derived.by(() => {
+    const selection = mapDetailsState.selection;
+    return selection?.type === 'flight' ? selection.flightId : null;
   });
 
   const selectedRoute = $derived.by(() => {
@@ -484,7 +494,10 @@
   };
 
   const getVisibleArcWidth = (d: FlightArc) => {
-    const width = getArcWidth(d);
+    const width =
+      selectedFlightId === null
+        ? getArcWidth(d)
+        : UNIFORM_ARC_WIDTH[mapPreferences.arcThicknessScale];
     return routeMatchesArc(d, selectedRoute) ? Math.max(width + 1.5, 3) : width;
   };
 
@@ -570,6 +583,7 @@
       getWidth: [
         mapPreferences.arcThickness,
         mapPreferences.arcThicknessScale,
+        selectedFlightId,
         selectedRoute,
         arcFrequencyPercentileByRoute,
       ],
@@ -644,6 +658,7 @@
   const flightTrackWidthUpdateTriggers = $derived([
     mapPreferences.arcThickness,
     mapPreferences.arcThicknessScale,
+    selectedFlightId,
     selectedRoute,
     arcFrequencyPercentileByRoute,
   ]);

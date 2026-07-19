@@ -81,7 +81,10 @@
               disabled={selecting || readonly}
               onEdit={readonly ? undefined : () => onEdit?.(flight)}
               onDelete={readonly ? undefined : () => onDelete?.(flight)}
-              onShowOnMap={readonly || !onShowOnMap
+              onShowOnMap={readonly ||
+              !onShowOnMap ||
+              !flight.from ||
+              !flight.to
                 ? undefined
                 : () => onShowOnMap?.(flight)}
             >

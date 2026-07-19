@@ -1,13 +1,13 @@
 import { page } from '$app/state';
-import {
-  mapDetailsState,
-  openFlightInList,
-  openRouteDetails,
-} from '$lib/state.svelte';
+import type { NavigateFlights } from '$lib/flight-navigation';
+import { mapDetailsState, openRouteDetails } from '$lib/state.svelte';
 import { type FlightData } from '$lib/utils';
 import { getPreferences } from '$lib/utils/preferences';
 
-export function useFlightDetails(flights: () => FlightData[]) {
+export function useFlightDetails(
+  flights: () => FlightData[],
+  onNavigate: NavigateFlights,
+) {
   const prefs = $derived(getPreferences(page.data.user));
 
   const selectedFlightId = $derived.by(() => {
@@ -33,7 +33,10 @@ export function useFlightDetails(flights: () => FlightData[]) {
 
   const showInList = () => {
     if (!flight) return;
-    openFlightInList(flight.id);
+    onNavigate({
+      destination: 'list',
+      focus: { type: 'flight', flightId: flight.id },
+    });
   };
 
   return {

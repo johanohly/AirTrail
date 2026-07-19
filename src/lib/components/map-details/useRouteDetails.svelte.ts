@@ -1,15 +1,12 @@
 import { page } from '$app/state';
-import type {
-  FlightFilters,
-  Route,
-  TempFilters,
-} from '$lib/components/flight-filters/types';
-import { normalizeRoute } from '$lib/components/flight-filters/types';
 import {
-  mapDetailsState,
-  openFlightDetails,
-  openRouteInList,
-} from '$lib/state.svelte';
+  normalizeRoute,
+  routeMatchesEndpoints,
+  type FlightFilters,
+  type Route,
+} from '$lib/components/flight-filters/types';
+import type { NavigateFlights } from '$lib/flight-navigation';
+import { mapDetailsState, openFlightDetails } from '$lib/state.svelte';
 import { type FlightData } from '$lib/utils';
 import {
   convertDistance,
@@ -20,7 +17,7 @@ import {
 export function useRouteDetails(
   flights: () => FlightData[],
   filters: () => FlightFilters | undefined,
-  tempFilters: () => TempFilters | undefined,
+  onNavigate: NavigateFlights,
 ) {
   const prefs = $derived(getPreferences(page.data.user));
 
@@ -41,12 +38,7 @@ export function useRouteDetails(
   });
 
   const matchesRoute = (flight: FlightData, route: Route) => {
-    const fromId = flight.from?.id.toString();
-    const toId = flight.to?.id.toString();
-    return (
-      (fromId === route.a && toId === route.b) ||
-      (fromId === route.b && toId === route.a)
-    );
+    return routeMatchesEndpoints(flight.from?.id, flight.to?.id, route);
   };
 
   const routeFlights = $derived.by(() => {
@@ -119,7 +111,10 @@ export function useRouteDetails(
 
   const showAllFlights = () => {
     if (!selectedRoute) return;
-    openRouteInList(tempFilters(), selectedRoute);
+    onNavigate({
+      destination: 'list',
+      focus: { type: 'route', route: selectedRoute },
+    });
   };
 
   const showFlight = (flightId: number) => {
