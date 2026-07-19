@@ -63,3 +63,20 @@ export const mergeImportMappings = (
   airlines: { ...current.airlines, ...pending.airlines },
   aircraft: { ...current.aircraft, ...pending.aircraft },
 });
+export const getPendingFlights = (
+  flights: CreateFlight[],
+  unknowns: ImportUnknowns,
+  handledIndices: ReadonlySet<number>,
+): IndexedFlight[] => {
+  const unknownIndices = new Set([
+    ...Object.values(unknowns.airports).flat(),
+    ...Object.values(unknowns.airlines).flat(),
+    ...Object.values(unknowns.aircraft).flat(),
+  ]);
+
+  return flights
+    .map((flight, index) => ({ flight, index }))
+    .filter(
+      ({ index }) => !unknownIndices.has(index) && !handledIndices.has(index),
+    );
+};

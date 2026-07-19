@@ -20,6 +20,7 @@
   import {
     createEmptyImportMappings,
     createEmptyImportUnknowns,
+    getPendingFlights,
     mergeImportMappings,
     type ImportMappings,
     type ImportUnknowns,
@@ -56,6 +57,7 @@
   let platform = $state<(typeof platforms)[0]>(platforms[0]);
   let userMapping = $state<Record<string, string>>({});
   let appliedMappings = $state<ImportMappings>(createEmptyImportMappings());
+  const handledFlightIndices = new Set<number>();
   let ownerOnly = $state(false);
   let matchAirlineFromFlightNumber = $state(true);
   let dedupeImportedFlights = $state(true);
@@ -195,14 +197,11 @@
     // inserted with null references (which would cause duplicates when
     // the user maps the unknowns and re-imports).
     const nextUnknowns = result.unknowns;
-    const unknownIndices = new Set([
-      ...Object.values(nextUnknowns.airports).flat(),
-      ...Object.values(nextUnknowns.airlines).flat(),
-      ...Object.values(nextUnknowns.aircraft).flat(),
-    ]);
-    const flightsToImport = flights
-      .map((flight, index) => ({ flight, index }))
-      .filter(({ index }) => !unknownIndices.has(index));
+    const flightsToImport = getPendingFlights(
+      flights,
+      nextUnknowns,
+      handledFlightIndices,
+    );
 
     // Send flights in batches to avoid exceeding the server body size limit
     const BATCH_SIZE = 50;
@@ -215,6 +214,12 @@
       inserted += result.inserted;
       attached += result.attached;
       failures.push(...result.failures);
+      const failedIndices = new Set(
+        result.failures.map((failure) => failure.index),
+      );
+      for (const { index } of batch) {
+        if (!failedIndices.has(index)) handledFlightIndices.add(index);
+      }
     }
     if (inserted > 0 || attached > 0) {
       await refreshImportedFlights();
@@ -249,6 +254,7 @@
 
     importing = true;
     originalFile = file;
+    handledFlightIndices.clear();
 
     try {
       const result = await processFile(file, platform.value, {
@@ -331,6 +337,7 @@
     exportedUsers = [];
     userMapping = {};
     appliedMappings = createEmptyImportMappings();
+    handledFlightIndices.clear();
     importedCount = 0;
     skippedRows = 0;
     importFailures = [];
