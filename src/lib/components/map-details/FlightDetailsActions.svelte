@@ -8,7 +8,13 @@
 
 <DetailsActionButton
   label="Locate flight"
+  shortLabel="Locate"
   icon={Locate}
   onclick={focusMapDetails}
 />
-<DetailsActionButton label="Close details" icon={X} onclick={closeMapDetails} />
+<DetailsActionButton
+  label="Close details"
+  shortLabel="Close"
+  icon={X}
+  onclick={closeMapDetails}
+/>
