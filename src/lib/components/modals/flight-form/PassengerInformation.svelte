@@ -4,7 +4,7 @@
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
 
-  import FlightCustomFieldsModal from './FlightCustomFieldsModal.svelte';
+  import PassengerCustomFields from './PassengerCustomFields.svelte';
   import PassengerPicker from './PassengerPicker.svelte';
 
   import { Button } from '$lib/components/ui/button';
@@ -17,10 +17,7 @@
   import { cn, toTitleCase } from '$lib/utils';
   import type { CustomFieldDefinition } from '$lib/utils/custom-fields';
   import type { flightSchema } from '$lib/zod/flight';
-  import {
-    HelpTooltip,
-    TextTooltip,
-  } from '$lib/components/ui/tooltip/index.ts';
+  import { TextTooltip } from '$lib/components/ui/tooltip/index.ts';
 
   let {
     form,
@@ -32,13 +29,13 @@
     savedFieldIds?: Record<number, Set<number>>;
   } = $props();
   const { form: formData, errors } = form;
-  let customFieldModals = $state<
-    Array<ReturnType<typeof FlightCustomFieldsModal>>
+  let customFieldSections = $state<
+    Array<ReturnType<typeof PassengerCustomFields>>
   >([]);
 
   export function validateCustomFields(): boolean {
-    for (const modal of customFieldModals) {
-      if (modal && !modal.validate()) return false;
+    for (const section of customFieldSections) {
+      if (section && !section.validate()) return false;
     }
     return true;
   }
@@ -79,18 +76,6 @@
                     ?.length}
                 />
               </div>
-              <FlightCustomFieldsModal
-                bind:this={customFieldModals[index]}
-                definitions={customFieldDefinitions}
-                bind:values={$formData.passengers[index].customFields}
-                savedFieldIds={$formData.passengers[index].id
-                  ? savedFieldIds[$formData.passengers[index].id]
-                  : undefined}
-                title="Passenger fields"
-                triggerLabel="Fields"
-                entityLabel="passenger"
-                emptyDescription="Track passenger-specific details such as meal preference, ticket number, or loyalty status."
-              />
               <TextTooltip
                 content="Remove passenger"
                 rootProps={{ delayDuration: 0 }}
@@ -115,7 +100,7 @@
             <Separator />
 
             <div class="px-3 pt-2.5 pb-3 bg-muted/30 space-y-2">
-              <div class="grid grid-cols-2 gap-2 md:grid-cols-[2fr_2fr_1.5fr]">
+              <div class="grid grid-cols-2 gap-2">
                 <Form.ElementField {form} name="passengers[{index}].seatClass">
                   <Form.Control>
                     {#snippet children({ props })}
@@ -200,11 +185,13 @@
                   </Form.Control>
                   <Form.FieldErrors />
                 </Form.ElementField>
+              </div>
 
+              <div class="space-y-1.5">
                 <Form.ElementField {form} name="passengers[{index}].seatNumber">
                   <Form.Control>
                     {#snippet children({ props })}
-                      <Form.Label class="text-xs">Seat #</Form.Label>
+                      <Form.Label class="text-xs">Seat</Form.Label>
                       <Input
                         value={$formData.passengers[index]?.seatNumber ?? ''}
                         oninput={(e) => {
@@ -214,50 +201,59 @@
                           }
                         }}
                         placeholder="e.g. 12A"
-                        class="h-8 text-sm not-placeholder-shown:uppercase"
+                        class="h-8 w-24 text-sm not-placeholder-shown:uppercase"
                         {...props}
                       />
                     {/snippet}
                   </Form.Control>
                   <Form.FieldErrors />
                 </Form.ElementField>
+
+                <Form.ElementField {form} name="passengers[{index}].seat">
+                  <Form.Control>
+                    {#snippet children({ props })}
+                      <Form.Label class="sr-only">Seat Type</Form.Label>
+                      <div class="flex flex-wrap gap-1.5">
+                        {#each SeatTypes as type}
+                          <button
+                            type="button"
+                            class={cn(
+                              'px-2.5 py-1 rounded-md text-xs font-medium border transition-colors',
+                              $formData.passengers[index]?.seat === type
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'bg-background text-muted-foreground border-input hover:border-foreground/20 hover:text-foreground',
+                            )}
+                            onclick={() => {
+                              if ($formData.passengers[index]) {
+                                $formData.passengers[index].seat =
+                                  $formData.passengers[index].seat === type
+                                    ? null
+                                    : type;
+                              }
+                            }}
+                          >
+                            {seatTypeLabels[type] ?? toTitleCase(type)}
+                          </button>
+                        {/each}
+                      </div>
+                      <input
+                        type="hidden"
+                        value={$formData.passengers[index]?.seat}
+                        name={props.name}
+                      />
+                    {/snippet}
+                  </Form.Control>
+                </Form.ElementField>
               </div>
 
-              <Form.ElementField {form} name="passengers[{index}].seat">
-                <Form.Control>
-                  {#snippet children({ props })}
-                    <Form.Label class="sr-only">Seat Type</Form.Label>
-                    <div class="flex flex-wrap gap-1.5">
-                      {#each SeatTypes as type}
-                        <button
-                          type="button"
-                          class={cn(
-                            'px-2.5 py-1 rounded-md text-xs font-medium border transition-colors',
-                            $formData.passengers[index]?.seat === type
-                              ? 'bg-primary text-primary-foreground border-primary'
-                              : 'bg-background text-muted-foreground border-input hover:border-foreground/20 hover:text-foreground',
-                          )}
-                          onclick={() => {
-                            if ($formData.passengers[index]) {
-                              $formData.passengers[index].seat =
-                                $formData.passengers[index].seat === type
-                                  ? null
-                                  : type;
-                            }
-                          }}
-                        >
-                          {seatTypeLabels[type] ?? toTitleCase(type)}
-                        </button>
-                      {/each}
-                    </div>
-                    <input
-                      type="hidden"
-                      value={$formData.passengers[index]?.seat}
-                      name={props.name}
-                    />
-                  {/snippet}
-                </Form.Control>
-              </Form.ElementField>
+              <PassengerCustomFields
+                bind:this={customFieldSections[index]}
+                definitions={customFieldDefinitions}
+                bind:values={$formData.passengers[index].customFields}
+                savedFieldIds={$formData.passengers[index].id
+                  ? savedFieldIds[$formData.passengers[index].id]
+                  : undefined}
+              />
             </div>
           </Card>
         {/if}
