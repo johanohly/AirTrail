@@ -26,6 +26,7 @@ import {
   getMissingImportSeats,
   type FlightImportMode,
 } from '$lib/server/utils/flight-import';
+import { getRunwayById } from '$lib/server/utils/runway';
 import { distanceBetween } from '$lib/utils';
 import {
   estimateFlightDuration,
@@ -252,11 +253,7 @@ export const validateAndSaveFlight = async (
       );
     }
 
-    const runway = await db
-      .selectFrom('runway')
-      .select(['airportId', 'leIdent', 'heIdent'])
-      .where('id', '=', runwayId)
-      .executeTakeFirst();
+    const runway = await getRunwayById(runwayId);
 
     if (!runway || runway.airportId !== airportId) {
       return pathError(
