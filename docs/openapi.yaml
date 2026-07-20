@@ -200,7 +200,7 @@ paths:
       tags:
         - 'Flight'
       summary: 'Create or update a flight'
-      description: 'Create a new flight or update an existing one. If the `id` field is present, the flight will be updated. Otherwise, a new flight will be created. Use `passengers` for the passenger list; the legacy `seats` property is still accepted for compatibility.'
+      description: 'Create a new flight or update an existing one. If the `id` field is present, the flight will be updated. Otherwise, a new flight will be created.'
       operationId: 'save-flight'
       requestBody:
         required: true

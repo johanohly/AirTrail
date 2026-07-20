@@ -129,7 +129,6 @@ export const validateAndSaveFlight = async (
   const saveFlightValues = async (
     values: CreateFlight,
     customFields: Record<string, unknown>,
-    passengerCustomFields: Record<string, unknown>[],
   ): Promise<ErrorActionResult & { id?: number }> => {
     const updateId = data.id;
     if (updateId) {
@@ -149,7 +148,7 @@ export const validateAndSaveFlight = async (
 
       try {
         await db.transaction().execute(async (trx) => {
-          const passengerIds = await updateFlightPrimitiveWithConnection(
+          const persistedPassengers = await updateFlightPrimitiveWithConnection(
             trx,
             updateId,
             values,
@@ -159,11 +158,11 @@ export const validateAndSaveFlight = async (
             entityId: String(updateId),
             values: customFields,
           });
-          for (let index = 0; index < passengerIds.length; index++) {
+          for (const passenger of persistedPassengers) {
             await persistEntityCustomFields(trx, {
               entityType: 'flight_passenger',
-              entityId: String(passengerIds[index]),
-              values: passengerCustomFields[index],
+              entityId: String(passenger.id),
+              values: passenger.input.customFields,
             });
           }
         });
@@ -194,11 +193,11 @@ export const validateAndSaveFlight = async (
           entityId: String(created.flightId),
           values: customFields,
         });
-        for (let index = 0; index < created.passengerIds.length; index++) {
+        for (const passenger of created.passengers) {
           await persistEntityCustomFields(trx, {
             entityType: 'flight_passenger',
-            entityId: String(created.passengerIds[index]),
-            values: passengerCustomFields[index],
+            entityId: String(passenger.id),
+            values: passenger.input.customFields,
           });
         }
         return created.flightId;
@@ -289,11 +288,7 @@ export const validateAndSaveFlight = async (
       track,
     };
 
-    return await saveFlightValues(
-      values,
-      customFields,
-      data.passengers.map((passenger) => passenger.customFields),
-    );
+    return await saveFlightValues(values, customFields);
   }
 
   // Either departure or departureScheduled must be set
@@ -473,11 +468,7 @@ export const validateAndSaveFlight = async (
     track,
   };
 
-  return await saveFlightValues(
-    values,
-    customFields,
-    data.passengers.map((passenger) => passenger.customFields),
-  );
+  return await saveFlightValues(values, customFields);
 };
 
 export const deleteFlight = async (id: number) => {

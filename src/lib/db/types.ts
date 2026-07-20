@@ -55,7 +55,10 @@ type CreateFlightAirport = Partial<Airport>;
 export type CreateFlightPassenger = Omit<
   FlightPassengerRecord,
   'flightId' | 'id'
-> & { id?: number };
+> & {
+  id?: number;
+  customFields?: Record<string, unknown>;
+};
 type FlightRecord = Omit<
   Selectable<flight>,
   'id' | 'fromId' | 'toId' | 'aircraftId' | 'airlineId'

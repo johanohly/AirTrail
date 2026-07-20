@@ -34,10 +34,11 @@
   >([]);
 
   export function validateCustomFields(): boolean {
+    let valid = true;
     for (const section of customFieldSections) {
-      if (section && !section.validate()) return false;
+      if (section && !section.validate()) valid = false;
     }
-    return true;
+    return valid;
   }
 
   const seatTypeLabels: Record<string, string> = {

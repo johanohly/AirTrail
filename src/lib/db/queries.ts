@@ -1,4 +1,4 @@
-import { type Expression, type Kysely, sql } from 'kysely';
+import { type Expression, type Kysely, type Selectable, sql } from 'kysely';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 
 import type { DB } from './schema';
@@ -57,7 +57,7 @@ const airline = (db: Kysely<DB>, id: Expression<number | null>) => {
 };
 
 type ExistingPassengerIdentity = Pick<
-  DB['flightPassenger'],
+  Selectable<DB['flightPassenger']>,
   'id' | 'userId' | 'guestName'
 >;
 
@@ -89,6 +89,9 @@ export const resolveFlightPassengerChanges = (
       : byIdentity.get(passengerIdentity(passenger));
     if (passenger.id && !existing) {
       throw new Error('Passenger does not belong to this flight');
+    }
+    if (existing && retainedIds.has(existing.id)) {
+      throw new Error('Passenger record appears more than once');
     }
     if (existing) retainedIds.add(existing.id);
     return { passenger, existing };
@@ -210,7 +213,10 @@ export const createFlightPrimitiveWithConnection = async (
     .returning('id')
     .executeTakeFirstOrThrow();
 
-  const passengerIds: number[] = [];
+  const persistedPassengers: Array<{
+    id: number;
+    input: CreateFlightPassenger;
+  }> = [];
   for (const passenger of passengers) {
     const created = await db
       .insertInto('flightPassenger')
@@ -225,7 +231,7 @@ export const createFlightPrimitiveWithConnection = async (
       })
       .returning('id')
       .executeTakeFirstOrThrow();
-    passengerIds.push(created.id);
+    persistedPassengers.push({ id: created.id, input: passenger });
   }
 
   if (track) {
@@ -234,7 +240,7 @@ export const createFlightPrimitiveWithConnection = async (
 
   return {
     flightId: resp.id,
-    passengerIds,
+    passengers: persistedPassengers,
   };
 };
 
@@ -294,7 +300,10 @@ export const updateFlightPrimitiveWithConnection = async (
       .execute();
   }
 
-  const passengerIds: number[] = [];
+  const persistedPassengers: Array<{
+    id: number;
+    input: CreateFlightPassenger;
+  }> = [];
   for (const { passenger, existing } of resolved) {
     const values = {
       userId: passenger.userId,
@@ -310,17 +319,17 @@ export const updateFlightPrimitiveWithConnection = async (
         .set(values)
         .where('id', '=', existing.id)
         .executeTakeFirstOrThrow();
-      passengerIds.push(existing.id);
+      persistedPassengers.push({ id: existing.id, input: passenger });
     } else {
       const created = await db
         .insertInto('flightPassenger')
         .values({ ...values, flightId: id })
         .returning('id')
         .executeTakeFirstOrThrow();
-      passengerIds.push(created.id);
+      persistedPassengers.push({ id: created.id, input: passenger });
     }
   }
-  return passengerIds;
+  return persistedPassengers;
 };
 
 const normalizeFlightTrackInput = (track: FlightTrackInput): FlightTrackInput =>

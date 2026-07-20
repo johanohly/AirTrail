@@ -9,28 +9,19 @@ import {
   CustomFieldValidationError,
   persistEntityCustomFields,
 } from '$lib/server/utils/custom-fields';
+import {
+  CUSTOM_FIELD_ENTITY_TYPES,
+  CUSTOM_FIELD_TYPES,
+  type EntityType,
+  validateCustomFieldDefinition,
+} from '$lib/utils/custom-fields';
 
-type EntityType = 'flight' | 'flight_passenger';
-const entityTypeSchema = z.enum(['flight', 'flight_passenger']);
+const entityTypeSchema = z.enum(CUSTOM_FIELD_ENTITY_TYPES);
 
 /** Convert a JS value to a Kysely `::jsonb` expression, or null. */
 const toJsonb = (value: unknown): RawBuilder<unknown> | null =>
   value != null ? sql`${JSON.stringify(value)}::jsonb` : null;
-const fieldTypeSchema = z.enum([
-  'text',
-  'textarea',
-  'number',
-  'boolean',
-  'date',
-  'select',
-  'multi-select',
-  'airport',
-  'airline',
-  'aircraft',
-]);
-
-/** Field types that store string values and share text validation rules. */
-const TEXT_LIKE_TYPES = new Set(['text', 'textarea']);
+const fieldTypeSchema = z.enum(CUSTOM_FIELD_TYPES);
 
 const validationSchema = z
   .object({
@@ -69,93 +60,11 @@ const badRequest = (message: string): never => {
   throw new TRPCError({ code: 'BAD_REQUEST', message });
 };
 
-type DefinitionInput = z.infer<typeof definitionInputSchema>;
-
-const EXPECTED_DEFAULT_TYPES: Record<string, string> = {
-  text: 'string',
-  textarea: 'string',
-  number: 'number',
-  boolean: 'boolean',
-  date: 'string',
-  select: 'string',
-  'multi-select': 'object',
-  airport: 'number',
-  airline: 'number',
-  aircraft: 'number',
-};
-
-const ensureDefaultValueIsValid = (input: DefinitionInput) => {
-  if (input.defaultValue == null) return;
-
-  const expected = EXPECTED_DEFAULT_TYPES[input.fieldType];
-  if (expected && typeof input.defaultValue !== expected) {
-    badRequest(
-      `Default value must be a ${expected} for ${input.fieldType} fields`,
-    );
-  }
-
-  if (input.fieldType === 'select') {
-    const options = input.options ?? [];
-    if (!options.includes(input.defaultValue as string)) {
-      badRequest('Default value must be one of the select options');
-    }
-  }
-  if (input.fieldType === 'multi-select') {
-    if (
-      !Array.isArray(input.defaultValue) ||
-      input.defaultValue.some((value) => typeof value !== 'string')
-    ) {
-      badRequest('Default value must be a list for multi-select fields');
-    }
-    if (input.defaultValue.length === 0) {
-      badRequest('Multi-select defaults must include at least one option');
-    }
-    const options = input.options ?? [];
-    if (input.defaultValue.some((value) => !options.includes(value))) {
-      badRequest('Default values must be among the multi-select options');
-    }
-  }
-};
-
-const ensureValidationRulesAreValid = (input: DefinitionInput) => {
-  const validation = input.validationJson;
-  if (!validation) return;
-
-  if (TEXT_LIKE_TYPES.has(input.fieldType) && validation.regex) {
-    try {
-      // Validate regex at definition-save time to avoid blocking future flight saves.
-      new RegExp(validation.regex);
-    } catch {
-      badRequest('Regex pattern is invalid');
-    }
-  }
-
-  if (
-    typeof validation.minLength === 'number' &&
-    typeof validation.maxLength === 'number' &&
-    validation.minLength > validation.maxLength
-  ) {
-    badRequest('Min length cannot be greater than max length');
-  }
-
-  if (
-    typeof validation.min === 'number' &&
-    typeof validation.max === 'number' &&
-    validation.min > validation.max
-  ) {
-    badRequest('Min value cannot be greater than max value');
-  }
-};
-
-const ensureDefinitionIsValid = (input: DefinitionInput) => {
-  if (
-    (input.fieldType === 'select' || input.fieldType === 'multi-select') &&
-    (input.options ?? []).length === 0
-  ) {
-    badRequest('Select fields require at least one option');
-  }
-  ensureDefaultValueIsValid(input);
-  ensureValidationRulesAreValid(input);
+const ensureDefinitionIsValid = (
+  input: z.infer<typeof definitionInputSchema>,
+) => {
+  const message = validateCustomFieldDefinition(input);
+  if (message) badRequest(message);
 };
 
 async function assertEntityAccess(

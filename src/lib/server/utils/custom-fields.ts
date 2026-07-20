@@ -2,34 +2,16 @@ import type { Kysely } from 'kysely';
 import { sql } from 'kysely';
 
 import type { DB } from '$lib/db/schema';
+import {
+  isCustomFieldValueEmpty,
+  type EntityType,
+  type FieldType,
+  validateCustomFieldValue,
+} from '$lib/utils/custom-fields';
 
-type EntityType = 'flight' | 'flight_passenger';
-type FieldType =
-  | 'text'
-  | 'textarea'
-  | 'number'
-  | 'boolean'
-  | 'date'
-  | 'select'
-  | 'multi-select'
-  | 'airport'
-  | 'airline'
-  | 'aircraft';
-
-type Validation = {
-  regex?: string;
-  min?: number;
-  max?: number;
-  minLength?: number;
-  maxLength?: number;
-};
-
-type InputValueArray = Array<{ fieldId: number; value: unknown | null }>;
+type InputValueArray = Array<{ fieldId: number; value?: unknown | null }>;
 type InputValueRecord = Record<string, unknown>;
 type IncomingValues = InputValueArray | InputValueRecord | null | undefined;
-
-const TEXT_LIKE_TYPES = new Set<FieldType>(['text', 'textarea']);
-const ENTITY_TYPES = new Set<FieldType>(['airport', 'airline', 'aircraft']);
 
 export class CustomFieldValidationError extends Error {
   constructor(message: string) {
@@ -71,11 +53,6 @@ const normalizeIncomingEntries = (values: IncomingValues) => {
   return normalized;
 };
 
-const getValidation = (value: unknown): Validation | null => {
-  if (!value || typeof value !== 'object') return null;
-  return value as Validation;
-};
-
 const toJsonb = (value: unknown) => sql`${JSON.stringify(value)}::jsonb`;
 
 type Definition = {
@@ -87,120 +64,6 @@ type Definition = {
   defaultValue: unknown;
   options: unknown;
   validationJson: unknown;
-};
-
-const checkValueType = (def: Definition, value: unknown): string | null => {
-  if (TEXT_LIKE_TYPES.has(def.fieldType) && typeof value !== 'string') {
-    return 'must be text';
-  }
-  if (def.fieldType === 'number') {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-      return 'must be a number';
-    }
-  }
-  if (def.fieldType === 'boolean' && typeof value !== 'boolean') {
-    return 'must be true or false';
-  }
-  if (def.fieldType === 'date' && typeof value !== 'string') {
-    return 'must be a date string';
-  }
-  if (def.fieldType === 'select') {
-    if (typeof value !== 'string') return 'must be one of its options';
-    const options = Array.isArray(def.options)
-      ? def.options.filter((x): x is string => typeof x === 'string')
-      : [];
-    if (!options.includes(value)) return 'must be one of its options';
-  }
-  if (def.fieldType === 'multi-select') {
-    if (
-      !Array.isArray(value) ||
-      value.some((item) => typeof item !== 'string')
-    ) {
-      return 'must be a list of its options';
-    }
-    const options = Array.isArray(def.options)
-      ? def.options.filter((x): x is string => typeof x === 'string')
-      : [];
-    if (value.some((item) => !options.includes(item))) {
-      return 'must contain only its options';
-    }
-  }
-  if (ENTITY_TYPES.has(def.fieldType) && typeof value !== 'number') {
-    return 'must use a numeric ID';
-  }
-  return null;
-};
-
-const checkTextValidation = (
-  value: string,
-  validation: Validation,
-): string | null => {
-  if (validation.regex) {
-    try {
-      const re = new RegExp(validation.regex);
-      if (!re.test(value)) return 'does not match its pattern';
-    } catch {
-      return 'has an invalid regex pattern';
-    }
-  }
-  if (
-    typeof validation.minLength === 'number' &&
-    value.length < validation.minLength
-  ) {
-    return 'is shorter than minimum length';
-  }
-  if (
-    typeof validation.maxLength === 'number' &&
-    value.length > validation.maxLength
-  ) {
-    return 'is longer than maximum length';
-  }
-  return null;
-};
-
-const checkNumberValidation = (
-  value: number,
-  validation: Validation,
-): string | null => {
-  if (typeof validation.min === 'number' && value < validation.min) {
-    return 'is lower than minimum value';
-  }
-  if (typeof validation.max === 'number' && value > validation.max) {
-    return 'is higher than maximum value';
-  }
-  return null;
-};
-
-const checkValidation = (def: Definition, value: unknown): string | null => {
-  const validation = getValidation(def.validationJson);
-  if (!validation) return null;
-
-  if (TEXT_LIKE_TYPES.has(def.fieldType) && typeof value === 'string') {
-    return checkTextValidation(value, validation);
-  }
-  if (def.fieldType === 'number' && typeof value === 'number') {
-    return checkNumberValidation(value, validation);
-  }
-  return null;
-};
-
-const validateValue = (def: Definition, value: unknown): string | null => {
-  const isEmpty =
-    value === undefined ||
-    value === null ||
-    value === '' ||
-    (Array.isArray(value) && value.length === 0);
-
-  if (def.required && isEmpty) return `Custom field "${def.label}" is required`;
-  if (value == null) return null;
-
-  const typeError = checkValueType(def, value);
-  if (typeError) return `Custom field "${def.label}" ${typeError}`;
-
-  const validationError = checkValidation(def, value);
-  if (validationError) return `Custom field "${def.label}" ${validationError}`;
-
-  return null;
 };
 
 /** Resolve incoming entries (by fieldId or key) to a map of fieldId → value. */
@@ -246,11 +109,7 @@ const mergeValues = (
     merged.set(fieldId, value);
   }
   for (const [fieldId, value] of incoming) {
-    if (
-      value === null ||
-      value === '' ||
-      (Array.isArray(value) && !value.length)
-    ) {
+    if (isCustomFieldValueEmpty(value)) {
       merged.delete(fieldId);
     } else {
       merged.set(fieldId, value);
@@ -267,11 +126,7 @@ const persistEntry = async (
   fieldId: number,
   value: unknown | null,
 ) => {
-  if (
-    value === null ||
-    value === '' ||
-    (Array.isArray(value) && !value.length)
-  ) {
+  if (isCustomFieldValueEmpty(value)) {
     await db
       .deleteFrom('customFieldValue')
       .where('fieldId', '=', fieldId)
@@ -363,8 +218,16 @@ export const persistEntityCustomFields = async (
   );
 
   for (const def of defs) {
-    const message = validateValue(def, mergedValues.get(def.id));
-    if (message) throw new CustomFieldValidationError(message);
+    const message = validateCustomFieldValue(def, mergedValues.get(def.id));
+    if (message) {
+      const detail =
+        message === `${def.label} is required`
+          ? 'is required'
+          : `${message.charAt(0).toLowerCase()}${message.slice(1)}`;
+      throw new CustomFieldValidationError(
+        `Custom field "${def.label}" ${detail}`,
+      );
+    }
   }
 
   const entriesToPersist = new Map<number, unknown | null>(defaultsToPersist);
