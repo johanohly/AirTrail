@@ -13,32 +13,46 @@
 
   import CustomFieldEditModal from './CustomFieldEditModal.svelte';
   import CustomFieldRow from './CustomFieldRow.svelte';
-  import { FIELD_TYPE_LABELS, type DefinitionItem } from './types';
+  import {
+    FIELD_TYPE_LABELS,
+    type DefinitionItem,
+    type EntityType,
+  } from './types';
 
   import { confirmation } from '$lib/components/helpers';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
+  import * as Tabs from '$lib/components/ui/tabs';
   import { api, trpc } from '$lib/trpc';
 
-  const definitionsQuery = trpc.customField.listDefinitions.query({
+  const flightDefinitionsQuery = trpc.customField.listDefinitions.query({
     entityType: 'flight',
     includeInactive: true,
   });
+  const passengerDefinitionsQuery = trpc.customField.listDefinitions.query({
+    entityType: 'flight_passenger',
+    includeInactive: true,
+  });
 
-  const sortableGroupId = 'custom-fields';
+  let entityType = $state<EntityType>('flight');
+  const definitions = $derived(
+    entityType === 'flight'
+      ? ($flightDefinitionsQuery.data ?? [])
+      : ($passengerDefinitionsQuery.data ?? []),
+  );
+  const sortableGroupId = $derived(`custom-fields-${entityType}`);
   let activeDragId = $state<number | null>(null);
   let editModal = $state<ReturnType<typeof CustomFieldEditModal>>();
   let editModalOpen = $state(false);
 
   const activeDragItem = $derived(
-    ($definitionsQuery.data ?? []).find((item) => item.id === activeDragId),
+    definitions.find((item) => item.id === activeDragId),
   );
 
   const invalidate = () => {
-    trpc.customField.listDefinitions.utils.invalidate({
-      entityType: 'flight',
-      includeInactive: true,
-    });
+    // No input: also refreshes the flight/passenger form queries,
+    // which fetch without `includeInactive`.
+    trpc.customField.listDefinitions.utils.invalidate();
   };
 
   const onDragStart = (event: any) => {
@@ -56,13 +70,13 @@
     const toIndex = source.sortable.index;
     if (fromIndex === toIndex) return;
 
-    const list = [...($definitionsQuery.data ?? [])] as DefinitionItem[];
+    const list = [...definitions] as DefinitionItem[];
     const [moved] = list.splice(fromIndex, 1);
     list.splice(toIndex, 0, moved);
 
     try {
       await api.customField.reorderDefinitions.mutate({
-        entityType: 'flight',
+        entityType,
         orderedIds: list.map((item) => item.id),
       });
       invalidate();
@@ -84,7 +98,7 @@
     try {
       await api.customField.deleteDefinition.mutate({
         id,
-        entityType: 'flight',
+        entityType,
       });
       invalidate();
       toast.success('Custom field removed');
@@ -101,7 +115,7 @@
 
 <PageHeader
   title="Custom Fields"
-  subtitle="Define optional structured fields for flight records."
+  subtitle="Define structured fields for flights and individual passengers."
 >
   {#snippet headerRight()}
     <Button onclick={() => editModal?.openCreate()}>
@@ -110,14 +124,21 @@
     </Button>
   {/snippet}
 
-  {#if $definitionsQuery.data?.length}
+  <Tabs.Root bind:value={entityType} class="mb-4">
+    <Tabs.List class="grid w-full max-w-sm grid-cols-2">
+      <Tabs.Trigger value="flight">Flight fields</Tabs.Trigger>
+      <Tabs.Trigger value="flight_passenger">Passenger fields</Tabs.Trigger>
+    </Tabs.List>
+  </Tabs.Root>
+
+  {#if definitions.length}
     <DragDropProvider
       sensors={[PointerSensor, KeyboardSensor]}
       {onDragStart}
       {onDragEnd}
     >
       <div class="space-y-2">
-        {#each $definitionsQuery.data as item, index (item.id)}
+        {#each definitions as item, index (item.id)}
           <CustomFieldRow
             {item}
             {index}
@@ -164,7 +185,7 @@
     </DragDropProvider>
   {:else}
     <Card class="p-6 text-sm text-muted-foreground">
-      No custom fields configured yet.
+      No {entityType === 'flight' ? 'flight' : 'passenger'} fields configured yet.
     </Card>
   {/if}
 </PageHeader>
@@ -172,5 +193,6 @@
 <CustomFieldEditModal
   bind:this={editModal}
   bind:open={editModalOpen}
-  definitionCount={$definitionsQuery.data?.length ?? 0}
+  definitionCount={definitions.length}
+  {entityType}
 />

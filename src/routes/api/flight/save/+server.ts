@@ -34,16 +34,16 @@ const defaultFlight = {
   flightNumber: null,
   aircraft: null,
   aircraftReg: null,
-  flightReason: null,
   note: null,
   customFields: {},
 };
 
-const defaultSeat = {
+const defaultPassenger = {
   guestName: null,
   seat: null,
   seatNumber: null,
   seatClass: null,
+  flightReason: null,
 };
 
 const saveApiFlightSchema = flightSchema
@@ -76,13 +76,21 @@ export const POST: RequestHandler = async ({ request }) => {
   const filled = {
     ...defaultFlight,
     ...body,
-    seats: Array.isArray(body.seats)
-      ? body.seats.map((s: unknown) => ({
-          ...defaultSeat,
+    passengers: Array.isArray(body.passengers ?? body.seats)
+      ? (body.passengers ?? body.seats).map((s: unknown) => ({
+          ...defaultPassenger,
           ...(s && typeof s === 'object' ? s : {}),
         }))
       : [],
   };
+  const legacyFlightReason =
+    typeof body.flightReason === 'string' ? body.flightReason : null;
+  if (legacyFlightReason) {
+    filled.passengers = filled.passengers.map((passenger) => ({
+      ...passenger,
+      flightReason: passenger.flightReason ?? legacyFlightReason,
+    }));
+  }
   const flight = {
     ...filled,
     departure: dateTimeSchema.safeParse(filled.departure).success
@@ -144,12 +152,12 @@ export const POST: RequestHandler = async ({ request }) => {
     airline,
   };
 
-  if (data.seats[0]?.userId === '<USER_ID>') {
-    data.seats[0].userId = user.id;
+  if (data.passengers[0]?.userId === '<USER_ID>') {
+    data.passengers[0].userId = user.id;
   }
 
   const result = await validateAndSaveFlight(user, data, {
-    bypassSeatCheck: user.role !== 'user',
+    bypassPassengerCheck: user.role !== 'user',
   });
   if (!result.success) {
     // @ts-expect-error - this should be valid

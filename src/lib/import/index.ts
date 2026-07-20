@@ -1,87 +1,36 @@
-import {
-  platforms,
-  type PlatformOptions,
-} from '$lib/components/modals/settings/pages/import-page';
-import type { CreateFlight } from '$lib/db/types';
 import { processAirTrailFile } from '$lib/import/airtrail';
 import { processAITAFile } from '$lib/import/aita';
 import { processByAirFile } from '$lib/import/byair';
 import { processFlightyFile } from '$lib/import/flighty';
 import { processFR24File } from '$lib/import/fr24';
-import { processJetLoversFile } from '$lib/import/jetlovers';
 import { processJetLogFile } from '$lib/import/jetlog';
+import { processJetLoversFile } from '$lib/import/jetlovers';
 import { processLegacyAirTrailFile } from '$lib/import/legacy-airtrail';
+import type { PlatformOptions, ProcessResult } from '$lib/import/model';
 import { processOpenFlightsFile } from '$lib/import/openflights';
+import { type PlatformValue } from '$lib/import/platforms';
 import { processTripItFile } from '$lib/import/tripit';
 import { readFile } from '$lib/utils';
-
-export type PlatformValue = (typeof platforms)[number]['value'];
-
-type ProcessResult = {
-  flights: CreateFlight[];
-  unknownAirports: Record<string, number[]>; // code -> flight indices
-  unknownAirlines: Record<string, number[]>; // code -> flight indices
-  unknownAircraft: Record<string, number[]>; // name -> flight indices
-  unknownUsers: Record<string, number[]>; // encoded user key -> flight indices
-  exportedUsers: {
-    id: string;
-    username: string;
-    displayName: string;
-    mappedUserId: string | null;
-  }[];
-  skippedRows?: number;
-};
 
 type Processor = (
   content: string,
   options: PlatformOptions,
 ) => Promise<ProcessResult>;
 
-type DefaultedProcessResult = Pick<
-  ProcessResult,
-  'unknownAircraft' | 'unknownUsers' | 'exportedUsers'
->;
-
-type ProcessResultWithDefaults = Omit<
-  ProcessResult,
-  keyof DefaultedProcessResult
-> &
-  Partial<DefaultedProcessResult>;
-
-const withDefaultUnknownValues = async (
-  fn: () => Promise<ProcessResultWithDefaults>,
-): Promise<ProcessResult> => {
-  const res = await fn();
-  return {
-    ...res,
-    unknownUsers: res.unknownUsers ?? {},
-    exportedUsers: res.exportedUsers ?? [],
-    unknownAircraft: res.unknownAircraft ?? {},
-  };
-};
-
 const processors: Record<PlatformValue, Processor> = {
-  airtrail: async (content, options) =>
-    withDefaultUnknownValues(() => processAirTrailFile(content, options)),
-  'legacy-airtrail': async (content, options) =>
-    withDefaultUnknownValues(() => processLegacyAirTrailFile(content, options)),
-  jetlog: async (content, options) =>
-    withDefaultUnknownValues(() => processJetLogFile(content, options)),
-  fr24: async (content, options) =>
-    withDefaultUnknownValues(() => processFR24File(content, options)),
-  aita: async (content, options) =>
-    withDefaultUnknownValues(() => processAITAFile(content, options)),
-  tripit: async (content, options) =>
-    withDefaultUnknownValues(() => processTripItFile(content, options)),
-  flighty: async (content, options) =>
-    withDefaultUnknownValues(() => processFlightyFile(content, options)),
-  byair: async (content, options) =>
-    withDefaultUnknownValues(() => processByAirFile(content, options)),
-  jetlovers: async (content, options) =>
-    withDefaultUnknownValues(() => processJetLoversFile(content, options)),
-  openflights: async (content, options) =>
-    withDefaultUnknownValues(() => processOpenFlightsFile(content, options)),
+  airtrail: processAirTrailFile,
+  'legacy-airtrail': processLegacyAirTrailFile,
+  jetlog: processJetLogFile,
+  fr24: processFR24File,
+  aita: processAITAFile,
+  tripit: processTripItFile,
+  flighty: processFlightyFile,
+  byair: processByAirFile,
+  jetlovers: processJetLoversFile,
+  openflights: processOpenFlightsFile,
 };
+
+export type { PlatformValue } from '$lib/import/platforms';
 
 export const processFile = async (
   file: File,

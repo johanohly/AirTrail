@@ -100,23 +100,26 @@ export const flightDateTimeSchema = z.object({
   landingActualTime: timePrimitive,
 });
 
-export const flightSeatInformationSchema = z.object({
-  seats: z
+export const flightPassengerInformationSchema = z.object({
+  passengers: z
     .object({
+      id: z.number().int().positive().optional(),
       userId: z.string().nullable(),
       guestName: z.string().max(50, 'Guest name is too long').nullable(),
       seat: z.enum(SeatTypes).nullable(),
       seatNumber: z.string().max(5, 'Seat number is too long').nullable(), // 12A-1 for example
       seatClass: z.enum(SeatClasses).nullable(),
+      flightReason: z.enum(FlightReasons).nullable().default(null),
+      customFields: z.record(z.string(), z.unknown()).default({}),
     })
     .refine((data) => data.userId ?? data.guestName, {
       message: 'Select a user or add a guest name',
       path: ['userId'],
     })
     .array()
-    .min(1, 'Add at least one seat')
-    .refine((data) => data.some((seat) => seat.userId), {
-      message: 'At least one seat must be assigned to a user',
+    .min(1, 'Add at least one passenger')
+    .refine((data) => data.some((passenger) => passenger.userId), {
+      message: 'At least one passenger must be assigned to a user',
     })
     .default([
       {
@@ -125,6 +128,8 @@ export const flightSeatInformationSchema = z.object({
         seat: null,
         seatNumber: null,
         seatClass: null,
+        flightReason: null,
+        customFields: {},
       },
     ]),
 });
@@ -138,7 +143,6 @@ export const flightOptionalInformationSchema = z.object({
     .string()
     .max(10, 'Aircraft registration is too long')
     .nullable(),
-  flightReason: z.enum(FlightReasons).nullable(),
   note: z.string().max(1000, 'Note is too long').nullable(),
   departureTerminal: z.string().max(10).nullable().optional(),
   departureGate: z.string().max(10).nullable().optional(),
@@ -158,7 +162,7 @@ export const flightTrackSchema = z.object({
 export const flightSchema = flightAirportsSchema
   .merge(flightDateTimeSchema)
   .merge(flightOptionalInformationSchema)
-  .merge(flightSeatInformationSchema)
+  .merge(flightPassengerInformationSchema)
   .merge(flightCustomFieldsSchema)
   .merge(flightTrackSchema);
 

@@ -476,6 +476,95 @@ components:
           type: string
           description: 'The timezone of the airport.'
           example: 'America/New_York'
+    FlightPassenger:
+      type: object
+      required:
+        - id
+        - flightId
+        - userId
+        - guestName
+        - seat
+        - seatNumber
+        - seatClass
+        - flightReason
+      properties:
+        id:
+          type: number
+          description: 'The stable ID of this passenger record.'
+        flightId:
+          type: number
+          description: 'The flight this passenger belongs to.'
+        userId:
+          type: [string, 'null']
+          description: 'The assigned AirTrail user, or null for a guest.'
+        guestName:
+          type: [string, 'null']
+          description: 'The guest name when no user is assigned.'
+        seat:
+          type: [string, 'null']
+          description: 'The passenger’s seat type.'
+          enum:
+            [
+              'aisle',
+              'window',
+              'middle',
+              'pilot',
+              'copilot',
+              'jumpseat',
+              'other',
+              null,
+            ]
+        seatNumber:
+          type: [string, 'null']
+          description: 'The passenger’s seat number.'
+          example: '1A'
+        seatClass:
+          type: [string, 'null']
+          description: 'The passenger’s cabin class.'
+          enum: ['economy', 'economy+', 'business', 'first', 'private', null]
+        flightReason:
+          type: [string, 'null']
+          description: 'This passenger’s reason for taking the flight.'
+          enum: ['leisure', 'business', 'crew', 'other', null]
+    FlightPassengerInput:
+      type: object
+      description: 'A passenger on the flight. Provide either `userId` or `guestName`; at least one passenger must have a `userId`.'
+      properties:
+        id:
+          type: number
+          description: 'The existing passenger ID. Include this when updating so passenger-owned data keeps its identity.'
+        userId:
+          type: [string, 'null']
+          example: '<USER_ID>'
+          description: 'The assigned user. Set to `<USER_ID>` to assign yourself.'
+        guestName:
+          type: [string, 'null']
+          description: 'The guest name when no user is assigned.'
+        seat:
+          type: [string, 'null']
+          enum:
+            [
+              'aisle',
+              'window',
+              'middle',
+              'pilot',
+              'copilot',
+              'jumpseat',
+              'other',
+              null,
+            ]
+        seatNumber:
+          type: [string, 'null']
+          example: '1A'
+        seatClass:
+          type: [string, 'null']
+          enum: ['economy', 'economy+', 'business', 'first', 'private', null]
+        flightReason:
+          type: [string, 'null']
+          description: 'This passenger’s reason for taking the flight.'
+          enum: ['leisure', 'business', 'crew', 'other', null]
+        customFields:
+          '$ref': '#/components/schemas/CustomFieldsInput'
     Flight:
       type: object
       required:
@@ -484,13 +573,12 @@ components:
         - to
         - departure
         - arrival
-        - seats
+        - passengers
         - airline
         - flightNumber
         - aircraft
         - aircraftReg
-        - flightReason
-        - notes
+        - note
       properties:
         id:
           type: number
@@ -526,52 +614,13 @@ components:
             - 'month'
             - 'year'
           example: 'day'
-        seats:
+        passengers:
           type: array
           minItems: 1
           required: true
-          description: 'The seats on the flight.'
+          description: 'The passengers on the flight.'
           items:
-            type: object
-            required:
-              - userId
-              - guestName
-              - seat
-              - seatNumber
-              - seatClass
-            properties:
-              userId:
-                type: [string, 'null']
-                example: 'user1'
-                description: 'The ID of the user whose seat it is.'
-              guestName:
-                type: [string, 'null']
-                default: null
-                description: 'The name of the guest if the seat is not assigned to a user.'
-              seat:
-                type: [string, 'null']
-                description: 'The seat type.'
-                enum:
-                  - 'aisle'
-                  - 'window'
-                  - 'middle'
-                  - 'pilot'
-                  - 'copilot'
-                  - 'jumpseat'
-                  - 'other'
-              seatNumber:
-                type: [string, 'null']
-                description: 'The seat number.'
-                example: '1A'
-              seatClass:
-                type: [string, 'null']
-                description: 'The class of the seat.'
-                enum:
-                  - 'economy'
-                  - 'economy+'
-                  - 'business'
-                  - 'first'
-                  - 'private'
+            $ref: '#/components/schemas/FlightPassenger'
         airline:
           type: [string, 'null']
           description: 'The ICAO code of the airline.'
@@ -588,15 +637,7 @@ components:
           type: [string, 'null']
           description: 'The registration of the aircraft.'
           example: 'G-VIIL'
-        flightReason:
-          type: [string, 'null']
-          description: 'The reason for the flight.'
-          enum:
-            - 'leisure'
-            - 'business'
-            - 'crew'
-            - 'other'
-        notes:
+        note:
           type: [string, 'null']
           description: 'Additional notes about the flight.'
           example: 'This is a test flight.'
@@ -606,7 +647,7 @@ components:
         - from
         - to
         - departure
-        - seats
+        - passengers
       properties:
         from:
           type: string
@@ -640,48 +681,12 @@ components:
           type: string
           description: 'The arrival time in local airport time. 24- and 12-hour formats are supported.'
           example: '15:30'
-        seats:
+        passengers:
           type: array
           minItems: 1
-          description: 'The seats on the flight. Each seat must have either a `userId` or a `guestName`, and at least one seat must have a `userId`.'
+          description: 'The passengers on the flight.'
           items:
-            type: object
-            description: 'A seat on the flight.'
-            required:
-              - userId
-            properties:
-              userId:
-                type: string
-                example: '<USER_ID>'
-                description: 'The ID of the user whose seat it is. Set to `<USER_ID>` to assign the seat to yourself.'
-              guestName:
-                type: string
-                default: null
-                description: 'The name of the guest if the seat is not assigned to a user.'
-              seat:
-                type: string
-                description: 'The seat type.'
-                enum:
-                  - 'aisle'
-                  - 'window'
-                  - 'middle'
-                  - 'pilot'
-                  - 'copilot'
-                  - 'jumpseat'
-                  - 'other'
-              seatNumber:
-                type: string
-                description: 'The seat number.'
-                example: '1A'
-              seatClass:
-                type: string
-                description: 'The class of the seat.'
-                enum:
-                  - 'economy'
-                  - 'economy+'
-                  - 'business'
-                  - 'first'
-                  - 'private'
+            $ref: '#/components/schemas/FlightPassengerInput'
         airline:
           type: string
           description: 'The ICAO code of the airline.'
@@ -698,15 +703,7 @@ components:
           type: string
           description: 'The registration of the aircraft.'
           example: 'G-VIIL'
-        flightReason:
-          type: string
-          description: 'The reason for the flight.'
-          enum:
-            - 'leisure'
-            - 'business'
-            - 'crew'
-            - 'other'
-        notes:
+        note:
           type: string
           description: 'Additional notes about the flight.'
           example: 'This is a test flight.'
@@ -720,7 +717,7 @@ components:
         - from
         - to
         - departure
-        - seats
+        - passengers
       properties:
         id:
           type: number
@@ -757,45 +754,12 @@ components:
           type: string
           description: 'The arrival time in local airport time. 24- and 12-hour formats are supported.'
           example: '15:30'
-        seats:
+        passengers:
           type: array
           minItems: 1
-          description: 'The seats on the flight. Each seat must have either a `userId` or a `guestName`, and at least one seat must have a `userId`.'
+          description: 'The full passenger list. Include existing passenger IDs to preserve passenger-owned data.'
           items:
-            type: object
-            description: 'A seat on the flight.'
-            properties:
-              userId:
-                type: string
-                description: 'The ID of the user whose seat it is. Set to `<USER_ID>` to assign the seat to yourself.'
-              guestName:
-                type: string
-                default: null
-                description: 'The name of the guest if the seat is not assigned to a user.'
-              seat:
-                type: string
-                description: 'The seat type.'
-                enum:
-                  - 'aisle'
-                  - 'window'
-                  - 'middle'
-                  - 'pilot'
-                  - 'copilot'
-                  - 'jumpseat'
-                  - 'other'
-              seatNumber:
-                type: string
-                description: 'The seat number.'
-                example: '1A'
-              seatClass:
-                type: string
-                description: 'The class of the seat.'
-                enum:
-                  - 'economy'
-                  - 'economy+'
-                  - 'business'
-                  - 'first'
-                  - 'private'
+            $ref: '#/components/schemas/FlightPassengerInput'
         airline:
           type: string
           description: 'The ICAO code of the airline.'
@@ -812,15 +776,7 @@ components:
           type: string
           description: 'The registration of the aircraft.'
           example: 'G-VIIL'
-        flightReason:
-          type: string
-          description: 'The reason for the flight.'
-          enum:
-            - 'leisure'
-            - 'business'
-            - 'crew'
-            - 'other'
-        notes:
+        note:
           type: string
           description: 'Additional notes about the flight.'
           example: 'This is a test flight.'

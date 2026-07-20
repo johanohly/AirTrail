@@ -56,16 +56,16 @@ export type app_config = {
 export type custom_field_definition = {
     id: Generated<number>;
     /**
-     * @kyselyType('flight')
+     * @kyselyType('flight' | 'flight_passenger')
      */
-    entityType: 'flight';
+    entityType: 'flight' | 'flight_passenger';
     key: string;
     label: string;
     description: string | null;
     /**
-     * @kyselyType('text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select' | 'airport' | 'airline' | 'aircraft')
+     * @kyselyType('text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select' | 'multi-select' | 'airport' | 'airline' | 'aircraft')
      */
-    fieldType: 'text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select' | 'airport' | 'airline' | 'aircraft';
+    fieldType: 'text' | 'textarea' | 'number' | 'boolean' | 'date' | 'select' | 'multi-select' | 'airport' | 'airline' | 'aircraft';
     required: Generated<boolean>;
     active: Generated<boolean>;
     order: Generated<number>;
@@ -79,9 +79,9 @@ export type custom_field_value = {
     id: Generated<number>;
     fieldId: number;
     /**
-     * @kyselyType('flight')
+     * @kyselyType('flight' | 'flight_passenger')
      */
-    entityType: 'flight';
+    entityType: 'flight' | 'flight_passenger';
     entityId: string;
     value: unknown;
     createdAt: Generated<Timestamp>;
@@ -132,16 +132,34 @@ export type flight = {
     arrivalTerminal: string | null;
     arrivalGate: string | null;
     flightNumber: string | null;
-    /**
-     * @kyselyType('leisure' | 'business' | 'crew' | 'other')
-     */
-    flightReason: 'leisure' | 'business' | 'crew' | 'other' | null;
     aircraftReg: string | null;
     note: string | null;
     fromId: number | null;
     toId: number | null;
     aircraftId: number | null;
     airlineId: number | null;
+};
+export type flight_passenger = {
+    id: Generated<number>;
+    flightId: number;
+    userId: string | null;
+    guestName: string | null;
+    /**
+     * @kyselyType('window' | 'aisle' | 'middle' | 'pilot' | 'copilot' | 'jumpseat' | 'other')
+     */
+    seat: 'window' | 'aisle' | 'middle' | 'pilot' | 'copilot' | 'jumpseat' | 'other' | null;
+    /**
+     * Seat number (e.g. 12A)
+     */
+    seatNumber: string | null;
+    /**
+     * @kyselyType('economy' | 'economy+' | 'business' | 'first' | 'private')
+     */
+    seatClass: 'economy' | 'economy+' | 'business' | 'first' | 'private' | null;
+    /**
+     * @kyselyType('leisure' | 'business' | 'crew' | 'other')
+     */
+    flightReason: 'leisure' | 'business' | 'crew' | 'other' | null;
 };
 export type flight_track = {
     flightId: number;
@@ -181,24 +199,6 @@ export type public_share = {
     showTracks: Generated<boolean>;
     showDates: Generated<boolean>;
     showSeat: Generated<boolean>;
-};
-export type seat = {
-    id: Generated<number>;
-    flightId: number;
-    userId: string | null;
-    guestName: string | null;
-    /**
-     * @kyselyType('window' | 'aisle' | 'middle' | 'pilot' | 'copilot' | 'jumpseat' | 'other')
-     */
-    seat: 'window' | 'aisle' | 'middle' | 'pilot' | 'copilot' | 'jumpseat' | 'other' | null;
-    /**
-     * Seat number (e.g. 12A)
-     */
-    seatNumber: string | null;
-    /**
-     * @kyselyType('economy' | 'economy+' | 'business' | 'first' | 'private')
-     */
-    seatClass: 'economy' | 'economy+' | 'business' | 'first' | 'private' | null;
 };
 export type session = {
     id: string;
@@ -270,10 +270,10 @@ export type DB = {
     customFieldDefinition: custom_field_definition;
     customFieldValue: custom_field_value;
     flight: flight;
+    flightPassenger: flight_passenger;
     flightTrack: flight_track;
     oauthLinkToken: oauth_link_token;
     publicShare: public_share;
-    seat: seat;
     session: session;
     user: user;
     visitedCountry: visited_country;

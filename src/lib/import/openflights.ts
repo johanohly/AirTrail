@@ -3,8 +3,8 @@ import { addSeconds } from 'date-fns';
 import { z } from 'zod';
 
 import { page } from '$app/state';
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
-import type { CreateFlight, Seat } from '$lib/db/types';
+import type { CreateFlight, FlightPassenger } from '$lib/db/types';
+import type { PlatformOptions } from '$lib/import/model';
 import { parseCsv } from '$lib/utils';
 import { parseCsvLine } from '$lib/utils/csv';
 import { getAircraftByIcao, getAircraftByName } from '$lib/utils/data/aircraft';
@@ -228,7 +228,7 @@ const parseDuration = (duration: string | null): number | null => {
   return hours * 3600 + minutes * 60 + seconds;
 };
 
-const mapSeatType = (seatType: string | null): Seat['seat'] => {
+const mapSeatType = (seatType: string | null): FlightPassenger['seat'] => {
   switch (seatType?.toUpperCase()) {
     case 'W':
       return 'window';
@@ -241,7 +241,9 @@ const mapSeatType = (seatType: string | null): Seat['seat'] => {
   }
 };
 
-const mapSeatClass = (seatClass: string | null): Seat['seatClass'] => {
+const mapSeatClass = (
+  seatClass: string | null,
+): FlightPassenger['seatClass'] => {
   switch (seatClass?.toUpperCase()) {
     case 'F':
       return 'first';
@@ -259,7 +261,7 @@ const mapSeatClass = (seatClass: string | null): Seat['seatClass'] => {
 
 const mapFlightReason = (
   reason: string | null,
-): CreateFlight['flightReason'] => {
+): FlightPassenger['flightReason'] => {
   switch (reason?.toUpperCase()) {
     case 'B':
       return 'business';
@@ -489,19 +491,19 @@ export const processOpenFlightsFile = async (
       arrivalTerminal: null,
       arrivalGate: null,
       duration,
-      flightReason: mapFlightReason(row.reason),
       note: buildNote(row.note, row.trip, row.distance),
       aircraft,
       aircraftReg: row.registration,
       airline,
       flightNumber: row.flight_number,
-      seats: [
+      passengers: [
         {
           userId,
           seat: mapSeatType(row.seat_type),
           seatNumber: row.seat,
           seatClass: mapSeatClass(row.class),
           guestName: null,
+          flightReason: mapFlightReason(row.reason),
         },
       ],
     });
@@ -509,9 +511,12 @@ export const processOpenFlightsFile = async (
 
   return {
     flights,
-    unknownAirports,
-    unknownAirlines,
-    unknownAircraft,
+    unknowns: {
+      airports: unknownAirports,
+      airlines: unknownAirlines,
+      aircraft: unknownAircraft,
+    },
+    exportedUsers: [],
     skippedRows: skipped.length + skippedInvalidRows,
   };
 };

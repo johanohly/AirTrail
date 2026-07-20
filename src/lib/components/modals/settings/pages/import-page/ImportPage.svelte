@@ -1,28 +1,36 @@
 <script lang="ts">
+  import { Info } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
 
   import { PageHeader } from '../';
 
+  import FileStep from './FileStep.svelte';
+  import OptionsStep from './OptionsStep.svelte';
   import PlatformTabs from './PlatformTabs.svelte';
+  import StatusStep from './StatusStep.svelte';
+  import UserMappingStep from './UserMappingStep.svelte';
 
-  import { platforms, type ImportFailure } from './';
-
-  import { Info } from '@o7/icon/lucide';
+  import type { ImportFailure } from './';
 
   import { page } from '$app/state';
   import * as Alert from '$lib/components/ui/alert';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
-  import type { Airline, Airport, Aircraft, CreateFlight } from '$lib/db/types';
   import { processFile } from '$lib/import';
+  import {
+    createEmptyImportMappings,
+    createEmptyImportUnknowns,
+    getPendingFlights,
+    mergeImportMappings,
+    type ImportMappings,
+    type ImportUnknowns,
+    type IndexedFlight,
+  } from '$lib/import/model';
+  import { platforms } from '$lib/import/platforms';
   import { flightAddedState } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
   import { cn, pluralize } from '$lib/utils';
   import { getErrorText } from '$lib/utils/error';
-  import FileStep from './FileStep.svelte';
-  import OptionsStep from './OptionsStep.svelte';
-  import StatusStep from './StatusStep.svelte';
-  import UserMappingStep from './UserMappingStep.svelte';
 
   let { open = $bindable() }: { open: boolean } = $props();
 
@@ -36,10 +44,7 @@
   let importedCount = $state(0);
   let skippedRows = $state(0);
   let importFailures = $state<ImportFailure[]>([]);
-  let unknownAirports = $state<Record<string, number[]>>({});
-  let unknownAirlines = $state<Record<string, number[]>>({});
-  let unknownAircraft = $state<Record<string, number[]>>({});
-  let unknownUsers = $state<Record<string, number[]>>({});
+  let unknowns = $state<ImportUnknowns>(createEmptyImportUnknowns());
   let exportedUsers = $state<
     {
       id: string;
@@ -51,9 +56,8 @@
 
   let platform = $state<(typeof platforms)[0]>(platforms[0]);
   let userMapping = $state<Record<string, string>>({});
-  let appliedAirportMapping = $state<Record<string, Airport>>({});
-  let appliedAirlineMapping = $state<Record<string, Airline>>({});
-  let appliedAircraftMapping = $state<Record<string, Aircraft>>({});
+  let appliedMappings = $state<ImportMappings>(createEmptyImportMappings());
+  const handledFlightIndices = new Set<number>();
   let ownerOnly = $state(false);
   let matchAirlineFromFlightNumber = $state(true);
   let dedupeImportedFlights = $state(true);
@@ -96,11 +100,6 @@
   const canImport = $derived(!!files?.[0] && !fileError);
   const createMany = trpc.flight.createMany.mutation();
 
-  type FlightImportItem = {
-    flight: CreateFlight;
-    index: number;
-  };
-
   const getImportErrorMessage = (
     error: unknown,
     fallback = 'Unknown import error',
@@ -117,7 +116,7 @@
   };
 
   const importBatch = async (
-    batch: FlightImportItem[],
+    batch: IndexedFlight[],
   ): Promise<{
     inserted: number;
     attached: number;
@@ -134,7 +133,7 @@
 
       return {
         inserted: stats?.insertedFlights ?? 0,
-        attached: stats?.attachedSeats ?? 0,
+        attached: stats?.attachedPassengers ?? 0,
         failures: [],
       };
     } catch (error) {
@@ -164,9 +163,7 @@
   };
 
   const executeImport = async (mapping?: {
-    airportMapping?: Record<string, Airport>;
-    airlineMapping?: Record<string, Airline>;
-    aircraftMapping?: Record<string, Aircraft>;
+    mappings?: ImportMappings;
     userMapping?: Record<string, string>;
   }) => {
     if (!originalFile) return;
@@ -175,19 +172,16 @@
       filterOwner: ownerOnly,
       airlineFromFlightNumber: matchAirlineFromFlightNumber,
       importMode,
-      airportMapping: mapping?.airportMapping,
-      airlineMapping: mapping?.airlineMapping,
-      aircraftMapping: mapping?.aircraftMapping,
+      airportMapping: mapping?.mappings?.airports,
+      airlineMapping: mapping?.mappings?.airlines,
+      aircraftMapping: mapping?.mappings?.aircraft,
       userMapping: mapping?.userMapping,
     });
 
     const { flights } = result;
     if (!flights.length) {
       toast.info('No new flights to import');
-      unknownAirports = result.unknownAirports;
-      unknownAirlines = result.unknownAirlines;
-      unknownAircraft = result.unknownAircraft;
-      unknownUsers = result.unknownUsers;
+      unknowns = result.unknowns;
       exportedUsers = result.exportedUsers;
       skippedRows = result.skippedRows ?? 0;
       importFailures = [];
@@ -202,14 +196,12 @@
     // Exclude flights with unknown airports/airlines/aircraft so they aren't
     // inserted with null references (which would cause duplicates when
     // the user maps the unknowns and re-imports).
-    const unknownIndices = new Set([
-      ...Object.values(result.unknownAirports).flat(),
-      ...Object.values(result.unknownAirlines).flat(),
-      ...Object.values(result.unknownAircraft).flat(),
-    ]);
-    const flightsToImport = flights
-      .map((flight, index) => ({ flight, index }))
-      .filter(({ index }) => !unknownIndices.has(index));
+    const nextUnknowns = result.unknowns;
+    const flightsToImport = getPendingFlights(
+      flights,
+      nextUnknowns,
+      handledFlightIndices,
+    );
 
     // Send flights in batches to avoid exceeding the server body size limit
     const BATCH_SIZE = 50;
@@ -222,15 +214,18 @@
       inserted += result.inserted;
       attached += result.attached;
       failures.push(...result.failures);
+      const failedIndices = new Set(
+        result.failures.map((failure) => failure.index),
+      );
+      for (const { index } of batch) {
+        if (!failedIndices.has(index)) handledFlightIndices.add(index);
+      }
     }
     if (inserted > 0 || attached > 0) {
       await refreshImportedFlights();
     }
 
-    unknownAirports = result.unknownAirports;
-    unknownAirlines = result.unknownAirlines;
-    unknownAircraft = result.unknownAircraft;
-    unknownUsers = result.unknownUsers;
+    unknowns = nextUnknowns;
     exportedUsers = result.exportedUsers;
     skippedRows = result.skippedRows ?? 0;
     importFailures = failures;
@@ -259,6 +254,7 @@
 
     importing = true;
     originalFile = file;
+    handledFlightIndices.clear();
 
     try {
       const result = await processFile(file, platform.value, {
@@ -267,7 +263,6 @@
         importMode,
       });
 
-      unknownUsers = result.unknownUsers;
       exportedUsers = result.exportedUsers;
 
       if (platform.value === 'airtrail') {
@@ -315,35 +310,18 @@
   };
 
   const handleReprocess = async (
-    airportMapping: Record<string, Airport>,
-    airlineMapping: Record<string, Airline>,
-    aircraftMapping: Record<string, Aircraft>,
+    pendingMappings: ImportMappings,
   ): Promise<boolean> => {
     if (!originalFile) return false;
-    const nextAirportMapping = {
-      ...appliedAirportMapping,
-      ...airportMapping,
-    };
-    const nextAirlineMapping = {
-      ...appliedAirlineMapping,
-      ...airlineMapping,
-    };
-    const nextAircraftMapping = {
-      ...appliedAircraftMapping,
-      ...aircraftMapping,
-    };
+    const nextMappings = mergeImportMappings(appliedMappings, pendingMappings);
 
     importing = true;
     try {
       await executeImport({
-        airportMapping: nextAirportMapping,
-        airlineMapping: nextAirlineMapping,
-        aircraftMapping: nextAircraftMapping,
+        mappings: nextMappings,
         userMapping,
       });
-      appliedAirportMapping = nextAirportMapping;
-      appliedAirlineMapping = nextAirlineMapping;
-      appliedAircraftMapping = nextAircraftMapping;
+      appliedMappings = nextMappings;
       return true;
     } catch (error) {
       toast.error(getImportErrorMessage(error, 'Failed to reprocess file'));
@@ -355,15 +333,11 @@
   };
 
   const closeAndReset = () => {
-    unknownAirports = {};
-    unknownAirlines = {};
-    unknownAircraft = {};
-    unknownUsers = {};
+    unknowns = createEmptyImportUnknowns();
     exportedUsers = [];
     userMapping = {};
-    appliedAirportMapping = {};
-    appliedAirlineMapping = {};
-    appliedAircraftMapping = {};
+    appliedMappings = createEmptyImportMappings();
+    handledFlightIndices.clear();
     importedCount = 0;
     skippedRows = 0;
     importFailures = [];
@@ -483,9 +457,7 @@
       {importedCount}
       {skippedRows}
       {importFailures}
-      {unknownAirports}
-      {unknownAirlines}
-      {unknownAircraft}
+      {unknowns}
       busy={importing}
       onreprocess={handleReprocess}
       onclose={closeAndReset}

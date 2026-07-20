@@ -3,13 +3,12 @@ import { addDays, isBefore } from 'date-fns';
 import { z } from 'zod';
 
 import { page } from '$app/state';
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type {
-  Flight,
   CreateFlight,
   FlightDatePrecision,
-  Seat,
+  FlightPassenger,
 } from '$lib/db/types';
+import type { PlatformOptions } from '$lib/import/model';
 import { parseCsv } from '$lib/utils';
 import { getAircraftByIcao } from '$lib/utils/data/aircraft';
 import { getAirlineByIcao } from '$lib/utils/data/airlines';
@@ -17,24 +16,25 @@ import { getAirportByIcao } from '$lib/utils/data/airports/cache';
 import { parseLocalISO, toUtc } from '$lib/utils/datetime';
 
 const FR24_AIRPORT_REGEX = /\(([a-zA-Z0-9]{3})\/(?<ICAO>[a-zA-Z]{4})\)/;
-const FR24_SEAT_TYPE_MAP: Record<string, Seat['seat']> = {
+const FR24_SEAT_TYPE_MAP: Record<string, FlightPassenger['seat']> = {
   '1': 'window',
   '2': 'middle',
   '3': 'aisle',
 };
-const FR24_FLIGHT_CLASS_MAP: Record<string, Seat['seatClass']> = {
+const FR24_FLIGHT_CLASS_MAP: Record<string, FlightPassenger['seatClass']> = {
   '1': 'economy',
   '2': 'business',
   '3': 'first',
   '4': 'economy+',
   '5': 'private',
 };
-const FR24_FLIGHT_REASON_MAP: Record<string, Flight['flightReason']> = {
-  '1': 'leisure',
-  '2': 'business',
-  '3': 'crew',
-  '4': 'other',
-};
+const FR24_FLIGHT_REASON_MAP: Record<string, FlightPassenger['flightReason']> =
+  {
+    '1': 'leisure',
+    '2': 'business',
+    '3': 'crew',
+    '4': 'other',
+  };
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
 const FR24_DATE_REGEX =
@@ -259,19 +259,19 @@ export const processFR24File = async (
       arrivalTerminal: null,
       arrivalGate: null,
       duration,
-      flightReason,
       note: row.note,
       aircraft,
       aircraftReg: row.registration,
       airline,
       flightNumber: row.flight_number,
-      seats: [
+      passengers: [
         {
           userId,
           seat: seatType,
           seatNumber: row.seat_number,
           seatClass,
           guestName: null,
+          flightReason,
         },
       ],
     });
@@ -279,8 +279,12 @@ export const processFR24File = async (
 
   return {
     flights,
-    unknownAirports,
-    unknownAirlines,
+    unknowns: {
+      airports: unknownAirports,
+      airlines: unknownAirlines,
+      aircraft: {},
+    },
+    exportedUsers: [],
     skippedRows: skipped.length,
   };
 };

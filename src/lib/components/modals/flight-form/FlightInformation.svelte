@@ -5,10 +5,7 @@
   import { AircraftField, AirlineField } from '$lib/components/form-fields';
   import * as Form from '$lib/components/ui/form';
   import { Input, Textarea } from '$lib/components/ui/input';
-  import * as Select from '$lib/components/ui/select';
   import { Separator } from '$lib/components/ui/separator';
-  import { FlightReasons } from '$lib/db/types';
-  import { toTitleCase } from '$lib/utils';
   import type { flightSchema } from '$lib/zod/flight';
 
   let {
@@ -35,42 +32,6 @@
       </Form.Field>
     </div>
     <AirlineField {form} />
-    <Form.Field {form} name="flightReason">
-      <Form.Control>
-        {#snippet children({ props })}
-          <Form.Label>Flight Reason</Form.Label>
-          <Select.Root
-            type="single"
-            value={$formData.flightReason ?? undefined}
-            onValueChange={(value) => {
-              // @ts-expect-error - value is a FlightReason
-              $formData.flightReason = FlightReasons.includes(value)
-                ? value
-                : null;
-            }}
-            allowDeselect
-          >
-            <Select.Trigger {...props}>
-              {$formData.flightReason
-                ? toTitleCase($formData.flightReason)
-                : 'Select flight reason'}
-            </Select.Trigger>
-            <Select.Content>
-              <Select.Item value="leisure" label="Leisure" />
-              <Select.Item value="business" label="Business" />
-              <Select.Item value="crew" label="Crew" />
-              <Select.Item value="other" label="Other" />
-            </Select.Content>
-          </Select.Root>
-          <input
-            type="hidden"
-            value={$formData.flightReason}
-            name={props.name}
-          />
-        {/snippet}
-      </Form.Control>
-      <Form.FieldErrors />
-    </Form.Field>
     <Form.Field {form} name="note">
       <Form.Control>
         {#snippet children({ props })}

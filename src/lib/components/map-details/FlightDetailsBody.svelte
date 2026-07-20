@@ -5,11 +5,11 @@
   import { formatAircraft } from '$lib/utils/data/aircraft';
   import {
     formatSeatForUser,
-    getSeatPassengerLabel,
+    getFlightPassengerLabel,
     toTitleCase,
     type FlightData,
   } from '$lib/utils';
-  import type { FlightSeat } from '$lib/db/types';
+  import type { FlightPassenger } from '$lib/db/types';
   import { Duration } from '$lib/utils/datetime';
   import { convertDistance, distanceUnitLabel } from '$lib/utils/preferences';
   import type { Preferences } from '$lib/zod/user';
@@ -38,27 +38,36 @@
 
   const seatLabel = $derived(formatSeatForUser(flight, seatUserId));
 
-  const seatDescriptor = (seat: FlightSeat) => {
+  const seatDescriptor = (passenger: FlightPassenger) => {
     const t = (s: string) => toTitleCase(s);
-    if (seat.seat && seat.seatNumber && seat.seatClass) {
-      return `${t(seat.seatClass)} · ${seat.seat} ${seat.seatNumber}`;
+    if (passenger.seat && passenger.seatNumber && passenger.seatClass) {
+      return `${t(passenger.seatClass)} · ${passenger.seat} ${passenger.seatNumber}`;
     }
-    if (seat.seat && seat.seatNumber) return `${seat.seat} ${seat.seatNumber}`;
-    if (seat.seat && seat.seatClass)
-      return `${t(seat.seatClass)} · ${seat.seat}`;
-    if (seat.seatNumber) return seat.seatNumber;
-    if (seat.seatClass) return t(seat.seatClass);
-    if (seat.seat) return t(seat.seat);
+    if (passenger.seat && passenger.seatNumber)
+      return `${passenger.seat} ${passenger.seatNumber}`;
+    if (passenger.seat && passenger.seatClass)
+      return `${t(passenger.seatClass)} · ${passenger.seat}`;
+    if (passenger.seatNumber) return passenger.seatNumber;
+    if (passenger.seatClass) return t(passenger.seatClass);
+    if (passenger.seat) return t(passenger.seat);
     return null;
   };
 
   const passengers = $derived(
-    flight.seats
-      .map((seat) => ({
-        name: getSeatPassengerLabel(seat),
-        seat: seatDescriptor(seat),
+    flight.passengers
+      .map((passenger) => ({
+        name: getFlightPassengerLabel(passenger),
+        seat: seatDescriptor(passenger),
+        reason: passenger.flightReason
+          ? toTitleCase(passenger.flightReason)
+          : null,
       }))
-      .filter((p): p is { name: string; seat: string | null } => !!p.name),
+      .filter(
+        (
+          p,
+        ): p is { name: string; seat: string | null; reason: string | null } =>
+          !!p.name,
+      ),
   );
 
   const gateLabel = (terminal: string | null, gate: string | null) => {
@@ -85,8 +94,6 @@
     if (distanceLabel) r.push({ label: 'Distance', value: distanceLabel });
     if (durationLabel) r.push({ label: 'Duration', value: durationLabel });
     if (seatLabel) r.push({ label: 'Seat', value: seatLabel });
-    if (flight.flightReason)
-      r.push({ label: 'Reason', value: toTitleCase(flight.flightReason) });
     if (departureGate) r.push({ label: 'Departure', value: departureGate });
     if (arrivalGate) r.push({ label: 'Arrival', value: arrivalGate });
     return r;
@@ -118,6 +125,9 @@
               <span class="text-muted-foreground tabular-nums">
                 {passenger.seat}
               </span>
+            {/if}
+            {#if passenger.reason}
+              <span class="text-muted-foreground">· {passenger.reason}</span>
             {/if}
           </span>
         {/each}

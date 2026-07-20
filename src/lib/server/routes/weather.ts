@@ -19,17 +19,25 @@ export const weatherRouter = router({
             eb.exists(
               eb
                 .selectFrom('flight')
-                .innerJoin('seat', 'seat.flightId', 'flight.id')
+                .innerJoin(
+                  'flightPassenger',
+                  'flightPassenger.flightId',
+                  'flight.id',
+                )
                 .select('flight.id')
-                .where('seat.userId', '=', ctx.user.id)
+                .where('flightPassenger.userId', '=', ctx.user.id)
                 .whereRef('flight.fromId', '=', 'airport.id'),
             ),
             eb.exists(
               eb
                 .selectFrom('flight')
-                .innerJoin('seat', 'seat.flightId', 'flight.id')
+                .innerJoin(
+                  'flightPassenger',
+                  'flightPassenger.flightId',
+                  'flight.id',
+                )
                 .select('flight.id')
-                .where('seat.userId', '=', ctx.user.id)
+                .where('flightPassenger.userId', '=', ctx.user.id)
                 .whereRef('flight.toId', '=', 'airport.id'),
             ),
           ]),

@@ -1,8 +1,8 @@
 import { differenceInSeconds, format } from 'date-fns';
 
 import { page } from '$app/state';
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type { Airline, CreateFlight, SeatClasses } from '$lib/db/types';
+import type { PlatformOptions } from '$lib/import/model';
 import { getAirlineByIata } from '$lib/utils/data/airlines';
 import { getAirportByIata } from '$lib/utils/data/airports/cache';
 import { parseLocalISO } from '$lib/utils/datetime';
@@ -125,17 +125,17 @@ export const processAITAFile = async (
         arrivalGate: null,
         duration: differenceInSeconds(arrival, departure),
         flightNumber: flightNumber?.replace(';', ''),
-        flightReason: null,
         airline,
         aircraft: null,
         aircraftReg: null,
         note: null,
-        seats: [
+        passengers: [
           {
             userId,
             seat: null,
             seatNumber,
             seatClass,
+            flightReason: null,
             guestName: null,
           },
         ],
@@ -145,7 +145,11 @@ export const processAITAFile = async (
 
   return {
     flights,
-    unknownAirports,
-    unknownAirlines,
+    unknowns: {
+      airports: unknownAirports,
+      airlines: unknownAirlines,
+      aircraft: {},
+    },
+    exportedUsers: [],
   };
 };

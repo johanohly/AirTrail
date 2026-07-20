@@ -6,7 +6,7 @@ import type {
   flight,
   flight_track,
   public_share,
-  seat,
+  flight_passenger,
   user,
   visited_country,
 } from '$lib/db/schema';
@@ -36,8 +36,8 @@ export type Aircraft = Selectable<aircraft>;
 export type Airline = Selectable<airline>;
 export type Airport = Selectable<airport>;
 export type CreateAirport = Insertable<airport>;
-export type Seat = Selectable<seat>;
-export type FlightSeat = Seat & {
+export type FlightPassengerRecord = Selectable<flight_passenger>;
+export type FlightPassenger = FlightPassengerRecord & {
   user: Pick<User, 'id' | 'displayName' | 'username'> | null;
 };
 export type Flight = Omit<
@@ -46,12 +46,19 @@ export type Flight = Omit<
 > & {
   from: Airport | null;
   to: Airport | null;
-  seats: FlightSeat[];
+  passengers: FlightPassenger[];
   aircraft: Aircraft | null;
   airline: Airline | null;
 };
 export type FlightTrack = Selectable<flight_track>;
 type CreateFlightAirport = Partial<Airport>;
+export type CreateFlightPassenger = Omit<
+  FlightPassengerRecord,
+  'flightId' | 'id'
+> & {
+  id?: number;
+  customFields?: Record<string, unknown>;
+};
 type FlightRecord = Omit<
   Selectable<flight>,
   'id' | 'fromId' | 'toId' | 'aircraftId' | 'airlineId'
@@ -61,7 +68,7 @@ export type CreateFlight = FlightRecord & {
   to: CreateFlightAirport | null;
   aircraft: Aircraft | null;
   airline: Airline | null;
-  seats: Omit<Seat, 'flightId' | 'id'>[];
+  passengers: CreateFlightPassenger[];
   track?: FlightTrackInput | null;
 };
 export type PublicShare = Selectable<public_share>;

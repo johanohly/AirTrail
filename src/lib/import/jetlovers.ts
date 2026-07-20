@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 import { page } from '$app/state';
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
-import type { CreateFlight, Seat } from '$lib/db/types';
+import type { CreateFlight, FlightPassenger } from '$lib/db/types';
+import type { PlatformOptions } from '$lib/import/model';
 import { parseCsv } from '$lib/utils';
 import { getAircraftByName } from '$lib/utils/data/aircraft';
 import {
@@ -35,12 +35,12 @@ const JetLoversFlight = z.object({
   seat: z.string().transform(nullTransformer),
 });
 
-const JETLOVERS_SEAT_TYPE_MAP: Record<string, Seat['seat']> = {
+const JETLOVERS_SEAT_TYPE_MAP: Record<string, FlightPassenger['seat']> = {
   W: 'window',
   A: 'aisle',
   M: 'middle',
 };
-const JETLOVERS_SEAT_CLASS_MAP: Record<string, Seat['seatClass']> = {
+const JETLOVERS_SEAT_CLASS_MAP: Record<string, FlightPassenger['seatClass']> = {
   F: 'first',
   C: 'business',
   B: 'business',
@@ -49,7 +49,7 @@ const JETLOVERS_SEAT_CLASS_MAP: Record<string, Seat['seatClass']> = {
 };
 const JETLOVERS_FLIGHT_REASON_MAP: Record<
   string,
-  NonNullable<CreateFlight['flightReason']>
+  NonNullable<FlightPassenger['flightReason']>
 > = {
   B: 'business',
   L: 'leisure',
@@ -62,17 +62,19 @@ const mapNullableCode = <T>(map: Record<string, T>, value: string | null) => {
   return map[value.trim().toUpperCase()] ?? null;
 };
 
-const mapSeatType = (seatType: string | null): Seat['seat'] => {
+const mapSeatType = (seatType: string | null): FlightPassenger['seat'] => {
   return mapNullableCode(JETLOVERS_SEAT_TYPE_MAP, seatType);
 };
 
-const mapSeatClass = (seatClass: string | null): Seat['seatClass'] => {
+const mapSeatClass = (
+  seatClass: string | null,
+): FlightPassenger['seatClass'] => {
   return mapNullableCode(JETLOVERS_SEAT_CLASS_MAP, seatClass);
 };
 
 const mapFlightReason = (
   reason: string | null,
-): CreateFlight['flightReason'] => {
+): FlightPassenger['flightReason'] => {
   return mapNullableCode(JETLOVERS_FLIGHT_REASON_MAP, reason);
 };
 
@@ -122,8 +124,8 @@ export const processJetLoversFile = async (
   if (data.length === 0) {
     return {
       flights: [],
-      unknownAirports: {},
-      unknownAirlines: {},
+      unknowns: { airports: {}, airlines: {}, aircraft: {} },
+      exportedUsers: [],
       skippedRows: skipped.length,
     };
   }
@@ -184,14 +186,14 @@ export const processJetLoversFile = async (
       airline,
       aircraft,
       aircraftReg: row.aircraft_reg ? row.aircraft_reg.substring(0, 10) : null,
-      flightReason: mapFlightReason(row.reason),
-      seats: [
+      passengers: [
         {
           userId,
           seat: mapSeatType(row.seat_type),
           seatClass: mapSeatClass(row.class),
           seatNumber: row.seat ? row.seat.substring(0, 5) : null,
           guestName: null,
+          flightReason: mapFlightReason(row.reason),
         },
       ],
     });
@@ -199,8 +201,12 @@ export const processJetLoversFile = async (
 
   return {
     flights,
-    unknownAirports,
-    unknownAirlines,
+    unknowns: {
+      airports: unknownAirports,
+      airlines: unknownAirlines,
+      aircraft: {},
+    },
+    exportedUsers: [],
     skippedRows: skipped.length,
   };
 };

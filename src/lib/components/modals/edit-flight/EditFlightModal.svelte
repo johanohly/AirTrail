@@ -48,10 +48,17 @@
   const customFieldDefinitions = trpc.customField.listDefinitions.query({
     entityType: 'flight',
   });
+  const passengerCustomFieldDefinitions =
+    trpc.customField.listDefinitions.query({
+      entityType: 'flight_passenger',
+    });
   let customFieldValues = $state<Record<number, unknown>>({});
   /** Field IDs that have values saved in the database for this flight. */
   let savedFieldIds = $state<Set<number>>(new Set());
   let customFieldsModal = $state<ReturnType<typeof FlightCustomFieldsModal>>();
+  let flightForm = $state<ReturnType<typeof FlightForm>>();
+  let passengerSavedFieldIds = $state<Record<number, Set<number>>>({});
+  let passengerCustomFieldsLoading = $state(false);
 
   const toCustomFieldsPayload = (): Record<string, unknown> => {
     const defs = $customFieldDefinitions.data ?? [];
@@ -71,25 +78,68 @@
   $effect(() => {
     if (!open) return;
 
+    let cancelled = false;
+    passengerCustomFieldsLoading = true;
+
     (async () => {
       try {
         const values = await api.customField.getEntityValues.query({
           entityType: 'flight',
           entityId: String(flight.id),
         });
+        if (cancelled) return;
         customFieldValues = Object.fromEntries(
           values.map((v) => [v.fieldId, v.value]),
         );
         savedFieldIds = new Set(values.map((v) => v.fieldId));
+        const passengerValues = await Promise.all(
+          flight.raw.passengers.map(async (passenger) => ({
+            id: passenger.id,
+            values: await api.customField.getEntityValues.query({
+              entityType: 'flight_passenger',
+              entityId: String(passenger.id),
+            }),
+          })),
+        );
+        if (cancelled) return;
+        const valuesByPassenger = new Map(
+          passengerValues.map(({ id, values }) => [id, values]),
+        );
+        passengerSavedFieldIds = Object.fromEntries(
+          passengerValues.map(({ id, values }) => [
+            id,
+            new Set(values.map((value) => value.fieldId)),
+          ]),
+        );
+        formData.update((current) => ({
+          ...current,
+          passengers: current.passengers.map((passenger) => ({
+            ...passenger,
+            customFields: Object.fromEntries(
+              (passenger.id
+                ? valuesByPassenger.get(passenger.id)
+                : undefined
+              )?.map((value) => [value.fieldId, value.value]) ?? [],
+            ),
+          })),
+        }));
         const track = await api.flightTrack.get.query(flight.id);
+        if (cancelled) return;
         formData.update((current) => ({
           ...current,
           track: track ? toFlightTrackInput(track) : undefined,
         }));
       } catch (e) {
         console.error(e);
+      } finally {
+        if (!cancelled) passengerCustomFieldsLoading = false;
       }
     })();
+
+    return () => {
+      cancelled = true;
+      passengerCustomFieldsLoading = false;
+    };
   });
 
   const fromTz = flight.from?.tz ?? 'UTC';
@@ -143,6 +193,10 @@
       typeof flight.raw,
       'id' | 'userId' | 'date' | 'duration'
     >),
+    passengers: flight.raw.passengers.map((passenger) => ({
+      ...passenger,
+      customFields: {},
+    })),
     departure: isPartialDate
       ? toFormDateAnchor(flight.raw.date)
       : (dep.date ?? toFormDateAnchor(flight.raw.date)),
@@ -175,7 +229,10 @@
       onSubmit({ cancel }) {
         $formData.id = flight.id;
         $formData.customFields = toCustomFieldsPayload();
-        if (!customFieldsModal?.validate()) {
+        const flightFieldsValid = customFieldsModal?.validate() ?? true;
+        const passengerFieldsValid =
+          flightForm?.validatePassengerCustomFields() ?? true;
+        if (!flightFieldsValid || !passengerFieldsValid) {
           cancel();
         }
       },
@@ -215,7 +272,14 @@
     icon={SquarePen}
   />
   <form method="POST" action="/api/flight/save/form" use:enhance>
-    <FlightForm {form} />
+    <FlightForm
+      bind:this={flightForm}
+      {form}
+      passengerCustomFieldDefinitions={$passengerCustomFieldDefinitions.data ??
+        []}
+      {passengerSavedFieldIds}
+      {passengerCustomFieldsLoading}
+    />
     <ModalFooter>
       <div class="flex w-full items-center justify-between">
         <div class="flex items-center gap-2">

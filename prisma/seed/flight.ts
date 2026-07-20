@@ -178,7 +178,7 @@ export const seedFlight = async (db: Kysely<DB>, userId: string) => {
 
   // Create flight factory that uses airport IDs
   const baseFlightFactory = Factory.makeFactory<CreateFlight>({
-    seats: [{ userId: 'PLACEHOLDER' }],
+    passengers: [{ userId: 'PLACEHOLDER' }],
     from: Factory.each((i) => ({
       // @ts-expect-error - TS doesn't understand the modulo operation
       id: createdAirports.get(routes[i % routes.length].from)!,
@@ -198,7 +198,7 @@ export const seedFlight = async (db: Kysely<DB>, userId: string) => {
   });
 
   const flights = baseFlightFactory.buildList(10, {
-    seats: [
+    passengers: [
       {
         userId,
         seat: 'window',
@@ -214,7 +214,7 @@ export const seedFlight = async (db: Kysely<DB>, userId: string) => {
       .insertInto('flight')
       .values(
         flights.map(
-          ({ seats: _, from, to, aircraft, airline, ...flightData }) => ({
+          ({ passengers: _, from, to, aircraft, airline, ...flightData }) => ({
             ...flightData,
             fromId: from.id,
             toId: to.id,
@@ -226,26 +226,27 @@ export const seedFlight = async (db: Kysely<DB>, userId: string) => {
       .returning('id')
       .execute();
 
-    // Insert seats for each flight
-    const seatData = insertedFlights.flatMap((flight, index) => {
+    // Insert passengers for each flight
+    const passengerData = insertedFlights.flatMap((flight, index) => {
       const flightInput = flights[index];
 
-      if (flightInput && flightInput.seats.length > 0) {
-        return flightInput.seats.map((seat) => ({
+      if (flightInput && flightInput.passengers.length > 0) {
+        return flightInput.passengers.map((passenger) => ({
           flightId: flight.id,
-          userId: seat.userId,
-          guestName: seat.guestName,
-          seat: seat.seat,
-          seatNumber: seat.seatNumber,
-          seatClass: seat.seatClass,
+          userId: passenger.userId,
+          guestName: passenger.guestName,
+          seat: passenger.seat,
+          seatNumber: passenger.seatNumber,
+          seatClass: passenger.seatClass,
+          flightReason: passenger.flightReason,
         }));
       }
 
       return [];
     });
 
-    if (seatData.length > 0) {
-      await trx.insertInto('seat').values(seatData).execute();
+    if (passengerData.length > 0) {
+      await trx.insertInto('flightPassenger').values(passengerData).execute();
     }
   });
 };

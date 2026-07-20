@@ -20,7 +20,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   }
 
   const result = await validateAndSaveFlight(user, form.data, {
-    bypassSeatCheck: user.role !== 'user',
+    bypassPassengerCheck: user.role !== 'user',
   });
   return handleErrorActionResult(form, result);
 };

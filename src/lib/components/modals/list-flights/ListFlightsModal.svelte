@@ -130,7 +130,9 @@
           depStatus,
           arrStatus,
           seat: formatSeatForUser(f, seatUserId),
-          passengers: showPassengerDetails ? getFlightPassengerLabels(f) : [],
+          passengerLabels: showPassengerDetails
+            ? getFlightPassengerLabels(f)
+            : [],
         };
       })
       .sort((a, b) => {
@@ -483,8 +485,8 @@
                 id="flight-list-row-{flight.id}"
                 class="relative col-span-full grid grid-cols-subgrid scroll-mt-24 rounded-lg"
               >
-                {#if showPassengerDetails && flight.passengers.length}
-                  {@render passengerBadge(flight.passengers)}
+                {#if showPassengerDetails && flight.passengerLabels.length}
+                  {@render passengerBadge(flight.passengerLabels)}
                 {/if}
                 <Card
                   onclick={() => {

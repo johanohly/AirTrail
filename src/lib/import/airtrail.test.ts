@@ -102,6 +102,8 @@ const seat = {
   seat: 'window',
   seatNumber: '12A',
   seatClass: 'economy',
+  flightReason: 'leisure',
+  customFields: {},
 };
 
 const flightBase = {
@@ -111,9 +113,8 @@ const flightBase = {
   duration: 7200,
   flightNumber: 'SK123',
   aircraftReg: null,
-  flightReason: 'leisure',
   note: null,
-  seats: [seat],
+  passengers: [seat],
 };
 
 const airportObject = (icao: string, id?: number) => ({
@@ -179,8 +180,8 @@ describe('processAirTrailFile', () => {
     const result = await processAirTrailFile(content, baseOptions);
 
     expect(result.flights).toHaveLength(1);
-    expect(result.unknownAirports).toEqual({});
-    expect(result.unknownAirlines).toEqual({});
+    expect(result.unknowns.airports).toEqual({});
+    expect(result.unknowns.airlines).toEqual({});
     expect(getAirportByIcao).toHaveBeenCalledWith('EKCH');
     expect(getAirportByIcao).toHaveBeenCalledWith('EIDW');
     expect(getAirlineByIcao).toHaveBeenCalledWith('SAS');
@@ -190,7 +191,7 @@ describe('processAirTrailFile', () => {
     expect(flight.datePrecision).toBe('month');
     expect(flight.departureScheduled).toBe('2024-06-14T09:45:00.000Z');
     expect(flight.landingActual).toBe('2024-06-14T11:58:00.000Z');
-    expect(flight.seats).toEqual([
+    expect(flight.passengers).toEqual([
       {
         ...seat,
         userId: 'local-user',
@@ -237,6 +238,28 @@ describe('processAirTrailFile', () => {
     expect(result.flights[0]?.takeoffActual).toBeNull();
     expect(result.flights[0]?.landingScheduled).toBeNull();
     expect(result.flights[0]?.landingActual).toBeNull();
+  });
+
+  it('moves legacy flight reasons onto legacy seats', async () => {
+    const { passengers, ...legacyFlight } = flightBase;
+    const content = JSON.stringify({
+      users: exportedUsers,
+      flights: [
+        {
+          ...legacyFlight,
+          flightReason: 'business',
+          seats: passengers.map(({ flightReason: _, ...seat }) => seat),
+          from: airportObject('EKCH'),
+          to: airportObject('EIDW'),
+          airline: null,
+          aircraft: null,
+        },
+      ],
+    });
+
+    const result = await processAirTrailFile(content, baseOptions);
+
+    expect(result.flights[0]?.passengers[0]?.flightReason).toBe('business');
   });
 
   it('falls back to names when nested airline or aircraft objects have no ICAO code', async () => {
@@ -301,7 +324,7 @@ describe('processAirTrailFile', () => {
           to: airportObject('EIDW'),
           airline: null,
           aircraft: null,
-          seats: [
+          passengers: [
             seat,
             {
               ...seat,
@@ -317,7 +340,7 @@ describe('processAirTrailFile', () => {
           to: airportObject('EKCH'),
           airline: null,
           aircraft: null,
-          seats: [{ ...seat, userId: otherUser.id }],
+          passengers: [{ ...seat, userId: otherUser.id }],
         },
       ],
     });
@@ -328,7 +351,7 @@ describe('processAirTrailFile', () => {
     });
 
     expect(result.flights).toHaveLength(1);
-    expect(result.flights[0]?.seats).toEqual([
+    expect(result.flights[0]?.passengers).toEqual([
       { ...seat, userId: 'local-user' },
       {
         ...seat,
@@ -377,10 +400,10 @@ describe('processAirTrailFile', () => {
       userMapping: { 'export-user': 'local-user' },
     });
 
-    expect(result.flights[0]?.seats).toEqual([
+    expect(result.flights[0]?.passengers).toEqual([
       { ...seat, userId: 'local-user' },
     ]);
-    expect(result.flights[0]?.seats).not.toContainEqual(
+    expect(result.flights[0]?.passengers).not.toContainEqual(
       expect.objectContaining({ userId: 'import-admin' }),
     );
   });
@@ -405,7 +428,7 @@ describe('processAirTrailFile', () => {
       userMapping: {},
     });
 
-    expect(result.flights[0]?.seats).toEqual([
+    expect(result.flights[0]?.passengers).toEqual([
       { ...seat, userId: null, guestName: 'John Export' },
     ]);
   });

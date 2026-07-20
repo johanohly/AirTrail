@@ -11,7 +11,7 @@ import {
   type Route,
 } from './types';
 
-import { getSeatPassengerToken, type FlightData } from '$lib/utils';
+import { getFlightPassengerToken, type FlightData } from '$lib/utils';
 import { parseLocalISO } from '$lib/utils/datetime';
 import { formatDate } from '$lib/utils/preferences';
 import type { Preferences } from '$lib/zod/user';
@@ -872,8 +872,8 @@ export function matchesNonLocationFilters(
 
   if (
     !multiOptionMatches(
-      flight.seats
-        .map((seat) => getSeatPassengerToken(seat))
+      flight.passengers
+        .map((passenger) => getFlightPassengerToken(passenger))
         .filter((token): token is string => !!token),
       filters.passengers,
       filters.passengersOperator,
