@@ -85,7 +85,10 @@
   </Button>
 </Modal>
 
-{#snippet statusRadioItem(value, label)}
+{#snippet statusRadioItem(
+  value: (typeof VisitedCountryStatus)[number],
+  label: string,
+)}
   <Label
     onclick={() => {
       if (status === value) {

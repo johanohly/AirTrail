@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Layer, PickingInfo, Color } from '@deck.gl/core';
+  import type { Color, Layer, PickingInfo, Position } from '@deck.gl/core';
   import { ArcLayer, ScatterplotLayer } from '@deck.gl/layers';
   import { MapboxOverlay } from '@deck.gl/mapbox';
   import { isTouchDevice } from '@melt-ui/svelte/internal/helpers';
@@ -305,7 +305,7 @@
 
   onDestroy(() => {
     mapDetailsState.hoveredFlightTrackId = null;
-    if (loaded && layer) {
+    if (loaded && layer && map) {
       map.removeControl(layer);
     }
   });
@@ -517,11 +517,14 @@
         : MERCATOR_AIRPORT_PARAMETERS,
       extensions: [globeOcclusion],
       data: visitedAirports,
-      getPosition: (airport: VisitedAirport) => [airport.lon, airport.lat],
+      getPosition: (airport: VisitedAirport): Position => [
+        airport.lon,
+        airport.lat,
+      ],
       getRadius: (airport: VisitedAirport) =>
         getFrequencyScale(airport) * baseUnits * preset.scale,
       radiusMaxPixels: preset.maxPixels,
-      lineWidthUnits: 'pixels',
+      lineWidthUnits: 'pixels' as const,
       getLineWidth: (airport: VisitedAirport) =>
         airport.id === selectedAirportId ||
         selectedRouteAirportIds.includes(airport.id)
@@ -557,8 +560,14 @@
     parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
     extensions: [globeOcclusion],
     data: visibleFlightArcs,
-    getSourcePosition: (data: FlightArc) => [data.from.lon, data.from.lat],
-    getTargetPosition: (data: FlightArc) => [data.to.lon, data.to.lat],
+    getSourcePosition: (data: FlightArc): Position => [
+      data.from.lon,
+      data.from.lat,
+    ],
+    getTargetPosition: (data: FlightArc): Position => [
+      data.to.lon,
+      data.to.lat,
+    ],
     getSourceColor: getArcColor('source'),
     getTargetColor: getArcColor('target'),
     updateTriggers: {
@@ -600,10 +609,16 @@
     parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
     extensions: [globeOcclusion],
     data: visibleFlightArcs,
-    getSourcePosition: (data: FlightArc) => [data.from.lon, data.from.lat],
-    getTargetPosition: (data: FlightArc) => [data.to.lon, data.to.lat],
-    getSourceColor: [0, 0, 0, 0],
-    getTargetColor: [0, 0, 0, 0],
+    getSourcePosition: (data: FlightArc): Position => [
+      data.from.lon,
+      data.from.lat,
+    ],
+    getTargetPosition: (data: FlightArc): Position => [
+      data.to.lon,
+      data.to.lat,
+    ],
+    getSourceColor: [0, 0, 0, 0] as Color,
+    getTargetColor: [0, 0, 0, 0] as Color,
     pickable: true,
     onHover: handleArcHover,
     onClick: handleArcClick,
@@ -740,8 +755,9 @@
     layer = nextLayer;
     layerProjection = mapPreferences.projection;
     // Prevent the deck.gl overlay from rendering above map controls when not interleaved.
-    if (layer._container) {
-      layer._container.style.zIndex = '-1';
+    const overlayContainer = nextLayer.getCanvas()?.parentElement;
+    if (!isGlobe && overlayContainer) {
+      overlayContainer.style.zIndex = '-1';
     }
   });
 
@@ -752,6 +768,12 @@
       layers: buildLayers(),
     });
   });
+
+  const isVisitedAirport = (data: unknown): data is VisitedAirport =>
+    typeof data === 'object' && data !== null && 'country' in data;
+
+  const isFlightArc = (data: unknown): data is FlightArc =>
+    typeof data === 'object' && data !== null && 'from' in data && 'to' in data;
 </script>
 
 {#if layer}
@@ -762,9 +784,9 @@
     onopen={popupPosition.setPopup}
   >
     {#snippet children({ data })}
-      {#if data?.country}
+      {#if isVisitedAirport(data)}
         <AirportPopup {data} {clickable} />
-      {:else if data?.from}
+      {:else if isFlightArc(data)}
         <ArcPopup {data} {clickable} />
       {/if}
     {/snippet}

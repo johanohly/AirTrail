@@ -1,7 +1,7 @@
 <script lang="ts">
   import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
-  import { zod } from 'sveltekit-superforms/adapters';
+  import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
   import { page } from '$app/state';
   import * as Form from '$lib/components/ui/form';

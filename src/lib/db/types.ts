@@ -52,6 +52,10 @@ export type Flight = Omit<
 };
 export type FlightTrack = Selectable<flight_track>;
 type CreateFlightAirport = Partial<Airport>;
+type CreateFlightEntityReference<T extends { id: number }> = Omit<
+  Partial<T>,
+  'id'
+> & { id: number | null };
 export type CreateFlightPassenger = Omit<
   FlightPassengerRecord,
   'flightId' | 'id'
@@ -66,8 +70,8 @@ type FlightRecord = Omit<
 export type CreateFlight = FlightRecord & {
   from: CreateFlightAirport | null;
   to: CreateFlightAirport | null;
-  aircraft: Aircraft | null;
-  airline: Airline | null;
+  aircraft: CreateFlightEntityReference<Aircraft> | null;
+  airline: CreateFlightEntityReference<Airline> | null;
   passengers: CreateFlightPassenger[];
   track?: FlightTrackInput | null;
 };

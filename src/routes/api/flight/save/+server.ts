@@ -86,10 +86,12 @@ export const POST: RequestHandler = async ({ request }) => {
   const legacyFlightReason =
     typeof body.flightReason === 'string' ? body.flightReason : null;
   if (legacyFlightReason) {
-    filled.passengers = filled.passengers.map((passenger) => ({
-      ...passenger,
-      flightReason: passenger.flightReason ?? legacyFlightReason,
-    }));
+    filled.passengers = filled.passengers.map(
+      (passenger: Record<string, unknown>) => ({
+        ...passenger,
+        flightReason: passenger.flightReason ?? legacyFlightReason,
+      }),
+    );
   }
   const flight = {
     ...filled,
@@ -108,7 +110,7 @@ export const POST: RequestHandler = async ({ request }) => {
   const parsed = saveApiFlightSchema.safeParse(flight);
   if (!parsed.success) {
     return json(
-      { success: false, errors: parsed.error.errors },
+      { success: false, errors: parsed.error.issues },
       { status: 400 },
     );
   }
@@ -148,8 +150,8 @@ export const POST: RequestHandler = async ({ request }) => {
     ...parsed.data,
     from,
     to,
-    aircraft,
-    airline,
+    aircraft: aircraft ?? null,
+    airline: airline ?? null,
   };
 
   if (data.passengers[0]?.userId === '<USER_ID>') {

@@ -42,7 +42,7 @@
   {shouldScaleBackground}
   bind:open
   bind:activeSnapPoint
-  bind:drawerState
+  {drawerState}
   dismissible={!dismissLocked}
   {...restProps}
 />

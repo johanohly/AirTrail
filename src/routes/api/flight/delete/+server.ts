@@ -15,7 +15,7 @@ export const POST: RequestHandler = async ({ request }) => {
   const parsed = deleteFlightSchema.safeParse(body);
   if (!parsed.success) {
     return json(
-      { success: false, errors: parsed.error.errors },
+      { success: false, errors: parsed.error.issues },
       { status: 400 },
     );
   }

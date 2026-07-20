@@ -17,6 +17,7 @@
   import Toolbar from './Toolbar.svelte';
 
   import { page as appPage } from '$app/state';
+  import type { Airport } from '$lib/db/types';
   import { AirlineIcon, TimeDisplay } from '$lib/components/display';
   import {
     clearTempFilters as clearTempFilterValues,
@@ -117,7 +118,7 @@
           ...f,
           from: f.from,
           to: f.to,
-          duration: f.duration
+          durationDisplay: f.duration
             ? Duration.fromSeconds(f.duration).toString()
             : '',
           hasDateDisplay: !!f.date,
@@ -554,7 +555,9 @@
                             >
                               <div class="flex flex-col items-center">
                                 <Plane size="20" />
-                                <span class="text-xs">{flight.duration}</span>
+                                <span class="text-xs"
+                                  >{flight.durationDisplay}</span
+                                >
                               </div>
                             </div>
                           </div>
@@ -601,7 +604,7 @@
   />
 </Modal>
 
-{#snippet flightTimes(flight)}
+{#snippet flightTimes(flight: (typeof formattedFlights)[number])}
   <div class="flex items-center" data-testid="flight-time-departure">
     <PlaneTakeoff size="16" class="mr-1" />
     {#if flight.depAt}
@@ -639,7 +642,7 @@
   </div>
 {/snippet}
 
-{#snippet seatAndAirline(flight)}
+{#snippet seatAndAirline(flight: (typeof formattedFlights)[number])}
   {#if flight.seat || flight.airline}
     <Tooltip.AutoTooltip
       text={flight.seat ?? flight.airline?.name ?? ''}
@@ -658,7 +661,7 @@
   {/if}
 {/snippet}
 
-{#snippet flightAndTailNumber(flight)}
+{#snippet flightAndTailNumber(flight: (typeof formattedFlights)[number])}
   {@const hasAircraftDetails = flight.aircraft || flight.aircraftReg}
   {#if flight.flightNumber || hasAircraftDetails}
     <Tooltip.AutoTooltip
@@ -678,7 +681,7 @@
   {/if}
 {/snippet}
 
-{#snippet actions(flight)}
+{#snippet actions(flight: (typeof formattedFlights)[number])}
   <div class="flex items-center gap-2">
     {#if onNavigate && canShowFlightOnMap(flight)}
       <Button
@@ -727,7 +730,7 @@
   </Badge>
 {/snippet}
 
-{#snippet airport(airport)}
+{#snippet airport(airport: Airport | null)}
   <div class="w-11 flex flex-col items-center justify-center">
     <span class="text-lg font-bold">
       {airport?.iata || airport?.icao || 'N/A'}

@@ -13,11 +13,15 @@
   import { Input } from '$lib/components/ui/input';
   import * as Select from '$lib/components/ui/select';
   import { Separator } from '$lib/components/ui/separator';
+  import { TextTooltip } from '$lib/components/ui/tooltip/index.js';
   import { FlightReasons, SeatClasses, SeatTypes } from '$lib/db/types';
   import { cn, toTitleCase } from '$lib/utils';
   import type { CustomFieldDefinition } from '$lib/utils/custom-fields';
   import type { flightSchema } from '$lib/zod/flight';
-  import { TextTooltip } from '$lib/components/ui/tooltip/index.ts';
+
+  type FlightReason = (typeof FlightReasons)[number];
+  const isFlightReason = (value: string): value is FlightReason =>
+    FlightReasons.some((reason) => reason === value);
 
   let {
     form,
@@ -159,9 +163,12 @@
                         value={$formData.passengers[index]?.flightReason ??
                           undefined}
                         onValueChange={(value) => {
-                          // @ts-expect-error - value is a FlightReason
-                          $formData.passengers[index].flightReason =
-                            FlightReasons.includes(value) ? value : null;
+                          const passenger = $formData.passengers[index];
+                          if (passenger) {
+                            passenger.flightReason = isFlightReason(value)
+                              ? value
+                              : null;
+                          }
                         }}
                         allowDeselect
                       >

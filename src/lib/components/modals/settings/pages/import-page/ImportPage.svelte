@@ -26,7 +26,7 @@
     type ImportUnknowns,
     type IndexedFlight,
   } from '$lib/import/model';
-  import { platforms } from '$lib/import/platforms';
+  import { platforms, type Platform } from '$lib/import/platforms';
   import { flightAddedState } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
   import { cn, pluralize } from '$lib/utils';
@@ -54,7 +54,7 @@
     }[]
   >([]);
 
-  let platform = $state<(typeof platforms)[0]>(platforms[0]);
+  let platform = $state<Platform>(platforms[0]);
   let userMapping = $state<Record<string, string>>({});
   let appliedMappings = $state<ImportMappings>(createEmptyImportMappings());
   const handledFlightIndices = new Set<number>();

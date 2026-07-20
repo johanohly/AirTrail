@@ -528,10 +528,10 @@ export const createManyFlights = async (
   // Gather candidate filters
   const dates = new Set(uniqueFlights.map((f) => f.date));
   const froms = new Set(
-    uniqueFlights.map((f) => f.from?.id).filter((id): id is string => !!id),
+    uniqueFlights.map((f) => f.from?.id).filter((id): id is number => !!id),
   );
   const tos = new Set(
-    uniqueFlights.map((f) => f.to?.id).filter((id): id is string => !!id),
+    uniqueFlights.map((f) => f.to?.id).filter((id): id is number => !!id),
   );
 
   // Fetch existing flights for candidate space

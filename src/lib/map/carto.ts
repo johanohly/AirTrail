@@ -11,7 +11,7 @@ const CARTO_DARK_RASTER_TILE_URL =
 const CARTO_GLYPHS_URL =
   'https://tiles.basemaps.cartocdn.com/fonts/{fontstack}/{range}.pbf';
 
-export const normalizeCartoTheme = (theme: string): CartoTheme =>
+export const normalizeCartoTheme = (theme?: string): CartoTheme =>
   theme === 'dark' ? 'dark' : 'light';
 
 export const getCartoBasemapStyleUrl = (theme: string) =>

@@ -2,7 +2,7 @@
   import { SquarePen } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
-  import { zod } from 'sveltekit-superforms/adapters';
+  import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
   import { page } from '$app/state';
 
@@ -197,6 +197,9 @@
       ...passenger,
       customFields: {},
     })),
+    from: flight.from ?? undefined,
+    to: flight.to ?? undefined,
+    customFields: {},
     departure: isPartialDate
       ? toFormDateAnchor(flight.raw.date)
       : (dep.date ?? toFormDateAnchor(flight.raw.date)),

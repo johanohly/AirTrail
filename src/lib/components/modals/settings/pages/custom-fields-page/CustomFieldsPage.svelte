@@ -50,9 +50,13 @@
   );
 
   const invalidate = () => {
-    // No input: also refreshes the flight/passenger form queries,
-    // which fetch without `includeInactive`.
-    trpc.customField.listDefinitions.utils.invalidate();
+    for (const entityType of ['flight', 'flight_passenger'] as const) {
+      void trpc.customField.listDefinitions.utils.invalidate({ entityType });
+      void trpc.customField.listDefinitions.utils.invalidate({
+        entityType,
+        includeInactive: true,
+      });
+    }
   };
 
   const onDragStart = (event: any) => {
@@ -72,6 +76,7 @@
 
     const list = [...definitions] as DefinitionItem[];
     const [moved] = list.splice(fromIndex, 1);
+    if (!moved) return;
     list.splice(toIndex, 0, moved);
 
     try {

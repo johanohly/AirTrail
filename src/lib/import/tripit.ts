@@ -33,15 +33,15 @@ const parsePropLine = (
   if (idx === -1) return null;
   const left = line.slice(0, idx);
   const value = line.slice(idx + 1);
-  const parts = left.split(';');
-  const name = parts[0];
+  const [name, ...parameterParts] = left.split(';');
+  if (!name) return null;
+
   const params: Record<string, string> = {};
-  for (let i = 1; i < parts.length; i++) {
-    const p = parts[i];
-    const eq = p.indexOf('=');
+  for (const part of parameterParts) {
+    const eq = part.indexOf('=');
     if (eq !== -1) {
-      const k = p.slice(0, eq).toUpperCase();
-      const v = p.slice(eq + 1);
+      const k = part.slice(0, eq).toUpperCase();
+      const v = part.slice(eq + 1);
       params[k] = v;
     }
   }
@@ -191,16 +191,13 @@ export const processTripItFile = async (
     const flightIndex = flights.length;
 
     if (!from) {
-      if (!unknownAirports[fromCode]) unknownAirports[fromCode] = [];
-      unknownAirports[fromCode].push(flightIndex);
+      (unknownAirports[fromCode] ??= []).push(flightIndex);
     }
     if (!to) {
-      if (!unknownAirports[toCode]) unknownAirports[toCode] = [];
-      unknownAirports[toCode].push(flightIndex);
+      (unknownAirports[toCode] ??= []).push(flightIndex);
     }
     if (!airline && airlineIata) {
-      if (!unknownAirlines[airlineIata]) unknownAirlines[airlineIata] = [];
-      unknownAirlines[airlineIata].push(flightIndex);
+      (unknownAirlines[airlineIata] ??= []).push(flightIndex);
     }
 
     flights.push({

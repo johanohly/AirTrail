@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tz, TZDate } from '@date-fns/tz';
+  import { TZDate } from '@date-fns/tz';
   import {
     format,
     isToday,
@@ -204,7 +204,7 @@
     toast.success('Flight found');
   }
 
-  function getPrimaryDate(item: LookupResult): Date | null {
+  function getPrimaryDate(item: LookupResult): TZDate | null {
     return item.departure ?? item.arrival ?? null;
   }
 
@@ -228,17 +228,19 @@
       });
       results = tempResults.map((r) => ({
         ...r,
+        airline: r.airline ?? null,
+        aircraft: r.aircraft ?? null,
         departure: r.departure
-          ? parseJSON(r.departure, { in: tz(r.departureTz ?? 'UTC') })
+          ? new TZDate(parseJSON(r.departure), r.departureTz ?? 'UTC')
           : null,
         arrival: r.arrival
-          ? parseJSON(r.arrival, { in: tz(r.arrivalTz ?? 'UTC') })
+          ? new TZDate(parseJSON(r.arrival), r.arrivalTz ?? 'UTC')
           : null,
         departureScheduled: r.departureScheduled
-          ? parseJSON(r.departureScheduled, { in: tz(r.departureTz ?? 'UTC') })
+          ? new TZDate(parseJSON(r.departureScheduled), r.departureTz ?? 'UTC')
           : null,
         arrivalScheduled: r.arrivalScheduled
-          ? parseJSON(r.arrivalScheduled, { in: tz(r.arrivalTz ?? 'UTC') })
+          ? new TZDate(parseJSON(r.arrivalScheduled), r.arrivalTz ?? 'UTC')
           : null,
       }));
     } catch (e: unknown) {

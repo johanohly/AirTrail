@@ -7,6 +7,7 @@
 
 <div class="w-full p-4 border rounded h-[200px]">
   <Chart
+    radial
     data={Object.entries(data).map(([key, value]) => ({
       label: `${key} (${value})`,
       value,
@@ -31,8 +32,8 @@
           grid={{ class: 'stroke-surface-content/20' }}
           tickLabelProps={{ class: 'text-xs' }}
         />
-        <Spline radial class="stroke-primary fill-primary/20" />
-        <Points radial class="fill-primary stroke-surface-200" />
+        <Spline class="stroke-primary fill-primary/20" />
+        <Points class="fill-primary stroke-surface-200" />
       </Group>
     </Svg>
   </Chart>

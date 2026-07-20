@@ -1,4 +1,4 @@
-import type { Airport } from '$lib/utils/data/airports';
+import type { Airport } from '$lib/db/types';
 
 type Vec3 = [number, number, number];
 type WeightedAirport = { vector: Vec3; weight: number };

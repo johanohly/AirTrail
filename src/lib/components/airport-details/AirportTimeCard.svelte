@@ -34,7 +34,7 @@
   });
 
   const tzCityLabel = $derived(
-    resolvedTz.split('/').slice(-1)[0].replace(/_/g, ' '),
+    (resolvedTz.split('/').at(-1) ?? resolvedTz).replace(/_/g, ' '),
   );
 
   const localHour = $derived.by(() => {
@@ -65,8 +65,8 @@
         hour12: false,
       });
       const parse = (s: string) => {
-        const [h, m] = s.split(':').map((x) => parseInt(x.trim(), 10));
-        return h * 60 + m;
+        const [hours = '0', minutes = '0'] = s.split(':');
+        return parseInt(hours.trim(), 10) * 60 + parseInt(minutes.trim(), 10);
       };
       let diff = parse(fmtAirport.format(now)) - parse(fmtLocal.format(now));
       if (diff > 12 * 60) diff -= 24 * 60;

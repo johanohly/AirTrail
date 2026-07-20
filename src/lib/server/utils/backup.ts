@@ -154,7 +154,7 @@ export const generateBackup = async ({
   const cfByPassenger = buildCfByFlight(passengerCfValueRows, entityLookup);
 
   const flights = res.map((flight: Flight) => ({
-    ...omit(flight, ['id', 'fromId', 'toId', 'airlineId', 'aircraftId']),
+    ...omit(flight, ['id']),
     from: flight.from ? omit(flight.from, ['id']) : null,
     to: flight.to ? omit(flight.to, ['id']) : null,
     airline: flight.airline ? omit(flight.airline, ['id']) : null,

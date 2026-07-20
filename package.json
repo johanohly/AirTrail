@@ -15,6 +15,8 @@
     "dx:up": "docker compose -f docker/development/compose.yml up -d --wait",
     "dx:down": "docker compose -f docker/development/compose.yml down",
     "setup": "bun run dx && bun run db:seed && bun run dev",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:e2e": "svelte-kit sync && tsc --noEmit -p tests/e2e/tsconfig.json",
     "lint": "prettier --check \"{src,tests/e2e}/**/*.{js,ts,html,svelte,astro,css}\" --ignore-path ./.prettierignore",
     "format": "prettier --write \"{src,tests/e2e}/**/*.{js,ts,html,svelte,astro,css}\" --ignore-path ./.prettierignore",
     "test:unit": "vitest --run --dir src --passWithNoTests",
@@ -131,7 +133,7 @@
     "vite": "^8.0.1",
     "vite-plugin-pwa": "^1.2.0",
     "vitest": "^4.1.0",
-    "zod": "^3.25.76"
+    "zod": "^4.4.3"
   },
   "prisma": {
     "seed": "bun ./prisma/seed"

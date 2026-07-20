@@ -3,7 +3,7 @@
   import { onMount } from 'svelte';
   import { toast } from 'svelte-sonner';
   import { superForm } from 'sveltekit-superforms';
-  import { zod } from 'sveltekit-superforms/adapters';
+  import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
   import type { PageProps } from './$types';
 
@@ -76,7 +76,7 @@
         }
 
         await goto('/login', { replaceState: true }); // clear potential query params
-        toast.error(err?.message);
+        toast.error(err.message ?? 'OAuth login failed');
         oauthLoading = false;
         return;
       }
@@ -141,14 +141,14 @@
         <div class="grid gap-2 text-center">
           <h1 class="text-3xl font-bold">Login</h1>
           <p class="text-muted-foreground text-balance">
-            {#if !appConfig.oauth.enabled}
+            {#if !appConfig?.oauth.enabled}
               Welcome back! Enter your username and password to login
             {:else}
               Welcome back! Login below
             {/if}
           </p>
         </div>
-        {#if oauthLinkRequired || !(appConfig.oauth.enabled && appConfig.oauth.hidePasswordForm)}
+        {#if oauthLinkRequired || !(appConfig?.oauth.enabled && appConfig.oauth.hidePasswordForm)}
           {#if oauthLinkRequired}
             <Alert.Root variant="info">
               <Alert.Description>
@@ -193,7 +193,7 @@
             </Form.Button>
           </form>
         {/if}
-        {#if appConfig.oauth.enabled && !oauthLinkRequired}
+        {#if appConfig?.oauth.enabled && !oauthLinkRequired}
           <Button
             onclick={oauthLogin}
             disabled={oauthLoading}

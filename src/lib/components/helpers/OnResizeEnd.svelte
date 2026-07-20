@@ -5,7 +5,7 @@
     callback: () => void;
   } = $props();
 
-  let timeout;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
   const onResize = () => {
     clearTimeout(timeout);
     timeout = setTimeout(callback, 100);

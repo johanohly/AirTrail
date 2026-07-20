@@ -44,13 +44,18 @@ export const isUsingAmPm = (timeFormat: TimeFormat = 'auto') => {
  */
 export const getStartOfWeekDay = () => {
   const localeIdentifier = navigator.language || 'en-US';
-  const locale = new Intl.Locale(localeIdentifier);
+  return getLocaleStartOfWeekDay(localeIdentifier);
+};
 
-  // weekInfo uses ISO day numbering (1=Mon, ..., 7=Sun)
+type LocaleWithWeekInfo = Intl.Locale & {
+  getWeekInfo?: () => { firstDay: number };
+  weekInfo?: { firstDay: number };
+};
+
+export const getLocaleStartOfWeekDay = (localeIdentifier: string) => {
+  const locale = new Intl.Locale(localeIdentifier) as LocaleWithWeekInfo;
   const isoDay =
     locale.getWeekInfo?.().firstDay ?? locale.weekInfo?.firstDay ?? 1;
-
-  // Convert ISO (1-7, 7=Sun) to JS getDay() (0-6, 0=Sun)
   return isoDay % 7;
 };
 

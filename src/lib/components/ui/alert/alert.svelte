@@ -45,7 +45,7 @@
   bind:this={ref}
   role="alert"
   data-slot="alert"
-  class={cn(alertVariants({ variant, className }))}
+  class={cn(alertVariants({ variant }), className)}
   {...restProps}
 >
   {@render children?.()}

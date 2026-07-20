@@ -4,7 +4,7 @@
   import { toast } from 'svelte-sonner';
   import { slide } from 'svelte/transition';
   import { superForm } from 'sveltekit-superforms';
-  import { zod } from 'sveltekit-superforms/adapters';
+  import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
   import { goto } from '$app/navigation';
   import { PreferenceField, PresetPicker } from '$lib/components/preferences';
