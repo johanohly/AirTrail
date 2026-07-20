@@ -9,24 +9,38 @@ export const airportSchema = z.object({
     .regex(/^[A-Z]{4}$/, 'Code must be 4 uppercase letters'),
   type: z
     .enum(AirportTypes, { message: 'Select an airport type' })
-    // @ts-expect-error - z.enum always defaults to the first enum value, but we dont want a default
-    .default(''),
+    // @ts-expect-error - Superforms needs an empty initial value that validation rejects
+    .prefault(''),
   name: z.string().min(1, 'Set a name'),
   municipality: z.string(),
-  // @ts-expect-error - z.number always defaults to 0, but we dont want a default
-  lat: z.number({ message: 'Set the latitude' }).default(null),
-  // @ts-expect-error - z.number always defaults to 0, but we dont want a default
-  lon: z.number({ message: 'Set the longitude' }).default(null),
+  // @ts-expect-error - Superforms needs an empty initial value that validation rejects
+  lat: z.number({ message: 'Set the latitude' }).prefault(null),
+  // @ts-expect-error - Superforms needs an empty initial value that validation rejects
+  lon: z.number({ message: 'Set the longitude' }).prefault(null),
   continent: z
     .enum(Continents, { message: 'Select a continent' })
-    // @ts-expect-error - z.enum always defaults to the first enum value, but we dont want a default
-    .default(''),
+    // @ts-expect-error - Superforms needs an empty initial value that validation rejects
+    .prefault(''),
   country: z.string().min(1, 'Select a country'),
   iata: z.string(),
   tz: z
     .string({ message: 'Select a timezone' })
     .regex(/^[a-zA-Z]+\/[a-zA-Z_]+$/, 'Must be a valid timezone ID'),
 });
+
+export const airportFormDefaults = {
+  id: null,
+  icao: '',
+  type: '',
+  name: '',
+  municipality: '',
+  lat: null,
+  lon: null,
+  continent: '',
+  country: '',
+  iata: '',
+  tz: '',
+} as unknown as z.infer<typeof airportSchema>;
 
 /*
  * Only used inside the flight schema.

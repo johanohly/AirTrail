@@ -108,7 +108,7 @@ export const POST: RequestHandler = async ({ request }) => {
   const parsed = saveApiFlightSchema.safeParse(flight);
   if (!parsed.success) {
     return json(
-      { success: false, errors: parsed.error.errors },
+      { success: false, errors: parsed.error.issues },
       { status: 400 },
     );
   }

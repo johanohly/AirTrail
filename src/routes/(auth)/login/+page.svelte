@@ -3,7 +3,7 @@
   import { onMount } from 'svelte';
   import { toast } from 'svelte-sonner';
   import { superForm } from 'sveltekit-superforms';
-  import { zod } from 'sveltekit-superforms/adapters';
+  import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
   import type { PageProps } from './$types';
 

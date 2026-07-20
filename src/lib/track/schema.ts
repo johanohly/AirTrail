@@ -78,7 +78,7 @@ const flightTrackAlignedPropertyDefinitions = {
 } as const;
 
 type AlignedPropertySchemas<
-  Definitions extends Record<string, { schema: z.ZodTypeAny }>,
+  Definitions extends Record<string, { schema: z.ZodType }>,
 > = {
   [Key in keyof Definitions]: z.ZodOptional<
     z.ZodArray<Definitions[Key]['schema']>

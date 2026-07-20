@@ -2,7 +2,7 @@
   import { Plus } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
-  import { zod } from 'sveltekit-superforms/adapters';
+  import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
   import AirportFormFields from './AirportFormFields.svelte';
 
@@ -19,7 +19,7 @@
     airportSearchCache,
     clearAirportLookupCaches,
   } from '$lib/utils/data/airports/cache';
-  import { airportSchema } from '$lib/zod/airport';
+  import { airportFormDefaults, airportSchema } from '$lib/zod/airport';
 
   let {
     open = $bindable(false),
@@ -32,10 +32,12 @@
   } = $props();
 
   const form = superForm(
-    defaults<Infer<typeof airportSchema>>(zod(airportSchema)),
+    defaults<Infer<typeof airportSchema>>(
+      zod(airportSchema, { defaults: airportFormDefaults }),
+    ),
     {
       dataType: 'json',
-      validators: zod(airportSchema),
+      validators: zod(airportSchema, { defaults: airportFormDefaults }),
       onUpdated({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {

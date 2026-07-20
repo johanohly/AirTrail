@@ -5,7 +5,7 @@
   import type { Snippet } from 'svelte';
   import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
-  import { zod } from 'sveltekit-superforms/adapters';
+  import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
   import { PageHeader } from '.';
 
