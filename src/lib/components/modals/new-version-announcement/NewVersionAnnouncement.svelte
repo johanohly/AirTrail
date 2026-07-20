@@ -78,15 +78,15 @@
           {/if}
         </Dialog.Title>
       </Dialog.Header>
-      <div
-        class="prose dark:prose-invert max-h-[80dvh] overflow-y-auto space-y-6"
-      >
+      <div class="max-h-[80dvh] space-y-6 overflow-y-auto">
         {#each versionState.newReleases as changelog (changelog.name)}
           <div class="border-b border-gray-200 pb-4 last:border-b-0">
             <h3 class="text-lg font-semibold mb-2 flex items-center gap-2">
               Version {changelog.name}
             </h3>
-            <ReleaseNotes source={changelog.body} />
+            <div class="typeset typeset-docs max-w-[37em]">
+              <ReleaseNotes source={changelog.body} />
+            </div>
           </div>
         {/each}
       </div>
