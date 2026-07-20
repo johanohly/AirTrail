@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createDefaultTempFilters } from '$lib/components/flight-filters/types';
 import {
   createFlightNavigator,
   planFlightNavigation,
@@ -10,6 +9,8 @@ import {
   includeFocusedFlightInList,
   includeFocusedRouteOnMap,
 } from './flight-visibility';
+
+import { createDefaultTempFilters } from '$lib/components/flight-filters/types';
 
 const flight = (id: number, from: number | null, to: number | null) => ({
   id,
@@ -149,12 +150,11 @@ describe('flight navigation', () => {
           type: 'airport',
           airportId: 42,
           direction,
-          flightId: 7,
         },
       });
 
       expect(harness.state()).toMatchObject({
-        focusedListFlightId: 7,
+        focusedListFlightId: null,
         listOpen: true,
         tempFilters: {
           departureAirports: direction === 'departure' ? ['42'] : [],
@@ -162,7 +162,7 @@ describe('flight navigation', () => {
           routes: [],
         },
       });
-      expect(harness.focusFlightInList).toHaveBeenCalledWith(7);
+      expect(harness.focusFlightInList).not.toHaveBeenCalled();
     },
   );
 

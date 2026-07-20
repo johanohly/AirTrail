@@ -1,6 +1,6 @@
 import type { FlightFilters } from '$lib/components/flight-filters/types';
 import type { NavigateFlights } from '$lib/flight-navigation';
-import { mapDetailsState } from '$lib/state.svelte';
+import { mapDetailsState, openFlightDetails } from '$lib/state.svelte';
 import { prepareVisitedAirports, type FlightData } from '$lib/utils';
 
 export function useAirportDetails(
@@ -54,7 +54,7 @@ export function useAirportDetails(
     f.airportsEither = [airport.id.toString()];
   };
 
-  const showDepartures = (flightId?: number) => {
+  const showDepartures = () => {
     if (!airport) return;
     onNavigate({
       destination: 'list',
@@ -62,12 +62,11 @@ export function useAirportDetails(
         type: 'airport',
         airportId: airport.id,
         direction: 'departure',
-        flightId,
       },
     });
   };
 
-  const showArrivals = (flightId?: number) => {
+  const showArrivals = () => {
     if (!airport) return;
     onNavigate({
       destination: 'list',
@@ -75,9 +74,12 @@ export function useAirportDetails(
         type: 'airport',
         airportId: airport.id,
         direction: 'arrival',
-        flightId,
       },
     });
+  };
+
+  const showFlight = (flightId: number) => {
+    openFlightDetails(flightId);
   };
 
   return {
@@ -93,5 +95,6 @@ export function useAirportDetails(
     toggleAirportFilter,
     showDepartures,
     showArrivals,
+    showFlight,
   };
 }

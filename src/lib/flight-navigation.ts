@@ -14,7 +14,6 @@ export type FlightListFocus =
       type: 'airport';
       airportId: number;
       direction: 'departure' | 'arrival';
-      flightId?: number;
     };
 
 export type FlightNavigationIntent =
@@ -77,7 +76,6 @@ export const planFlightNavigation = (
         ? setTempDepartureAirport
         : setTempArrivalAirport;
     setAirport(tempFilters, focus.airportId.toString());
-    focusFlightId = focus.flightId;
   } else {
     focusFlightId = focus.flightId;
   }

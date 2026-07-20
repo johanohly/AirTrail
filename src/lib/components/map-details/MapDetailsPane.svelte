@@ -1,10 +1,4 @@
 <script lang="ts">
-  import type { FlightFilters } from '$lib/components/flight-filters/types';
-  import type { NavigateFlights } from '$lib/flight-navigation';
-  import { closeMapDetails, mapDetailsState } from '$lib/state.svelte';
-  import type { FlightData } from '$lib/utils';
-  import { isMediumScreen } from '$lib/utils/size';
-
   import AirportDetailsActions from './AirportDetailsActions.svelte';
   import AirportDetailsBody from './AirportDetailsBody.svelte';
   import AirportDetailsContent from './AirportDetailsContent.svelte';
@@ -21,6 +15,12 @@
   import { useAirportDetails } from './useAirportDetails.svelte';
   import { useFlightDetails } from './useFlightDetails.svelte';
   import { useRouteDetails } from './useRouteDetails.svelte';
+
+  import type { FlightFilters } from '$lib/components/flight-filters/types';
+  import type { NavigateFlights } from '$lib/flight-navigation';
+  import { closeMapDetails, mapDetailsState } from '$lib/state.svelte';
+  import type { FlightData } from '$lib/utils';
+  import { isMediumScreen } from '$lib/utils/size';
 
   let {
     flights,
@@ -114,6 +114,7 @@
         relatedFlights={airport.relatedFlights}
         onShowDepartures={airport.showDepartures}
         onShowArrivals={airport.showArrivals}
+        onShowFlight={airport.showFlight}
       />
     {:else if mapDetailsState.selection?.type === 'route' && route.routeAirports}
       <RouteDetailsBody

@@ -13,11 +13,13 @@
     airportId,
     onShowAllDepartures,
     onShowAllArrivals,
+    onShowFlight,
   }: {
     flights: FlightData[];
     airportId: number;
-    onShowAllDepartures?: (flightId?: number) => void;
-    onShowAllArrivals?: (flightId?: number) => void;
+    onShowAllDepartures?: () => void;
+    onShowAllArrivals?: () => void;
+    onShowFlight?: (flightId: number) => void;
   } = $props();
 
   const prefs = $derived(getPreferences(page.data.user));
@@ -79,13 +81,10 @@
     <button
       type="button"
       class="group grid w-full cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors hover:bg-background/55 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
-      onclick={() =>
-        direction === 'departure'
-          ? onShowAllDepartures?.(flight.id)
-          : onShowAllArrivals?.(flight.id)}
-      aria-label="Open {direction === 'departure'
-        ? 'departure to'
-        : 'arrival from'} {other?.iata ?? other?.icao ?? 'N/A'} in flight list"
+      onclick={() => onShowFlight?.(flight.id)}
+      aria-label="Open flight details for {flight.from?.iata ??
+        flight.from?.icao ??
+        'N/A'} to {flight.to?.iata ?? flight.to?.icao ?? 'N/A'}"
     >
       <div class="flex w-8 shrink-0 justify-center">
         <AirlineIcon airline={flight.airline} size={28} fallback="plane" />

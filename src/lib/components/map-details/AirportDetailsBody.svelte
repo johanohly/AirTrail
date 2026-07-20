@@ -12,11 +12,13 @@
     relatedFlights,
     onShowDepartures,
     onShowArrivals,
+    onShowFlight,
   }: {
     airport: VisitedAirport;
     relatedFlights: FlightData[];
-    onShowDepartures: (flightId?: number) => void;
-    onShowArrivals: (flightId?: number) => void;
+    onShowDepartures: () => void;
+    onShowArrivals: () => void;
+    onShowFlight: (flightId: number) => void;
   } = $props();
 
   let now = $state(new Date());
@@ -39,4 +41,5 @@
   airportId={airport.id}
   onShowAllDepartures={onShowDepartures}
   onShowAllArrivals={onShowArrivals}
+  {onShowFlight}
 />
