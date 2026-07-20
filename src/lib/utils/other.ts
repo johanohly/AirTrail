@@ -65,7 +65,7 @@ export const mapSetValues = <T>(obj: T): BooleanMap<T> => {
     }
     return result;
   }
-  return obj !== null && obj !== (undefined as any);
+  return (obj !== null && obj !== undefined) as BooleanMap<T>;
 };
 
 export function cn(...inputs: ClassValue[]) {

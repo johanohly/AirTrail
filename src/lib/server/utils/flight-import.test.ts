@@ -28,6 +28,12 @@ const guestSeat = (
   flightReason: null,
 });
 
+const userSeat = (userId: string): CreateFlight['passengers'][number] => ({
+  ...guestSeat(''),
+  userId,
+  guestName: null,
+});
+
 describe('getMissingImportPassengers', () => {
   it('preserves same-name guests with different seat details', () => {
     const incoming = [
@@ -76,24 +82,7 @@ describe('validateFlightImportPermissions', () => {
   it('allows personal imports owned by the importing user', () => {
     const error = validateFlightImportPermissions(
       user,
-      [
-        flightWithSeats([
-          {
-            userId: user.id,
-            guestName: null,
-            seat: null,
-            seatNumber: null,
-            seatClass: null,
-          },
-          {
-            userId: null,
-            guestName: 'Guest Passenger',
-            seat: null,
-            seatNumber: null,
-            seatClass: null,
-          },
-        ]),
-      ],
+      [flightWithSeats([userSeat(user.id), guestSeat('Guest Passenger')])],
       'personal',
     );
 
@@ -103,24 +92,7 @@ describe('validateFlightImportPermissions', () => {
   it('rejects personal imports that assign another local user', () => {
     const error = validateFlightImportPermissions(
       user,
-      [
-        flightWithSeats([
-          {
-            userId: user.id,
-            guestName: null,
-            seat: null,
-            seatNumber: null,
-            seatClass: null,
-          },
-          {
-            userId: 'other-user',
-            guestName: null,
-            seat: null,
-            seatNumber: null,
-            seatClass: null,
-          },
-        ]),
-      ],
+      [flightWithSeats([userSeat(user.id), userSeat('other-user')])],
       'personal',
     );
 
@@ -130,17 +102,7 @@ describe('validateFlightImportPermissions', () => {
   it('requires the importing user on every personal flight', () => {
     const error = validateFlightImportPermissions(
       user,
-      [
-        flightWithSeats([
-          {
-            userId: null,
-            guestName: 'Guest Passenger',
-            seat: null,
-            seatNumber: null,
-            seatClass: null,
-          },
-        ]),
-      ],
+      [flightWithSeats([guestSeat('Guest Passenger')])],
       'personal',
     );
 
@@ -148,15 +110,7 @@ describe('validateFlightImportPermissions', () => {
   });
 
   it('reserves restore mode for admins and owners', () => {
-    const flight = flightWithSeats([
-      {
-        userId: 'other-user',
-        guestName: null,
-        seat: null,
-        seatNumber: null,
-        seatClass: null,
-      },
-    ]);
+    const flight = flightWithSeats([userSeat('other-user')]);
 
     expect(validateFlightImportPermissions(user, [flight], 'restore')).toBe(
       'Only admins and owners can restore flights for other users',

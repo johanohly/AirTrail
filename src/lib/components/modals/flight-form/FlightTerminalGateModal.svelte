@@ -19,6 +19,23 @@
 
   let open = $state(false);
 
+  const sections = [
+    {
+      label: 'Departure',
+      terminal: 'departureTerminal',
+      gate: 'departureGate',
+      termPlaceholder: 'e.g. 2E',
+      gatePlaceholder: 'e.g. A12',
+    },
+    {
+      label: 'Arrival',
+      terminal: 'arrivalTerminal',
+      gate: 'arrivalGate',
+      termPlaceholder: 'e.g. 1',
+      gatePlaceholder: 'e.g. B7',
+    },
+  ] as const;
+
   const hasData = $derived(
     !!$formData.departureTerminal ||
       !!$formData.departureGate ||
@@ -47,7 +64,7 @@
   </ModalHeader>
   <ModalBody>
     <div class="grid gap-3">
-      {#each [{ label: 'Departure', terminal: 'departureTerminal', gate: 'departureGate', termPlaceholder: 'e.g. 2E', gatePlaceholder: 'e.g. A12' }, { label: 'Arrival', terminal: 'arrivalTerminal', gate: 'arrivalGate', termPlaceholder: 'e.g. 1', gatePlaceholder: 'e.g. B7' }] as section (section.label)}
+      {#each sections as section (section.label)}
         <fieldset class="rounded-lg border px-3 pb-3 pt-2">
           <legend
             class="px-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground"

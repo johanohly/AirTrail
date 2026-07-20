@@ -8,6 +8,7 @@
   import type { PageUser } from '$lib/db/types';
   import { appConfig } from '$lib/state.svelte';
   import { api } from '$lib/trpc';
+  import { getErrorText } from '$lib/utils/error';
 
   let { user }: { user: PageUser | null } = $props();
 
@@ -21,7 +22,7 @@
       const resp = await api.oauth.authorize.mutate(redirect);
       window.location.href = resp.url;
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrorText(err));
     } finally {
       loading = false;
     }
@@ -34,7 +35,7 @@
       await invalidateAll();
       toast.info('OAuth unlinked successfully.');
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrorText(err));
     } finally {
       loading = false;
     }

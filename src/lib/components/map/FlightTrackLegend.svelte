@@ -18,7 +18,7 @@
 
   const mobile = new MediaQuery('(max-width: 767px)');
   const labelAltitudes = [0, 10_000, 20_000, 30_000, 40_000, 51_000];
-  const cssColor = (color: readonly number[]) =>
+  const cssColor = (color: ArrayLike<number>) =>
     `rgb(${color[0]} ${color[1]} ${color[2]})`;
   const darkMode = $derived(mode.current === 'dark');
   const colorAt = (altitudeFeet: number | null, ground = false) =>

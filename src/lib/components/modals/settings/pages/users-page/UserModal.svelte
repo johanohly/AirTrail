@@ -15,7 +15,7 @@
   } from '$lib/components/ui/modal';
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import { HelpTooltip } from '$lib/components/ui/tooltip/index.js';
-  import type { User as UserType } from '$lib/db/types';
+  import type { PublicUser } from '$lib/db/types';
   import { addUserSchema, adminEditUserSchema } from '$lib/zod/user';
 
   type Mode = 'add' | 'edit';
@@ -29,7 +29,7 @@
   }: {
     open: boolean;
     mode?: Mode;
-    user?: UserType;
+    user?: PublicUser;
     initialDisplayName?: string;
     onSuccess?: (username: string) => void;
   } = $props();

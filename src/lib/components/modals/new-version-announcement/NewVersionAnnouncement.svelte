@@ -27,6 +27,9 @@
     versionState.dismissedVersion = versionState.latestVersion;
     open = false;
   };
+
+  // svelte-markdown 0.4 still declares Svelte 4 component constructors.
+  const markdownRenderers = { link: NewTabLink as any };
 </script>
 
 {#if versionState.newReleases.length > 0}
@@ -41,7 +44,7 @@
           {#if versionState.newReleases.length === 1}
             <div class="flex items-center gap-2">
               New version available!
-              <Badge>{versionState.newReleases[0].name}</Badge>
+              <Badge>{versionState.newReleases[0]?.name}</Badge>
             </div>
           {:else}
             <div>
@@ -65,7 +68,7 @@
             </h3>
             <SvelteMarkdown
               source={changelog.body}
-              renderers={{ link: NewTabLink }}
+              renderers={markdownRenderers}
             />
           </div>
         {/each}

@@ -206,7 +206,9 @@ export const fromFlightTrackSamples = (
 
   for (const key of flightTrackAlignedPropertyKeys) {
     const definition = flightTrackAlignedPropertyDefinitions[key];
-    const values = collectSampleProperty(samples, definition.get);
+    const values = collectSampleProperty(samples, (sample) =>
+      definition.get(sample),
+    );
     if (values !== undefined) {
       Object.assign(properties, { [key]: values });
     }

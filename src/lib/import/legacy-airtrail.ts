@@ -171,19 +171,13 @@ export const processLegacyAirTrailFile = async (
     const flightIndex = flights.length;
 
     if (!from) {
-      if (!unknownAirports[rawFlight.from.code])
-        unknownAirports[rawFlight.from.code] = [];
-      unknownAirports[rawFlight.from.code].push(flightIndex);
+      (unknownAirports[rawFlight.from.code] ??= []).push(flightIndex);
     }
     if (!to) {
-      if (!unknownAirports[rawFlight.to.code])
-        unknownAirports[rawFlight.to.code] = [];
-      unknownAirports[rawFlight.to.code].push(flightIndex);
+      (unknownAirports[rawFlight.to.code] ??= []).push(flightIndex);
     }
     if (!airline && rawFlight.airline) {
-      if (!unknownAirlines[rawFlight.airline])
-        unknownAirlines[rawFlight.airline] = [];
-      unknownAirlines[rawFlight.airline].push(flightIndex);
+      (unknownAirlines[rawFlight.airline] ??= []).push(flightIndex);
     }
 
     flights.push({

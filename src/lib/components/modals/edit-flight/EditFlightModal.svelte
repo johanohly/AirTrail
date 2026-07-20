@@ -197,6 +197,9 @@
       ...passenger,
       customFields: {},
     })),
+    from: flight.from ?? undefined,
+    to: flight.to ?? undefined,
+    customFields: {},
     departure: isPartialDate
       ? toFormDateAnchor(flight.raw.date)
       : (dep.date ?? toFormDateAnchor(flight.raw.date)),

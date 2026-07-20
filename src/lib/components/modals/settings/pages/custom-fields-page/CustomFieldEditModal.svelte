@@ -86,9 +86,13 @@
   };
 
   const invalidate = () => {
-    // No input: also refreshes the flight/passenger form queries,
-    // which fetch without `includeInactive`.
-    trpc.customField.listDefinitions.utils.invalidate();
+    for (const entityType of ['flight', 'flight_passenger'] as const) {
+      void trpc.customField.listDefinitions.utils.invalidate({ entityType });
+      void trpc.customField.listDefinitions.utils.invalidate({
+        entityType,
+        includeInactive: true,
+      });
+    }
   };
 
   const save = async () => {
@@ -330,7 +334,9 @@
                 : []}
               description={editing.description}
               value={getPreviewValue(editing)}
-              onchange={(val) => setPreviewValue(editing, val)}
+              onchange={(val) => {
+                if (editing) setPreviewValue(editing, val);
+              }}
             />
           </div>
         </div>

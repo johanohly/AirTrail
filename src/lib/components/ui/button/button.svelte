@@ -65,7 +65,7 @@
 
   let ripples: { id: number; diameter: number; left: string; top: string }[] =
     $state([]);
-  const createRipple = (e) => {
+  const createRipple = (event: MouseEvent) => {
     if (!ref) return;
     if (ripples.length > 0) {
       const prev = ripples.length;
@@ -75,8 +75,8 @@
     }
     const diameter = Math.max(ref.clientWidth, ref.clientHeight);
     const radius = diameter / 2;
-    const left = `${e.offsetX - radius}px`;
-    const top = `${e.offsetY - radius}px`;
+    const left = `${event.offsetX - radius}px`;
+    const top = `${event.offsetY - radius}px`;
     const id = ripples.length + 1;
     const newRipple = {
       id,
@@ -91,7 +91,7 @@
 {#if href}
   <a
     bind:this={ref}
-    class={cn(buttonVariants({ variant, size, className }))}
+    class={cn(buttonVariants({ variant, size }), className)}
     {href}
     {...restProps}
   >
@@ -102,11 +102,8 @@
     bind:this={ref}
     onclick={createRipple}
     class={cn(
-      buttonVariants({
-        variant: loading ? 'outline' : variant,
-        size,
-        className,
-      }),
+      buttonVariants({ variant: loading ? 'outline' : variant, size }),
+      className,
     )}
     {type}
     {...restProps}

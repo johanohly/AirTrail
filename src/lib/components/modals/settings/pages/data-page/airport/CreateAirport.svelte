@@ -14,7 +14,6 @@
     ModalBreadcrumbHeader,
     ModalFooter,
   } from '$lib/components/ui/modal';
-  import type { Airport } from '$lib/db/types';
   import {
     airportSearchCache,
     clearAirportLookupCaches,
@@ -27,7 +26,7 @@
     withoutTrigger = false,
   }: {
     open?: boolean;
-    onAirportCreate?: (airport: Airport) => Promise<void>;
+    onAirportCreate?: () => Promise<void>;
     withoutTrigger?: boolean;
   } = $props();
 
@@ -44,7 +43,7 @@
             open = false;
             airportSearchCache.clear();
             clearAirportLookupCaches();
-            onAirportCreate?.({ ...form.data, custom: true });
+            onAirportCreate?.();
             return void toast.success(form.message.text);
           }
           toast.error(form.message.text);

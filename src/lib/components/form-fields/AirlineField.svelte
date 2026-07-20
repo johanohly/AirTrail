@@ -8,6 +8,7 @@
 
   import CreateAirline from '$lib/components/modals/settings/pages/data-page/airline/CreateAirline.svelte';
   import * as Form from '$lib/components/ui/form';
+  import type { Airline } from '$lib/db/types';
   import type { flightSchema } from '$lib/zod/flight';
 
   let {
@@ -18,6 +19,17 @@
   const { form: formData } = form;
 
   const isAdmin = $derived(page.data.user?.role !== 'user');
+  const pickerValue = $derived.by((): Airline | null => {
+    const airline = $formData.airline;
+    if (!airline || airline.id === null) return null;
+
+    return {
+      ...airline,
+      id: airline.id,
+      iconPath: airline.iconPath ?? null,
+      sourceId: airline.sourceId ?? null,
+    };
+  });
 
   let createAirline = $state(false);
 </script>
@@ -27,8 +39,9 @@
     {#snippet children({ props })}
       <Form.Label>Airline</Form.Label>
       <AirlinePicker
-        bind:value={$formData.airline}
+        value={pickerValue}
         placeholder="Select airline"
+        onchange={(airline) => ($formData.airline = airline)}
         onCreateNew={isAdmin ? () => (createAirline = true) : undefined}
       />
       <input hidden bind:value={$formData.airline} name={props.name} />

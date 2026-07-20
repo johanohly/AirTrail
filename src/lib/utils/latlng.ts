@@ -1,4 +1,4 @@
-import type { Airport } from '$lib/utils/data/airports';
+import type { Airport } from '$lib/db/types';
 
 const toWrappedLongitude = (longitude: number) => {
   return ((longitude % 360) + 360) % 360;

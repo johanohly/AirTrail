@@ -2,7 +2,6 @@
   import autoAnimate from '@formkit/auto-animate';
   import { createCombobox, melt } from '@melt-ui/svelte';
   import { CircleX, ChevronsUpDown } from '@o7/icon/lucide';
-  import { writable } from 'svelte/store';
   import { fly } from 'svelte/transition';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
@@ -23,21 +22,19 @@
   } = $props();
   const { form: formData } = form;
 
-  const selected = writable(
-    $formData.aircraft
-      ? {
-          label: $formData.aircraft?.name || 'Unknown Aircraft',
-          value: $formData.aircraft.id,
-        }
-      : undefined,
-  );
+  type FormAircraft = NonNullable<z.infer<typeof flightSchema>['aircraft']>;
 
   const {
     elements: { menu, input, option },
-    states: { open, inputValue, touchedInput },
-  } = createCombobox<Aircraft>({
+    states: { open, inputValue, touchedInput, selected },
+  } = createCombobox<FormAircraft>({
     forceVisible: true,
-    selected,
+    defaultSelected: $formData.aircraft
+      ? {
+          label: $formData.aircraft.name || 'Unknown Aircraft',
+          value: $formData.aircraft,
+        }
+      : undefined,
     onSelectedChange: ({ next }) => {
       if (next?.value) {
         $formData.aircraft = next.value;
@@ -51,7 +48,7 @@
   // If the field is updated externally, update the selected value
   formData.subscribe(() => {
     if (
-      $formData.aircraft === $selected?.value ||
+      $formData.aircraft?.id === $selected?.value.id ||
       (!$formData.aircraft && !$selected?.value)
     ) {
       return;
@@ -61,7 +58,7 @@
       $formData.aircraft
         ? {
             label: $formData.aircraft?.name || 'Unknown Aircraft',
-            value: $formData.aircraft.id,
+            value: $formData.aircraft,
           }
         : undefined,
     );
@@ -145,7 +142,6 @@
             transition:fly={{ duration: 200, x: 20 }}
             type="button"
             onclick={() => {
-              // @ts-expect-error - This is totally fine
               $selected = undefined;
               $formData.aircraft = null;
               $inputValue = '';

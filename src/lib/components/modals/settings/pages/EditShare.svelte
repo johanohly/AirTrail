@@ -21,13 +21,13 @@
   interface Share {
     id: number;
     slug: string;
-    expiresAt?: Date;
+    expiresAt: Date | null;
     createdAt: Date;
     showMap: boolean;
     showStats: boolean;
     showFlightList: boolean;
-    dateFrom?: string;
-    dateTo?: string;
+    dateFrom: string | null;
+    dateTo: string | null;
     showFlightNumbers: boolean;
     showAirlines: boolean;
     showAircraft: boolean;

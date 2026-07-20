@@ -208,21 +208,21 @@ const OPENAIP_PATTERN_IMAGE_DEFINITIONS: Record<
 };
 
 const getSvgDimensions = (svg: string) => {
-  const widthMatch = svg.match(/width="([0-9.]+)px"/i);
-  const heightMatch = svg.match(/height="([0-9.]+)px"/i);
+  const width = svg.match(/width="([0-9.]+)px"/i)?.[1];
+  const height = svg.match(/height="([0-9.]+)px"/i)?.[1];
 
-  if (!widthMatch || !heightMatch) {
+  if (!width || !height) {
     throw new Error('Unable to parse SVG dimensions');
   }
 
   return {
-    width: Number.parseFloat(widthMatch[1]),
-    height: Number.parseFloat(heightMatch[1]),
+    width: Number.parseFloat(width),
+    height: Number.parseFloat(height),
   };
 };
 
-const createOpenAipSvgDefinitions = (
-  imageIds: readonly string[],
+const createOpenAipSvgDefinitions = <const ImageIds extends readonly string[]>(
+  imageIds: ImageIds,
   svgDirectory: string,
 ) =>
   Object.fromEntries(
@@ -235,7 +235,7 @@ const createOpenAipSvgDefinitions = (
 
       return [id, { svg, ...getSvgDimensions(svg) }];
     }),
-  ) as Record<string, OpenAipPatternImageDefinition>;
+  ) as Record<ImageIds[number], OpenAipPatternImageDefinition>;
 
 const OPENAIP_SYMBOL_IMAGE_DEFINITIONS = createOpenAipSvgDefinitions(
   OPENAIP_SYMBOL_IMAGE_IDS,
@@ -305,9 +305,9 @@ const createOpenAipSvgStyleImage = (
               continue;
             }
 
-            imageData.data[index] = 255 - imageData.data[index];
-            imageData.data[index + 1] = 255 - imageData.data[index + 1];
-            imageData.data[index + 2] = 255 - imageData.data[index + 2];
+            imageData.data[index] = 255 - imageData.data[index]!;
+            imageData.data[index + 1] = 255 - imageData.data[index + 1]!;
+            imageData.data[index + 2] = 255 - imageData.data[index + 2]!;
           }
         }
 
@@ -464,8 +464,20 @@ const otherClasses = (
   ['match', ['get', 'icao_class'], classes, true, false],
 ];
 
-const zoomOpacity = (z0: number, o0: number, z1: number, o1: number) =>
-  ['interpolate', ['linear'], ['zoom'], z0, o0, z1, o1] as const;
+const zoomOpacity = (
+  z0: number,
+  o0: number,
+  z1: number,
+  o1: number,
+): maplibregl.ExpressionSpecification => [
+  'interpolate',
+  ['linear'],
+  ['zoom'],
+  z0,
+  o0,
+  z1,
+  o1,
+];
 
 const zoomWidth = (
   ...stops: Array<number>
@@ -488,9 +500,15 @@ const patternFor = (
   `diagonal_lines_${color}-6`,
 ];
 
-const zoomStep = (...stops: unknown[]): maplibregl.ExpressionSpecification => [
+type ZoomStepValue = string | number | maplibregl.ExpressionSpecification;
+
+const zoomStep = (
+  initialValue: ZoomStepValue,
+  ...stops: Array<number | ZoomStepValue>
+): maplibregl.ExpressionSpecification => [
   'step',
   ['zoom'],
+  initialValue,
   ...stops,
 ];
 
@@ -1879,7 +1897,9 @@ export const getOpenAipOverlayLayers = (
               'icon-image': themeOpenAipIconImage(
                 layer.layout['icon-image'],
                 theme,
-              ) as maplibregl.SymbolLayerSpecification['layout']['icon-image'],
+              ) as NonNullable<
+                maplibregl.SymbolLayerSpecification['layout']
+              >['icon-image'],
             }
           : layer.layout,
         paint:

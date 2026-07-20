@@ -30,8 +30,7 @@
     }
   };
 
-  const onCreate = async (airport: Airport) => {
-    airports.push(airport);
+  const onCreate = async () => {
     await fetchAirports();
   };
 

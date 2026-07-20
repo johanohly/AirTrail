@@ -16,5 +16,6 @@
     "noUncheckedIndexedAccess": true,
     "moduleResolution": "bundler",
     "noFallthroughCasesInSwitch": true
-  }
+  },
+  "exclude": ["tests/e2e/**"]
 }

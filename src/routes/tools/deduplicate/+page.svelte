@@ -52,9 +52,12 @@
             'aria-label': 'Select row',
           }),
       },
-      { accessorFn: (row) => row.from.iata ?? row.from.code, header: 'Origin' },
       {
-        accessorFn: (row) => row.to.iata ?? row.to.code,
+        accessorFn: (row) => row.from?.iata ?? row.from?.icao ?? '',
+        header: 'Origin',
+      },
+      {
+        accessorFn: (row) => row.to?.iata ?? row.to?.icao ?? '',
         header: 'Destination',
       },
       {
@@ -72,7 +75,9 @@
               side: 'top',
             });
           }
-          return formatFlightDate(f.date, f.datePrecision ?? 'day', prefs);
+          return f.date
+            ? formatFlightDate(f.date, f.datePrecision ?? 'day', prefs)
+            : '';
         },
       },
       {

@@ -1,8 +1,15 @@
-<script lang="ts" generics="T extends Record<string, unknown>">
+<script
+  lang="ts"
+  generics="T extends Record<string, unknown>, StartName extends FormPathLeaves<T, string | null | undefined>, EndName extends FormPathLeaves<T, string | null | undefined>"
+>
   import { type DateValue, parseDate } from '@internationalized/date';
   import { CalendarDays, ChevronLeft, ChevronRight, X } from '@o7/icon/lucide';
   import { DateRangePicker } from 'bits-ui';
-  import type { SuperForm } from 'sveltekit-superforms';
+  import {
+    formFieldProxy,
+    type FormPathLeaves,
+    type SuperForm,
+  } from 'sveltekit-superforms';
 
   import * as Form from '$lib/components/ui/form';
   import * as Calendar from '$lib/components/ui/calendar';
@@ -20,16 +27,26 @@
     required = false,
   }: {
     form: SuperForm<T>;
-    startName: string;
-    endName: string;
+    startName: StartName;
+    endName: EndName;
     label: string;
     required?: boolean;
   } = $props();
 
-  const { form: formData, validate } = form;
+  const { value: startValue } = formFieldProxy<
+    T,
+    StartName,
+    string | null | undefined
+  >(form, startName);
+  const { value: endValue } = formFieldProxy<
+    T,
+    EndName,
+    string | null | undefined
+  >(form, endName);
 
   const minValue = parseDate('1970-01-01');
   const locale = navigator.language;
+  const rangeInputTypes = ['start', 'end'] as const;
 
   const modalCtx = getModalContext();
   const contentStyle = $derived.by(() => {
@@ -40,8 +57,8 @@
   // Convert string dates to DateValue for the component
   let dateRange: { start: DateValue | undefined; end: DateValue | undefined } =
     $state({
-      start: $formData[startName] ? parseDate($formData[startName]) : undefined,
-      end: $formData[endName] ? parseDate($formData[endName]) : undefined,
+      start: $startValue ? parseDate($startValue) : undefined,
+      end: $endValue ? parseDate($endValue) : undefined,
     });
 
   // Handle date range changes from the DateRangePicker
@@ -51,18 +68,17 @@
       | undefined,
   ) {
     if (!value) {
-      // Clear both dates
-      $formData[startName] = '';
-      $formData[endName] = '';
+      dateRange = { start: undefined, end: undefined };
+      $startValue = '';
+      $endValue = '';
     } else {
-      // Update form data with new values
-      $formData[startName] = value.start ? value.start.toString() : '';
-      $formData[endName] = value.end ? value.end.toString() : '';
+      dateRange = value;
+      $startValue = value.start?.toString() ?? '';
+      $endValue = value.end?.toString() ?? '';
     }
 
-    // Validate both fields
-    validate(startName);
-    validate(endName);
+    void form.validate(startName);
+    void form.validate(endName);
   }
 
   let placeholder: DateValue | undefined = $state(undefined);
@@ -130,7 +146,7 @@
       'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
     )}
   >
-    {#each ['start', 'end'] as type (type)}
+    {#each rangeInputTypes as type (type)}
       <DateRangePicker.Input {type}>
         {#snippet children({ segments })}
           {#each segments as { part, value }, i (part + i)}
@@ -158,13 +174,11 @@
         <div aria-hidden="true" class="text-muted-foreground px-1">–</div>
       {/if}
     {/each}
-    {#if $formData[startName] || $formData[endName]}
+    {#if $startValue || $endValue}
       <button
         type="button"
         onclick={() => {
-          $formData[startName] = '';
-          $formData[endName] = '';
-          dateRange = { start: undefined, end: undefined };
+          handleValueChange(undefined);
         }}
         class="text-foreground/60 hover:bg-muted active:bg-dark-10 ml-auto inline-flex size-7 items-center justify-center rounded-md transition-all"
       >
@@ -315,5 +329,5 @@
 </DateRangePicker.Root>
 
 <!-- Hidden form inputs for form submission -->
-<input type="hidden" name={startName} bind:value={$formData[startName]} />
-<input type="hidden" name={endName} bind:value={$formData[endName]} />
+<input type="hidden" name={startName} value={$startValue ?? ''} />
+<input type="hidden" name={endName} value={$endValue ?? ''} />
