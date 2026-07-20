@@ -36,8 +36,8 @@
 <Toaster />
 <ConfirmWrapper />
 
-{#if !dev && data.user && data.user.role !== 'user'}
-  <NewVersionAnnouncement />
+{#if data.user && data.user.role !== 'user'}
+  <NewVersionAnnouncement previewReleaseTag={dev ? 'v3.11.1' : undefined} />
 {/if}
 
 {#if queryClient}

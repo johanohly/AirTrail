@@ -1,7 +1,5 @@
 <script lang="ts">
-  import SvelteMarkdown from 'svelte-markdown';
-
-  import NewTabLink from './NewTabLink.svelte';
+  import ReleaseNotes from './ReleaseNotes.svelte';
 
   import * as Dialog from '$lib/components/ui/alert-dialog';
   import { Badge } from '$lib/components/ui/badge';
@@ -9,17 +7,42 @@
   import { versionState } from '$lib/state.svelte';
   import { checkForNewVersions } from '$lib/utils/version';
 
+  let { previewReleaseTag }: { previewReleaseTag?: string } = $props();
   let open = $state(false);
 
+  const loadPreviewRelease = async (tag: string) => {
+    const response = await fetch(
+      `https://api.github.com/repos/johanohly/AirTrail/releases/tags/${tag}`,
+    );
+
+    if (!response.ok) return false;
+
+    const release: { tag_name: string; body: string } = await response.json();
+    versionState.newReleases = [{ name: release.tag_name, body: release.body }];
+    versionState.latestVersion = release.tag_name.replace(/^v/, '');
+    return true;
+  };
+
   $effect(() => {
-    checkForNewVersions().then(() => {
-      if (versionState.newReleases.length > 0) {
-        open = true;
+    const releaseTag = previewReleaseTag;
+
+    void (async () => {
+      if (releaseTag) {
+        open = await loadPreviewRelease(releaseTag);
+        return;
       }
-    });
+
+      await checkForNewVersions();
+      open = versionState.newReleases.length > 0;
+    })();
   });
 
   const dismissVersion = () => {
+    if (previewReleaseTag) {
+      open = false;
+      return;
+    }
+
     if (!versionState.latestVersion) return;
 
     // Store the latest version as dismissed
@@ -27,9 +50,6 @@
     versionState.dismissedVersion = versionState.latestVersion;
     open = false;
   };
-
-  // svelte-markdown 0.4 still declares Svelte 4 component constructors.
-  const markdownRenderers = { link: NewTabLink as any };
 </script>
 
 {#if versionState.newReleases.length > 0}
@@ -66,10 +86,7 @@
             <h3 class="text-lg font-semibold mb-2 flex items-center gap-2">
               Version {changelog.name}
             </h3>
-            <SvelteMarkdown
-              source={changelog.body}
-              renderers={markdownRenderers}
-            />
+            <ReleaseNotes source={changelog.body} />
           </div>
         {/each}
       </div>
