@@ -5,17 +5,67 @@ import { defineConfig } from 'vite';
 import { VitePWA, type VitePWAOptions } from 'vite-plugin-pwa';
 
 const pwaOptions = {
-  injectRegister: 'auto',
+  // SvelteKit doesn't run vite-plugin-pwa's HTML injection, so the service
+  // worker is registered manually in src/routes/+layout.svelte.
+  injectRegister: null,
   workbox: {
     maximumFileSizeToCacheInBytes: 3000000,
+    // SvelteKit doesn't serve the separate workbox-*.js runtime chunk (it
+    // 404s), which silently leaves the service worker inert. Inline it instead.
+    inlineWorkboxRuntime: true,
+    // adapter-node has no index.html, so the default `navigateFallback:
+    // 'index.html'` makes Workbox throw and disables every route below.
+    // Navigations are served by the Node server, not the service worker.
+    navigateFallback: null,
+    // Cache map tiles/styles as the user browses, so repeat views load from
+    // cache instead of re-fetching them from external providers.
+    runtimeCaching: [
+      {
+        // Carto basemap: style.json, sprite, glyphs, vector + raster tiles.
+        urlPattern: /^https:\/\/[^/]*\.?cartocdn\.com\/.*/i,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'carto-basemap',
+          expiration: {
+            maxEntries: 3000,
+            maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+          },
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
+      {
+        // ArcGIS World Imagery tiles (satellite basemap).
+        urlPattern: /^https:\/\/services\.arcgisonline\.com\/.*/i,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'arcgis-satellite',
+          expiration: {
+            maxEntries: 2000,
+            maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+          },
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
+      {
+        // Same-origin map-style route + OpenAIP tile proxy.
+        urlPattern: /\/api\/map-styles\//,
+        handler: 'StaleWhileRevalidate',
+        options: {
+          cacheName: 'map-styles',
+          expiration: {
+            maxEntries: 500,
+            maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
+          },
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
+    ],
   },
   registerType: 'autoUpdate',
   includeAssets: [
     'favicon.png',
     'favicon.svg',
     'apple-touch-icon.png',
-    'airport-overlay.pmtiles',
-    'countries.pmtiles',
     'countries-bounds.json',
   ],
   manifest: {
