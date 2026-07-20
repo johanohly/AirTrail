@@ -15,12 +15,16 @@
     definitions = [],
     values = $bindable<Record<number, unknown>>(),
     savedFieldIds,
+    idPrefix = 'pcf',
+    loading = false,
   }: {
     definitions?: CustomFieldDefinition[];
     values?: Record<number, unknown>;
     /** Field IDs that have values saved in the database. When provided,
      *  fields with defaults that aren't in this set are flagged as unsaved. */
     savedFieldIds?: Set<number>;
+    idPrefix?: string;
+    loading?: boolean;
   } = $props();
 
   let open = $state(false);
@@ -101,6 +105,7 @@
           ? 'text-destructive'
           : 'text-muted-foreground hover:text-foreground',
       )}
+      disabled={loading}
       onclick={() => (open = !open)}
     >
       <ChevronRight
@@ -108,7 +113,9 @@
         class={cn('shrink-0 transition-transform', open && 'rotate-90')}
       />
       <span>
-        Custom fields{setCount > 0 ? ` · ${setCount} set` : ''}
+        {loading
+          ? 'Loading custom fields...'
+          : `Custom fields${setCount > 0 ? ` · ${setCount} set` : ''}`}
       </span>
       {#if errorCount > 0}
         <span>· {errorCount} {errorCount === 1 ? 'issue' : 'issues'}</span>
@@ -118,7 +125,7 @@
         </span>
       {/if}
     </button>
-    {#if open}
+    {#if open && !loading}
       <div class="grid gap-3 pt-2">
         {#if hasUnsavedDefaults}
           <p class="text-xs text-amber-600 dark:text-amber-400">
@@ -128,7 +135,7 @@
         {/if}
         {#each definitions as field (field.id)}
           <CustomFieldInput
-            id="pcf-{field.id}"
+            id="{idPrefix}-{field.id}"
             label={field.label}
             description={field.description ?? ''}
             fieldType={field.fieldType}

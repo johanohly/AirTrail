@@ -194,6 +194,10 @@ export const createFlightPrimitiveWithConnection = async (
   db: Kysely<DB>,
   data: CreateFlight,
 ) => {
+  if (!data.passengers.length) {
+    throw new Error('Flight must have at least one passenger');
+  }
+
   const { passengers, from, to, aircraft, airline, track, ...flightData } =
     data;
   const fromId = from?.id ?? null;
@@ -376,6 +380,10 @@ export const createManyFlightsPrimitive = async (
   db: Kysely<DB>,
   data: CreateFlight[],
 ) => {
+  if (data.some((flight) => !flight.passengers.length)) {
+    throw new Error('Every flight must have at least one passenger');
+  }
+
   await db.transaction().execute(async (trx) => {
     const flights = await trx
       .insertInto('flight')

@@ -494,6 +494,10 @@ const signature = (f: CreateFlight) => {
   ].join('|');
 };
 
+/**
+ * Save flights produced by an importer. AirTrail backup custom fields are
+ * export-only metadata and are intentionally not restored here.
+ */
 export const createManyFlights = async (
   data: CreateFlight[],
   userId: string,

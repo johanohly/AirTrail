@@ -57,6 +57,21 @@ describe('validateCustomFieldValue', () => {
       ),
     ).toBe('Must be at least 2');
   });
+
+  it('accepts only real YYYY-MM-DD dates', () => {
+    const field = definition({ fieldType: 'date' });
+
+    expect(validateCustomFieldValue(field, '2024-02-29')).toBeNull();
+    expect(validateCustomFieldValue(field, 'not-a-date')).toBe(
+      'Must be a date',
+    );
+    expect(validateCustomFieldValue(field, '2023-02-29')).toBe(
+      'Must be a date',
+    );
+    expect(validateCustomFieldValue(field, '2024-13-01')).toBe(
+      'Must be a date',
+    );
+  });
 });
 
 describe('validateCustomFieldDefinition', () => {

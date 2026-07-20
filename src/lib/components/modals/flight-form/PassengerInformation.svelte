@@ -23,10 +23,12 @@
     form,
     customFieldDefinitions = [],
     savedFieldIds = {},
+    customFieldsLoading = false,
   }: {
     form: SuperForm<z.infer<typeof flightSchema>>;
     customFieldDefinitions?: CustomFieldDefinition[];
     savedFieldIds?: Record<number, Set<number>>;
+    customFieldsLoading?: boolean;
   } = $props();
   const { form: formData, errors } = form;
   let customFieldSections = $state<
@@ -251,6 +253,9 @@
                 bind:this={customFieldSections[index]}
                 definitions={customFieldDefinitions}
                 bind:values={$formData.passengers[index].customFields}
+                idPrefix="pcf-passenger-{$formData.passengers[index].id ??
+                  `new-${index}`}"
+                loading={customFieldsLoading}
                 savedFieldIds={$formData.passengers[index].id
                   ? savedFieldIds[$formData.passengers[index].id]
                   : undefined}

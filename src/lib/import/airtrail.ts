@@ -64,6 +64,8 @@ const normalizePassengerProperty = (value: unknown) => {
   return { ...rest, passengers };
 };
 
+// Custom-field values in AirTrail backups are reference-only. Flight values
+// are omitted here, and passenger values are discarded during user mapping.
 const airTrailFlightSchema = z.preprocess(
   normalizePassengerProperty,
   z
@@ -258,7 +260,9 @@ export const processAirTrailFile = async (
   for (const rawFlight of rawFlights) {
     const flightIndex = flights.length;
 
-    const passengers = rawFlight.passengers.map((passenger) => {
+    const passengers = rawFlight.passengers.map((rawPassenger) => {
+      const { customFields: _exportOnlyCustomFields, ...passenger } =
+        rawPassenger;
       const dataUser = dataUsers?.[passenger.userId ?? ''];
       const mappedUserId = dataUser ? getMappedUserId(dataUser.id) : null;
       const user = mappedUserId
@@ -282,6 +286,7 @@ export const processAirTrailFile = async (
         ...passenger,
         userId: user?.id ?? null,
         guestName,
+        customFields: {},
       };
     });
 

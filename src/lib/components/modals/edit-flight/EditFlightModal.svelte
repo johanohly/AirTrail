@@ -58,6 +58,7 @@
   let customFieldsModal = $state<ReturnType<typeof FlightCustomFieldsModal>>();
   let flightForm = $state<ReturnType<typeof FlightForm>>();
   let passengerSavedFieldIds = $state<Record<number, Set<number>>>({});
+  let passengerCustomFieldsLoading = $state(false);
 
   const toCustomFieldsPayload = (): Record<string, unknown> => {
     const defs = $customFieldDefinitions.data ?? [];
@@ -77,12 +78,16 @@
   $effect(() => {
     if (!open) return;
 
+    let cancelled = false;
+    passengerCustomFieldsLoading = true;
+
     (async () => {
       try {
         const values = await api.customField.getEntityValues.query({
           entityType: 'flight',
           entityId: String(flight.id),
         });
+        if (cancelled) return;
         customFieldValues = Object.fromEntries(
           values.map((v) => [v.fieldId, v.value]),
         );
@@ -96,6 +101,7 @@
             }),
           })),
         );
+        if (cancelled) return;
         const valuesByPassenger = new Map(
           passengerValues.map(({ id, values }) => [id, values]),
         );
@@ -118,14 +124,22 @@
           })),
         }));
         const track = await api.flightTrack.get.query(flight.id);
+        if (cancelled) return;
         formData.update((current) => ({
           ...current,
           track: track ? toFlightTrackInput(track) : undefined,
         }));
       } catch (e) {
         console.error(e);
+      } finally {
+        if (!cancelled) passengerCustomFieldsLoading = false;
       }
     })();
+
+    return () => {
+      cancelled = true;
+      passengerCustomFieldsLoading = false;
+    };
   });
 
   const fromTz = flight.from?.tz ?? 'UTC';
@@ -264,6 +278,7 @@
       passengerCustomFieldDefinitions={$passengerCustomFieldDefinitions.data ??
         []}
       {passengerSavedFieldIds}
+      {passengerCustomFieldsLoading}
     />
     <ModalFooter>
       <div class="flex w-full items-center justify-between">

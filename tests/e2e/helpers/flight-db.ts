@@ -9,7 +9,7 @@ import { db } from '@test/db';
 export const latestFlightFor = (userId: string, fromId: number, toId: number) =>
   db
     .selectFrom('flight')
-    .innerJoin('seat', 'seat.flightId', 'flight.id')
+    .innerJoin('flightPassenger', 'flightPassenger.flightId', 'flight.id')
     .select([
       'flight.id',
       'date',
@@ -18,7 +18,7 @@ export const latestFlightFor = (userId: string, fromId: number, toId: number) =>
       'datePrecision',
       'duration',
     ])
-    .where('seat.userId', '=', userId)
+    .where('flightPassenger.userId', '=', userId)
     .where('flight.fromId', '=', fromId)
     .where('flight.toId', '=', toId)
     .orderBy('flight.id', 'desc')

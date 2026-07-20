@@ -17,10 +17,12 @@
     form,
     passengerCustomFieldDefinitions = [],
     passengerSavedFieldIds = {},
+    passengerCustomFieldsLoading = false,
   }: {
     form: SuperForm<FlightFormData>;
     passengerCustomFieldDefinitions?: CustomFieldDefinition[];
     passengerSavedFieldIds?: Record<number, Set<number>>;
+    passengerCustomFieldsLoading?: boolean;
   } = $props();
   let passengerInformation = $state<ReturnType<typeof PassengerInformation>>();
 
@@ -329,6 +331,7 @@
           {form}
           customFieldDefinitions={passengerCustomFieldDefinitions}
           savedFieldIds={passengerSavedFieldIds}
+          customFieldsLoading={passengerCustomFieldsLoading}
         />
       </div>
     </div>
