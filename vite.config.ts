@@ -47,7 +47,27 @@ const pwaOptions = {
         },
       },
       {
-        // Same-origin map-style route + OpenAIP tile proxy.
+        // OpenAIP overlay vector tiles (airspaces, airports, navaids,
+        // reporting points) proxied same-origin. CacheFirst so repeat
+        // views skip the network and the OpenAIP API-key quota. Must come
+        // before the generic /api/map-styles/ rule below (first match wins).
+        urlPattern: /\/api\/map-styles\/openaip\/tiles\//,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'openaip-tiles',
+          expiration: {
+            maxEntries: 3000,
+            maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+          },
+          cacheableResponse: { statuses: [0, 200] },
+          // The proxy sets `Vary: cookie, authorization` for auth
+          // correctness, but a tile is identical for every user, so
+          // ignore Vary to guarantee cache hits across cookie changes.
+          matchOptions: { ignoreVary: true },
+        },
+      },
+      {
+        // Same-origin map-style route (map-style JSON).
         urlPattern: /\/api\/map-styles\//,
         handler: 'StaleWhileRevalidate',
         options: {
