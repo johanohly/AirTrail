@@ -4,7 +4,6 @@
   import { ModeWatcher } from 'mode-watcher';
   import { Toaster } from 'svelte-sonner';
 
-  import { dev } from '$app/environment';
   import { page } from '$app/state';
   import { NavigationDock } from '$lib/components';
   import { TimeDisplayHost } from '$lib/components/display';
@@ -37,7 +36,7 @@
 <ConfirmWrapper />
 
 {#if data.user && data.user.role !== 'user'}
-  <NewVersionAnnouncement previewReleaseTag={dev ? 'v3.11.1' : undefined} />
+  <NewVersionAnnouncement />
 {/if}
 
 {#if queryClient}

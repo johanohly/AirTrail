@@ -32,7 +32,14 @@
     );
   };
 
-  let normalizedSource = $derived(compactCompareLinks(source));
+  // GitHub's auto-generated notes always open with this heading; the modal
+  // title already says what the content is
+  const stripWhatsChangedHeading = (markdown: string) =>
+    markdown.replace(/^\s*#{1,6}\s*What[’']s Changed\s*\r?\n/i, '');
+
+  let normalizedSource = $derived(
+    compactCompareLinks(stripWhatsChangedHeading(source)),
+  );
 </script>
 
 <SvelteMarkdown source={normalizedSource} {extensions} {renderers} />

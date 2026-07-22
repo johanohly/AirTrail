@@ -35,7 +35,7 @@
 <Alert.Root
   variant={callout.variant}
   role="note"
-  class="callout-{alertType} my-5"
+  class="callout-{alertType} my-5 first:mt-0 last:mb-0"
 >
   <Icon aria-hidden="true" />
   <Alert.Title>{callout.title}</Alert.Title>
