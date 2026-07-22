@@ -1,4 +1,4 @@
-import type { Blockquote, Parent, Root, Text } from 'mdast';
+import type { Blockquote, Parent, Root } from 'mdast';
 
 export const githubAlertTypes = [
   'note',
