@@ -18,6 +18,7 @@ type StableRelease = Pick<GitHubRelease, 'tag_name' | 'body'>;
 
 interface ReleaseCache {
   fetchedAt: number;
+  appVersion: string;
   releases: StableRelease[];
 }
 
@@ -32,6 +33,7 @@ function readReleaseCache(): StableRelease[] | null {
     if (!raw) return null;
 
     const cache: ReleaseCache = JSON.parse(raw);
+    if (cache.appVersion !== version) return null;
     if (Date.now() - cache.fetchedAt > RELEASE_CACHE_TTL) return null;
     return cache.releases;
   } catch {
@@ -59,6 +61,7 @@ async function fetchStableReleases(): Promise<StableRelease[] | null> {
       RELEASE_CACHE_KEY,
       JSON.stringify({
         fetchedAt: Date.now(),
+        appVersion: version,
         releases,
       } satisfies ReleaseCache),
     );
