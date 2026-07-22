@@ -1,44 +1,59 @@
 import defaultMdxComponents from 'fumadocs-ui/mdx';
+import { Callout } from 'fumadocs-ui/components/callout';
 import { type Jsx, toJsxRuntime } from 'hast-util-to-jsx-runtime';
-import { ExternalLink, Tag } from 'lucide-react';
-import type { JSX } from 'react';
+import { ExternalLink, ShieldAlert, Tag } from 'lucide-react';
+import type { CSSProperties, JSX, ReactNode } from 'react';
 import { Fragment, jsx, jsxs } from 'react/jsx-runtime';
 import { remark } from 'remark';
 import remarkRehype from 'remark-rehype';
 import { z } from 'zod';
 
+import {
+  type GitHubAlertType,
+  processReleaseBody,
+  remarkGitHubAlerts,
+} from '@/lib/changelog';
+
 const REPO = 'johanohly/AirTrail';
 
-/**
- * Post-process GitHub release markdown to turn bare URLs into proper links:
- * - PR URLs → [#123](url)
- * - Compare URLs → [`v1.0.0...v1.1.0`](url)
- * - User profile URLs → [@username](url)
- * - Other bare GitHub URLs → [short path](url)
- */
-function processReleaseBody(body: string): string {
-  let result = body;
+const calloutConfig: Record<
+  GitHubAlertType,
+  { title: string; type: 'info' | 'success' | 'warning' | 'error' }
+> = {
+  note: { title: 'Note', type: 'info' },
+  tip: { title: 'Tip', type: 'success' },
+  important: { title: 'Important', type: 'info' },
+  warning: { title: 'Warning', type: 'warning' },
+  caution: { title: 'Caution', type: 'error' },
+};
 
-  // PR / issue URLs → [#number](url)
-  // Only match bare URLs (not already inside markdown links)
-  result = result.replaceAll(
-    /(?<!\]\()https:\/\/github\.com\/[^/]+\/[^/]+\/(?:pull|issues)\/(\d+)/g,
-    (url, num) => `[#${num}](${url})`,
+function GitHubAlert({
+  alertType,
+  children,
+}: {
+  alertType: GitHubAlertType;
+  children?: ReactNode;
+}) {
+  const config = calloutConfig[alertType];
+  const importantStyle =
+    alertType === 'important'
+      ? ({ '--callout-color': 'var(--color-purple-500)' } as CSSProperties)
+      : undefined;
+
+  return (
+    <Callout
+      type={config.type}
+      title={config.title}
+      icon={
+        alertType === 'important' ? (
+          <ShieldAlert className="size-5 shrink-0 text-(--callout-color)" />
+        ) : undefined
+      }
+      style={importantStyle}
+    >
+      {children}
+    </Callout>
   );
-
-  // Compare URLs → [`v1...v2`](url)
-  result = result.replaceAll(
-    /(?<!\]\()https:\/\/github\.com\/[^/]+\/[^/]+\/compare\/([^\s)]+)/g,
-    (url, range) => `[\`${range}\`](${url})`,
-  );
-
-  // User profile URLs → [@username](url)
-  result = result.replaceAll(
-    /(?<!\]\()https:\/\/github\.com\/([a-zA-Z0-9-]+)(?=[)\s,]|$)/g,
-    (url, username) => `[@${username}](${url})`,
-  );
-
-  return result;
 }
 
 export default async function Changelog() {
@@ -77,7 +92,7 @@ export default async function Changelog() {
     .array()
     .parse(body);
 
-  const processor = remark().use(remarkRehype);
+  const processor = remark().use(remarkGitHubAlerts).use(remarkRehype);
   const { img: _, ...comps } = defaultMdxComponents;
 
   for (const release of releases) {
@@ -91,7 +106,10 @@ export default async function Changelog() {
       jsx: jsx as Jsx,
       jsxs: jsxs as Jsx,
       Fragment,
-      components: comps,
+      components: {
+        ...comps,
+        'github-alert': GitHubAlert,
+      },
     });
   }
 

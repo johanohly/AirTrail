@@ -28,7 +28,7 @@
     class="p-0 pointer-events-auto z-[99] items-center overflow-hidden rounded-md border shadow-sm"
   >
     <div
-      class="prose prose-sm prose-neutral dark:prose-invert max-w-[min(100dvw,_20rem)] text-pretty px-4 py-2 text-center leading-snug transition-all prose-a:cursor-alias prose-a:underline prose-a:decoration-dotted prose-a:underline-offset-2 prose-code:inline-block prose-code:leading-none prose-p:my-0 prose-ul:my-2 prose-ol:my-2"
+      class="max-w-[min(100dvw,_20rem)] px-4 py-2 text-center text-sm leading-snug text-foreground text-pretty transition-all [&_a]:cursor-alias [&_a]:font-medium [&_a]:text-foreground [&_a]:underline [&_a]:decoration-dotted [&_a]:underline-offset-2 [&_a:focus-visible]:rounded-xs [&_a:focus-visible]:outline-2 [&_a:focus-visible]:outline-offset-2 [&_a:focus-visible]:outline-ring [&_code]:inline-block [&_code]:rounded-sm [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.8125em] [&_code]:font-semibold [&_code]:leading-none [&_p]:my-0 [&_strong]:font-semibold"
     >
       {#if content}
         {@render content()}

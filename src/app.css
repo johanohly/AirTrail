@@ -2,9 +2,18 @@
 layer(base);
 
 @import 'tailwindcss';
+@import './typeset.css';
 @import 'tw-animate-css';
 
-@plugin "@tailwindcss/typography";
+.typeset-docs {
+  --typeset-font-body: var(--font-sans);
+  --typeset-font-heading: var(--font-sans);
+  --typeset-font-mono: var(--font-mono);
+  --typeset-size: 15px;
+  --typeset-leading: 1.75;
+  --typeset-flow: 1.25em;
+}
+
 @source '../node_modules/layerchart/**/*.{svelte,js}';
 
 @custom-variant dark (&:is(.dark *));

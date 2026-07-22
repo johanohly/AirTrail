@@ -5,15 +5,19 @@
     href,
     title,
     children,
-  }: { href: string; title: string | undefined; children: Snippet } = $props();
+  }: {
+    href?: string;
+    title?: string;
+    children?: Snippet;
+  } = $props();
 
-  let prNum = $derived(href.match(/pull\/(\d+)/)?.[1]);
+  let prNum = $derived(href?.match(/pull\/(\d+)/)?.[1]);
 </script>
 
-<a target="_blank" {href} {title}>
+<a target="_blank" rel="noopener noreferrer" {href} {title}>
   {#if prNum}
     #{prNum}
   {:else}
-    {@render children()}
+    {@render children?.()}
   {/if}
 </a>
