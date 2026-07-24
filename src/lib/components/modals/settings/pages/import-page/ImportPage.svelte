@@ -416,6 +416,17 @@
           {/if}
         </Alert.Description>
       </Alert.Root>
+    {:else if platform.value === 'milesandmore'}
+      <Alert.Root variant="info" class="mt-2">
+        <Info />
+        <Alert.Description>
+          While logged in to your Miles & More account in your browser, open <span
+            class="font-mono text-xs break-all"
+            >https://api.travelid.lufthansa.com/flightstats/v3/me/segmentList?departureDateRange=10000%20months&size=10000&page=0</span
+          > and save the response as a JSON file. Fare class and aircraft type are
+          matched on a best-effort basis and should be double-checked after import.
+        </Alert.Description>
+      </Alert.Root>
     {/if}
     <div class="mt-4 flex justify-end">
       <Button onclick={() => (step = 2)}>Next</Button>
