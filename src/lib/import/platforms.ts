@@ -80,6 +80,16 @@ export const platforms = [
     },
   },
   {
+    name: 'Miles & More',
+    value: 'milesandmore',
+    description: 'JSON export from Miles & More flight history.',
+    extensions: ['.json'],
+    options: {
+      filterOwner: false,
+      airlineFromFlightNumber: false,
+    },
+  },
+  {
     name: 'AirTrail',
     value: 'airtrail',
     description: 'JSON export from AirTrail (re-import your data).',

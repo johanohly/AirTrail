@@ -5,7 +5,7 @@ title: Import
 The import feature allows you to import flight data from other sources into AirTrail.
 Currently, AirTrail supports importing flights from [MyFlightRadar24](https://my.flightradar24.com)
 , [App in the Air](https://appintheair.com), [JetLog](https://github.com/pbogre/jetlog), [TripIt (ICS)](https://www.tripit.com)
-, [Flighty](https://flightyapp.com), [byAir](https://byair.app), [JetLovers](https://www.jetlovers.com), [OpenFlights](https://openflights.org) and [AirTrail JSON files](/docs/features/export).
+, [Flighty](https://flightyapp.com), [byAir](https://byair.app), [JetLovers](https://www.jetlovers.com), [OpenFlights](https://openflights.org), [Miles & More](https://www.miles-and-more.com) and [AirTrail JSON files](/docs/features/export).
 
 ## Import flights from MyFlightradar24
 
@@ -164,6 +164,38 @@ Import the CSV file into AirTrail:
 3. Choose the source "OpenFlights".
 4. Select your OpenFlights CSV file.
 5. Click Import.
+
+## Import flights from Miles & More
+
+Miles & More (Lufthansa Group's frequent-flyer program) doesn't offer a self-service export button,
+but it exposes your own flight history as JSON through an authenticated API endpoint you can open
+directly in your browser while logged in.
+
+Export from Miles & More:
+
+1. Log in to your account at [miles-and-more.com](https://www.miles-and-more.com).
+2. In the same browser, open
+   `https://api.travelid.lufthansa.com/flightstats/v3/me/segmentList?departureDateRange=10000%20months&size=10000&page=0`.
+3. Save the JSON response shown in your browser as a `.json` file (e.g. via "Save Page As" or your
+   browser's dev tools).
+
+Import the JSON file into AirTrail:
+
+1. Open the AirTrail application.
+2. Go to the settings page and open the Import tab.
+3. Choose the source "Miles & More".
+4. Select the JSON file you saved.
+5. Click Import.
+
+Notes and limitations:
+
+- Fare/booking class letters (e.g. `F`, `C`, `M`) are mapped to AirTrail's seat class on a
+  best-effort basis and may not be accurate for every operating carrier — double-check imported
+  seat classes.
+- Aircraft types are matched from Miles & More's IATA type codes against a built-in lookup table;
+  uncommon types may not be recognized and are left blank.
+- The PNR and Miles & More loyalty numbers (award/status miles, status/GUP/HON points) have no
+  equivalent field in AirTrail and are appended to the flight's note instead.
 
 ## Import flights from AirTrail JSON files
 
