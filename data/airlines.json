@@ -10101,6 +10101,13 @@
     "defunct": false
   },
   {
+    "id": "northwest-airlines",
+    "name": "Northwest Airlines",
+    "icao": "NWA",
+    "iata": "NW",
+    "defunct": true
+  },
+  {
     "id": "northwest-flyers",
     "name": "Northwest Flyers",
     "icao": "NWF",
