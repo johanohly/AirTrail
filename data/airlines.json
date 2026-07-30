@@ -15029,6 +15029,13 @@
     "defunct": false
   },
   {
+    "id": "wow-air",
+    "name": "WOW Air",
+    "icao": "WOW",
+    "iata": "WW",
+    "defunct": true
+  },
+  {
     "id": "wright-air-service",
     "name": "Wright Air Service",
     "icao": "WRF",
