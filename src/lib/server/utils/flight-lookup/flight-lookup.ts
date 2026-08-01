@@ -8,6 +8,10 @@ import { appConfig } from '$lib/server/utils/config';
 
 export type FlightLookupOptions = {
   date?: Date;
+  /** ICAO or IATA code of the departure airport, used to narrow down results. */
+  from?: string;
+  /** ICAO or IATA code of the arrival airport, used to narrow down results. */
+  to?: string;
 };
 
 export type FlightLookupResultItem = {
@@ -50,10 +54,41 @@ async function getProvider(): Promise<FlightLookupProvider> {
   return adsbdbProvider;
 }
 
+function matchesAirport(airport: Airport, code: string | undefined): boolean {
+  const wanted = code?.trim().toUpperCase();
+  if (!wanted) return true;
+
+  return (
+    airport.icao.toUpperCase() === wanted ||
+    airport.iata?.toUpperCase() === wanted
+  );
+}
+
+/**
+ * Narrows results down to the route the user already entered. The same flight
+ * number is often used for both legs on a given date, so without this the user
+ * would be asked to pick between a flight and its reverse.
+ */
+function filterByRoute(
+  results: FlightLookupResult,
+  opts?: FlightLookupOptions,
+): FlightLookupResult {
+  if (!opts?.from && !opts?.to) return results;
+
+  const filtered = results.filter(
+    (r) => matchesAirport(r.from, opts.from) && matchesAirport(r.to, opts.to),
+  );
+
+  // If nothing matches, the entered route is likely wrong. Fall back to the
+  // full set instead of claiming the flight doesn't exist.
+  return filtered.length > 0 ? filtered : results;
+}
+
 export async function getFlightRoute(
   flightNumber: string,
   opts?: FlightLookupOptions,
 ): Promise<FlightLookupResult> {
   const provider = await getProvider();
-  return provider.getFlightRoute(flightNumber, opts);
+  const results = await provider.getFlightRoute(flightNumber, opts);
+  return filterByRoute(results, opts);
 }

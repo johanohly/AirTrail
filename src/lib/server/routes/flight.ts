@@ -33,14 +33,17 @@ export const flightRouter = router({
       z.object({
         flightNumber: z.string(),
         date: z.string().datetime({ offset: true }).optional(),
+        from: z.string().optional(),
+        to: z.string().optional(),
       }),
     )
     .query(async ({ input }) => {
-      const results = await getFlightRoute(
-        input.flightNumber,
+      const results = await getFlightRoute(input.flightNumber, {
         // @ts-expect-error - We know the date string is a full ISO datetime string
-        input.date ? { date: parseISO(input.date.split('T')[0]) } : undefined,
-      );
+        date: input.date ? parseISO(input.date.split('T')[0]) : undefined,
+        from: input.from,
+        to: input.to,
+      });
 
       const [onlyFlight] = results;
       if (results.length === 1 && onlyFlight?.aircraftReg) {
