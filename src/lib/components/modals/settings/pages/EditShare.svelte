@@ -2,7 +2,7 @@
   import { SquarePen } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
-  import { zod } from 'sveltekit-superforms/adapters';
+  import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
   import ShareFormFields from './ShareFormFields.svelte';
 
@@ -21,13 +21,13 @@
   interface Share {
     id: number;
     slug: string;
-    expiresAt?: Date;
+    expiresAt: Date | null;
     createdAt: Date;
     showMap: boolean;
     showStats: boolean;
     showFlightList: boolean;
-    dateFrom?: string;
-    dateTo?: string;
+    dateFrom: string | null;
+    dateTo: string | null;
     showFlightNumbers: boolean;
     showAirlines: boolean;
     showAircraft: boolean;

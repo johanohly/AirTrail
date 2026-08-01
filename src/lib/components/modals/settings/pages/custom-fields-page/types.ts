@@ -1,4 +1,5 @@
 export type {
+  EntityType,
   FieldType,
   CustomFieldDefinition as DefinitionItem,
 } from '$lib/utils/custom-fields';

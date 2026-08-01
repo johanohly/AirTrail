@@ -1,26 +1,35 @@
 <script lang="ts">
   import { Check, CircleAlert, ExternalLink } from '@o7/icon/lucide';
 
-  import { page } from '$app/state';
+  import UnknownMappingSection from './UnknownMappingSection.svelte';
 
+  import type { ImportFailure } from './';
+
+  import { page } from '$app/state';
+  import AircraftPicker from '$lib/components/form-fields/AircraftPicker.svelte';
   import AirlinePicker from '$lib/components/form-fields/AirlinePicker.svelte';
   import AirportPicker from '$lib/components/form-fields/AirportPicker.svelte';
+  import CreateAircraft from '$lib/components/modals/settings/pages/data-page/aircraft/CreateAircraft.svelte';
   import CreateAirline from '$lib/components/modals/settings/pages/data-page/airline/CreateAirline.svelte';
   import CreateAirport from '$lib/components/modals/settings/pages/data-page/airport/CreateAirport.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { Separator } from '$lib/components/ui/separator';
-  import type { Airline, Airport } from '$lib/db/types';
+  import type { Airline, Airport, Aircraft } from '$lib/db/types';
+  import {
+    createEmptyImportMappings,
+    createEmptyImportUnknowns,
+    type ImportMappings,
+    type ImportUnknowns,
+  } from '$lib/import/model';
   import { pluralize } from '$lib/utils';
-  import type { ImportFailure } from './';
 
   let {
     importedCount = 0,
     skippedRows = 0,
     importFailures = [],
-    unknownAirports = {},
-    unknownAirlines = {},
+    unknowns = createEmptyImportUnknowns(),
     busy = false,
     onreprocess,
     onclose,
@@ -28,53 +37,90 @@
     importedCount?: number;
     skippedRows?: number;
     importFailures?: ImportFailure[];
-    unknownAirports?: Record<string, number[]>;
-    unknownAirlines?: Record<string, number[]>;
+    unknowns?: ImportUnknowns;
     busy?: boolean;
-    onreprocess?: (
-      airportMapping: Record<string, Airport>,
-      airlineMapping: Record<string, Airline>,
-    ) => void;
+    onreprocess?: (mappings: ImportMappings) => Promise<boolean>;
     onclose?: () => void;
   } = $props();
 
-  const unknownAirportCodes = $derived(Object.keys(unknownAirports));
-  const unknownAirlineCodes = $derived(Object.keys(unknownAirlines));
+  const unknownAirportCodes = $derived(Object.keys(unknowns.airports));
+  const unknownAirlineCodes = $derived(Object.keys(unknowns.airlines));
+  const unknownAircraftCodes = $derived(Object.keys(unknowns.aircraft));
 
-  let airportMapping: Record<string, Airport> = $state({});
-  let airlineMapping: Record<string, Airline> = $state({});
+  let mappings = $state<ImportMappings>(createEmptyImportMappings());
 
-  const canReprocess = $derived(
-    (Object.values(airportMapping).some(Boolean) ||
-      Object.values(airlineMapping).some(Boolean)) &&
-      !busy,
+  const mappingSections = $derived([
+    {
+      label: 'airport',
+      unknownCount: unknownAirportCodes.length,
+      mappedCount: Object.keys(mappings.airports).length,
+    },
+    {
+      label: 'airline',
+      unknownCount: unknownAirlineCodes.length,
+      mappedCount: Object.keys(mappings.airlines).length,
+    },
+    {
+      label: 'aircraft',
+      unknownCount: unknownAircraftCodes.length,
+      mappedCount: Object.keys(mappings.aircraft).length,
+    },
+  ]);
+  const mappedCount = $derived(
+    mappingSections.reduce((count, section) => count + section.mappedCount, 0),
   );
-  const mappedAirportCount = $derived(Object.keys(airportMapping).length);
-  const mappedAirlineCount = $derived(Object.keys(airlineMapping).length);
+  const unmatchedCount = $derived(
+    mappingSections.reduce((count, section) => count + section.unknownCount, 0),
+  );
+  const canReprocess = $derived(mappedCount > 0 && !busy);
+  const mappingSummary = $derived.by(() => {
+    return mappingSections
+      .filter((section) => section.mappedCount > 0)
+      .map(
+        (section) =>
+          `${section.mappedCount} of ${section.unknownCount} ${pluralize(
+            section.unknownCount,
+            section.label,
+          )} mapped`,
+      )
+      .join(' • ');
+  });
 
   const isAdmin = $derived(page.data.user?.role !== 'user');
 
   let createAirport = $state(false);
   let createAirline = $state(false);
+  let createAircraft = $state(false);
 
   const setAirportMapping = (code: string, airport: Airport | null) => {
     if (airport) {
-      airportMapping[code] = airport;
+      mappings.airports[code] = airport;
     } else {
-      delete airportMapping[code];
+      delete mappings.airports[code];
     }
   };
 
   const setAirlineMapping = (code: string, airline: Airline | null) => {
     if (airline) {
-      airlineMapping[code] = airline;
+      mappings.airlines[code] = airline;
     } else {
-      delete airlineMapping[code];
+      delete mappings.airlines[code];
     }
   };
 
-  const handleReprocess = () => {
-    onreprocess?.(airportMapping, airlineMapping);
+  const setAircraftMapping = (code: string, aircraft: Aircraft | null) => {
+    if (aircraft) {
+      mappings.aircraft[code] = aircraft;
+    } else {
+      delete mappings.aircraft[code];
+    }
+  };
+
+  const handleReprocess = async () => {
+    const succeeded = await onreprocess?.(mappings);
+    if (!succeeded) return;
+
+    mappings = createEmptyImportMappings();
   };
 </script>
 
@@ -83,15 +129,30 @@
 
   <Card class="p-4">
     <div class="flex items-start gap-3">
-      <Check
-        class="text-green-600 dark:text-green-500 mt-0.5 shrink-0"
-        size={20}
-      />
+      {#if unmatchedCount > 0}
+        <CircleAlert
+          class="text-amber-600 dark:text-amber-500 mt-0.5 shrink-0"
+          size={20}
+        />
+      {:else}
+        <Check
+          class="text-green-600 dark:text-green-500 mt-0.5 shrink-0"
+          size={20}
+        />
+      {/if}
       <div class="flex-1">
-        <p class="font-medium text-sm">Import Complete</p>
+        <p class="font-medium text-sm">
+          {unmatchedCount > 0 ? 'Import Needs Mapping' : 'Import Complete'}
+        </p>
         <p class="text-sm text-muted-foreground mt-0.5">
-          Successfully imported {importedCount}
-          {pluralize(importedCount, 'flight')}
+          {#if importedCount > 0}
+            Successfully imported {importedCount}
+            {pluralize(importedCount, 'flight')}
+          {:else if unmatchedCount > 0}
+            No flights were imported yet.
+          {:else}
+            No new flights were imported.
+          {/if}
         </p>
       </div>
     </div>
@@ -142,7 +203,7 @@
       </div>
     {/if}
 
-    {#if unknownAirportCodes.length || unknownAirlineCodes.length}
+    {#if unmatchedCount > 0}
       <Separator class="my-4" />
 
       <div class="flex items-start gap-3">
@@ -152,93 +213,68 @@
         />
         <div class="flex-1">
           <p class="font-medium text-sm">
-            {unknownAirportCodes.length + unknownAirlineCodes.length} Unknown
-            {pluralize(
-              unknownAirportCodes.length + unknownAirlineCodes.length,
-              'Code',
-            )}
+            {unmatchedCount} Unmatched {pluralize(unmatchedCount, 'Item')}
           </p>
           <p class="text-sm text-muted-foreground mt-0.5">
-            Match unknown airports and airlines, then re-import.
+            Choose a match for each item you recognize, then re-import.
           </p>
         </div>
       </div>
 
       <ScrollArea class="h-[28dvh] mt-4 pr-2">
         <div class="space-y-3">
-          {#if unknownAirportCodes.length}
-            <div class="space-y-2">
-              <p class="text-xs font-medium text-muted-foreground uppercase">
-                Airports ({unknownAirportCodes.length})
-              </p>
-              {#each unknownAirportCodes as code (code)}
-                <div class="flex items-center gap-3">
-                  <div
-                    class="flex items-center justify-center w-20 h-9 bg-muted/50 rounded-md border shrink-0"
-                  >
-                    <span class="text-sm font-mono font-medium">{code}</span>
-                  </div>
-                  <div class="flex-1">
-                    <AirportPicker
-                      placeholder="Search for airport..."
-                      onchange={(airport) => setAirportMapping(code, airport)}
-                      onCreateNew={isAdmin
-                        ? () => (createAirport = true)
-                        : undefined}
-                      disabled={busy}
-                      compact
-                    />
-                  </div>
-                </div>
-              {/each}
-            </div>
-          {/if}
+          <UnknownMappingSection title="Airports" codes={unknownAirportCodes}>
+            {#snippet children(code)}
+              <AirportPicker
+                placeholder="Search for airport..."
+                onchange={(airport) => setAirportMapping(code, airport)}
+                onCreateNew={isAdmin ? () => (createAirport = true) : undefined}
+                disabled={busy}
+                compact
+              />
+            {/snippet}
+          </UnknownMappingSection>
 
-          {#if unknownAirlineCodes.length}
-            <div class="space-y-2" class:mt-4={unknownAirportCodes.length}>
-              <p class="text-xs font-medium text-muted-foreground uppercase">
-                Airlines ({unknownAirlineCodes.length})
-              </p>
-              {#each unknownAirlineCodes as code (code)}
-                <div class="flex items-center gap-3">
-                  <div
-                    class="flex items-center justify-center w-20 h-9 bg-muted/50 rounded-md border shrink-0"
-                  >
-                    <span class="text-sm font-mono font-medium">{code}</span>
-                  </div>
-                  <div class="flex-1">
-                    <AirlinePicker
-                      placeholder="Search for airline..."
-                      onchange={(airline) => setAirlineMapping(code, airline)}
-                      onCreateNew={isAdmin
-                        ? () => (createAirline = true)
-                        : undefined}
-                      disabled={busy}
-                      compact
-                    />
-                  </div>
-                </div>
-              {/each}
-            </div>
-          {/if}
+          <UnknownMappingSection
+            title="Airlines"
+            codes={unknownAirlineCodes}
+            separated={unknownAirportCodes.length > 0}
+          >
+            {#snippet children(code)}
+              <AirlinePicker
+                placeholder="Search for airline..."
+                onchange={(airline) => setAirlineMapping(code, airline)}
+                onCreateNew={isAdmin ? () => (createAirline = true) : undefined}
+                disabled={busy}
+                compact
+              />
+            {/snippet}
+          </UnknownMappingSection>
+
+          <UnknownMappingSection
+            title="Aircraft"
+            codes={unknownAircraftCodes}
+            separated={unknownAirportCodes.length > 0 ||
+              unknownAirlineCodes.length > 0}
+          >
+            {#snippet children(code)}
+              <AircraftPicker
+                placeholder="Search for aircraft..."
+                onchange={(aircraft) => setAircraftMapping(code, aircraft)}
+                onCreateNew={isAdmin
+                  ? () => (createAircraft = true)
+                  : undefined}
+                disabled={busy}
+                compact
+              />
+            {/snippet}
+          </UnknownMappingSection>
         </div>
       </ScrollArea>
 
-      {#if mappedAirportCount > 0 || mappedAirlineCount > 0}
+      {#if mappedCount > 0}
         <div class="mt-4 p-3 bg-muted/30 rounded-md border border-muted">
-          <p class="text-xs text-muted-foreground">
-            {#if mappedAirportCount > 0}
-              {mappedAirportCount} of {unknownAirportCodes.length}
-              {pluralize(unknownAirportCodes.length, 'airport')} mapped
-            {/if}
-            {#if mappedAirportCount > 0 && mappedAirlineCount > 0}
-              <span class="mx-1">•</span>
-            {/if}
-            {#if mappedAirlineCount > 0}
-              {mappedAirlineCount} of {unknownAirlineCodes.length}
-              {pluralize(unknownAirlineCodes.length, 'airline')} mapped
-            {/if}
-          </p>
+          <p class="text-xs text-muted-foreground">{mappingSummary}</p>
         </div>
       {/if}
 
@@ -250,15 +286,17 @@
         >
           Apply Mapping & Re-import
         </Button>
-        <Button
-          href="https://ourairports.com/"
-          target="_blank"
-          variant="outline"
-          class="gap-1"
-        >
-          Search OurAirports
-          <ExternalLink size={14} />
-        </Button>
+        {#if unknownAirportCodes.length}
+          <Button
+            href="https://ourairports.com/"
+            target="_blank"
+            variant="outline"
+            class="gap-1"
+          >
+            Search OurAirports
+            <ExternalLink size={14} />
+          </Button>
+        {/if}
         <Button variant="ghost" onclick={() => onclose?.()} class="ml-auto">
           Close
         </Button>
@@ -274,4 +312,5 @@
 {#if isAdmin}
   <CreateAirport bind:open={createAirport} withoutTrigger />
   <CreateAirline bind:open={createAirline} withoutTrigger />
+  <CreateAircraft bind:open={createAircraft} withoutTrigger />
 {/if}

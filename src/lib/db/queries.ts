@@ -1,8 +1,8 @@
-import { type Expression, type Kysely, sql } from 'kysely';
+import { type Expression, type Kysely, type Selectable, sql } from 'kysely';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 
 import type { DB } from './schema';
-import type { CreateFlight } from './types';
+import type { CreateFlight, CreateFlightPassenger } from './types';
 
 import {
   flightTrackInputSchema,
@@ -56,21 +56,68 @@ const airline = (db: Kysely<DB>, id: Expression<number | null>) => {
   ).as('airline');
 };
 
-const seats = (db: Kysely<DB>, flightId: Expression<number>) => {
+type ExistingPassengerIdentity = Pick<
+  Selectable<DB['flightPassenger']>,
+  'id' | 'userId' | 'guestName'
+>;
+
+const passengerIdentity = (passenger: {
+  userId: string | null;
+  guestName: string | null;
+}) =>
+  passenger.userId
+    ? `user:${passenger.userId}`
+    : `guest:${passenger.guestName}`;
+
+export const resolveFlightPassengerChanges = (
+  existingPassengers: ExistingPassengerIdentity[],
+  incomingPassengers: CreateFlightPassenger[],
+) => {
+  const byId = new Map(
+    existingPassengers.map((passenger) => [passenger.id, passenger]),
+  );
+  const byIdentity = new Map(
+    existingPassengers.map((passenger) => [
+      passengerIdentity(passenger),
+      passenger,
+    ]),
+  );
+  const retainedIds = new Set<number>();
+  const resolved = incomingPassengers.map((passenger) => {
+    const existing = passenger.id
+      ? byId.get(passenger.id)
+      : byIdentity.get(passengerIdentity(passenger));
+    if (passenger.id && !existing) {
+      throw new Error('Passenger does not belong to this flight');
+    }
+    if (existing && retainedIds.has(existing.id)) {
+      throw new Error('Passenger record appears more than once');
+    }
+    if (existing) retainedIds.add(existing.id);
+    return { passenger, existing };
+  });
+  const removedIds = existingPassengers
+    .filter((passenger) => !retainedIds.has(passenger.id))
+    .map((passenger) => passenger.id);
+
+  return { resolved, removedIds };
+};
+
+const passengers = (db: Kysely<DB>, flightId: Expression<number>) => {
   return jsonArrayFrom(
     db
-      .selectFrom('seat')
-      .selectAll('seat')
+      .selectFrom('flightPassenger')
+      .selectAll('flightPassenger')
       .select(({ ref }) => [
         jsonObjectFrom(
           db
             .selectFrom('user')
             .select(['user.id', 'user.displayName', 'user.username'])
-            .whereRef('user.id', '=', ref('seat.userId')),
+            .whereRef('user.id', '=', ref('flightPassenger.userId')),
         ).as('user'),
       ])
-      .whereRef('seat.flightId', '=', flightId),
-  ).as('seats');
+      .whereRef('flightPassenger.flightId', '=', flightId),
+  ).as('passengers');
 };
 
 export const listFlightBaseQuery = (db: Kysely<DB>, userId?: string) => {
@@ -82,7 +129,7 @@ export const listFlightBaseQuery = (db: Kysely<DB>, userId?: string) => {
     )
     .select(({ ref }) => [aircraft(db, ref('flight.aircraftId'))])
     .select(({ ref }) => [airline(db, ref('flight.airlineId'))])
-    .select((eb) => [seats(db, eb.ref('flight.id'))]);
+    .select((eb) => [passengers(db, eb.ref('flight.id'))]);
 
   if (!userId) {
     return query;
@@ -91,10 +138,10 @@ export const listFlightBaseQuery = (db: Kysely<DB>, userId?: string) => {
   query = query.where((eb) =>
     eb.exists(
       eb
-        .selectFrom('seat')
-        .select('seat.id')
-        .whereRef('seat.flightId', '=', 'flight.id')
-        .where('seat.userId', '=', userId),
+        .selectFrom('flightPassenger')
+        .select('flightPassenger.id')
+        .whereRef('flightPassenger.flightId', '=', 'flight.id')
+        .where('flightPassenger.userId', '=', userId),
     ),
   );
 
@@ -118,7 +165,7 @@ export const getFlightPrimitive = async (db: Kysely<DB>, id: number) => {
     .select(({ ref }) => airports(db, ref('flight.fromId'), ref('flight.toId')))
     .select(({ ref }) => [aircraft(db, ref('flight.aircraftId'))])
     .select(({ ref }) => [airline(db, ref('flight.airlineId'))])
-    .select((eb) => [seats(db, eb.ref('flight.id'))])
+    .select((eb) => [passengers(db, eb.ref('flight.id'))])
     .where('id', '=', id)
     .executeTakeFirst();
 };
@@ -127,9 +174,10 @@ export const createFlightPrimitive = async (
   db: Kysely<DB>,
   data: CreateFlight,
 ) => {
-  return await db
-    .transaction()
-    .execute(async (trx) => createFlightPrimitiveWithConnection(trx, data));
+  return await db.transaction().execute(async (trx) => {
+    const result = await createFlightPrimitiveWithConnection(trx, data);
+    return result.flightId;
+  });
 };
 
 export const updateFlightPrimitive = async (
@@ -146,7 +194,12 @@ export const createFlightPrimitiveWithConnection = async (
   db: Kysely<DB>,
   data: CreateFlight,
 ) => {
-  const { seats, from, to, aircraft, airline, track, ...flightData } = data;
+  if (!data.passengers.length) {
+    throw new Error('Flight must have at least one passenger');
+  }
+
+  const { passengers, from, to, aircraft, airline, track, ...flightData } =
+    data;
   const fromId = from?.id ?? null;
   const toId = to?.id ?? null;
   const aircraftId = aircraft?.id ?? null;
@@ -164,22 +217,35 @@ export const createFlightPrimitiveWithConnection = async (
     .returning('id')
     .executeTakeFirstOrThrow();
 
-  const seatData = seats.map((seat) => ({
-    flightId: resp.id,
-    userId: seat.userId,
-    guestName: seat.guestName,
-    seat: seat.seat,
-    seatNumber: seat.seatNumber,
-    seatClass: seat.seatClass,
-  }));
-
-  await db.insertInto('seat').values(seatData).executeTakeFirstOrThrow();
+  const persistedPassengers: Array<{
+    id: number;
+    input: CreateFlightPassenger;
+  }> = [];
+  for (const passenger of passengers) {
+    const created = await db
+      .insertInto('flightPassenger')
+      .values({
+        flightId: resp.id,
+        userId: passenger.userId,
+        guestName: passenger.guestName,
+        seat: passenger.seat,
+        seatNumber: passenger.seatNumber,
+        seatClass: passenger.seatClass,
+        flightReason: passenger.flightReason,
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+    persistedPassengers.push({ id: created.id, input: passenger });
+  }
 
   if (track) {
     await upsertFlightTrackPrimitiveWithConnection(db, resp.id, track);
   }
 
-  return resp.id;
+  return {
+    flightId: resp.id,
+    passengers: persistedPassengers,
+  };
 };
 
 export const updateFlightPrimitiveWithConnection = async (
@@ -187,7 +253,8 @@ export const updateFlightPrimitiveWithConnection = async (
   id: number,
   data: CreateFlight,
 ) => {
-  const { seats, from, to, aircraft, airline, track, ...flightData } = data;
+  const { passengers, from, to, aircraft, airline, track, ...flightData } =
+    data;
   if (!from || !to) {
     throw new Error('Both departure and arrival airports are required');
   }
@@ -219,20 +286,54 @@ export const updateFlightPrimitiveWithConnection = async (
     }
   }
 
-  if (!seats.length) return;
+  if (!passengers.length) return [];
 
-  await db.deleteFrom('seat').where('flightId', '=', id).execute();
+  const existingPassengers = await db
+    .selectFrom('flightPassenger')
+    .select(['id', 'userId', 'guestName'])
+    .where('flightId', '=', id)
+    .execute();
+  const { resolved, removedIds } = resolveFlightPassengerChanges(
+    existingPassengers,
+    passengers,
+  );
+  if (removedIds.length) {
+    await db
+      .deleteFrom('flightPassenger')
+      .where('id', 'in', removedIds)
+      .execute();
+  }
 
-  const seatData = seats.map((seat) => ({
-    flightId: id,
-    userId: seat.userId,
-    guestName: seat.guestName,
-    seat: seat.seat,
-    seatNumber: seat.seatNumber,
-    seatClass: seat.seatClass,
-  }));
-
-  await db.insertInto('seat').values(seatData).executeTakeFirstOrThrow();
+  const persistedPassengers: Array<{
+    id: number;
+    input: CreateFlightPassenger;
+  }> = [];
+  for (const { passenger, existing } of resolved) {
+    const values = {
+      userId: passenger.userId,
+      guestName: passenger.guestName,
+      seat: passenger.seat,
+      seatNumber: passenger.seatNumber,
+      seatClass: passenger.seatClass,
+      flightReason: passenger.flightReason,
+    };
+    if (existing) {
+      await db
+        .updateTable('flightPassenger')
+        .set(values)
+        .where('id', '=', existing.id)
+        .executeTakeFirstOrThrow();
+      persistedPassengers.push({ id: existing.id, input: passenger });
+    } else {
+      const created = await db
+        .insertInto('flightPassenger')
+        .values({ ...values, flightId: id })
+        .returning('id')
+        .executeTakeFirstOrThrow();
+      persistedPassengers.push({ id: created.id, input: passenger });
+    }
+  }
+  return persistedPassengers;
 };
 
 const normalizeFlightTrackInput = (track: FlightTrackInput): FlightTrackInput =>
@@ -279,13 +380,17 @@ export const createManyFlightsPrimitive = async (
   db: Kysely<DB>,
   data: CreateFlight[],
 ) => {
+  if (data.some((flight) => !flight.passengers.length)) {
+    throw new Error('Every flight must have at least one passenger');
+  }
+
   await db.transaction().execute(async (trx) => {
     const flights = await trx
       .insertInto('flight')
       .values(
         data.map(
           ({
-            seats: _,
+            passengers: _,
             from,
             to,
             aircraft,
@@ -304,24 +409,25 @@ export const createManyFlightsPrimitive = async (
       .returning('id')
       .execute();
 
-    const seatData = flights.flatMap((flight, index) => {
+    const passengerData = flights.flatMap((flight, index) => {
       const flightInput = data[index];
 
-      if (flightInput && flightInput.seats.length > 0) {
-        return flightInput.seats.map((seat) => ({
+      if (flightInput && flightInput.passengers.length > 0) {
+        return flightInput.passengers.map((passenger) => ({
           flightId: flight.id,
-          userId: seat.userId,
-          guestName: seat.guestName,
-          seat: seat.seat,
-          seatNumber: seat.seatNumber,
-          seatClass: seat.seatClass,
+          userId: passenger.userId,
+          guestName: passenger.guestName,
+          seat: passenger.seat,
+          seatNumber: passenger.seatNumber,
+          seatClass: passenger.seatClass,
+          flightReason: passenger.flightReason,
         }));
       }
 
       return [];
     });
 
-    await trx.insertInto('seat').values(seatData).execute();
+    await trx.insertInto('flightPassenger').values(passengerData).execute();
 
     const trackData = flights.flatMap((flight, index) => {
       const track = data[index]?.track

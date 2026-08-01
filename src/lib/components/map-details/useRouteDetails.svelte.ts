@@ -1,18 +1,12 @@
 import { page } from '$app/state';
-import type {
-  FlightFilters,
-  Route,
-  TempFilters,
-} from '$lib/components/flight-filters/types';
 import {
   normalizeRoute,
-  setTempRoute,
+  routeMatchesEndpoints,
+  type FlightFilters,
+  type Route,
 } from '$lib/components/flight-filters/types';
-import {
-  focusFlightInList,
-  mapDetailsState,
-  openModalsState,
-} from '$lib/state.svelte';
+import type { NavigateFlights } from '$lib/flight-navigation';
+import { mapDetailsState, openFlightDetails } from '$lib/state.svelte';
 import { type FlightData } from '$lib/utils';
 import {
   convertDistance,
@@ -23,7 +17,7 @@ import {
 export function useRouteDetails(
   flights: () => FlightData[],
   filters: () => FlightFilters | undefined,
-  tempFilters: () => TempFilters | undefined,
+  onNavigate: NavigateFlights,
 ) {
   const prefs = $derived(getPreferences(page.data.user));
 
@@ -44,12 +38,7 @@ export function useRouteDetails(
   });
 
   const matchesRoute = (flight: FlightData, route: Route) => {
-    const fromId = flight.from?.id.toString();
-    const toId = flight.to?.id.toString();
-    return (
-      (fromId === route.a && toId === route.b) ||
-      (fromId === route.b && toId === route.a)
-    );
+    return routeMatchesEndpoints(flight.from?.id, flight.to?.id, route);
   };
 
   const routeFlights = $derived.by(() => {
@@ -120,11 +109,18 @@ export function useRouteDetails(
     f.routes = [normalizeRoute(selectedRoute.a, selectedRoute.b)];
   };
 
-  const showAllFlights = (flightId?: number) => {
-    const tf = tempFilters();
-    if (selectedRoute && tf) setTempRoute(tf, selectedRoute);
-    if (flightId) focusFlightInList(flightId);
-    openModalsState.listFlights = true;
+  const showAllFlights = () => {
+    if (!selectedRoute) return;
+    onNavigate({
+      destination: 'list',
+      focus: { type: 'route', route: selectedRoute },
+    });
+  };
+
+  const showFlight = (flightId: number) => {
+    // Open the flight's details pane; while it's open the map isolates that
+    // flight (a derived view of the pane state, not a persistent filter).
+    openFlightDetails(flightId);
   };
 
   return {
@@ -157,5 +153,6 @@ export function useRouteDetails(
     },
     toggleRouteFilter,
     showAllFlights,
+    showFlight,
   };
 }

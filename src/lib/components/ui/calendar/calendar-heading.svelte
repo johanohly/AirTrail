@@ -10,7 +10,7 @@
     placeholder = $bindable(),
     mode = $bindable(),
     ...restProps
-  }: CalendarPrimitive.HeadingProps & {
+  }: Omit<CalendarPrimitive.HeadingProps, 'placeholder'> & {
     placeholder: DateValue | undefined;
     mode: 'normal' | 'year' | 'month';
   } = $props();

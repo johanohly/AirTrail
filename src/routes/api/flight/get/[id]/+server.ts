@@ -22,9 +22,9 @@ export const GET: RequestHandler = async ({ request, params }) => {
   }
   if (
     user.role === 'user' &&
-    !flight.seats.some((seat) => seat.userId === user.id)
+    !flight.passengers.some((passenger) => passenger.userId === user.id)
   ) {
-    return apiError('You do not have a seat on this flight', 403);
+    return apiError('You are not a passenger on this flight', 403);
   }
 
   return json({ success: true, flight });

@@ -1,8 +1,8 @@
 import { differenceInSeconds, format } from 'date-fns';
 
 import { page } from '$app/state';
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import type { Airline, CreateFlight } from '$lib/db/types';
+import type { PlatformOptions } from '$lib/import/model';
 import { getAirlineByIata } from '$lib/utils/data/airlines';
 import { getAirportByIata } from '$lib/utils/data/airports/cache';
 import { parseLocalISO } from '$lib/utils/datetime';
@@ -33,15 +33,15 @@ const parsePropLine = (
   if (idx === -1) return null;
   const left = line.slice(0, idx);
   const value = line.slice(idx + 1);
-  const parts = left.split(';');
-  const name = parts[0];
+  const [name, ...parameterParts] = left.split(';');
+  if (!name) return null;
+
   const params: Record<string, string> = {};
-  for (let i = 1; i < parts.length; i++) {
-    const p = parts[i];
-    const eq = p.indexOf('=');
+  for (const part of parameterParts) {
+    const eq = part.indexOf('=');
     if (eq !== -1) {
-      const k = p.slice(0, eq).toUpperCase();
-      const v = p.slice(eq + 1);
+      const k = part.slice(0, eq).toUpperCase();
+      const v = part.slice(eq + 1);
       params[k] = v;
     }
   }
@@ -191,16 +191,13 @@ export const processTripItFile = async (
     const flightIndex = flights.length;
 
     if (!from) {
-      if (!unknownAirports[fromCode]) unknownAirports[fromCode] = [];
-      unknownAirports[fromCode].push(flightIndex);
+      (unknownAirports[fromCode] ??= []).push(flightIndex);
     }
     if (!to) {
-      if (!unknownAirports[toCode]) unknownAirports[toCode] = [];
-      unknownAirports[toCode].push(flightIndex);
+      (unknownAirports[toCode] ??= []).push(flightIndex);
     }
     if (!airline && airlineIata) {
-      if (!unknownAirlines[airlineIata]) unknownAirlines[airlineIata] = [];
-      unknownAirlines[airlineIata].push(flightIndex);
+      (unknownAirlines[airlineIata] ??= []).push(flightIndex);
     }
 
     flights.push({
@@ -222,22 +219,30 @@ export const processTripItFile = async (
       arrivalGate: null,
       duration: differenceInSeconds(arrival, departure),
       flightNumber,
-      flightReason: null,
       airline,
       aircraft: null,
       aircraftReg: null,
       note: null,
-      seats: [
+      passengers: [
         {
           userId,
           seat: null,
           seatNumber: null,
           seatClass: null,
           guestName: null,
+          flightReason: null,
         },
       ],
     });
   }
 
-  return { flights, unknownAirports, unknownAirlines };
+  return {
+    flights,
+    unknowns: {
+      airports: unknownAirports,
+      airlines: unknownAirlines,
+      aircraft: {},
+    },
+    exportedUsers: [],
+  };
 };

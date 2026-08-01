@@ -122,6 +122,24 @@ const RVR_RE = /^R\d{2}[LRC]?\//;
 const WX_PHENOM_RE =
   /^(?:(?:\+|-|VC)?(?:MI|BC|PR|DR|BL|SH|TS|FZ){1,2}(?:DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS)*|(?:\+|-|VC)?(?:DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS)+)$/;
 
+const requiredCapture = (match: RegExpMatchArray, index: number): string => {
+  const value = match[index];
+  if (value === undefined) {
+    throw new Error(`Expected capture group ${index} in ${match[0]}`);
+  }
+
+  return value;
+};
+
+const parseFraction = (value: string): number | null => {
+  const match = /^(\d+)\/(\d+)$/.exec(value);
+  if (!match) return null;
+
+  const numerator = Number(requiredCapture(match, 1));
+  const denominator = Number(requiredCapture(match, 2));
+  return denominator === 0 ? null : numerator / denominator;
+};
+
 export function parseMetar(
   raw: string,
   observedAtIsoFromApi?: string,
@@ -154,7 +172,11 @@ export function parseMetar(
     const m = body.shift()!.match(TIMESTAMP_RE)!;
     observedAtIso =
       observedAtIsoFromApi ??
-      resolveTimestamp(parseInt(m[1]), parseInt(m[2]), parseInt(m[3]));
+      resolveTimestamp(
+        parseInt(requiredCapture(m, 1)),
+        parseInt(requiredCapture(m, 2)),
+        parseInt(requiredCapture(m, 3)),
+      );
   } else if (observedAtIsoFromApi) {
     observedAtIso = observedAtIsoFromApi;
   } else {
@@ -189,8 +211,8 @@ export function parseMetar(
     const td = body[0].match(TEMP_DEW_RE);
     if (td) {
       body.shift();
-      tempC = parseTempPart(td[1]);
-      dewpointC = parseTempPart(td[2]);
+      tempC = parseTempPart(requiredCapture(td, 1));
+      dewpointC = parseTempPart(requiredCapture(td, 2));
     }
   }
 
@@ -198,7 +220,7 @@ export function parseMetar(
   for (const tok of body) {
     const am = tok.match(ALTIMETER_RE);
     if (am) {
-      const v = parseInt(am[2]);
+      const v = parseInt(requiredCapture(am, 2));
       pressureHpa = am[1] === 'Q' ? v : Math.round((v / 100) * 33.8639);
       break;
     }
@@ -240,8 +262,9 @@ function parseWind(body: string[]): ParsedMetar['wind'] {
   const wm = body[0].match(WIND_RE);
   if (!wm) return wind;
   body.shift();
-  const dir = wm[1] === 'VRB' ? null : parseInt(wm[1]);
-  let speed = parseInt(wm[2]);
+  const direction = requiredCapture(wm, 1);
+  const dir = direction === 'VRB' ? null : parseInt(direction);
+  let speed = parseInt(requiredCapture(wm, 2));
   let gust = wm[3] ? parseInt(wm[3]) : null;
   const unit = wm[4];
   if (unit === 'MPS') {
@@ -259,7 +282,10 @@ function parseWind(body: string[]): ParsedMetar['wind'] {
     const vm = body[0].match(VAR_WIND_RE);
     if (vm) {
       body.shift();
-      wind.varies = { from: parseInt(vm[1]), to: parseInt(vm[2]) };
+      wind.varies = {
+        from: parseInt(requiredCapture(vm, 1)),
+        to: parseInt(requiredCapture(vm, 2)),
+      };
     }
   }
   return wind;
@@ -271,17 +297,18 @@ function parseVisibility(body: string[]): number | null {
   if (/^\d+$/.test(body[0]) && body[1] && /^M?\d+\/\d+SM$/.test(body[1])) {
     const whole = parseInt(body.shift()!);
     const fracTok = body.shift()!.replace(/^M/, '').replace(/SM$/, '');
-    const [num, den] = fracTok.split('/').map(Number);
-    return Math.round((whole + num / den) * 1609.344);
+    const fraction = parseFraction(fracTok);
+    return fraction === null ? null : Math.round((whole + fraction) * 1609.344);
   }
   const sm = body[0].match(VIS_SM_RE);
   if (sm) {
     body.shift();
-    const part = sm[1];
+    const part = requiredCapture(sm, 1);
     let value: number;
     if (part.includes('/')) {
-      const [num, den] = part.split('/').map(Number);
-      value = num / den;
+      const fraction = parseFraction(part);
+      if (fraction === null) return null;
+      value = fraction;
     } else {
       value = parseFloat(part);
     }
@@ -293,7 +320,7 @@ function parseVisibility(body: string[]): number | null {
     while (body[0] && /^\d{4}(N|NE|E|SE|S|SW|W|NW)$/.test(body[0])) {
       body.shift();
     }
-    return parseInt(mm[1]);
+    return parseInt(requiredCapture(mm, 1));
   }
   return null;
 }
@@ -309,7 +336,7 @@ function parseClouds(body: string[]): {
     const cm = t.match(CLOUD_RE);
     if (cm) {
       body.shift();
-      const cov = cm[1];
+      const cov = requiredCapture(cm, 1);
       if (cov === 'CLR' || cov === 'NCD' || cov === 'NSC' || cov === 'SKC') {
         continue;
       }
@@ -327,7 +354,7 @@ function parseClouds(body: string[]): {
     const vv = t.match(VV_RE);
     if (vv) {
       body.shift();
-      verticalVisibilityFt = parseInt(vv[1]) * 100;
+      verticalVisibilityFt = parseInt(requiredCapture(vv, 1)) * 100;
       continue;
     }
     break;

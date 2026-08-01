@@ -78,7 +78,7 @@ const flightTrackAlignedPropertyDefinitions = {
 } as const;
 
 type AlignedPropertySchemas<
-  Definitions extends Record<string, { schema: z.ZodTypeAny }>,
+  Definitions extends Record<string, { schema: z.ZodType }>,
 > = {
   [Key in keyof Definitions]: z.ZodOptional<
     z.ZodArray<Definitions[Key]['schema']>
@@ -206,7 +206,9 @@ export const fromFlightTrackSamples = (
 
   for (const key of flightTrackAlignedPropertyKeys) {
     const definition = flightTrackAlignedPropertyDefinitions[key];
-    const values = collectSampleProperty(samples, definition.get);
+    const values = collectSampleProperty(samples, (sample) =>
+      definition.get(sample),
+    );
     if (values !== undefined) {
       Object.assign(properties, { [key]: values });
     }

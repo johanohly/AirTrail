@@ -3,8 +3,8 @@ import { addDays, differenceInSeconds, isBefore } from 'date-fns';
 import { z } from 'zod';
 
 import { page } from '$app/state';
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
-import type { CreateFlight, Seat } from '$lib/db/types';
+import type { CreateFlight, FlightPassenger } from '$lib/db/types';
+import type { PlatformOptions } from '$lib/import/model';
 import { parseCsv } from '$lib/utils';
 import { getAircraftByName } from '$lib/utils/data/aircraft';
 import { getAirlineByIata, getAirlineByIcao } from '$lib/utils/data/airlines';
@@ -52,7 +52,7 @@ const parseFlightyTime = (
   return toUtc(parsed);
 };
 
-const mapSeatType = (seatType: string | null): Seat['seat'] => {
+const mapSeatType = (seatType: string | null): FlightPassenger['seat'] => {
   if (!seatType) return null;
   const normalized = seatType.toLowerCase().trim();
   switch (normalized) {
@@ -73,7 +73,9 @@ const mapSeatType = (seatType: string | null): Seat['seat'] => {
   }
 };
 
-const mapSeatClass = (seatClass: string | null): Seat['seatClass'] => {
+const mapSeatClass = (
+  seatClass: string | null,
+): FlightPassenger['seatClass'] => {
   if (!seatClass) return null;
   const normalized = seatClass.toLowerCase().trim();
   switch (normalized) {
@@ -97,7 +99,7 @@ const mapSeatClass = (seatClass: string | null): Seat['seatClass'] => {
 
 const mapFlightReason = (
   reason: string | null,
-): CreateFlight['flightReason'] => {
+): FlightPassenger['flightReason'] => {
   if (!reason) return null;
   const normalized = reason.toLowerCase().trim();
   switch (normalized) {
@@ -152,8 +154,8 @@ export const processFlightyFile = async (
   if (data.length === 0) {
     return {
       flights: [],
-      unknownAirports: {},
-      unknownAirlines: {},
+      unknowns: { airports: {}, airlines: {}, aircraft: {} },
+      exportedUsers: [],
       skippedRows: skipped.length,
     };
   }
@@ -161,6 +163,7 @@ export const processFlightyFile = async (
   const flights: CreateFlight[] = [];
   const unknownAirports: Record<string, number[]> = {};
   const unknownAirlines: Record<string, number[]> = {};
+  const unknownAircraft: Record<string, number[]> = {};
 
   for (const row of data) {
     const mappedFrom = options.airportMapping?.[row.from];
@@ -226,8 +229,10 @@ export const processFlightyFile = async (
       }
     }
 
-    const aircraft = row.aircraft_type_name
-      ? await getAircraftByName(row.aircraft_type_name)
+    const aircraftName = row.aircraft_type_name?.trim() || null;
+    const aircraft = aircraftName
+      ? (options.aircraftMapping?.[aircraftName] ??
+        (await getAircraftByName(aircraftName)))
       : null;
 
     const flightNumber =
@@ -250,6 +255,10 @@ export const processFlightyFile = async (
     if (!airline && airlineIcao) {
       if (!unknownAirlines[airlineIcao]) unknownAirlines[airlineIcao] = [];
       unknownAirlines[airlineIcao]!.push(flightIndex);
+    }
+    if (!aircraft && aircraftName) {
+      if (!unknownAircraft[aircraftName]) unknownAircraft[aircraftName] = [];
+      unknownAircraft[aircraftName]!.push(flightIndex);
     }
 
     flights.push({
@@ -283,14 +292,14 @@ export const processFlightyFile = async (
       airline,
       aircraft,
       aircraftReg: row.tail_number ? row.tail_number.substring(0, 10) : null,
-      flightReason: mapFlightReason(row.flight_reason),
-      seats: [
+      passengers: [
         {
           userId,
           seat: mapSeatType(row.seat_type),
           seatClass: mapSeatClass(row.cabin_class),
           seatNumber: row.seat ? row.seat.substring(0, 5) : null,
           guestName: null,
+          flightReason: mapFlightReason(row.flight_reason),
         },
       ],
     });
@@ -298,8 +307,12 @@ export const processFlightyFile = async (
 
   return {
     flights,
-    unknownAirports,
-    unknownAirlines,
+    unknowns: {
+      airports: unknownAirports,
+      airlines: unknownAirlines,
+      aircraft: unknownAircraft,
+    },
+    exportedUsers: [],
     skippedRows: skipped.length,
   };
 };

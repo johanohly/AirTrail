@@ -6,7 +6,7 @@ type CsvRow = Record<string, string>;
 
 export const forEachCsvRow = async <T>(
   stream: ReadableStream<Uint8Array>,
-  schema: ZodType<T, any, any>,
+  schema: ZodType<T>,
   onRow: (row: T) => Promise<void> | void,
   onInvalidRow?: (row: CsvRow, error: unknown) => void,
 ) => {

@@ -5,7 +5,7 @@
   import { AirlineIcon, RouteArrow } from '$lib/components/display';
   import { Button } from '$lib/components/ui/button';
   import { mapDetailsState } from '$lib/state.svelte';
-  import type { FlightData } from '$lib/utils';
+  import { type FlightData } from '$lib/utils';
   import { distanceUnitLabel, formatFlightDate } from '$lib/utils/preferences';
   import type { Preferences } from '$lib/zod/user';
 
@@ -16,13 +16,15 @@
     lastFlownLabel,
     prefs,
     onShowAll,
+    onShowFlight,
   }: {
     routeFlights: FlightData[];
     airlineCount: number;
     distance: number | null;
     lastFlownLabel: string | null;
     prefs: Preferences;
-    onShowAll: (flightId?: number) => void;
+    onShowAll: () => void;
+    onShowFlight: (flightId: number) => void;
   } = $props();
 
   const formatFlightNumber = (flightNumber: string | null | undefined) => {
@@ -37,6 +39,12 @@
     }
     return flight.aircraft?.name ?? flight.aircraftReg ?? null;
   };
+
+  // A programmatic pane swap (row click) can skip pointerleave, so clear the
+  // shared hover token when the body unmounts to avoid a stuck map highlight.
+  $effect(() => () => {
+    mapDetailsState.hoveredFlightTrackId = null;
+  });
 </script>
 
 {#snippet flightRow(flight: FlightData)}
@@ -49,10 +57,12 @@
     <button
       type="button"
       class="group grid w-full cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors hover:bg-background/55 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
-      onclick={() => onShowAll(flight.id)}
-      aria-label="Open flight {flight.from?.iata ??
+      onpointerenter={() => (mapDetailsState.hoveredFlightTrackId = flight.id)}
+      onpointerleave={() => (mapDetailsState.hoveredFlightTrackId = null)}
+      onclick={() => onShowFlight(flight.id)}
+      aria-label="Open flight details for {flight.from?.iata ??
         flight.from?.icao ??
-        'N/A'} to {flight.to?.iata ?? flight.to?.icao ?? 'N/A'} in flight list"
+        'N/A'} to {flight.to?.iata ?? flight.to?.icao ?? 'N/A'}"
     >
       <div class="flex w-8 shrink-0 justify-center">
         <AirlineIcon airline={flight.airline} size={28} fallback="plane" />

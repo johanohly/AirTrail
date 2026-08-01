@@ -23,6 +23,7 @@
     createDefaultFilters,
     dateFilterSummary,
     isFilterColumnActive,
+    matchesLocationFilters,
     optionColumnOperator,
     optionColumnValues,
     pluralMultiOptionOperators,
@@ -52,8 +53,8 @@
   } from '$lib/components/ui/modal';
   import {
     cn,
-    getSeatPassengerLabel,
-    getSeatPassengerToken,
+    getFlightPassengerLabel,
+    getFlightPassengerToken,
     type FlightData,
   } from '$lib/utils';
   import { getPreferences } from '$lib/utils/preferences';
@@ -107,6 +108,13 @@
   const tempLocationFiltersActive = $derived(
     hasTempFilters || hasActiveTempFilters(tempFilters),
   );
+
+  const scopedFlights = $derived.by(() => {
+    if (!tempLocationFiltersActive || !tempFilters) return flights ?? [];
+    return (flights ?? []).filter((flight) =>
+      matchesLocationFilters(flight, tempFilters),
+    );
+  });
 
   const columns = $derived<FilterColumn[]>([
     {
@@ -164,7 +172,7 @@
     selector: (flight: FlightData) => FlightData['from'],
   ) {
     const options = new Map<string, FilterOption>();
-    for (const flight of flights ?? []) {
+    for (const flight of scopedFlights) {
       const airport = selector(flight);
       if (!airport) continue;
       const value = airport.id.toString();
@@ -216,10 +224,10 @@
   const optionsByColumn = $derived.by(() => {
     const passengers = new Map<string, FilterOption>();
 
-    for (const flight of flights ?? []) {
-      for (const seat of flight.seats) {
-        const value = getSeatPassengerToken(seat);
-        const label = getSeatPassengerLabel(seat);
+    for (const flight of scopedFlights) {
+      for (const passenger of flight.passengers) {
+        const value = getFlightPassengerToken(passenger);
+        const label = getFlightPassengerLabel(passenger);
         if (!value || !label) continue;
         const existing = passengers.get(value);
         if (existing) {
@@ -230,7 +238,9 @@
             label,
             count: 1,
             kind: 'passenger',
-            username: seat.user?.username ?? `guest:${seat.guestName ?? label}`,
+            username:
+              passenger.user?.username ??
+              `guest:${passenger.guestName ?? label}`,
           });
         }
       }
@@ -241,7 +251,7 @@
       arrivalAirports: uniqueAirportOptions((flight) => flight.to),
       passengers: sortOptions(Array.from(passengers.values())),
       airline: countedOptions(
-        (flights ?? []).map((flight) =>
+        scopedFlights.map((flight) =>
           flight.airline
             ? {
                 value: flight.airline.name,
@@ -256,7 +266,7 @@
         ),
       ),
       aircraft: countedOptions(
-        (flights ?? []).map((flight) =>
+        scopedFlights.map((flight) =>
           flight.aircraft
             ? {
                 value: flight.aircraft.name,
@@ -269,7 +279,7 @@
         ),
       ),
       aircraftRegs: countedOptions(
-        (flights ?? []).map((flight) =>
+        scopedFlights.map((flight) =>
           flight.aircraftReg
             ? { value: flight.aircraftReg, label: flight.aircraftReg }
             : null,

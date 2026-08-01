@@ -7,7 +7,7 @@ export interface Country {
   alpha2: string;
   alpha3: string;
   numeric?: number;
-  continent: string;
+  continent: string | null;
 }
 
 export const COUNTRIES: Country[] = [

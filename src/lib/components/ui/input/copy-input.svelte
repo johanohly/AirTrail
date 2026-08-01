@@ -14,7 +14,7 @@
   }: WithElementRef<HTMLInputAttributes> = $props();
 
   let label = $state('Copy');
-  let timeout: number;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
   const copyToClipboard = async (text: string) => {
     if (timeout) clearTimeout(timeout);
 

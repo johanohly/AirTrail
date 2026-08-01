@@ -126,6 +126,7 @@
   <div class="flex min-w-0 flex-wrap items-center gap-2">
     {#if hasTempFilters}
       <Button
+        size="sm"
         variant="outline"
         class="flex-none"
         onclick={() => {
@@ -350,7 +351,7 @@
                     <Confirm
                       onConfirm={deleteSelectedFlights}
                       title="Delete selected flights"
-                      description="Are you sure you want to delete the selected flights? This will permanently delete the flights as well as their seats."
+                      description="Are you sure you want to delete the selected flights? This will permanently delete the flights as well as their passengers."
                       confirmText="Delete"
                     >
                       {#snippet triggerContent({ props })}

@@ -3,7 +3,7 @@
   import { Collapsible } from 'bits-ui';
   import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
-  import { zod } from 'sveltekit-superforms/adapters';
+  import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
   import { PageHeader } from '.';
 
@@ -292,7 +292,13 @@
                 Automatically register new users when they sign in with OAuth.
               </Form.Description>
             </div>
-            <Switch bind:checked={$formData.autoRegister} {...props} />
+            <Switch
+              bind:checked={
+                () => $formData.autoRegister ?? false,
+                (value) => ($formData.autoRegister = value)
+              }
+              {...props}
+            />
           {/snippet}
         </Form.Control>
       </Form.Field>
@@ -315,7 +321,13 @@
                 visit the login page.
               </Form.Description>
             </div>
-            <Switch bind:checked={$formData.autoLogin} {...props} />
+            <Switch
+              bind:checked={
+                () => $formData.autoLogin ?? false,
+                (value) => ($formData.autoLogin = value)
+              }
+              {...props}
+            />
           {/snippet}
         </Form.Control>
       </Form.Field>
@@ -337,7 +349,13 @@
                 Hide password form when OAuth is enabled.
               </Form.Description>
             </div>
-            <Switch bind:checked={$formData.hidePasswordForm} {...props} />
+            <Switch
+              bind:checked={
+                () => $formData.hidePasswordForm ?? false,
+                (value) => ($formData.hidePasswordForm = value)
+              }
+              {...props}
+            />
           {/snippet}
         </Form.Control>
       </Form.Field>

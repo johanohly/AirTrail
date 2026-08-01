@@ -11,6 +11,7 @@ import {
 
 import type { Preferences } from '$lib/zod/user';
 import type { FlightDatePrecision } from '$lib/db/types';
+import { getLocaleStartOfWeekDay } from '$lib/utils/datetime/helpers';
 
 type DistancePrefs = Pick<Preferences, 'distanceUnit'>;
 type AltitudePrefs = Pick<Preferences, 'distanceUnit'>;
@@ -317,11 +318,7 @@ export const getWeekStartsOn = (prefs: WeekStartPrefs): WeekDay => {
   if (prefs.weekStartsOn === 'sun') return 0;
   if (typeof navigator === 'undefined') return 1;
   const localeIdentifier = navigator.language || 'en-US';
-  const locale = new Intl.Locale(localeIdentifier);
-  const isoDay =
-    locale.getWeekInfo?.().firstDay ?? locale.weekInfo?.firstDay ?? 1;
-  // ISO uses 1=Mon..7=Sun, JS uses 0=Sun..6=Sat. Modulo converts.
-  return (isoDay % 7) as WeekDay;
+  return getLocaleStartOfWeekDay(localeIdentifier) as WeekDay;
 };
 
 // ----- Flight time display ----------------------------------------------
@@ -404,7 +401,14 @@ export const reinterpretLocalDateTime = (
   if (fromTz === toTz) return { date, time };
   const [y, m, d] = date.split('-').map(Number);
   const [h, min] = time.split(':').map(Number);
-  if ([y, m, d, h, min].some((v) => Number.isNaN(v))) {
+  if (
+    y === undefined ||
+    m === undefined ||
+    d === undefined ||
+    h === undefined ||
+    min === undefined ||
+    [y, m, d, h, min].some((value) => Number.isNaN(value))
+  ) {
     return { date, time };
   }
   // Find the UTC instant whose local representation in `fromTz` equals the

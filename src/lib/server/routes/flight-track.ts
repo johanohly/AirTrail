@@ -76,10 +76,10 @@ export const flightTrackRouter = router({
         query = query.where((eb) =>
           eb.exists(
             eb
-              .selectFrom('seat')
-              .select('seat.id')
-              .whereRef('seat.flightId', '=', 'flight.id')
-              .where('seat.userId', '=', scopedUserId),
+              .selectFrom('flightPassenger')
+              .select('flightPassenger.id')
+              .whereRef('flightPassenger.flightId', '=', 'flight.id')
+              .where('flightPassenger.userId', '=', scopedUserId),
           ),
         );
       }
@@ -98,10 +98,10 @@ export const flightTrackRouter = router({
           user.role === 'user'
             ? eb.exists(
                 eb
-                  .selectFrom('seat')
-                  .select('seat.id')
-                  .whereRef('seat.flightId', '=', 'flight.id')
-                  .where('seat.userId', '=', user.id),
+                  .selectFrom('flightPassenger')
+                  .select('flightPassenger.id')
+                  .whereRef('flightPassenger.flightId', '=', 'flight.id')
+                  .where('flightPassenger.userId', '=', user.id),
               )
             : eb.val(true),
         )

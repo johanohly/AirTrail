@@ -6,15 +6,13 @@ export const deepSetAllValues = <T extends object, B extends boolean>(
   obj: T,
   value: B,
 ): DeepBoolean<T, B> => {
-  return Object.keys(obj).reduce(
-    (acc, key) => {
-      const val = obj[key as keyof T];
-      acc[key as keyof T] =
-        typeof val === 'object' && val !== null
-          ? deepSetAllValues(val, value)
-          : value;
-      return acc;
-    },
-    {} as DeepBoolean<T, B>,
-  );
+  const result = {} as { [K in keyof T]?: unknown };
+  for (const key of Object.keys(obj) as Array<keyof T>) {
+    const item = obj[key];
+    result[key] =
+      typeof item === 'object' && item !== null
+        ? deepSetAllValues(item, value)
+        : value;
+  }
+  return result as DeepBoolean<T, B>;
 };

@@ -83,7 +83,12 @@ export const validateAndSaveAircraft = async (
 
   if (existingAircraft) {
     try {
-      await updateAircraft(aircraft);
+      await updateAircraft({
+        ...existingAircraft,
+        ...aircraft,
+        id: existingAircraft.id,
+        sourceId: existingAircraft.sourceId,
+      });
     } catch (_) {
       return {
         success: false,
@@ -101,6 +106,7 @@ export const validateAndSaveAircraft = async (
       await createAircraft({
         name: aircraft.name,
         icao: aircraft.icao,
+        sourceId: null,
       });
     } catch (_) {
       return {

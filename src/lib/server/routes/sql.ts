@@ -9,7 +9,7 @@ export const sqlRouter = router({
       const res = await pool.query(input);
       return { cols: res.fields.map((f) => f.name), rows: res.rows };
     } catch (err) {
-      return { error: err.message };
+      return { error: err instanceof Error ? err.message : 'Query failed' };
     }
   }),
 });

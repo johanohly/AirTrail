@@ -1,23 +1,16 @@
 <script lang="ts">
-  import type { TZDate } from '@date-fns/tz';
   import autoAnimate from '@formkit/auto-animate';
   import { AirplanemodeInactive } from '@o7/icon/material';
 
   import FlightCard from './FlightCard.svelte';
   import SwipeableFlightRow from './SwipeableFlightRow.svelte';
 
-  import type { Airline, Airport } from '$lib/db/types';
+  import type { FlightData } from '$lib/utils';
   import { cn } from '$lib/utils';
 
-  type Flight = {
-    id: number;
-    from: Airport | null;
-    to: Airport | null;
-    airline: Airline | null;
-    flightNumber: string | null;
-    date: TZDate | null;
-    month: string | null;
-    passengers?: string[];
+  type Flight = FlightData & {
+    month?: string | null;
+    passengerLabels?: string[];
   };
 
   type YearGroup = {
@@ -31,13 +24,15 @@
     selectedFlights = $bindable<number[]>([]),
     onEdit,
     onDelete,
+    onShowOnMap,
     readonly = false,
   }: {
     flightsByYear: YearGroup[];
     selecting?: boolean;
     selectedFlights?: number[];
-    onEdit?: (flight: Flight) => void;
-    onDelete?: (flight: Flight) => void;
+    onEdit?: (flight: FlightData) => void;
+    onDelete?: (flight: FlightData) => void;
+    onShowOnMap?: (flight: FlightData) => void;
     readonly?: boolean;
   } = $props();
 
@@ -79,6 +74,12 @@
               disabled={selecting || readonly}
               onEdit={readonly ? undefined : () => onEdit?.(flight)}
               onDelete={readonly ? undefined : () => onDelete?.(flight)}
+              onShowOnMap={readonly ||
+              !onShowOnMap ||
+              !flight.from ||
+              !flight.to
+                ? undefined
+                : () => onShowOnMap?.(flight)}
             >
               {#snippet children({ isInteracting })}
                 <button
@@ -95,7 +96,10 @@
                     }
                   }}
                 >
-                  <FlightCard {flight} />
+                  <FlightCard
+                    {flight}
+                    passengerLabels={flight.passengerLabels}
+                  />
                 </button>
               {/snippet}
             </SwipeableFlightRow>

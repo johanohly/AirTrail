@@ -96,17 +96,17 @@ export const flightRouter = router({
   delete: authedProcedure
     .input(z.number())
     .mutation(async ({ ctx: { user }, input }) => {
-      const seats = await db
-        .selectFrom('seat')
+      const passengers = await db
+        .selectFrom('flightPassenger')
         .selectAll()
         .where('flightId', '=', input)
         .execute();
 
       if (
         user.role === 'user' &&
-        !seats.some((seat) => seat.userId === user.id)
+        !passengers.some((passenger) => passenger.userId === user.id)
       ) {
-        throw new Error('You do not have a seat on this flight');
+        throw new Error('You are not a passenger on this flight');
       }
 
       const resp = await deleteFlight(input);
@@ -119,7 +119,7 @@ export const flightRouter = router({
     .input(z.array(z.number()))
     .mutation(async ({ ctx: { user }, input }) => {
       const result = await db
-        .selectFrom('seat')
+        .selectFrom('flightPassenger')
         .select('flightId')
         .distinct()
         .where('userId', '=', user.id)
@@ -136,7 +136,7 @@ export const flightRouter = router({
   deleteAll: authedProcedure.mutation(async ({ ctx: { user } }) => {
     const flightIds = await db
       .selectFrom('flight')
-      .innerJoin('seat', 'seat.flightId', 'flight.id')
+      .innerJoin('flightPassenger', 'flightPassenger.flightId', 'flight.id')
       .select('flight.id')
       .groupBy('flight.id')
       .having((eb) =>
@@ -145,7 +145,7 @@ export const flightRouter = router({
             eb.fn.count(
               eb
                 .case()
-                .when('seat.userId', '=', user.id)
+                .when('flightPassenger.userId', '=', user.id)
                 .then(1)
                 .else(null)
                 .end(),
@@ -157,13 +157,13 @@ export const flightRouter = router({
             eb.fn.count(
               eb
                 .case()
-                .when('seat.userId', 'is', null)
+                .when('flightPassenger.userId', 'is', null)
                 .then(1)
                 .else(null)
                 .end(),
             ),
             '=',
-            eb(eb.fn.count('seat.id'), '-', eb.lit(1)),
+            eb(eb.fn.count('flightPassenger.id'), '-', eb.lit(1)),
           ),
         ]),
       )
@@ -222,8 +222,10 @@ export const flightRouter = router({
   }),
   exportCsv: authedProcedure.query(async ({ ctx: { user } }) => {
     const res = await listFlights(user.id);
-    const flights = res.map(({ id: _, seats, ...flight }) => {
-      const seat = seats.find((seat) => seat.userId === user.id);
+    const flights = res.map(({ id: _, passengers, ...flight }) => {
+      const passenger = passengers.find(
+        (passenger) => passenger.userId === user.id,
+      );
 
       return {
         ...flight,
@@ -231,9 +233,10 @@ export const flightRouter = router({
         to: flight.to?.name,
         airline: flight.airline?.name,
         aircraft: flight.aircraft?.name,
-        seat: seat?.seat,
-        seatNumber: seat?.seatNumber,
-        seatClass: seat?.seatClass,
+        seat: passenger?.seat,
+        seatNumber: passenger?.seatNumber,
+        seatClass: passenger?.seatClass,
+        flightReason: passenger?.flightReason,
       };
     });
 

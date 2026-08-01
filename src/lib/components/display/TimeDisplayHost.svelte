@@ -5,6 +5,7 @@
   import { toast } from 'svelte-sonner';
 
   import { timeDisplayTether } from './time-display-tether.svelte';
+  import type { TimeDisplayPayload } from './time-display-tether.svelte';
 
   import { page } from '$app/state';
   import { PreferenceField } from '$lib/components/preferences';
@@ -79,7 +80,11 @@
     registerFooter: () => {},
     getState: () => ({ hasHeader: false, hasFooter: false }),
     getContentZIndex: () =>
-      timeDisplayTether.state.registry.activePayload?.zIndex,
+      (
+        timeDisplayTether.state.registry.activePayload as
+          | TimeDisplayPayload
+          | undefined
+      )?.zIndex,
   };
   setContext(ModalContextKey, hostModalContext);
 

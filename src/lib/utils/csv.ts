@@ -1,4 +1,4 @@
-import { ZodError, ZodSchema } from 'zod';
+import { ZodError, type ZodType } from 'zod';
 
 export type SkippedCsvRow = {
   rowNumber: number;
@@ -13,7 +13,7 @@ export type ParseCsvResult<T> = {
 
 export const parseCsv = <T>(
   csv: string,
-  schema: ZodSchema<T>,
+  schema: ZodType<T>,
 ): ParseCsvResult<T> => {
   const lines = parseCsvLines(csv);
   if (lines.length < 2) {

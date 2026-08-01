@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { closeMapDetails, mapDetailsState } from '$lib/state.svelte';
-
   import AirportDetailsActions from './AirportDetailsActions.svelte';
   import AirportDetailsBody from './AirportDetailsBody.svelte';
   import AirportDetailsHeader from './AirportDetailsHeader.svelte';
   import MapDetailsFrame from './MapDetailsFrame.svelte';
   import type { useAirportDetails } from './useAirportDetails.svelte';
+
+  import { closeMapDetails, mapDetailsState } from '$lib/state.svelte';
 
   let {
     details,
@@ -48,6 +48,7 @@
       relatedFlights={details.relatedFlights}
       onShowDepartures={details.showDepartures}
       onShowArrivals={details.showArrivals}
+      onShowFlight={details.showFlight}
     />
   {/if}
 </MapDetailsFrame>

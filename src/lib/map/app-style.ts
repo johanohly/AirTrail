@@ -16,7 +16,7 @@ type AppMapConfig = {
 };
 
 export const getDefaultAppMapStyleUrl = (
-  theme: string,
+  theme?: string,
   basemap: MapBasemap = 'default',
 ) => {
   const normalizedTheme = normalizeCartoTheme(theme);
@@ -28,7 +28,7 @@ export const getDefaultAppMapStyleUrl = (
 };
 
 export const getConfiguredAppMapStyleUrl = (
-  theme: string,
+  theme?: string,
   config?: AppMapConfig | null,
   basemap: MapBasemap = 'default',
 ) => {
@@ -46,7 +46,7 @@ export const getConfiguredAppMapStyleUrl = (
 
 export const getAppMapImages = (
   base = '',
-  theme = 'light',
+  theme: string | undefined = 'light',
 ): CustomImageSpec[] => {
   const normalizedTheme = normalizeCartoTheme(theme);
 

@@ -3,8 +3,8 @@ import { addDays, differenceInSeconds, isBefore } from 'date-fns';
 import { z } from 'zod';
 
 import { page } from '$app/state';
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
-import type { CreateFlight, Seat } from '$lib/db/types';
+import type { CreateFlight, FlightPassenger } from '$lib/db/types';
+import type { PlatformOptions } from '$lib/import/model';
 import { parseCsv } from '$lib/utils';
 import { getAirlineByIata, getAirlineByIcao } from '$lib/utils/data/airlines';
 import { getAirportByIata } from '$lib/utils/data/airports/cache';
@@ -42,7 +42,7 @@ const parseByAirTime = (
   return toUtc(parsed);
 };
 
-const mapSeatType = (seatType: string | null): Seat['seat'] => {
+const mapSeatType = (seatType: string | null): FlightPassenger['seat'] => {
   if (!seatType) return null;
   const normalized = seatType.toLowerCase().trim();
   switch (normalized) {
@@ -57,7 +57,9 @@ const mapSeatType = (seatType: string | null): Seat['seat'] => {
   }
 };
 
-const mapSeatTypeFromClass = (seatClass: string | null): Seat['seat'] => {
+const mapSeatTypeFromClass = (
+  seatClass: string | null,
+): FlightPassenger['seat'] => {
   if (!seatClass) return null;
   const normalized = seatClass.toLowerCase().trim();
   switch (normalized) {
@@ -70,7 +72,9 @@ const mapSeatTypeFromClass = (seatClass: string | null): Seat['seat'] => {
   }
 };
 
-const mapSeatClass = (seatClass: string | null): Seat['seatClass'] => {
+const mapSeatClass = (
+  seatClass: string | null,
+): FlightPassenger['seatClass'] => {
   if (!seatClass) return null;
   const normalized = seatClass.toLowerCase().trim();
   switch (normalized) {
@@ -95,7 +99,7 @@ const mapSeatClass = (seatClass: string | null): Seat['seatClass'] => {
 
 const mapFlightReason = (
   purpose: string | null,
-): CreateFlight['flightReason'] => {
+): FlightPassenger['flightReason'] => {
   if (!purpose) return null;
   const normalized = purpose.toLowerCase().trim();
   switch (normalized) {
@@ -121,8 +125,8 @@ export const processByAirFile = async (
   if (data.length === 0) {
     return {
       flights: [],
-      unknownAirports: {},
-      unknownAirlines: {},
+      unknowns: { airports: {}, airlines: {}, aircraft: {} },
+      exportedUsers: [],
       skippedRows: skipped.length,
     };
   }
@@ -245,8 +249,7 @@ export const processByAirFile = async (
       airline,
       aircraft: null,
       aircraftReg: null,
-      flightReason: mapFlightReason(row.purpose),
-      seats: [
+      passengers: [
         {
           userId,
           seat:
@@ -254,6 +257,7 @@ export const processByAirFile = async (
           seatClass: mapSeatClass(row.seat_class),
           seatNumber: row.seat_number ? row.seat_number.substring(0, 5) : null,
           guestName: null,
+          flightReason: mapFlightReason(row.purpose),
         },
       ],
     });
@@ -261,8 +265,12 @@ export const processByAirFile = async (
 
   return {
     flights,
-    unknownAirports,
-    unknownAirlines,
+    unknowns: {
+      airports: unknownAirports,
+      airlines: unknownAirlines,
+      aircraft: {},
+    },
+    exportedUsers: [],
     skippedRows: skipped.length,
   };
 };

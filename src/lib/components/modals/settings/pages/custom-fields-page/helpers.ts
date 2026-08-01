@@ -3,7 +3,12 @@ export {
   isTextLike,
   normalizeOptions,
 } from '$lib/utils/custom-fields';
-import type { DefinitionItem, EditingState, Validation } from './types';
+import type {
+  DefinitionItem,
+  EditingState,
+  EntityType,
+  Validation,
+} from './types';
 
 import {
   isEntityType,
@@ -125,6 +130,15 @@ export const getDefaultValue = (editing: EditingState): unknown => {
       : null;
   }
 
+  if (fieldType === 'multi-select') {
+    const values = Array.isArray(defaultValue)
+      ? defaultValue.filter(
+          (value): value is string => typeof value === 'string',
+        )
+      : [];
+    return values.length ? values : null;
+  }
+
   if (isEntityType(fieldType)) {
     return typeof defaultValue === 'number' ? defaultValue : null;
   }
@@ -160,9 +174,9 @@ const buildValidationJson = (editing: EditingState): Validation | null => {
   return entries.length > 0 ? Object.fromEntries(entries) : null;
 };
 
-export const buildPayload = (editing: EditingState) => {
+export const buildPayload = (editing: EditingState, entityType: EntityType) => {
   const options =
-    editing.fieldType === 'select'
+    editing.fieldType === 'select' || editing.fieldType === 'multi-select'
       ? editing.optionsText
           .split('\n')
           .map((x) => x.trim())
@@ -170,7 +184,7 @@ export const buildPayload = (editing: EditingState) => {
       : undefined;
 
   return {
-    entityType: 'flight' as const,
+    entityType,
     key: editing.key.trim(),
     label: editing.label.trim(),
     description: editing.description.trim() || null,
@@ -214,7 +228,7 @@ export const validatePayload = (
   }
 
   if (
-    editing.fieldType === 'select' &&
+    (editing.fieldType === 'select' || editing.fieldType === 'multi-select') &&
     (!payload.options || payload.options.length === 0)
   ) {
     return { message: 'Select fields require at least one option' };
@@ -228,6 +242,16 @@ export const validatePayload = (
     !payload.options.includes(payload.defaultValue)
   ) {
     return { message: 'Default option must match one of the listed options' };
+  }
+
+  if (
+    editing.fieldType === 'multi-select' &&
+    payload.defaultValue != null &&
+    Array.isArray(payload.defaultValue) &&
+    payload.options &&
+    payload.defaultValue.some((value) => !payload.options?.includes(value))
+  ) {
+    return { message: 'Default options must match the listed options' };
   }
 
   return null;

@@ -2,38 +2,40 @@ import type { CreateFlight, User } from '$lib/db/types';
 
 export type FlightImportMode = 'personal' | 'restore';
 
-type FlightImportSeat = Pick<
-  CreateFlight['seats'][number],
+type FlightImportPassenger = Pick<
+  CreateFlight['passengers'][number],
   'userId' | 'guestName' | 'seat' | 'seatNumber' | 'seatClass'
 >;
 
-const flightImportSeatKey = (seat: FlightImportSeat) =>
-  seat.userId
-    ? JSON.stringify(['user', seat.userId])
+const flightImportPassengerKey = (passenger: FlightImportPassenger) =>
+  passenger.userId
+    ? JSON.stringify(['user', passenger.userId])
     : JSON.stringify([
         'guest',
-        seat.guestName,
-        seat.seat,
-        seat.seatNumber,
-        seat.seatClass,
+        passenger.guestName,
+        passenger.seat,
+        passenger.seatNumber,
+        passenger.seatClass,
       ]);
 
-export const getMissingImportSeats = <Seat extends FlightImportSeat>(
-  existingSeats: readonly FlightImportSeat[],
-  incomingSeats: readonly Seat[],
-): Seat[] => {
+export const getMissingImportPassengers = <
+  Passenger extends FlightImportPassenger,
+>(
+  existingPassengers: readonly FlightImportPassenger[],
+  incomingPassengers: readonly Passenger[],
+): Passenger[] => {
   const remainingExisting = new Map<string, number>();
-  for (const seat of existingSeats) {
-    const key = flightImportSeatKey(seat);
+  for (const passenger of existingPassengers) {
+    const key = flightImportPassengerKey(passenger);
     remainingExisting.set(key, (remainingExisting.get(key) ?? 0) + 1);
   }
 
   const seenIncomingUsers = new Set<string>();
-  const missingSeats: Seat[] = [];
-  for (const seat of incomingSeats) {
-    const key = flightImportSeatKey(seat);
+  const missingPassengers: Passenger[] = [];
+  for (const passenger of incomingPassengers) {
+    const key = flightImportPassengerKey(passenger);
 
-    if (seat.userId) {
+    if (passenger.userId) {
       if (seenIncomingUsers.has(key)) continue;
       seenIncomingUsers.add(key);
     }
@@ -44,10 +46,10 @@ export const getMissingImportSeats = <Seat extends FlightImportSeat>(
       continue;
     }
 
-    missingSeats.push(seat);
+    missingPassengers.push(passenger);
   }
 
-  return missingSeats;
+  return missingPassengers;
 };
 
 export const validateFlightImportPermissions = (
@@ -63,14 +65,14 @@ export const validateFlightImportPermissions = (
 
   for (const [index, flight] of flights.entries()) {
     if (
-      flight.seats.some(
-        (seat) => seat.userId != null && seat.userId !== user.id,
+      flight.passengers.some(
+        (passenger) => passenger.userId != null && passenger.userId !== user.id,
       )
     ) {
-      return `Flight ${index + 1} assigns a seat to another user`;
+      return `Flight ${index + 1} assigns another user as a passenger`;
     }
 
-    if (!flight.seats.some((seat) => seat.userId === user.id)) {
+    if (!flight.passengers.some((passenger) => passenger.userId === user.id)) {
       return `Flight ${index + 1} must include the importing user`;
     }
   }

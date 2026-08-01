@@ -1,13 +1,14 @@
 import { z } from 'zod';
 
 import { page } from '$app/state';
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import {
   FlightDatePrecisions,
   type Airline,
   type Airport,
   type CreateFlight,
 } from '$lib/db/types';
+import type { PlatformOptions } from '$lib/import/model';
+import { flightTrackInputSchema } from '$lib/track/schema';
 import { api } from '$lib/trpc';
 import { getAircraftByIcao, getAircraftByName } from '$lib/utils/data/aircraft';
 import { getAirlineByIcao, getAirlineByName } from '$lib/utils/data/airlines';
@@ -17,10 +18,9 @@ import { airlineSchema } from '$lib/zod/airline';
 import { flightAirportSchema } from '$lib/zod/airport';
 import {
   flightOptionalInformationSchema,
-  flightSeatInformationSchema,
+  flightPassengerInformationSchema,
 } from '$lib/zod/flight';
 import { usernameSchema } from '$lib/zod/user';
-import { flightTrackInputSchema } from '$lib/track/schema';
 
 const dateTimePrimitive = z
   .string()
@@ -34,8 +34,41 @@ const airportRefSchema = z.union([
 const airlineRefSchema = airlineSchema.omit({ id: true }).nullable();
 const aircraftRefSchema = aircraftSchema.omit({ id: true }).nullable();
 
-const AirTrailFile = z.object({
-  flights: z
+const normalizePassengerProperty = (value: unknown) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+
+  const flight = value as Record<string, unknown>;
+  const sourcePassengers = Array.isArray(flight.passengers)
+    ? flight.passengers
+    : Array.isArray(flight.seats)
+      ? flight.seats
+      : null;
+  if (!sourcePassengers) return value;
+
+  const legacyReason = flight.flightReason ?? null;
+  const passengers = sourcePassengers.map((passenger) => {
+    if (
+      !passenger ||
+      typeof passenger !== 'object' ||
+      Array.isArray(passenger)
+    ) {
+      return passenger;
+    }
+    const record = passenger as Record<string, unknown>;
+    return {
+      ...record,
+      flightReason: record.flightReason ?? legacyReason,
+    };
+  });
+  const { seats: _seats, flightReason: _flightReason, ...rest } = flight;
+  return { ...rest, passengers };
+};
+
+// Custom-field values in AirTrail backups are reference-only. Flight values
+// are omitted here, and passenger values are discarded during user mapping.
+const airTrailFlightSchema = z.preprocess(
+  normalizePassengerProperty,
+  z
     .object({
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       datePrecision: z.enum(FlightDatePrecisions).default('day'),
@@ -63,7 +96,11 @@ const AirTrailFile = z.object({
     .merge(
       flightOptionalInformationSchema.omit({ airline: true, aircraft: true }),
     )
-    .merge(flightSeatInformationSchema)
+    .merge(flightPassengerInformationSchema),
+);
+
+const AirTrailFile = z.object({
+  flights: airTrailFlightSchema
     .array()
     .min(1, 'At least one flight is required'),
   users: z
@@ -200,7 +237,6 @@ export const processAirTrailFile = async (
 
   const unknownAirports: Record<string, number[]> = {};
   const unknownAirlines: Record<string, number[]> = {};
-  const unknownUsers: Record<string, number[]> = {};
   const addUnknownFlightIndex = (
     records: Record<string, number[]>,
     key: string,
@@ -214,26 +250,25 @@ export const processAirTrailFile = async (
     options.importMode === 'restore'
       ? data.flights
       : data.flights.filter((flight) =>
-          flight.seats.some(
-            (seat) =>
-              seat.userId != null && getMappedUserId(seat.userId) === user.id,
+          flight.passengers.some(
+            (passenger) =>
+              passenger.userId != null &&
+              getMappedUserId(passenger.userId) === user.id,
           ),
         );
 
   for (const rawFlight of rawFlights) {
     const flightIndex = flights.length;
 
-    const seats = rawFlight.seats.map((seat) => {
-      const dataUser = dataUsers?.[seat.userId ?? ''];
+    const passengers = rawFlight.passengers.map((rawPassenger) => {
+      const { customFields: _exportOnlyCustomFields, ...passenger } =
+        rawPassenger;
+      const dataUser = dataUsers?.[passenger.userId ?? ''];
       const mappedUserId = dataUser ? getMappedUserId(dataUser.id) : null;
       const user = mappedUserId
         ? users.find((user) => user.id === mappedUserId)
         : null;
 
-      if (options.importMode === 'restore' && dataUser && !user) {
-        const key = `${dataUser.id}|${dataUser.username}|${dataUser.displayName}`;
-        addUnknownFlightIndex(unknownUsers, key, flightIndex);
-      }
       /*
       1. If the user is known, no guest name is needed.
       2. If the user is unknown, but the guest name is known, use the guest name.
@@ -241,16 +276,17 @@ export const processAirTrailFile = async (
        */
       const guestName = user
         ? null
-        : seat.guestName
-          ? seat.guestName
+        : passenger.guestName
+          ? passenger.guestName
           : dataUser
             ? dataUser.displayName
             : null;
 
       return {
-        ...seat,
+        ...passenger,
         userId: user?.id ?? null,
         guestName,
+        customFields: {},
       };
     });
 
@@ -292,15 +328,17 @@ export const processAirTrailFile = async (
       airline,
       aircraft,
       track: rawFlight.track,
-      seats,
+      passengers,
     });
   }
 
   return {
     flights,
-    unknownAirports,
-    unknownAirlines,
-    unknownUsers,
+    unknowns: {
+      airports: unknownAirports,
+      airlines: unknownAirlines,
+      aircraft: {},
+    },
     exportedUsers,
   };
 };

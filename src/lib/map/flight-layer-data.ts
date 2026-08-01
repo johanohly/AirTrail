@@ -1,4 +1,7 @@
-import type { Route } from '$lib/components/flight-filters/types';
+import {
+  routeMatchesEndpoints,
+  type Route,
+} from '$lib/components/flight-filters/types';
 import {
   toFlightTrackSamples,
   type FlightTrackRow,
@@ -23,13 +26,7 @@ export const routeMatchesArc = (
   arc: FlightArc,
   route: Route | null | undefined,
 ) => {
-  if (!route) return false;
-  const fromId = arc.from.id.toString();
-  const toId = arc.to.id.toString();
-  return (
-    (fromId === route.a && toId === route.b) ||
-    (fromId === route.b && toId === route.a)
-  );
+  return routeMatchesEndpoints(arc.from.id, arc.to.id, route);
 };
 
 export const buildArcFrequencyPercentileByRoute = (flightArcs: FlightArc[]) => {

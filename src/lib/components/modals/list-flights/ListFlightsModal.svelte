@@ -1,15 +1,15 @@
 <script lang="ts">
-  import { tick } from 'svelte';
-
   import autoAnimate from '@formkit/auto-animate';
   import {
     ArrowLeftRight,
+    MapPin,
     Plane,
     PlaneTakeoff,
     PlaneLanding,
     X,
   } from '@o7/icon/lucide';
   import { isBefore, isAfter } from 'date-fns';
+  import { tick } from 'svelte';
 
   import DeleteFlightModal from './DeleteFlightModal.svelte';
   import EmptyFlightsState from './EmptyFlightsState.svelte';
@@ -17,21 +17,25 @@
   import Toolbar from './Toolbar.svelte';
 
   import { page as appPage } from '$app/state';
+  import type { Airport } from '$lib/db/types';
   import { AirlineIcon, TimeDisplay } from '$lib/components/display';
   import {
     clearTempFilters as clearTempFilterValues,
     hasTempFilters as hasActiveTempFilters,
+    routeMatchesEndpoints,
     type FlightFilters,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
   import { AddFlightModal, EditFlightModal } from '$lib/components/modals';
-  import { Button } from '$lib/components/ui/button';
   import { Badge } from '$lib/components/ui/badge';
+  import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { Modal } from '$lib/components/ui/modal';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { LabelledSeparator, Separator } from '$lib/components/ui/separator';
   import * as Tooltip from '$lib/components/ui/tooltip';
+  import type { NavigateFlights } from '$lib/flight-navigation';
+  import { canShowFlightOnMap } from '$lib/flight-visibility';
   import {
     flightAddedState,
     flightListFocusState,
@@ -39,9 +43,11 @@
   } from '$lib/state.svelte';
   import {
     cn,
+    cancelHighlight,
     formatSeatForUser,
     getFlightPassengerLabels,
     highlightElement,
+    scrollElementIntoView,
     type FlightData,
   } from '$lib/utils';
   import { formatAircraft } from '$lib/utils/data/aircraft';
@@ -55,20 +61,24 @@
     tempFilters = $bindable<TempFilters | undefined>(),
     flights,
     filteredFlights,
+    focusedFlightOutsideFilters = false,
     deleteFlight,
     readonly = false,
     seatUserId,
     showPassengerDetails = false,
+    onNavigate,
   }: {
     open?: boolean;
     filters?: FlightFilters;
     tempFilters?: TempFilters;
     flights: FlightData[];
     filteredFlights: FlightData[];
+    focusedFlightOutsideFilters?: boolean;
     deleteFlight?: (id: number) => Promise<void>;
     readonly?: boolean;
     seatUserId?: string;
     showPassengerDetails?: boolean;
+    onNavigate?: NavigateFlights;
   } = $props();
 
   const prefs = $derived(getPreferences(appPage.data.user));
@@ -108,7 +118,7 @@
           ...f,
           from: f.from,
           to: f.to,
-          duration: f.duration
+          durationDisplay: f.duration
             ? Duration.fromSeconds(f.duration).toString()
             : '',
           hasDateDisplay: !!f.date,
@@ -121,7 +131,9 @@
           depStatus,
           arrStatus,
           seat: formatSeatForUser(f, seatUserId),
-          passengers: showPassengerDetails ? getFlightPassengerLabels(f) : [],
+          passengerLabels: showPassengerDetails
+            ? getFlightPassengerLabels(f)
+            : [],
         };
       })
       .sort((a, b) => {
@@ -163,7 +175,7 @@
 
   let selecting = $state(false);
   let selectedFlights = $state<number[]>([]);
-  let handledFocusRequest = $state(0);
+  let handledFocusRequest = 0;
 
   // Add flight state
   let addFlightOpen = $state(false);
@@ -181,22 +193,51 @@
     handledFocusRequest = flightListFocusState.request;
     if (!flightId) return;
 
+    let cancelled = false;
+    let highlightedRow: HTMLElement | null = null;
+    const timers = new Set<ReturnType<typeof setTimeout>>();
+    const schedule = (callback: () => void, delay: number) => {
+      const timer = setTimeout(() => {
+        timers.delete(timer);
+        if (!cancelled) callback();
+      }, delay);
+      timers.add(timer);
+    };
+
     const index = formattedFlights.findIndex(
       (flight) => flight.id === flightId,
     );
     if (index >= 0) page = Math.floor(index / flightsPerPage) + 1;
 
-    const highlightFlight = () =>
-      highlightElement(`#flight-list-row-${flightId}`, {
-        duration: 1900,
-        scrollOffset: -100,
-        pulses: 3,
-      }).catch(() => {});
+    // Poll until the row is mounted (on mobile the list opens in a drawer that
+    // animates in, so it isn't in the DOM for the first few frames), then scroll
+    // to it and highlight. Re-scroll once more after a beat because the desktop
+    // grid paginates via auto-animate, so the row's position isn't final yet.
+    const focusRow = (attempts = 0) => {
+      const row = document.getElementById(`flight-list-row-${flightId}`);
+      if (row && row.getBoundingClientRect().height > 0) {
+        highlightedRow = row;
+        highlightElement(row, {
+          duration: 1900,
+          pulses: 3,
+          scrollOffset: 0,
+        }).catch(() => {});
+        schedule(() => scrollElementIntoView(row), 300);
+        return;
+      }
+      if (attempts < 25) schedule(() => focusRow(attempts + 1), 80);
+    };
 
     tick().then(() => {
-      highlightFlight();
-      setTimeout(highlightFlight, 150);
+      if (!cancelled) focusRow();
     });
+
+    return () => {
+      cancelled = true;
+      for (const timer of timers) clearTimeout(timer);
+      timers.clear();
+      if (highlightedRow) cancelHighlight(highlightedRow);
+    };
   });
 
   // Mobile edit state
@@ -256,6 +297,14 @@
     }
   };
 
+  const showFlightOnMap = (flight: FlightData) => {
+    if (!canShowFlightOnMap(flight)) return;
+    onNavigate?.({
+      destination: 'map',
+      focus: { type: 'flight', flightId: flight.id },
+    });
+  };
+
   const hasTempFilters = $derived.by(() => hasActiveTempFilters(tempFilters));
 
   const clearTempFilters = () => {
@@ -297,11 +346,8 @@
   const tempFilterRoute = $derived.by(() => {
     if (!tempFilters?.routes.length) return null;
     const route = tempFilters.routes[0]!;
-    const flight = flights.find(
-      (f) =>
-        (f.from?.id.toString() === route.a &&
-          f.to?.id.toString() === route.b) ||
-        (f.from?.id.toString() === route.b && f.to?.id.toString() === route.a),
+    const flight = flights.find((f) =>
+      routeMatchesEndpoints(f.from?.id, f.to?.id, route),
     );
     if (!flight?.from || !flight.to) return null;
     return {
@@ -362,6 +408,12 @@
         <h2 class="text-3xl font-bold tracking-tight">All Flights</h2>
       {/if}
 
+      {#if focusedFlightOutsideFilters}
+        <p class="text-xs text-muted-foreground">
+          Selected flight is shown outside the active filters.
+        </p>
+      {/if}
+
       {#if filters}
         <Toolbar
           bind:filters
@@ -404,6 +456,7 @@
         bind:selectedFlights
         onEdit={readonly ? undefined : handleMobileEdit}
         onDelete={readonly ? undefined : handleDelete}
+        onShowOnMap={readonly || !onNavigate ? undefined : showFlightOnMap}
         {readonly}
       />
       <div class="h-[130px] sm:h-[90px]"></div>
@@ -433,8 +486,8 @@
                 id="flight-list-row-{flight.id}"
                 class="relative col-span-full grid grid-cols-subgrid scroll-mt-24 rounded-lg"
               >
-                {#if showPassengerDetails && flight.passengers.length}
-                  {@render passengerBadge(flight.passengers)}
+                {#if showPassengerDetails && flight.passengerLabels.length}
+                  {@render passengerBadge(flight.passengerLabels)}
                 {/if}
                 <Card
                   onclick={() => {
@@ -502,7 +555,9 @@
                             >
                               <div class="flex flex-col items-center">
                                 <Plane size="20" />
-                                <span class="text-xs">{flight.duration}</span>
+                                <span class="text-xs"
+                                  >{flight.durationDisplay}</span
+                                >
                               </div>
                             </div>
                           </div>
@@ -549,7 +604,7 @@
   />
 </Modal>
 
-{#snippet flightTimes(flight)}
+{#snippet flightTimes(flight: (typeof formattedFlights)[number])}
   <div class="flex items-center" data-testid="flight-time-departure">
     <PlaneTakeoff size="16" class="mr-1" />
     {#if flight.depAt}
@@ -587,7 +642,7 @@
   </div>
 {/snippet}
 
-{#snippet seatAndAirline(flight)}
+{#snippet seatAndAirline(flight: (typeof formattedFlights)[number])}
   {#if flight.seat || flight.airline}
     <Tooltip.AutoTooltip
       text={flight.seat ?? flight.airline?.name ?? ''}
@@ -606,7 +661,7 @@
   {/if}
 {/snippet}
 
-{#snippet flightAndTailNumber(flight)}
+{#snippet flightAndTailNumber(flight: (typeof formattedFlights)[number])}
   {@const hasAircraftDetails = flight.aircraft || flight.aircraftReg}
   {#if flight.flightNumber || hasAircraftDetails}
     <Tooltip.AutoTooltip
@@ -626,8 +681,20 @@
   {/if}
 {/snippet}
 
-{#snippet actions(flight)}
+{#snippet actions(flight: (typeof formattedFlights)[number])}
   <div class="flex items-center gap-2">
+    {#if onNavigate && canShowFlightOnMap(flight)}
+      <Button
+        variant="outline"
+        size="icon"
+        disabled={selecting}
+        aria-label="Show on map"
+        title="Show on map"
+        onclick={() => showFlightOnMap(flight)}
+      >
+        <MapPin size="20" />
+      </Button>
+    {/if}
     {#key flight}
       <EditFlightModal {flight} triggerDisabled={selecting} />
     {/key}
@@ -663,7 +730,7 @@
   </Badge>
 {/snippet}
 
-{#snippet airport(airport)}
+{#snippet airport(airport: Airport | null)}
   <div class="w-11 flex flex-col items-center justify-center">
     <span class="text-lg font-bold">
       {airport?.iata || airport?.icao || 'N/A'}

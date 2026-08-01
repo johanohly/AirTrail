@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { page } from '$app/state';
+  import { tick } from 'svelte';
   import { writable } from 'svelte/store';
   import { toast } from 'svelte-sonner';
 
+  import { page } from '$app/state';
   import {
     createDefaultFilters,
     matchesFlight,
@@ -15,13 +16,19 @@
     type FlightFilters,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
-  import FlightsOnboarding from '$lib/components/onboarding/FlightsOnboarding.svelte';
-  import { MapDetailsPane } from '$lib/components/map-details';
   import { Map } from '$lib/components/map';
+  import { MapDetailsPane } from '$lib/components/map-details';
   import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
+  import FlightsOnboarding from '$lib/components/onboarding/FlightsOnboarding.svelte';
+  import { createFlightNavigator } from '$lib/flight-navigation';
+  import { includeFocusedFlightInList } from '$lib/flight-visibility';
+  import { waitForModalHistoryIdle } from '$lib/components/ui/modal/modal-history';
   import {
+    closeMapDetails,
     flightScopeState,
     focusFlightInList,
+    mapDetailsState,
+    openFlightDetails,
     openModalsState,
   } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
@@ -55,6 +62,13 @@
     return prepareFlightData(data);
   });
 
+  $effect(() => {
+    const selection = mapDetailsState.selection;
+    if ($rawFlights.isLoading || selection?.type !== 'flight') return;
+    if (flights.some((flight) => flight.id === selection.flightId)) return;
+    closeMapDetails();
+  });
+
   const visitedCountriesData = $derived.by(() => {
     const data = $rawVisitedCountries.data;
     if (!data || !data.length) return [];
@@ -80,12 +94,12 @@
 
   const showPassengerDetails = $derived(flightScopeState.scope !== 'mine');
   const showCountryStats = $derived(flightScopeState.scope === 'mine');
-  let flightListOpenedFromStatistics = $state(false);
+  let focusedListFlightId = $state<number | null>(null);
 
   $effect(() => {
     if (!openModalsState.listFlights) {
       tempFilters = createDefaultTempFilters();
-      flightListOpenedFromStatistics = false;
+      focusedListFlightId = null;
     }
   });
 
@@ -93,7 +107,7 @@
     return flights.filter((flight) => matchesFlight(flight, filters));
   });
 
-  const drilldownFlights = $derived.by(() => {
+  const filteredDrilldownFlights = $derived.by(() => {
     const locationFilters = hasActiveTempFilters(tempFilters)
       ? tempFilters
       : filters;
@@ -104,6 +118,18 @@
         matchesNonLocationFilters(flight, filters),
     );
   });
+
+  const focusedListResult = $derived.by(() =>
+    includeFocusedFlightInList(
+      filteredDrilldownFlights,
+      flights,
+      focusedListFlightId,
+    ),
+  );
+  const drilldownFlights = $derived(focusedListResult.flights);
+  const focusedFlightOutsideFilters = $derived(
+    focusedListResult.focusedFlightOutsideFilters,
+  );
 
   const invalidator = {
     onSuccess: () => {
@@ -124,11 +150,34 @@
     }
   };
 
-  const openFlightInList = (flightId: number) => {
-    tempFilters = createDefaultTempFilters();
-    focusFlightInList(flightId);
-    flightListOpenedFromStatistics = true;
-    openModalsState.listFlights = true;
+  const navigateFlights = createFlightNavigator({
+    getState: () => ({
+      tempFilters,
+      focusedListFlightId,
+      listOpen: openModalsState.listFlights,
+      statisticsOpen: openModalsState.statistics,
+    }),
+    commitState: (next) => {
+      tempFilters = next.tempFilters;
+      focusedListFlightId = next.focusedListFlightId;
+      Object.assign(openModalsState, {
+        listFlights: next.listOpen,
+        statistics: next.statisticsOpen,
+      });
+    },
+    focusFlightInList,
+    waitForModalClose: async () => {
+      await tick();
+      await waitForModalHistoryIdle();
+    },
+    openFlightDetails,
+  });
+
+  const openStatisticsFlight = (flightId: number) => {
+    return navigateFlights({
+      destination: 'list',
+      focus: { type: 'flight', flightId },
+    });
   };
 </script>
 
@@ -141,9 +190,11 @@
   bind:tempFilters
   {flights}
   filteredFlights={drilldownFlights}
+  {focusedFlightOutsideFilters}
   {deleteFlight}
   seatUserId={effectiveSeatUserId}
   {showPassengerDetails}
+  onNavigate={navigateFlights}
 />
 <StatisticsModal
   bind:open={openModalsState.statistics}
@@ -153,10 +204,20 @@
   visitedCountries={showCountryStats ? visitedCountriesData : []}
   seatUserId={effectiveSeatUserId}
   {showCountryStats}
-  onOpenFlight={openFlightInList}
-  suppressEscapeNavigation={flightListOpenedFromStatistics &&
-    openModalsState.listFlights}
+  onOpenFlight={openStatisticsFlight}
 />
 
-<Map bind:filters bind:tempFilters {flights} {filteredFlights} {flightTracks} />
-<MapDetailsPane {flights} bind:filters bind:tempFilters />
+<Map
+  bind:filters
+  bind:tempFilters
+  {flights}
+  {filteredFlights}
+  {flightTracks}
+  onNavigate={navigateFlights}
+/>
+<MapDetailsPane
+  {flights}
+  bind:filters
+  seatUserId={effectiveSeatUserId}
+  onNavigate={navigateFlights}
+/>

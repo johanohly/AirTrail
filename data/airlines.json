@@ -14476,6 +14476,13 @@
     "defunct": false
   },
   {
+    "id": "vanguard-airlines",
+    "name": "Vanguard Airlines",
+    "icao": "VGD",
+    "iata": "NJ*",
+    "defunct": true
+  },
+  {
     "id": "varesh-airlines",
     "name": "Varesh Airlines",
     "icao": "VRH",

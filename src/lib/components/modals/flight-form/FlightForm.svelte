@@ -5,18 +5,30 @@
   import FlightInformation from './FlightInformation.svelte';
   import FlightNumber from './FlightNumber.svelte';
   import FlightTimetable from './FlightTimetable.svelte';
-  import SeatInformation from './SeatInformation.svelte';
+  import PassengerInformation from './PassengerInformation.svelte';
 
   import { confirmation } from '$lib/components/helpers/confirm';
   import { AirportField, DateTimeField } from '$lib/components/form-fields';
   import { mergeTimeWithDate } from '$lib/utils/datetime';
   import type { FlightFormData } from '$lib/zod/flight';
+  import type { CustomFieldDefinition } from '$lib/utils/custom-fields';
 
   let {
     form,
+    passengerCustomFieldDefinitions = [],
+    passengerSavedFieldIds = {},
+    passengerCustomFieldsLoading = false,
   }: {
     form: SuperForm<FlightFormData>;
+    passengerCustomFieldDefinitions?: CustomFieldDefinition[];
+    passengerSavedFieldIds?: Record<number, Set<number>>;
+    passengerCustomFieldsLoading?: boolean;
   } = $props();
+  let passengerInformation = $state<ReturnType<typeof PassengerInformation>>();
+
+  export function validatePassengerCustomFields(): boolean {
+    return passengerInformation?.validateCustomFields() ?? true;
+  }
 
   const { form: formData, errors } = form;
   type TimetableTab = 'scheduled' | 'actual';
@@ -314,7 +326,13 @@
         class="absolute inset-0 rounded-xl border bg-neutral-50 dark:bg-input/30 [mask-image:linear-gradient(to_bottom,black,transparent)]"
       ></div>
       <div class="relative px-4 py-3">
-        <SeatInformation {form} />
+        <PassengerInformation
+          bind:this={passengerInformation}
+          {form}
+          customFieldDefinitions={passengerCustomFieldDefinitions}
+          savedFieldIds={passengerSavedFieldIds}
+          customFieldsLoading={passengerCustomFieldsLoading}
+        />
       </div>
     </div>
   </div>

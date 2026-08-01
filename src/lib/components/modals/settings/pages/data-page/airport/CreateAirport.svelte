@@ -2,7 +2,7 @@
   import { Plus } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
-  import { zod } from 'sveltekit-superforms/adapters';
+  import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
   import AirportFormFields from './AirportFormFields.svelte';
 
@@ -14,12 +14,11 @@
     ModalBreadcrumbHeader,
     ModalFooter,
   } from '$lib/components/ui/modal';
-  import type { Airport } from '$lib/db/types';
   import {
     airportSearchCache,
     clearAirportLookupCaches,
   } from '$lib/utils/data/airports/cache';
-  import { airportSchema } from '$lib/zod/airport';
+  import { airportFormDefaults, airportSchema } from '$lib/zod/airport';
 
   let {
     open = $bindable(false),
@@ -27,22 +26,24 @@
     withoutTrigger = false,
   }: {
     open?: boolean;
-    onAirportCreate?: (airport: Airport) => Promise<void>;
+    onAirportCreate?: () => Promise<void>;
     withoutTrigger?: boolean;
   } = $props();
 
   const form = superForm(
-    defaults<Infer<typeof airportSchema>>(zod(airportSchema)),
+    defaults<Infer<typeof airportSchema>>(
+      zod(airportSchema, { defaults: airportFormDefaults }),
+    ),
     {
       dataType: 'json',
-      validators: zod(airportSchema),
+      validators: zod(airportSchema, { defaults: airportFormDefaults }),
       onUpdated({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
             open = false;
             airportSearchCache.clear();
             clearAirportLookupCaches();
-            onAirportCreate?.({ ...form.data, custom: true });
+            onAirportCreate?.();
             return void toast.success(form.message.text);
           }
           toast.error(form.message.text);

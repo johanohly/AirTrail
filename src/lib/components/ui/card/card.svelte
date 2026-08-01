@@ -14,8 +14,8 @@
     level?: '1' | '2';
   } = $props();
 
-  const rounded = level === '1' ? 'rounded-xl' : 'rounded-md';
-  const darkBg = level === '1' ? 'dark:bg-dark-1' : 'dark:bg-dark-2';
+  const rounded = $derived(level === '1' ? 'rounded-xl' : 'rounded-md');
+  const darkBg = $derived(level === '1' ? 'dark:bg-dark-1' : 'dark:bg-dark-2');
 </script>
 
 <div

@@ -25,6 +25,9 @@ export type TimeOfDayFeatureCollection = FeatureCollection<
   TimeOfDayFeature['properties']
 >;
 
+type Coordinate = [number, number];
+type Ring = Coordinate[];
+
 export const TIME_OF_DAY_SEVERITIES: Array<{
   severity: TimeOfDaySeverity;
   altitudeMax: number;
@@ -109,9 +112,7 @@ const createFeature = (
   geometry,
 });
 
-const closeRing = (
-  ring: Polygon['coordinates'][number],
-): Polygon['coordinates'][number] => {
+const closeRing = (ring: Ring): Ring => {
   const first = ring[0];
 
   if (!first) {
@@ -120,14 +121,14 @@ const closeRing = (
 
   const last = ring.at(-1);
 
-  if (last?.[0] === first[0] && last[1] === first[1]) {
+  if (last && last[0] === first[0] && last[1] === first[1]) {
     return ring;
   }
 
   return [...ring, first];
 };
 
-const findDatelineJumpIndex = (ring: Polygon['coordinates'][number]) =>
+const findDatelineJumpIndex = (ring: Ring) =>
   ring.findIndex((coordinate, index) => {
     const next = ring[(index + 1) % ring.length];
 
@@ -138,7 +139,7 @@ const findDatelineJumpIndex = (ring: Polygon['coordinates'][number]) =>
     return Math.abs(next[0] - coordinate[0]) > 180;
   });
 
-const findDatelineJumpIndexes = (ring: Polygon['coordinates'][number]) => {
+const findDatelineJumpIndexes = (ring: Ring): [number, number] | null => {
   const jumpIndexes: number[] = [];
 
   ring.forEach((coordinate, index) => {
@@ -153,35 +154,55 @@ const findDatelineJumpIndexes = (ring: Polygon['coordinates'][number]) => {
     }
   });
 
-  return jumpIndexes;
+  const [first, second] = jumpIndexes;
+  return first === undefined || second === undefined || jumpIndexes.length !== 2
+    ? null
+    : [first, second];
 };
 
-const interpolateDatelineCrossing = (
-  start: [number, number],
-  end: [number, number],
-) => {
+const getCoordinate = (ring: Ring, index: number): Coordinate => {
+  const coordinate = ring[index];
+  if (!coordinate) {
+    throw new Error(`Missing coordinate at ring index ${index}`);
+  }
+
+  return coordinate;
+};
+
+const interpolateDatelineCrossing = (start: Coordinate, end: Coordinate) => {
   const endLongitude = start[0] > 0 && end[0] < 0 ? end[0] + 360 : end[0] - 360;
   const crossingLongitude = start[0] > 0 ? 180 : -180;
   const progress = (crossingLongitude - start[0]) / (endLongitude - start[0]);
   const latitude = start[1] + (end[1] - start[1]) * progress;
 
   return {
-    east: [180, latitude] satisfies [number, number],
-    west: [-180, latitude] satisfies [number, number],
+    east: [180, latitude] satisfies Coordinate,
+    west: [-180, latitude] satisfies Coordinate,
   };
 };
 
-const createCircleGeometry = (
-  center: [number, number],
-  radius: number,
-): Polygon =>
-  geoCircle()
+const createCircleRing = (center: Coordinate, radius: number): Ring => {
+  const geometry = geoCircle()
     .center(center)
     .radius(radius)
     .precision(CIRCLE_PRECISION_DEGREES)() as Polygon;
+  const ring = geometry.coordinates[0];
+  if (!ring) {
+    throw new Error('Generated solar circle has no coordinates');
+  }
+
+  return ring.map((position) => {
+    const [longitude, latitude] = position;
+    if (longitude === undefined || latitude === undefined) {
+      throw new Error('Generated solar circle contains an invalid coordinate');
+    }
+
+    return [longitude, latitude];
+  });
+};
 
 const createPolarCapPolygon = (
-  ring: Polygon['coordinates'][number],
+  ring: Ring,
   pole: 'north' | 'south',
 ): Polygon => {
   const jumpIndex = findDatelineJumpIndex(ring);
@@ -190,10 +211,10 @@ const createPolarCapPolygon = (
     return { type: 'Polygon', coordinates: [ring] };
   }
 
-  const start = ring[jumpIndex] as [number, number];
-  const end = ring[(jumpIndex + 1) % ring.length] as [number, number];
+  const start = getCoordinate(ring, jumpIndex);
+  const end = getCoordinate(ring, (jumpIndex + 1) % ring.length);
   const crossing = interpolateDatelineCrossing(start, end);
-  const ringWithoutClosingPoint = ring.slice(0, -1) as Array<[number, number]>;
+  const ringWithoutClosingPoint = ring.slice(0, -1);
   const boundary = [
     ...ringWithoutClosingPoint.slice(jumpIndex + 1),
     ...ringWithoutClosingPoint.slice(0, jumpIndex + 1),
@@ -205,13 +226,9 @@ const createPolarCapPolygon = (
   const poleLatitude =
     pole === 'north' ? POLE_EDGE_LATITUDE : -POLE_EDGE_LATITUDE;
   const poleEdge = [180, 120, 60, 0, -60, -120, -180].map(
-    (longitude) => [longitude, poleLatitude] satisfies [number, number],
+    (longitude) => [longitude, poleLatitude] satisfies Coordinate,
   );
-  const closedRing = [
-    ...boundaryWestToEast,
-    ...poleEdge,
-    boundaryWestToEast[0],
-  ];
+  const closedRing = [...boundaryWestToEast, ...poleEdge];
 
   return {
     type: 'Polygon',
@@ -219,32 +236,35 @@ const createPolarCapPolygon = (
   };
 };
 
-const createAntimeridianSplitPolygon = (
-  ring: Polygon['coordinates'][number],
-): MultiPolygon | null => {
+const createAntimeridianSplitPolygon = (ring: Ring): MultiPolygon | null => {
   const jumpIndexes = findDatelineJumpIndexes(ring);
 
-  if (jumpIndexes.length !== 2) {
+  if (!jumpIndexes) {
     return null;
   }
 
-  const ringWithoutClosingPoint = ring.slice(0, -1) as Array<[number, number]>;
+  const ringWithoutClosingPoint = ring.slice(0, -1);
   const [firstJumpIndex, secondJumpIndex] = jumpIndexes;
   const firstJumpNextIndex =
     (firstJumpIndex + 1) % ringWithoutClosingPoint.length;
   const secondJumpNextIndex =
     (secondJumpIndex + 1) % ringWithoutClosingPoint.length;
-  const firstCrossing = interpolateDatelineCrossing(
-    ringWithoutClosingPoint[firstJumpIndex],
-    ringWithoutClosingPoint[firstJumpNextIndex],
+  const firstJump = getCoordinate(ringWithoutClosingPoint, firstJumpIndex);
+  const firstJumpNext = getCoordinate(
+    ringWithoutClosingPoint,
+    firstJumpNextIndex,
   );
+  const secondJump = getCoordinate(ringWithoutClosingPoint, secondJumpIndex);
+  const secondJumpNext = getCoordinate(
+    ringWithoutClosingPoint,
+    secondJumpNextIndex,
+  );
+  const firstCrossing = interpolateDatelineCrossing(firstJump, firstJumpNext);
   const secondCrossing = interpolateDatelineCrossing(
-    ringWithoutClosingPoint[secondJumpIndex],
-    ringWithoutClosingPoint[secondJumpNextIndex],
+    secondJump,
+    secondJumpNext,
   );
-  const firstJumpIsEastToWest =
-    ringWithoutClosingPoint[firstJumpIndex][0] > 0 &&
-    ringWithoutClosingPoint[firstJumpNextIndex][0] < 0;
+  const firstJumpIsEastToWest = firstJump[0] > 0 && firstJumpNext[0] < 0;
   const eastRing = firstJumpIsEastToWest
     ? closeRing([
         secondCrossing.east,
@@ -283,31 +303,28 @@ const createAntimeridianSplitPolygon = (
 };
 
 const createCirclePolygon = (
-  center: [number, number],
+  center: Coordinate,
   radius: number,
 ): Polygon | MultiPolygon => {
-  const geometry = createCircleGeometry(center, radius);
+  const ring = createCircleRing(center, radius);
   const distanceToNorthPole = 90 - center[1];
   const distanceToSouthPole = 90 + center[1];
 
   if (distanceToNorthPole <= radius) {
-    return createPolarCapPolygon(geometry.coordinates[0], 'north');
+    return createPolarCapPolygon(ring, 'north');
   }
 
   if (distanceToSouthPole <= radius) {
-    return createPolarCapPolygon(geometry.coordinates[0], 'south');
+    return createPolarCapPolygon(ring, 'south');
   }
 
-  const splitGeometry = createAntimeridianSplitPolygon(geometry.coordinates[0]);
+  const splitGeometry = createAntimeridianSplitPolygon(ring);
 
   if (splitGeometry) {
     return splitGeometry;
   }
 
-  return {
-    ...geometry,
-    coordinates: geometry.coordinates.map(closeRing),
-  };
+  return { type: 'Polygon', coordinates: [closeRing(ring)] };
 };
 
 export const createTimeOfDayGeoJson = (
@@ -315,7 +332,7 @@ export const createTimeOfDayGeoJson = (
   _projection: TimeOfDayProjection = 'mercator',
 ): TimeOfDayFeatureCollection => {
   const { subsolarLatitude, subsolarLongitude } = getSolarPosition(date);
-  const antiSolarCenter: [number, number] = [
+  const antiSolarCenter: Coordinate = [
     normalizeDegrees(subsolarLongitude + 180),
     -subsolarLatitude,
   ];
