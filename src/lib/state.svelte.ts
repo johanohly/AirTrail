@@ -130,12 +130,10 @@ export const versionState = $state<{
   newReleases: Array<{ name: string; body: string }>;
   isChecking: boolean;
   alreadyChecked: boolean;
-  dismissedVersion: string | null;
 }>({
   currentVersion: '',
   latestVersion: null,
   newReleases: [],
   isChecking: false,
   alreadyChecked: false,
-  dismissedVersion: null,
 });

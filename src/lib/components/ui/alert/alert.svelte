@@ -10,6 +10,8 @@
         destructive:
           'border-destructive/32 bg-destructive/4 [&>svg]:text-destructive',
         info: 'border-blue-500/32 bg-blue-500/4 [&>svg]:text-blue-600 dark:[&>svg]:text-blue-400',
+        important:
+          'border-purple-500/32 bg-purple-500/4 [&>svg]:text-purple-600 dark:[&>svg]:text-purple-400',
         success:
           'border-green-500/32 bg-green-500/4 [&>svg]:text-green-600 dark:[&>svg]:text-green-400',
         warning:

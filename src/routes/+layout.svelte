@@ -6,7 +6,6 @@
   import { Toaster } from 'svelte-sonner';
   import { registerSW } from 'virtual:pwa-register';
 
-  import { dev } from '$app/environment';
   import { page } from '$app/state';
   import { NavigationDock } from '$lib/components';
   import { TimeDisplayHost } from '$lib/components/display';
@@ -45,7 +44,7 @@
 <Toaster />
 <ConfirmWrapper />
 
-{#if !dev && data.user && data.user.role !== 'user'}
+{#if data.user && data.user.role !== 'user'}
   <NewVersionAnnouncement />
 {/if}
 
