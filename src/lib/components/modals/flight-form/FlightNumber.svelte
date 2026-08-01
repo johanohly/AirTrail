@@ -244,6 +244,8 @@
     const conflicts = states.filter(isConflict);
     // Non-conflicting fetched values that will be applied automatically.
     const applied = states.filter((s) => s.fetchedPresent && !isConflict(s));
+    // Fields the lookup actually added (previously empty), i.e. genuinely new data.
+    const newDataCount = applied.filter((s) => !s.currentPresent).length;
 
     let choices: Record<string, MergeChoice> = {};
     if (conflicts.length > 0) {
@@ -274,7 +276,14 @@
     }
 
     clearResults();
-    toast.success('Flight found');
+
+    if (conflicts.length > 0) {
+      toast.success('Flight found — fetched data conflicts with local data');
+    } else if (newDataCount > 0) {
+      toast.success('Flight found — merged new data with no conflicts');
+    } else {
+      toast.info('Flight found — no new data to add');
+    }
   }
 
   function getPrimaryDate(item: LookupResult): TZDate | null {
