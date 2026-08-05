@@ -20,6 +20,7 @@
   import {
     createEmptyImportMappings,
     createEmptyImportUnknowns,
+    getOutstandingUnknowns,
     getPendingFlights,
     mergeImportMappings,
     type ImportMappings,
@@ -42,6 +43,7 @@
 
   let importing = $state(false);
   let importedCount = $state(0);
+  let updatedCount = $state(0);
   let skippedRows = $state(0);
   let importFailures = $state<ImportFailure[]>([]);
   let unknowns = $state<ImportUnknowns>(createEmptyImportUnknowns());
@@ -119,10 +121,12 @@
     batch: IndexedFlight[],
   ): Promise<{
     inserted: number;
+    updated: number;
     attached: number;
     failures: ImportFailure[];
   }> => {
-    if (!batch.length) return { inserted: 0, attached: 0, failures: [] };
+    if (!batch.length)
+      return { inserted: 0, updated: 0, attached: 0, failures: [] };
 
     try {
       const stats = await $createMany.mutateAsync({
@@ -133,6 +137,7 @@
 
       return {
         inserted: stats?.insertedFlights ?? 0,
+        updated: stats?.updatedFlights ?? 0,
         attached: stats?.attachedPassengers ?? 0,
         failures: [],
       };
@@ -140,6 +145,7 @@
       if (batch.length === 1) {
         return {
           inserted: 0,
+          updated: 0,
           attached: 0,
           failures: [
             {
@@ -156,6 +162,7 @@
 
       return {
         inserted: first.inserted + second.inserted,
+        updated: first.updated + second.updated,
         attached: first.attached + second.attached,
         failures: [...first.failures, ...second.failures],
       };
@@ -165,6 +172,7 @@
   const executeImport = async (mapping?: {
     mappings?: ImportMappings;
     userMapping?: Record<string, string>;
+    allowUnmappedOptional?: boolean;
   }) => {
     if (!originalFile) return;
 
@@ -193,25 +201,30 @@
       return;
     }
 
-    // Exclude flights with unknown airports/airlines/aircraft so they aren't
-    // inserted with null references (which would cause duplicates when
-    // the user maps the unknowns and re-imports).
+    // Keep unresolved flights pending for review. Once the user continues,
+    // airlines and aircraft may remain empty, but airports still block import.
     const nextUnknowns = result.unknowns;
     const flightsToImport = getPendingFlights(
       flights,
       nextUnknowns,
       handledFlightIndices,
+      {
+        allowUnknownAirlines: mapping?.allowUnmappedOptional,
+        allowUnknownAircraft: mapping?.allowUnmappedOptional,
+      },
     );
 
     // Send flights in batches to avoid exceeding the server body size limit
     const BATCH_SIZE = 50;
     let inserted = 0;
+    let updated = 0;
     let attached = 0;
     const failures: ImportFailure[] = [];
     for (let i = 0; i < flightsToImport.length; i += BATCH_SIZE) {
       const batch = flightsToImport.slice(i, i + BATCH_SIZE);
       const result = await importBatch(batch);
       inserted += result.inserted;
+      updated += result.updated;
       attached += result.attached;
       failures.push(...result.failures);
       const failedIndices = new Set(
@@ -221,19 +234,24 @@
         if (!failedIndices.has(index)) handledFlightIndices.add(index);
       }
     }
-    if (inserted > 0 || attached > 0) {
+    if (inserted > 0 || updated > 0 || attached > 0) {
       await refreshImportedFlights();
     }
 
-    unknowns = nextUnknowns;
+    unknowns = getOutstandingUnknowns(nextUnknowns, handledFlightIndices);
     exportedUsers = result.exportedUsers;
     skippedRows = result.skippedRows ?? 0;
     importFailures = failures;
 
     importedCount = mapping ? importedCount + inserted : inserted;
+    updatedCount = mapping ? updatedCount + updated : updated;
     if (inserted > 0) {
       toast.success(`Imported ${inserted} ${pluralize(inserted, 'flight')}`);
-    } else if (failures.length === 0) {
+    }
+    if (updated > 0) {
+      toast.success(`Updated ${updated} ${pluralize(updated, 'flight')}`);
+    }
+    if (inserted === 0 && updated === 0 && failures.length === 0) {
       toast.info('No new flights to import');
     }
     if (skippedRows > 0) {
@@ -309,7 +327,7 @@
     }
   };
 
-  const handleReprocess = async (
+  const handleImportRemaining = async (
     pendingMappings: ImportMappings,
   ): Promise<boolean> => {
     if (!originalFile) return false;
@@ -320,11 +338,14 @@
       await executeImport({
         mappings: nextMappings,
         userMapping,
+        allowUnmappedOptional: true,
       });
       appliedMappings = nextMappings;
       return true;
     } catch (error) {
-      toast.error(getImportErrorMessage(error, 'Failed to reprocess file'));
+      toast.error(
+        getImportErrorMessage(error, 'Failed to import remaining flights'),
+      );
       console.error(error);
       return false;
     } finally {
@@ -339,6 +360,7 @@
     appliedMappings = createEmptyImportMappings();
     handledFlightIndices.clear();
     importedCount = 0;
+    updatedCount = 0;
     skippedRows = 0;
     importFailures = [];
     files = null;
@@ -455,11 +477,12 @@
   {:else}
     <StatusStep
       {importedCount}
+      {updatedCount}
       {skippedRows}
       {importFailures}
       {unknowns}
       busy={importing}
-      onreprocess={handleReprocess}
+      onimportremaining={handleImportRemaining}
       onclose={closeAndReset}
     />
   {/if}

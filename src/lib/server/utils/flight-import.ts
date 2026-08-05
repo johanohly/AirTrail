@@ -1,6 +1,27 @@
-import type { CreateFlight, User } from '$lib/db/types';
+import type { CreateFlight, Flight, User } from '$lib/db/types';
 
 export type FlightImportMode = 'personal' | 'restore';
+
+export type MissingFlightReferenceUpdate = {
+  airlineId?: number;
+  aircraftId?: number;
+};
+
+export const getMissingFlightReferenceUpdate = (
+  existing: Pick<Flight, 'airline' | 'aircraft'>,
+  incoming: Pick<CreateFlight, 'airline' | 'aircraft'>,
+): MissingFlightReferenceUpdate | null => {
+  const update: MissingFlightReferenceUpdate = {};
+
+  if (!existing.airline && incoming.airline?.id != null) {
+    update.airlineId = incoming.airline.id;
+  }
+  if (!existing.aircraft && incoming.aircraft?.id != null) {
+    update.aircraftId = incoming.aircraft.id;
+  }
+
+  return Object.keys(update).length ? update : null;
+};
 
 type FlightImportPassenger = Pick<
   CreateFlight['passengers'][number],

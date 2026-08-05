@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { CreateFlight, User } from '$lib/db/types';
 
 import {
+  getMissingFlightReferenceUpdate,
   getMissingImportPassengers,
   validateFlightImportPermissions,
 } from './flight-import';
@@ -75,6 +76,38 @@ describe('getMissingImportPassengers', () => {
     expect(getMissingImportPassengers([], [userSeat, userSeat])).toEqual([
       userSeat,
     ]);
+  });
+});
+
+describe('getMissingFlightReferenceUpdate', () => {
+  it('fills missing airline and aircraft references', () => {
+    expect(
+      getMissingFlightReferenceUpdate(
+        { airline: null, aircraft: null },
+        { airline: { id: 12 }, aircraft: { id: 34 } },
+      ),
+    ).toEqual({ airlineId: 12, aircraftId: 34 });
+  });
+
+  it('does not replace existing references', () => {
+    expect(
+      getMissingFlightReferenceUpdate(
+        {
+          airline: { id: 1 },
+          aircraft: { id: 2 },
+        } as Parameters<typeof getMissingFlightReferenceUpdate>[0],
+        { airline: { id: 12 }, aircraft: { id: 34 } },
+      ),
+    ).toBeNull();
+  });
+
+  it('ignores unresolved incoming references', () => {
+    expect(
+      getMissingFlightReferenceUpdate(
+        { airline: null, aircraft: null },
+        { airline: null, aircraft: null },
+      ),
+    ).toBeNull();
   });
 });
 
