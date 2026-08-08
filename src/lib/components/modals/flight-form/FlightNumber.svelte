@@ -225,10 +225,13 @@
       const tempResults = await api.flight.lookup.query({
         flightNumber: normalizedFlightNumber,
         date: $formData.departure ?? undefined,
-        // Let the server drop results that don't match the route already
-        // entered, e.g. the return leg sharing the same flight number.
-        from: $formData.from?.icao ?? undefined,
-        to: $formData.to?.icao ?? undefined,
+        preferredRoute:
+          $formData.from || $formData.to
+            ? {
+                from: $formData.from?.icao ?? undefined,
+                to: $formData.to?.icao ?? undefined,
+              }
+            : undefined,
       });
       results = tempResults.map((r) => ({
         ...r,
