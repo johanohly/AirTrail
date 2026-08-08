@@ -225,6 +225,13 @@
       const tempResults = await api.flight.lookup.query({
         flightNumber: normalizedFlightNumber,
         date: $formData.departure ?? undefined,
+        preferredRoute:
+          $formData.from || $formData.to
+            ? {
+                from: $formData.from?.icao ?? undefined,
+                to: $formData.to?.icao ?? undefined,
+              }
+            : undefined,
       });
       results = tempResults.map((r) => ({
         ...r,
@@ -287,7 +294,7 @@
         Flight Number
         {#if appConfig.configured?.integrations.aeroDataBoxKey}
           <HelpTooltip
-            text="If you set the departure date before searching, it will be considered when searching for flights."
+            text="If you set the departure date, origin or destination before searching, they will be considered when searching for flights."
           />
         {:else}
           <HelpTooltip>
