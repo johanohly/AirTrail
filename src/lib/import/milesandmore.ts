@@ -1,3 +1,4 @@
+import { isMatch } from 'date-fns';
 import { z } from 'zod';
 
 import { page } from '$app/state';
@@ -16,10 +17,12 @@ const trimmed = z
   .transform((v) => (v && v.trim() ? v.trim() : null));
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+const isValidDate = (value: string) =>
+  dateRegex.test(value) && isMatch(value, 'yyyy-MM-dd');
 
 const MilesAndMoreSegment = z.object({
-  DepartureDate: z.string().regex(dateRegex, 'Invalid DepartureDate'),
-  ArrivalDate: z.string().regex(dateRegex, 'Invalid ArrivalDate').nullish(),
+  DepartureDate: z.string().refine(isValidDate, 'Invalid DepartureDate'),
+  ArrivalDate: z.string().refine(isValidDate, 'Invalid ArrivalDate').nullish(),
   OriginAirportCode: trimmed,
   DestinationAirportCode: trimmed,
   AirlineDesignatorCode: trimmed,
@@ -39,10 +42,53 @@ const MilesAndMoreSegment = z.object({
 });
 
 const MilesAndMoreFile = z.object({
-  SegmentListResponses: MilesAndMoreSegment.array(),
+  SegmentListResponses: z.unknown().array(),
 });
 
 type MilesAndMoreSegment = z.infer<typeof MilesAndMoreSegment>;
+type ImportableSegment = MilesAndMoreSegment & {
+  OriginAirportCode: string;
+  DestinationAirportCode: string;
+  AirlineDesignatorCode: string;
+  FlightNumber: number;
+};
+
+const isImportableSegment = (
+  segment: MilesAndMoreSegment,
+): segment is ImportableSegment =>
+  Boolean(
+    segment.OriginAirportCode &&
+    segment.DestinationAirportCode &&
+    segment.AirlineDesignatorCode &&
+    segment.FlightNumber != null,
+  );
+
+const parseSegments = (rawSegments: unknown[]) => {
+  const segments: ImportableSegment[] = [];
+  let skippedRows = 0;
+
+  for (const [index, rawSegment] of rawSegments.entries()) {
+    const result = MilesAndMoreSegment.safeParse(rawSegment);
+    if (!result.success) {
+      console.warn(
+        `Miles & More import: skipping invalid segment ${index + 1}`,
+        result.error.message,
+      );
+      skippedRows++;
+      continue;
+    }
+    if (!isImportableSegment(result.data)) {
+      console.warn(
+        `Miles & More import: skipping invalid segment ${index + 1}, missing airport, airline, or flight number`,
+      );
+      skippedRows++;
+      continue;
+    }
+    segments.push(result.data);
+  }
+
+  return { segments, skippedRows };
+};
 
 // Miles & More's CompartmentClass is a single-letter booking/fare class, not
 // a standardized cabin class. This is a best-effort heuristic based on
@@ -178,6 +224,56 @@ const resolveAircraft = async (
   return { aircraft: (await getAircraftByIcao(icao)) ?? null, mappingKey };
 };
 
+const LOOKUP_BATCH_SIZE = 8;
+
+const resolveUnique = async <T>(
+  codes: Iterable<string>,
+  resolve: (code: string) => Promise<T>,
+): Promise<Map<string, T>> => {
+  const uniqueCodes = [...new Set(codes)];
+  const resolved = new Map<string, T>();
+
+  for (let index = 0; index < uniqueCodes.length; index += LOOKUP_BATCH_SIZE) {
+    const batch = uniqueCodes.slice(index, index + LOOKUP_BATCH_SIZE);
+    const entries = await Promise.all(
+      batch.map(async (code) => [code, await resolve(code)] as const),
+    );
+    for (const [code, value] of entries) resolved.set(code, value);
+  }
+
+  return resolved;
+};
+
+const resolveEntities = async (
+  segments: ImportableSegment[],
+  options: PlatformOptions,
+) => {
+  const airportCodes = segments.flatMap((segment) => [
+    segment.OriginAirportCode,
+    segment.DestinationAirportCode,
+  ]);
+  const airlineCodes = segments.map((segment) => segment.AirlineDesignatorCode);
+  const aircraftCodes = segments
+    .map((segment) => segment.AircraftCode)
+    .filter((code): code is string => code !== null);
+
+  const [airports, airlines, aircraft] = await Promise.all([
+    resolveUnique(
+      airportCodes,
+      async (code) =>
+        options.airportMapping?.[code] ?? (await getAirportByIata(code)),
+    ),
+    resolveUnique(
+      airlineCodes,
+      async (code) =>
+        options.airlineMapping?.[code] ?? (await getAirlineByIata(code)),
+    ),
+    resolveUnique(aircraftCodes, (code) => resolveAircraft(code, options)),
+  ]);
+
+  return { airports, airlines, aircraft };
+};
+
 const buildNote = (segment: MilesAndMoreSegment): string | null => {
   const parts: string[] = [];
   if (segment.PnrrecordLocator) {
@@ -226,41 +322,27 @@ export const processMilesAndMoreFile = async (
     throw new Error(result.error.message);
   }
 
-  const segments = result.data.SegmentListResponses;
+  const { segments, skippedRows } = parseSegments(
+    result.data.SegmentListResponses,
+  );
+  const resolved = await resolveEntities(segments, options);
 
   const flights: CreateFlight[] = [];
   const unknownAirports: Record<string, number[]> = {};
   const unknownAirlines: Record<string, number[]> = {};
   const unknownAircraft: Record<string, number[]> = {};
-  let skippedRows = 0;
 
   for (const segment of segments) {
-    if (
-      !segment.OriginAirportCode ||
-      !segment.DestinationAirportCode ||
-      !segment.AirlineDesignatorCode ||
-      segment.FlightNumber == null
-    ) {
-      skippedRows++;
-      continue;
-    }
-
-    const mappedFrom = options.airportMapping?.[segment.OriginAirportCode];
-    const mappedTo = options.airportMapping?.[segment.DestinationAirportCode];
-    const from =
-      mappedFrom ?? (await getAirportByIata(segment.OriginAirportCode));
-    const to =
-      mappedTo ?? (await getAirportByIata(segment.DestinationAirportCode));
-
-    const mappedAirline =
-      options.airlineMapping?.[segment.AirlineDesignatorCode];
+    const from = resolved.airports.get(segment.OriginAirportCode) ?? null;
+    const to = resolved.airports.get(segment.DestinationAirportCode) ?? null;
     const airline =
-      mappedAirline ?? (await getAirlineByIata(segment.AirlineDesignatorCode));
-
-    const { aircraft, mappingKey: aircraftKey } = await resolveAircraft(
-      segment.AircraftCode,
-      options,
-    );
+      resolved.airlines.get(segment.AirlineDesignatorCode) ?? null;
+    const { aircraft, mappingKey: aircraftKey } = segment.AircraftCode
+      ? (resolved.aircraft.get(segment.AircraftCode) ?? {
+          aircraft: null,
+          mappingKey: segment.AircraftCode.toUpperCase(),
+        })
+      : { aircraft: null, mappingKey: null };
 
     let departure = segment.DepartureTime
       ? new Date(segment.DepartureTime)

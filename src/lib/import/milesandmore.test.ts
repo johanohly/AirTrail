@@ -4,12 +4,21 @@ import { processMilesAndMoreFile } from './milesandmore';
 
 const { getAirportByIata, getAirlineByIata, getAircraftByIcao } = vi.hoisted(
   () => ({
-    getAirportByIata: vi.fn(async (iata: string) => ({
-      id: iata,
-      iata,
-      tz: 'UTC',
-    })),
-    getAirlineByIata: vi.fn(async (iata: string) => ({ id: iata, iata })),
+    getAirportByIata: vi.fn(
+      async (
+        iata: string,
+      ): Promise<{ id: string; iata: string; tz: string } | null> => ({
+        id: iata,
+        iata,
+        tz: 'UTC',
+      }),
+    ),
+    getAirlineByIata: vi.fn(
+      async (iata: string): Promise<{ id: string; iata: string } | null> => ({
+        id: iata,
+        iata,
+      }),
+    ),
     getAircraftByIcao: vi.fn(async (icao: string) => ({ id: icao, icao })),
   }),
 );
@@ -112,6 +121,19 @@ describe('processMilesAndMoreFile', () => {
     expect(getAirlineByIata).toHaveBeenCalledWith('LX');
     expect(getAircraftByIcao).toHaveBeenCalledWith('A320');
     expect(result.flights[0]?.flightNumber).toBe('LX962');
+  });
+
+  it('resolves each distinct entity code once', async () => {
+    const secondSegment = { ...baseSegment, FlightNumber: 963 };
+    const result = await processMilesAndMoreFile(
+      fileWith([baseSegment, secondSegment]),
+      defaultOptions,
+    );
+
+    expect(result.flights).toHaveLength(2);
+    expect(getAirportByIata).toHaveBeenCalledTimes(2);
+    expect(getAirlineByIata).toHaveBeenCalledTimes(1);
+    expect(getAircraftByIcao).toHaveBeenCalledTimes(1);
   });
 
   it('handles a missing aircraft code gracefully', async () => {
@@ -340,6 +362,37 @@ describe('processMilesAndMoreFile', () => {
 
     expect(result.flights).toHaveLength(1);
     expect(result.skippedRows).toBe(1);
+  });
+
+  it.each([
+    [
+      'a missing departure date',
+      (() => {
+        const segment = { ...baseSegment };
+        delete (segment as Record<string, unknown>).DepartureDate;
+        return segment;
+      })(),
+    ],
+    [
+      'an impossible departure date',
+      { ...baseSegment, DepartureDate: '2025-02-31' },
+    ],
+    ['a malformed arrival date', { ...baseSegment, ArrivalDate: 'not-a-date' }],
+  ])('skips a segment with %s and imports valid rows', async (_, segment) => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const result = await processMilesAndMoreFile(
+      fileWith([segment, baseSegment]),
+      defaultOptions,
+    );
+
+    expect(result.flights).toHaveLength(1);
+    expect(result.flights[0]?.flightNumber).toBe('LX962');
+    expect(result.skippedRows).toBe(1);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('skipping invalid segment 1'),
+      expect.any(String),
+    );
+    warnSpy.mockRestore();
   });
 
   it('rejects invalid JSON', async () => {
