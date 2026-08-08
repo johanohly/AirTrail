@@ -39,14 +39,49 @@
     padding: 0 0.75rem;
   }
 
-  .airtrail-filter-root[data-filter-presentation='map-popover']
-    [data-filter-actions] {
-    height: 2rem;
-    border: 1px solid var(--border);
-    background: var(--background);
-    padding: 0 0.75rem;
-    box-shadow: var(--filter-shadow-xs);
-    font-weight: 500;
+  /* Sits inside a MapLibre control slot: a control group holding the filter
+     trigger, with the active filters stacked underneath it. */
+  .airtrail-filter-root[data-filter-presentation='map-control'] {
+    width: auto;
+    flex-direction: column;
+    align-items: flex-end;
+    /* matches MapLibre's spacing between control groups */
+    gap: 10px;
+  }
+
+  .airtrail-filter-root[data-filter-presentation='map-control']
+    [data-filter-trigger] {
+    /* app.css sizes and colors every button inside a control group */
+    border-radius: 4px;
+  }
+
+  .airtrail-filter-root[data-filter-presentation='map-control']
+    [data-filter-trigger]
+    svg {
+    color: inherit;
+  }
+
+  .airtrail-filter-root[data-filter-presentation='map-control']
+    [data-filter-trigger][data-menu-state='open'] {
+    background-color: var(--accent) !important;
+  }
+
+  .airtrail-filter-root[data-filter-presentation='map-control']
+    [data-filter-list] {
+    max-width: min(20rem, calc(100vw - 5rem));
+    max-height: calc(100vh - 18rem);
+    overflow-y: auto;
+    border-radius: 4px;
+    background: hsl(var(--ml-bg));
+    padding: 0.375rem;
+  }
+
+  /* app.css dims map control buttons on hover; the filter items brought their
+     own hover states along. */
+  .airtrail-filter-root[data-filter-presentation='map-control']
+    [data-filter-item]
+    button:hover {
+    filter: none !important;
   }
 
   .airtrail-filter-root[data-filter-layout='stacked'] [data-filter-list] {

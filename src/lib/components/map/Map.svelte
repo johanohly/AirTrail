@@ -37,7 +37,6 @@
     type Route,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
-  import * as Popover from '$lib/components/ui/popover';
   import {
     getDefaultAppMapStyleUrl,
     getAppMapImages,
@@ -591,41 +590,21 @@
     </Control>
     {#if flights.length}
       <Control position="top-right">
-        <ControlGroup>
-          <ControlButton onclick={fitFlights} title="Show all flights">
-            <Fullscreen size={20} />
-          </ControlButton>
-          {#if filters}
-            {#if $isMediumScreen}
-              <Popover.Root>
-                <Popover.Trigger>
-                  <ControlButton title="Filter flights">
-                    <span class="relative inline-flex">
-                      <Funnel size={18} />
-                      {#if showClear || hasTempFilters}
-                        <span
-                          aria-hidden="true"
-                          data-map-filter-dot
-                          class="absolute -right-1 -top-1 size-2.5 rounded-full bg-blue-500 ring-2 ring-background"
-                        ></span>
-                      {/if}
-                    </span>
-                  </ControlButton>
-                </Popover.Trigger>
-                <Popover.Content
-                  side="left"
-                  class="flex w-fit grow-0 flex-col gap-2 p-3"
-                >
-                  <Filters
-                    bind:flights
-                    bind:filters
-                    bind:tempFilters
-                    layout="stacked"
-                    presentation="map-popover"
-                  />
-                </Popover.Content>
-              </Popover.Root>
-            {:else}
+        {#if filters && $isMediumScreen}
+          <!-- The trigger opens the filter menu itself, so adding a filter
+               stays a single click; active filters are listed below it. -->
+          <Filters
+            bind:flights
+            bind:filters
+            bind:tempFilters
+            layout="stacked"
+            presentation="map-control"
+            leading={fitFlightsButton}
+          />
+        {:else}
+          <ControlGroup>
+            {@render fitFlightsButton()}
+            {#if filters}
               <ControlButton
                 onclick={() => (filterDrawerOpen = true)}
                 title="Filter flights"
@@ -642,8 +621,8 @@
                 </span>
               </ControlButton>
             {/if}
-          {/if}
-        </ControlGroup>
+          </ControlGroup>
+        {/if}
       </Control>
       <Control position="top-right">
         {#if showClear}
@@ -713,6 +692,12 @@
 {:else}
   <MapFallback {flights} {filteredFlights} />
 {/if}
+
+{#snippet fitFlightsButton()}
+  <ControlButton onclick={fitFlights} title="Show all flights">
+    <Fullscreen size={20} />
+  </ControlButton>
+{/snippet}
 
 <style>
   /* The compass is dead weight while rotation is locked (globe mode):

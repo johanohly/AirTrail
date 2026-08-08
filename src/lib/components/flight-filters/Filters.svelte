@@ -62,7 +62,7 @@
   import { Airlines } from '@o7/icon/material';
   import { Filter, useDataTableFilters } from 'bits-ui';
   import { createRawSnippet } from 'svelte';
-  import type { Component } from 'svelte';
+  import type { Component, Snippet } from 'svelte';
   import type { ColumnConfig, FilterIcon, FiltersState } from 'bits-ui';
 
   import './filter.css';
@@ -107,13 +107,20 @@
     hasTempFilters = false,
     layout = 'default',
     presentation = 'default',
+    leading,
   }: {
     flights: FlightData[];
     filters: FlightFilters;
     tempFilters?: TempFilters;
     hasTempFilters?: boolean;
     layout?: 'default' | 'stacked';
-    presentation?: 'default' | 'map-popover';
+    /**
+     * `map-control` renders the filter menu as a MapLibre control button with
+     * the active filters listed underneath it, instead of a toolbar.
+     */
+    presentation?: 'default' | 'map-control';
+    /** Rendered before the filter trigger. Only used by `map-control`. */
+    leading?: Snippet;
   } = $props();
 
   type OptionSource = {
@@ -479,6 +486,20 @@
   });
 
   const providerColumns = $derived(filterState.columns);
+
+  // Filters on a hidden column (the airport columns while a map selection is
+  // active) never render an item, so they must not open the list either.
+  const visibleFilterCount = $derived(
+    filterState.filters.filter((filter) =>
+      filterState.columns.some(
+        (column) => column.id === filter.columnId && !column.hidden,
+      ),
+    ).length,
+  );
+  const showMenuLabel = $derived(
+    presentation !== 'map-control' &&
+      (filterState.filters.length === 0 || layout === 'stacked'),
+  );
 </script>
 
 <Filter.Provider
@@ -494,7 +515,18 @@
     data-filter-layout={layout}
     data-filter-presentation={presentation}
   >
-    {#if layout === 'stacked'}
+    {#if presentation === 'map-control'}
+      <!-- `title` sits on the group because bits-ui owns the trigger element
+           and does not forward attributes to it; the leading control button
+           carries its own title, so each button keeps its own tooltip. -->
+      <div class="maplibregl-ctrl-group" title="Filter flights">
+        {@render leading?.()}
+        {@render filterMenu()}
+      </div>
+      {#if visibleFilterCount > 0}
+        {@render filterList()}
+      {/if}
+    {:else if layout === 'stacked'}
       <div class="airtrail-filter-toolbar">
         {@render filterMenu()}
         {@render filterActions()}
@@ -513,7 +545,7 @@
 {#snippet filterMenu()}
   <Filter.Menu>
     <Funnel size={16} aria-hidden="true" />
-    {#if filterState.filters.length === 0 || layout === 'stacked'}
+    {#if showMenuLabel}
       <span>Filter</span>
     {:else}
       <span class="sr-only">Filter</span>
