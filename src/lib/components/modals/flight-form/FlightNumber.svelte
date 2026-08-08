@@ -1,12 +1,6 @@
 <script lang="ts">
   import { TZDate } from '@date-fns/tz';
-  import {
-    format,
-    isToday,
-    isTomorrow,
-    isYesterday,
-    parseJSON,
-  } from 'date-fns';
+  import { isToday, isTomorrow, isYesterday, parseJSON } from 'date-fns';
   import { toast } from 'svelte-sonner';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
@@ -24,6 +18,15 @@
     getPreferences,
   } from '$lib/utils/preferences';
   import type { flightSchema } from '$lib/zod/flight';
+
+  import FlightMergeConflictModal from './FlightMergeConflictModal.svelte';
+  import {
+    buildMergePlan,
+    getFetchedSources,
+    isConflict,
+    type MergeChoices,
+    type MergeField,
+  } from './merge-fields';
 
   const prefs = $derived(getPreferences(page.data.user));
 
@@ -70,6 +73,14 @@
   let isSearching = $state(false);
   let isApplying = $state(false);
 
+  // When set, the merge-conflict picker is shown; `resolve` returns the user's
+  // per-field choices, or null if they cancelled.
+  let mergeState = $state<{
+    fields: MergeField[];
+    applied: MergeField[];
+    resolve: (choices: MergeChoices | null) => void;
+  } | null>(null);
+
   function clearResults() {
     lookupResults = null;
   }
@@ -107,15 +118,6 @@
   async function applyLookupResult(result: LookupResult) {
     if (!result) return;
 
-    if (
-      ($formData.from || $formData.to) &&
-      !confirm(
-        'Are you sure you want to overwrite the current flight information?',
-      )
-    ) {
-      return;
-    }
-
     let aircraft = result.aircraft ?? null;
     if (!aircraft && result.aircraftReg) {
       isApplying = true;
@@ -129,70 +131,52 @@
       isApplying = false;
     }
 
-    $formData.from = result.from;
-    $formData.to = result.to;
-    $formData.airline = result.airline ?? null;
-    $formData.aircraft = aircraft;
-    $formData.aircraftReg = result.aircraftReg ?? null;
+    const sources = getFetchedSources(result, isFutureFlight(result));
+    const plan = buildMergePlan({
+      current: $formData,
+      result,
+      aircraft,
+      sources,
+      formatTime: (date) => formatTime(date, prefs, date.timeZone),
+    });
+    const { states } = plan;
 
-    if (result.arrival && result.departure && !isFutureFlight(result)) {
-      $formData.departure = format(
-        result.departure,
-        "yyyy-MM-dd'T'00:00:00.000'Z'",
-      );
-      $formData.departureTime = formatTime(
-        result.departure,
-        prefs,
-        result.departure.timeZone,
-      );
+    // Conflicts (a value on both sides that differ) are resolved by the user;
+    // everything else the lookup provides is applied automatically. Fields the
+    // lookup has no value for are left untouched.
+    const toField = ({
+      key,
+      label,
+      currentDisplay,
+      fetchedDisplay,
+    }: MergeField): MergeField => ({
+      key,
+      label,
+      currentDisplay,
+      fetchedDisplay,
+    });
+    const conflicts = states.filter(isConflict);
+    // Non-conflicting fetched values that will be applied automatically.
+    const applied = states.filter((s) => s.fetchedPresent && !isConflict(s));
+    // Fields the lookup actually added (previously empty), i.e. genuinely new data.
+    const newDataCount = applied.filter((s) => !s.currentPresent).length;
 
-      $formData.arrival = format(
-        result.arrival,
-        "yyyy-MM-dd'T'00:00:00.000'Z'",
-      );
-      $formData.arrivalTime = formatTime(
-        result.arrival,
-        prefs,
-        result.arrival.timeZone,
-      );
+    let choices: MergeChoices = {};
+    if (conflicts.length > 0) {
+      const resolved = await new Promise<MergeChoices | null>((resolve) => {
+        mergeState = {
+          fields: conflicts.map(toField),
+          applied: applied.map(toField),
+          resolve,
+        };
+      });
+      mergeState = null;
+      if (!resolved) return;
+      choices = resolved;
     }
 
-    // Apply scheduled times. For future flights, fallback to lookup time when schedule is missing.
-    const departureScheduleSource =
-      result.departureScheduled ??
-      (isFutureFlight(result) ? result.departure : null);
-    if (departureScheduleSource) {
-      $formData.departureScheduled = format(
-        departureScheduleSource,
-        "yyyy-MM-dd'T'00:00:00.000'Z'",
-      );
-      $formData.departureScheduledTime = formatTime(
-        departureScheduleSource,
-        prefs,
-        departureScheduleSource.timeZone,
-      );
-    }
-
-    const arrivalScheduleSource =
-      result.arrivalScheduled ??
-      (isFutureFlight(result) ? result.arrival : null);
-    if (arrivalScheduleSource) {
-      $formData.arrivalScheduled = format(
-        arrivalScheduleSource,
-        "yyyy-MM-dd'T'00:00:00.000'Z'",
-      );
-      $formData.arrivalScheduledTime = formatTime(
-        arrivalScheduleSource,
-        prefs,
-        arrivalScheduleSource.timeZone,
-      );
-    }
-
-    // Apply terminal/gate info
-    $formData.departureTerminal = result.departureTerminal ?? null;
-    $formData.departureGate = result.departureGate ?? null;
-    $formData.arrivalTerminal = result.arrivalTerminal ?? null;
-    $formData.arrivalGate = result.arrivalGate ?? null;
+    const patch = plan.buildPatch(choices);
+    formData.update((current) => ({ ...current, ...patch }));
 
     const preferredTimetableTab = getPreferredTimetableTab(result);
 
@@ -201,7 +185,14 @@
     }
 
     clearResults();
-    toast.success('Flight found');
+
+    if (conflicts.length > 0) {
+      toast.success('Flight found — fetched data conflicts with local data');
+    } else if (newDataCount > 0) {
+      toast.success('Flight found — merged new data with no conflicts');
+    } else {
+      toast.info('Flight found — no new data to add');
+    }
   }
 
   function getPrimaryDate(item: LookupResult): TZDate | null {
@@ -413,4 +404,14 @@
       {/each}
     </div>
   </div>
+{/if}
+
+{#if mergeState}
+  <FlightMergeConflictModal
+    open={true}
+    fields={mergeState.fields}
+    applied={mergeState.applied}
+    onResolve={(choices) => mergeState?.resolve(choices)}
+    onCancel={() => mergeState?.resolve(null)}
+  />
 {/if}
