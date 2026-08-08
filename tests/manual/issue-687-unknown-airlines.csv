@@ -1,0 +1,4 @@
+Date,Flight number,From,To,Dep time,Arr time,Duration,Airline,Aircraft,Registration,Seat number,Seat type,Flight class,Flight reason,Note
+1999-07-15,NW687,Minneapolis (MSP/KMSP),Seattle (SEA/KSEA),10:00:00,11:30:00,03:30:00,Northwest Airlines (NW/NWA),Boeing 757-200 (B752),N687NW,12A,1,1,1,Issue 687 unknown airline test
+2008-04-20,9W687,Mumbai (BOM/VABB),Delhi (DEL/VIDP),09:00:00,11:10:00,02:10:00,Jet Airways (9W/JAI),Boeing 737-800 (B738),VT-JAT,14F,1,1,1,Issue 687 unknown airline test
+2025-01-15,DL687,Atlanta (ATL/KATL),New York (JFK/KJFK),08:00:00,10:15:00,02:15:00,Delta Air Lines (DL/DAL),Airbus A320 (A320),N687DL,8A,1,1,1,Issue 687 known airline control

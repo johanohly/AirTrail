@@ -23,7 +23,9 @@ import {
   persistEntityCustomFields,
 } from '$lib/server/utils/custom-fields';
 import {
+  getMissingFlightReferenceUpdate,
   getMissingImportPassengers,
+  type MissingFlightReferenceUpdate,
   type FlightImportMode,
 } from '$lib/server/utils/flight-import';
 import { distanceBetween } from '$lib/utils';
@@ -503,7 +505,11 @@ export const createManyFlights = async (
   userId: string,
   dedupe = true,
   mode: FlightImportMode = 'personal',
-): Promise<{ insertedFlights: number; attachedPassengers: number }> => {
+): Promise<{
+  insertedFlights: number;
+  updatedFlights: number;
+  attachedPassengers: number;
+}> => {
   if (!dedupe) {
     const insertedFlights = data.length;
     const attachedPassengers = data.reduce(
@@ -511,7 +517,7 @@ export const createManyFlights = async (
       0,
     );
     await createManyFlightsPrimitive(db, data);
-    return { insertedFlights, attachedPassengers };
+    return { insertedFlights, updatedFlights: 0, attachedPassengers };
   }
 
   // Deduplicate within incoming data
@@ -523,7 +529,7 @@ export const createManyFlights = async (
   const uniqueFlights = Array.from(uniqueMap.values());
 
   if (uniqueFlights.length === 0)
-    return { insertedFlights: 0, attachedPassengers: 0 };
+    return { insertedFlights: 0, updatedFlights: 0, attachedPassengers: 0 };
 
   // Gather candidate filters
   const dates = new Set(uniqueFlights.map((f) => f.date));
@@ -547,10 +553,10 @@ export const createManyFlights = async (
       .execute();
   }
 
-  const existingBySig = new Map<string, number>();
+  const existingBySig = new Map<string, Flight>();
   for (const ef of existingFlights) {
     const key = signature(ef);
-    if (!existingBySig.has(key)) existingBySig.set(key, ef.id);
+    if (!existingBySig.has(key)) existingBySig.set(key, ef);
   }
 
   const userPassengerByFlight = new Set<number>();
@@ -572,13 +578,28 @@ export const createManyFlights = async (
     flightId: number;
     track: NonNullable<CreateFlight['track']>;
   }> = [];
+  const referenceUpdates: Array<{
+    flightId: number;
+    update: MissingFlightReferenceUpdate;
+  }> = [];
 
   for (const f of uniqueFlights) {
     const key = signature(f);
-    const existingId = existingBySig.get(key);
-    if (existingId) {
+    const existingFlight = existingBySig.get(key);
+    if (existingFlight) {
+      const existingId = existingFlight.id;
       if (f.track) {
         tracksToUpsert.push({ flightId: existingId, track: f.track });
+      }
+      const referenceUpdate = getMissingFlightReferenceUpdate(
+        existingFlight,
+        f,
+      );
+      if (referenceUpdate) {
+        referenceUpdates.push({
+          flightId: existingId,
+          update: referenceUpdate,
+        });
       }
 
       // Personal imports only deduplicate flights already owned by the importer.
@@ -613,10 +634,34 @@ export const createManyFlights = async (
     insertedFlights = flightsToInsert.length;
   }
 
-  // Attach passengers to existing flights.
+  // Enrich and attach data to existing flights.
+  const updatedFlights = referenceUpdates.length;
   let attachedPassengers = 0;
-  if (passengersToAttach.length || tracksToUpsert.length) {
+  if (
+    referenceUpdates.length ||
+    passengersToAttach.length ||
+    tracksToUpsert.length
+  ) {
     await db.transaction().execute(async (trx) => {
+      for (const { flightId, update } of referenceUpdates) {
+        if (update.airlineId != null) {
+          await trx
+            .updateTable('flight')
+            .set({ airlineId: update.airlineId })
+            .where('id', '=', flightId)
+            .where('airlineId', 'is', null)
+            .execute();
+        }
+        if (update.aircraftId != null) {
+          await trx
+            .updateTable('flight')
+            .set({ aircraftId: update.aircraftId })
+            .where('id', '=', flightId)
+            .where('aircraftId', 'is', null)
+            .execute();
+        }
+      }
+
       for (const { flightId, track } of tracksToUpsert) {
         await upsertFlightTrackPrimitiveWithConnection(trx, flightId, track);
       }
@@ -631,5 +676,5 @@ export const createManyFlights = async (
     });
   }
 
-  return { insertedFlights, attachedPassengers };
+  return { insertedFlights, updatedFlights, attachedPassengers };
 };

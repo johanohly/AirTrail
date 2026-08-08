@@ -27,19 +27,21 @@
 
   let {
     importedCount = 0,
+    updatedCount = 0,
     skippedRows = 0,
     importFailures = [],
     unknowns = createEmptyImportUnknowns(),
     busy = false,
-    onreprocess,
+    onimportremaining,
     onclose,
   }: {
     importedCount?: number;
+    updatedCount?: number;
     skippedRows?: number;
     importFailures?: ImportFailure[];
     unknowns?: ImportUnknowns;
     busy?: boolean;
-    onreprocess?: (mappings: ImportMappings) => Promise<boolean>;
+    onimportremaining?: (mappings: ImportMappings) => Promise<boolean>;
     onclose?: () => void;
   } = $props();
 
@@ -72,7 +74,20 @@
   const unmatchedCount = $derived(
     mappingSections.reduce((count, section) => count + section.unknownCount, 0),
   );
-  const canReprocess = $derived(mappedCount > 0 && !busy);
+  const optionalOnlyFlightCount = $derived.by(() => {
+    const airportIndices = new Set(Object.values(unknowns.airports).flat());
+    const allIndices = new Set([
+      ...airportIndices,
+      ...Object.values(unknowns.airlines).flat(),
+      ...Object.values(unknowns.aircraft).flat(),
+    ]);
+    return [...allIndices].filter((index) => !airportIndices.has(index)).length;
+  });
+  const canImportRemaining = $derived(
+    !busy &&
+      (optionalOnlyFlightCount > 0 ||
+        Object.keys(mappings.airports).length > 0),
+  );
   const mappingSummary = $derived.by(() => {
     return mappingSections
       .filter((section) => section.mappedCount > 0)
@@ -116,8 +131,8 @@
     }
   };
 
-  const handleReprocess = async () => {
-    const succeeded = await onreprocess?.(mappings);
+  const handleImportRemaining = async () => {
+    const succeeded = await onimportremaining?.(mappings);
     if (!succeeded) return;
 
     mappings = createEmptyImportMappings();
@@ -142,12 +157,18 @@
       {/if}
       <div class="flex-1">
         <p class="font-medium text-sm">
-          {unmatchedCount > 0 ? 'Import Needs Mapping' : 'Import Complete'}
+          {unmatchedCount > 0 ? 'Review Unmatched Items' : 'Import Complete'}
         </p>
         <p class="text-sm text-muted-foreground mt-0.5">
           {#if importedCount > 0}
             Successfully imported {importedCount}
             {pluralize(importedCount, 'flight')}
+            {#if updatedCount > 0}
+              and updated {updatedCount} {pluralize(updatedCount, 'flight')}
+            {/if}
+          {:else if updatedCount > 0}
+            Successfully updated {updatedCount}
+            {pluralize(updatedCount, 'flight')}
           {:else if unmatchedCount > 0}
             No flights were imported yet.
           {:else}
@@ -216,7 +237,11 @@
             {unmatchedCount} Unmatched {pluralize(unmatchedCount, 'Item')}
           </p>
           <p class="text-sm text-muted-foreground mt-0.5">
-            Choose a match for each item you recognize, then re-import.
+            Map any items you recognize. Unmapped airlines and aircraft will be
+            left blank.
+            {#if unknownAirportCodes.length > 0}
+              Airports must be mapped before their flights can be imported.
+            {/if}
           </p>
         </div>
       </div>
@@ -280,11 +305,11 @@
 
       <div class="mt-4 flex flex-wrap gap-2">
         <Button
-          onclick={handleReprocess}
-          disabled={!canReprocess}
+          onclick={handleImportRemaining}
+          disabled={!canImportRemaining}
           class="flex-1 sm:flex-none"
         >
-          Apply Mapping & Re-import
+          Import Remaining Flights
         </Button>
         {#if unknownAirportCodes.length}
           <Button
@@ -298,7 +323,7 @@
           </Button>
         {/if}
         <Button variant="ghost" onclick={() => onclose?.()} class="ml-auto">
-          Close
+          Leave Remaining Unimported
         </Button>
       </div>
     {:else}

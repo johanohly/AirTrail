@@ -9,7 +9,12 @@ const { getAirportByIcao, getAirlineByIcao, getAircraftByIcao } = vi.hoisted(
       icao,
       tz: 'UTC',
     })),
-    getAirlineByIcao: vi.fn(async (icao: string) => ({ id: icao, icao })),
+    getAirlineByIcao: vi.fn(
+      async (icao: string): Promise<{ id: string; icao: string } | null> => ({
+        id: icao,
+        icao,
+      }),
+    ),
     getAircraftByIcao: vi.fn(async (icao: string) => ({ id: icao, icao })),
   }),
 );
@@ -141,5 +146,37 @@ describe('processFR24File', () => {
 
     expect(result.flights).toHaveLength(1);
     expect(getAirlineByIcao).toHaveBeenCalledWith('LFH');
+  });
+
+  it('reports and applies mappings for defunct airline codes', async () => {
+    const content = `Date,Flight number,From,To,Dep time,Arr time,Duration,Airline,Aircraft,Registration,Seat number,Seat type,Flight class,Flight reason,Note\n1999-07-15,NW687,Minneapolis (MSP/KMSP),Seattle (SEA/KSEA),10:00:00,11:30:00,03:30:00,Northwest Airlines (NW/NWA),Boeing 757-200 (B752),N687NW,12A,1,1,1,Issue 687 unknown airline test`;
+    getAirlineByIcao.mockResolvedValueOnce(null);
+
+    const unresolved = await processFR24File(content, {
+      filterOwner: false,
+      airlineFromFlightNumber: true,
+      importMode: 'personal',
+    });
+
+    expect(unresolved.flights[0]?.airline).toBeNull();
+    expect(unresolved.unknowns.airlines).toEqual({ NWA: [0] });
+
+    const northwest = {
+      id: 687,
+      name: 'Northwest Airlines',
+      iata: 'NW',
+      icao: 'NWA',
+      sourceId: null,
+      iconPath: null,
+    };
+    const resolved = await processFR24File(content, {
+      filterOwner: false,
+      airlineFromFlightNumber: true,
+      importMode: 'personal',
+      airlineMapping: { NWA: northwest },
+    });
+
+    expect(resolved.flights[0]?.airline).toEqual(northwest);
+    expect(resolved.unknowns.airlines).toEqual({});
   });
 });

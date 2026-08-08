@@ -43,6 +43,11 @@ export type IndexedFlight = {
   index: number;
 };
 
+export type PendingFlightOptions = {
+  allowUnknownAirlines?: boolean;
+  allowUnknownAircraft?: boolean;
+};
+
 export const createEmptyImportMappings = (): ImportMappings => ({
   airports: {},
   airlines: {},
@@ -67,11 +72,16 @@ export const getPendingFlights = (
   flights: CreateFlight[],
   unknowns: ImportUnknowns,
   handledIndices: ReadonlySet<number>,
+  options: PendingFlightOptions = {},
 ): IndexedFlight[] => {
   const unknownIndices = new Set([
     ...Object.values(unknowns.airports).flat(),
-    ...Object.values(unknowns.airlines).flat(),
-    ...Object.values(unknowns.aircraft).flat(),
+    ...(options.allowUnknownAirlines
+      ? []
+      : Object.values(unknowns.airlines).flat()),
+    ...(options.allowUnknownAircraft
+      ? []
+      : Object.values(unknowns.aircraft).flat()),
   ]);
 
   return flights
@@ -79,4 +89,24 @@ export const getPendingFlights = (
     .filter(
       ({ index }) => !unknownIndices.has(index) && !handledIndices.has(index),
     );
+};
+
+export const getOutstandingUnknowns = (
+  unknowns: ImportUnknowns,
+  handledIndices: ReadonlySet<number>,
+): ImportUnknowns => {
+  const filterHandledIndices = (values: UnknownImportValues) => {
+    const outstanding: UnknownImportValues = {};
+    for (const [code, indices] of Object.entries(values)) {
+      const remaining = indices.filter((index) => !handledIndices.has(index));
+      if (remaining.length) outstanding[code] = remaining;
+    }
+    return outstanding;
+  };
+
+  return {
+    airports: filterHandledIndices(unknowns.airports),
+    airlines: filterHandledIndices(unknowns.airlines),
+    aircraft: filterHandledIndices(unknowns.aircraft),
+  };
 };
