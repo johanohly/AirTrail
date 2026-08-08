@@ -138,9 +138,9 @@ const mapCompartmentClass = (
 // covering the Lufthansa Group / Star Alliance fleet types most commonly
 // seen in Miles & More exports; codes that aren't in this table are left
 // unmapped (aircraft stays null) with a console warning. Deliberately
-// excluded: bare generic codes like "757"/"767"/"787" that don't specify
-// a variant (e.g. 767-300 vs 767-400) — guessing one would silently assign
-// a possibly-wrong aircraft, so these are left for manual user mapping.
+// excluded: generic codes like "757"/"767"/"787" and "AT7" that don't
+// specify a variant. Guessing one would silently assign a possibly-wrong
+// aircraft, so these are left for manual user mapping.
 const IATA_TO_ICAO_AIRCRAFT: Record<string, string> = {
   // Airbus narrowbody
   '319': 'A319',
@@ -199,7 +199,6 @@ const IATA_TO_ICAO_AIRCRAFT: Record<string, string> = {
   CR7: 'CRJ7',
   CRJ: 'CRJ2',
   DH4: 'DH8D',
-  AT7: 'AT76',
   AT5: 'AT45',
 };
 

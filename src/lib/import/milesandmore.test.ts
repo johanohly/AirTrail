@@ -251,7 +251,7 @@ describe('processMilesAndMoreFile', () => {
     },
   );
 
-  it.each(['757', '767', '787'])(
+  it.each(['757', '767', '787', 'AT7'])(
     'leaves ambiguous generic aircraft code %s unmapped',
     async (aircraftCode) => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
