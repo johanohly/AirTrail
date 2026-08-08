@@ -15032,7 +15032,7 @@
     "id": "wow-air",
     "name": "WOW Air",
     "icao": "WOW",
-    "iata": "WW",
+    "iata": "WW*",
     "defunct": true
   },
   {
