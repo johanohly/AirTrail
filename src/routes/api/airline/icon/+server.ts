@@ -50,7 +50,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 
   // Get file extension from mime type
   const ext = ALLOWED_IMAGE_EXTENSIONS[typeIndex] || '.png';
-  const relativePath = `airlines/${airlineId}${ext}`;
+  const relativePath = `airlines/${airlineIdNum}${ext}`;
 
   // Delete old icon if it exists with a different extension
   const existingAirline = await db
