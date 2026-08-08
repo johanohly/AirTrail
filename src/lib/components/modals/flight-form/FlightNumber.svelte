@@ -1,12 +1,6 @@
 <script lang="ts">
   import { TZDate } from '@date-fns/tz';
-  import {
-    format,
-    isToday,
-    isTomorrow,
-    isYesterday,
-    parseJSON,
-  } from 'date-fns';
+  import { isToday, isTomorrow, isYesterday, parseJSON } from 'date-fns';
   import { toast } from 'svelte-sonner';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
@@ -27,13 +21,11 @@
 
   import FlightMergeConflictModal from './FlightMergeConflictModal.svelte';
   import {
-    buildMergeFieldStates,
-    FORM_DATE_FORMAT,
+    buildMergePlan,
     getFetchedSources,
     isConflict,
-    type MergeChoice,
+    type MergeChoices,
     type MergeField,
-    type MergeFieldKey,
   } from './merge-fields';
 
   const prefs = $derived(getPreferences(page.data.user));
@@ -86,7 +78,7 @@
   let mergeState = $state<{
     fields: MergeField[];
     applied: MergeField[];
-    resolve: (choices: Record<string, MergeChoice> | null) => void;
+    resolve: (choices: MergeChoices | null) => void;
   } | null>(null);
 
   function clearResults() {
@@ -123,85 +115,6 @@
     return null;
   }
 
-  /** Writes a single fetched field into the form. */
-  function applyField(
-    key: MergeFieldKey,
-    result: LookupResult,
-    aircraft: FlightFormData['aircraft'],
-    sources: ReturnType<typeof getFetchedSources>,
-  ) {
-    const setDateTime = (
-      source: TZDate,
-      dateField:
-        | 'departure'
-        | 'arrival'
-        | 'departureScheduled'
-        | 'arrivalScheduled',
-      timeField:
-        | 'departureTime'
-        | 'arrivalTime'
-        | 'departureScheduledTime'
-        | 'arrivalScheduledTime',
-    ) => {
-      $formData[dateField] = format(source, FORM_DATE_FORMAT);
-      $formData[timeField] = formatTime(source, prefs, source.timeZone);
-    };
-
-    switch (key) {
-      case 'from':
-        $formData.from = result.from;
-        break;
-      case 'to':
-        $formData.to = result.to;
-        break;
-      case 'airline':
-        $formData.airline = result.airline ?? null;
-        break;
-      case 'aircraft':
-        $formData.aircraft = aircraft;
-        break;
-      case 'aircraftReg':
-        $formData.aircraftReg = result.aircraftReg ?? null;
-        break;
-      case 'departure':
-        if (sources.departure)
-          setDateTime(sources.departure, 'departure', 'departureTime');
-        break;
-      case 'arrival':
-        if (sources.arrival)
-          setDateTime(sources.arrival, 'arrival', 'arrivalTime');
-        break;
-      case 'departureScheduled':
-        if (sources.departureScheduled)
-          setDateTime(
-            sources.departureScheduled,
-            'departureScheduled',
-            'departureScheduledTime',
-          );
-        break;
-      case 'arrivalScheduled':
-        if (sources.arrivalScheduled)
-          setDateTime(
-            sources.arrivalScheduled,
-            'arrivalScheduled',
-            'arrivalScheduledTime',
-          );
-        break;
-      case 'departureTerminal':
-        $formData.departureTerminal = result.departureTerminal ?? null;
-        break;
-      case 'departureGate':
-        $formData.departureGate = result.departureGate ?? null;
-        break;
-      case 'arrivalTerminal':
-        $formData.arrivalTerminal = result.arrivalTerminal ?? null;
-        break;
-      case 'arrivalGate':
-        $formData.arrivalGate = result.arrivalGate ?? null;
-        break;
-    }
-  }
-
   async function applyLookupResult(result: LookupResult) {
     if (!result) return;
 
@@ -219,13 +132,14 @@
     }
 
     const sources = getFetchedSources(result, isFutureFlight(result));
-    const states = buildMergeFieldStates({
+    const plan = buildMergePlan({
       current: $formData,
       result,
       aircraft,
       sources,
       formatTime: (date) => formatTime(date, prefs, date.timeZone),
     });
+    const { states } = plan;
 
     // Conflicts (a value on both sides that differ) are resolved by the user;
     // everything else the lookup provides is applied automatically. Fields the
@@ -247,27 +161,22 @@
     // Fields the lookup actually added (previously empty), i.e. genuinely new data.
     const newDataCount = applied.filter((s) => !s.currentPresent).length;
 
-    let choices: Record<string, MergeChoice> = {};
+    let choices: MergeChoices = {};
     if (conflicts.length > 0) {
-      const resolved = await new Promise<Record<string, MergeChoice> | null>(
-        (resolve) => {
-          mergeState = {
-            fields: conflicts.map(toField),
-            applied: applied.map(toField),
-            resolve,
-          };
-        },
-      );
+      const resolved = await new Promise<MergeChoices | null>((resolve) => {
+        mergeState = {
+          fields: conflicts.map(toField),
+          applied: applied.map(toField),
+          resolve,
+        };
+      });
       mergeState = null;
       if (!resolved) return;
       choices = resolved;
     }
 
-    for (const state of states) {
-      if (!state.fetchedPresent) continue;
-      if (isConflict(state) && choices[state.key] !== 'fetched') continue;
-      applyField(state.key, result, aircraft, sources);
-    }
+    const patch = plan.buildPatch(choices);
+    formData.update((current) => ({ ...current, ...patch }));
 
     const preferredTimetableTab = getPreferredTimetableTab(result);
 

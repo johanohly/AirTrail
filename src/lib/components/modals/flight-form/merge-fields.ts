@@ -1,9 +1,14 @@
-import type { TZDate } from '@date-fns/tz';
+import { TZDate } from '@date-fns/tz';
 import { format } from 'date-fns';
 
+import {
+  formatTimeValue,
+  mergeTimeWithDate,
+  parseTimeValue,
+} from '$lib/utils/datetime';
 import type { FlightFormData } from '$lib/zod/flight';
 
-/** Formats a timezone-aware datetime's time part (matches the form's stored times). */
+/** Formats a timezone-aware datetime's time part for display. */
 export type FormatTime = (date: TZDate) => string;
 
 export type MergeChoice = 'current' | 'fetched';
@@ -22,6 +27,8 @@ export type MergeFieldKey =
   | 'departureGate'
   | 'arrivalTerminal'
   | 'arrivalGate';
+
+export type MergeChoices = Partial<Record<MergeFieldKey, MergeChoice>>;
 
 /** The value shown for one side of a conflict in the picker. */
 export type MergeField = {
@@ -65,6 +72,11 @@ export type FetchedSources = {
   arrivalScheduled: TZDate | null;
 };
 
+export type MergePlan = {
+  states: MergeFieldState[];
+  buildPatch: (choices: MergeChoices) => Partial<FlightFormData>;
+};
+
 export const FORM_DATE_FORMAT = "yyyy-MM-dd'T'00:00:00.000'Z'";
 
 /**
@@ -92,135 +104,260 @@ export function getFetchedSources(
 const isPresent = (value: string | null | undefined): boolean =>
   value !== null && value !== undefined && value.trim() !== '';
 
-const airportDisplay = (a: FlightFormData['from']): string =>
-  a ? a.iata || a.icao || a.name : '';
+const airportDisplay = (airport: FlightFormData['from']): string =>
+  airport ? airport.iata || airport.icao || airport.name : '';
 
-const airlineDisplay = (a: FlightFormData['airline']): string =>
-  a ? a.name || a.icao || '' : '';
+const airlineDisplay = (airline: FlightFormData['airline']): string =>
+  airline ? airline.name || airline.icao || '' : '';
 
-const aircraftDisplay = (a: FlightFormData['aircraft']): string =>
-  a ? a.name : '';
+const aircraftDisplay = (aircraft: FlightFormData['aircraft']): string =>
+  aircraft ? aircraft.name : '';
 
-const fetchedDateTimeDisplay = (
-  date: TZDate | null,
-  formatTime: FormatTime,
-): string => (date ? `${format(date, 'yyyy-MM-dd')} ${formatTime(date)}` : '');
+const dateTimeDisplay = (date: TZDate, formatTime: FormatTime): string =>
+  `${format(date, 'yyyy-MM-dd')} ${formatTime(date)}`;
 
-const currentDateTimeDisplay = (
+const rawDateTimeDisplay = (
   dateIso: string | null,
   time: string | null,
 ): string => (dateIso ? `${dateIso.slice(0, 10)} ${time ?? ''}`.trim() : '');
 
+const normalizedWallDateTime = (
+  dateIso: string | null,
+  time: string | null,
+): string | null => {
+  if (!dateIso || !time) return null;
+  const parsedTime = parseTimeValue(time);
+  return parsedTime
+    ? `${dateIso.slice(0, 10)} ${formatTimeValue(parsedTime)}`
+    : null;
+};
+
+const toDateTime = (
+  dateIso: string | null,
+  time: string | null,
+  timeZone: string | null | undefined,
+): TZDate | null => {
+  if (!dateIso || !time || !timeZone) return null;
+  try {
+    return mergeTimeWithDate(dateIso, time, timeZone);
+  } catch {
+    return null;
+  }
+};
+
+type MergePatch = Partial<FlightFormData>;
+type TargetAirports = Pick<FlightFormData, 'from' | 'to'>;
+
+type MergeDescriptor = MergeFieldState & {
+  fetchedPatch: (targets: TargetAirports) => MergePatch;
+  currentPatchForTargets?: (targets: TargetAirports) => MergePatch;
+};
+
+const dateTimeFields = {
+  departure: { timeField: 'departureTime', airportField: 'from' },
+  arrival: { timeField: 'arrivalTime', airportField: 'to' },
+  departureScheduled: {
+    timeField: 'departureScheduledTime',
+    airportField: 'from',
+  },
+  arrivalScheduled: {
+    timeField: 'arrivalScheduledTime',
+    airportField: 'to',
+  },
+} as const;
+
+type DateTimeFieldKey = keyof typeof dateTimeFields;
+
+const dateTimePatch = (
+  key: DateTimeFieldKey,
+  source: TZDate,
+  targetTimeZone: string | null | undefined,
+): MergePatch => {
+  const date = targetTimeZone
+    ? new TZDate(source.getTime(), targetTimeZone)
+    : source;
+  const { timeField } = dateTimeFields[key];
+  return {
+    [key]: format(date, FORM_DATE_FORMAT),
+    [timeField]: format(date, 'HH:mm'),
+  } as MergePatch;
+};
+
+const publicState = (descriptor: MergeDescriptor): MergeFieldState => ({
+  key: descriptor.key,
+  label: descriptor.label,
+  currentDisplay: descriptor.currentDisplay,
+  fetchedDisplay: descriptor.fetchedDisplay,
+  currentPresent: descriptor.currentPresent,
+  fetchedPresent: descriptor.fetchedPresent,
+  equal: descriptor.equal,
+});
+
 /**
- * Build the state for every field the lookup can touch: whether each side has a
- * value, whether they are equal, and their display strings. Callers filter this
- * into conflicts (see {@link isConflict}) and auto-applied fields.
+ * Build conflict state and the matching form patch from one set of descriptors.
+ * Datetimes are converted into the final selected airport's timezone, so mixed
+ * airport/time choices preserve the underlying instant.
  */
-export function buildMergeFieldStates(args: {
+export function buildMergePlan(args: {
   current: FlightFormData;
   result: LookupResultLike;
   aircraft: FlightFormData['aircraft'];
   sources: FetchedSources;
   formatTime: FormatTime;
-}): MergeFieldState[] {
+}): MergePlan {
   const { current, result, aircraft, sources, formatTime } = args;
 
   const make = (
-    key: MergeFieldKey,
-    label: string,
-    currentDisplay: string,
-    fetchedDisplay: string,
-    currentPresent: boolean,
-    fetchedPresent: boolean,
-    equal: boolean,
-  ): MergeFieldState => ({
-    key,
-    label,
-    currentDisplay,
-    fetchedDisplay,
-    currentPresent,
-    fetchedPresent,
-    equal,
+    state: MergeFieldState,
+    fetchedPatch: MergeDescriptor['fetchedPatch'],
+    currentPatchForTargets?: MergeDescriptor['currentPatchForTargets'],
+  ): MergeDescriptor => ({
+    ...state,
+    fetchedPatch,
+    currentPatchForTargets,
   });
 
-  const dateTimeState = (
-    key: MergeFieldKey,
+  const entityState = <K extends 'from' | 'to' | 'airline' | 'aircraft'>(
+    key: K,
     label: string,
-    currentDate: string | null,
-    currentTime: string | null,
-    fetched: TZDate | null,
-  ): MergeFieldState => {
-    const currentDisplay = currentDateTimeDisplay(currentDate, currentTime);
-    const fetchedDisplay = fetchedDateTimeDisplay(fetched, formatTime);
-    return make(
-      key,
-      label,
-      currentDisplay,
-      fetchedDisplay,
-      !!currentDate,
-      !!fetched,
-      currentDisplay === fetchedDisplay,
+    currentValue: FlightFormData[K],
+    fetchedValue: FlightFormData[K],
+    display: (value: FlightFormData[K]) => string,
+    equal: (
+      currentValue: NonNullable<FlightFormData[K]>,
+      fetchedValue: NonNullable<FlightFormData[K]>,
+    ) => boolean,
+  ): MergeDescriptor =>
+    make(
+      {
+        key,
+        label,
+        currentDisplay: display(currentValue),
+        fetchedDisplay: display(fetchedValue),
+        currentPresent: !!currentValue,
+        fetchedPresent: !!fetchedValue,
+        equal:
+          !!currentValue && !!fetchedValue && equal(currentValue, fetchedValue),
+      },
+      () => ({ [key]: fetchedValue }) as MergePatch,
     );
-  };
 
   const stringState = (
-    key: MergeFieldKey,
+    key:
+      | 'aircraftReg'
+      | 'departureTerminal'
+      | 'departureGate'
+      | 'arrivalTerminal'
+      | 'arrivalGate',
     label: string,
     currentValue: string | null | undefined,
     fetchedValue: string | null | undefined,
-  ): MergeFieldState =>
+  ): MergeDescriptor =>
     make(
-      key,
-      label,
-      currentValue ?? '',
-      fetchedValue ?? '',
-      isPresent(currentValue),
-      isPresent(fetchedValue),
-      (currentValue ?? '').trim() === (fetchedValue ?? '').trim(),
+      {
+        key,
+        label,
+        currentDisplay: currentValue ?? '',
+        fetchedDisplay: fetchedValue ?? '',
+        currentPresent: isPresent(currentValue),
+        fetchedPresent: isPresent(fetchedValue),
+        equal: (currentValue ?? '').trim() === (fetchedValue ?? '').trim(),
+      },
+      () => ({ [key]: fetchedValue ?? null }) as MergePatch,
     );
 
-  return [
-    make(
+  const dateTimeState = (
+    key: DateTimeFieldKey,
+    label: string,
+    currentDate: string | null,
+    currentTime: string | null,
+    currentTimeZone: string | null | undefined,
+    fetched: TZDate | null,
+  ): MergeDescriptor => {
+    const currentDateTime = toDateTime(
+      currentDate,
+      currentTime,
+      currentTimeZone,
+    );
+    const currentDisplay = currentDateTime
+      ? dateTimeDisplay(currentDateTime, formatTime)
+      : rawDateTimeDisplay(currentDate, currentTime);
+    const fetchedDisplay = fetched ? dateTimeDisplay(fetched, formatTime) : '';
+    const airportField = dateTimeFields[key].airportField;
+    const currentWallDateTime = normalizedWallDateTime(
+      currentDate,
+      currentTime,
+    );
+    const fetchedWallDateTime = fetched
+      ? `${format(fetched, 'yyyy-MM-dd')} ${format(fetched, 'HH:mm')}`
+      : null;
+    const equal = currentDateTime
+      ? !!fetched && currentDateTime.getTime() === fetched.getTime()
+      : !!currentWallDateTime && currentWallDateTime === fetchedWallDateTime;
+
+    return make(
+      {
+        key,
+        label,
+        currentDisplay,
+        fetchedDisplay,
+        currentPresent: !!currentDate,
+        fetchedPresent: !!fetched,
+        equal,
+      },
+      (targets) =>
+        fetched ? dateTimePatch(key, fetched, targets[airportField]?.tz) : {},
+      (targets) => {
+        const targetTimeZone = targets[airportField]?.tz;
+        if (
+          !currentDateTime ||
+          !currentTimeZone ||
+          !targetTimeZone ||
+          currentTimeZone === targetTimeZone
+        ) {
+          return {};
+        }
+        return dateTimePatch(key, currentDateTime, targetTimeZone);
+      },
+    );
+  };
+
+  const descriptors: MergeDescriptor[] = [
+    entityState(
       'from',
       'Departure airport',
-      airportDisplay(current.from),
-      airportDisplay(result.from),
-      !!current.from,
-      !!result.from,
-      current.from?.id === result.from?.id,
+      current.from,
+      result.from,
+      (value) => airportDisplay(value),
+      (currentValue, fetchedValue) => currentValue.id === fetchedValue.id,
     ),
-    make(
+    entityState(
       'to',
       'Arrival airport',
-      airportDisplay(current.to),
-      airportDisplay(result.to),
-      !!current.to,
-      !!result.to,
-      current.to?.id === result.to?.id,
+      current.to,
+      result.to,
+      (value) => airportDisplay(value),
+      (currentValue, fetchedValue) => currentValue.id === fetchedValue.id,
     ),
-    make(
+    entityState(
       'airline',
       'Airline',
-      airlineDisplay(current.airline),
-      airlineDisplay(result.airline),
-      !!current.airline,
-      !!result.airline,
-      !!current.airline &&
-        !!result.airline &&
-        current.airline.id === result.airline.id &&
-        current.airline.name === result.airline.name,
+      current.airline,
+      result.airline,
+      (value) => airlineDisplay(value),
+      (currentValue, fetchedValue) =>
+        currentValue.id === fetchedValue.id &&
+        currentValue.name === fetchedValue.name,
     ),
-    make(
+    entityState(
       'aircraft',
       'Aircraft',
-      aircraftDisplay(current.aircraft),
-      aircraftDisplay(aircraft),
-      !!current.aircraft,
-      !!aircraft,
-      !!current.aircraft &&
-        !!aircraft &&
-        current.aircraft.id === aircraft.id &&
-        current.aircraft.name === aircraft.name,
+      current.aircraft,
+      aircraft,
+      (value) => aircraftDisplay(value),
+      (currentValue, fetchedValue) =>
+        currentValue.id === fetchedValue.id &&
+        currentValue.name === fetchedValue.name,
     ),
     stringState(
       'aircraftReg',
@@ -233,6 +370,7 @@ export function buildMergeFieldStates(args: {
       'Departure time',
       current.departure,
       current.departureTime,
+      current.from?.tz,
       sources.departure,
     ),
     dateTimeState(
@@ -240,6 +378,7 @@ export function buildMergeFieldStates(args: {
       'Arrival time',
       current.arrival,
       current.arrivalTime,
+      current.to?.tz,
       sources.arrival,
     ),
     dateTimeState(
@@ -247,6 +386,7 @@ export function buildMergeFieldStates(args: {
       'Scheduled departure',
       current.departureScheduled,
       current.departureScheduledTime,
+      current.from?.tz,
       sources.departureScheduled,
     ),
     dateTimeState(
@@ -254,6 +394,7 @@ export function buildMergeFieldStates(args: {
       'Scheduled arrival',
       current.arrivalScheduled,
       current.arrivalScheduledTime,
+      current.to?.tz,
       sources.arrivalScheduled,
     ),
     stringState(
@@ -281,6 +422,45 @@ export function buildMergeFieldStates(args: {
       result.arrivalGate,
     ),
   ];
+
+  const buildPatch = (choices: MergeChoices): MergePatch => {
+    const fetchedKeys = new Set(
+      descriptors
+        .filter(
+          (descriptor) =>
+            descriptor.fetchedPresent &&
+            (!isConflict(descriptor) || choices[descriptor.key] === 'fetched'),
+        )
+        .map((descriptor) => descriptor.key),
+    );
+    const targets: TargetAirports = {
+      from: fetchedKeys.has('from') ? result.from : current.from,
+      to: fetchedKeys.has('to') ? result.to : current.to,
+    };
+    const patch: MergePatch = {};
+
+    for (const descriptor of descriptors) {
+      if (fetchedKeys.has(descriptor.key)) {
+        Object.assign(patch, descriptor.fetchedPatch(targets));
+      } else if (descriptor.currentPatchForTargets) {
+        Object.assign(patch, descriptor.currentPatchForTargets(targets));
+      }
+    }
+
+    return patch;
+  };
+
+  return {
+    states: descriptors.map(publicState),
+    buildPatch,
+  };
+}
+
+/** Build just the display/conflict state when no patch is needed. */
+export function buildMergeFieldStates(
+  args: Parameters<typeof buildMergePlan>[0],
+): MergeFieldState[] {
+  return buildMergePlan(args).states;
 }
 
 /** A field is a conflict when both sides have a differing value. */

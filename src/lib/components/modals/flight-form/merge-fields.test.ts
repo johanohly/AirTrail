@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildMergeFieldStates,
+  buildMergePlan,
   getFetchedSources,
   isConflict,
   type FormatTime,
@@ -11,10 +12,11 @@ import {
   type MergeFieldKey,
   type MergeFieldState,
 } from './merge-fields';
+import { mergeTimeWithDate } from '$lib/utils/datetime';
 import type { FlightFormData } from '$lib/zod/flight';
 
-const airport = (id: number, icao: string, iata: string) =>
-  ({ id, icao, iata, name: `${icao} Airport` }) as FlightFormData['from'];
+const airport = (id: number, icao: string, iata: string, tz = 'UTC') =>
+  ({ id, icao, iata, tz, name: `${icao} Airport` }) as FlightFormData['from'];
 
 const airline = (id: number, name: string) =>
   ({ id, name, icao: null, iata: null }) as FlightFormData['airline'];
@@ -154,6 +156,38 @@ describe('buildMergeFieldStates', () => {
     expect(isConflict(byKey(states, 'arrival'))).toBe(true); // 17:00 != 18:00
   });
 
+  it('compares datetime values instead of localized display strings', () => {
+    const from = airport(2, 'EGLL', 'LHR', 'Europe/London');
+    const to = airport(3, 'KJFK', 'JFK', 'America/New_York');
+    const departure = new TZDate('2026-01-01T14:30:00Z', 'Europe/London');
+    const arrival = new TZDate('2026-01-01T18:00:00Z', 'America/New_York');
+    const states = buildMergeFieldStates({
+      current: baseForm({
+        from,
+        to,
+        departure: '2026-01-01T00:00:00.000Z',
+        departureTime: '14:30',
+        arrival: '2026-01-01T00:00:00.000Z',
+        arrivalTime: '13:00',
+      }),
+      result: baseResult({ from, to, departure, arrival }),
+      aircraft: null,
+      sources: {
+        departure,
+        arrival,
+        departureScheduled: null,
+        arrivalScheduled: null,
+      },
+      formatTime: (date) => format(date, 'h:mm a'),
+    });
+
+    const departureState = byKey(states, 'departure');
+    expect(departureState.currentDisplay).toBe('2026-01-01 2:30 PM');
+    expect(departureState.fetchedDisplay).toBe('2026-01-01 2:30 PM');
+    expect(isConflict(departureState)).toBe(false);
+    expect(isConflict(byKey(states, 'arrival'))).toBe(false);
+  });
+
   it('compares airline and aircraft by id and name', () => {
     const states = build(
       baseForm({
@@ -166,6 +200,134 @@ describe('buildMergeFieldStates', () => {
     expect(isConflict(byKey(states, 'airline'))).toBe(true);
     // Aircraft only present on the current side -> not a conflict.
     expect(byKey(states, 'aircraft').fetchedPresent).toBe(false);
+  });
+});
+
+describe('buildMergePlan', () => {
+  it('preserves fetched instants when keeping an airport in another timezone', () => {
+    const currentFrom = airport(1, 'KJFK', 'JFK', 'America/New_York');
+    const fetchedFrom = airport(2, 'EKCH', 'CPH', 'Europe/Copenhagen');
+    const to = airport(3, 'KLAX', 'LAX', 'America/Los_Angeles');
+    const departure = new TZDate('2026-01-15T15:00:00Z', 'Europe/Copenhagen');
+    const arrival = new TZDate('2026-01-15T23:00:00Z', 'America/Los_Angeles');
+    const result = baseResult({
+      from: fetchedFrom,
+      to,
+      departure,
+      arrival,
+    });
+    const plan = buildMergePlan({
+      current: baseForm({ from: currentFrom, to }),
+      result,
+      aircraft: null,
+      sources: getFetchedSources(result, false),
+      formatTime,
+    });
+
+    const patch = plan.buildPatch({ from: 'current' });
+    expect(patch.departure).toBe('2026-01-15T00:00:00.000Z');
+    expect(patch.departureTime).toBe('10:00');
+    expect(
+      mergeTimeWithDate(
+        patch.departure!,
+        patch.departureTime!,
+        currentFrom!.tz,
+      ).getTime(),
+    ).toBe(departure.getTime());
+  });
+
+  it('preserves current instants when accepting an airport in another timezone', () => {
+    const currentFrom = airport(1, 'KJFK', 'JFK', 'America/New_York');
+    const fetchedFrom = airport(2, 'EKCH', 'CPH', 'Europe/Copenhagen');
+    const to = airport(3, 'KLAX', 'LAX', 'America/Los_Angeles');
+    const departure = new TZDate('2026-01-15T16:00:00Z', 'Europe/Copenhagen');
+    const arrival = new TZDate('2026-01-15T23:00:00Z', 'America/Los_Angeles');
+    const result = baseResult({
+      from: fetchedFrom,
+      to,
+      departure,
+      arrival,
+    });
+    const current = baseForm({
+      from: currentFrom,
+      to,
+      departure: '2026-01-15T00:00:00.000Z',
+      departureTime: '10:00',
+    });
+    const currentInstant = mergeTimeWithDate(
+      current.departure!,
+      current.departureTime!,
+      currentFrom!.tz,
+    );
+    const plan = buildMergePlan({
+      current,
+      result,
+      aircraft: null,
+      sources: getFetchedSources(result, false),
+      formatTime,
+    });
+
+    const patch = plan.buildPatch({
+      from: 'fetched',
+      departure: 'current',
+    });
+    expect(patch.from).toBe(fetchedFrom);
+    expect(patch.departure).toBe('2026-01-15T00:00:00.000Z');
+    expect(patch.departureTime).toBe('16:00');
+    expect(
+      mergeTimeWithDate(
+        patch.departure!,
+        patch.departureTime!,
+        fetchedFrom!.tz,
+      ).getTime(),
+    ).toBe(currentInstant.getTime());
+  });
+
+  it('builds patches for every fetched field from the merge descriptors', () => {
+    const departure = new TZDate('2026-01-01T14:30:00Z', 'UTC');
+    const arrival = new TZDate('2026-01-01T18:00:00Z', 'UTC');
+    const departureScheduled = new TZDate('2026-01-01T14:00:00Z', 'UTC');
+    const arrivalScheduled = new TZDate('2026-01-01T17:30:00Z', 'UTC');
+    const fetchedAircraft = aircraft(4, 'Boeing 737');
+    const result = baseResult({
+      airline: airline(5, 'British Airways'),
+      aircraftReg: 'G-TEST',
+      departure,
+      arrival,
+      departureScheduled,
+      arrivalScheduled,
+      departureTerminal: '5',
+      departureGate: 'A12',
+      arrivalTerminal: '8',
+      arrivalGate: 'B2',
+    });
+    const plan = buildMergePlan({
+      current: baseForm(),
+      result,
+      aircraft: fetchedAircraft,
+      sources: getFetchedSources(result, false),
+      formatTime,
+    });
+
+    expect(plan.buildPatch({})).toMatchObject({
+      from: result.from,
+      to: result.to,
+      airline: result.airline,
+      aircraft: fetchedAircraft,
+      aircraftReg: 'G-TEST',
+      departure: '2026-01-01T00:00:00.000Z',
+      departureTime: '14:30',
+      arrival: '2026-01-01T00:00:00.000Z',
+      arrivalTime: '18:00',
+      departureScheduled: '2026-01-01T00:00:00.000Z',
+      departureScheduledTime: '14:00',
+      arrivalScheduled: '2026-01-01T00:00:00.000Z',
+      arrivalScheduledTime: '17:30',
+      departureTerminal: '5',
+      departureGate: 'A12',
+      arrivalTerminal: '8',
+      arrivalGate: 'B2',
+    });
   });
 });
 

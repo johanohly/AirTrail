@@ -3,7 +3,7 @@
   import { Modal, ModalBody, ModalHeader } from '$lib/components/ui/modal';
   import { cn } from '$lib/utils';
 
-  import type { MergeChoice, MergeField } from './merge-fields';
+  import type { MergeChoice, MergeChoices, MergeField } from './merge-fields';
 
   let {
     open = $bindable(false),
@@ -17,25 +17,34 @@
     fields: MergeField[];
     /** Fetched values applied automatically because they didn't conflict. */
     applied: MergeField[];
-    onResolve: (choices: Record<string, MergeChoice>) => void;
+    onResolve: (choices: MergeChoices) => void;
     onCancel: () => void;
   } = $props();
 
-  // Default every conflict to the fetched value. The modal is recreated on each
-  // open, so initializing from `fields` here is sufficient.
-  let choices = $state<Record<string, MergeChoice>>(
-    Object.fromEntries(fields.map((f) => [f.key, 'fetched'])),
-  );
-
+  let choices = $state<MergeChoices>({});
   let resolved = $state(false);
+  let wasOpen = $state(false);
 
-  // Closing the modal without applying counts as a cancel.
+  // Reset the picker for each conflict set or reopened modal. Only a modal that
+  // was actually open can emit a cancellation.
   $effect(() => {
-    if (!open && !resolved) onCancel();
+    if (open) {
+      wasOpen = true;
+      choices = Object.fromEntries(
+        fields.map((field) => [field.key, 'fetched']),
+      ) as MergeChoices;
+      resolved = false;
+      return;
+    }
+    if (!wasOpen) return;
+    wasOpen = false;
+    if (!resolved) onCancel();
   });
 
   const setAll = (choice: MergeChoice) => {
-    choices = Object.fromEntries(fields.map((f) => [f.key, choice]));
+    choices = Object.fromEntries(
+      fields.map((field) => [field.key, choice]),
+    ) as MergeChoices;
   };
 
   const apply = () => {
