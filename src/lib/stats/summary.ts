@@ -1,8 +1,8 @@
-import { isBefore } from 'date-fns';
-
 import type { Flight } from '$lib/db/types';
 import { distanceBetween } from '$lib/utils';
-import { getFlightDateRange, parseLocalizeISO } from '$lib/utils/datetime';
+import { isCompletedFlight } from '$lib/utils/data/flight-timeline';
+
+export { isCompletedFlight };
 
 type TopKeyResult = {
   best: string | null;
@@ -71,30 +71,6 @@ const topKey = (
   }
 
   return { best, count };
-};
-
-export const isCompletedFlight = (
-  flight: Flight,
-  now: Date = new Date(),
-): boolean => {
-  if (!flight.date) return true;
-
-  const hasExactDateTime = flight.datePrecision === 'day';
-  const arrival =
-    hasExactDateTime && flight.arrival
-      ? parseLocalizeISO(flight.arrival, flight.to?.tz ?? 'UTC')
-      : null;
-  const { start, end } = getFlightDateRange(
-    flight.date,
-    flight.datePrecision,
-    flight.from?.tz ?? 'UTC',
-  );
-
-  const fallbackDate = flight.datePrecision === 'day' ? start : (end ?? start);
-  const comparisonDate = arrival ?? fallbackDate;
-  if (!comparisonDate) return true;
-
-  return isBefore(comparisonDate, now);
 };
 
 export const completedFlights = (

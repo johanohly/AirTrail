@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildFlightListYears,
+  paginateFlightListYears,
   sortByDepartureDesc,
 } from './flight-list-groups';
 
@@ -49,6 +50,18 @@ const build = (flights: Flight[], now: string) =>
 const groupedIds = (years: ReturnType<typeof build>) =>
   years.flatMap((year) =>
     year.groups.map((group) => group.flights.map((f) => f.id)),
+  );
+
+const unrelatedFlights = (count: number, date: string) =>
+  Array.from({ length: count }, (_, index) =>
+    flight({
+      id: 100 + index,
+      from: LHR,
+      to: SYD,
+      date,
+      departure: `${date}T05:00:00.000Z`,
+      arrival: `${date}T18:00:00.000Z`,
+    }),
   );
 
 // LHR -> DXB -> SYD, connecting in Dubai after a 3h stop.
@@ -165,6 +178,25 @@ describe('buildFlightListYears', () => {
     ]);
   });
 
+  it('keeps a scheduled flight upcoming until its effective arrival', () => {
+    const [onward, inbound] = dubaiConnection;
+    const scheduledOnward = {
+      ...onward!,
+      departure: null,
+      arrival: null,
+      departureScheduled: onward!.departure,
+      arrivalScheduled: onward!.arrival,
+    } as Flight;
+
+    const years = build([scheduledOnward, inbound!], '2024-03-02T10:00:00Z');
+
+    expect(groupedIds(years)).toEqual([[2], [1]]);
+    expect(years[0]!.groups.map((group) => group.startsPastSection)).toEqual([
+      false,
+      true,
+    ]);
+  });
+
   it('marks the boundary on the first group of an older year', () => {
     const [onward] = dubaiConnection;
     const upcoming = {
@@ -205,5 +237,33 @@ describe('buildFlightListYears', () => {
 
     expect(years.map((year) => year.year)).toEqual([2024, 0]);
     expect(groupedIds(years)).toEqual([[2, 1], [4]]);
+  });
+});
+
+describe('paginateFlightListYears', () => {
+  it('moves a layover group intact to the next page', () => {
+    const years = build(
+      [...unrelatedFlights(19, '2024-03-03'), ...dubaiConnection],
+      '2024-06-01T00:00:00Z',
+    );
+
+    const pages = paginateFlightListYears(years, 20);
+
+    expect(pages.map((page) => page.flights.length)).toEqual([19, 2]);
+    expect(pages.map((page) => page.firstFlightIndex)).toEqual([0, 19]);
+    expect(groupedIds(pages[1]!.years)).toEqual([[2, 1]]);
+  });
+
+  it('keeps the past divider on a new page', () => {
+    const [, pastFlight] = dubaiConnection;
+    const years = build(
+      [...unrelatedFlights(20, '2025-03-03'), pastFlight!],
+      '2024-06-01T00:00:00Z',
+    );
+
+    const pages = paginateFlightListYears(years, 20);
+
+    expect(pages.map((page) => page.flights.length)).toEqual([20, 1]);
+    expect(pages[1]!.years[0]!.groups[0]!.startsPastSection).toBe(true);
   });
 });

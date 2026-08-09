@@ -15,6 +15,7 @@
   import EmptyFlightsState from './EmptyFlightsState.svelte';
   import {
     buildFlightListYears,
+    paginateFlightListYears,
     sortByDepartureDesc,
   } from './flight-list-groups';
   import MobileFlightList from './MobileFlightList.svelte';
@@ -146,15 +147,29 @@
 
   const flightsPerPage = 20;
   let page = $state(1);
-  const paginatedFlights = $derived.by(() => {
-    return formattedFlights.slice(
-      (page - 1) * flightsPerPage,
-      page * flightsPerPage,
-    );
+  let flightListReferenceTime = $state(new Date());
+
+  $effect(() => {
+    if (open) flightListReferenceTime = new Date();
   });
 
-  const flightsByYear = $derived.by(() =>
-    buildFlightListYears(paginatedFlights, new Date()),
+  const flightListPages = $derived.by(() => {
+    const years = buildFlightListYears(
+      formattedFlights,
+      flightListReferenceTime,
+    );
+    return paginateFlightListYears(years, flightsPerPage);
+  });
+  const currentFlightListPage = $derived(flightListPages[page - 1]);
+  const flightsByYear = $derived(currentFlightListPage?.years ?? []);
+  const showingFrom = $derived(
+    currentFlightListPage ? currentFlightListPage.firstFlightIndex + 1 : 0,
+  );
+  const showingTo = $derived(
+    currentFlightListPage
+      ? currentFlightListPage.firstFlightIndex +
+          currentFlightListPage.flights.length
+      : 0,
   );
 
   let selecting = $state(false);
@@ -188,10 +203,10 @@
       timers.add(timer);
     };
 
-    const index = formattedFlights.findIndex(
-      (flight) => flight.id === flightId,
+    const targetPage = flightListPages.findIndex((candidate) =>
+      candidate.flights.some((flight) => flight.id === flightId),
     );
-    if (index >= 0) page = Math.floor(index / flightsPerPage) + 1;
+    if (targetPage >= 0) page = targetPage + 1;
 
     // Poll until the row is mounted (on mobile the list opens in a drawer that
     // animates in, so it isn't in the DOM for the first few frames), then scroll
@@ -406,7 +421,9 @@
           bind:selecting
           bind:selectedFlights
           bind:page
-          {flightsPerPage}
+          pageCount={flightListPages.length}
+          {showingFrom}
+          {showingTo}
           {hasTempFilters}
           numOfFlights={filteredFlights.length}
           modalOpen={open &&

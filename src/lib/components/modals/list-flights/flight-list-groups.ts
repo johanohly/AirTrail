@@ -1,6 +1,8 @@
-import { isCompletedFlight } from '$lib/stats/summary';
 import type { FlightData } from '$lib/utils';
-import { resolveFlightTimeline } from '$lib/utils/data/flight-timeline';
+import {
+  isCompletedFlight,
+  resolveFlightTimeline,
+} from '$lib/utils/data/flight-timeline';
 
 /** Ground time under which two legs still read as one trip rather than two. */
 export const MAX_LAYOVER_HOURS = 12;
@@ -22,6 +24,13 @@ export type FlightListYear<T> = {
   /** `UNDATED_YEAR` for flights without a date. */
   year: number;
   groups: LayoverGroup<T>[];
+};
+
+export type FlightListPage<T> = {
+  /** Zero-based index of the first flight in the complete sorted list. */
+  firstFlightIndex: number;
+  flights: T[];
+  years: FlightListYear<T>[];
 };
 
 /**
@@ -145,4 +154,55 @@ export const buildFlightListYears = <T extends FlightData>(
     year,
     groups: groupByLayover(yearFlights, pastSectionStart),
   }));
+};
+
+/** Packs complete layover groups into pages without losing divider metadata. */
+export const paginateFlightListYears = <T>(
+  years: FlightListYear<T>[],
+  pageSize: number,
+): FlightListPage<T>[] => {
+  if (!Number.isInteger(pageSize) || pageSize < 1) {
+    throw new RangeError('pageSize must be a positive integer');
+  }
+
+  const pages: FlightListPage<T>[] = [];
+  let currentPage: FlightListPage<T> | null = null;
+  let flightsBeforePage = 0;
+
+  const finishPage = () => {
+    if (!currentPage) return;
+    pages.push(currentPage);
+    flightsBeforePage += currentPage.flights.length;
+    currentPage = null;
+  };
+
+  for (const year of years) {
+    for (const group of year.groups) {
+      if (
+        currentPage &&
+        currentPage.flights.length > 0 &&
+        currentPage.flights.length + group.flights.length > pageSize
+      ) {
+        finishPage();
+      }
+
+      currentPage ??= {
+        firstFlightIndex: flightsBeforePage,
+        flights: [],
+        years: [],
+      };
+
+      let pageYear = currentPage.years.at(-1);
+      if (!pageYear || pageYear.year !== year.year) {
+        pageYear = { year: year.year, groups: [] };
+        currentPage.years.push(pageYear);
+      }
+
+      pageYear.groups.push(group);
+      currentPage.flights.push(...group.flights);
+    }
+  }
+
+  finishPage();
+  return pages;
 };
