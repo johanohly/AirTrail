@@ -188,6 +188,7 @@
   });
 
   let open = $state(false);
+  let calendarOpen = $state(false);
   let nativeInput = $state<HTMLInputElement | null>(null);
 
   let dateValue: DateValue | undefined = $state(
@@ -445,7 +446,7 @@
                               {/if}
                             </div>
                           {/each}
-                          <Popover.Root>
+                          <Popover.Root bind:open={calendarOpen}>
                             <Popover.Trigger
                               {...props}
                               class="ml-auto inline-flex items-center justify-center text-muted-foreground transition-all hover:text-foreground active:text-foreground"
@@ -470,6 +471,7 @@
                                       null,
                                   );
                                   validateField(dateField);
+                                  calendarOpen = false;
                                 }}
                               />
                             </Popover.Content>

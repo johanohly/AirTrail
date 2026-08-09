@@ -37,6 +37,7 @@
   let dateValue: DateValue | undefined = $state(
     $fieldValue ? parseDate($fieldValue) : undefined,
   );
+  let calendarOpen = $state(false);
 
   $effect(() => {
     if ($fieldValue) {
@@ -94,7 +95,7 @@
                   {/if}
                 </div>
               {/each}
-              <Popover.Root>
+              <Popover.Root bind:open={calendarOpen}>
                 <Popover.Trigger
                   {...props}
                   class="ml-auto inline-flex items-center justify-center text-muted-foreground transition-all hover:text-foreground active:text-foreground"
@@ -105,7 +106,10 @@
                   <Calendar
                     type="single"
                     value={dateValue}
-                    onValueChange={setDateValue}
+                    onValueChange={(value) => {
+                      setDateValue(value);
+                      if (value) calendarOpen = false;
+                    }}
                   />
                 </Popover.Content>
               </Popover.Root>
