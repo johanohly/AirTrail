@@ -88,7 +88,10 @@ async function fetchMetar(
     if (!resp.ok) {
       throw new Error(`METAR fetch ${resp.status} ${resp.statusText}`);
     }
-    const data = (await resp.json()) as AwcMetar[];
+    // decommissioned stations come back as an empty body rather than []
+    const body = await resp.text();
+    if (!body.trim()) return null;
+    const data = JSON.parse(body) as AwcMetar[];
     if (!Array.isArray(data) || data.length === 0) return null;
     // API returns newest first, but be defensive.
     const latest = [...data]
