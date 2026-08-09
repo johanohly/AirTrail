@@ -5,6 +5,10 @@ import { defineConfig } from 'vite';
 import { VitePWA, type VitePWAOptions } from 'vite-plugin-pwa';
 
 const pwaOptions = {
+  // SvelteKit builds client asset URLs relatively. Keep the service worker at
+  // the application root so registration also works from nested routes.
+  base: '/',
+  scope: '/',
   // SvelteKit doesn't run vite-plugin-pwa's HTML injection, so the service
   // worker is registered manually in src/routes/+layout.svelte.
   injectRegister: null,
@@ -48,9 +52,10 @@ const pwaOptions = {
       },
       {
         // OpenAIP overlay vector tiles (airspaces, airports, navaids,
-        // reporting points) proxied same-origin. CacheFirst so repeat
-        // views skip the network and the OpenAIP API-key quota. Must come
-        // before the generic /api/map-styles/ rule below (first match wins).
+        // reporting points) proxied same-origin. Reuse tiles for 30 days to
+        // avoid spending OpenAIP quota on repeat views.
+        // Must come before the generic /api/map-styles/ rule below (first match
+        // wins).
         urlPattern: /\/api\/map-styles\/openaip\/tiles\//,
         handler: 'CacheFirst',
         options: {
@@ -59,7 +64,7 @@ const pwaOptions = {
             maxEntries: 3000,
             maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
           },
-          cacheableResponse: { statuses: [0, 200] },
+          cacheableResponse: { statuses: [0, 200, 204] },
           // The proxy sets `Vary: cookie, authorization` for auth
           // correctness, but a tile is identical for every user, so
           // ignore Vary to guarantee cache hits across cookie changes.
@@ -139,6 +144,9 @@ const pwaOptions = {
   },
   devOptions: {
     enabled: true,
+    // The dev worker only exercises runtime caching; Vite serves application
+    // modules directly, so an empty precache is expected.
+    suppressWarnings: true,
   },
 } satisfies Partial<VitePWAOptions>;
 
