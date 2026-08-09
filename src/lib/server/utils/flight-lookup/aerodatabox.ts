@@ -210,10 +210,17 @@ export async function getAircraftFromReg(
     return null;
   }
 
-  const data = await resp.json();
-  if (!data || !data?.icaoCode) {
-    return null;
+  const data = (await resp.json()) as {
+    model?: string;
+    icaoCode?: string;
+  } | null;
+
+  for (const code of [data?.model, data?.icaoCode]) {
+    if (!code) continue;
+
+    const aircraft = await getAircraftByIcao(code);
+    if (aircraft) return aircraft;
   }
 
-  return await getAircraftByIcao(data.icaoCode);
+  return null;
 }
