@@ -64,8 +64,7 @@
   // Handle date range changes from the DateRangePicker
   function handleValueChange(
     value:
-      | { start: DateValue | undefined; end: DateValue | undefined }
-      | undefined,
+      { start: DateValue | undefined; end: DateValue | undefined } | undefined,
   ) {
     if (!value) {
       dateRange = { start: undefined, end: undefined };

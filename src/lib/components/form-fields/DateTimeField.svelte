@@ -55,8 +55,7 @@
   const timeKey = `${field}Time` as 'departureTime' | 'arrivalTime';
   const counterpartField = field === 'departure' ? 'arrival' : 'departure';
   const counterpartTimeKey = `${counterpartField}Time` as
-    | 'departureTime'
-    | 'arrivalTime';
+    'departureTime' | 'arrivalTime';
 
   const airportTz = $derived(
     (field === 'departure' ? $formData.from?.tz : $formData.to?.tz) ??

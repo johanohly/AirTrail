@@ -87,8 +87,7 @@
 
   function handleDateRangeChange(
     value:
-      | { start: DateValue | undefined; end: DateValue | undefined }
-      | undefined,
+      { start: DateValue | undefined; end: DateValue | undefined } | undefined,
   ) {
     const start = value?.start as CalendarDate | undefined;
     const end = value?.end as CalendarDate | undefined;
