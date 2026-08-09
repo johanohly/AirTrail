@@ -148,6 +148,7 @@
   let dateValue: DateValue | undefined = $state(
     $formData[field] ? dateValueFromISO($formData[field]) : undefined,
   );
+  let calendarOpen = $state(false);
 
   let partialYear = $state('');
   let partialMonth = $state('');
@@ -370,7 +371,7 @@
                       {/if}
                     </div>
                   {/each}
-                  <Popover.Root>
+                  <Popover.Root bind:open={calendarOpen}>
                     <Popover.Trigger
                       {...props}
                       class="ml-auto inline-flex items-center justify-center text-muted-foreground transition-all hover:text-foreground active:text-foreground"
@@ -394,6 +395,7 @@
                             dateValue?.toDate('UTC').toISOString() ?? null,
                           );
                           validate(field);
+                          calendarOpen = false;
                         }}
                       />
                     </Popover.Content>
