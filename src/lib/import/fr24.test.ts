@@ -15,7 +15,12 @@ const { getAirportByIcao, getAirlineByIcao, getAircraftByIcao } = vi.hoisted(
         icao,
       }),
     ),
-    getAircraftByIcao: vi.fn(async (icao: string) => ({ id: icao, icao })),
+    getAircraftByIcao: vi.fn(
+      async (icao: string): Promise<{ id: string; icao: string } | null> => ({
+        id: icao,
+        icao,
+      }),
+    ),
   }),
 );
 
@@ -178,5 +183,45 @@ describe('processFR24File', () => {
 
     expect(resolved.flights[0]?.airline).toEqual(northwest);
     expect(resolved.unknowns.airlines).toEqual({});
+  });
+
+  it('counts rows with unparseable airport cells as skipped', async () => {
+    const content = `Date,Flight number,From,To,Dep time,Arr time,Duration,Airline,Aircraft,Registration,Seat number,Seat type,Flight class,Flight reason,Note
+2006-02-01,,Dunedin / Momona (DUD/NZDN),Christchurch / Christchurch (CHC/NZCH),00:00:00,00:00:00,00:41:00,Air New Zealand (NZ/ANZ),ATR 72-200 (AT72),,,0,1,1,
+2006-02-02,,Some Heliport,Christchurch / Christchurch (CHC/NZCH),00:00:00,00:00:00,00:41:00,Air New Zealand (NZ/ANZ),ATR 72-200 (AT72),,,0,1,1,`;
+
+    const result = await processFR24File(content, {
+      filterOwner: false,
+      airlineFromFlightNumber: true,
+      importMode: 'personal',
+    });
+
+    expect(result.flights).toHaveLength(1);
+    expect(result.skippedRows).toBe(1);
+  });
+
+  it('reports and applies mappings for unknown aircraft codes', async () => {
+    const content = `Date,Flight number,From,To,Dep time,Arr time,Duration,Airline,Aircraft,Registration,Seat number,Seat type,Flight class,Flight reason,Note\n2006-02-01,,Dunedin / Momona (DUD/NZDN),Christchurch / Christchurch (CHC/NZCH),00:00:00,00:00:00,00:41:00,Air New Zealand (NZ/ANZ),ATR 72-200 (AT72),,,0,1,1,`;
+    getAircraftByIcao.mockResolvedValueOnce(null);
+
+    const unresolved = await processFR24File(content, {
+      filterOwner: false,
+      airlineFromFlightNumber: true,
+      importMode: 'personal',
+    });
+
+    expect(unresolved.flights[0]?.aircraft).toBeNull();
+    expect(unresolved.unknowns.aircraft).toEqual({ AT72: [0] });
+
+    const atr = { id: 72, name: 'ATR 72-200', icao: 'AT72', sourceId: null };
+    const resolved = await processFR24File(content, {
+      filterOwner: false,
+      airlineFromFlightNumber: true,
+      importMode: 'personal',
+      aircraftMapping: { AT72: atr },
+    });
+
+    expect(resolved.flights[0]?.aircraft).toEqual(atr);
+    expect(resolved.unknowns.aircraft).toEqual({});
   });
 });

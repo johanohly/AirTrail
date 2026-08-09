@@ -157,11 +157,14 @@ export const processFR24File = async (
   const flights: CreateFlight[] = [];
   const unknownAirports: Record<string, number[]> = {};
   const unknownAirlines: Record<string, number[]> = {};
+  const unknownAircraft: Record<string, number[]> = {};
+  let droppedRows = 0;
   for (const row of data) {
     const normalizedDate = normalizeFR24Date(row.date);
     const fromCode = extractAirportICAO(row.from);
     const toCode = extractAirportICAO(row.to);
     if (!fromCode || !toCode) {
+      droppedRows++;
       continue;
     }
 
@@ -221,10 +224,12 @@ export const processFR24File = async (
       (rawAirline ? (await getAirlineByIcao(rawAirline)) || null : null);
 
     const rawAircraft = row.aircraft ? extractAircraftICAO(row.aircraft) : null;
-    const aircraft = rawAircraft ? await getAircraftByIcao(rawAircraft) : null;
-    if (!aircraft && rawAircraft) {
-      console.warn(`Unknown aircraft ICAO code: ${rawAircraft}`);
-    }
+    const mappedAircraft = rawAircraft
+      ? options.aircraftMapping?.[rawAircraft]
+      : undefined;
+    const aircraft =
+      mappedAircraft ||
+      (rawAircraft ? (await getAircraftByIcao(rawAircraft)) || null : null);
 
     const flightIndex = flights.length;
 
@@ -239,6 +244,10 @@ export const processFR24File = async (
     if (!airline && rawAirline) {
       if (!unknownAirlines[rawAirline]) unknownAirlines[rawAirline] = [];
       unknownAirlines[rawAirline].push(flightIndex);
+    }
+    if (!aircraft && rawAircraft) {
+      if (!unknownAircraft[rawAircraft]) unknownAircraft[rawAircraft] = [];
+      unknownAircraft[rawAircraft].push(flightIndex);
     }
 
     flights.push({
@@ -282,9 +291,9 @@ export const processFR24File = async (
     unknowns: {
       airports: unknownAirports,
       airlines: unknownAirlines,
-      aircraft: {},
+      aircraft: unknownAircraft,
     },
     exportedUsers: [],
-    skippedRows: skipped.length,
+    skippedRows: skipped.length + droppedRows,
   };
 };
