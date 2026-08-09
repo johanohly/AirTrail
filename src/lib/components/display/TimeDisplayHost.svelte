@@ -82,8 +82,7 @@
     getContentZIndex: () =>
       (
         timeDisplayTether.state.registry.activePayload as
-          | TimeDisplayPayload
-          | undefined
+          TimeDisplayPayload | undefined
       )?.zIndex,
   };
   setContext(ModalContextKey, hostModalContext);

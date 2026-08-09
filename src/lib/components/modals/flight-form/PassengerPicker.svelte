@@ -53,8 +53,7 @@
     | { type: 'create'; name: string };
 
   const buildSelectedOption = ():
-    | { label: string; value: SelectionValue }
-    | undefined => {
+    { label: string; value: SelectionValue } | undefined => {
     if (userId) {
       const users = getUsers();
       const user = users.find((u) => u.id === userId);

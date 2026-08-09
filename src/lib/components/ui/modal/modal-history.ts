@@ -37,9 +37,7 @@ type QueuedModalHistoryEntry = ModalHistoryEntryBase & {
 };
 
 type ModalHistoryEntry =
-  | ActiveModalHistoryEntry
-  | ClosingModalHistoryEntry
-  | QueuedModalHistoryEntry;
+  ActiveModalHistoryEntry | ClosingModalHistoryEntry | QueuedModalHistoryEntry;
 
 type ModalHistoryOptions = {
   closeOnEscape?: boolean;
@@ -336,8 +334,7 @@ export const createModalHistoryController = (adapter: HistoryAdapter) => {
 };
 
 let browserController:
-  | ReturnType<typeof createModalHistoryController>
-  | undefined;
+  ReturnType<typeof createModalHistoryController> | undefined;
 
 const getBrowserController = () => {
   if (typeof window === 'undefined') return undefined;

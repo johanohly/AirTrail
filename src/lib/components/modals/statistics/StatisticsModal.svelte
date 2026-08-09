@@ -145,8 +145,7 @@
 
   const restoreDrilldown = (state: unknown) => {
     const drilldown = state as
-      | { activeChart?: unknown; activeContinent?: unknown }
-      | undefined;
+      { activeChart?: unknown; activeContinent?: unknown } | undefined;
     const chart = drilldown?.activeChart;
     activeChart =
       typeof chart === 'string' &&
