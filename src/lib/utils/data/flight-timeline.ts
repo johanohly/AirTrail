@@ -1,4 +1,5 @@
 import { TZDate } from '@date-fns/tz';
+import { isBefore } from 'date-fns';
 
 import type { Flight, FlightDatePrecision } from '$lib/db/types';
 import { getFlightDateRange, parseLocalizeISO } from '$lib/utils/datetime';
@@ -65,6 +66,21 @@ export const resolveFlightTimeline = (flight: Flight): FlightTimeline => {
     effectiveDeparture,
     effectiveArrival,
   };
+};
+
+export const isCompletedFlight = (
+  flight: Flight,
+  now: Date = new Date(),
+): boolean => {
+  const timeline = resolveFlightTimeline(flight);
+  const fallbackDate =
+    timeline.precision === 'day'
+      ? timeline.dateStart
+      : (timeline.dateEnd ?? timeline.dateStart);
+  const comparisonDate =
+    timeline.effectiveArrival ?? timeline.effectiveDeparture ?? fallbackDate;
+
+  return comparisonDate ? isBefore(comparisonDate, now) : true;
 };
 
 export const getFlightTimelineWindow = (
