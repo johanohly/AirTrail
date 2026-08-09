@@ -22,7 +22,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 
   const owners = await db
     .selectFrom('user')
-    .where('role', '=', 'owner')
+    .where('isOwner', '=', true)
     .selectAll()
     .execute();
   if (owners.length > 0) {
@@ -46,8 +46,9 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
     username,
     hashedPassword,
     displayName,
-    'owner',
+    null,
     preferences,
+    true,
   );
 
   if (!success) {

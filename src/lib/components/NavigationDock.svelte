@@ -9,6 +9,7 @@
   } from '@o7/icon/lucide';
 
   import { page } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
   import {
     Dock,
     DockDropdownItem,
@@ -53,16 +54,17 @@
     },
   };
 
-  const OTHER = [
-    {
-      label: 'Tools',
-      href: '/tools',
-    },
-    {
-      label: 'Visited countries',
-      href: '/visited-countries',
-    },
-  ];
+  const otherItems = $derived.by(() => {
+    const items = [];
+    if (
+      hasClientPermission(page.data.authorization, 'flight.delete.own') ||
+      hasClientPermission(page.data.authorization, 'tools.sql.execute')
+    ) {
+      items.push({ label: 'Tools', href: '/tools' });
+    }
+    items.push({ label: 'Visited countries', href: '/visited-countries' });
+    return items;
+  });
 </script>
 
 <nav
@@ -78,12 +80,14 @@
       </div>
     {/if}
     <Dock>
-      <DockTooltipItem item={addFlightItem} />
-      {#if page.url.pathname === '/'}
+      {#if hasClientPermission(page.data.authorization, 'flight.create.own')}
+        <DockTooltipItem item={addFlightItem} />
+      {/if}
+      {#if page.url.pathname === '/' && hasClientPermission(page.data.authorization, 'flight.read.own')}
         <DockTooltipItem item={listFlightsItem} />
         <DockTooltipItem item={flightsStatisticsItem} />
       {/if}
-      <DockDropdownItem items={OTHER} label="More">
+      <DockDropdownItem items={otherItems} label="More">
         <Grip />
       </DockDropdownItem>
       <Separator orientation="vertical" class="h-full w-px" />

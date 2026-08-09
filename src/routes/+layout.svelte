@@ -7,6 +7,7 @@
   import { registerSW } from 'virtual:pwa-register';
 
   import { page } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
   import { NavigationDock } from '$lib/components';
   import { TimeDisplayHost } from '$lib/components/display';
   import { ConfirmWrapper, ScreenSize } from '$lib/components/helpers';
@@ -44,7 +45,7 @@
 <Toaster />
 <ConfirmWrapper />
 
-{#if data.user && data.user.role !== 'user'}
+{#if hasClientPermission(data.authorization, 'instance.release.check')}
   <NewVersionAnnouncement />
 {/if}
 

@@ -1,14 +1,22 @@
-import { redirect } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 
 import type { PageServerLoad } from './$types';
 
 import type { Flight } from '$lib/db/types';
+import { hasPermission } from '$lib/server/authorization/authorize';
 import { listFlights } from '$lib/server/utils/flight';
 
 export const load: PageServerLoad = async ({ locals }) => {
   const user = locals.user;
   if (!user) {
     return redirect(302, '/login');
+  }
+  if (
+    !locals.authorization ||
+    !hasPermission(locals.authorization, 'flight.read.own') ||
+    !hasPermission(locals.authorization, 'flight.delete.own')
+  ) {
+    return error(403, 'Forbidden');
   }
 
   const flights = await listFlights(user.id);

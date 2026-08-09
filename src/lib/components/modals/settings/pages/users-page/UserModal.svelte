@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { User, ShieldCheck } from '@o7/icon/lucide';
+  import { User } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod4 as zod } from 'sveltekit-superforms/adapters';
@@ -7,15 +7,14 @@
   import { invalidateAll } from '$app/navigation';
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
-  import { Label } from '$lib/components/ui/label';
   import {
     Modal,
     ModalBody,
     ModalBreadcrumbHeader,
   } from '$lib/components/ui/modal';
-  import * as RadioGroup from '$lib/components/ui/radio-group';
-  import { HelpTooltip } from '$lib/components/ui/tooltip/index.js';
+  import * as Select from '$lib/components/ui/select';
   import type { PublicUser } from '$lib/db/types';
+  import { api } from '$lib/trpc';
   import { addUserSchema, adminEditUserSchema } from '$lib/zod/user';
 
   type Mode = 'add' | 'edit';
@@ -36,20 +35,23 @@
 
   const isEdit = $derived(mode === 'edit');
   const schema = $derived(isEdit ? adminEditUserSchema : addUserSchema);
+  let roles = $state<Array<{ id: string; name: string; isDefault: boolean }>>(
+    [],
+  );
 
   const getInitialData = () => {
     if (isEdit && user) {
       return {
         username: user.username,
         displayName: user.displayName,
-        role: user.role === 'owner' ? 'admin' : user.role,
+        roleId: user.roleId ?? '',
       };
     }
     return {
       username: '',
       password: '',
       displayName: initialDisplayName,
-      role: 'user' as const,
+      roleId: roles.find((role) => role.isDefault)?.id ?? '',
     };
   };
 
@@ -82,8 +84,12 @@
 
   $effect(() => {
     if (open) {
-      const data = getInitialData();
-      form.reset({ data });
+      void (async () => {
+        const result = await api.role.list.query();
+        roles = result.roles;
+        const data = getInitialData();
+        form.reset({ data });
+      })();
     }
   });
 </script>
@@ -140,47 +146,25 @@
         </Form.Control>
         <Form.FieldErrors />
       </Form.Field>
-      <Form.Field {form} name="role" class="pt-1">
+      <Form.Field {form} name="roleId" class="pt-1">
         <Form.Control>
           {#snippet children({ props })}
-            <Form.Label class="flex gap-1">
-              Role
-              <HelpTooltip
-                text="Admins can do everything except delete other admins or the owner."
-              />
-            </Form.Label>
-            <RadioGroup.Root
-              bind:value={$formData.role}
-              class="flex flex-col md:flex-row"
+            <Form.Label>Role</Form.Label>
+            <Select.Root
+              type="single"
+              name={props.name}
+              bind:value={$formData.roleId}
             >
-              <Label
-                class="w-full cursor-pointer [&:has([data-state=checked])>div]:border-primary"
-              >
-                <RadioGroup.Item value="user" class="sr-only" />
-                <div
-                  class="border-muted bg-popover hover:bg-accent items-center rounded-md border-2 p-4"
-                >
-                  <div class="flex items-center justify-center gap-1">
-                    <User />
-                    <span class="text-2xl font-bold">User</span>
-                  </div>
-                </div>
-              </Label>
-              <Label
-                class="w-full cursor-pointer [&:has([data-state=checked])>div]:border-primary"
-              >
-                <RadioGroup.Item value="admin" class="sr-only" />
-                <div
-                  class="border-muted bg-popover hover:bg-accent items-center rounded-md border-2 p-4"
-                >
-                  <div class="flex items-center justify-center gap-1">
-                    <ShieldCheck />
-                    <span class="text-2xl font-bold">Admin</span>
-                  </div>
-                </div>
-              </Label>
-            </RadioGroup.Root>
-            <input type="hidden" bind:value={$formData.role} {...props} />
+              <Select.Trigger {...props}>
+                {roles.find((role) => role.id === $formData.roleId)?.name ??
+                  'Select a role'}
+              </Select.Trigger>
+              <Select.Content>
+                {#each roles as role}
+                  <Select.Item value={role.id} label={role.name} />
+                {/each}
+              </Select.Content>
+            </Select.Root>
           {/snippet}
         </Form.Control>
         <Form.FieldErrors />

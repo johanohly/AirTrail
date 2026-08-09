@@ -6,7 +6,13 @@ import {
   type BackupFormat,
   type BackupScope,
 } from '$lib/server/utils/backup';
-import { apiError, unauthorized, validateApiKey } from '$lib/server/utils/api';
+import { hasPermission } from '$lib/server/authorization/authorize';
+import {
+  apiError,
+  authenticateApiKey,
+  forbidden,
+  unauthorized,
+} from '$lib/server/utils/api';
 
 const contentTypes: Record<BackupFormat, string> = {
   json: 'application/json; charset=utf-8',
@@ -26,10 +32,11 @@ const parseScope = (value: string | null): BackupScope | null => {
 };
 
 export const GET: RequestHandler = async ({ request, url }) => {
-  const user = await validateApiKey(request);
-  if (!user) {
+  const authentication = await authenticateApiKey(request);
+  if (!authentication) {
     return unauthorized();
   }
+  const { user, authorization } = authentication;
 
   const format = parseFormat(url.searchParams.get('format'));
   if (!format) {
@@ -41,9 +48,9 @@ export const GET: RequestHandler = async ({ request, url }) => {
     return apiError('Invalid scope', 400);
   }
 
-  if (user.role === 'user' && scope !== 'mine') {
-    return apiError('Forbidden', 403);
-  }
+  const permission =
+    scope === 'mine' ? 'flight.export.own' : 'flight.export.any';
+  if (!hasPermission(authorization, permission)) return forbidden();
 
   const userId =
     scope === 'mine' ? user.id : url.searchParams.get('userId') || undefined;

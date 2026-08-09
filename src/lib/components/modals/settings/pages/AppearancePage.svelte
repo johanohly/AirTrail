@@ -6,14 +6,16 @@
   import { PageHeader } from '.';
   import BasemapSettingsForm from './appearance-page/BasemapSettingsForm.svelte';
 
+  import { hasClientPermission } from '$lib/authorization/permissions';
   import { Label } from '$lib/components/ui/label';
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import { Separator } from '$lib/components/ui/separator';
 
   type ColorThemeMode = 'system' | 'light' | 'dark';
 
-  const user = $derived(page.data.user);
-  const isAdmin = $derived(!!user && user.role !== 'user');
+  const isAdmin = $derived(
+    hasClientPermission(page.data.authorization, 'instance.map.manage'),
+  );
 
   const isColorThemeMode = (value: string): value is ColorThemeMode =>
     value === 'system' || value === 'light' || value === 'dark';

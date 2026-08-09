@@ -17,7 +17,14 @@ import {
   upsertFlightTrackPrimitiveWithConnection,
 } from '$lib/db/queries';
 import type { DB } from '$lib/db/schema';
-import type { CreateFlight, Flight, User } from '$lib/db/types';
+import type { CreateFlight, Flight } from '$lib/db/types';
+import type { Permission } from '$lib/authorization/permissions';
+import {
+  AuthorizationError,
+  hasPermission,
+} from '$lib/server/authorization/authorize';
+import type { AuthorizationContext } from '$lib/server/authorization/context';
+import { canAccessFlight } from '$lib/server/authorization/flight';
 import {
   CustomFieldValidationError,
   persistEntityCustomFields,
@@ -102,11 +109,8 @@ export const createFlight = async (data: CreateFlight) => {
 };
 
 export const validateAndSaveFlight = async (
-  user: User,
+  authorization: AuthorizationContext,
   data: z.infer<typeof flightSchema>,
-  options?: {
-    bypassPassengerCheck?: boolean;
-  },
 ): Promise<ErrorActionResult & { id?: number }> => {
   const pathError = (path: string, message: string): ErrorActionResult => {
     return { success: false, type: 'path', path, message };
@@ -134,22 +138,51 @@ export const validateAndSaveFlight = async (
   ): Promise<ErrorActionResult & { id?: number }> => {
     const updateId = data.id;
     if (updateId) {
-      const flight = await getFlight(updateId);
-      if (
-        !flight ||
-        (!options?.bypassPassengerCheck &&
-          !flight.passengers.some((passenger) => passenger.userId === user.id))
-      ) {
-        return {
-          success: false,
-          type: 'httpError',
-          status: 404,
-          message: 'Flight not found or you are not a passenger on this flight',
-        };
-      }
-
       try {
         await db.transaction().execute(async (trx) => {
+          const flight = await getFlightPrimitive(trx, updateId);
+          if (
+            !flight ||
+            !(await canAccessFlight(authorization, 'update', updateId, trx))
+          ) {
+            throw new AuthorizationError('Flight not found', 404);
+          }
+
+          const existingPassengerSnapshot = flight.passengers.map(
+            (passenger) => ({
+              id: passenger.id,
+              userId: passenger.userId,
+              guestName: passenger.guestName,
+              seat: passenger.seat,
+              seatNumber: passenger.seatNumber,
+              seatClass: passenger.seatClass,
+              flightReason: passenger.flightReason,
+            }),
+          );
+          const incomingPassengers = values.passengers.map((passenger) => ({
+            id: passenger.id,
+            userId: passenger.userId,
+            guestName: passenger.guestName,
+            seat: passenger.seat,
+            seatNumber: passenger.seatNumber,
+            seatClass: passenger.seatClass,
+            flightReason: passenger.flightReason,
+          }));
+          const passengersChanged =
+            JSON.stringify(existingPassengerSnapshot) !==
+            JSON.stringify(incomingPassengers);
+          if (
+            passengersChanged &&
+            !(await canAccessFlight(
+              authorization,
+              'passengers.manage',
+              updateId,
+              trx,
+            ))
+          ) {
+            throw new AuthorizationError('Flight not found', 404);
+          }
+
           const persistedPassengers = await updateFlightPrimitiveWithConnection(
             trx,
             updateId,
@@ -169,6 +202,14 @@ export const validateAndSaveFlight = async (
           }
         });
       } catch (e) {
+        if (e instanceof AuthorizationError) {
+          return {
+            success: false,
+            type: 'httpError',
+            status: e.status,
+            message: e.message,
+          };
+        }
         if (e instanceof CustomFieldValidationError) {
           return {
             success: false,
@@ -188,6 +229,24 @@ export const validateAndSaveFlight = async (
 
     let flightId: number;
     try {
+      const includesActor = values.passengers.some(
+        (passenger) => passenger.userId === authorization.userId,
+      );
+      const scope = includesActor ? 'own' : 'any';
+      if (
+        !hasPermission(authorization, `flight.create.${scope}` as Permission)
+      ) {
+        throw new AuthorizationError();
+      }
+      if (
+        (values.passengers.length > 1 || !includesActor) &&
+        !hasPermission(
+          authorization,
+          `flight.passengers.manage.${scope}` as Permission,
+        )
+      ) {
+        throw new AuthorizationError();
+      }
       flightId = await db.transaction().execute(async (trx) => {
         const created = await createFlightPrimitiveWithConnection(trx, values);
         await persistEntityCustomFields(trx, {
@@ -205,6 +264,14 @@ export const validateAndSaveFlight = async (
         return created.flightId;
       });
     } catch (e) {
+      if (e instanceof AuthorizationError) {
+        return {
+          success: false,
+          type: 'httpError',
+          status: e.status,
+          message: e.message,
+        };
+      }
       if (e instanceof CustomFieldValidationError) {
         return {
           success: false,

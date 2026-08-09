@@ -3,7 +3,7 @@ import { sql } from 'kysely';
 import type { Lucia } from 'lucia';
 
 import { db } from '$lib/db';
-import { publicUserFields, type User } from '$lib/db/types';
+import { publicUserFields } from '$lib/db/types';
 import { hashSha256 } from '$lib/server/utils/hash';
 import { generateString } from '$lib/server/utils/random';
 import type { Preferences } from '$lib/zod/user';
@@ -16,8 +16,9 @@ export const createUser = async (
   username: string,
   password: string,
   displayName: string,
-  role: User['role'],
+  roleId: string | null,
   preferences?: Partial<Preferences>,
+  isOwner = false,
 ) => {
   const result = await db
     .insertInto('user')
@@ -26,12 +27,24 @@ export const createUser = async (
       username,
       password,
       displayName,
-      role,
+      // Kept for one migration cycle as rollback data; authorization never reads it.
+      role: isOwner ? 'owner' : 'user',
+      roleId,
+      isOwner,
       ...(preferences ?? {}),
     })
     .executeTakeFirst();
   return result.numInsertedOrUpdatedRows && result.numInsertedOrUpdatedRows > 0;
 };
+
+export const getDefaultRoleId = async () =>
+  (
+    await db
+      .selectFrom('authorizationSettings')
+      .select('defaultRoleId')
+      .where('id', '=', 1)
+      .executeTakeFirstOrThrow()
+  ).defaultRoleId;
 
 export const getUser = async (username: string) => {
   return db
@@ -53,7 +66,7 @@ export const getUserWithOAuthId = async (username: string) => {
   return db
     .selectFrom('user')
     .where(usernameEquals(username))
-    .select([...publicUserFields, 'oauthId'])
+    .select([...publicUserFields, 'oauthId', 'role'])
     .executeTakeFirst();
 };
 

@@ -11,6 +11,7 @@
   import { toast } from 'svelte-sonner';
 
   import { page as pageState } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
 
   import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
   import {
@@ -47,6 +48,7 @@
     selectedFlights = $bindable(),
     hasTempFilters = false,
     onAddFlight,
+    canSelect = true,
     modalOpen = true,
   }: {
     flights: FlightData[];
@@ -61,11 +63,14 @@
     selectedFlights: number[];
     hasTempFilters?: boolean;
     onAddFlight?: () => void;
+    canSelect?: boolean;
     modalOpen?: boolean;
   } = $props();
 
   const users = $derived(pageState.data.users);
-  const isAdmin = $derived(pageState.data.user?.role !== 'user');
+  const isAdmin = $derived(
+    hasClientPermission(pageState.data.authorization, 'flight.read.any'),
+  );
 
   const modalCtx = getModalContext();
   const toolbarStyle = $derived.by(() => {
@@ -206,19 +211,21 @@
         </Popover.Content>
       </Popover.Root>
     {/if}
-    <Button
-      onclick={() => {
-        selecting = true;
-        selectedFlights = [];
-      }}
-      disabled={flights.length === 0}
-      class="hidden gap-2 sm:inline-flex"
-      variant="outline"
-      size="sm"
-    >
-      <SquareDashedMousePointer size={16} />
-      Select
-    </Button>
+    {#if canSelect}
+      <Button
+        onclick={() => {
+          selecting = true;
+          selectedFlights = [];
+        }}
+        disabled={flights.length === 0}
+        class="hidden gap-2 sm:inline-flex"
+        variant="outline"
+        size="sm"
+      >
+        <SquareDashedMousePointer size={16} />
+        Select
+      </Button>
+    {/if}
   </div>
 </div>
 
@@ -297,19 +304,21 @@
                       Add flight
                     </Button>
                   {/if}
-                  <Button
-                    onclick={() => {
-                      selecting = true;
-                      selectedFlights = [];
-                    }}
-                    disabled={flights.length === 0}
-                    class="gap-2 px-3.5"
-                    variant="outline"
-                    size="sm"
-                  >
-                    <SquareDashedMousePointer size={16} />
-                    Select
-                  </Button>
+                  {#if canSelect}
+                    <Button
+                      onclick={() => {
+                        selecting = true;
+                        selectedFlights = [];
+                      }}
+                      disabled={flights.length === 0}
+                      class="gap-2 px-3.5"
+                      variant="outline"
+                      size="sm"
+                    >
+                      <SquareDashedMousePointer size={16} />
+                      Select
+                    </Button>
+                  {/if}
                 </div>
               </div>
 

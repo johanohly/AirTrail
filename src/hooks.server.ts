@@ -4,6 +4,7 @@ import type { Cookie } from 'lucia';
 
 import '$lib/zod/setup';
 import { lucia } from '$lib/server/auth';
+import { loadAuthorizationContext } from '$lib/server/authorization/context';
 import { validateAirlineIcons } from '$lib/server/utils/airline';
 import { appConfig } from '$lib/server/utils/config';
 import {
@@ -38,6 +39,7 @@ const authHandle: Handle = async ({ event, resolve }) => {
   if (!sessionId) {
     event.locals.user = null;
     event.locals.session = null;
+    event.locals.authorization = null;
     return resolve(event);
   }
 
@@ -58,6 +60,9 @@ const authHandle: Handle = async ({ event, resolve }) => {
 
   event.locals.user = user;
   event.locals.session = session;
+  event.locals.authorization = user
+    ? await loadAuthorizationContext(user.id)
+    : null;
   return resolve(event);
 };
 

@@ -8,7 +8,11 @@ export const SEED_USER = {
   username: 'test',
   password: 'password',
   displayName: 'Test User',
+  // The seed account is the protected instance owner. The legacy role column
+  // alone no longer establishes ownership after the RBAC migration.
   role: 'owner',
+  roleId: null,
+  isOwner: true,
 } as const;
 
 export const seedUser = async (db: Kysely<DB>) => {

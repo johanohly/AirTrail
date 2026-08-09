@@ -71,7 +71,10 @@ export const getOAuthProfile = async (
     throw new Error('Failed to get user info');
   }
 
-  return await fetchUserInfo(client, tokens.access_token, claims.sub);
+  return {
+    profile: await fetchUserInfo(client, tokens.access_token, claims.sub),
+    idTokenClaims: { ...claims } as Record<string, unknown>,
+  };
 };
 
 export const getOAuthClient = async () => {

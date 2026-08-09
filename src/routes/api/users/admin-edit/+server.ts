@@ -4,29 +4,11 @@ import { zod4 as zod } from 'sveltekit-superforms/adapters';
 import type { RequestHandler } from './$types';
 
 import { db } from '$lib/db';
+import { actorCanAssignRole } from '$lib/server/authorization/roles';
+import { canManageUser } from '$lib/server/authorization/users';
+import { writeAuthorizationAudit } from '$lib/server/authorization/audit';
 import { usernameExists } from '$lib/server/utils/auth';
 import { adminEditUserSchema } from '$lib/zod/user';
-
-type PermissionError = { message: string; status: number };
-
-const checkAdminPermissions = (
-  user: App.Locals['user'],
-  targetUser: { role: string },
-): PermissionError | null => {
-  if (!user) {
-    return { message: 'You must be logged in to edit users.', status: 401 };
-  }
-  if (user.role === 'user') {
-    return { message: 'You must be an admin to edit users.', status: 403 };
-  }
-  if (targetUser.role === 'owner') {
-    return { message: 'Cannot edit the owner.', status: 403 };
-  }
-  if (targetUser.role === 'admin' && user.role === 'admin') {
-    return { message: 'Admins cannot edit other admins.', status: 403 };
-  }
-  return null;
-};
 
 const getChangedFields = <T extends Record<string, unknown>>(
   newValues: T,
@@ -45,7 +27,11 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   const form = await superValidate(request, zod(adminEditUserSchema));
   if (!form.valid) return actionResult('failure', { form });
 
-  const { id: userId, username, displayName, role } = form.data;
+  const { id: userId, username, displayName, roleId } = form.data;
+
+  if (!locals.authorization) {
+    return actionResult('error', 'You must be logged in to edit users.', 401);
+  }
 
   const targetUser = await db
     .selectFrom('user')
@@ -57,21 +43,23 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     return actionResult('error', 'User not found.', 404);
   }
 
-  const permissionError = checkAdminPermissions(locals.user, targetUser);
-  if (permissionError) {
-    return actionResult(
-      'error',
-      permissionError.message,
-      permissionError.status,
-    );
+  if (!(await canManageUser(locals.authorization, userId, 'users.update'))) {
+    return actionResult('error', 'You cannot edit this user.', 403);
+  }
+  if (!(await actorCanAssignRole(locals.authorization, roleId))) {
+    return actionResult('error', 'You cannot assign this role.', 403);
   }
 
   const updatedFields = getChangedFields(
-    { username, displayName, role },
+    { username, displayName, roleId },
     targetUser,
   );
+  const update = {
+    ...updatedFields,
+    ...(updatedFields.roleId ? { roleAssignmentSource: 'local' as const } : {}),
+  };
 
-  if (Object.keys(updatedFields).length === 0) {
+  if (Object.keys(update).length === 0) {
     form.message = { type: 'error', text: 'No changes made' };
     return actionResult('success', { form });
   }
@@ -84,11 +72,30 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     }
   }
 
-  const resp = await db
-    .updateTable('user')
-    .set(updatedFields)
-    .where('id', '=', userId)
-    .executeTakeFirst();
+  const resp = await db.transaction().execute(async (trx) => {
+    const result = await trx
+      .updateTable('user')
+      .set(update)
+      .where('id', '=', userId)
+      .executeTakeFirst();
+    await writeAuthorizationAudit(
+      {
+        actorUserId: locals.authorization!.userId,
+        action: 'user.updated',
+        targetType: 'user',
+        targetId: userId,
+        before: {
+          username: targetUser.username,
+          displayName: targetUser.displayName,
+          roleId: targetUser.roleId,
+          roleAssignmentSource: targetUser.roleAssignmentSource,
+        },
+        after: update,
+      },
+      trx,
+    );
+    return result;
+  });
 
   if (!resp.numUpdatedRows) {
     form.message = { type: 'error', text: 'Failed to edit user' };

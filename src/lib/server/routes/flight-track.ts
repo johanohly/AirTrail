@@ -9,6 +9,8 @@ import {
   type FlightTrackRow,
   type FlightTrackSourceFormat,
 } from '$lib/track/schema';
+import { hasPermission } from '$lib/server/authorization/authorize';
+import { canAccessFlight } from '$lib/server/authorization/flight';
 
 const flightTrackListInput = z
   .object({
@@ -40,10 +42,19 @@ const parseTrackRow = (
 export const flightTrackRouter = router({
   list: authedProcedure
     .input(flightTrackListInput)
-    .query(async ({ ctx: { user }, input }) => {
+    .query(async ({ ctx: { user, authorization }, input }) => {
       const scope = input?.scope ?? 'mine';
 
-      if (user.role === 'user' && scope !== 'mine') {
+      if (
+        scope === 'mine' &&
+        !hasPermission(authorization, 'flight.read.own')
+      ) {
+        throw new TRPCError({ code: 'FORBIDDEN' });
+      }
+      if (
+        scope !== 'mine' &&
+        !hasPermission(authorization, 'flight.read.any')
+      ) {
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
 
@@ -89,25 +100,8 @@ export const flightTrackRouter = router({
     }),
   get: authedProcedure
     .input(z.number())
-    .query(async ({ ctx: { user }, input }) => {
-      const flight = await db
-        .selectFrom('flight')
-        .select('flight.id')
-        .where('flight.id', '=', input)
-        .where((eb) =>
-          user.role === 'user'
-            ? eb.exists(
-                eb
-                  .selectFrom('flightPassenger')
-                  .select('flightPassenger.id')
-                  .whereRef('flightPassenger.flightId', '=', 'flight.id')
-                  .where('flightPassenger.userId', '=', user.id),
-              )
-            : eb.val(true),
-        )
-        .executeTakeFirst();
-
-      if (!flight) {
+    .query(async ({ ctx: { authorization }, input }) => {
+      if (!(await canAccessFlight(authorization, 'read', input))) {
         throw new TRPCError({ code: 'NOT_FOUND' });
       }
 

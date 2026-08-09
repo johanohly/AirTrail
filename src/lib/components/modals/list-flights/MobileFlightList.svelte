@@ -21,6 +21,8 @@
     selectedFlights = $bindable<number[]>([]),
     onEdit,
     onDelete,
+    canUpdateFlight = () => true,
+    canDeleteFlight = () => true,
     onShowOnMap,
     readonly = false,
   }: {
@@ -29,6 +31,8 @@
     selectedFlights?: number[];
     onEdit?: (flight: FlightData) => void;
     onDelete?: (flight: FlightData) => void;
+    canUpdateFlight?: (flight: FlightData) => boolean;
+    canDeleteFlight?: (flight: FlightData) => boolean;
     onShowOnMap?: (flight: FlightData) => void;
     readonly?: boolean;
   } = $props();
@@ -77,8 +81,12 @@
               <SwipeableFlightRow
                 bind:this={swipeableRefs[flight.id]}
                 disabled={selecting || readonly}
-                onEdit={readonly ? undefined : () => onEdit?.(flight)}
-                onDelete={readonly ? undefined : () => onDelete?.(flight)}
+                onEdit={readonly || !canUpdateFlight(flight)
+                  ? undefined
+                  : () => onEdit?.(flight)}
+                onDelete={readonly || !canDeleteFlight(flight)
+                  ? undefined
+                  : () => onDelete?.(flight)}
                 onShowOnMap={readonly ||
                 !onShowOnMap ||
                 !flight.from ||

@@ -7,6 +7,7 @@
 
   import { invalidateAll } from '$app/navigation';
   import { page } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
   import { UserAvatar } from '$lib/components/display';
   import { Confirm } from '$lib/components/helpers';
   import UserModal from '$lib/components/modals/settings/pages/users-page/UserModal.svelte';
@@ -14,7 +15,6 @@
   import { Card } from '$lib/components/ui/card';
   import type { PublicUser } from '$lib/db/types';
   import { api } from '$lib/trpc';
-  import { toTitleCase } from '$lib/utils';
   import { getPreferences, matchPreset, presets } from '$lib/utils/preferences';
 
   const presetSummary = (user: PublicUser): string => {
@@ -34,24 +34,25 @@
   };
 
   const canDeleteUser = (current_user: PublicUser) => {
-    if (current_user.role === 'owner') {
-      return false;
-    }
-    if (current_user.role === 'admin' && page.data.user?.role === 'admin') {
-      return false;
-    }
-    return true;
+    if (current_user.isOwner) return false;
+    return (
+      current_user.id === page.data.user?.id ||
+      hasClientPermission(page.data.authorization, 'users.delete')
+    );
   };
 
   const canEditUser = (current_user: PublicUser) => {
-    if (current_user.role === 'owner') {
-      return false;
-    }
-    if (current_user.role === 'admin' && page.data.user?.role === 'admin') {
-      return false;
-    }
-    return true;
+    return (
+      !current_user.isOwner &&
+      hasClientPermission(page.data.authorization, 'users.update') &&
+      hasClientPermission(page.data.authorization, 'users.roles.assign')
+    );
   };
+
+  const canAddUser = $derived(
+    hasClientPermission(page.data.authorization, 'users.create') &&
+      hasClientPermission(page.data.authorization, 'users.roles.assign'),
+  );
 
   let addUserModal = $state(false);
   let editUserModal = $state(false);
@@ -63,9 +64,11 @@
 
 <PageHeader title="Users" subtitle="Manage who can access AirTrail.">
   {#snippet headerRight()}
-    <Button variant="default" onclick={() => (addUserModal = true)}>
-      Add User
-    </Button>
+    {#if canAddUser}
+      <Button variant="default" onclick={() => (addUserModal = true)}>
+        Add user
+      </Button>
+    {/if}
   {/snippet}
 
   {#if users.length === 0}
@@ -79,7 +82,12 @@
             <div class="flex flex-col min-w-0 w-2/5">
               <h4 class="leading-4 truncate">{current_user.displayName}</h4>
               <p class="text-sm text-muted-foreground truncate">
-                {toTitleCase(current_user.role)}
+                {current_user.isOwner
+                  ? 'Owner'
+                  : (current_user.roleName ?? 'No role')}
+                {#if current_user.roleAssignmentSource === 'oauth'}
+                  · OAuth
+                {/if}
               </p>
             </div>
             <div class="flex flex-1 flex-col min-w-0">

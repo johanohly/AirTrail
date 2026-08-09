@@ -15,10 +15,15 @@
     DataPage,
     CustomFieldsPage,
     IntegrationsPage,
+    RolesPage,
   } from './pages';
 
   import { version } from '$app/environment';
   import { page } from '$app/state';
+  import {
+    hasClientPermission,
+    type Permission,
+  } from '$lib/authorization/permissions';
   import SettingsTabContainer from '$lib/components/modals/settings/SettingsTabContainer.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Modal } from '$lib/components/ui/modal';
@@ -30,20 +35,45 @@
   import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
 
   const ACCOUNT_SETTINGS = [
-    { title: 'General', id: 'general' },
-    { title: 'Preferences', id: 'preferences' },
-    { title: 'Security', id: 'security' },
-    { title: 'Appearance', id: 'appearance' },
-    { title: 'Share', id: 'share' },
-    { title: 'Import', id: 'import' },
-    { title: 'Export', id: 'export' },
+    { title: 'General', id: 'general', permission: null },
+    { title: 'Preferences', id: 'preferences', permission: null },
+    { title: 'Security', id: 'security', permission: null },
+    { title: 'Appearance', id: 'appearance', permission: null },
+    { title: 'Share', id: 'share', permission: null },
+    { title: 'Import', id: 'import', permission: 'flight.import.own' },
+    { title: 'Export', id: 'export', permission: 'flight.export.own' },
   ] as const;
   const ADMIN_SETTINGS = [
-    { title: 'Data', id: 'data' },
-    { title: 'Custom Fields', id: 'custom-fields' },
-    { title: 'Integrations', id: 'integrations' },
-    { title: 'Users', id: 'users' },
-    { title: 'OAuth', id: 'oauth' },
+    {
+      title: 'Data',
+      id: 'data',
+      permissions: [
+        'data.airports.manage',
+        'data.aircraft.manage',
+        'data.airlines.manage',
+      ],
+    },
+    {
+      title: 'Custom Fields',
+      id: 'custom-fields',
+      permissions: ['custom_fields.manage'],
+    },
+    {
+      title: 'Integrations',
+      id: 'integrations',
+      permissions: ['instance.integrations.manage'],
+    },
+    {
+      title: 'Users',
+      id: 'users',
+      permissions: ['users.directory.read'],
+    },
+    { title: 'Roles', id: 'roles', permissions: ['roles.manage'] },
+    {
+      title: 'OAuth',
+      id: 'oauth',
+      permissions: ['instance.oauth.manage'],
+    },
   ] as const;
   type SettingsTabId =
     | (typeof ACCOUNT_SETTINGS)[number]['id']
@@ -63,6 +93,17 @@
   });
 
   const user = $derived(page.data.user);
+  const canAccessAdminSetting = (permissions: readonly Permission[]) =>
+    permissions.some((permission) =>
+      hasClientPermission(page.data.authorization, permission),
+    );
+  const canAccessAccountSetting = (permission: Permission | null) =>
+    !permission || hasClientPermission(page.data.authorization, permission);
+  const hasInstanceSettings = $derived(
+    ADMIN_SETTINGS.some((setting) =>
+      canAccessAdminSetting(setting.permissions),
+    ),
+  );
 
   const [send, receive] = crossfade({
     duration: 250,
@@ -73,7 +114,7 @@
     if (
       open &&
       user &&
-      user.role !== 'user' &&
+      hasClientPermission(page.data.authorization, 'instance.release.check') &&
       !versionState.alreadyChecked &&
       !versionState.isChecking
     ) {
@@ -82,7 +123,7 @@
   });
 </script>
 
-<Modal bind:open class="max-w-2xl" drawerNoPadding>
+<Modal bind:open class="md:max-w-5xl" drawerNoPadding>
   <AnimatedSizeContainer
     height={$isMediumScreen}
     class={cn(
@@ -96,7 +137,7 @@
       <div class="space-y-0.5">
         <h2 class="text-2xl font-bold tracking-tight">Settings</h2>
         <p class="text-muted-foreground">
-          {#if !user || user.role === 'user'}
+          {#if !hasInstanceSettings}
             Manage your account settings and preferences.
           {:else}
             Manage your AirTrail instance and system configuration.
@@ -104,43 +145,11 @@
         </p>
       </div>
       <Separator />
-      <div class="flex flex-col gap-8 md:flex-row md:gap-16">
-        <aside class="flex overflow-x-auto md:w-1/5 md:flex-col">
+      <div class="flex min-w-0 flex-col gap-8 md:flex-row md:gap-8">
+        <aside class="flex overflow-x-auto md:w-44 md:shrink-0 md:flex-col">
           <SettingsTabContainer>
             {#each ACCOUNT_SETTINGS as setting}
-              {@const isActive = activeTab === setting.id}
-
-              <Button
-                onclick={() => (activeTab = setting.id)}
-                variant="ghost"
-                class={cn(
-                  'relative justify-start pl-5 transition-all duration-200 font-medium',
-                  isActive
-                    ? 'text-primary bg-primary/10 hover:bg-primary/15'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-card-hover',
-                )}
-                data-sveltekit-noscroll
-              >
-                {#if isActive}
-                  <div
-                    class="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full"
-                    in:send={{ key: 'active-sidebar-indicator' }}
-                    out:receive={{ key: 'active-sidebar-indicator' }}
-                  />
-                {/if}
-                <div class="relative">
-                  {setting.title}
-                </div>
-              </Button>
-            {/each}
-          </SettingsTabContainer>
-          {#if user && user.role !== 'user'}
-            <Separator
-              class="my-2"
-              orientation={$isMediumScreen ? 'horizontal' : 'vertical'}
-            />
-            <SettingsTabContainer>
-              {#each ADMIN_SETTINGS as setting}
+              {#if canAccessAccountSetting(setting.permission)}
                 {@const isActive = activeTab === setting.id}
 
                 <Button
@@ -159,17 +168,53 @@
                       class="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full"
                       in:send={{ key: 'active-sidebar-indicator' }}
                       out:receive={{ key: 'active-sidebar-indicator' }}
-                    />
+                    ></div>
                   {/if}
                   <div class="relative">
                     {setting.title}
                   </div>
                 </Button>
+              {/if}
+            {/each}
+          </SettingsTabContainer>
+          {#if hasInstanceSettings}
+            <Separator
+              class="my-2"
+              orientation={$isMediumScreen ? 'horizontal' : 'vertical'}
+            />
+            <SettingsTabContainer>
+              {#each ADMIN_SETTINGS as setting}
+                {#if canAccessAdminSetting(setting.permissions)}
+                  {@const isActive = activeTab === setting.id}
+
+                  <Button
+                    onclick={() => (activeTab = setting.id)}
+                    variant="ghost"
+                    class={cn(
+                      'relative justify-start pl-5 transition-all duration-200 font-medium',
+                      isActive
+                        ? 'text-primary bg-primary/10 hover:bg-primary/15'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-card-hover',
+                    )}
+                    data-sveltekit-noscroll
+                  >
+                    {#if isActive}
+                      <div
+                        class="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full"
+                        in:send={{ key: 'active-sidebar-indicator' }}
+                        out:receive={{ key: 'active-sidebar-indicator' }}
+                      ></div>
+                    {/if}
+                    <div class="relative">
+                      {setting.title}
+                    </div>
+                  </Button>
+                {/if}
               {/each}
             </SettingsTabContainer>
           {/if}
         </aside>
-        <div class="flex-1 md:max-w-2xl">
+        <div class="min-w-0 flex-1 md:max-w-2xl">
           {#if activeTab === 'general'}
             <GeneralPage />
           {:else if activeTab === 'preferences'}
@@ -192,6 +237,8 @@
             <IntegrationsPage />
           {:else if activeTab === 'users'}
             <UsersPage />
+          {:else if activeTab === 'roles'}
+            <RolesPage />
           {:else if activeTab === 'oauth'}
             <OAuthPage />
           {/if}
@@ -206,7 +253,7 @@
             rel="noopener noreferrer"
             class="font-medium text-foreground hover:underline">AirTrail</a
           >
-          {#if user && user.role !== 'user' && versionState.latestVersion && versionState.latestVersion !== version}
+          {#if hasClientPermission(page.data.authorization, 'instance.release.check') && versionState.latestVersion && versionState.latestVersion !== version}
             ({version}, {versionState.latestVersion} available)
           {:else}
             ({version})

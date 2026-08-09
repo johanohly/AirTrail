@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { db } from '$lib/db';
-import { adminProcedure, authedProcedure, router } from '$lib/server/trpc';
+import { authedProcedure, permissionProcedure, router } from '$lib/server/trpc';
 import { getAirport } from '$lib/server/utils/airport';
 import { updateAirports } from '$lib/utils/data/airports/source';
 
@@ -45,14 +45,18 @@ export const airportRouter = router({
       customAirports,
     };
   }),
-  delete: adminProcedure.input(z.number()).mutation(async ({ input }) => {
-    const result = await db
-      .deleteFrom('airport')
-      .where('id', '=', input)
-      .execute();
-    return result.length > 0;
-  }),
-  updateFromSource: adminProcedure.mutation(async () => {
-    return await updateAirports();
-  }),
+  delete: permissionProcedure('data.airports.manage')
+    .input(z.number())
+    .mutation(async ({ input }) => {
+      const result = await db
+        .deleteFrom('airport')
+        .where('id', '=', input)
+        .execute();
+      return result.length > 0;
+    }),
+  updateFromSource: permissionProcedure('data.airports.manage').mutation(
+    async () => {
+      return await updateAirports();
+    },
+  ),
 });

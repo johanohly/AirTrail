@@ -5,6 +5,7 @@
   import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
   import { page } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
   import {
     FlightCustomFieldsModal,
     FlightForm,
@@ -132,7 +133,10 @@
             definitions={$customFieldDefinitions.data ?? []}
             bind:values={customFieldValues}
             bind:dirty={customFieldsDirty}
-            onOpenSettings={page.data.user?.role !== 'user'
+            onOpenSettings={hasClientPermission(
+              page.data.authorization,
+              'custom_fields.manage',
+            )
               ? () => {
                   open = false;
                   // Wait for both popstates (custom fields modal + this modal)

@@ -2,19 +2,27 @@ import { json } from '@sveltejs/kit';
 
 import type { RequestHandler } from './$types';
 
-import { apiError, unauthorized, validateApiKey } from '$lib/server/utils/api';
+import { hasPermission } from '$lib/server/authorization/authorize';
+import {
+  apiError,
+  authenticateApiKey,
+  forbidden,
+  unauthorized,
+} from '$lib/server/utils/api';
 import { listAllFlights, listFlights } from '$lib/server/utils/flight';
 import { computeCompletedFlightStatsSummary } from '$lib/stats/summary';
 
 export const GET: RequestHandler = async ({ request, url }) => {
-  const user = await validateApiKey(request);
-  if (!user) {
+  const authentication = await authenticateApiKey(request);
+  if (!authentication) {
     return unauthorized();
   }
+  const { user, authorization } = authentication;
 
   const scope = url.searchParams.get('scope') ?? 'mine';
 
   if (scope === 'mine') {
+    if (!hasPermission(authorization, 'flight.read.own')) return forbidden();
     const flights = await listFlights(user.id);
     return json({
       success: true,
@@ -22,9 +30,7 @@ export const GET: RequestHandler = async ({ request, url }) => {
     });
   }
 
-  if (user.role === 'user') {
-    return apiError('Forbidden', 403);
-  }
+  if (!hasPermission(authorization, 'flight.read.any')) return forbidden();
 
   if (scope === 'user') {
     const userId = url.searchParams.get('userId');

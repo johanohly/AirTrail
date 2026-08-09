@@ -24,6 +24,7 @@
   import Toolbar from './Toolbar.svelte';
 
   import { page as appPage } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
   import type { Airport } from '$lib/db/types';
   import { AirlineIcon, TimeDisplay } from '$lib/components/display';
   import {
@@ -89,6 +90,41 @@
   } = $props();
 
   const prefs = $derived(getPreferences(appPage.data.user));
+  const canCreateFlight = $derived(
+    !readonly &&
+      hasClientPermission(appPage.data.authorization, 'flight.create.own'),
+  );
+  const canUpdateAnyFlight = $derived(
+    !readonly &&
+      hasClientPermission(appPage.data.authorization, 'flight.update.any'),
+  );
+  const canUpdateOwnFlight = $derived(
+    !readonly &&
+      hasClientPermission(appPage.data.authorization, 'flight.update.own'),
+  );
+  const canDeleteAnyFlight = $derived(
+    !readonly &&
+      hasClientPermission(appPage.data.authorization, 'flight.delete.any'),
+  );
+  const canDeleteOwnFlight = $derived(
+    !readonly &&
+      hasClientPermission(appPage.data.authorization, 'flight.delete.own'),
+  );
+
+  const isOwnFlight = (flight: FlightData) =>
+    Boolean(
+      appPage.data.user &&
+      flight.passengers.some(
+        (passenger) => passenger.userId === appPage.data.user?.id,
+      ),
+    );
+  const canUpdateFlight = (flight: FlightData) =>
+    canUpdateAnyFlight || (canUpdateOwnFlight && isOwnFlight(flight));
+  const canDeleteFlight = (flight: FlightData) =>
+    canDeleteAnyFlight || (canDeleteOwnFlight && isOwnFlight(flight));
+  const canBulkDelete = $derived(
+    filteredFlights.length > 0 && filteredFlights.every(canDeleteFlight),
+  );
 
   const formattedFlights = $derived.by(() => {
     const data = filteredFlights;
@@ -427,11 +463,12 @@
           {showingTo}
           {hasTempFilters}
           numOfFlights={filteredFlights.length}
+          canSelect={canBulkDelete}
           modalOpen={open &&
             !addFlightOpen &&
             !mobileEditOpen &&
             !deleteModalOpen}
-          onAddFlight={readonly
+          onAddFlight={!canCreateFlight
             ? undefined
             : () => {
                 addFlightOpen = true;
@@ -444,7 +481,7 @@
         {flights}
         {hasTempFilters}
         onShowAllFlights={hasTempFilters ? clearTempFilters : undefined}
-        onAddFlight={readonly
+        onAddFlight={!canCreateFlight
           ? undefined
           : () => {
               addFlightOpen = true;
@@ -454,10 +491,12 @@
       <MobileFlightList
         bind:this={mobileFlightListRef}
         {flightsByYear}
-        selecting={readonly ? false : selecting}
+        selecting={canBulkDelete ? selecting : false}
         bind:selectedFlights
-        onEdit={readonly ? undefined : handleMobileEdit}
-        onDelete={readonly ? undefined : handleDelete}
+        onEdit={handleMobileEdit}
+        onDelete={handleDelete}
+        {canUpdateFlight}
+        {canDeleteFlight}
         onShowOnMap={readonly || !onNavigate ? undefined : showFlightOnMap}
         {readonly}
       />
@@ -496,7 +535,7 @@
                 {#each group.flights as flight, legIndex (flight.id)}
                   {@const continuesAbove = legIndex > 0}
                   {@const continuesBelow = legIndex < group.flights.length - 1}
-                  {@const outlined = !readonly && selecting}
+                  {@const outlined = canBulkDelete && selecting}
                   <div
                     id="flight-list-row-{flight.id}"
                     class="relative col-span-full grid grid-cols-subgrid scroll-mt-24 rounded-lg"
@@ -506,7 +545,7 @@
                     {/if}
                     <Card
                       onclick={() => {
-                        if (!readonly && selecting) {
+                        if (canBulkDelete && selecting) {
                           if (selectedFlights.includes(flight.id)) {
                             selectedFlights = selectedFlights.filter(
                               (id) => id !== flight.id,
@@ -720,15 +759,21 @@
         <MapPin size="20" />
       </Button>
     {/if}
-    <EditFlightAction {flight} triggerDisabled={selecting} />
-    <Button
-      variant="outline"
-      size="icon"
-      disabled={selecting}
-      onclick={() => handleDelete(flight)}
-    >
-      <X size="24" />
-    </Button>
+    {#if canUpdateFlight(flight)}
+      <EditFlightAction {flight} triggerDisabled={selecting} />
+    {/if}
+    {#if canDeleteFlight(flight)}
+      <Button
+        variant="outline"
+        size="icon"
+        disabled={selecting}
+        aria-label="Delete flight"
+        title="Delete flight"
+        onclick={() => handleDelete(flight)}
+      >
+        <X size="24" />
+      </Button>
+    {/if}
   </div>
 {/snippet}
 

@@ -4,6 +4,7 @@
   import { toast } from 'svelte-sonner';
 
   import { page } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
   import {
     createDefaultFilters,
     matchesFlight,
@@ -35,6 +36,10 @@
   import { prepareFlightData } from '$lib/utils';
 
   const user = $derived(page.data.user);
+  const canOnboardFlights = $derived(
+    hasClientPermission(page.data.authorization, 'flight.create.own') ||
+      hasClientPermission(page.data.authorization, 'flight.import.own'),
+  );
 
   const flightListInput = writable<{
     scope: 'mine' | 'user' | 'all';
@@ -181,7 +186,7 @@
   };
 </script>
 
-{#if !$rawFlights.isLoading}
+{#if !$rawFlights.isLoading && canOnboardFlights}
   <FlightsOnboarding flightsCount={flights.length} />
 {/if}
 <ListFlightsModal

@@ -2,14 +2,20 @@ import { json } from '@sveltejs/kit';
 
 import type { RequestHandler } from './$types';
 
-import { apiError, unauthorized, validateApiKey } from '$lib/server/utils/api';
+import { canAccessFlight } from '$lib/server/authorization/flight';
+import {
+  apiError,
+  authenticateApiKey,
+  unauthorized,
+} from '$lib/server/utils/api';
 import { getFlight } from '$lib/server/utils/flight';
 
 export const GET: RequestHandler = async ({ request, params }) => {
-  const user = await validateApiKey(request);
-  if (!user) {
+  const authentication = await authenticateApiKey(request);
+  if (!authentication) {
     return unauthorized();
   }
+  const { authorization } = authentication;
 
   const id = +params.id;
   if (isNaN(id)) {
@@ -20,11 +26,8 @@ export const GET: RequestHandler = async ({ request, params }) => {
   if (!flight) {
     return apiError('Flight not found', 404);
   }
-  if (
-    user.role === 'user' &&
-    !flight.passengers.some((passenger) => passenger.userId === user.id)
-  ) {
-    return apiError('You are not a passenger on this flight', 403);
+  if (!(await canAccessFlight(authorization, 'read', id))) {
+    return apiError('Flight not found', 404);
   }
 
   return json({ success: true, flight });

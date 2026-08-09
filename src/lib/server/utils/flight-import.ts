@@ -1,4 +1,6 @@
-import type { CreateFlight, Flight, User } from '$lib/db/types';
+import type { CreateFlight, Flight } from '$lib/db/types';
+import type { AuthorizationContext } from '$lib/server/authorization/context';
+import { hasPermission } from '$lib/server/authorization/authorize';
 
 export type FlightImportMode = 'personal' | 'restore';
 
@@ -74,26 +76,35 @@ export const getMissingImportPassengers = <
 };
 
 export const validateFlightImportPermissions = (
-  user: Pick<User, 'id' | 'role'>,
+  authorization: AuthorizationContext,
   flights: CreateFlight[],
   mode: FlightImportMode,
 ): string | null => {
   if (mode === 'restore') {
-    return user.role === 'user'
-      ? 'Only admins and owners can restore flights for other users'
-      : null;
+    return hasPermission(authorization, 'flight.import.any')
+      ? null
+      : 'You cannot restore flights for other users';
+  }
+
+  if (!hasPermission(authorization, 'flight.import.own')) {
+    return 'You cannot import flights';
   }
 
   for (const [index, flight] of flights.entries()) {
     if (
       flight.passengers.some(
-        (passenger) => passenger.userId != null && passenger.userId !== user.id,
+        (passenger) =>
+          passenger.userId != null && passenger.userId !== authorization.userId,
       )
     ) {
       return `Flight ${index + 1} assigns another user as a passenger`;
     }
 
-    if (!flight.passengers.some((passenger) => passenger.userId === user.id)) {
+    if (
+      !flight.passengers.some(
+        (passenger) => passenger.userId === authorization.userId,
+      )
+    ) {
       return `Flight ${index + 1} must include the importing user`;
     }
   }

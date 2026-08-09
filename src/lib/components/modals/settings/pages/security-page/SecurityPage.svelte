@@ -8,6 +8,7 @@
   import OAuth from './OAuth.svelte';
 
   import { page } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
   import { Confirm } from '$lib/components/helpers';
   import { Button } from '$lib/components/ui/button';
   import { api, trpc } from '$lib/trpc';
@@ -37,21 +38,23 @@
   </div>
   <OAuth {user} />
   <ApiKeys />
-  <div class="flex items-center justify-between p-4 rounded-lg border">
-    <h4 class="font-medium leading-4">Danger zone</h4>
-    <div>
-      <Confirm
-        onConfirm={deleteFlights}
-        title="Delete all flights"
-        description="Are you sure you want to delete all your flights? This does not include flights you share with other users. This action cannot be undone."
-        confirmText="Delete"
-      >
-        {#snippet triggerContent({ props })}
-          <Button variant="destructiveOutline" {...props}>
-            Delete all flights
-          </Button>
-        {/snippet}
-      </Confirm>
+  {#if hasClientPermission(page.data.authorization, 'flight.delete.own')}
+    <div class="flex items-center justify-between p-4 rounded-lg border">
+      <h4 class="font-medium leading-4">Danger zone</h4>
+      <div>
+        <Confirm
+          onConfirm={deleteFlights}
+          title="Delete all flights"
+          description="Are you sure you want to delete all your flights? This does not include flights you share with other users. This action cannot be undone."
+          confirmText="Delete"
+        >
+          {#snippet triggerContent({ props })}
+            <Button variant="destructiveOutline" {...props}>
+              Delete all flights
+            </Button>
+          {/snippet}
+        </Confirm>
+      </div>
     </div>
-  </div>
+  {/if}
 </PageHeader>

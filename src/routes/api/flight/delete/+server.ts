@@ -3,7 +3,13 @@ import { z } from 'zod';
 
 import type { RequestHandler } from './$types';
 
-import { apiError, unauthorized, validateApiKey } from '$lib/server/utils/api';
+import { canAccessFlight } from '$lib/server/authorization/flight';
+import {
+  apiError,
+  authenticateApiKey,
+  forbidden,
+  unauthorized,
+} from '$lib/server/utils/api';
 import { deleteFlight, getFlight } from '$lib/server/utils/flight';
 
 const deleteFlightSchema = z.object({
@@ -20,21 +26,19 @@ export const POST: RequestHandler = async ({ request }) => {
     );
   }
 
-  const user = await validateApiKey(request);
-  if (!user) {
+  const authentication = await authenticateApiKey(request);
+  if (!authentication) {
     return unauthorized();
   }
+  const { authorization } = authentication;
 
   const flight = await getFlight(parsed.data.id);
   if (!flight) {
     return apiError('Flight not found', 400);
   }
 
-  if (
-    user.role === 'user' &&
-    !flight.passengers.some((passenger) => passenger.userId === user.id)
-  ) {
-    return apiError('You are not a passenger on this flight', 403);
+  if (!(await canAccessFlight(authorization, 'delete', parsed.data.id))) {
+    return forbidden();
   }
 
   const result = await deleteFlight(parsed.data.id);

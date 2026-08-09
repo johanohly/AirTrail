@@ -6,7 +6,11 @@ import type { RequestHandler } from './$types';
 import { getAircraftByIcao } from '$lib/server/utils/aircraft';
 import { getAirlineByIcao } from '$lib/server/utils/airline';
 import { getAirportByIata, getAirportByIcao } from '$lib/server/utils/airport';
-import { apiError, unauthorized, validateApiKey } from '$lib/server/utils/api';
+import {
+  apiError,
+  authenticateApiKey,
+  unauthorized,
+} from '$lib/server/utils/api';
 import { validateAndSaveFlight } from '$lib/server/utils/flight';
 import { aircraftSchema } from '$lib/zod/aircraft';
 import { airlineSchema } from '$lib/zod/airline';
@@ -115,10 +119,11 @@ export const POST: RequestHandler = async ({ request }) => {
     );
   }
 
-  const user = await validateApiKey(request);
-  if (!user) {
+  const authentication = await authenticateApiKey(request);
+  if (!authentication) {
     return unauthorized();
   }
+  const { user, authorization } = authentication;
 
   const from = await getAirportByCode(parsed.data.from);
   if (!from) {
@@ -158,9 +163,7 @@ export const POST: RequestHandler = async ({ request }) => {
     data.passengers[0].userId = user.id;
   }
 
-  const result = await validateAndSaveFlight(user, data, {
-    bypassPassengerCheck: user.role !== 'user',
-  });
+  const result = await validateAndSaveFlight(authorization, data);
   if (!result.success) {
     // @ts-expect-error - this should be valid
     return apiError(result.message, result.status || 500);

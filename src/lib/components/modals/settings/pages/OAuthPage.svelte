@@ -6,6 +6,7 @@
   import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
   import { PageHeader } from '.';
+  import OAuthRoleMappings from './oauth-role-mappings/OAuthRoleMappings.svelte';
 
   import { invalidateAll } from '$app/navigation';
   import { Locked } from '$lib/components/helpers';
@@ -362,6 +363,7 @@
     </Locked>
     <Form.Button disabled={!changes}>Save</Form.Button>
   </form>
+  <OAuthRoleMappings />
 </PageHeader>
 
 {#snippet lockedTooltip()}

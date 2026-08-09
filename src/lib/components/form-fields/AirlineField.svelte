@@ -3,6 +3,7 @@
   import { z } from 'zod';
 
   import { page } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
 
   import AirlinePicker from './AirlinePicker.svelte';
 
@@ -18,7 +19,9 @@
   } = $props();
   const { form: formData } = form;
 
-  const isAdmin = $derived(page.data.user?.role !== 'user');
+  const isAdmin = $derived(
+    hasClientPermission(page.data.authorization, 'data.airlines.manage'),
+  );
   const pickerValue = $derived.by((): Airline | null => {
     const airline = $formData.airline;
     if (!airline || airline.id === null) return null;

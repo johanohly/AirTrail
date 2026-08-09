@@ -6,6 +6,7 @@
   import type { ImportFailure } from './';
 
   import { page } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
   import AircraftPicker from '$lib/components/form-fields/AircraftPicker.svelte';
   import AirlinePicker from '$lib/components/form-fields/AirlinePicker.svelte';
   import AirportPicker from '$lib/components/form-fields/AirportPicker.svelte';
@@ -101,7 +102,9 @@
       .join(' • ');
   });
 
-  const isAdmin = $derived(page.data.user?.role !== 'user');
+  const isAdmin = $derived(
+    hasClientPermission(page.data.authorization, 'flight.import.any'),
+  );
 
   let createAirport = $state(false);
   let createAirline = $state(false);

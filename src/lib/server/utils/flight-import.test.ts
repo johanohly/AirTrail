@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import type { CreateFlight, User } from '$lib/db/types';
+import type { Permission } from '$lib/authorization/permissions';
+import type { CreateFlight } from '$lib/db/types';
+import type { AuthorizationContext } from '$lib/server/authorization/context';
 
 import {
   getMissingFlightReferenceUpdate,
@@ -8,10 +10,19 @@ import {
   validateFlightImportPermissions,
 } from './flight-import';
 
-const user = {
-  id: 'current-user',
-  role: 'user',
-} as Pick<User, 'id' | 'role'>;
+const authorization = (
+  permissions: Permission[],
+  isOwner = false,
+): AuthorizationContext => ({
+  userId: 'current-user',
+  isOwner,
+  roleId: isOwner ? null : 'role-user',
+  roleName: isOwner ? null : 'User',
+  roleAssignmentSource: 'local',
+  permissions: new Set(permissions),
+});
+
+const user = authorization(['flight.import.own']);
 
 const flightWithSeats = (
   passengers: CreateFlight['passengers'],
@@ -115,7 +126,7 @@ describe('validateFlightImportPermissions', () => {
   it('allows personal imports owned by the importing user', () => {
     const error = validateFlightImportPermissions(
       user,
-      [flightWithSeats([userSeat(user.id), guestSeat('Guest Passenger')])],
+      [flightWithSeats([userSeat(user.userId), guestSeat('Guest Passenger')])],
       'personal',
     );
 
@@ -125,7 +136,7 @@ describe('validateFlightImportPermissions', () => {
   it('rejects personal imports that assign another local user', () => {
     const error = validateFlightImportPermissions(
       user,
-      [flightWithSeats([userSeat(user.id), userSeat('other-user')])],
+      [flightWithSeats([userSeat(user.userId), userSeat('other-user')])],
       'personal',
     );
 
@@ -146,18 +157,18 @@ describe('validateFlightImportPermissions', () => {
     const flight = flightWithSeats([userSeat('other-user')]);
 
     expect(validateFlightImportPermissions(user, [flight], 'restore')).toBe(
-      'Only admins and owners can restore flights for other users',
+      'You cannot restore flights for other users',
     );
     expect(
       validateFlightImportPermissions(
-        { ...user, role: 'admin' },
+        authorization(['flight.import.any']),
         [flight],
         'restore',
       ),
     ).toBeNull();
     expect(
       validateFlightImportPermissions(
-        { ...user, role: 'owner' },
+        authorization([], true),
         [flight],
         'restore',
       ),

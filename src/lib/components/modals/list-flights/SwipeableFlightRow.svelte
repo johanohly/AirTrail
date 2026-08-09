@@ -371,23 +371,29 @@
       </button>
       <div class="w-px bg-border"></div>
     {/if}
-    <button
-      type="button"
-      class="flex-1 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors"
-      onclick={handleEditClick}
-    >
-      <SquarePen size={22} />
-      <span class="text-xs font-medium">Edit</span>
-    </button>
-    <div class="w-px bg-border"></div>
-    <button
-      type="button"
-      class="flex-1 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 active:bg-destructive/15 transition-colors"
-      onclick={handleDeleteClick}
-    >
-      <Trash2 size={22} />
-      <span class="text-xs font-medium">Delete</span>
-    </button>
+    {#if onEdit}
+      <button
+        type="button"
+        class="flex-1 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors"
+        onclick={handleEditClick}
+      >
+        <SquarePen size={22} />
+        <span class="text-xs font-medium">Edit</span>
+      </button>
+    {/if}
+    {#if onEdit && onDelete}
+      <div class="w-px bg-border"></div>
+    {/if}
+    {#if onDelete}
+      <button
+        type="button"
+        class="flex-1 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 active:bg-destructive/15 transition-colors"
+        onclick={handleDeleteClick}
+      >
+        <Trash2 size={22} />
+        <span class="text-xs font-medium">Delete</span>
+      </button>
+    {/if}
   </div>
 
   <!-- Colored background during swipe -->
