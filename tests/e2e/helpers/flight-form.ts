@@ -66,11 +66,7 @@ export const submitFlightForm = async (page: Page, modal: Locator) => {
 export const openEditFlightModal = async (page: Page): Promise<Locator> => {
   await page.getByTestId('list-flights-button').click();
   await expect(page.getByText(/all flights/i)).toBeVisible({ timeout: 5000 });
-  // `ListFlightsModal` wraps the edit trigger in `{#key flight}` and remaps
-  // flight objects every derivation, so the button detaches+reattaches on
-  // any upstream tick — Playwright's actionability wait never sees stability.
-  // Dispatch the click event directly to bypass pointer simulation.
-  await page.getByTestId('edit-flight-button').first().dispatchEvent('click');
+  await page.getByTestId('edit-flight-button').first().click();
   const modal = page.getByRole('dialog').filter({ hasText: /edit flight/i });
   await expect(modal).toBeVisible();
   return modal;

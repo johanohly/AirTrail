@@ -12,6 +12,7 @@
   import { tick } from 'svelte';
 
   import DeleteFlightModal from './DeleteFlightModal.svelte';
+  import EditFlightAction from './EditFlightAction.svelte';
   import EmptyFlightsState from './EmptyFlightsState.svelte';
   import {
     buildFlightListYears,
@@ -719,9 +720,7 @@
         <MapPin size="20" />
       </Button>
     {/if}
-    {#key flight}
-      <EditFlightModal {flight} triggerDisabled={selecting} />
-    {/key}
+    <EditFlightAction {flight} triggerDisabled={selecting} />
     <Button
       variant="outline"
       size="icon"
