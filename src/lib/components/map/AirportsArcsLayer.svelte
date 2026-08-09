@@ -52,6 +52,7 @@
     type DeckPointerEvent,
   } from '$lib/map/map-popup-position';
   import { mapPreferences } from '$lib/map/map-preferences.svelte';
+  import { PreciseArcEndpointsExtension } from '$lib/map/precise-arc-endpoints';
   import {
     closeMapDetails,
     mapDetailsState,
@@ -98,6 +99,7 @@
     depthWriteEnabled: false,
   } as const;
   const globeOcclusion = new GlobeOcclusionExtension();
+  const preciseArcEndpoints = new PreciseArcEndpointsExtension();
   const isDarkMode = $derived(mode.current === 'dark');
 
   const interpolateColor = (
@@ -193,8 +195,7 @@
 
   const getProjectionType = () => {
     const projection = map?.getProjection?.() as
-      | { type?: string; name?: string }
-      | undefined;
+      { type?: string; name?: string } | undefined;
     return projection?.type ?? projection?.name ?? 'unknown';
   };
 
@@ -558,7 +559,7 @@
   const arcOptions = $derived.by(() => ({
     id: 'arc-layer',
     parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
-    extensions: [globeOcclusion],
+    extensions: [preciseArcEndpoints, globeOcclusion],
     data: visibleFlightArcs,
     getSourcePosition: (data: FlightArc): Position => [
       data.from.lon,
@@ -607,7 +608,7 @@
   const ghostArcOptions = $derived({
     id: 'ghost-arc',
     parameters: isGlobe ? GLOBE_ARC_PARAMETERS : MERCATOR_ROUTE_PARAMETERS,
-    extensions: [globeOcclusion],
+    extensions: [preciseArcEndpoints, globeOcclusion],
     data: visibleFlightArcs,
     getSourcePosition: (data: FlightArc): Position => [
       data.from.lon,
