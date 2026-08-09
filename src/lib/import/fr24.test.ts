@@ -153,6 +153,50 @@ describe('processFR24File', () => {
     expect(getAirlineByIcao).toHaveBeenCalledWith('LFH');
   });
 
+  it('derives the arrival from the duration when the arrival time is the 00:00:00 placeholder', async () => {
+    const content = `Date,Flight number,From,To,Dep time,Arr time,Duration,Airline,Aircraft,Registration,Seat number,Seat type,Flight class,Flight reason,Note\n2015-03-10,SK537,Stockholm / Arlanda (ARN/ESSA),Copenhagen / Kastrup (CPH/EKCH),07:25:00,00:00:00,01:15:00,Scandinavian Airlines (SK/SAS),Boeing 737-800 (B738),,,1,1,1,`;
+
+    const result = await processFR24File(content, {
+      filterOwner: false,
+      airlineFromFlightNumber: true,
+      importMode: 'personal',
+    });
+
+    expect(result.flights).toHaveLength(1);
+    expect(result.flights[0]?.departure).toBe('2015-03-10T07:25:00.000+00:00');
+    expect(result.flights[0]?.arrival).toBe('2015-03-10T08:40:00.000+00:00');
+    expect(result.flights[0]?.duration).toBe(4500);
+  });
+
+  it('keeps an explicit overnight arrival on the next day', async () => {
+    const content = `Date,Flight number,From,To,Dep time,Arr time,Duration,Airline,Aircraft,Registration,Seat number,Seat type,Flight class,Flight reason,Note\n2015-03-10,SK537,Stockholm / Arlanda (ARN/ESSA),Copenhagen / Kastrup (CPH/EKCH),22:00:00,01:10:00,03:10:00,Scandinavian Airlines (SK/SAS),Boeing 737-800 (B738),,,1,1,1,`;
+
+    const result = await processFR24File(content, {
+      filterOwner: false,
+      airlineFromFlightNumber: true,
+      importMode: 'personal',
+    });
+
+    expect(result.flights).toHaveLength(1);
+    expect(result.flights[0]?.departure).toBe('2015-03-10T22:00:00.000+00:00');
+    expect(result.flights[0]?.arrival).toBe('2015-03-11T01:10:00.000+00:00');
+  });
+
+  it('leaves both times empty when neither is known', async () => {
+    const content = `Date,Flight number,From,To,Dep time,Arr time,Duration,Airline,Aircraft,Registration,Seat number,Seat type,Flight class,Flight reason,Note\n2015-03-10,SK537,Stockholm / Arlanda (ARN/ESSA),Copenhagen / Kastrup (CPH/EKCH),00:00:00,00:00:00,01:15:00,Scandinavian Airlines (SK/SAS),Boeing 737-800 (B738),,,1,1,1,`;
+
+    const result = await processFR24File(content, {
+      filterOwner: false,
+      airlineFromFlightNumber: true,
+      importMode: 'personal',
+    });
+
+    expect(result.flights).toHaveLength(1);
+    expect(result.flights[0]?.departure).toBeNull();
+    expect(result.flights[0]?.arrival).toBeNull();
+    expect(result.flights[0]?.duration).toBe(4500);
+  });
+
   it('reports and applies mappings for defunct airline codes', async () => {
     const content = `Date,Flight number,From,To,Dep time,Arr time,Duration,Airline,Aircraft,Registration,Seat number,Seat type,Flight class,Flight reason,Note\n1999-07-15,NW687,Minneapolis (MSP/KMSP),Seattle (SEA/KSEA),10:00:00,11:30:00,03:30:00,Northwest Airlines (NW/NWA),Boeing 757-200 (B752),N687NW,12A,1,1,1,Issue 687 unknown airline test`;
     getAirlineByIcao.mockResolvedValueOnce(null);
