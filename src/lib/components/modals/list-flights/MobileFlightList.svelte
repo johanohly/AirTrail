@@ -4,6 +4,7 @@
 
   import type { FlightListYear } from './flight-list-groups';
   import FlightCard from './FlightCard.svelte';
+  import FlightIndicators from './FlightIndicators.svelte';
   import PastFlightsDivider from './PastFlightsDivider.svelte';
   import SwipeableFlightRow from './SwipeableFlightRow.svelte';
 
@@ -22,6 +23,7 @@
     onEdit,
     onDelete,
     onShowOnMap,
+    trackedFlightIds,
     readonly = false,
   }: {
     flightsByYear: FlightListYear<Flight>[];
@@ -30,6 +32,7 @@
     onEdit?: (flight: FlightData) => void;
     onDelete?: (flight: FlightData) => void;
     onShowOnMap?: (flight: FlightData) => void;
+    trackedFlightIds?: Set<number>;
     readonly?: boolean;
   } = $props();
 
@@ -104,7 +107,16 @@
                     <FlightCard
                       {flight}
                       passengerLabels={flight.passengerLabels}
-                    />
+                    >
+                      {#snippet indicators()}
+                        <FlightIndicators
+                          {flight}
+                          hasTrack={trackedFlightIds?.has(flight.id) ?? false}
+                          size={15}
+                          tooltips={false}
+                        />
+                      {/snippet}
+                    </FlightCard>
                   </button>
                 {/snippet}
               </SwipeableFlightRow>
