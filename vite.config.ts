@@ -152,7 +152,7 @@ const pwaOptions = {
 
 export default defineConfig({
   resolve: {
-    dedupe: ['maplibre-gl'],
+    dedupe: ['@internationalized/date', 'maplibre-gl'],
   },
   plugins: [o7Icon(), tailwindcss(), sveltekit(), VitePWA(pwaOptions)],
 });
