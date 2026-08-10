@@ -158,6 +158,34 @@ export const listAllFlightsPrimitive = async (db: Kysely<DB>) => {
   return await listFlightBaseQuery(db).execute();
 };
 
+export const listGuestNamesPrimitive = async (
+  db: Kysely<DB>,
+  userId: string,
+) => {
+  const rows = await db
+    .selectFrom('flightPassenger as guest')
+    .select(['guest.guestName as name'])
+    .select((eb) => eb.fn.countAll().as('count'))
+    .where('guest.guestName', 'is not', null)
+    .where((eb) =>
+      eb.exists(
+        eb
+          .selectFrom('flightPassenger as owner')
+          .select('owner.id')
+          .whereRef('owner.flightId', '=', 'guest.flightId')
+          .where('owner.userId', '=', userId),
+      ),
+    )
+    .groupBy('guest.guestName')
+    .execute();
+
+  return rows
+    .flatMap(({ name, count }) =>
+      name ? [{ name, count: Number(count) }] : [],
+    )
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+};
+
 export const getFlightPrimitive = async (db: Kysely<DB>, id: number) => {
   return await db
     .selectFrom('flight')

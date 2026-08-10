@@ -243,6 +243,7 @@
         if (form.message) {
           if (form.message.type === 'success') {
             trpc.flight.list.utils.invalidate();
+            trpc.flight.guests.utils.invalidate();
             trpc.flightTrack.list.utils.invalidate();
             toast.success(form.message.text);
             open = false;

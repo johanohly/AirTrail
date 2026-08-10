@@ -12,6 +12,7 @@ import {
   createManyFlights,
   deleteFlight,
   listFlights,
+  listGuestNames,
   validateFlightDates,
 } from '$lib/server/utils/flight';
 import { getAircraftFromReg } from '$lib/server/utils/flight-lookup/aerodatabox';
@@ -99,6 +100,9 @@ export const flightRouter = router({
 
       return await listAllFlights();
     }),
+  guests: authedProcedure.query(async ({ ctx: { user } }) => {
+    return await listGuestNames(user.id);
+  }),
   delete: authedProcedure
     .input(z.number())
     .mutation(async ({ ctx: { user }, input }) => {
