@@ -10,6 +10,8 @@
   import FlightsPerWeekday from './charts/FlightsPerWeekday.svelte';
   import PieChart from './charts/PieChart.svelte';
   import PieCharts from './charts/PieCharts.svelte';
+  import AircraftReportCard from './cards/AircraftReportCard.svelte';
+  import PunctualityReportCard from './cards/PunctualityReportCard.svelte';
   import StatsCard from './StatsCard.svelte';
 
   import { resolve } from '$app/paths';
@@ -260,7 +262,9 @@
             <span class="text-lg font-medium">
               {distanceUnitLabel(prefs)}
             </span>
-            (<NumberFlow value={round(earthCircumnavigations, 2)} />x 🌎)
+            <small>
+              (<NumberFlow value={round(earthCircumnavigations, 2)} />x 🌎)
+            </small>
           </span>
         </StatsCard>
         <StatsCard class="py-4 px-8">
@@ -307,6 +311,10 @@
             </div>
           </StatsCard>
         {/if}
+      </div>
+      <div class="grid gap-4 pb-2 md:grid-cols-2">
+        <AircraftReportCard flights={completedFlights} {seatUserId} />
+        <PunctualityReportCard flights={completedFlights} />
       </div>
       <h3 class="text-2xl font-bold tracking-tight pt-4">Flight Statistics</h3>
       <PieCharts

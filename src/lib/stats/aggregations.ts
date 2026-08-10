@@ -4,6 +4,8 @@ import {
   VisitedCountryStatus,
   wasVisited,
 } from '$lib/db/types';
+import { differenceInMinutes, parseISO } from 'date-fns';
+
 import { COUNTRIES } from '$lib/data/countries';
 import { type FlightData, toTitleCase } from '$lib/utils';
 
@@ -465,6 +467,161 @@ export function airportDistribution(
     }
   }
   return sortAndLimit(counts, options);
+}
+
+// ----- Report aggregations ----------------------------------------------
+//
+// These power the summary "report" cards on the statistics page. They build on
+// the distribution helpers above but collapse them down to the single headline
+// figure each card row needs.
+
+/** Synthetic buckets the distribution helpers emit for unknown/overflow data. */
+const NON_DATA_LABELS = new Set(['No Data', 'Others']);
+
+export type TopEntry = { label: string; count: number };
+
+/**
+ * The highest-count entry of a distribution, ignoring empty counts and the
+ * synthetic "No Data" / "Others" buckets. Returns null when nothing qualifies
+ * — the distribution helpers always emit every known category (often at zero),
+ * so a positive count is what distinguishes a real result from a placeholder.
+ */
+function topEntry(distribution: Record<string, number>): TopEntry | null {
+  let best: TopEntry | null = null;
+  for (const [label, count] of Object.entries(distribution)) {
+    if (count <= 0 || NON_DATA_LABELS.has(label)) continue;
+    if (!best || count > best.count) best = { label, count };
+  }
+  return best;
+}
+
+export type AircraftReport = {
+  typeCount: number;
+  mostFlownType: TopEntry | null;
+  mostFlownTail: TopEntry | null;
+  topSeatClass: TopEntry | null;
+  topSeatPosition: TopEntry | null;
+  topReason: TopEntry | null;
+};
+
+export function aircraftReport(
+  flights: FlightData[],
+  ctx: StatsContext,
+): AircraftReport {
+  const types = new Set<string>();
+  for (const flight of flights) {
+    if (flight.aircraft?.name) types.add(flight.aircraft.name);
+  }
+
+  return {
+    typeCount: types.size,
+    mostFlownType: topEntry(aircraftModelDistribution(flights, ctx)),
+    mostFlownTail: topEntry(aircraftRegDistribution(flights, ctx)),
+    topSeatClass: topEntry(seatClassDistribution(flights, ctx)),
+    topSeatPosition: topEntry(seatDistribution(flights, ctx)),
+    topReason: topEntry(reasonDistribution(flights, ctx)),
+  };
+}
+
+/**
+ * A flight is "delayed" once it arrives at least this many minutes behind
+ * schedule — the 15-minute window the airline industry uses for on-time stats.
+ */
+export const DELAY_THRESHOLD_MINUTES = 15;
+
+/**
+ * Arrival delay in minutes (actual − scheduled), or null when the flight lacks
+ * the scheduled/actual arrival timestamps needed to assess punctuality.
+ */
+export function arrivalDelayMinutes(flight: FlightData): number | null {
+  const { arrivalScheduled, arrival } = flight.raw;
+  if (!arrivalScheduled || !arrival) return null;
+
+  const scheduled = parseISO(arrivalScheduled);
+  const actual = parseISO(arrival);
+  if (Number.isNaN(scheduled.getTime()) || Number.isNaN(actual.getTime())) {
+    return null;
+  }
+  return differenceInMinutes(actual, scheduled);
+}
+
+export type AirlineDelay = {
+  airline: string;
+  assessedFlights: number;
+  delayedFlights: number;
+  totalDelayMinutes: number;
+  delayRate: number; // percentage of assessed flights that were delayed
+};
+
+export type PunctualityReport = {
+  assessedFlights: number; // flights with usable scheduled + actual arrival
+  delayedFlights: number;
+  delayRate: number; // percentage of assessed flights delayed (0..100)
+  totalDelayMinutes: number;
+  worstDelayMinutes: number;
+  worstAirlines: AirlineDelay[];
+};
+
+export function punctualityReport(
+  flights: FlightData[],
+  options?: { worstAirlineLimit?: number },
+): PunctualityReport {
+  const worstAirlineLimit = options?.worstAirlineLimit ?? 3;
+
+  let assessedFlights = 0;
+  let delayedFlights = 0;
+  let totalDelayMinutes = 0;
+  let worstDelayMinutes = 0;
+
+  const byAirline = new Map<
+    string,
+    { assessed: number; delayed: number; delayMinutes: number }
+  >();
+
+  for (const flight of flights) {
+    const delay = arrivalDelayMinutes(flight);
+    if (delay === null) continue;
+
+    assessedFlights++;
+    const airlineName = flight.airline?.name ?? 'Unknown airline';
+    const airline = byAirline.get(airlineName) ?? {
+      assessed: 0,
+      delayed: 0,
+      delayMinutes: 0,
+    };
+    airline.assessed++;
+
+    if (delay > DELAY_THRESHOLD_MINUTES) {
+      delayedFlights++;
+      totalDelayMinutes += delay;
+      worstDelayMinutes = Math.max(worstDelayMinutes, delay);
+      airline.delayed++;
+      airline.delayMinutes += delay;
+    }
+
+    byAirline.set(airlineName, airline);
+  }
+
+  const worstAirlines: AirlineDelay[] = [...byAirline.entries()]
+    .filter(([, a]) => a.delayed > 0)
+    .map(([airline, a]) => ({
+      airline,
+      assessedFlights: a.assessed,
+      delayedFlights: a.delayed,
+      totalDelayMinutes: a.delayMinutes,
+      delayRate: (a.delayed / a.assessed) * 100,
+    }))
+    .sort((a, b) => b.totalDelayMinutes - a.totalDelayMinutes)
+    .slice(0, worstAirlineLimit);
+
+  return {
+    assessedFlights,
+    delayedFlights,
+    delayRate: assessedFlights ? (delayedFlights / assessedFlights) * 100 : 0,
+    totalDelayMinutes,
+    worstDelayMinutes,
+    worstAirlines,
+  };
 }
 
 export const FLIGHT_CHARTS: Record<
