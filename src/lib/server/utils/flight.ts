@@ -12,6 +12,7 @@ import {
   listAllFlightsPrimitive,
   listFlightBaseQuery,
   listFlightPrimitive,
+  listGuestNamesPrimitive,
   updateFlightPrimitive,
   updateFlightPrimitiveWithConnection,
   upsertFlightTrackPrimitiveWithConnection,
@@ -91,6 +92,10 @@ export const listFlights = async (userId: string) => {
 
 export const listAllFlights = async () => {
   return await listAllFlightsPrimitive(db);
+};
+
+export const listGuestNames = async (userId: string) => {
+  return await listGuestNamesPrimitive(db, userId);
 };
 
 export const getFlight = async (id: number) => {
