@@ -173,6 +173,25 @@
         {/each}
       </Select.Content>
     </Select.Root>
+  {:else if fieldType === 'multi-select'}
+    <Select.Root
+      type="multiple"
+      value={Array.isArray(value)
+        ? value.filter((item): item is string => typeof item === 'string')
+        : []}
+      onValueChange={(v) => set(v.length ? v : null)}
+    >
+      <Select.Trigger id={fieldId}>
+        {Array.isArray(value) && value.length
+          ? value.join(', ')
+          : 'Select options'}
+      </Select.Trigger>
+      <Select.Content>
+        {#each resolvedOptions as option (option)}
+          <Select.Item value={option} label={option} />
+        {/each}
+      </Select.Content>
+    </Select.Root>
   {:else if fieldType === 'airport'}
     <AirportPicker
       value={entityObj as Airport | null}

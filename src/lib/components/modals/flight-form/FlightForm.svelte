@@ -5,20 +5,32 @@
   import FlightInformation from './FlightInformation.svelte';
   import FlightNumber from './FlightNumber.svelte';
   import FlightTimetable from './FlightTimetable.svelte';
-  import SeatInformation from './SeatInformation.svelte';
+  import PassengerInformation from './PassengerInformation.svelte';
 
   import { confirmation } from '$lib/components/helpers/confirm';
   import { AirportField, DateTimeField } from '$lib/components/form-fields';
   import { mergeTimeWithDate } from '$lib/utils/datetime';
   import type { FlightFormData } from '$lib/zod/flight';
+  import type { CustomFieldDefinition } from '$lib/utils/custom-fields';
 
   let {
     form,
+    passengerCustomFieldDefinitions = [],
+    passengerSavedFieldIds = {},
+    passengerCustomFieldsLoading = false,
   }: {
     form: SuperForm<FlightFormData>;
+    passengerCustomFieldDefinitions?: CustomFieldDefinition[];
+    passengerSavedFieldIds?: Record<number, Set<number>>;
+    passengerCustomFieldsLoading?: boolean;
   } = $props();
+  let passengerInformation = $state<ReturnType<typeof PassengerInformation>>();
 
-  const { form: formData } = form;
+  export function validatePassengerCustomFields(): boolean {
+    return passengerInformation?.validateCustomFields() ?? true;
+  }
+
+  const { form: formData, errors } = form;
   type TimetableTab = 'scheduled' | 'actual';
 
   const MAX_DURATION_SECONDS = 24 * 60 * 60;
@@ -38,6 +50,28 @@
     'takeoffScheduledTime',
     'takeoffActualTime',
     'landingScheduledTime',
+    'landingActualTime',
+  ] as const;
+
+  const scheduledTimetableFields = [
+    'departureScheduled',
+    'departureScheduledTime',
+    'arrivalScheduled',
+    'arrivalScheduledTime',
+    'takeoffScheduled',
+    'takeoffScheduledTime',
+    'landingScheduled',
+    'landingScheduledTime',
+  ] as const;
+
+  const actualTimetableFields = [
+    'departure',
+    'departureTime',
+    'arrival',
+    'arrivalTime',
+    'takeoffActual',
+    'takeoffActualTime',
+    'landingActual',
     'landingActualTime',
   ] as const;
 
@@ -65,6 +99,45 @@
   let prevHasTimetableData = $state(false);
   let preferredMobileTab = $state<TimetableTab>('actual');
   let preferredMobileTabVersion = $state(0);
+  let revealedTimetableError = $state('');
+
+  const hasError = (field: keyof FlightFormData) => !!$errors[field];
+
+  const timetableErrorTab = $derived.by<TimetableTab | null>(() => {
+    if ($formData.datePrecision !== 'day') return null;
+
+    const hasScheduledErrors = scheduledTimetableFields.some(hasError);
+    if (hasScheduledErrors) return 'scheduled';
+
+    const hasActualErrors = actualTimetableFields.some(hasError);
+    if (hasActualErrors && (showTimetable || hasTimetableData)) {
+      return 'actual';
+    }
+
+    return null;
+  });
+
+  const timetableErrorSignature = $derived.by(() => {
+    return [...scheduledTimetableFields, ...actualTimetableFields]
+      .flatMap((field) =>
+        ($errors[field] ?? []).map((message) => `${field}:${message}`),
+      )
+      .join('|');
+  });
+
+  $effect(() => {
+    if (!timetableErrorTab) {
+      revealedTimetableError = '';
+      return;
+    }
+
+    if (timetableErrorSignature === revealedTimetableError) return;
+    revealedTimetableError = timetableErrorSignature;
+    showTimetable = true;
+    partialDateMode = false;
+    preferredMobileTab = timetableErrorTab;
+    preferredMobileTabVersion += 1;
+  });
 
   const clearDetailedTimetable = () => {
     formData.update((current) => ({
@@ -253,7 +326,13 @@
         class="absolute inset-0 rounded-xl border bg-neutral-50 dark:bg-input/30 [mask-image:linear-gradient(to_bottom,black,transparent)]"
       ></div>
       <div class="relative px-4 py-3">
-        <SeatInformation {form} />
+        <PassengerInformation
+          bind:this={passengerInformation}
+          {form}
+          customFieldDefinitions={passengerCustomFieldDefinitions}
+          savedFieldIds={passengerSavedFieldIds}
+          customFieldsLoading={passengerCustomFieldsLoading}
+        />
       </div>
     </div>
   </div>

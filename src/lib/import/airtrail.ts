@@ -1,7 +1,14 @@
 import { z } from 'zod';
 
 import { page } from '$app/state';
-import { FlightDatePrecisions, type CreateFlight } from '$lib/db/types';
+import {
+  FlightDatePrecisions,
+  type Airline,
+  type Airport,
+  type CreateFlight,
+} from '$lib/db/types';
+import type { PlatformOptions } from '$lib/import/model';
+import { flightTrackInputSchema } from '$lib/track/schema';
 import { api } from '$lib/trpc';
 import { getAircraftByIcao, getAircraftByName } from '$lib/utils/data/aircraft';
 import { getAirlineByIcao, getAirlineByName } from '$lib/utils/data/airlines';
@@ -11,19 +18,62 @@ import { airlineSchema } from '$lib/zod/airline';
 import { flightAirportSchema } from '$lib/zod/airport';
 import {
   flightOptionalInformationSchema,
-  flightSeatInformationSchema,
+  flightPassengerInformationSchema,
 } from '$lib/zod/flight';
-import { flightTrackInputSchema } from '$lib/track/schema';
+import { usernameSchema } from '$lib/zod/user';
 
-const dateTimePrimitive = z.string().datetime({ offset: true }).nullable();
+const dateTimePrimitive = z
+  .string()
+  .datetime({ offset: true })
+  .nullable()
+  .optional();
+const airportRefSchema = z.union([
+  flightAirportSchema.omit({ id: true }),
+  z.object({ code: z.string().max(4) }),
+]);
+const airlineRefSchema = airlineSchema.omit({ id: true }).nullable();
+const aircraftRefSchema = aircraftSchema.omit({ id: true }).nullable();
 
-const AirTrailFile = z.object({
-  flights: z
+const normalizePassengerProperty = (value: unknown) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+
+  const flight = value as Record<string, unknown>;
+  const sourcePassengers = Array.isArray(flight.passengers)
+    ? flight.passengers
+    : Array.isArray(flight.seats)
+      ? flight.seats
+      : null;
+  if (!sourcePassengers) return value;
+
+  const legacyReason = flight.flightReason ?? null;
+  const passengers = sourcePassengers.map((passenger) => {
+    if (
+      !passenger ||
+      typeof passenger !== 'object' ||
+      Array.isArray(passenger)
+    ) {
+      return passenger;
+    }
+    const record = passenger as Record<string, unknown>;
+    return {
+      ...record,
+      flightReason: record.flightReason ?? legacyReason,
+    };
+  });
+  const { seats: _seats, flightReason: _flightReason, ...rest } = flight;
+  return { ...rest, passengers };
+};
+
+// Custom-field values in AirTrail backups are reference-only. Flight values
+// are omitted here, and passenger values are discarded during user mapping.
+const airTrailFlightSchema = z.preprocess(
+  normalizePassengerProperty,
+  z
     .object({
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       datePrecision: z.enum(FlightDatePrecisions).default('day'),
-      from: flightAirportSchema.omit({ id: true }),
-      to: flightAirportSchema.omit({ id: true }),
+      from: airportRefSchema,
+      to: airportRefSchema,
       departure: z
         .string()
         .datetime({ offset: true, message: 'Invalid datetime' })
@@ -39,34 +89,81 @@ const AirTrailFile = z.object({
       landingScheduled: dateTimePrimitive,
       landingActual: dateTimePrimitive,
       duration: z.number().int().positive().nullable(),
-      airline: airlineSchema.omit({ id: true }).nullable(),
-      aircraft: aircraftSchema.omit({ id: true }).nullable(),
+      airline: airlineRefSchema,
+      aircraft: aircraftRefSchema,
       track: flightTrackInputSchema.nullable().optional(),
     })
     .merge(
       flightOptionalInformationSchema.omit({ airline: true, aircraft: true }),
     )
-    .merge(flightSeatInformationSchema)
+    .merge(flightPassengerInformationSchema),
+);
+
+const AirTrailFile = z.object({
+  flights: airTrailFlightSchema
     .array()
     .min(1, 'At least one flight is required'),
   users: z
     .object({
       id: z.string().min(3),
-      username: z
-        .string()
-        .min(3, { message: 'Username must be at least 3 characters long' })
-        .max(20, { message: 'Username must be at most 20 characters long' })
-        .regex(/^\w+$/, {
-          message:
-            'Username can only contain letters, numbers, and underscores',
-        }),
+      username: usernameSchema,
       displayName: z.string().min(3),
     })
     .array()
     .min(1, 'At least one user is required'),
 });
 
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
+type AirportRef = z.infer<typeof airportRefSchema>;
+type AirlineRef = z.infer<typeof airlineRefSchema>;
+type AircraftRef = z.infer<typeof aircraftRefSchema>;
+
+const getAirportCode = (airport: AirportRef) =>
+  'icao' in airport ? airport.icao : airport.code;
+
+const getAirlineCode = (airline: AirlineRef) => airline?.icao ?? null;
+
+const getAircraftCode = (aircraft: AircraftRef) => aircraft?.icao ?? null;
+
+const getAirlineName = (airline: AirlineRef) => airline?.name ?? null;
+
+const getAircraftName = (aircraft: AircraftRef) => aircraft?.name ?? null;
+
+const resolveAirport = async (
+  airport: AirportRef,
+  airportMapping?: Record<string, Airport>,
+) => {
+  const code = getAirportCode(airport);
+  return airportMapping?.[code] ?? (await getAirportByIcao(code));
+};
+
+const resolveAirline = async (
+  airline: AirlineRef,
+  airlineMapping?: Record<string, Airline>,
+) => {
+  if (!airline) return null;
+
+  const code = getAirlineCode(airline);
+  const name = getAirlineName(airline);
+  if (code) {
+    return airlineMapping?.[code] ?? (await getAirlineByIcao(code));
+  }
+  if (name) {
+    return await getAirlineByName(name);
+  }
+
+  return null;
+};
+
+const resolveAircraft = async (aircraft: AircraftRef) => {
+  if (!aircraft) return null;
+
+  const code = getAircraftCode(aircraft);
+  const name = getAircraftName(aircraft);
+  if (code) return await getAircraftByIcao(code);
+  if (name) return await getAircraftByName(name);
+
+  return null;
+};
 
 export const processAirTrailFile = async (
   input: string,
@@ -105,12 +202,30 @@ export const processAirTrailFile = async (
     return acc;
   }, {});
   const users = await api.user.list.query();
+  const localUsers =
+    options.importMode === 'restore'
+      ? users
+      : users.filter((localUser) => localUser.id === user.id);
+
+  const getMappedUserId = (exportedUserId: string) => {
+    const exportedUser = dataUsers[exportedUserId];
+    if (!exportedUser) return null;
+
+    const requestedUserId = options.userMapping?.[exportedUser.id];
+    const requestedUser = requestedUserId
+      ? localUsers.find((localUser) => localUser.id === requestedUserId)
+      : null;
+    if (options.userMapping) return requestedUser?.id ?? null;
+
+    return (
+      localUsers.find(
+        (localUser) => localUser.username === exportedUser.username,
+      )?.id ?? null
+    );
+  };
 
   const exportedUsers = data.users.map((exportedUser) => {
-    const mappedUserId =
-      options.userMapping?.[exportedUser.id] ??
-      users.find((user) => user.username === exportedUser.username)?.id ??
-      null;
+    const mappedUserId = getMappedUserId(exportedUser.id);
 
     return {
       id: exportedUser.id,
@@ -122,7 +237,6 @@ export const processAirTrailFile = async (
 
   const unknownAirports: Record<string, number[]> = {};
   const unknownAirlines: Record<string, number[]> = {};
-  const unknownUsers: Record<string, number[]> = {};
   const addUnknownFlightIndex = (
     records: Record<string, number[]>,
     key: string,
@@ -132,22 +246,29 @@ export const processAirTrailFile = async (
     records[key] = flightIndexes;
     flightIndexes.push(flightIndex);
   };
-  for (const rawFlight of data.flights) {
+  const rawFlights =
+    options.importMode === 'restore'
+      ? data.flights
+      : data.flights.filter((flight) =>
+          flight.passengers.some(
+            (passenger) =>
+              passenger.userId != null &&
+              getMappedUserId(passenger.userId) === user.id,
+          ),
+        );
+
+  for (const rawFlight of rawFlights) {
     const flightIndex = flights.length;
 
-    const seats = rawFlight.seats.map((seat) => {
-      const dataUser = dataUsers?.[seat.userId ?? ''];
-      const mappedUserId = dataUser
-        ? exportedUsers.find((u) => u.id === dataUser.id)?.mappedUserId
-        : null;
+    const passengers = rawFlight.passengers.map((rawPassenger) => {
+      const { customFields: _exportOnlyCustomFields, ...passenger } =
+        rawPassenger;
+      const dataUser = dataUsers?.[passenger.userId ?? ''];
+      const mappedUserId = dataUser ? getMappedUserId(dataUser.id) : null;
       const user = mappedUserId
         ? users.find((user) => user.id === mappedUserId)
         : null;
 
-      if (dataUser && !user) {
-        const key = `${dataUser.id}|${dataUser.username}|${dataUser.displayName}`;
-        addUnknownFlightIndex(unknownUsers, key, flightIndex);
-      }
       /*
       1. If the user is known, no guest name is needed.
       2. If the user is unknown, but the guest name is known, use the guest name.
@@ -155,69 +276,39 @@ export const processAirTrailFile = async (
        */
       const guestName = user
         ? null
-        : seat.guestName
-          ? seat.guestName
+        : passenger.guestName
+          ? passenger.guestName
           : dataUser
             ? dataUser.displayName
             : null;
 
       return {
-        ...seat,
+        ...passenger,
         userId: user?.id ?? null,
         guestName,
+        customFields: {},
       };
     });
 
-    // If exported with a different username, add the user to the list manually.
-    if (
-      !seats.some(
-        (seat) =>
-          users.find((usr) => usr.id === seat.userId)?.username ===
-          user.username,
-      )
-    ) {
-      seats.push({
-        userId: user.id,
-        guestName: null,
-        seat: null,
-        seatClass: null,
-        seatNumber: null,
-      });
-    }
-
-    const mappedFrom = options.airportMapping?.[rawFlight.from.icao];
-    const mappedTo = options.airportMapping?.[rawFlight.to.icao];
-    const from = mappedFrom ?? (await getAirportByIcao(rawFlight.from.icao));
-    const to = mappedTo ?? (await getAirportByIcao(rawFlight.to.icao));
-
-    let airline = null;
-    if (rawFlight.airline) {
-      const mappedAirline = rawFlight.airline.icao
-        ? options.airlineMapping?.[rawFlight.airline.icao]
-        : undefined;
-      airline =
-        mappedAirline ||
-        (rawFlight.airline.icao
-          ? await getAirlineByIcao(rawFlight.airline.icao)
-          : await getAirlineByName(rawFlight.airline.name));
-    }
-
-    let aircraft = null;
-    if (rawFlight.aircraft) {
-      aircraft = rawFlight.aircraft.icao
-        ? await getAircraftByIcao(rawFlight.aircraft.icao)
-        : await getAircraftByName(rawFlight.aircraft.name);
-    }
+    const fromCode = getAirportCode(rawFlight.from);
+    const toCode = getAirportCode(rawFlight.to);
+    const airlineCode = getAirlineCode(rawFlight.airline);
+    const from = await resolveAirport(rawFlight.from, options.airportMapping);
+    const to = await resolveAirport(rawFlight.to, options.airportMapping);
+    const airline = await resolveAirline(
+      rawFlight.airline,
+      options.airlineMapping,
+    );
+    const aircraft = await resolveAircraft(rawFlight.aircraft);
 
     if (!from) {
-      addUnknownFlightIndex(unknownAirports, rawFlight.from.icao, flightIndex);
+      addUnknownFlightIndex(unknownAirports, fromCode, flightIndex);
     }
     if (!to) {
-      addUnknownFlightIndex(unknownAirports, rawFlight.to.icao, flightIndex);
+      addUnknownFlightIndex(unknownAirports, toCode, flightIndex);
     }
-    if (!airline && rawFlight.airline?.icao) {
-      const code = rawFlight.airline.icao;
-      addUnknownFlightIndex(unknownAirlines, code, flightIndex);
+    if (!airline && airlineCode) {
+      addUnknownFlightIndex(unknownAirlines, airlineCode, flightIndex);
     }
 
     flights.push({
@@ -237,15 +328,17 @@ export const processAirTrailFile = async (
       airline,
       aircraft,
       track: rawFlight.track,
-      seats,
+      passengers,
     });
   }
 
   return {
     flights,
-    unknownAirports,
-    unknownAirlines,
-    unknownUsers,
+    unknowns: {
+      airports: unknownAirports,
+      airlines: unknownAirlines,
+      aircraft: {},
+    },
     exportedUsers,
   };
 };

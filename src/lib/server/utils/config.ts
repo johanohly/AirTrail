@@ -82,7 +82,9 @@ export class AppConfig {
           issuerUrl: null,
           clientId: null,
           clientSecret: null,
-          scope: null,
+          tokenEndpointAuthMethod: 'client_secret_post',
+          scope: 'openid profile',
+          prompt: null,
           autoRegister: true,
           autoLogin: false,
           hidePasswordForm: false,
@@ -138,7 +140,7 @@ export class AppConfig {
     return paths;
   }
 
-  #parseEnvValue(value: string) {
+  #parseEnvValue(value: string): string | number | boolean | null {
     const lowerValue = value.trim().toLowerCase();
     if (lowerValue === 'true') return true;
     if (lowerValue === 'false') return false;
@@ -153,7 +155,7 @@ export class AppConfig {
   async loadFromEnv() {
     const configPaths = this.#extractAllKeys(appConfigSchema);
     const envEntries = Object.entries(env).reduce<
-      Record<string, string | undefined>
+      Record<string, string | number | boolean | null>
     >((acc, [key, value]) => {
       acc[key.toLowerCase()] = value ? this.#parseEnvValue(value) : true;
       return acc;
@@ -164,13 +166,15 @@ export class AppConfig {
       keys: string[],
       value: any,
     ) {
+      const lastKey = keys.at(-1);
+      if (!lastKey) return;
+
       let current = obj;
-      for (let i = 0; i < keys.length - 1; i++) {
-        const key = keys[i];
+      for (const key of keys.slice(0, -1)) {
         if (!current[key]) current[key] = {};
         current = current[key];
       }
-      current[keys[keys.length - 1]] = value;
+      current[lastKey] = value;
     }
 
     const envConfig: Record<string, any> = {};

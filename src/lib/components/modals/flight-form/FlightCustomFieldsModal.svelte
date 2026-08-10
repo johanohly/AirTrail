@@ -15,10 +15,14 @@
 
   let {
     definitions = [],
-    values = $bindable<Record<number, unknown>>({}),
+    values = $bindable<Record<number, unknown>>(),
     disabled = false,
     savedFieldIds,
     onOpenSettings,
+    title = 'Custom Fields',
+    triggerLabel = 'Custom Fields',
+    entityLabel = 'flight',
+    emptyDescription,
   }: {
     definitions?: CustomFieldDefinition[];
     values?: Record<number, unknown>;
@@ -28,6 +32,10 @@
     savedFieldIds?: Set<number>;
     /** Called when the user wants to configure custom fields in settings. */
     onOpenSettings?: () => void;
+    title?: string;
+    triggerLabel?: string;
+    entityLabel?: string;
+    emptyDescription?: string;
   } = $props();
 
   let open = $state(false);
@@ -40,7 +48,7 @@
     if (!definitions.length) return;
 
     let changed = false;
-    const next = { ...values };
+    const next = { ...(values ?? {}) };
     for (const def of definitions) {
       if (def.defaultValue != null && !(def.id in next)) {
         next[def.id] = def.defaultValue;
@@ -63,7 +71,7 @@
   });
 
   const setValue = (id: number, val: unknown) => {
-    values = { ...values, [id]: val };
+    values = { ...(values ?? {}), [id]: val };
     // Clear error for this field on change
     if (errors[id]) {
       const { [id]: _, ...rest } = errors;
@@ -76,9 +84,9 @@
    * If invalid, opens the modal and shows per-field errors.
    */
   export function validate(): boolean {
-    errors = validateCustomFields(definitions, values);
+    errors = validateCustomFields(definitions, values ?? {});
     if (errorCount > 0) {
-      snapshot = { ...values };
+      snapshot = { ...(values ?? {}) };
       open = true;
       return false;
     }
@@ -96,13 +104,13 @@
       : ''}
   {disabled}
   onclick={() => {
-    snapshot = { ...values };
+    snapshot = { ...(values ?? {}) };
     open = true;
   }}
 >
   <SlidersHorizontal size={16} />
   {#if $isSmallScreen}
-    Custom Fields
+    {triggerLabel}
   {/if}
   {#if errorCount > 0}
     <span
@@ -121,7 +129,7 @@
 
 <Modal bind:open class="max-w-md" closeOnOutsideClick={false}>
   <ModalHeader class="pb-0">
-    <h2 class="text-lg font-medium">Custom Fields</h2>
+    <h2 class="text-lg font-medium">{title}</h2>
   </ModalHeader>
   <ModalBody>
     <div class="grid gap-4">
@@ -130,7 +138,7 @@
           <Info />
           <Alert.Description>
             Some fields below are showing default values that haven't been saved
-            on this flight yet. Saving the flight will apply these defaults.
+            on this {entityLabel} yet. Saving the flight will apply these defaults.
           </Alert.Description>
         </Alert.Root>
       {/if}
@@ -141,8 +149,8 @@
             <p class="text-sm font-medium">No custom fields yet</p>
             <p class="text-sm text-muted-foreground">
               {#if onOpenSettings}
-                Track extra details on your flights like ticket price, booking
-                reference, or frequent flyer points.
+                {emptyDescription ??
+                  'Track extra structured details that AirTrail does not include by default.'}
               {:else}
                 An administrator can configure custom fields in settings.
               {/if}
@@ -172,7 +180,7 @@
             required={field.required}
             options={normalizeOptions(field.options)}
             error={errors[field.id] ?? ''}
-            value={values[field.id] ?? null}
+            value={(values ?? {})[field.id] ?? null}
             onchange={(val) => setValue(field.id, val)}
           />
         {/each}

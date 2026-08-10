@@ -31,6 +31,7 @@
         ? 'z-50 fixed bottom-0 left-0 right-0 flex flex-col'
         : 'z-50 fixed bottom-0 left-0 right-0 flex flex-col bg-background rounded-t-[10px] border-t',
       className,
+      'w-full max-w-none',
     )}
     {...restProps}
   >

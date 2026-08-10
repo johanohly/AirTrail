@@ -6,8 +6,19 @@ import { getFlightRoute as getAerodataboxFlightRoute } from './aerodatabox';
 import type { Airport, Aircraft, Airline } from '$lib/db/types';
 import { appConfig } from '$lib/server/utils/config';
 
-export type FlightLookupOptions = {
+export type FlightLookupProviderOptions = {
   date?: Date;
+};
+
+export type FlightRoutePreference = {
+  /** ICAO or IATA code of the preferred departure airport. */
+  from?: string;
+  /** ICAO or IATA code of the preferred arrival airport. */
+  to?: string;
+};
+
+export type FlightLookupOptions = FlightLookupProviderOptions & {
+  preferredRoute?: FlightRoutePreference;
 };
 
 export type FlightLookupResultItem = {
@@ -31,7 +42,7 @@ export type FlightLookupResult = FlightLookupResultItem[];
 interface FlightLookupProvider {
   getFlightRoute: (
     flightNumber: string,
-    opts?: FlightLookupOptions,
+    opts?: FlightLookupProviderOptions,
   ) => Promise<FlightLookupResult>;
 }
 
@@ -50,10 +61,38 @@ async function getProvider(): Promise<FlightLookupProvider> {
   return adsbdbProvider;
 }
 
+function matchesAirport(airport: Airport, code: string | undefined): boolean {
+  const wanted = code?.trim().toUpperCase();
+  if (!wanted) return true;
+
+  return (
+    airport.icao.toUpperCase() === wanted ||
+    airport.iata?.toUpperCase() === wanted
+  );
+}
+
+/** Prefer route matches, but preserve every result when none match. */
+export function preferRouteMatches(
+  results: FlightLookupResult,
+  preferredRoute?: FlightRoutePreference,
+): FlightLookupResult {
+  if (!preferredRoute?.from && !preferredRoute?.to) return results;
+
+  const matches = results.filter(
+    (result) =>
+      matchesAirport(result.from, preferredRoute.from) &&
+      matchesAirport(result.to, preferredRoute.to),
+  );
+
+  return matches.length > 0 ? matches : results;
+}
+
 export async function getFlightRoute(
   flightNumber: string,
   opts?: FlightLookupOptions,
 ): Promise<FlightLookupResult> {
   const provider = await getProvider();
-  return provider.getFlightRoute(flightNumber, opts);
+  const providerOptions = opts?.date ? { date: opts.date } : undefined;
+  const results = await provider.getFlightRoute(flightNumber, providerOptions);
+  return preferRouteMatches(results, opts?.preferredRoute);
 }

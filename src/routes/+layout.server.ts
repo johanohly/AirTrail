@@ -6,6 +6,7 @@ import { resolve } from '$app/paths';
 import { db } from '$lib/db';
 import { trpcServer } from '$lib/server/server';
 import { appConfig } from '$lib/server/utils/config';
+import { publicUserSelect, toPageUser } from '$lib/server/utils/user';
 
 export const load = async (event: Parameters<LayoutServerLoad>[0]) => {
   if (
@@ -17,20 +18,12 @@ export const load = async (event: Parameters<LayoutServerLoad>[0]) => {
     return redirect(302, resolve('/login'));
   }
 
-  let user = null;
-  if (event.locals.user) {
-    const { password: _, ...rest } = event.locals.user;
-    user = rest;
-  }
-
   const config = await appConfig.getClientConfig();
 
   return {
     trpc: await trpcServer.hydrateToClient(event),
-    user,
-    users: (await db.selectFrom('user').selectAll().execute()).map(
-      ({ password: _, ...rest }) => rest,
-    ),
+    user: event.locals.user ? toPageUser(event.locals.user) : null,
+    users: await db.selectFrom('user').select(publicUserSelect).execute(),
     appConfig: {
       config,
       configured: appConfig.configured,

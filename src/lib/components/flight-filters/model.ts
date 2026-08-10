@@ -2,16 +2,19 @@ import { CalendarDate } from '@internationalized/date';
 import { isAfter, isBefore } from 'date-fns';
 import type { FilterModel, FiltersState } from 'bits-ui';
 
-import type {
-  FlightFilters,
-  MultiOptionFilterOperator,
-  OptionFilterOperator,
-  Route,
-  TempFilters,
+import {
+  routeMatchesEndpoints,
+  type FlightFilters,
+  type LocationFilters,
+  type MultiOptionFilterOperator,
+  type OptionFilterOperator,
+  type Route,
 } from './types';
 
-import { getSeatPassengerToken, type FlightData } from '$lib/utils';
+import { getFlightPassengerToken, type FlightData } from '$lib/utils';
 import { parseLocalISO } from '$lib/utils/datetime';
+import { formatDate } from '$lib/utils/preferences';
+import type { Preferences } from '$lib/zod/user';
 
 export type FilterColumnId =
   | 'departureAirports'
@@ -55,12 +58,18 @@ export const multiOptionOperators: ReadonlyArray<
   { value: 'exclude', label: 'Exclude' },
   { value: 'include any of', label: 'Include any of' },
   { value: 'include all of', label: 'Include all of' },
+  { value: 'include exactly', label: 'Include exactly' },
   { value: 'exclude if any of', label: 'Exclude if any of' },
   { value: 'exclude if all', label: 'Exclude if all' },
+  { value: 'exclude exactly', label: 'Exclude exactly' },
 ];
 
 export const singularMultiOptionOperators = multiOptionOperators.filter(
-  (operator) => operator.value === 'include' || operator.value === 'exclude',
+  (operator) =>
+    operator.value === 'include' ||
+    operator.value === 'exclude' ||
+    operator.value === 'include exactly' ||
+    operator.value === 'exclude exactly',
 );
 
 export const pluralMultiOptionOperators = multiOptionOperators.filter(
@@ -160,6 +169,12 @@ export function normalizeMultiOptionOperator(
   }
 
   return operator;
+}
+
+function setEquals(a: string[], b: string[]) {
+  const aSet = new Set(a);
+  const bSet = new Set(b);
+  return aSet.size === bSet.size && [...aSet].every((value) => bSet.has(value));
 }
 
 export function optionColumnValues(
@@ -343,16 +358,18 @@ export function isFilterColumnActive(
   return optionColumnValues(filters, columnId).length > 0;
 }
 
-export function formatDateLabel(value: CalendarDate | undefined) {
+export function formatDateLabel(
+  value: CalendarDate | undefined,
+  prefs: Pick<Preferences, 'dateFormat'>,
+) {
   if (!value) return '';
-  return new Intl.DateTimeFormat(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(new Date(value.year, value.month - 1, value.day));
+  return formatDate(new Date(value.year, value.month - 1, value.day), prefs);
 }
 
-export function dateFilterSummary(filters: FlightFilters) {
+export function dateFilterSummary(
+  filters: FlightFilters,
+  prefs: Pick<Preferences, 'dateFormat'>,
+) {
   if (filters.years.length) {
     if (filters.years.length <= 2) return filters.years.join(', ');
     return `${filters.years.slice(0, 2).join(', ')} +${filters.years.length - 2}`;
@@ -360,12 +377,13 @@ export function dateFilterSummary(filters: FlightFilters) {
 
   if (filters.fromDate && filters.toDate) {
     if (filters.fromDate.compare(filters.toDate) === 0) {
-      return formatDateLabel(filters.fromDate);
+      return formatDateLabel(filters.fromDate, prefs);
     }
-    return `${formatDateLabel(filters.fromDate)} - ${formatDateLabel(filters.toDate)}`;
+    return `${formatDateLabel(filters.fromDate, prefs)} - ${formatDateLabel(filters.toDate, prefs)}`;
   }
-  if (filters.fromDate) return `From ${formatDateLabel(filters.fromDate)}`;
-  if (filters.toDate) return `Until ${formatDateLabel(filters.toDate)}`;
+  if (filters.fromDate)
+    return `From ${formatDateLabel(filters.fromDate, prefs)}`;
+  if (filters.toDate) return `Until ${formatDateLabel(filters.toDate, prefs)}`;
   return 'Choose date';
 }
 
@@ -702,12 +720,7 @@ export function flightSignature(source: FlightFilters) {
 }
 
 export function routeMatches(flight: FlightData, route: Route): boolean {
-  const fromId = flight.from?.id.toString();
-  const toId = flight.to?.id.toString();
-  return (
-    (fromId === route.a && toId === route.b) ||
-    (fromId === route.b && toId === route.a)
-  );
+  return routeMatchesEndpoints(flight.from?.id, flight.to?.id, route);
 }
 
 export function optionMatches(
@@ -751,16 +764,12 @@ export function multiOptionMatches(
       return hasAll;
     case 'exclude if all':
       return !hasAll;
+    case 'include exactly':
+      return setEquals(values, selectedValues);
+    case 'exclude exactly':
+      return !setEquals(values, selectedValues);
   }
 }
-
-type LocationFilters = Pick<
-  TempFilters,
-  'departureAirports' | 'arrivalAirports' | 'airportsEither' | 'routes'
-> &
-  Partial<
-    Pick<FlightFilters, 'departureAirportsOperator' | 'arrivalAirportsOperator'>
-  >;
 
 export function matchesLocationFilters(
   flight: FlightData,
@@ -863,8 +872,8 @@ export function matchesNonLocationFilters(
 
   if (
     !multiOptionMatches(
-      flight.seats
-        .map((seat) => getSeatPassengerToken(seat))
+      flight.passengers
+        .map((passenger) => getFlightPassengerToken(passenger))
         .filter((token): token is string => !!token),
       filters.passengers,
       filters.passengersOperator,

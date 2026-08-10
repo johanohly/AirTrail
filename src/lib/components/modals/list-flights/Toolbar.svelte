@@ -39,7 +39,9 @@
     filters = $bindable(),
     tempFilters = $bindable(),
     page = $bindable(),
-    flightsPerPage,
+    pageCount,
+    showingFrom,
+    showingTo,
     numOfFlights,
     selecting = $bindable(),
     selectedFlights = $bindable(),
@@ -51,7 +53,9 @@
     filters: FlightFilters;
     tempFilters?: TempFilters;
     page: number;
-    flightsPerPage: number;
+    pageCount: number;
+    showingFrom: number;
+    showingTo: number;
     numOfFlights: number;
     selecting: boolean;
     selectedFlights: number[];
@@ -88,20 +92,10 @@
     return 'Mine';
   });
 
-  let pages = $derived.by(() => {
-    return Math.ceil(numOfFlights / flightsPerPage);
-  });
-  let showingFrom = $derived.by(() => {
-    return numOfFlights === 0 ? 0 : (page - 1) * flightsPerPage + 1;
-  });
-  let showingTo = $derived.by(() => {
-    return Math.min(page * flightsPerPage, numOfFlights);
-  });
-
   // Ensure page is within bounds even after filtering
   $effect(() => {
-    if (page > pages && pages !== 0) {
-      page = pages;
+    if (page > pageCount && pageCount !== 0) {
+      page = pageCount;
     }
   });
 
@@ -126,6 +120,7 @@
   <div class="flex min-w-0 flex-wrap items-center gap-2">
     {#if hasTempFilters}
       <Button
+        size="sm"
         variant="outline"
         class="flex-none"
         onclick={() => {
@@ -280,9 +275,9 @@
                     </Button>
                     <Button
                       onclick={() => {
-                        page = Math.min(pages, page + 1);
+                        page = Math.min(pageCount, page + 1);
                       }}
-                      disabled={page === pages || pages === 0}
+                      disabled={page === pageCount || pageCount === 0}
                       variant="outline"
                       size="sm"
                     >
@@ -350,7 +345,7 @@
                     <Confirm
                       onConfirm={deleteSelectedFlights}
                       title="Delete selected flights"
-                      description="Are you sure you want to delete the selected flights? This will permanently delete the flights as well as their seats."
+                      description="Are you sure you want to delete the selected flights? This will permanently delete the flights as well as their passengers."
                       confirmText="Delete"
                     >
                       {#snippet triggerContent({ props })}

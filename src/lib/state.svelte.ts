@@ -22,6 +22,11 @@ export const focusFlightInList = (flightId: number) => {
   flightListFocusState.request += 1;
 };
 
+export const clearFlightListFocus = () => {
+  flightListFocusState.flightId = null;
+  flightListFocusState.request += 1;
+};
+
 export type SettingsTabId =
   | 'general'
   | 'preferences'
@@ -54,14 +59,17 @@ export const openModalsState = $state<OpenModalsState>({
 
 export type MapDetailsSelection =
   | { type: 'airport'; airportId: number }
-  | { type: 'route'; route: Route };
+  | { type: 'route'; route: Route }
+  | { type: 'flight'; flightId: number };
 
 export const mapDetailsState = $state<{
   selection: MapDetailsSelection | null;
   focusRequest: number;
+  hoveredFlightTrackId: number | null;
 }>({
   selection: null,
   focusRequest: 0,
+  hoveredFlightTrackId: null,
 });
 
 export const openAirportDetails = (airportId: number) => {
@@ -74,6 +82,11 @@ export const openRouteDetails = (route: Route) => {
     type: 'route',
     route: normalizeRoute(route.a, route.b),
   };
+  mapDetailsState.focusRequest += 1;
+};
+
+export const openFlightDetails = (flightId: number) => {
+  mapDetailsState.selection = { type: 'flight', flightId };
   mapDetailsState.focusRequest += 1;
 };
 
@@ -117,12 +130,10 @@ export const versionState = $state<{
   newReleases: Array<{ name: string; body: string }>;
   isChecking: boolean;
   alreadyChecked: boolean;
-  dismissedVersion: string | null;
 }>({
   currentVersion: '',
   latestVersion: null,
   newReleases: [],
   isChecking: false,
   alreadyChecked: false,
-  dismissedVersion: null,
 });

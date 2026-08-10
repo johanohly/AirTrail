@@ -48,7 +48,7 @@
       >
         <div class="max-h-[70vh] overflow-y-auto">
           <div class="divide-y divide-zinc-200 dark:divide-zinc-700">
-            {#each countries as country (country.numeric)}
+            {#each countries as country (country.code)}
               <div
                 class="p-4 flex items-center gap-3 {country.visited
                   ? 'bg-green-50 dark:bg-green-900/20'

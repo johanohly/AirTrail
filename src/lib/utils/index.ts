@@ -4,10 +4,11 @@ export { parseCsv } from './csv';
 export { readFile } from './file';
 export {
   type FlightData,
+  type SimpleFlight,
   formatSeatForUser,
   getFlightPassengerLabels,
-  getSeatPassengerLabel,
-  getSeatPassengerToken,
+  getFlightPassengerLabel,
+  getFlightPassengerToken,
   prepareFlightData,
   prepareFlightArcData,
   prepareVisitedAirports,

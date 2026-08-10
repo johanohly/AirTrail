@@ -5,6 +5,7 @@
   import { toast } from 'svelte-sonner';
 
   import { timeDisplayTether } from './time-display-tether.svelte';
+  import type { TimeDisplayPayload } from './time-display-tether.svelte';
 
   import { page } from '$app/state';
   import { PreferenceField } from '$lib/components/preferences';
@@ -13,7 +14,11 @@
     type ModalContext,
   } from '$lib/components/ui/modal/Modal.svelte';
   import * as Popover from '$lib/components/ui/popover';
-  import { formatTime, getPreferences } from '$lib/utils/preferences';
+  import {
+    formatDate,
+    formatTime,
+    getPreferences,
+  } from '$lib/utils/preferences';
 
   const prefs = $derived(getPreferences(page.data.user));
 
@@ -44,12 +49,7 @@
   };
 
   const buildRow = (tz: string, badge: string, date: Date): Row => {
-    const dateLabel = new Intl.DateTimeFormat(undefined, {
-      timeZone: tz,
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(date);
+    const dateLabel = formatDate(date, prefs, tz);
     const timeLabel = formatTime(date, prefs, tz);
     return { badge, dateLabel, timeLabel };
   };
@@ -71,29 +71,21 @@
   });
 
   // Mirror the active payload's z-index into a modal context. popover-content
-  // and select-content both read getContentZIndex() at mount time to stack
-  // themselves above the tooltip; without this they'd fall back to the
-  // default `z-50` class and disappear behind the tooltip when it's rendered
-  // inside a modal.
-  //
-  // Deliberately a plain `let` (not `$state`) — Svelte 5 forbids state writes
-  // from template expressions, and we don't need reactivity here because the
-  // popover/select mount inside the snippet body and capture the current
-  // value on each fresh open.
-  let activeZIndex: number | undefined = undefined;
+  // and select-content both read getContentZIndex() to stack themselves above
+  // the tooltip; without this they'd fall back to the default `z-50` class and
+  // disappear behind the tooltip when it's rendered inside a modal.
   const hostModalContext: ModalContext = {
     closeModal: () => {},
     registerHeader: () => {},
     registerFooter: () => {},
     getState: () => ({ hasHeader: false, hasFooter: false }),
-    getContentZIndex: () => activeZIndex,
+    getContentZIndex: () =>
+      (
+        timeDisplayTether.state.registry.activePayload as
+          TimeDisplayPayload | undefined
+      )?.zIndex,
   };
   setContext(ModalContextKey, hostModalContext);
-
-  const trackPayloadZIndex = (z: number | undefined) => {
-    activeZIndex = z;
-    return null;
-  };
 
   $effect(() => {
     if (!timeDisplayTether.isOpen) {
@@ -182,7 +174,6 @@
   {#snippet children({ payload })}
     {#if payload}
       {@const date = payload.date}
-      {@const _zSync = trackPayloadZIndex(payload.zIndex)}
       {@const rows = [
         ...(payload.mode === 'flight' && payload.airportTz
           ? [

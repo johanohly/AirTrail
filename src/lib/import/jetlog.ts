@@ -3,8 +3,8 @@ import { addDays, differenceInSeconds, isBefore } from 'date-fns';
 import { z } from 'zod';
 
 import { page } from '$app/state';
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
-import type { CreateFlight, Seat } from '$lib/db/types';
+import type { CreateFlight, FlightPassenger } from '$lib/db/types';
+import type { PlatformOptions } from '$lib/import/model';
 import { distanceBetween, parseCsv } from '$lib/utils';
 import { getAircraftByIcao } from '$lib/utils/data/aircraft';
 import { getAirlineByIata, getAirlineByIcao } from '$lib/utils/data/airlines';
@@ -66,8 +66,8 @@ export const processJetLogFile = async (
   if (data.length === 0) {
     return {
       flights: [],
-      unknownAirports: {},
-      unknownAirlines: {},
+      unknowns: { airports: {}, airlines: {}, aircraft: {} },
+      exportedUsers: [],
       skippedRows: skipped.length,
     };
   }
@@ -186,14 +186,14 @@ export const processJetLogFile = async (
       airline,
       aircraft,
       aircraftReg: row.tail_number ? row.tail_number.substring(0, 10) : null,
-      flightReason: row.purpose as CreateFlight['flightReason'],
-      seats: [
+      passengers: [
         {
           userId,
-          seat: row.seat as Seat['seat'],
-          seatClass: seatClass as Seat['seatClass'],
+          seat: row.seat as FlightPassenger['seat'],
+          seatClass: seatClass as FlightPassenger['seatClass'],
           seatNumber: null,
           guestName: null,
+          flightReason: row.purpose as FlightPassenger['flightReason'],
         },
       ],
     });
@@ -201,8 +201,12 @@ export const processJetLogFile = async (
 
   return {
     flights,
-    unknownAirports,
-    unknownAirlines,
+    unknowns: {
+      airports: unknownAirports,
+      airlines: unknownAirlines,
+      aircraft: {},
+    },
+    exportedUsers: [],
     skippedRows: skipped.length,
   };
 };

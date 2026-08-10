@@ -1,12 +1,12 @@
 <script lang="ts">
   import { PlaneTakeoff, Upload } from '@o7/icon/lucide';
+  import { onMount } from 'svelte';
 
-  import { browser } from '$app/environment';
   import { page } from '$app/state';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { Modal } from '$lib/components/ui/modal';
-  import { platforms } from '$lib/components/modals/settings/pages/import-page';
+  import { platforms } from '$lib/import/platforms';
   import { openModalsState } from '$lib/state.svelte';
 
   let { flightsCount = 0 }: { flightsCount?: number } = $props();
@@ -21,32 +21,27 @@
       .join(', '),
   );
 
-  let dismissed = $state(false);
   let open = $state(false);
 
-  $effect(() => {
+  onMount(() => {
     // By default, onboarding is disabled when E2E tests are running as to not disturb unrelated tests.
     // Tests can explicitly enable it by adding ?onboarding to the URL.
     const allowAutomation = page.url.searchParams.has('onboarding');
-    open =
-      !dismissed && flightsCount === 0 && (!isAutomation || allowAutomation);
+    open = flightsCount === 0 && (!isAutomation || allowAutomation);
   });
 
   const startImport = () => {
-    dismissed = true;
     open = false;
     openModalsState.settingsTab = 'import';
     openModalsState.settings = true;
   };
 
   const addFirstFlight = () => {
-    dismissed = true;
     open = false;
     openModalsState.addFlight = true;
   };
 
   const skip = () => {
-    dismissed = true;
     open = false;
   };
 </script>

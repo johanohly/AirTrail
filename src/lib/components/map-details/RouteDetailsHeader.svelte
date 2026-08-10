@@ -3,7 +3,11 @@
 
   import { openAirportDetails } from '$lib/state.svelte';
   import type { FlightData } from '$lib/utils';
-  import { distanceUnitLabel, formatTime } from '$lib/utils/preferences';
+  import {
+    distanceUnitLabel,
+    formatCompactDateWithWeekday,
+    formatTime,
+  } from '$lib/utils/preferences';
   import type { Preferences } from '$lib/zod/user';
 
   type RouteAirport = NonNullable<FlightData['from']>;
@@ -34,19 +38,9 @@
 
   const localDateLabel = (timeZone: string) => {
     try {
-      return new Intl.DateTimeFormat(undefined, {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        timeZone,
-      }).format(now);
+      return formatCompactDateWithWeekday(now, timeZone);
     } catch {
-      return new Intl.DateTimeFormat(undefined, {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        timeZone: 'UTC',
-      }).format(now);
+      return formatCompactDateWithWeekday(now, 'UTC');
     }
   };
 

@@ -1,29 +1,52 @@
 #!/usr/bin/env node
 
 import { execFile } from 'node:child_process';
-import { createWriteStream, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { pipeline } from 'node:stream/promises';
 import { promisify } from 'node:util';
+
+import {
+  COUNTRY_CODE_PROPERTY,
+  mergeCountryFeatures,
+  validateCountryPointAssignments,
+} from './country-geojson.js';
 
 const execFileAsync = promisify(execFile);
 
-const SOURCE_URL =
+const WORLD_SOURCE_URL =
   'https://gisco-services.ec.europa.eu/distribution/v2/countries/geojson/CNTR_RG_01M_2024_4326.geojson';
+const NUTS_SOURCE_URL =
+  'https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_01M_2024_4326_LEVL_0.geojson';
+const NATURAL_EARTH_SOURCE_URL =
+  'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries.geojson';
 const TEMP_GEOJSON = join(tmpdir(), 'countries-01m.geojson');
 const OUTPUT_PMTILES = join(process.cwd(), 'static/countries.pmtiles');
 const OUTPUT_BOUNDS = join(process.cwd(), 'static/countries-bounds.json');
 
-const downloadGeojson = async () => {
-  const response = await fetch(SOURCE_URL);
+const fetchGeojson = async (url) => {
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error(
-      `Failed to download GeoJSON: ${response.status} ${response.statusText}`,
+      `Failed to download ${url}: ${response.status} ${response.statusText}`,
     );
   }
+  return response.json();
+};
 
-  await pipeline(response.body, createWriteStream(TEMP_GEOJSON));
+const downloadGeojson = async () => {
+  const [worldCountries, nutsCountries, naturalEarthCountries] =
+    await Promise.all([
+      fetchGeojson(WORLD_SOURCE_URL),
+      fetchGeojson(NUTS_SOURCE_URL),
+      fetchGeojson(NATURAL_EARTH_SOURCE_URL),
+    ]);
+  const merged = mergeCountryFeatures(worldCountries, {
+    nuts: nutsCountries,
+    naturalEarth: naturalEarthCountries,
+  });
+  validateCountryPointAssignments(merged);
+  writeFileSync(TEMP_GEOJSON, JSON.stringify(merged));
 };
 
 const runTippecanoe = async () => {
@@ -38,7 +61,7 @@ const runTippecanoe = async () => {
     '--drop-densest-as-needed',
     '--simplify-only-low-zooms',
     '-y',
-    'ISO3_CODE',
+    COUNTRY_CODE_PROPERTY,
     '-s',
     'EPSG:4326',
     TEMP_GEOJSON,
@@ -67,7 +90,7 @@ const generateBounds = () => {
   const bounds = {};
 
   for (const feature of data.features ?? []) {
-    const code = feature?.properties?.ISO3_CODE;
+    const code = feature?.properties?.[COUNTRY_CODE_PROPERTY];
     if (!code) continue;
     const result = {
       minX: Infinity,

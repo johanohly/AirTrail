@@ -44,7 +44,6 @@
     y="flights"
     yNice={2}
     padding={{ left: 16, bottom: 16 }}
-    tooltip={{ mode: 'band' }}
   >
     <Svg>
       <Axis

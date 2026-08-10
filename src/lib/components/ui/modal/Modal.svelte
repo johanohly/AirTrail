@@ -18,34 +18,11 @@
   export const getModalContext = () =>
     getContext<ModalContext>(ModalContextKey);
 
-  // Global modal stack for proper back button handling with nested modals
-  const modalHistoryStack: string[] = [];
   let modalLayerCounter = 0;
-
-  export function pushModalHistory(id: string): void {
-    modalHistoryStack.push(id);
-  }
-
-  export function popModalHistory(): string | undefined {
-    return modalHistoryStack.pop();
-  }
-
-  export function peekModalHistory(): string | undefined {
-    return modalHistoryStack[modalHistoryStack.length - 1];
-  }
-
-  export function removeFromModalHistory(id: string): boolean {
-    const index = modalHistoryStack.indexOf(id);
-    if (index !== -1) {
-      modalHistoryStack.splice(index, 1);
-      return true;
-    }
-    return false;
-  }
 </script>
 
 <script lang="ts">
-  import { setContext, type Snippet, onMount } from 'svelte';
+  import { onDestroy, setContext, type Snippet } from 'svelte';
   import { browser } from '$app/environment';
 
   import * as Dialog from '$lib/components/ui/dialog';
@@ -53,6 +30,15 @@
   import { cn } from '$lib/utils';
   import { isMediumScreen } from '$lib/utils/size';
   import { generateUUID } from '$lib/utils/string';
+  import {
+    backModalHistory,
+    closeModalHistory,
+    escapeModalHistory,
+    openModalHistory,
+    pushModalHistoryState,
+    unregisterModalHistory,
+    type ModalHistoryHandle,
+  } from './modal-history';
 
   type ModalPreset = 'default' | 'alert';
 
@@ -80,6 +66,8 @@
     shouldScaleBackground = true,
     handleBackButton = true,
     onOpenChange,
+    onHistoryStateChange,
+    historyHandle = $bindable(),
     children,
   }: {
     open: boolean;
@@ -99,6 +87,8 @@
     shouldScaleBackground?: boolean;
     handleBackButton?: boolean;
     onOpenChange?: (open: boolean) => void;
+    onHistoryStateChange?: (state: unknown) => void;
+    historyHandle?: ModalHistoryHandle;
     children: Snippet;
   } = $props();
 
@@ -123,8 +113,15 @@
   const useDialog = isMediumScreen;
 
   const modalId = generateUUID();
-  let historyPushed = $state(false);
-  let closingFromPopstate = $state(false);
+  const localHistoryHandle: ModalHistoryHandle = {
+    push: (state) => pushModalHistoryState(modalId, state),
+    back: () => backModalHistory(modalId),
+  };
+  const handleDialogEscape = (event: KeyboardEvent) => {
+    event.preventDefault();
+    escapeModalHistory(modalId);
+  };
+  historyHandle = localHistoryHandle;
   let previousOpen = $state(open);
   let layer = $state(0);
   let layerAssigned = $state(false);
@@ -135,26 +132,6 @@
   const contentStyle = $derived(
     layerAssigned ? `z-index: ${1001 + layer * 20};` : undefined,
   );
-
-  function handlePopstate(event: PopStateEvent) {
-    const isTopmostModal = peekModalHistory() === modalId;
-    const wasTriggeredByThisModal = event.state?.modal === modalId;
-    if (
-      historyPushed &&
-      open &&
-      !closingFromPopstate &&
-      isTopmostModal &&
-      !wasTriggeredByThisModal
-    ) {
-      closingFromPopstate = true;
-      historyPushed = false;
-      popModalHistory();
-      open = false;
-      setTimeout(() => {
-        closingFromPopstate = false;
-      }, 0);
-    }
-  }
 
   $effect(() => {
     if (open && !layerAssigned) {
@@ -175,29 +152,22 @@
   $effect(() => {
     if (!browser || !handleBackButton) return;
 
-    if (open && !historyPushed) {
-      history.pushState({ modal: modalId }, '');
-      pushModalHistory(modalId);
-      historyPushed = true;
-    } else if (!open && historyPushed && !closingFromPopstate) {
-      historyPushed = false;
-      removeFromModalHistory(modalId);
-      history.back();
+    if (open) {
+      openModalHistory(
+        modalId,
+        () => {
+          open = false;
+        },
+        { closeOnEscape, onStateChange: onHistoryStateChange },
+      );
+    } else {
+      closeModalHistory(modalId);
     }
   });
 
-  onMount(() => {
-    if (!browser || !handleBackButton) return;
-
-    window.addEventListener('popstate', handlePopstate);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopstate);
-      if (historyPushed) {
-        removeFromModalHistory(modalId);
-        history.back();
-      }
-    };
+  onDestroy(() => {
+    if (historyHandle === localHistoryHandle) historyHandle = undefined;
+    unregisterModalHistory(modalId);
   });
 </script>
 
@@ -212,7 +182,12 @@
       )}
       closeButton={resolvedCloseButton}
       preventScroll={false}
-      escapeKeydownBehavior={closeOnEscape ? 'close' : 'ignore'}
+      escapeKeydownBehavior={handleBackButton
+        ? 'close'
+        : closeOnEscape
+          ? 'close'
+          : 'ignore'}
+      onEscapeKeydown={handleBackButton ? handleDialogEscape : undefined}
       interactOutsideBehavior={closeOnOutsideClick ? 'close' : 'ignore'}
       {overlayClass}
       {overlayStyle}

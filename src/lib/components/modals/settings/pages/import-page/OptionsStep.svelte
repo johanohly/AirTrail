@@ -8,9 +8,11 @@
   let {
     showAirlineFromFlightNumber = false,
     showFilterOwner = false,
+    showRestoreMode = false,
     ownerOnly = $bindable(false),
     matchAirlineFromFlightNumber = $bindable(true),
     dedupeImportedFlights = $bindable(true),
+    restoreMode = $bindable(false),
     importing = false,
     canImport = false,
     onback,
@@ -18,9 +20,11 @@
   }: {
     showAirlineFromFlightNumber?: boolean;
     showFilterOwner?: boolean;
+    showRestoreMode?: boolean;
     ownerOnly?: boolean;
     matchAirlineFromFlightNumber?: boolean;
     dedupeImportedFlights?: boolean;
+    restoreMode?: boolean;
     importing?: boolean;
     canImport?: boolean;
     onback?: () => void;
@@ -56,6 +60,24 @@
         <Label id="owner-only-label" for="owner-only"
           >Only import your flights</Label
         >
+      </div>
+    {/if}
+    {#if showRestoreMode}
+      <div class="flex items-start gap-2">
+        <Checkbox
+          id="restore-all-users"
+          bind:checked={restoreMode}
+          aria-labelledby="restore-all-users-label"
+        />
+        <div class="space-y-0.5">
+          <Label id="restore-all-users-label" for="restore-all-users">
+            Restore flights for all mapped users
+          </Label>
+          <p class="text-xs text-muted-foreground">
+            Deduplicates against every flight on this instance. Admin access is
+            required.
+          </p>
+        </div>
       </div>
     {/if}
     <div class="flex items-center gap-2">

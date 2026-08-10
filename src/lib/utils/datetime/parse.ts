@@ -2,8 +2,6 @@ import { tz, TZDate } from '@date-fns/tz';
 import { CalendarDateTime } from '@internationalized/date';
 import { isValid, parse, parseISO } from 'date-fns';
 
-import { formatAsTime } from './format';
-
 export const parseLocalISO = (iso: string, tzId: string) =>
   parseISO(iso, { in: tz(tzId) });
 export const parseLocalizeISO = (iso: string, toTz: string) =>
@@ -43,11 +41,16 @@ export const decomposeToLocal = (
   }
 
   const local = parseLocalizeISO(iso, tzId);
+  const time = new Intl.DateTimeFormat(locale, {
+    timeZone: local.timeZone,
+    hour: 'numeric',
+    minute: 'numeric',
+  }).format(local);
   return {
     date: new Date(
       Date.UTC(local.getFullYear(), local.getMonth(), local.getDate()),
     ).toISOString(),
-    time: formatAsTime(local, locale),
+    time,
   };
 };
 

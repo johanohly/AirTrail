@@ -1,22 +1,12 @@
-import type {
-  FlightFilters,
-  TempFilters,
-} from '$lib/components/flight-filters/types';
-import {
-  setTempArrivalAirport,
-  setTempDepartureAirport,
-} from '$lib/components/flight-filters/types';
-import {
-  focusFlightInList,
-  mapDetailsState,
-  openModalsState,
-} from '$lib/state.svelte';
+import type { FlightFilters } from '$lib/components/flight-filters/types';
+import type { NavigateFlights } from '$lib/flight-navigation';
+import { mapDetailsState, openFlightDetails } from '$lib/state.svelte';
 import { prepareVisitedAirports, type FlightData } from '$lib/utils';
 
 export function useAirportDetails(
   flights: () => FlightData[],
   filters: () => FlightFilters | undefined,
-  tempFilters: () => TempFilters | undefined,
+  onNavigate: NavigateFlights,
 ) {
   const selectedAirportId = $derived.by(() => {
     const selection = mapDetailsState.selection;
@@ -64,20 +54,32 @@ export function useAirportDetails(
     f.airportsEither = [airport.id.toString()];
   };
 
-  const showDepartures = (flightId?: number) => {
+  const showDepartures = () => {
     if (!airport) return;
-    const tf = tempFilters();
-    if (tf) setTempDepartureAirport(tf, airport.id.toString());
-    if (flightId) focusFlightInList(flightId);
-    openModalsState.listFlights = true;
+    onNavigate({
+      destination: 'list',
+      focus: {
+        type: 'airport',
+        airportId: airport.id,
+        direction: 'departure',
+      },
+    });
   };
 
-  const showArrivals = (flightId?: number) => {
+  const showArrivals = () => {
     if (!airport) return;
-    const tf = tempFilters();
-    if (tf) setTempArrivalAirport(tf, airport.id.toString());
-    if (flightId) focusFlightInList(flightId);
-    openModalsState.listFlights = true;
+    onNavigate({
+      destination: 'list',
+      focus: {
+        type: 'airport',
+        airportId: airport.id,
+        direction: 'arrival',
+      },
+    });
+  };
+
+  const showFlight = (flightId: number) => {
+    openFlightDetails(flightId);
   };
 
   return {
@@ -93,5 +95,6 @@ export function useAirportDetails(
     toggleAirportFilter,
     showDepartures,
     showArrivals,
+    showFlight,
   };
 }

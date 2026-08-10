@@ -2,31 +2,22 @@
   import { Moon, Sun } from '@o7/icon/lucide';
 
   import { page } from '$app/state';
-  import { formatTime, getPreferences } from '$lib/utils/preferences';
+  import {
+    formatCompactDateWithWeekday,
+    formatTime,
+    getPreferences,
+  } from '$lib/utils/preferences';
 
-  let { tz }: { tz?: string | null } = $props();
+  let { tz, now }: { tz?: string | null; now: Date } = $props();
 
   const prefs = $derived(getPreferences(page.data.user));
-
-  let now = $state(new Date());
-  $effect(() => {
-    const id = setInterval(() => {
-      now = new Date();
-    }, 30_000);
-    return () => clearInterval(id);
-  });
 
   const resolvedTz = $derived(tz ?? 'UTC');
 
   const localTime = $derived(formatTime(now, prefs, resolvedTz));
 
   const localDateLabel = $derived(
-    new Intl.DateTimeFormat(undefined, {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      timeZone: resolvedTz,
-    }).format(now),
+    formatCompactDateWithWeekday(now, resolvedTz),
   );
 
   const offsetLabel = $derived.by(() => {
@@ -43,7 +34,7 @@
   });
 
   const tzCityLabel = $derived(
-    resolvedTz.split('/').slice(-1)[0].replace(/_/g, ' '),
+    (resolvedTz.split('/').at(-1) ?? resolvedTz).replace(/_/g, ' '),
   );
 
   const localHour = $derived.by(() => {
@@ -74,8 +65,8 @@
         hour12: false,
       });
       const parse = (s: string) => {
-        const [h, m] = s.split(':').map((x) => parseInt(x.trim(), 10));
-        return h * 60 + m;
+        const [hours = '0', minutes = '0'] = s.split(':');
+        return parseInt(hours.trim(), 10) * 60 + parseInt(minutes.trim(), 10);
       };
       let diff = parse(fmtAirport.format(now)) - parse(fmtLocal.format(now));
       if (diff > 12 * 60) diff -= 24 * 60;

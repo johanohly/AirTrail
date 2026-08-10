@@ -3,6 +3,7 @@
 /static/airport-overlay.pmtiles
 
 /build
+/dev-dist
 
 /test-results/
 /playwright-report/

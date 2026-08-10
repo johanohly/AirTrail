@@ -1,17 +1,17 @@
 import { z } from 'zod';
 
 import { page } from '$app/state';
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
 import {
   type CreateFlight,
   FlightReasons,
   SeatClasses,
   SeatTypes,
 } from '$lib/db/types';
-import { api } from '$lib/trpc';
+import type { PlatformOptions } from '$lib/import/model';
 import { getAircraftByIcao } from '$lib/utils/data/aircraft';
 import { getAirlineByIcao } from '$lib/utils/data/airlines';
 import { getAirportByIcao } from '$lib/utils/data/airports/cache';
+import { usernameSchema } from '$lib/zod/user';
 
 const AirTrailFile = z.object({
   flights: z
@@ -73,14 +73,7 @@ const AirTrailFile = z.object({
   users: z
     .object({
       id: z.string().min(3),
-      username: z
-        .string()
-        .min(3, { message: 'Username must be at least 3 characters long' })
-        .max(20, { message: 'Username must be at most 20 characters long' })
-        .regex(/^\w+$/, {
-          message:
-            'Username can only contain letters, numbers, and underscores',
-        }),
+      username: usernameSchema,
       displayName: z.string().min(3),
     })
     .array()
@@ -123,22 +116,20 @@ export const processLegacyAirTrailFile = async (
     acc[user.id] = user;
     return acc;
   }, {});
-  const users = await api.user.list.query();
-
   const unknownAirports: Record<string, number[]> = {};
   const unknownAirlines: Record<string, number[]> = {};
   for (const rawFlight of data.flights) {
-    const seats = rawFlight.seats.map((seat) => {
+    const { seats, ...legacyFlight } = rawFlight;
+    const passengers = seats.map((seat) => {
       const dataUser = dataUsers?.[seat.userId ?? ''];
-      const user = dataUser
-        ? users.find((user) => user.username === dataUser?.username)
-        : null;
+      const mappedUserId =
+        dataUser?.username === user.username ? user.id : null;
       /*
         1. If the user is known, no guest name is needed.
         2. If the user is unknown, but the guest name is known, use the guest name.
         3. If the user is unknown and the guest name is unknown, use the provided display name (this could happen if the user is not in the database).
          */
-      const guestName = user
+      const guestName = mappedUserId
         ? null
         : seat.guestName
           ? seat.guestName
@@ -148,25 +139,21 @@ export const processLegacyAirTrailFile = async (
 
       return {
         ...seat,
-        userId: user?.id ?? null,
+        userId: mappedUserId,
         guestName,
+        flightReason: rawFlight.flightReason,
       };
     });
 
     // If exported with a different username, add the user to the list manually.
-    if (
-      !seats.some(
-        (seat) =>
-          users.find((usr) => usr.id === seat.userId)?.username ===
-          user.username,
-      )
-    ) {
-      seats.push({
+    if (!passengers.some((seat) => seat.userId === user.id)) {
+      passengers.push({
         userId: user.id,
         guestName: null,
         seat: null,
         seatClass: null,
         seatNumber: null,
+        flightReason: rawFlight.flightReason,
       });
     }
 
@@ -184,23 +171,17 @@ export const processLegacyAirTrailFile = async (
     const flightIndex = flights.length;
 
     if (!from) {
-      if (!unknownAirports[rawFlight.from.code])
-        unknownAirports[rawFlight.from.code] = [];
-      unknownAirports[rawFlight.from.code].push(flightIndex);
+      (unknownAirports[rawFlight.from.code] ??= []).push(flightIndex);
     }
     if (!to) {
-      if (!unknownAirports[rawFlight.to.code])
-        unknownAirports[rawFlight.to.code] = [];
-      unknownAirports[rawFlight.to.code].push(flightIndex);
+      (unknownAirports[rawFlight.to.code] ??= []).push(flightIndex);
     }
     if (!airline && rawFlight.airline) {
-      if (!unknownAirlines[rawFlight.airline])
-        unknownAirlines[rawFlight.airline] = [];
-      unknownAirlines[rawFlight.airline].push(flightIndex);
+      (unknownAirlines[rawFlight.airline] ??= []).push(flightIndex);
     }
 
     flights.push({
-      ...rawFlight,
+      ...legacyFlight,
       // Legacy format doesn't support scheduled/actual datetime fields
       departureScheduled: null,
       arrivalScheduled: null,
@@ -219,13 +200,17 @@ export const processLegacyAirTrailFile = async (
         : null,
       from: from || null,
       to: to || null,
-      seats,
+      passengers,
     });
   }
 
   return {
     flights,
-    unknownAirports,
-    unknownAirlines,
+    unknowns: {
+      airports: unknownAirports,
+      airlines: unknownAirlines,
+      aircraft: {},
+    },
+    exportedUsers: [],
   };
 };

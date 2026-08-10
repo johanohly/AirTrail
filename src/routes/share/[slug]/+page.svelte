@@ -8,10 +8,11 @@
   import { createDefaultFilters } from '$lib/components/flight-filters/model';
   import type { FlightFilters } from '$lib/components/flight-filters/types';
   import { Map } from '$lib/components/map';
-  import type { Flight, FlightSeat } from '$lib/db/types';
+  import type { Flight, FlightPassenger } from '$lib/db/types';
   import type { AppRouter } from '$lib/server/routes/_app';
   import type { FlightTrackRow } from '$lib/track/schema';
   import { ListFlightsModal, StatisticsModal } from '$lib/components/modals';
+  import { clearFlightListFocus, focusFlightInList } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
   import { prepareFlightData } from '$lib/utils';
 
@@ -40,9 +41,12 @@
       note: null,
       airline: flight.airline ?? null,
       aircraft: flight.aircraft ?? null,
-      seats: flight.seats.map((seat) => ({
-        ...seat,
-        user: 'user' in seat ? (seat.user as FlightSeat['user']) : null,
+      passengers: flight.passengers.map((passenger) => ({
+        ...passenger,
+        user:
+          'user' in passenger
+            ? (passenger.user as FlightPassenger['user'])
+            : null,
       })),
     };
   }
@@ -86,6 +90,17 @@
   let filters: FlightFilters = $state(createDefaultFilters());
 
   const shareSettings = $derived($shareQuery.data?.settings);
+
+  const openSharedFlightInList = (flightId: number) => {
+    focusFlightInList(flightId);
+    showFlightList = true;
+  };
+
+  $effect(() => {
+    return () => {
+      clearFlightListFocus();
+    };
+  });
 </script>
 
 <svelte:head>
@@ -172,6 +187,9 @@
       {filters}
       showFilters={false}
       showCountryStats={false}
+      onOpenFlight={shareSettings.showFlightList
+        ? openSharedFlightInList
+        : undefined}
     />
   {/if}
 {:else if shareSettings}

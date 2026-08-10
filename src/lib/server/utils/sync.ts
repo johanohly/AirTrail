@@ -1,7 +1,7 @@
 import { Readable } from 'node:stream';
 
 import * as tar from 'tar';
-import type { ZodSchema } from 'zod';
+import type { ZodType } from 'zod';
 
 import { airlinesDataSchema, aircraftListDataSchema } from '$lib/data/types';
 import { db } from '$lib/db';
@@ -31,7 +31,7 @@ const logError = (errors: string[], message: string) => {
 
 async function fetchJsonData<T>(
   url: string,
-  schema: ZodSchema<T>,
+  schema: ZodType<T>,
   errors: string[],
 ): Promise<T | null> {
   try {

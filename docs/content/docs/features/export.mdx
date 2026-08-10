@@ -13,6 +13,26 @@ To export your flights, follow these steps:
 3. Click on the "Export" tab.
 4. Choose your desired export format (CSV or JSON).
 
+## Export with the API
+
+You can automate AirTrail backups with an API key:
+
+```bash
+curl -H "Authorization: Bearer <api-key>" \
+  "https://your-instance.com/api/flight/export?format=json" \
+  -o airtrail.json
+```
+
+Use `format=yaml` to export YAML instead:
+
+```bash
+curl -H "Authorization: Bearer <api-key>" \
+  "https://your-instance.com/api/flight/export?format=yaml" \
+  -o airtrail.yaml
+```
+
+By default, the API exports flights belonging to the API key owner. Admin and owner API keys can use `scope=user&userId=<user-id>` or `scope=all`.
+
 ## Export formats
 
 ### CSV
@@ -32,7 +52,7 @@ The CSV file contains the following columns:
 - `arrival`: The arrival time in ISO 8601 format (if available).
 - `duration`: The duration of the flight in seconds.
 - `flightNumber`: The flight number (if available).
-- `flightReason`: The reason for the flight (if provided).
+- `flightReason`: The selected user's reason for taking the flight (if provided).
 - `airline`: The airline operating the flight (if available).
 - `aircraft`: The type of aircraft used (if available).
 - `aircraftReg`: The registration number of the aircraft (if available).
@@ -44,11 +64,12 @@ The CSV file contains the following columns:
 ### JSON
 
 <Callout>
-  The JSON format can be reimported into AirTrail using the import feature.
+  The JSON format can be reimported into AirTrail using the import feature. Use
+  the AirTrail importer for v3 exports and AirTrail (pre-v3) for legacy exports.
 </Callout>
 
 The JSON export option provides a more structured format that is ideal for developers or when integrating the data into
-other systems. It contains nested objects for each flight and detailed data for each user and their seat information.
+other systems. It contains nested objects for each flight and detailed records for every passenger.
 
 #### Format
 
@@ -66,24 +87,71 @@ The JSON file follows this structure:
   "flights": [
     {
       "date": "YYYY-MM-DD",
-      "from": "ICAO_CODE",
-      "to": "ICAO_CODE",
+      "datePrecision": "day",
+      "from": {
+        "icao": "ICAO_CODE",
+        "iata": "IATA_CODE",
+        "name": "Airport Name",
+        "municipality": "City",
+        "type": "large_airport",
+        "lat": 55.0,
+        "lon": 12.0,
+        "continent": "EU",
+        "country": "DK",
+        "tz": "Europe/Copenhagen",
+        "custom": false
+      },
+      "to": {
+        "icao": "ICAO_CODE",
+        "iata": "IATA_CODE",
+        "name": "Airport Name",
+        "municipality": "City",
+        "type": "large_airport",
+        "lat": 53.0,
+        "lon": -6.0,
+        "continent": "EU",
+        "country": "IE",
+        "tz": "Europe/Dublin",
+        "custom": false
+      },
       "departure": "ISO_8601_DATETIME",
       "arrival": "ISO_8601_DATETIME",
+      "departureScheduled": "ISO_8601_DATETIME",
+      "arrivalScheduled": "ISO_8601_DATETIME",
+      "takeoffScheduled": "ISO_8601_DATETIME",
+      "takeoffActual": "ISO_8601_DATETIME",
+      "landingScheduled": "ISO_8601_DATETIME",
+      "landingActual": "ISO_8601_DATETIME",
       "duration": flight_duration_in_seconds,
       "flightNumber": "FLIGHT_NUMBER",
-      "flightReason": "FLIGHT_REASON",
-      "airline": "ICAO_AIRLINE_CODE",
-      "aircraft": "ICAO_AIRCRAFT_TYPE",
+      "airline": {
+        "name": "Airline Name",
+        "icao": "ICAO_AIRLINE_CODE",
+        "iata": "IATA_AIRLINE_CODE",
+        "iconPath": null,
+        "sourceId": "airline-source-id"
+      },
+      "aircraft": {
+        "name": "Aircraft Type",
+        "icao": "ICAO_AIRCRAFT_TYPE"
+      },
       "aircraftReg": "AIRCRAFT_REGISTRATION",
+      "departureTerminal": "TERMINAL",
+      "departureGate": "GATE",
+      "arrivalTerminal": "TERMINAL",
+      "arrivalGate": "GATE",
       "note": "FLIGHT_NOTE",
-      "seats": [
+      "passengers": [
         {
           "userId": "USER_ID",
           "guestName": "GUEST_NAME",
           "seat": "SEAT_TYPE",
           "seatNumber": "SEAT_NUMBER",
-          "seatClass": "SEAT_CLASS"
+          "seatClass": "SEAT_CLASS",
+          "flightReason": "FLIGHT_REASON",
+          "customFields": {
+            "meal_preferences": ["Vegetarian", "Gluten-free"]
+          }
         }
       ]
     }

@@ -131,7 +131,7 @@ export default function HomePage() {
               <FeatureCard
                 icon={<CloudDownload className="size-5" />}
                 title="Import From Anywhere"
-                description="Bring in flights from MyFlightRadar24, App in the Air, JetLog, TripIt, Flighty, byAir, and more."
+                description="Bring in flights from MyFlightRadar24, App in the Air, JetLog, TripIt, Flighty, byAir, JetLovers, OpenFlights, and more."
               />
             </FadeInOnScroll>
 

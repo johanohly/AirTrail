@@ -3,8 +3,8 @@ import { addSeconds } from 'date-fns';
 import { z } from 'zod';
 
 import { page } from '$app/state';
-import type { PlatformOptions } from '$lib/components/modals/settings/pages/import-page';
-import type { CreateFlight, Seat } from '$lib/db/types';
+import type { CreateFlight, FlightPassenger } from '$lib/db/types';
+import type { PlatformOptions } from '$lib/import/model';
 import { parseCsv } from '$lib/utils';
 import { parseCsvLine } from '$lib/utils/csv';
 import { getAircraftByIcao, getAircraftByName } from '$lib/utils/data/aircraft';
@@ -228,7 +228,7 @@ const parseDuration = (duration: string | null): number | null => {
   return hours * 3600 + minutes * 60 + seconds;
 };
 
-const mapSeatType = (seatType: string | null): Seat['seat'] => {
+const mapSeatType = (seatType: string | null): FlightPassenger['seat'] => {
   switch (seatType?.toUpperCase()) {
     case 'W':
       return 'window';
@@ -241,7 +241,9 @@ const mapSeatType = (seatType: string | null): Seat['seat'] => {
   }
 };
 
-const mapSeatClass = (seatClass: string | null): Seat['seatClass'] => {
+const mapSeatClass = (
+  seatClass: string | null,
+): FlightPassenger['seatClass'] => {
   switch (seatClass?.toUpperCase()) {
     case 'F':
       return 'first';
@@ -259,7 +261,7 @@ const mapSeatClass = (seatClass: string | null): Seat['seatClass'] => {
 
 const mapFlightReason = (
   reason: string | null,
-): CreateFlight['flightReason'] => {
+): FlightPassenger['flightReason'] => {
   switch (reason?.toUpperCase()) {
     case 'B':
       return 'business';
@@ -363,6 +365,7 @@ const lookupAirline = async (
 const lookupAircraft = async (
   row: z.infer<typeof OpenFlightsFlight>,
   data: OpenFlightsData,
+  options: PlatformOptions,
 ) => {
   const byOid = row.plane_oid
     ? data.planesByRowNumber.get(row.plane_oid)
@@ -376,11 +379,16 @@ const lookupAircraft = async (
       : (byOid ?? byName);
   const icao = openFlightsPlane?.icao ?? null;
   const name = openFlightsPlane?.name ?? row.plane;
+  const mappingKey = icao ?? name ?? row.plane_oid ?? null;
+
+  if (mappingKey && options.aircraftMapping?.[mappingKey]) {
+    return { aircraft: options.aircraftMapping[mappingKey], mappingKey };
+  }
 
   let aircraft = icao ? await getAircraftByIcao(icao) : null;
   aircraft ??= name ? await getAircraftByName(name) : null;
 
-  return aircraft;
+  return { aircraft, mappingKey };
 };
 
 export const processOpenFlightsFile = async (
@@ -400,6 +408,7 @@ export const processOpenFlightsFile = async (
   const flights: CreateFlight[] = [];
   const unknownAirports: Record<string, number[]> = {};
   const unknownAirlines: Record<string, number[]> = {};
+  const unknownAircraft: Record<string, number[]> = {};
   let skippedInvalidRows = 0;
 
   for (const row of data) {
@@ -425,7 +434,11 @@ export const processOpenFlightsFile = async (
       openFlightsData,
       options,
     );
-    const aircraft = await lookupAircraft(row, openFlightsData);
+    const { aircraft, mappingKey: aircraftKey } = await lookupAircraft(
+      row,
+      openFlightsData,
+      options,
+    );
     const duration = parseDuration(row.duration);
 
     const departure =
@@ -455,6 +468,10 @@ export const processOpenFlightsFile = async (
       unknownAirlines[airlineKey] ??= [];
       unknownAirlines[airlineKey].push(flightIndex);
     }
+    if (!aircraft && aircraftKey) {
+      unknownAircraft[aircraftKey] ??= [];
+      unknownAircraft[aircraftKey].push(flightIndex);
+    }
 
     flights.push({
       date: parsedDate.date,
@@ -474,19 +491,19 @@ export const processOpenFlightsFile = async (
       arrivalTerminal: null,
       arrivalGate: null,
       duration,
-      flightReason: mapFlightReason(row.reason),
       note: buildNote(row.note, row.trip, row.distance),
       aircraft,
       aircraftReg: row.registration,
       airline,
       flightNumber: row.flight_number,
-      seats: [
+      passengers: [
         {
           userId,
           seat: mapSeatType(row.seat_type),
           seatNumber: row.seat,
           seatClass: mapSeatClass(row.class),
           guestName: null,
+          flightReason: mapFlightReason(row.reason),
         },
       ],
     });
@@ -494,8 +511,12 @@ export const processOpenFlightsFile = async (
 
   return {
     flights,
-    unknownAirports,
-    unknownAirlines,
+    unknowns: {
+      airports: unknownAirports,
+      airlines: unknownAirlines,
+      aircraft: unknownAircraft,
+    },
+    exportedUsers: [],
     skippedRows: skipped.length + skippedInvalidRows,
   };
 };

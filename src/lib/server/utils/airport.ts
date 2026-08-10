@@ -67,16 +67,17 @@ export const validateAndSaveAirport = async (
   };
 
   const existingAirport = await getAirportByIcao(airport.icao);
-  let updating = false;
   if (existingAirport && !existingAirport.custom) {
     return pathError('icao', 'Code already used');
-  } else if (existingAirport) {
-    updating = true;
   }
 
-  if (updating) {
+  if (existingAirport) {
     try {
-      await updateAirport(airport);
+      await updateAirport({
+        ...existingAirport,
+        ...airport,
+        id: existingAirport.id,
+      });
     } catch (_) {
       return {
         success: false,

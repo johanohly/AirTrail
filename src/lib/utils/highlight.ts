@@ -66,6 +66,60 @@ export const cancelHighlight = (target: HighlightTarget) => {
   activeHighlights.get(element)?.();
 };
 
+const canScroll = (element: HTMLElement) => {
+  const style = window.getComputedStyle(element);
+  const overflowY = style.overflowY;
+  return (
+    (overflowY === 'auto' || overflowY === 'scroll') &&
+    element.scrollHeight > element.clientHeight
+  );
+};
+
+const findScrollContainer = (element: HTMLElement) => {
+  let parent = element.parentElement;
+
+  while (parent && parent !== document.body) {
+    if (canScroll(parent)) return parent;
+    parent = parent.parentElement;
+  }
+
+  return null;
+};
+
+/**
+ * Center `element` within its nearest scrollable ancestor. Scrolls that
+ * container directly rather than via `element.scrollIntoView()`, which does not
+ * reliably move custom scroll containers (e.g. a bits-ui ScrollArea viewport or
+ * a dialog's overflow pane). `scrollOffset` shifts the final position.
+ */
+export const scrollElementIntoView = (
+  element: HTMLElement,
+  scrollOffset = 0,
+  behavior: ScrollBehavior = 'smooth',
+) => {
+  const scrollContainer = findScrollContainer(element);
+
+  if (!scrollContainer) {
+    element.scrollIntoView({ block: 'center', inline: 'nearest', behavior });
+    if (scrollOffset !== 0) {
+      window.scrollBy({ top: scrollOffset, behavior });
+    }
+    return;
+  }
+
+  const elementRect = element.getBoundingClientRect();
+  const containerRect = scrollContainer.getBoundingClientRect();
+  const centerDelta =
+    elementRect.top -
+    containerRect.top -
+    (scrollContainer.clientHeight - elementRect.height) / 2;
+
+  scrollContainer.scrollTo({
+    top: scrollContainer.scrollTop + centerDelta + scrollOffset,
+    behavior,
+  });
+};
+
 export const highlightElement = (
   target: HighlightTarget,
   options: HighlightOptions = {},
@@ -89,11 +143,7 @@ export const highlightElement = (
     cancelHighlight(element);
 
     if (scroll) {
-      const rect = element.getBoundingClientRect();
-      window.scrollTo({
-        top: rect.top + window.scrollY + scrollOffset,
-        behavior: scrollBehavior,
-      });
+      scrollElementIntoView(element, scrollOffset, scrollBehavior);
     }
 
     const overlay = document.createElement('div');

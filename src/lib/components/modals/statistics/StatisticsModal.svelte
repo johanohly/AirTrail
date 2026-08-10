@@ -20,6 +20,7 @@
   import { Button } from '$lib/components/ui/button';
   import { flightScopeState } from '$lib/state.svelte';
   import { Modal } from '$lib/components/ui/modal';
+  import type { ModalHistoryHandle } from '$lib/components/ui/modal/modal-history';
   import ResponsiveFilters from '$lib/components/flight-filters/ResponsiveFilters.svelte';
   import type { FlightFilters } from '$lib/components/flight-filters/types';
   import { type VisitedCountry, wasVisited } from '$lib/db/types';
@@ -39,11 +40,6 @@
     getPreferences,
   } from '$lib/utils/preferences';
 
-  type VisitedCountryList = VisitedCountry & {
-    numeric: number;
-    alpha3: string;
-  };
-
   let {
     open = $bindable<boolean>(),
     flights,
@@ -53,29 +49,35 @@
     showFilters = true,
     seatUserId,
     showCountryStats = true,
+    onOpenFlight,
   }: {
     open?: boolean;
     flights: FlightData[];
     filteredFlights: FlightData[];
     filters: FlightFilters;
-    visitedCountries?: VisitedCountryList[];
+    visitedCountries?: VisitedCountry[];
     showFilters?: boolean;
     seatUserId?: string;
     showCountryStats?: boolean;
+    onOpenFlight?: (flightId: number) => void;
   } = $props();
 
   const showScopeBanner = $derived(flightScopeState.scope !== 'mine');
 
   // Only show completed flights
   const completedFlights = $derived.by(() =>
-    filteredFlights.filter(
-      (f) =>
-        !f.date ||
-        isBefore(
-          f.arrival ? f.arrival : (f.dateEnd ?? f.date),
-          nowIn(f.to?.tz || 'UTC'),
-        ),
-    ),
+    filteredFlights.filter((f) => {
+      if (!f.date) return true;
+
+      return isBefore(
+        f.arrival
+          ? f.arrival
+          : f.datePrecision === 'day'
+            ? f.date
+            : (f.dateEnd ?? f.date),
+        nowIn(f.to?.tz || 'UTC'),
+      );
+    }),
   );
 
   const prefs = $derived(getPreferences(page.data.user));
@@ -110,6 +112,7 @@
   // Expanded chart state
   let activeChart: ChartKey | null = $state(null);
   let activeContinent: string | null = $state(null);
+  let modalHistory: ModalHistoryHandle | undefined = $state();
   let wasOpen = $state(false);
   const ctx = $derived.by(() => ({ userId: seatUserId }));
 
@@ -138,6 +141,25 @@
     countriesByContinentDetails(visitedCountries),
   );
 
+  const pushDrilldownHistory = () => {
+    modalHistory?.push({ activeChart, activeContinent });
+  };
+
+  const restoreDrilldown = (state: unknown) => {
+    const drilldown = state as
+      { activeChart?: unknown; activeContinent?: unknown } | undefined;
+    const chart = drilldown?.activeChart;
+    activeChart =
+      typeof chart === 'string' &&
+      (chart in FLIGHT_CHARTS || chart in COUNTRY_CHARTS)
+        ? (chart as ChartKey)
+        : null;
+    activeContinent =
+      typeof drilldown?.activeContinent === 'string'
+        ? drilldown.activeContinent
+        : null;
+  };
+
   $effect(() => {
     const closedFromDrilldown =
       wasOpen && !open && (activeChart || activeContinent);
@@ -146,19 +168,21 @@
     if (closedFromDrilldown) {
       activeChart = null;
       activeContinent = null;
-      history.back();
     }
 
     if (open) {
       setTimeout(() => {
-        flightCount = flights.length;
-        totalDistance = flights.reduce(
+        flightCount = completedFlights.length;
+        totalDistance = completedFlights.reduce(
           (acc, curr) => (acc += curr.distance ?? 0),
           0,
         );
         earthCircumnavigations = totalDistance / 40075;
         const duration = Duration.fromSeconds(
-          flights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
+          completedFlights.reduce(
+            (acc, curr) => (acc += curr.duration ?? 0),
+            0,
+          ),
         );
         totalDurationParts = {
           days: duration.days,
@@ -166,7 +190,7 @@
           minutes: duration.minutes,
         };
         airports = new Set(
-          flights
+          completedFlights
             .filter((f) => f.from && f.to)
             .flatMap((f) => [f.from!.name, f.to!.name]),
         ).size;
@@ -183,46 +207,30 @@
   });
 </script>
 
-<svelte:window
-  onpopstate={() => {
-    if (!open) return;
-    if (activeContinent) {
-      activeContinent = null;
-    } else if (activeChart) {
-      activeChart = null;
-    }
-  }}
-  onkeydown={(e) => {
-    if (e.key !== 'Escape') return;
-    if (activeContinent || activeChart) {
-      history.back();
-    } else if (open) {
-      open = false;
-    }
-  }}
-/>
-
 <Modal
   bind:open
+  bind:historyHandle={modalHistory}
   class="max-w-full h-full overflow-y-auto rounded-none!"
   dialogOnly
   dialogNoPadding={Boolean(activeChart || activeContinent)}
   drawerNoPadding={Boolean(activeChart || activeContinent)}
-  closeOnEscape={false}
   closeButton={true}
+  onHistoryStateChange={restoreDrilldown}
 >
   {#if activeContinent}
     <BarChartDrillDown
       continent={activeContinent}
       countries={countriesByContinentDetailsData[activeContinent] || []}
-      onBack={() => history.back()}
+      onBack={() => modalHistory?.back()}
     />
   {:else if activeChart}
     <ChartDrillDown
       chartKey={activeChart}
       data={activeChartData}
       flights={completedFlights}
-      onBack={() => history.back()}
+      onBack={() => modalHistory?.back()}
+      {onOpenFlight}
+      {seatUserId}
     />
   {:else}
     <div class="space-y-4">
@@ -313,7 +321,7 @@
         flights={completedFlights}
         onOpenChart={(key) => {
           activeChart = key;
-          history.pushState(null, '');
+          pushDrilldownHistory();
         }}
         {seatUserId}
       />
@@ -330,7 +338,7 @@
             class="cursor-pointer"
             onclick={() => {
               activeChart = 'visited-country-status';
-              history.pushState(null, '');
+              pushDrilldownHistory();
             }}
           >
             <PieChart title="Visited Country Status" data={countryStatusData} />
@@ -341,7 +349,7 @@
           data={countriesByContinentData}
           onBarClick={(continent) => {
             activeContinent = continent;
-            history.pushState(null, '');
+            pushDrilldownHistory();
           }}
         />
       {/if}

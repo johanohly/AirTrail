@@ -21,9 +21,10 @@
   import * as Table from '$lib/components/ui/table';
   import { api } from '$lib/trpc';
   import { prepareFlightData } from '$lib/utils';
-  import { formatAsFlightDate } from '$lib/utils/datetime';
+  import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
 
   let { data }: PageProps = $props();
+  const prefs = $derived(getPreferences(data.user));
   const flights = $derived.by(() => prepareFlightData(data.flights));
 
   let rowSelection = $state<RowSelectionState>({});
@@ -51,9 +52,12 @@
             'aria-label': 'Select row',
           }),
       },
-      { accessorFn: (row) => row.from.iata ?? row.from.code, header: 'Origin' },
       {
-        accessorFn: (row) => row.to.iata ?? row.to.code,
+        accessorFn: (row) => row.from?.iata ?? row.from?.icao ?? '',
+        header: 'Origin',
+      },
+      {
+        accessorFn: (row) => row.to?.iata ?? row.to?.icao ?? '',
         header: 'Destination',
       },
       {
@@ -71,12 +75,9 @@
               side: 'top',
             });
           }
-          return formatAsFlightDate(
-            f.date,
-            f.datePrecision ?? 'day',
-            false,
-            true,
-          );
+          return f.date
+            ? formatFlightDate(f.date, f.datePrecision ?? 'day', prefs)
+            : '';
         },
       },
       {

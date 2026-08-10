@@ -1,10 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { COUNTRIES } from '$lib/data/countries';
 import {
   aircraftReport,
   arrivalDelayMinutes,
+  countriesByContinentDetails,
+  countriesByContinentDistribution,
   DELAY_THRESHOLD_MINUTES,
+  flightMatchesChartBucket,
   punctualityReport,
+  reasonDistribution,
 } from './aggregations';
 
 import type { FlightData } from '$lib/utils';
@@ -17,25 +22,103 @@ type FlightSeed = {
   aircraft?: { name: string } | null;
   aircraftReg?: string | null;
   airline?: { name: string } | null;
-  flightReason?: string | null;
-  seats?: { seat?: string; seatClass?: string; userId?: string | null }[];
+  passengers?: {
+    seat?: string;
+    seatClass?: string;
+    flightReason?: string | null;
+    userId?: string | null;
+  }[];
   arrivalScheduled?: string | null;
   arrival?: string | null;
 };
 
 // Build a FlightData stub carrying only the fields the report aggregations read.
 const makeFlight = (seed: FlightSeed = {}): FlightData => {
-  const { arrivalScheduled = null, arrival = null, seats = [], ...rest } = seed;
+  const {
+    arrivalScheduled = null,
+    arrival = null,
+    passengers = [],
+    ...rest
+  } = seed;
   return {
     aircraft: null,
     aircraftReg: null,
     airline: null,
-    flightReason: null,
     ...rest,
-    seats,
+    passengers,
     raw: { arrivalScheduled, arrival },
   } as unknown as FlightData;
 };
+
+describe('country statistics', () => {
+  const visitedKosovo = [
+    { code: 'XK', status: 'visited', note: null },
+  ] as const;
+
+  it('counts Kosovo as a visited European country', () => {
+    const result = countriesByContinentDistribution([...visitedKosovo]);
+    const europeanCountries = COUNTRIES.filter(
+      (country) => country.continent === 'Europe',
+    );
+
+    expect(result.Europe).toEqual({
+      visited: 1,
+      total: europeanCountries.length,
+    });
+  });
+
+  it('includes Kosovo in country details', () => {
+    const result = countriesByContinentDetails([...visitedKosovo]);
+    const kosovo = result.Europe?.find((country) => country.code === 'XK');
+
+    expect(kosovo).toMatchObject({
+      name: 'Kosovo',
+      visited: true,
+    });
+  });
+});
+
+describe('passenger reason statistics', () => {
+  const flights = [
+    {
+      passengers: [
+        { userId: 'one', flightReason: 'business' },
+        { userId: 'two', flightReason: 'leisure' },
+      ],
+    },
+    {
+      passengers: [
+        { userId: 'one', flightReason: null },
+        { userId: 'two', flightReason: 'leisure' },
+      ],
+    },
+  ] as FlightData[];
+
+  it('counts each passenger when aggregating all users', () => {
+    expect(reasonDistribution(flights, {})).toMatchObject({
+      Leisure: 2,
+      Business: 1,
+      'No Data': 1,
+    });
+  });
+
+  it('counts only the selected passenger', () => {
+    expect(reasonDistribution(flights, { userId: 'one' })).toMatchObject({
+      Business: 1,
+      'No Data': 1,
+    });
+    expect(
+      flightMatchesChartBucket(flights[0]!, 'reason', 'Business', {
+        userId: 'one',
+      }),
+    ).toBe(true);
+    expect(
+      flightMatchesChartBucket(flights[0]!, 'reason', 'Leisure', {
+        userId: 'one',
+      }),
+    ).toBe(false);
+  });
+});
 
 describe('arrivalDelayMinutes', () => {
   it('returns null when scheduled or actual arrival is missing', () => {
@@ -175,11 +258,11 @@ describe('aircraftReport', () => {
     expect(report.topSeatClass).toBeNull();
   });
 
-  it('picks the top seat class across all seats when no user is scoped', () => {
+  it('picks the top seat class across all passengers when no user is scoped', () => {
     const flights = [
-      makeFlight({ seats: [{ seatClass: 'economy' }] }),
-      makeFlight({ seats: [{ seatClass: 'economy' }] }),
-      makeFlight({ seats: [{ seatClass: 'business' }] }),
+      makeFlight({ passengers: [{ seatClass: 'economy' }] }),
+      makeFlight({ passengers: [{ seatClass: 'economy' }] }),
+      makeFlight({ passengers: [{ seatClass: 'business' }] }),
     ];
 
     const report = aircraftReport(flights, {});

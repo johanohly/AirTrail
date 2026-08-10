@@ -4,7 +4,7 @@
   import { fly } from 'svelte/transition';
 
   import { Modal } from '$lib/components/ui/modal';
-  import { peekModalHistory } from '$lib/components/ui/modal/Modal.svelte';
+  import { peekModalHistory } from '$lib/components/ui/modal/modal-history';
   import { Separator } from '$lib/components/ui/separator';
   import { isMediumScreen } from '$lib/utils/size';
 
@@ -44,7 +44,7 @@
 {#if $isMediumScreen}
   {#if open}
     <div
-      transition:fly={{ x: -420, duration: 260, easing: cubicOut }}
+      in:fly={{ x: -420, duration: 260, easing: cubicOut }}
       class="absolute top-3 left-3 z-20 flex max-w-[calc(100vw-1.5rem)] items-start gap-2"
     >
       <aside

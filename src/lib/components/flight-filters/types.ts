@@ -12,36 +12,43 @@ export type MultiOptionFilterOperator =
   | 'exclude'
   | 'include any of'
   | 'include all of'
+  | 'include exactly'
   | 'exclude if any of'
-  | 'exclude if all';
+  | 'exclude if all'
+  | 'exclude exactly';
 
-export type FlightFilters = {
+export type LocationFilterValues = {
   departureAirports: string[];
+  arrivalAirports: string[];
+  airportsEither: string[];
+  routes: Route[];
+};
+
+export type LocationFilterOperators = {
   departureAirportsOperator: OptionFilterOperator;
-  arrivalAirports: string[];
   arrivalAirportsOperator: OptionFilterOperator;
-  airportsEither: string[];
-  routes: Route[];
-  years: string[];
-  yearsOperator: OptionFilterOperator;
-  fromDate: CalendarDate | undefined;
-  toDate: CalendarDate | undefined;
-  passengers: string[];
-  passengersOperator: MultiOptionFilterOperator;
-  airline: string[];
-  airlineOperator: OptionFilterOperator;
-  aircraft: string[];
-  aircraftOperator: OptionFilterOperator;
-  aircraftRegs: string[];
-  aircraftRegsOperator: OptionFilterOperator;
 };
 
-export type TempFilters = {
-  departureAirports: string[];
-  arrivalAirports: string[];
-  airportsEither: string[];
-  routes: Route[];
-};
+export type FlightFilters = LocationFilterValues &
+  LocationFilterOperators & {
+    years: string[];
+    yearsOperator: OptionFilterOperator;
+    fromDate: CalendarDate | undefined;
+    toDate: CalendarDate | undefined;
+    passengers: string[];
+    passengersOperator: MultiOptionFilterOperator;
+    airline: string[];
+    airlineOperator: OptionFilterOperator;
+    aircraft: string[];
+    aircraftOperator: OptionFilterOperator;
+    aircraftRegs: string[];
+    aircraftRegsOperator: OptionFilterOperator;
+  };
+
+export type TempFilters = LocationFilterValues;
+
+export type LocationFilters = LocationFilterValues &
+  Partial<LocationFilterOperators>;
 
 export const createDefaultTempFilters = (): TempFilters => ({
   departureAirports: [],
@@ -54,6 +61,19 @@ export const defaultTempFilters: TempFilters = createDefaultTempFilters();
 
 export function normalizeRoute(idA: string, idB: string): Route {
   return idA <= idB ? { a: idA, b: idB } : { a: idB, b: idA };
+}
+
+export function routeMatchesEndpoints(
+  fromId: string | number | null | undefined,
+  toId: string | number | null | undefined,
+  route: Route | null | undefined,
+): boolean {
+  if (fromId == null || toId == null || !route) return false;
+  const from = fromId.toString();
+  const to = toId.toString();
+  return (
+    (from === route.a && to === route.b) || (from === route.b && to === route.a)
+  );
 }
 
 export function hasTempFilters(tempFilters: TempFilters | undefined): boolean {

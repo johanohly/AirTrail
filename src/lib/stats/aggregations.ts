@@ -58,12 +58,12 @@ export function visitedCountryStatusDistribution(
 export function countriesByContinentDistribution(
   visitedCountries: VisitedCountryStats[],
 ): Record<string, { visited: number; total: number }> {
-  const continentByNumeric = new Map<number, string>();
+  const continentByCode = new Map<string, string>();
   const result: Record<string, { visited: number; total: number }> = {};
 
   for (const country of COUNTRIES) {
     if (country.continent) {
-      continentByNumeric.set(country.numeric, country.continent);
+      continentByCode.set(country.alpha2, country.continent);
 
       if (!result[country.continent]) {
         result[country.continent] = { visited: 0, total: 0 };
@@ -74,7 +74,7 @@ export function countriesByContinentDistribution(
 
   for (const visitedCountry of visitedCountries) {
     if (wasVisited(visitedCountry)) {
-      const continent = continentByNumeric.get(visitedCountry.code);
+      const continent = continentByCode.get(visitedCountry.code);
       if (continent && result[continent]) {
         result[continent].visited++;
       }
@@ -86,14 +86,14 @@ export function countriesByContinentDistribution(
 
 export type CountryDetail = {
   name: string;
-  numeric: number;
+  code: string;
   visited: boolean;
 };
 
 export function countriesByContinentDetails(
   visitedCountries: VisitedCountryStats[],
 ): Record<string, CountryDetail[]> {
-  const visitedCodes: Set<number> = new Set();
+  const visitedCodes: Set<string> = new Set();
   for (const country of visitedCountries) {
     if (wasVisited(country)) {
       visitedCodes.add(country.code);
@@ -111,8 +111,8 @@ export function countriesByContinentDetails(
 
     result[country.continent]!.push({
       name: country.name,
-      numeric: country.numeric,
-      visited: visitedCodes.has(country.numeric),
+      code: country.alpha2,
+      visited: visitedCodes.has(country.alpha2),
     });
   }
 
@@ -149,6 +149,87 @@ function sortAndLimit(
   return Object.fromEntries(top);
 }
 
+export const codeForAirport = (
+  airport: FlightData['from'] | null | undefined,
+) => airport?.iata || airport?.icao || null;
+
+export const routeLabelForFlight = (flight: FlightData): string | null => {
+  const fromCode = codeForAirport(flight.from);
+  const toCode = codeForAirport(flight.to);
+  if (!fromCode || !toCode) return null;
+  return `${fromCode}-${toCode}`;
+};
+
+export const flightChartBucketForFlight = (
+  flight: FlightData,
+  key: Exclude<FlightChartKey, 'seat' | 'seat-class' | 'airports'>,
+): string | null => {
+  switch (key) {
+    case 'airlines':
+      return flight.airline?.name ?? 'No Data';
+    case 'aircraft-models':
+      return flight.aircraft?.name ?? 'No Data';
+    case 'aircraft-regs':
+      return flight.aircraftReg ?? 'No Data';
+    case 'reason':
+      return null;
+    case 'continents':
+      return flight.to?.continent
+        ? ContinentMap[flight.to.continent]
+        : 'No Data';
+    case 'routes':
+      return routeLabelForFlight(flight);
+  }
+};
+
+export const flightMatchesChartBucket = (
+  flight: FlightData,
+  chartKey: FlightChartKey,
+  bucket: string,
+  ctx: StatsContext = {},
+): boolean => {
+  if (bucket === 'Others') return false;
+
+  if (
+    chartKey === 'seat' ||
+    chartKey === 'seat-class' ||
+    chartKey === 'reason'
+  ) {
+    const field =
+      chartKey === 'seat'
+        ? 'seat'
+        : chartKey === 'seat-class'
+          ? 'seatClass'
+          : 'flightReason';
+    const passengers = ctx.userId
+      ? flight.passengers.filter((passenger) => passenger.userId === ctx.userId)
+      : flight.passengers;
+
+    if (bucket === 'No Data') {
+      if (ctx.userId) {
+        return (
+          passengers.length === 0 ||
+          passengers.some((passenger) => !passenger[field])
+        );
+      }
+      return passengers.some((passenger) => !passenger[field]);
+    }
+
+    return passengers.some(
+      (seat) => seat[field] && toTitleCase(seat[field]) === bucket,
+    );
+  }
+
+  if (chartKey === 'airports') {
+    return (
+      codeForAirport(flight.from) === bucket ||
+      codeForAirport(flight.to) === bucket
+    );
+  }
+
+  return flightChartBucketForFlight(flight, chartKey) === bucket;
+};
+
 export function seatDistribution(
   flights: FlightData[],
   ctx: StatsContext,
@@ -165,10 +246,10 @@ export function seatDistribution(
   ];
 
   if (!ctx.userId) {
-    const seats = flights.flatMap((flight) => flight.seats);
+    const passengers = flights.flatMap((flight) => flight.passengers);
     const counts = categories.reduce<Record<string, number>>(
       (acc, category) => {
-        acc[toTitleCase(category)] = seats.filter(
+        acc[toTitleCase(category)] = passengers.filter(
           (seat) => seat.seat === category,
         ).length;
         return acc;
@@ -177,7 +258,7 @@ export function seatDistribution(
     );
 
     const totalClassified = Object.values(counts).reduce((a, b) => a + b, 0);
-    const noData = seats.length - totalClassified;
+    const noData = passengers.length - totalClassified;
     if (noData > 0) {
       counts['No Data'] = noData;
     }
@@ -187,7 +268,7 @@ export function seatDistribution(
 
   const counts = categories.reduce<Record<string, number>>((acc, category) => {
     acc[toTitleCase(category)] = flights.filter((f) =>
-      f.seats.some((v) => v.userId === ctx.userId && v.seat === category),
+      f.passengers.some((v) => v.userId === ctx.userId && v.seat === category),
     ).length;
     return acc;
   }, {});
@@ -209,10 +290,10 @@ export function seatClassDistribution(
   const categories = ['economy', 'economy+', 'business', 'first', 'private'];
 
   if (!ctx.userId) {
-    const seats = flights.flatMap((flight) => flight.seats);
+    const passengers = flights.flatMap((flight) => flight.passengers);
     const counts = categories.reduce<Record<string, number>>(
       (acc, category) => {
-        acc[toTitleCase(category)] = seats.filter(
+        acc[toTitleCase(category)] = passengers.filter(
           (seat) => seat.seatClass === category,
         ).length;
         return acc;
@@ -221,7 +302,7 @@ export function seatClassDistribution(
     );
 
     const totalClassified = Object.values(counts).reduce((a, b) => a + b, 0);
-    const noData = seats.length - totalClassified;
+    const noData = passengers.length - totalClassified;
     if (noData > 0) {
       counts['No Data'] = noData;
     }
@@ -231,7 +312,9 @@ export function seatClassDistribution(
 
   const counts = categories.reduce<Record<string, number>>((acc, category) => {
     acc[toTitleCase(category)] = flights.filter((f) =>
-      f.seats.some((v) => v.userId === ctx.userId && v.seatClass === category),
+      f.passengers.some(
+        (v) => v.userId === ctx.userId && v.seatClass === category,
+      ),
     ).length;
     return acc;
   }, {});
@@ -247,13 +330,35 @@ export function seatClassDistribution(
 
 export function reasonDistribution(
   flights: FlightData[],
-  _ctx: StatsContext,
+  ctx: StatsContext,
   options?: AggregationOptions,
 ): Record<string, number> {
   const categories = ['leisure', 'business', 'crew', 'other'];
+
+  if (!ctx.userId) {
+    const passengers = flights.flatMap((flight) => flight.passengers);
+    const counts = categories.reduce<Record<string, number>>(
+      (acc, category) => {
+        acc[toTitleCase(category)] = passengers.filter(
+          (passenger) => passenger.flightReason === category,
+        ).length;
+        return acc;
+      },
+      {},
+    );
+    const totalClassified = Object.values(counts).reduce((a, b) => a + b, 0);
+    const noData = passengers.length - totalClassified;
+    if (noData > 0) counts['No Data'] = noData;
+    return sortAndLimit(counts, options);
+  }
+
   const counts = categories.reduce<Record<string, number>>((acc, category) => {
-    acc[toTitleCase(category)] = flights.filter(
-      (f) => f.flightReason === category,
+    acc[toTitleCase(category)] = flights.filter((flight) =>
+      flight.passengers.some(
+        (passenger) =>
+          passenger.userId === ctx.userId &&
+          passenger.flightReason === category,
+      ),
     ).length;
     return acc;
   }, {});
@@ -298,12 +403,9 @@ export function routeDistribution(
   options?: AggregationOptions,
 ): Record<string, number> {
   const counts = flights.reduce<Record<string, number>>((acc, flight) => {
-    if (!flight.from || !flight.to) return acc;
+    const label = routeLabelForFlight(flight);
+    if (!label) return acc;
 
-    const label =
-      (flight.from.iata || flight.from.icao) +
-      '-' +
-      (flight.to.iata || flight.to.icao);
     acc[label] = (acc[label] || 0) + 1;
     return acc;
   }, {});
@@ -316,7 +418,7 @@ export function airlineDistribution(
   options?: AggregationOptions,
 ): Record<string, number> {
   const counts = flights.reduce<Record<string, number>>((acc, flight) => {
-    const label = flight.airline?.name ?? 'No Data';
+    const label = flightChartBucketForFlight(flight, 'airlines') ?? 'No Data';
     acc[label] = (acc[label] || 0) + 1;
     return acc;
   }, {});
@@ -329,7 +431,8 @@ export function aircraftModelDistribution(
   options?: AggregationOptions,
 ): Record<string, number> {
   const counts = flights.reduce<Record<string, number>>((acc, flight) => {
-    const label = flight.aircraft?.name ?? 'No Data';
+    const label =
+      flightChartBucketForFlight(flight, 'aircraft-models') ?? 'No Data';
     acc[label] = (acc[label] || 0) + 1;
     return acc;
   }, {});
@@ -342,7 +445,8 @@ export function aircraftRegDistribution(
   options?: AggregationOptions,
 ): Record<string, number> {
   const counts = flights.reduce<Record<string, number>>((acc, flight) => {
-    const label = flight.aircraftReg ?? 'No Data';
+    const label =
+      flightChartBucketForFlight(flight, 'aircraft-regs') ?? 'No Data';
     acc[label] = (acc[label] || 0) + 1;
     return acc;
   }, {});
@@ -356,7 +460,7 @@ export function airportDistribution(
 ): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const { from, to } of flights) {
-    for (const code of [from?.iata || from?.icao, to?.iata || to?.icao]) {
+    for (const code of [codeForAirport(from), codeForAirport(to)]) {
       if (!code) continue;
 
       counts[code] = (counts[code] ?? 0) + 1;

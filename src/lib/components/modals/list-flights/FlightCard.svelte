@@ -1,10 +1,11 @@
 <script lang="ts">
   import type { TZDate } from '@date-fns/tz';
 
+  import { page } from '$app/state';
   import { AirlineIcon, RouteArrow } from '$lib/components/display';
   import { Badge } from '$lib/components/ui/badge';
   import type { Airline, Airport, FlightDatePrecision } from '$lib/db/types';
-  import { formatAsFlightDate } from '$lib/utils/datetime';
+  import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
 
   type Flight = {
     from: Airport | null;
@@ -13,25 +14,23 @@
     flightNumber?: string | null;
     date?: TZDate | null;
     datePrecision?: FlightDatePrecision;
-    passengers?: string[];
   };
 
   let {
     flight,
+    passengerLabels = [],
     showMeta = true,
   }: {
     flight: Flight;
+    passengerLabels?: string[];
     showMeta?: boolean;
   } = $props();
 
+  const prefs = $derived(getPreferences(page.data.user));
+
   const formatDate = (flight: Flight) => {
     if (!flight.date) return null;
-    return formatAsFlightDate(
-      flight.date,
-      flight.datePrecision ?? 'day',
-      false,
-      true,
-    );
+    return formatFlightDate(flight.date, flight.datePrecision ?? 'day', prefs);
   };
 
   const getFlightNumber = (flight: Flight) => {
@@ -77,10 +76,10 @@
             {formatDate(flight)}
           </span>
         {/if}
-        {#if flight.passengers?.length}
+        {#if passengerLabels.length}
           <Badge variant="outline" class="max-w-[120px] truncate self-end">
-            {flight.passengers[0]}{flight.passengers.length > 1
-              ? ` +${flight.passengers.length - 1}`
+            {passengerLabels[0]}{passengerLabels.length > 1
+              ? ` +${passengerLabels.length - 1}`
               : ''}
           </Badge>
         {:else if getFlightNumber(flight)}

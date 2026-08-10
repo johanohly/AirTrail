@@ -15,6 +15,8 @@ import { expect, test } from '@test/index';
 //   Stored departure: 2024-01-16T03:30:00Z   (22:30 EST on Jan 15)
 //   Stored arrival:   2024-01-16T10:00:00Z   (10:00 GMT)
 //
+// The desktop list intentionally uses a compact short-month date even when
+// dateFormat=iso. The clock and timezone still follow the user's preferences.
 // Expected rendered wall-clocks (timeFormat=24h, dateFormat=iso):
 //   airport: dep "Jan 15, 22:30" (JFK)  | arr "Jan 16, 10:00" (LHR)
 //   utc:     dep "Jan 16, 03:30"        | arr "Jan 16, 10:00"

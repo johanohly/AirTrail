@@ -55,6 +55,7 @@
       lastFlownLabel={details.lastFlownLabel}
       prefs={details.prefs}
       onShowAll={details.showAllFlights}
+      onShowFlight={details.showFlight}
     />
   {/if}
 </MapDetailsFrame>

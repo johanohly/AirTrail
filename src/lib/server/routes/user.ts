@@ -6,6 +6,7 @@ import { authedProcedure, publicProcedure, router } from '../trpc';
 
 import { db } from '$lib/db';
 import { createApiKey } from '$lib/server/utils/auth';
+import { publicUserSelect } from '$lib/server/utils/user';
 import { updatePreferencesSchema } from '$lib/zod/user';
 
 export const userRouter = router({
@@ -44,14 +45,40 @@ export const userRouter = router({
       return false;
     }
 
-    const result = await db
-      .deleteFrom('user')
-      .where('id', '=', input)
-      .executeTakeFirst();
-    return result.numDeletedRows > 0;
+    return await db.transaction().execute(async (trx) => {
+      const affectedFlights = await trx
+        .selectFrom('flightPassenger')
+        .select('flightId')
+        .where('userId', '=', input)
+        .execute();
+
+      const result = await trx
+        .deleteFrom('user')
+        .where('id', '=', input)
+        .executeTakeFirst();
+
+      const affectedFlightIds = affectedFlights.map(({ flightId }) => flightId);
+      if (affectedFlightIds.length > 0) {
+        await trx
+          .deleteFrom('flight')
+          .where('id', 'in', affectedFlightIds)
+          .where(({ not, exists, selectFrom }) =>
+            not(
+              exists(
+                selectFrom('flightPassenger')
+                  .select('id')
+                  .whereRef('flightPassenger.flightId', '=', 'flight.id'),
+              ),
+            ),
+          )
+          .execute();
+      }
+
+      return result.numDeletedRows > 0;
+    });
   }),
   list: authedProcedure.query(async () => {
-    return db.selectFrom('user').selectAll().execute();
+    return db.selectFrom('user').select(publicUserSelect).execute();
   }),
   listApiKeys: authedProcedure.query(async ({ ctx }) => {
     return db

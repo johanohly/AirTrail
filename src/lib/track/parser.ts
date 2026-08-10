@@ -3,19 +3,24 @@ import { gpx, kml } from '@tmcw/togeojson';
 import {
   type FlightTrackCoordinate,
   type FlightTrackInput,
-  type FlightTrackPayload,
   type FlightTrackSourceFormat,
-  MAX_FLIGHT_TRACK_POINTS,
+  MAX_STORED_FLIGHT_TRACK_POINTS,
 } from './schema';
+import { parseReadsbTrackLegs } from './readsb';
 
 import { parseCsvLine, sanitizeHeader } from '$lib/utils/csv';
 
-const SIMPLIFY_THRESHOLD = 2_000;
-const SIMPLIFY_TOLERANCE_METERS = 10;
-const METERS_PER_DEGREE = 111_320;
-
 export type ParsedTrackFile = FlightTrackInput & {
   originalPointCount: number;
+};
+
+export type ParsedTrackCandidate = {
+  track: ParsedTrackFile;
+  legIndex: number | null;
+  startTime: number | null;
+  endTime: number | null;
+  startCoordinate: FlightTrackCoordinate;
+  endCoordinate: FlightTrackCoordinate;
 };
 
 type RawTrack = {
@@ -23,6 +28,8 @@ type RawTrack = {
   times?: number[];
   groundSpeedKt?: number[];
   trackDeg?: number[];
+  ground?: boolean[];
+  estimated?: boolean[];
 };
 
 type GeoJsonFeature = {
@@ -40,14 +47,30 @@ type GeoJsonGeometry =
   | { type: 'GeometryCollection'; geometries: GeoJsonGeometry[] }
   | { type: string };
 
-export const parseTrackFile = async (file: File): Promise<ParsedTrackFile> => {
+export const parseTrackFile = async (
+  file: File,
+): Promise<ParsedTrackCandidate[]> => {
   const sourceFormat = detectTrackSourceFormat(file.name);
   if (!sourceFormat) {
     throw new Error('Unsupported track file type');
   }
 
   const content = await file.text();
-  return parseTrackContent(content, sourceFormat, file.name);
+  return parseTrackCandidates(content, sourceFormat, file.name);
+};
+
+export const parseTrackCandidates = (
+  content: string,
+  sourceFormat: FlightTrackSourceFormat,
+  sourceName?: string,
+): ParsedTrackCandidate[] => {
+  if (sourceFormat === 'readsb') {
+    return parseReadsbTrackCandidates(content, sourceName);
+  }
+
+  return [
+    toTrackCandidate(parseTrackContent(content, sourceFormat, sourceName)),
+  ];
 };
 
 export const parseTrackContent = (
@@ -55,32 +78,57 @@ export const parseTrackContent = (
   sourceFormat: FlightTrackSourceFormat,
   sourceName?: string,
 ): ParsedTrackFile => {
+  if (sourceFormat === 'readsb') {
+    const candidates = parseReadsbTrackCandidates(content, sourceName);
+    if (candidates.length !== 1) {
+      throw new Error('readsb trace contains multiple flight legs');
+    }
+    return candidates[0]!.track;
+  }
+
   const raw =
     sourceFormat === 'csv'
       ? parseCsvTrack(content)
       : parseXmlTrack(content, sourceFormat);
 
+  return toParsedTrackFile(raw, sourceFormat, sourceName);
+};
+
+const toParsedTrackFile = (
+  raw: RawTrack,
+  sourceFormat: FlightTrackSourceFormat,
+  sourceName?: string,
+): ParsedTrackFile => {
   if (raw.coordinates.length < 2) {
     throw new Error('Track must contain at least two points');
   }
+  if (raw.coordinates.length > MAX_STORED_FLIGHT_TRACK_POINTS) {
+    throw new Error(
+      `Track contains ${raw.coordinates.length.toLocaleString()} points. The maximum is ${MAX_STORED_FLIGHT_TRACK_POINTS.toLocaleString()}.`,
+    );
+  }
 
   const originalPointCount = raw.coordinates.length;
-  const simplifiedTrack =
-    raw.coordinates.length > SIMPLIFY_THRESHOLD
-      ? simplifyTrack(raw, SIMPLIFY_TOLERANCE_METERS)
-      : raw;
-  const track =
-    simplifiedTrack.coordinates.length > MAX_FLIGHT_TRACK_POINTS
-      ? limitTrackPoints(simplifiedTrack, MAX_FLIGHT_TRACK_POINTS)
-      : simplifiedTrack;
 
   return {
-    ...track,
+    ...raw,
     sourceFormat,
     sourceName: sourceName ?? null,
     originalPointCount,
   };
 };
+
+const toTrackCandidate = (
+  track: ParsedTrackFile,
+  legIndex: number | null = null,
+): ParsedTrackCandidate => ({
+  track,
+  legIndex,
+  startTime: track.times?.[0] ?? null,
+  endTime: track.times?.at(-1) ?? null,
+  startCoordinate: track.coordinates[0]!,
+  endCoordinate: track.coordinates.at(-1)!,
+});
 
 const detectTrackSourceFormat = (
   name: string,
@@ -89,12 +137,39 @@ const detectTrackSourceFormat = (
   if (lower.endsWith('.gpx')) return 'gpx';
   if (lower.endsWith('.kml')) return 'kml';
   if (lower.endsWith('.csv')) return 'csv';
+  if (lower.endsWith('.json')) return 'readsb';
   return null;
+};
+
+const readsbLegSourceName = (
+  sourceName: string | undefined,
+  legIndex: number,
+  legCount: number,
+) => {
+  if (!sourceName || legCount === 1) return sourceName;
+  const suffix = ` (leg ${legIndex})`;
+  return `${sourceName.slice(0, Math.max(0, 255 - suffix.length))}${suffix}`;
+};
+
+const parseReadsbTrackCandidates = (
+  content: string,
+  sourceName?: string,
+): ParsedTrackCandidate[] => {
+  const legs = parseReadsbTrackLegs(content);
+
+  return legs.map((leg) => {
+    const track = toParsedTrackFile(
+      leg.track,
+      'readsb',
+      readsbLegSourceName(sourceName, leg.legIndex, legs.length),
+    );
+    return toTrackCandidate(track, legs.length > 1 ? leg.legIndex : null);
+  });
 };
 
 const parseXmlTrack = (
   content: string,
-  sourceFormat: Exclude<FlightTrackSourceFormat, 'csv'>,
+  sourceFormat: Extract<FlightTrackSourceFormat, 'gpx' | 'kml'>,
 ): RawTrack => {
   if (typeof DOMParser === 'undefined') {
     throw new TypeError(
@@ -204,6 +279,14 @@ const extractTimestampedPointTrack = (document: Document): RawTrack | null => {
   const times: number[] = [];
   const groundSpeedKt: number[] = [];
   const trackDeg: number[] = [];
+  const ground: boolean[] = [];
+  const estimated: boolean[] = [];
+  const shouldParseGround = hasKmlBooleanProperty(document, 'ground', [
+    'Ground/taxi',
+  ]);
+  const shouldParseEstimated = hasKmlBooleanProperty(document, 'estimated', [
+    'Estimated',
+  ]);
 
   for (const placemark of Array.from(
     document.getElementsByTagName('Placemark'),
@@ -220,12 +303,21 @@ const extractTimestampedPointTrack = (document: Document): RawTrack | null => {
     const coordinate = normalizeCoordinate(parseKmlCoordinate(coordinateText));
     if (!coordinate) continue;
 
-    coordinates.push(coordinate);
-    times.push(time);
-
     const description = placemark
       .getElementsByTagName('description')[0]
       ?.textContent?.trim();
+    const groundFlag =
+      parseExtendedDataBoolean(placemark, 'ground') ??
+      parseDescriptionBoolean(description, 'Ground/taxi');
+    const estimatedFlag =
+      parseExtendedDataBoolean(placemark, 'estimated') ??
+      parseDescriptionBoolean(description, 'Estimated');
+
+    coordinates.push(coordinate);
+    times.push(time);
+    if (shouldParseGround) ground.push(groundFlag ?? false);
+    if (shouldParseEstimated) estimated.push(estimatedFlag ?? false);
+
     const speed = parseDescriptionNumber(description, 'Speed', 'kt');
     if (speed !== null) groundSpeedKt.push(speed);
 
@@ -244,6 +336,8 @@ const extractTimestampedPointTrack = (document: Document): RawTrack | null => {
     groundSpeedKt:
       groundSpeedKt.length === coordinates.length ? groundSpeedKt : undefined,
     trackDeg: trackDeg.length === coordinates.length ? trackDeg : undefined,
+    ground: ground.length === coordinates.length ? ground : undefined,
+    estimated: estimated.length === coordinates.length ? estimated : undefined,
   };
 };
 
@@ -456,6 +550,78 @@ const parseDescriptionNumber = (
   return match?.[1] ? parseNumber(match[1]) : null;
 };
 
+const parseBoolean = (value: string | null | undefined) => {
+  if (!value) return null;
+  const normalized = value.trim().toLowerCase();
+  if (['true', 'yes', '1'].includes(normalized)) return true;
+  if (['false', 'no', '0'].includes(normalized)) return false;
+  return null;
+};
+
+const normalizeDescription = (description: string | null | undefined) =>
+  description
+    ?.replace(/<[^>]*>/g, ' ')
+    .replace(/&deg;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const parseDescriptionBoolean = (
+  description: string | null | undefined,
+  label: string,
+) => {
+  const normalizedDescription = normalizeDescription(description);
+  if (!normalizedDescription) return null;
+  const match = new RegExp(`${label}:\\s*(true|false|yes|no|1|0)`, 'i').exec(
+    normalizedDescription,
+  );
+  return parseBoolean(match?.[1]);
+};
+
+const getExtendedDataValue = (placemark: Element, name: string) => {
+  for (const data of Array.from(placemark.getElementsByTagName('Data'))) {
+    if (data.getAttribute('name') !== name) continue;
+    return data.getElementsByTagName('value')[0]?.textContent;
+  }
+
+  for (const data of Array.from(placemark.getElementsByTagName('SimpleData'))) {
+    if (data.getAttribute('name') === name) return data.textContent;
+  }
+};
+
+const parseExtendedDataBoolean = (placemark: Element, name: string) =>
+  parseBoolean(getExtendedDataValue(placemark, name));
+
+const hasKmlBooleanProperty = (
+  document: Document,
+  dataName: string,
+  descriptionLabels: string[],
+) => {
+  if (
+    Array.from(document.getElementsByTagName('Data')).some(
+      (data) => data.getAttribute('name') === dataName,
+    ) ||
+    Array.from(document.getElementsByTagName('SimpleData')).some(
+      (data) => data.getAttribute('name') === dataName,
+    )
+  ) {
+    return true;
+  }
+
+  return Array.from(document.getElementsByTagName('description')).some(
+    (description) => {
+      const normalized = normalizeDescription(description.textContent);
+      return (
+        !!normalized &&
+        descriptionLabels.some((label) =>
+          new RegExp(`${label}:\\s*(true|false|yes|no|1|0)`, 'i').test(
+            normalized,
+          ),
+        )
+      );
+    },
+  );
+};
+
 const normalizeTrackDegrees = (value: number) => ((value % 360) + 360) % 360;
 
 const toEpochSeconds = (value: unknown): number | null => {
@@ -480,154 +646,4 @@ const toEpochSeconds = (value: unknown): number | null => {
 
 const hasExplicitTimezone = (value: string) => {
   return /(?:z|utc|[+-]\d{2}:?\d{2})$/i.test(value.trim());
-};
-
-export const simplifyTrack = (
-  track: FlightTrackPayload,
-  toleranceMeters = SIMPLIFY_TOLERANCE_METERS,
-): FlightTrackPayload => {
-  if (track.coordinates.length <= 2) return track;
-
-  const points = projectCoordinates(track.coordinates);
-  const keep = new Uint8Array(points.length);
-  keep[0] = 1;
-  keep[points.length - 1] = 1;
-
-  const stack: [number, number][] = [[0, points.length - 1]];
-  const toleranceSquared = toleranceMeters * toleranceMeters;
-
-  while (stack.length) {
-    const [start, end] = stack.pop()!;
-    let maxDistanceSquared = -1;
-    let maxIndex = -1;
-
-    for (let index = start + 1; index < end; index++) {
-      const point = points[index];
-      const startPoint = points[start];
-      const endPoint = points[end];
-      if (!point || !startPoint || !endPoint) continue;
-
-      const distanceSquared = perpendicularDistanceSquared(
-        point,
-        startPoint,
-        endPoint,
-      );
-      if (distanceSquared > maxDistanceSquared) {
-        maxDistanceSquared = distanceSquared;
-        maxIndex = index;
-      }
-    }
-
-    if (maxDistanceSquared > toleranceSquared && maxIndex !== -1) {
-      keep[maxIndex] = 1;
-      stack.push([start, maxIndex], [maxIndex, end]);
-    }
-  }
-
-  const coordinates: FlightTrackCoordinate[] = [];
-  const pickedProperties = createAlignedPropertyPicker(track);
-  track.coordinates.forEach((coordinate, index) => {
-    if (!keep[index]) return;
-    coordinates.push(coordinate);
-    pickedProperties.pick(index);
-  });
-
-  return {
-    coordinates,
-    ...pickedProperties.toPayload(),
-  };
-};
-
-const limitTrackPoints = (
-  track: FlightTrackPayload,
-  maxPoints: number,
-): FlightTrackPayload => {
-  if (track.coordinates.length <= maxPoints) return track;
-
-  const coordinates: FlightTrackCoordinate[] = [];
-  const pickedProperties = createAlignedPropertyPicker(track);
-  const lastIndex = track.coordinates.length - 1;
-
-  for (let index = 0; index < maxPoints; index++) {
-    const sourceIndex = Math.round((index * lastIndex) / (maxPoints - 1));
-    const coordinate = track.coordinates[sourceIndex];
-    if (!coordinate) continue;
-
-    coordinates.push(coordinate);
-    pickedProperties.pick(sourceIndex);
-  }
-
-  return {
-    coordinates,
-    ...pickedProperties.toPayload(),
-  };
-};
-
-const createAlignedPropertyPicker = (track: FlightTrackPayload) => {
-  const times: number[] = [];
-  const groundSpeedKt: number[] = [];
-  const trackDeg: number[] = [];
-
-  return {
-    pick(index: number) {
-      const time = track.times?.[index];
-      if (time !== undefined) times.push(time);
-
-      const groundSpeed = track.groundSpeedKt?.[index];
-      if (groundSpeed !== undefined) groundSpeedKt.push(groundSpeed);
-
-      const trackDirection = track.trackDeg?.[index];
-      if (trackDirection !== undefined) trackDeg.push(trackDirection);
-    },
-    toPayload(): Omit<FlightTrackPayload, 'coordinates'> {
-      return {
-        ...(track.times ? { times } : {}),
-        ...(track.groundSpeedKt ? { groundSpeedKt } : {}),
-        ...(track.trackDeg ? { trackDeg } : {}),
-      };
-    },
-  };
-};
-
-const projectCoordinates = (coordinates: FlightTrackCoordinate[]) => {
-  const referenceLat =
-    coordinates.reduce((sum, coordinate) => sum + coordinate[1], 0) /
-    coordinates.length;
-  const xScale = METERS_PER_DEGREE * Math.cos((referenceLat * Math.PI) / 180);
-
-  return coordinates.map(
-    ([lon, lat]) => [lon * xScale, lat * METERS_PER_DEGREE] as const,
-  );
-};
-
-const perpendicularDistanceSquared = (
-  point: readonly [number, number],
-  start: readonly [number, number],
-  end: readonly [number, number],
-) => {
-  const dx = end[0] - start[0];
-  const dy = end[1] - start[1];
-
-  if (dx === 0 && dy === 0) {
-    return squaredDistance(point, start);
-  }
-
-  const t = Math.max(
-    0,
-    Math.min(
-      1,
-      ((point[0] - start[0]) * dx + (point[1] - start[1]) * dy) /
-        (dx * dx + dy * dy),
-    ),
-  );
-  return squaredDistance(point, [start[0] + t * dx, start[1] + t * dy]);
-};
-
-const squaredDistance = (
-  a: readonly [number, number],
-  b: readonly [number, number],
-) => {
-  const dx = a[0] - b[0];
-  const dy = a[1] - b[1];
-  return dx * dx + dy * dy;
 };

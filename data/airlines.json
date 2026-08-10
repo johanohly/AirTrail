@@ -10101,6 +10101,13 @@
     "defunct": false
   },
   {
+    "id": "northwest-airlines",
+    "name": "Northwest Airlines",
+    "icao": "NWA",
+    "iata": "NW",
+    "defunct": true
+  },
+  {
     "id": "northwest-flyers",
     "name": "Northwest Flyers",
     "icao": "NWF",
@@ -14476,6 +14483,13 @@
     "defunct": false
   },
   {
+    "id": "vanguard-airlines",
+    "name": "Vanguard Airlines",
+    "icao": "VGD",
+    "iata": "NJ*",
+    "defunct": true
+  },
+  {
     "id": "varesh-airlines",
     "name": "Varesh Airlines",
     "icao": "VRH",
@@ -15013,6 +15027,13 @@
     "icao": "WWI",
     "iata": null,
     "defunct": false
+  },
+  {
+    "id": "wow-air",
+    "name": "WOW Air",
+    "icao": "WOW",
+    "iata": "WW*",
+    "defunct": true
   },
   {
     "id": "wright-air-service",

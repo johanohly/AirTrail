@@ -2,9 +2,10 @@
   import '../app.css';
   import { QueryClientProvider } from '@tanstack/svelte-query';
   import { ModeWatcher } from 'mode-watcher';
+  import { onMount } from 'svelte';
   import { Toaster } from 'svelte-sonner';
+  import { registerSW } from 'virtual:pwa-register';
 
-  import { dev } from '$app/environment';
   import { page } from '$app/state';
   import { NavigationDock } from '$lib/components';
   import { TimeDisplayHost } from '$lib/components/display';
@@ -29,6 +30,13 @@
   });
 
   const queryClient = data.trpc ? trpc.hydrateFromServer(data.trpc) : undefined;
+
+  onMount(() => {
+    // Register the service worker so its precache + runtime map caching take
+    // effect. SvelteKit doesn't run vite-plugin-pwa's HTML injection, so we
+    // register manually here (the app is client-rendered, so onMount runs).
+    registerSW({ immediate: true });
+  });
 </script>
 
 <ModeWatcher />
@@ -36,7 +44,7 @@
 <Toaster />
 <ConfirmWrapper />
 
-{#if !dev && data.user && data.user.role !== 'user'}
+{#if data.user && data.user.role !== 'user'}
   <NewVersionAnnouncement />
 {/if}
 

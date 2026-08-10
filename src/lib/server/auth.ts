@@ -20,7 +20,6 @@ export const lucia = new Lucia(adapter, {
   getUserAttributes(db) {
     return {
       username: db.username,
-      password: db.password,
       // @ts-expect-error - Lucia establishes its own connection so the camel case translation layer does not get applied here
       displayName: db.display_name,
       role: db.role,

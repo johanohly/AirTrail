@@ -1,8 +1,15 @@
-<script lang="ts" generics="T extends Record<string, unknown>">
+<script
+  lang="ts"
+  generics="T extends Record<string, unknown>, Name extends FormPathLeaves<T, string | null | undefined>"
+>
   import { type DateValue, parseDate } from '@internationalized/date';
   import { CalendarDays } from '@o7/icon/lucide';
   import { DateField } from 'bits-ui';
-  import type { SuperForm } from 'sveltekit-superforms';
+  import {
+    formFieldProxy,
+    type FormPathLeaves,
+    type SuperForm,
+  } from 'sveltekit-superforms';
 
   import { Calendar } from '$lib/components/ui/calendar';
   import * as Form from '$lib/components/ui/form';
@@ -16,20 +23,25 @@
     required = false,
   }: {
     form: SuperForm<T>;
-    name: string;
+    name: Name;
     label: string;
     required?: boolean;
   } = $props();
 
-  const { form: formData, validate } = form;
+  const { value: fieldValue } = formFieldProxy<
+    T,
+    Name,
+    string | null | undefined
+  >(form, name);
 
   let dateValue: DateValue | undefined = $state(
-    $formData[name] ? parseDate($formData[name]) : undefined,
+    $fieldValue ? parseDate($fieldValue) : undefined,
   );
+  let calendarOpen = $state(false);
 
   $effect(() => {
-    if ($formData[name]) {
-      const date = parseDate($formData[name]);
+    if ($fieldValue) {
+      const date = parseDate($fieldValue);
       if (!dateValue || date.compare(dateValue) !== 0) {
         dateValue = date;
       }
@@ -37,6 +49,12 @@
       dateValue = undefined;
     }
   });
+
+  const setDateValue = (value: DateValue | undefined) => {
+    dateValue = value;
+    $fieldValue = value?.toString() ?? '';
+    void form.validate(name);
+  };
 </script>
 
 <Form.Field {form} {name} class="flex flex-col">
@@ -46,20 +64,7 @@
         {label}{required ? ' *' : ''}
       </Form.Label>
       <DateField.Root
-        bind:value={
-          () => dateValue,
-          (v) => {
-            if (v === undefined) {
-              dateValue = undefined;
-              $formData[name] = '';
-              validate(name);
-              return;
-            }
-            dateValue = v;
-            $formData[name] = dateValue.toString();
-            validate(name);
-          }
-        }
+        bind:value={() => dateValue, (value) => setDateValue(value)}
         granularity="day"
         minValue={parseDate('1970-01-01')}
         locale={navigator.language}
@@ -90,7 +95,7 @@
                   {/if}
                 </div>
               {/each}
-              <Popover.Root>
+              <Popover.Root bind:open={calendarOpen}>
                 <Popover.Trigger
                   {...props}
                   class="ml-auto inline-flex items-center justify-center text-muted-foreground transition-all hover:text-foreground active:text-foreground"
@@ -101,16 +106,9 @@
                   <Calendar
                     type="single"
                     value={dateValue}
-                    onValueChange={(v) => {
-                      if (v === undefined) {
-                        dateValue = undefined;
-                        $formData[name] = '';
-                        validate(name);
-                        return;
-                      }
-                      dateValue = v;
-                      $formData[name] = dateValue.toString();
-                      validate(name);
+                    onValueChange={(value) => {
+                      setDateValue(value);
+                      if (value) calendarOpen = false;
                     }}
                   />
                 </Popover.Content>
@@ -119,7 +117,7 @@
           </DateField.Input>
         </div>
       </DateField.Root>
-      <input hidden bind:value={$formData[name]} name={props.name} />
+      <input hidden value={$fieldValue ?? ''} name={props.name} />
     {/snippet}
   </Form.Control>
   <Form.FieldErrors />

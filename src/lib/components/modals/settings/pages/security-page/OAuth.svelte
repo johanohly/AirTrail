@@ -5,11 +5,12 @@
   import { invalidateAll } from '$app/navigation';
   import { Confirm } from '$lib/components/helpers';
   import { Button } from '$lib/components/ui/button';
-  import type { User } from '$lib/db/types';
+  import type { PageUser } from '$lib/db/types';
   import { appConfig } from '$lib/state.svelte';
   import { api } from '$lib/trpc';
+  import { getErrorText } from '$lib/utils/error';
 
-  let { user }: { user: User | null } = $props();
+  let { user }: { user: PageUser | null } = $props();
 
   let loading = $state(false);
   const link = async () => {
@@ -18,10 +19,10 @@
     if (!redirect) return;
 
     try {
-      const resp = await api.oauth.authorize.query(redirect);
+      const resp = await api.oauth.authorize.mutate(redirect);
       window.location.href = resp.url;
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrorText(err));
     } finally {
       loading = false;
     }
@@ -34,7 +35,7 @@
       await invalidateAll();
       toast.info('OAuth unlinked successfully.');
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrorText(err));
     } finally {
       loading = false;
     }
@@ -46,7 +47,7 @@
     <div class="space-y-0.5">
       <h4 class="font-medium leading-4">OAuth</h4>
       <p class="text-sm text-muted-foreground">
-        {#if user.oauthId}
+        {#if user.hasOAuthLinked}
           You can currently sign in via OAuth.
         {:else}
           Link your account to an OAuth provider.
@@ -54,7 +55,7 @@
       </p>
     </div>
     <div>
-      {#if user.oauthId}
+      {#if user.hasOAuthLinked}
         <Confirm
           onConfirm={unlink}
           title="Unlink OAuth"

@@ -1,22 +1,28 @@
 <script lang="ts">
   import { PlaneLanding, PlaneTakeoff } from '@o7/icon/lucide';
 
+  import { page } from '$app/state';
   import { AirlineIcon } from '$lib/components/display';
   import { Button } from '$lib/components/ui/button';
+  import { mapDetailsState } from '$lib/state.svelte';
   import type { FlightData } from '$lib/utils';
-  import { formatAsFlightDate } from '$lib/utils/datetime';
+  import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
 
   let {
     flights,
     airportId,
     onShowAllDepartures,
     onShowAllArrivals,
+    onShowFlight,
   }: {
     flights: FlightData[];
     airportId: number;
-    onShowAllDepartures?: (flightId?: number) => void;
-    onShowAllArrivals?: (flightId?: number) => void;
+    onShowAllDepartures?: () => void;
+    onShowAllArrivals?: () => void;
+    onShowFlight?: (flightId: number) => void;
   } = $props();
+
+  const prefs = $derived(getPreferences(page.data.user));
 
   const inlineFlightTarget = 14;
 
@@ -65,7 +71,7 @@
 {#snippet flightRow(flight: FlightData, direction: 'departure' | 'arrival')}
   {@const other = direction === 'departure' ? flight.to : flight.from}
   {@const dateLabel = flight.date
-    ? formatAsFlightDate(flight.date, flight.datePrecision ?? 'day', true, true)
+    ? formatFlightDate(flight.date, flight.datePrecision ?? 'day', prefs)
     : 'Unknown date'}
   {@const flightNumber = formatFlightNumber(flight.flightNumber)}
   {@const subtitle = [other?.name, flightSubtitle(flight)]
@@ -75,13 +81,10 @@
     <button
       type="button"
       class="group grid w-full cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors hover:bg-background/55 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
-      onclick={() =>
-        direction === 'departure'
-          ? onShowAllDepartures?.(flight.id)
-          : onShowAllArrivals?.(flight.id)}
-      aria-label="Open {direction === 'departure'
-        ? 'departure to'
-        : 'arrival from'} {other?.iata ?? other?.icao ?? 'N/A'} in flight list"
+      onclick={() => onShowFlight?.(flight.id)}
+      aria-label="Open flight details for {flight.from?.iata ??
+        flight.from?.icao ??
+        'N/A'} to {flight.to?.iata ?? flight.to?.icao ?? 'N/A'}"
     >
       <div class="flex w-8 shrink-0 justify-center">
         <AirlineIcon airline={flight.airline} size={28} fallback="plane" />
@@ -99,6 +102,13 @@
               {flightNumber}
             </span>
           {/if}
+          <span
+            class="size-2 shrink-0 rounded-full bg-emerald-500 transition-opacity"
+            class:opacity-100={mapDetailsState.hoveredFlightTrackId ===
+              flight.id}
+            class:opacity-0={mapDetailsState.hoveredFlightTrackId !== flight.id}
+            aria-hidden="true"
+          ></span>
         </div>
         {#if subtitle}
           <p class="mt-0.5 truncate text-xs text-muted-foreground">

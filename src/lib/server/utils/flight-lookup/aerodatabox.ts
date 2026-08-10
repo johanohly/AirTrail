@@ -8,7 +8,10 @@ import {
   addDays,
 } from 'date-fns';
 
-import type { FlightLookupOptions, FlightLookupResult } from './flight-lookup';
+import type {
+  FlightLookupProviderOptions,
+  FlightLookupResult,
+} from './flight-lookup';
 
 import type { Aircraft, Airline } from '$lib/db/types';
 import { getAircraftByIcao } from '$lib/server/utils/aircraft';
@@ -33,7 +36,7 @@ function isValidDateWithin365(date: Date): boolean {
 
 export async function getFlightRoute(
   flightNumber: string,
-  opts?: FlightLookupOptions,
+  opts?: FlightLookupProviderOptions,
 ): Promise<FlightLookupResult> {
   await rateLimiter.checkRequest();
 
@@ -207,10 +210,17 @@ export async function getAircraftFromReg(
     return null;
   }
 
-  const data = await resp.json();
-  if (!data || !data?.icaoCode) {
-    return null;
+  const data = (await resp.json()) as {
+    model?: string;
+    icaoCode?: string;
+  } | null;
+
+  for (const code of [data?.model, data?.icaoCode]) {
+    if (!code) continue;
+
+    const aircraft = await getAircraftByIcao(code);
+    if (aircraft) return aircraft;
   }
 
-  return await getAircraftByIcao(data.icaoCode);
+  return null;
 }

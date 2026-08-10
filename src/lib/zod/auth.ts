@@ -9,4 +9,5 @@ export const signUpSchema = userSchema
 export const signInSchema = z.object({
   username: z.string(),
   password: z.string(),
+  oauthLinkToken: z.string().optional(),
 });

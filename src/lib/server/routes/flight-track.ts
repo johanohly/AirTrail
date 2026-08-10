@@ -3,9 +3,11 @@ import { z } from 'zod';
 
 import { db } from '$lib/db';
 import { authedProcedure, router } from '$lib/server/trpc';
+import { reduceFlightTrackForMap } from '$lib/track/render';
 import {
   flightTrackPayloadSchema,
   type FlightTrackRow,
+  type FlightTrackSourceFormat,
 } from '$lib/track/schema';
 
 const flightTrackListInput = z
@@ -15,17 +17,20 @@ const flightTrackListInput = z
   })
   .optional();
 
-const parseTrackRow = (row: {
-  flightId: number;
-  track: unknown;
-  sourceFormat: 'gpx' | 'kml' | 'csv';
-  sourceName: string | null;
-  pointCount: number;
-}): FlightTrackRow => {
+const parseTrackRow = (
+  row: {
+    flightId: number;
+    track: unknown;
+    sourceFormat: FlightTrackSourceFormat;
+    sourceName: string | null;
+    pointCount: number;
+  },
+  reduceForMap = false,
+): FlightTrackRow => {
   const track = flightTrackPayloadSchema.parse(row.track);
   return {
     flightId: row.flightId,
-    ...track,
+    ...(reduceForMap ? reduceFlightTrackForMap(track) : track),
     sourceFormat: row.sourceFormat,
     sourceName: row.sourceName,
     pointCount: row.pointCount,
@@ -71,16 +76,16 @@ export const flightTrackRouter = router({
         query = query.where((eb) =>
           eb.exists(
             eb
-              .selectFrom('seat')
-              .select('seat.id')
-              .whereRef('seat.flightId', '=', 'flight.id')
-              .where('seat.userId', '=', scopedUserId),
+              .selectFrom('flightPassenger')
+              .select('flightPassenger.id')
+              .whereRef('flightPassenger.flightId', '=', 'flight.id')
+              .where('flightPassenger.userId', '=', scopedUserId),
           ),
         );
       }
 
       const rows = await query.execute();
-      return rows.map(parseTrackRow);
+      return rows.map((row) => parseTrackRow(row, true));
     }),
   get: authedProcedure
     .input(z.number())
@@ -93,10 +98,10 @@ export const flightTrackRouter = router({
           user.role === 'user'
             ? eb.exists(
                 eb
-                  .selectFrom('seat')
-                  .select('seat.id')
-                  .whereRef('seat.flightId', '=', 'flight.id')
-                  .where('seat.userId', '=', user.id),
+                  .selectFrom('flightPassenger')
+                  .select('flightPassenger.id')
+                  .whereRef('flightPassenger.flightId', '=', 'flight.id')
+                  .where('flightPassenger.userId', '=', user.id),
               )
             : eb.val(true),
         )

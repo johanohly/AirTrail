@@ -18,15 +18,22 @@
 
 <DetailsActionButton
   label="Locate airport"
+  shortLabel="Locate"
   icon={Locate}
   onclick={focusMapDetails}
 />
 {#if hasFilters}
   <DetailsActionButton
     label={filterActive ? 'Clear airport filter' : 'Filter map to airport'}
+    shortLabel={filterActive ? 'Clear' : 'Filter'}
     icon={Funnel}
     onclick={onToggleFilter}
     pressed={filterActive}
   />
 {/if}
-<DetailsActionButton label="Close details" icon={X} onclick={closeMapDetails} />
+<DetailsActionButton
+  label="Close details"
+  shortLabel="Close"
+  icon={X}
+  onclick={closeMapDetails}
+/>

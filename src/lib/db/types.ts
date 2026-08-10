@@ -6,7 +6,7 @@ import type {
   flight,
   flight_track,
   public_share,
-  seat,
+  flight_passenger,
   user,
   visited_country,
 } from '$lib/db/schema';
@@ -15,13 +15,29 @@ import type { Insertable, Selectable } from 'kysely';
 
 export type FullUser = Selectable<user>;
 export type User = Omit<FullUser, 'password'>;
+export const publicUserFields = [
+  'id',
+  'username',
+  'displayName',
+  'role',
+  'distanceUnit',
+  'windSpeedUnit',
+  'temperatureUnit',
+  'pressureUnit',
+  'timeFormat',
+  'dateFormat',
+  'weekStartsOn',
+  'flightTimeDisplay',
+] as const satisfies readonly (keyof User)[];
+export type PublicUser = Pick<User, (typeof publicUserFields)[number]>;
+export type PageUser = PublicUser & { hasOAuthLinked: boolean };
 export type ApiKey = Omit<Selectable<api_key>, 'key' | 'userId'>;
 export type Aircraft = Selectable<aircraft>;
 export type Airline = Selectable<airline>;
 export type Airport = Selectable<airport>;
 export type CreateAirport = Insertable<airport>;
-export type Seat = Selectable<seat>;
-export type FlightSeat = Seat & {
+export type FlightPassengerRecord = Selectable<flight_passenger>;
+export type FlightPassenger = FlightPassengerRecord & {
   user: Pick<User, 'id' | 'displayName' | 'username'> | null;
 };
 export type Flight = Omit<
@@ -30,12 +46,23 @@ export type Flight = Omit<
 > & {
   from: Airport | null;
   to: Airport | null;
-  seats: FlightSeat[];
+  passengers: FlightPassenger[];
   aircraft: Aircraft | null;
   airline: Airline | null;
 };
 export type FlightTrack = Selectable<flight_track>;
 type CreateFlightAirport = Partial<Airport>;
+type CreateFlightEntityReference<T extends { id: number }> = Omit<
+  Partial<T>,
+  'id'
+> & { id: number | null };
+export type CreateFlightPassenger = Omit<
+  FlightPassengerRecord,
+  'flightId' | 'id'
+> & {
+  id?: number;
+  customFields?: Record<string, unknown>;
+};
 type FlightRecord = Omit<
   Selectable<flight>,
   'id' | 'fromId' | 'toId' | 'aircraftId' | 'airlineId'
@@ -43,9 +70,9 @@ type FlightRecord = Omit<
 export type CreateFlight = FlightRecord & {
   from: CreateFlightAirport | null;
   to: CreateFlightAirport | null;
-  aircraft: Aircraft | null;
-  airline: Airline | null;
-  seats: Omit<Seat, 'flightId' | 'id'>[];
+  aircraft: CreateFlightEntityReference<Aircraft> | null;
+  airline: CreateFlightEntityReference<Airline> | null;
+  passengers: CreateFlightPassenger[];
   track?: FlightTrackInput | null;
 };
 export type PublicShare = Selectable<public_share>;

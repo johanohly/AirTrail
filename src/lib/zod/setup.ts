@@ -1,12 +1,14 @@
 import { z } from 'zod';
 
-z.setErrorMap((issue, ctx) => {
-  if (
-    issue.code === z.ZodIssueCode.too_small &&
-    issue.type === 'string' &&
-    issue.minimum === 1
-  ) {
-    return { message: 'This field is required.' };
-  }
-  return { message: ctx.defaultError };
+z.config({
+  customError: (issue) => {
+    if (
+      issue.code === 'too_small' &&
+      issue.origin === 'string' &&
+      issue.minimum === 1
+    ) {
+      return 'This field is required.';
+    }
+    return undefined;
+  },
 });

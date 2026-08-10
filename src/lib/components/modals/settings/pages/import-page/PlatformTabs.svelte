@@ -1,12 +1,10 @@
 <script lang="ts">
-  import { platforms } from './';
-
+  import { Badge } from '$lib/components/ui/badge';
   import { Label } from '$lib/components/ui/label';
   import * as RadioGroup from '$lib/components/ui/radio-group';
-  import { Badge } from '$lib/components/ui/badge';
+  import { platforms, type Platform } from '$lib/import/platforms';
 
-  let { platform = $bindable() }: { platform: (typeof platforms)[0] } =
-    $props();
+  let { platform = $bindable() }: { platform: Platform } = $props();
   let platformValue = $state(platform.value);
   $effect(() => {
     platform = platforms.find((p) => p.value === platformValue) || platforms[0];

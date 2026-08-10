@@ -12,13 +12,13 @@
   import UserModal from '$lib/components/modals/settings/pages/users-page/UserModal.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
-  import type { User } from '$lib/db/types';
+  import type { PublicUser } from '$lib/db/types';
   import { api } from '$lib/trpc';
   import { toTitleCase } from '$lib/utils';
   import { getPreferences, matchPreset, presets } from '$lib/utils/preferences';
 
-  const presetSummary = (u: User): string => {
-    const key = matchPreset(getPreferences(u));
+  const presetSummary = (user: PublicUser): string => {
+    const key = matchPreset(getPreferences(user));
     return key ? presets[key].label : 'Custom';
   };
 
@@ -33,7 +33,7 @@
     toast.success('User deleted.');
   };
 
-  const canDeleteUser = (current_user: User) => {
+  const canDeleteUser = (current_user: PublicUser) => {
     if (current_user.role === 'owner') {
       return false;
     }
@@ -43,7 +43,7 @@
     return true;
   };
 
-  const canEditUser = (current_user: User) => {
+  const canEditUser = (current_user: PublicUser) => {
     if (current_user.role === 'owner') {
       return false;
     }
@@ -55,7 +55,7 @@
 
   let addUserModal = $state(false);
   let editUserModal = $state(false);
-  let editingUser = $state<User | undefined>(undefined);
+  let editingUser = $state<PublicUser | undefined>(undefined);
 </script>
 
 <UserModal bind:open={addUserModal} mode="add" />
