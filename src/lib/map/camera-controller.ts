@@ -201,26 +201,43 @@ export const createMapCameraController = (
 
   const executeFit = (intent: FitIntent) => {
     const padding = addPadding(intent.padding, 60);
+    const jump = intent.source === 'automatic';
     if (intent.projection === 'globe') {
       const target = targetForArcs(intent.arcs, intent.projection, padding);
       if (!target) return;
       map.setPadding(padding);
-      map.flyTo(
-        {
-          center: target.center,
-          zoom: target.zoom,
-          essential: true,
-        },
-        beginProgrammaticMove(),
-      );
+      const transition = {
+        center: target.center,
+        zoom: target.zoom,
+        essential: true,
+      };
+      const eventData = beginProgrammaticMove();
+      if (jump) {
+        map.jumpTo(transition, eventData);
+      } else {
+        map.flyTo(transition, eventData);
+      }
       cameraMode = intent.resultMode;
       return;
     }
 
-    const bounds = calculateBounds(intent.arcs);
-    if (!bounds) return;
+    const target = targetForArcs(intent.arcs, intent.projection, padding);
+    if (!target) return;
+    const MIN_OVERVIEW_ZOOM = 1;
+    const appliedZoom = Math.max(target.zoom, MIN_OVERVIEW_ZOOM);
     map.setPadding(padding);
-    map.fitBounds(bounds, undefined, beginProgrammaticMove());
+    map.once('moveend', () => map.setPadding(intent.padding));
+    const transition = {
+      center: target.center,
+      zoom: appliedZoom,
+      essential: true,
+    };
+    const eventData = beginProgrammaticMove();
+    if (jump) {
+      map.jumpTo(transition, eventData);
+    } else {
+      map.flyTo(transition, eventData);
+    }
     cameraMode = intent.resultMode;
   };
 
