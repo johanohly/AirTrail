@@ -14,6 +14,7 @@
   import DeleteFlightModal from './DeleteFlightModal.svelte';
   import EditFlightAction from './EditFlightAction.svelte';
   import EmptyFlightsState from './EmptyFlightsState.svelte';
+  import FlightIndicators from './FlightIndicators.svelte';
   import {
     buildFlightListYears,
     paginateFlightListYears,
@@ -73,6 +74,7 @@
     readonly = false,
     seatUserId,
     showPassengerDetails = false,
+    trackedFlightIds,
     onNavigate,
   }: {
     open?: boolean;
@@ -85,6 +87,7 @@
     readonly?: boolean;
     seatUserId?: string;
     showPassengerDetails?: boolean;
+    trackedFlightIds?: Set<number>;
     onNavigate?: NavigateFlights;
   } = $props();
 
@@ -459,6 +462,8 @@
         onEdit={readonly ? undefined : handleMobileEdit}
         onDelete={readonly ? undefined : handleDelete}
         onShowOnMap={readonly || !onNavigate ? undefined : showFlightOnMap}
+        {trackedFlightIds}
+        viewerId={seatUserId ?? null}
         {readonly}
       />
       <div class="h-[130px] sm:h-[90px]"></div>
@@ -589,12 +594,19 @@
                           {@render airport(flight.to)}
                         </div>
                       </div>
-                      {#if !readonly}
-                        <div aria-hidden="true"></div>
-                        <div class="hidden md:flex">
+                      <div aria-hidden="true"></div>
+                      <div
+                        class="hidden items-center justify-end gap-3 md:flex"
+                      >
+                        <FlightIndicators
+                          {flight}
+                          hasTrack={trackedFlightIds?.has(flight.id) ?? false}
+                          viewerId={seatUserId ?? null}
+                        />
+                        {#if !readonly}
                           {@render actions(flight)}
-                        </div>
-                      {/if}
+                        {/if}
+                      </div>
                     </Card>
                   </div>
                 {/each}
