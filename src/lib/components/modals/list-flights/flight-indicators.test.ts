@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { buildFlightIndicators } from './flight-indicators';
 
-import type { Airport, Flight } from '$lib/db/types';
+import type { Airport, Flight, FlightPassenger } from '$lib/db/types';
 import { prepareFlightData } from '$lib/utils';
 
 const airport = (id: number): Airport =>
@@ -10,6 +10,15 @@ const airport = (id: number): Airport =>
 
 const CDG = airport(1);
 const JFK = airport(2);
+
+const me = (displayName = 'Me'): FlightPassenger =>
+  ({ userId: 'me', user: { id: 'me', displayName } }) as FlightPassenger;
+
+const member = (id: string, displayName: string): FlightPassenger =>
+  ({ userId: id, user: { id, displayName } }) as FlightPassenger;
+
+const guest = (guestName: string | null): FlightPassenger =>
+  ({ userId: null, guestName, user: null }) as FlightPassenger;
 
 const flight = (overrides: Partial<Flight> = {}) =>
   prepareFlightData([
@@ -29,8 +38,9 @@ const flight = (overrides: Partial<Flight> = {}) =>
       landingScheduled: null,
       landingActual: null,
       note: null,
+      passengers: [],
       ...overrides,
-    } as Flight,
+    } as unknown as Flight,
   ])[0]!;
 
 const keys = (...args: Parameters<typeof buildFlightIndicators>) =>
@@ -83,6 +93,39 @@ describe('buildFlightIndicators', () => {
     ).toBe('Actual departure and arrival times recorded');
   });
 
+  it('stays quiet when the viewer is the only passenger', () => {
+    expect(keys(flight({ passengers: [me()] }), { viewerId: 'me' })).toEqual(
+      [],
+    );
+    expect(keys(flight({ passengers: [] }), { viewerId: 'me' })).toEqual([]);
+  });
+
+  it('names the companions travelling with the viewer', () => {
+    const shared = flight({
+      passengers: [me(), member('bob', 'Bob'), guest('Charlie')],
+    });
+    expect(labelFor('passengers', shared, { viewerId: 'me' })).toBe(
+      'Also on board: Bob, Charlie',
+    );
+  });
+
+  it('falls back to a count when companions have no name', () => {
+    const shared = flight({ passengers: [me(), guest(null), guest(null)] });
+    expect(labelFor('passengers', shared, { viewerId: 'me' })).toBe(
+      '2 passengers recorded',
+    );
+  });
+
+  it('needs a real group when there is no viewer to exclude', () => {
+    const solo = flight({ passengers: [member('bob', 'Bob')] });
+    expect(keys(solo)).toEqual([]);
+
+    const group = flight({
+      passengers: [member('bob', 'Bob'), guest('Charlie')],
+    });
+    expect(labelFor('passengers', group)).toBe('Passengers: Bob, Charlie');
+  });
+
   it('previews the note and truncates long ones', () => {
     expect(labelFor('note', flight({ note: '  Upgraded to J  ' }))).toBe(
       'Note: Upgraded to J',
@@ -97,11 +140,13 @@ describe('buildFlightIndicators', () => {
   it('keeps a stable order across all indicators', () => {
     const full = flight({
       departure: '2026-03-12T10:04:00.000Z',
+      passengers: [me(), member('bob', 'Bob')],
       note: 'Window seat',
     });
-    expect(keys(full, { hasTrack: true })).toEqual([
+    expect(keys(full, { hasTrack: true, viewerId: 'me' })).toEqual([
       'track',
       'actualTimes',
+      'passengers',
       'note',
     ]);
   });

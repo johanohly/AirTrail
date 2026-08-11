@@ -463,6 +463,7 @@
         onDelete={readonly ? undefined : handleDelete}
         onShowOnMap={readonly || !onNavigate ? undefined : showFlightOnMap}
         {trackedFlightIds}
+        viewerId={seatUserId ?? null}
         {readonly}
       />
       <div class="h-[130px] sm:h-[90px]"></div>
@@ -600,6 +601,7 @@
                         <FlightIndicators
                           {flight}
                           hasTrack={trackedFlightIds?.has(flight.id) ?? false}
+                          viewerId={seatUserId ?? null}
                         />
                         {#if !readonly}
                           {@render actions(flight)}

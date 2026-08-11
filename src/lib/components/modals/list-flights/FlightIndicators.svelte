@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Clock, Route, StickyNote } from '@o7/icon/lucide';
+  import { Clock, Route, StickyNote, Users } from '@o7/icon/lucide';
 
   import {
     buildFlightIndicators,
@@ -12,12 +12,14 @@
   let {
     flight,
     hasTrack = false,
+    viewerId = null,
     size = 16,
     tooltips = true,
     class: className,
   }: {
     flight: FlightData;
     hasTrack?: boolean;
+    viewerId?: string | null;
     size?: number;
     tooltips?: boolean;
     class?: string;
@@ -26,10 +28,13 @@
   const icons: Record<FlightIndicatorKey, typeof Route> = {
     track: Route,
     actualTimes: Clock,
+    passengers: Users,
     note: StickyNote,
   };
 
-  const indicators = $derived(buildFlightIndicators(flight, { hasTrack }));
+  const indicators = $derived(
+    buildFlightIndicators(flight, { hasTrack, viewerId }),
+  );
 </script>
 
 {#if indicators.length}

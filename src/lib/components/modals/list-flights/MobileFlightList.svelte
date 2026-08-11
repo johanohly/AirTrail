@@ -24,6 +24,7 @@
     onDelete,
     onShowOnMap,
     trackedFlightIds,
+    viewerId = null,
     readonly = false,
   }: {
     flightsByYear: FlightListYear<Flight>[];
@@ -33,6 +34,7 @@
     onDelete?: (flight: FlightData) => void;
     onShowOnMap?: (flight: FlightData) => void;
     trackedFlightIds?: Set<number>;
+    viewerId?: string | null;
     readonly?: boolean;
   } = $props();
 
@@ -112,6 +114,7 @@
                         <FlightIndicators
                           {flight}
                           hasTrack={trackedFlightIds?.has(flight.id) ?? false}
+                          {viewerId}
                           size={15}
                           tooltips={false}
                         />
