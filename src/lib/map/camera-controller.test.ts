@@ -88,8 +88,8 @@ const createFakeMap = () => {
       currentPadding = next;
       return fake;
     },
-    cameraForBounds() {
-      calls.push({ name: 'cameraForBounds' });
+    cameraForBounds(bounds: unknown) {
+      calls.push({ name: 'cameraForBounds', options: { bounds } });
       if (cameraForBoundsError) throw cameraForBoundsError;
       return { center: [4, 5] as [number, number], zoom: 6 };
     },
@@ -98,6 +98,13 @@ const createFakeMap = () => {
       eventData?: Record<string, unknown>,
     ) {
       recordTransition('flyTo', options, eventData);
+      return fake;
+    },
+    jumpTo(
+      options: Record<string, unknown>,
+      eventData?: Record<string, unknown>,
+    ) {
+      recordTransition('jumpTo', options, eventData);
       return fake;
     },
     easeTo(
@@ -295,7 +302,10 @@ describe('map camera controller', () => {
 
     expect(fake.calls.map((call) => call.name)).toEqual([
       'setPadding',
-      'fitBounds',
+      'cameraForBounds',
+      'setPadding',
+      'setPadding',
+      'jumpTo',
     ]);
   });
 
@@ -312,7 +322,10 @@ describe('map camera controller', () => {
 
     expect(fake.calls.map((call) => call.name)).toEqual([
       'setPadding',
-      'fitBounds',
+      'cameraForBounds',
+      'setPadding',
+      'setPadding',
+      'jumpTo',
     ]);
   });
 
@@ -339,7 +352,42 @@ describe('map camera controller', () => {
 
     expect(fake.calls.map((call) => call.name)).toEqual([
       'setPadding',
-      'fitBounds',
+      'cameraForBounds',
+      'setPadding',
+      'setPadding',
+      'jumpTo',
+    ]);
+  });
+
+  it("does not restore an interrupted fit's padding over a newer fit", () => {
+    const fake = createFakeMap();
+    const frames = createFrameScheduler();
+    const controller = createMapCameraController(fake.map, {
+      frameScheduler: frames.scheduler,
+    });
+
+    controller.fit([arc], { projection: 'mercator', padding: padding() });
+    frames.flush();
+    const firstEventData = fake.calls.at(-1)?.eventData;
+
+    controller.fit([updatedArc], {
+      projection: 'mercator',
+      padding: padding(10, 10, 10, 10),
+    });
+    frames.flush();
+    const secondEventData = fake.calls.at(-1)?.eventData;
+    fake.calls.length = 0;
+
+    // MapLibre's own flyTo/jumpTo call _stop() first, which synchronously
+    // completes an in-flight ease and fires its moveend — so the first
+    // fit's moveend can land carrying the first fit's own eventData even
+    // though a second, newer fit has already started.
+    fake.emit('moveend', firstEventData);
+    expect(fake.calls).toEqual([]);
+
+    fake.emit('moveend', secondEventData);
+    expect(fake.calls).toEqual([
+      { name: 'setPadding', options: padding(10, 10, 10, 10) },
     ]);
   });
 
@@ -530,7 +578,10 @@ describe('map camera controller', () => {
 
     expect(fake.calls.map((call) => call.name)).toEqual([
       'setPadding',
-      'fitBounds',
+      'cameraForBounds',
+      'setPadding',
+      'setPadding',
+      'jumpTo',
     ]);
     expect(fake.calls[1]?.options?.bounds).toEqual([
       [3, 1],
