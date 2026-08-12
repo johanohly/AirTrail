@@ -370,11 +370,28 @@
       }
     };
 
+    // If the two canvases never actually converge (e.g. their WebGL contexts
+    // clamp device-pixel-ratio or max texture size differently), a reload
+    // just recreates the same structural mismatch — reloading again would
+    // loop forever. Only reload once per cooldown window, then leave the map
+    // as-is until either it self-resolves or enough time has passed to
+    // justify trying again.
+    const RELOAD_LOOP_GUARD_MS = 60_000;
+    const RELOAD_LOOP_GUARD_KEY = 'airtrail:map-misalignment-reload-at';
+    const reloadForMisalignment = () => {
+      const lastReloadAt = Number(
+        sessionStorage.getItem(RELOAD_LOOP_GUARD_KEY) ?? 0,
+      );
+      if (Date.now() - lastReloadAt < RELOAD_LOOP_GUARD_MS) return;
+      sessionStorage.setItem(RELOAD_LOOP_GUARD_KEY, String(Date.now()));
+      window.location.reload();
+    };
+
     const verifyAlignment = (attempt = 1) => {
       pendingVerifyTimer = null;
       if (!isDeckCanvasMisaligned()) return;
       if (attempt >= MAX_RESYNC_ATTEMPTS) {
-        window.location.reload();
+        reloadForMisalignment();
         return;
       }
       m.resize();
