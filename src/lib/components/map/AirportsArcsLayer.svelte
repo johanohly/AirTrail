@@ -338,6 +338,112 @@
     };
   });
 
+  $effect(() => {
+    if (!map) return;
+    const m = map;
+
+    const forceDeckResync = () => {
+      layer?.setProps({ onClick: handleMapClick, layers: buildLayers() });
+    };
+
+    const CANVAS_SIZE_TOLERANCE_PX = 2;
+    const isDeckCanvasMisaligned = () => {
+      if (isGlobe) return false;
+      const deckCanvas = layer?.getCanvas();
+      const baseCanvas = m.getCanvas();
+      if (!deckCanvas || !baseCanvas) return false;
+      return (
+        Math.abs(deckCanvas.width - baseCanvas.width) >
+          CANVAS_SIZE_TOLERANCE_PX ||
+        Math.abs(deckCanvas.height - baseCanvas.height) >
+          CANVAS_SIZE_TOLERANCE_PX
+      );
+    };
+
+    const VERIFY_DELAY_MS = 300;
+    const MAX_RESYNC_ATTEMPTS = 2;
+    let pendingVerifyTimer: ReturnType<typeof setTimeout> | null = null;
+    const clearPendingVerify = () => {
+      if (pendingVerifyTimer !== null) {
+        clearTimeout(pendingVerifyTimer);
+        pendingVerifyTimer = null;
+      }
+    };
+
+    // If the two canvases never actually converge (e.g. their WebGL contexts
+    // clamp device-pixel-ratio or max texture size differently), a reload
+    // just recreates the same structural mismatch — reloading again would
+    // loop forever. Only reload once per cooldown window, then leave the map
+    // as-is until either it self-resolves or enough time has passed to
+    // justify trying again.
+    const RELOAD_LOOP_GUARD_MS = 60_000;
+    const RELOAD_LOOP_GUARD_KEY = 'airtrail:map-misalignment-reload-at';
+    const reloadForMisalignment = () => {
+      const lastReloadAt = Number(
+        sessionStorage.getItem(RELOAD_LOOP_GUARD_KEY) ?? 0,
+      );
+      if (Date.now() - lastReloadAt < RELOAD_LOOP_GUARD_MS) return;
+      sessionStorage.setItem(RELOAD_LOOP_GUARD_KEY, String(Date.now()));
+      window.location.reload();
+    };
+
+    const verifyAlignment = (attempt = 1) => {
+      pendingVerifyTimer = null;
+      if (!isDeckCanvasMisaligned()) return;
+      if (attempt >= MAX_RESYNC_ATTEMPTS) {
+        reloadForMisalignment();
+        return;
+      }
+      m.resize();
+      forceDeckResync();
+      pendingVerifyTimer = setTimeout(
+        () => verifyAlignment(attempt + 1),
+        VERIFY_DELAY_MS,
+      );
+    };
+
+    const resyncSize = () => {
+      clearPendingVerify();
+      m.resize();
+      forceDeckResync();
+      pendingVerifyTimer = setTimeout(() => verifyAlignment(), VERIFY_DELAY_MS);
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+      resyncSize();
+    };
+    const onPageShow = () => resyncSize();
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('pageshow', onPageShow);
+
+    let lastObservedSize = '';
+    const container = m.getContainer();
+    const resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      const key = `${width}x${height}`;
+      if (key === lastObservedSize) return;
+      lastObservedSize = key;
+      m.resize();
+      forceDeckResync();
+    });
+    resizeObserver.observe(container);
+
+    const onResume = () => resyncSize();
+    document.addEventListener('resume', onResume);
+
+    return () => {
+      clearPendingVerify();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('pageshow', onPageShow);
+      document.removeEventListener('resume', onResume);
+      resizeObserver.disconnect();
+    };
+  });
+
   const selectedAirportId = $derived.by(() => {
     const selection = mapDetailsState.selection;
     return selection?.type === 'airport' ? selection.airportId : null;

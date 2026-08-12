@@ -147,7 +147,7 @@ export const createMapCameraController = (
     };
   };
 
-  const beginProgrammaticMove = () => {
+  const beginProgrammaticMove = (onComplete?: () => void) => {
     const generation = ++movementGeneration;
     const eventData = { [cameraEventGenerationKey]: generation };
     const handleMoveEnd = (event: unknown) => {
@@ -158,6 +158,13 @@ export const createMapCameraController = (
 
       map.off('moveend', handleMoveEnd);
       moveEndHandlers.delete(handleMoveEnd);
+      // A moveend carrying this generation fires both when the move finishes
+      // naturally and when a newer move interrupts it (MapLibre's internal
+      // _stop() completes the interrupted ease synchronously before starting
+      // the new one). Only run onComplete for a natural finish — if a newer
+      // generation has since started, this one was interrupted, and its
+      // side effects (e.g. restoring padding) would stomp on the newer move.
+      if (generation === movementGeneration) onComplete?.();
     };
     moveEndHandlers.add(handleMoveEnd);
     map.on('moveend', handleMoveEnd);
@@ -201,26 +208,44 @@ export const createMapCameraController = (
 
   const executeFit = (intent: FitIntent) => {
     const padding = addPadding(intent.padding, 60);
+    const jump = intent.source === 'automatic';
     if (intent.projection === 'globe') {
       const target = targetForArcs(intent.arcs, intent.projection, padding);
       if (!target) return;
       map.setPadding(padding);
-      map.flyTo(
-        {
-          center: target.center,
-          zoom: target.zoom,
-          essential: true,
-        },
-        beginProgrammaticMove(),
-      );
+      const transition = {
+        center: target.center,
+        zoom: target.zoom,
+        essential: true,
+      };
+      const eventData = beginProgrammaticMove();
+      if (jump) {
+        map.jumpTo(transition, eventData);
+      } else {
+        map.flyTo(transition, eventData);
+      }
       cameraMode = intent.resultMode;
       return;
     }
 
-    const bounds = calculateBounds(intent.arcs);
-    if (!bounds) return;
+    const target = targetForArcs(intent.arcs, intent.projection, padding);
+    if (!target) return;
+    const MIN_OVERVIEW_ZOOM = 1;
+    const appliedZoom = Math.max(target.zoom, MIN_OVERVIEW_ZOOM);
     map.setPadding(padding);
-    map.fitBounds(bounds, undefined, beginProgrammaticMove());
+    const eventData = beginProgrammaticMove(() =>
+      map.setPadding(intent.padding),
+    );
+    const transition = {
+      center: target.center,
+      zoom: appliedZoom,
+      essential: true,
+    };
+    if (jump) {
+      map.jumpTo(transition, eventData);
+    } else {
+      map.flyTo(transition, eventData);
+    }
     cameraMode = intent.resultMode;
   };
 
