@@ -10,12 +10,76 @@ export type FlightIndicator = {
 
 const NOTE_PREVIEW_LENGTH = 160;
 
+const indicator = (
+  key: FlightIndicatorKey,
+  label: string,
+): FlightIndicator => ({ key, label });
+
 const companionsOf = (flight: FlightData, viewerId: string | null) => {
   if (!viewerId) {
     return flight.passengers.length > 1 ? flight.passengers : [];
   }
   return flight.passengers.filter((passenger) => passenger.userId !== viewerId);
 };
+
+const buildActualTimesIndicator = (
+  flight: FlightData,
+): FlightIndicator | null => {
+  const hasDeparture = Boolean(flight.departure ?? flight.raw.takeoffActual);
+  const hasArrival = Boolean(flight.arrival ?? flight.raw.landingActual);
+
+  if (hasDeparture && hasArrival) {
+    return indicator(
+      'actualTimes',
+      'Actual departure and arrival times recorded',
+    );
+  }
+  if (hasDeparture) {
+    return indicator('actualTimes', 'Actual departure time recorded');
+  }
+  if (hasArrival) {
+    return indicator('actualTimes', 'Actual arrival time recorded');
+  }
+  return null;
+};
+
+const passengerCountLabel = (count: number) =>
+  `${count} passenger${count === 1 ? '' : 's'} recorded`;
+
+const buildPassengerIndicator = (
+  flight: FlightData,
+  viewerId: string | null,
+): FlightIndicator | null => {
+  const companions = companionsOf(flight, viewerId);
+  if (!companions.length) return null;
+
+  const names = companions
+    .map((passenger) => getFlightPassengerLabel(passenger))
+    .filter((name): name is string => Boolean(name));
+  if (!names.length) {
+    return indicator('passengers', passengerCountLabel(companions.length));
+  }
+
+  const who = viewerId ? 'Also on board' : 'Passengers';
+  const unnamedCount = companions.length - names.length;
+  const unnamedSuffix = unnamedCount ? ` +${unnamedCount}` : '';
+  return indicator('passengers', `${who}: ${names.join(', ')}${unnamedSuffix}`);
+};
+
+const buildNoteIndicator = (flight: FlightData): FlightIndicator | null => {
+  const note = flight.note?.trim();
+  if (!note) return null;
+
+  const characters = Array.from(note);
+  const preview =
+    characters.length > NOTE_PREVIEW_LENGTH
+      ? `${characters.slice(0, NOTE_PREVIEW_LENGTH).join('').trimEnd()}…`
+      : note;
+  return indicator('note', `Note: ${preview}`);
+};
+
+const isIndicator = (value: FlightIndicator | null): value is FlightIndicator =>
+  value !== null;
 
 export const buildFlightIndicators = (
   flight: FlightData,
@@ -24,48 +88,10 @@ export const buildFlightIndicators = (
     viewerId = null,
   }: { hasTrack?: boolean; viewerId?: string | null } = {},
 ): FlightIndicator[] => {
-  const indicators: FlightIndicator[] = [];
-
-  if (hasTrack) {
-    indicators.push({ key: 'track', label: 'Flight track recorded' });
-  }
-
-  const hasActualDeparture = Boolean(
-    flight.departure ?? flight.raw.takeoffActual,
-  );
-  const hasActualArrival = Boolean(flight.arrival ?? flight.raw.landingActual);
-  if (hasActualDeparture || hasActualArrival) {
-    const what =
-      hasActualDeparture && hasActualArrival
-        ? 'departure and arrival times'
-        : hasActualDeparture
-          ? 'departure time'
-          : 'arrival time';
-    indicators.push({ key: 'actualTimes', label: `Actual ${what} recorded` });
-  }
-
-  const companions = companionsOf(flight, viewerId);
-  if (companions.length) {
-    const names = companions
-      .map((passenger) => getFlightPassengerLabel(passenger))
-      .filter((name): name is string => Boolean(name));
-    const who = viewerId ? 'Also on board' : 'Passengers';
-    indicators.push({
-      key: 'passengers',
-      label: names.length
-        ? `${who}: ${names.join(', ')}`
-        : `${companions.length} passenger${companions.length > 1 ? 's' : ''} recorded`,
-    });
-  }
-
-  const note = flight.note?.trim();
-  if (note) {
-    const preview =
-      note.length > NOTE_PREVIEW_LENGTH
-        ? `${note.slice(0, NOTE_PREVIEW_LENGTH).trimEnd()}…`
-        : note;
-    indicators.push({ key: 'note', label: `Note: ${preview}` });
-  }
-
-  return indicators;
+  return [
+    hasTrack ? indicator('track', 'Flight track recorded') : null,
+    buildActualTimesIndicator(flight),
+    buildPassengerIndicator(flight, viewerId),
+    buildNoteIndicator(flight),
+  ].filter(isIndicator);
 };

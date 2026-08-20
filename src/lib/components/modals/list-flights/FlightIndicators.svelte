@@ -3,6 +3,7 @@
 
   import {
     buildFlightIndicators,
+    type FlightIndicator,
     type FlightIndicatorKey,
   } from './flight-indicators';
 
@@ -37,24 +38,37 @@
   );
 </script>
 
+{#snippet indicatorIcon(indicator: FlightIndicator)}
+  {@const Icon = icons[indicator.key]}
+  <Icon {size} aria-hidden="true" data-indicator={indicator.key} />
+{/snippet}
+
 {#if indicators.length}
   <div
     class={cn('flex items-center gap-1.5 text-muted-foreground', className)}
     data-testid="flight-indicators"
   >
     {#each indicators as indicator (indicator.key)}
-      {@const Icon = icons[indicator.key]}
       {#if tooltips}
-        <Tooltip.TextTooltip content={indicator.label}>
-          <Icon {size} data-indicator={indicator.key} />
-        </Tooltip.TextTooltip>
+        <Tooltip.Root disableHoverableContent>
+          <Tooltip.Trigger
+            aria-label={indicator.label}
+            class="inline-flex rounded-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            {@render indicatorIcon(indicator)}
+          </Tooltip.Trigger>
+          <Tooltip.Portal>
+            <Tooltip.Content
+              class="max-w-[min(20rem,var(--bits-tooltip-content-available-width))] whitespace-normal break-words"
+            >
+              {indicator.label}
+            </Tooltip.Content>
+          </Tooltip.Portal>
+        </Tooltip.Root>
       {:else}
-        <Icon
-          {size}
-          role="img"
-          aria-label={indicator.label}
-          data-indicator={indicator.key}
-        />
+        <span class="inline-flex" role="img" aria-label={indicator.label}>
+          {@render indicatorIcon(indicator)}
+        </span>
       {/if}
     {/each}
   </div>

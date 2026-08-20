@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { render } from 'svelte/server';
 
+import FlightIndicatorsTestHost from './FlightIndicatorsTestHost.svelte';
 import { buildFlightIndicators } from './flight-indicators';
 
 import type { Airport, Flight, FlightPassenger } from '$lib/db/types';
@@ -116,6 +118,15 @@ describe('buildFlightIndicators', () => {
     );
   });
 
+  it('keeps unnamed companions in a mixed passenger label', () => {
+    const shared = flight({
+      passengers: [me(), member('bob', 'Bob'), guest(null)],
+    });
+    expect(labelFor('passengers', shared, { viewerId: 'me' })).toBe(
+      'Also on board: Bob +1',
+    );
+  });
+
   it('needs a real group when there is no viewer to exclude', () => {
     const solo = flight({ passengers: [member('bob', 'Bob')] });
     expect(keys(solo)).toEqual([]);
@@ -137,6 +148,13 @@ describe('buildFlightIndicators', () => {
     expect(label).toBe(`Note: ${'a'.repeat(160)}…`);
   });
 
+  it('does not split Unicode code points when truncating notes', () => {
+    const note = `${'a'.repeat(159)}😀x`;
+    expect(labelFor('note', flight({ note }))).toBe(
+      `Note: ${'a'.repeat(159)}😀…`,
+    );
+  });
+
   it('keeps a stable order across all indicators', () => {
     const full = flight({
       departure: '2026-03-12T10:04:00.000Z',
@@ -149,5 +167,39 @@ describe('buildFlightIndicators', () => {
       'passengers',
       'note',
     ]);
+  });
+});
+
+describe('FlightIndicators', () => {
+  it('renders named focus targets for desktop tooltips', () => {
+    const { body } = render(FlightIndicatorsTestHost, {
+      props: {
+        flight: flight({ note: 'Window seat' }),
+        hasTrack: true,
+      },
+      context: new Map([['__svelte__', {}]]),
+    });
+
+    expect(body).toContain('<button');
+    expect(body).toContain('aria-label="Flight track recorded"');
+    expect(body).toContain('aria-label="Note: Window seat"');
+    expect(body).toContain('tabindex="0"');
+    expect(body).toContain('aria-hidden="true"');
+  });
+
+  it('renders mobile indicators as named images without nested buttons', () => {
+    const { body } = render(FlightIndicatorsTestHost, {
+      props: {
+        flight: flight({ note: 'Window seat' }),
+        hasTrack: true,
+        tooltips: false,
+      },
+      context: new Map([['__svelte__', {}]]),
+    });
+
+    expect(body).not.toContain('<button');
+    expect(body).toContain('role="img"');
+    expect(body).toContain('aria-label="Flight track recorded"');
+    expect(body).toContain('aria-label="Note: Window seat"');
   });
 });
