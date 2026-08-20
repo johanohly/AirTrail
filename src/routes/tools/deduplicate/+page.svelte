@@ -20,6 +20,7 @@
   } from '$lib/components/ui/data-table';
   import * as Table from '$lib/components/ui/table';
   import { api } from '$lib/trpc';
+  import { invalidateFlightData } from '$lib/trpc/invalidation';
   import { prepareFlightData } from '$lib/utils';
   import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
 
@@ -138,7 +139,7 @@
       .rows.filter((row) => row.getIsSelected());
     const flightIds = selectedRows.map((row) => row.original.id);
     await api.flight.deleteMany.mutate(flightIds);
-    await invalidateAll();
+    await Promise.all([invalidateAll(), invalidateFlightData()]);
     toast.success('Flights deleted.');
   };
 </script>

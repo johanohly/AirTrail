@@ -22,6 +22,7 @@
   import { openModalsState } from '$lib/state.svelte';
   import { toFlightTrackInput } from '$lib/track/schema';
   import { api, trpc } from '$lib/trpc';
+  import { invalidateFlightData } from '$lib/trpc/invalidation';
   import { type FlightData } from '$lib/utils';
   import { decomposeToLocal, isUsingAmPm } from '$lib/utils/datetime';
   import { flightFormSchema } from '$lib/zod/flight';
@@ -242,9 +243,7 @@
       onUpdate({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
-            trpc.flight.list.utils.invalidate();
-            trpc.flight.guests.utils.invalidate();
-            trpc.flightTrack.list.utils.invalidate();
+            void invalidateFlightData();
             toast.success(form.message.text);
             open = false;
             return;

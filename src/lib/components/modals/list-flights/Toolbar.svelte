@@ -31,7 +31,8 @@
     setFlightScope,
     type FlightScope,
   } from '$lib/state.svelte';
-  import { api, trpc } from '$lib/trpc';
+  import { api } from '$lib/trpc';
+  import { invalidateFlightData } from '$lib/trpc/invalidation';
   import type { FlightData } from '$lib/utils';
 
   let {
@@ -103,8 +104,7 @@
     const toastId = toast.loading('Deleting flights');
     try {
       await api.flight.deleteMany.mutate(selectedFlights);
-      await trpc.flight.list.utils.invalidate();
-      await trpc.flightTrack.list.utils.invalidate();
+      await invalidateFlightData();
       toast.success('Flights deleted', { id: toastId });
     } catch (err) {
       console.error(err);

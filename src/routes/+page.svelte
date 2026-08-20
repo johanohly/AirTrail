@@ -32,6 +32,7 @@
     openModalsState,
   } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
+  import { invalidateFlightData } from '$lib/trpc/invalidation';
   import { prepareFlightData } from '$lib/utils';
 
   const user = $derived(page.data.user);
@@ -133,8 +134,7 @@
 
   const invalidator = {
     onSuccess: () => {
-      trpc.flight.list.utils.invalidate();
-      trpc.flightTrack.list.utils.invalidate();
+      void invalidateFlightData();
     },
   };
   const deleteFlightMutation = trpc.flight.delete.mutation(invalidator);

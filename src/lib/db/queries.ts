@@ -4,6 +4,7 @@ import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import type { DB } from './schema';
 import type { CreateFlight, CreateFlightPassenger } from './types';
 
+import { rankGuestNames } from '$lib/guest-names';
 import {
   flightTrackInputSchema,
   toFlightTrackPayload,
@@ -179,11 +180,11 @@ export const listGuestNamesPrimitive = async (
     .groupBy('guest.guestName')
     .execute();
 
-  return rows
-    .flatMap(({ name, count }) =>
-      name ? [{ name, count: Number(count) }] : [],
-    )
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  return rankGuestNames(
+    rows.flatMap(({ name, count }) =>
+      name === null ? [] : [{ name, count: Number(count) }],
+    ),
+  );
 };
 
 export const getFlightPrimitive = async (db: Kysely<DB>, id: number) => {

@@ -10,7 +10,8 @@
   import { page } from '$app/state';
   import { Confirm } from '$lib/components/helpers';
   import { Button } from '$lib/components/ui/button';
-  import { api, trpc } from '$lib/trpc';
+  import { api } from '$lib/trpc';
+  import { invalidateFlightData } from '$lib/trpc/invalidation';
 
   const user = $derived(page.data.user);
 
@@ -18,8 +19,7 @@
     const toastId = toast.loading('Deleting all your flights...');
     try {
       await api.flight.deleteAll.mutate();
-      await trpc.flight.list.utils.invalidate();
-      await trpc.flightTrack.list.utils.invalidate();
+      await invalidateFlightData();
       toast.info('All your flights have been deleted.', { id: toastId });
     } catch (err) {
       console.error(err);

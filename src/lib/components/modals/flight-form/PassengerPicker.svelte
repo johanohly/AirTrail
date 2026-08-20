@@ -8,6 +8,7 @@
   import { page } from '$app/state';
   import UserModal from '$lib/components/modals/settings/pages/users-page/UserModal.svelte';
   import type { PublicUser } from '$lib/db/types';
+  import { canUseGuestName, guestNameIdentity } from '$lib/guest-names';
   import { trpc } from '$lib/trpc';
   import { cn } from '$lib/utils';
 
@@ -144,30 +145,31 @@
   });
 
   const availableGuests = $derived.by(() => {
-    const excluded = new Set(
-      excludeGuestNames.map((name) => name.toLowerCase()),
-    );
+    const excluded = new Set(excludeGuestNames.map(guestNameIdentity));
+    const selectedIdentity = guestNameIdentity(guestName ?? '');
     return ($knownGuests.data ?? []).filter(
       (guest) =>
-        guest.name === guestName || !excluded.has(guest.name.toLowerCase()),
-    );
-  });
-
-  const filteredGuests = $derived.by(() => {
-    if (!$inputValue) return availableGuests;
-    const search = $inputValue.toLowerCase();
-    return availableGuests.filter((guest) =>
-      guest.name.toLowerCase().includes(search),
+        guestNameIdentity(guest.name) === selectedIdentity ||
+        !excluded.has(guestNameIdentity(guest.name)),
     );
   });
 
   const trimmedInput = $derived($inputValue.trim());
+  const inputIdentity = $derived(guestNameIdentity(trimmedInput));
+  const filteredGuests = $derived.by(() => {
+    if (!inputIdentity) return availableGuests;
+    return availableGuests.filter((guest) =>
+      guestNameIdentity(guest.name).includes(inputIdentity),
+    );
+  });
+
   const hasInput = $derived(trimmedInput.length > 0);
   const showNewGuestOption = $derived(
-    hasInput &&
-      !filteredGuests.some(
-        (guest) => guest.name.toLowerCase() === trimmedInput.toLowerCase(),
-      ),
+    canUseGuestName({
+      name: trimmedInput,
+      knownGuests: $knownGuests.data ?? [],
+      excludedNames: excludeGuestNames,
+    }),
   );
 
   const handleUserCreated = (username: string) => {
@@ -189,6 +191,7 @@
   <div class="relative">
     <input
       use:melt={$input}
+      aria-label="Passenger name"
       placeholder="Passenger Name"
       class={cn(
         'w-full min-w-0 bg-transparent text-sm font-medium outline-none transition-all',
