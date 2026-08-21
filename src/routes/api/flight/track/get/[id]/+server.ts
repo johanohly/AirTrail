@@ -1,0 +1,35 @@
+import { json } from '@sveltejs/kit';
+
+import type { RequestHandler } from './$types';
+
+import { apiError, unauthorized, validateApiKey } from '$lib/server/utils/api';
+import { getFlight } from '$lib/server/utils/flight';
+import { getFlightTrack } from '$lib/server/utils/flight-track';
+
+export const GET: RequestHandler = async ({ request, params, url }) => {
+  const user = await validateApiKey(request);
+  if (!user) {
+    return unauthorized();
+  }
+
+  const id = +params.id;
+  if (isNaN(id)) {
+    return apiError('Flight id is not a number', 400);
+  }
+
+  const flight = await getFlight(id);
+  if (!flight) {
+    return apiError('Flight not found', 404);
+  }
+  if (
+    user.role === 'user' &&
+    !flight.passengers.some((passenger) => passenger.userId === user.id)
+  ) {
+    return apiError('You are not a passenger on this flight', 403);
+  }
+
+  const reduceForMap = url.searchParams.get('reduce') !== 'false';
+  const track = await getFlightTrack(id, { reduceForMap });
+
+  return json({ success: true, track });
+};
