@@ -376,6 +376,49 @@ export const deleteFlightTrackPrimitiveWithConnection = async (
   await db.deleteFrom('flightTrack').where('flightId', '=', flightId).execute();
 };
 
+const flightTrackRowColumns = [
+  'flightTrack.flightId',
+  'flightTrack.track',
+  'flightTrack.sourceFormat',
+  'flightTrack.sourceName',
+  'flightTrack.pointCount',
+] as const;
+
+export const getFlightTrackRowPrimitive = async (
+  db: Kysely<DB>,
+  flightId: number,
+) => {
+  return await db
+    .selectFrom('flightTrack')
+    .select(flightTrackRowColumns)
+    .where('flightId', '=', flightId)
+    .executeTakeFirst();
+};
+
+export const listFlightTrackRowsPrimitive = async (
+  db: Kysely<DB>,
+  userId?: string,
+) => {
+  let query = db
+    .selectFrom('flightTrack')
+    .innerJoin('flight', 'flight.id', 'flightTrack.flightId')
+    .select(flightTrackRowColumns);
+
+  if (userId) {
+    query = query.where((eb) =>
+      eb.exists(
+        eb
+          .selectFrom('flightPassenger')
+          .select('flightPassenger.id')
+          .whereRef('flightPassenger.flightId', '=', 'flight.id')
+          .where('flightPassenger.userId', '=', userId),
+      ),
+    );
+  }
+
+  return await query.execute();
+};
+
 export const createManyFlightsPrimitive = async (
   db: Kysely<DB>,
   data: CreateFlight[],

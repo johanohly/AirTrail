@@ -195,6 +195,121 @@ paths:
           '$ref': '#/components/responses/500'
       security:
         - bearerAuth: []
+  /flight/track/get/{id}:
+    get:
+      tags:
+        - 'Flight'
+      summary: 'Get a flight track'
+      description: 'Get the uploaded GPS track for a specific flight by ID, if one was uploaded. Returns `track: null` if the flight has no uploaded track.'
+      operationId: 'get-flight-track'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 'The ID of the flight whose track should be retrieved.'
+          schema:
+            type: number
+        - name: reduce
+          in: query
+          required: false
+          description: 'Whether to simplify the track for map rendering (fewer points, capped length). Defaults to `true`. Pass `false` to receive every stored point.'
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: 'Flight track, or null if none was uploaded'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  track:
+                    oneOf:
+                      - $ref: '#/components/schemas/FlightTrack'
+                      - type: 'null'
+        '400':
+          description: 'Invalid request'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 'Flight id is not a number'
+        '401':
+          '$ref': '#/components/responses/401'
+        '403':
+          '$ref': '#/components/responses/403'
+        '500':
+          '$ref': '#/components/responses/500'
+      security:
+        - bearerAuth: []
+  /flight/track/list:
+    get:
+      tags:
+        - 'Flight'
+      summary: 'List flight tracks'
+      description: "List uploaded GPS tracks visible to the authenticated API key, simplified for map rendering. Regular users can only list their own tracks. Admins and owners can also request a specific user's tracks or all tracks. Flights without an uploaded track are omitted."
+      operationId: 'list-flight-tracks'
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          description: 'Which tracks to return. `mine` is the default. `user` and `all` require an admin or owner API key.'
+          schema:
+            type: string
+            enum:
+              - 'mine'
+              - 'user'
+              - 'all'
+            default: 'mine'
+        - name: userId
+          in: query
+          required: false
+          description: 'The user ID whose tracks should be returned when `scope=user`.'
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'A list of flight tracks'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tracks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FlightTrack'
+        '400':
+          description: 'Invalid query parameters'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: 'Invalid scope'
+        '401':
+          '$ref': '#/components/responses/401'
+        '403':
+          '$ref': '#/components/responses/403'
+        '500':
+          '$ref': '#/components/responses/500'
+      security:
+        - bearerAuth: []
   /flight/save:
     post:
       tags:
@@ -965,6 +1080,67 @@ components:
           type: integer
           description: 'Number of times this route has been flown.'
           example: 5
+    FlightTrack:
+      type: object
+      required:
+        - flightId
+        - coordinates
+        - sourceFormat
+        - sourceName
+        - pointCount
+      properties:
+        flightId:
+          type: integer
+          example: 42
+        coordinates:
+          type: array
+          description: 'Track points as `[longitude, latitude]` or `[longitude, latitude, altitude]` tuples, ordered chronologically. Long tracks are simplified for map rendering unless `reduce=false` is passed to the single-flight endpoint.'
+          items:
+            type: array
+            items:
+              type: number
+            minItems: 2
+            maxItems: 3
+        times:
+          type: [array, 'null']
+          description: 'Unix timestamp (seconds) for each coordinate, when known.'
+          items:
+            type: integer
+        groundSpeedKt:
+          type: [array, 'null']
+          description: 'Ground speed in knots for each coordinate, when known.'
+          items:
+            type: number
+        trackDeg:
+          type: [array, 'null']
+          description: 'Track heading in degrees for each coordinate, when known.'
+          items:
+            type: number
+        ground:
+          type: [array, 'null']
+          description: 'Whether the aircraft was on the ground at each coordinate, when known.'
+          items:
+            type: boolean
+        estimated:
+          type: [array, 'null']
+          description: 'Whether the segment leading into each coordinate was estimated (e.g. interpolated across a signal gap) rather than directly observed.'
+          items:
+            type: boolean
+        sourceFormat:
+          type: string
+          description: 'The format the track was originally uploaded in.'
+          enum:
+            - 'gpx'
+            - 'kml'
+            - 'csv'
+            - 'readsb'
+        sourceName:
+          type: [string, 'null']
+          description: 'The original filename the track was uploaded from, if any.'
+        pointCount:
+          type: integer
+          description: 'Number of points in the originally uploaded track, before any map-rendering simplification.'
+          example: 842
   responses:
     200:
       description: 'Success'
