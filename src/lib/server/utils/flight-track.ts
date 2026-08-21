@@ -48,9 +48,9 @@ export const listFlightTracks = async (
   return rows.map((row) => parseTrackRow(row, reduceForMap));
 };
 
-export const listAllFlightTracks = async (
-  { reduceForMap = false }: { reduceForMap?: boolean } = {},
-): Promise<FlightTrackRow[]> => {
+export const listAllFlightTracks = async ({
+  reduceForMap = false,
+}: { reduceForMap?: boolean } = {}): Promise<FlightTrackRow[]> => {
   const rows = await listFlightTrackRowsPrimitive(db);
   return rows.map((row) => parseTrackRow(row, reduceForMap));
 };
