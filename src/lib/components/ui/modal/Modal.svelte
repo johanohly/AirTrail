@@ -211,6 +211,13 @@
       {overlayClass}
       {overlayStyle}
       style={contentStyle}
+      escapeKeydownBehavior={handleBackButton
+        ? 'close'
+        : closeOnEscape
+          ? 'close'
+          : 'ignore'}
+      onEscapeKeydown={handleBackButton ? handleDialogEscape : undefined}
+      interactOutsideBehavior={closeOnOutsideClick ? 'close' : 'ignore'}
     >
       {@render children()}
     </Drawer.Content>

@@ -55,7 +55,7 @@
       <AddFlightModal bind:open={openModalsState.addFlight} />
       <TimeDisplayHost />
 
-      <main class="h-full" data-vaul-drawer-wrapper>
+      <main class="h-full" data-drawer-wrapper>
         {@render children()}
       </main>
 

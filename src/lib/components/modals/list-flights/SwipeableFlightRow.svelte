@@ -2,10 +2,7 @@
   import type { Snippet } from 'svelte';
   import { MapPin, SquarePen, Trash2 } from '@o7/icon/lucide';
 
-  import { getDrawerContext } from '$lib/components/ui/drawer/drawer.svelte';
   import { cn } from '$lib/utils';
-
-  const drawerContext = getDrawerContext();
 
   type SwipeZone = 'neutral' | 'edit' | 'delete' | 'revealed';
 
@@ -190,7 +187,6 @@
 
     if (actionsRevealed) {
       isHorizontalSwipe = true;
-      drawerContext?.lockDismiss();
     } else {
       isHorizontalSwipe = false;
       longPressTimer = setTimeout(() => {
@@ -228,7 +224,6 @@
           return;
         } else {
           isHorizontalSwipe = true;
-          drawerContext?.lockDismiss();
         }
       }
     }
@@ -254,8 +249,6 @@
 
     if (!isDragging || disabled) return;
     isDragging = false;
-
-    if (isHorizontalSwipe) drawerContext?.unlockDismiss();
 
     const velocity = calculateVelocity();
 
@@ -347,7 +340,15 @@
   };
 </script>
 
-<div class="relative overflow-hidden" bind:this={rowElement}>
+<!-- While actions are revealed the row owns every gesture (including vertical
+     drag-back), so the drawer must not arbitrate for them. Horizontal swipes in
+     the neutral state need no marker: the drawer's axis arbitration yields
+     horizontal-dominant gestures on its own. -->
+<div
+  class="relative overflow-hidden"
+  data-swipe-ignore={actionsRevealed ? '' : undefined}
+  bind:this={rowElement}
+>
   <!-- Button row (revealed on swipe) -->
   <div
     class={cn(
