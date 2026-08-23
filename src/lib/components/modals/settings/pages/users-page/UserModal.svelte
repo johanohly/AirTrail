@@ -78,22 +78,23 @@
     },
   );
 
-  const { form: formData, enhance, submitting } = form;
+  const { form: formData, enhance, submitting, tainted } = form;
 
   $effect(() => {
     if (open) {
       const data = getInitialData();
-      $formData.username = data.username;
-      $formData.displayName = data.displayName;
-      $formData.role = data.role;
-      if ('password' in data) {
-        $formData.password = data.password ?? '';
-      }
+      form.reset({ data });
     }
   });
 </script>
 
-<Modal bind:open>
+<Modal
+  bind:open
+  dismissal="form"
+  dirty={form.isTainted($tainted)}
+  busy={$submitting}
+  onDiscard={() => form.reset()}
+>
   <ModalBreadcrumbHeader
     section="Users"
     title={isEdit ? 'Edit user' : 'Add user'}

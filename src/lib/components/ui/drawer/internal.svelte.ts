@@ -141,12 +141,17 @@ const dampen = (value: number) => 8 * (Math.log(value + 1) - 2) + 16;
 export interface DrawerRootOpts {
   open: () => boolean;
   setOpen: (open: boolean) => void;
+  beforeDismiss: (attempt: DrawerDismissAttempt) => boolean | Promise<boolean>;
   modal: () => boolean;
   dismissible: () => boolean;
   snapPoints: () => SnapPoint[] | undefined;
   activeSnapPoint: () => SnapPoint | null;
   setActiveSnapPoint: (point: SnapPoint | null) => void;
   shouldScaleBackground: () => boolean;
+}
+
+export interface DrawerDismissAttempt {
+  settle: () => void;
 }
 
 export interface DrawerParentContext {
@@ -564,9 +569,7 @@ export class DrawerRootState {
   private onTouchEnd(e: TouchEvent) {
     const session = this.session;
     if (!session) return;
-    if (
-      Array.from(e.touches).some((t) => t.identifier === session.touchId)
-    ) {
+    if (Array.from(e.touches).some((t) => t.identifier === session.touchId)) {
       return; // our touch is still down
     }
     this.finishSession();
@@ -615,7 +618,7 @@ export class DrawerRootState {
         (velocity > VELOCITY_CLOSE ||
           this.delta > CLOSE_THRESHOLD * session.drawerHeight);
       if (shouldClose) {
-        this.closeFromDrag(session, velocity);
+        void this.closeFromDrag(session, velocity);
       } else {
         this.delta = 0;
         this.openness = 1;
@@ -645,7 +648,7 @@ export class DrawerRootState {
 
     const closeDistance = Math.abs(projected - session.drawerHeight);
     if (dismissible && closeDistance < bestDistance) {
-      this.closeFromDrag(session, velocity);
+      void this.closeFromDrag(session, velocity);
       return;
     }
 
@@ -657,7 +660,27 @@ export class DrawerRootState {
     this.notifyOpenness(1, false);
   }
 
-  private closeFromDrag(session: GestureSession, velocity: number) {
+  private async closeFromDrag(session: GestureSession, velocity: number) {
+    let settled = false;
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      this.delta = 0;
+      this.openness = 1;
+      this.notifyOpenness(1, false);
+    };
+
+    if (!(await this.opts.beforeDismiss({ settle }))) {
+      settle();
+      return;
+    }
+
+    if (settled) {
+      this.exitDurationMs = DRAWER_TRANSITION_MS;
+      this.opts.setOpen(false);
+      return;
+    }
+
     const remaining = Math.max(
       0,
       session.drawerHeight - (session.startRest + this.delta),

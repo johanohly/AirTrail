@@ -16,6 +16,7 @@
     style,
     noPadding = false,
     raw = false,
+    onOverlayClick,
     overlayClass,
     overlayStyle,
     children,
@@ -23,6 +24,7 @@
   }: WithoutChildrenOrChild<DialogPrimitive.ContentProps> & {
     noPadding?: boolean;
     raw?: boolean;
+    onOverlayClick?: (event: MouseEvent) => void;
     overlayClass?: string;
     overlayStyle?: string;
     children?: Snippet;
@@ -42,7 +44,11 @@
 
 <DialogPrimitive.Portal>
   {#if modal}
-    <DrawerOverlay class={overlayClass} style={overlayStyle} />
+    <DrawerOverlay
+      class={overlayClass}
+      style={overlayStyle}
+      onclick={onOverlayClick}
+    />
   {/if}
   <DialogPrimitive.Content
     bind:ref

@@ -21,21 +21,25 @@
   let key = $state('');
 
   const create = async () => {
-    if (!name) return;
+    if (!name || loading) return;
 
     loading = true;
-    const result = await api.user.createApiKey.mutate(name);
-    if (!result) {
-      loading = false;
+    try {
+      const result = await api.user.createApiKey.mutate(name);
+      if (!result) {
+        toast.error('Failed to create API key');
+        return;
+      }
+
+      key = result;
+      keys.push({ name, createdAt: new Date(), lastUsed: null, id: 1111 });
+      toast.success('API key created');
+    } catch (error) {
+      console.error(error);
       toast.error('Failed to create API key');
-      return;
+    } finally {
+      loading = false;
     }
-
-    key = result;
-    keys.push({ name, createdAt: new Date(), lastUsed: null, id: 1111 });
-    loading = false;
-
-    toast.success('API key created');
   };
 
   $effect(() => {
@@ -48,7 +52,15 @@
 
 <Button variant="outline" onclick={() => (open = true)}>Create</Button>
 
-<Modal bind:open>
+<Modal
+  bind:open
+  dismissal={key ? 'view' : 'form'}
+  dirty={!key && name.length > 0}
+  busy={loading}
+  onDiscard={() => {
+    name = '';
+  }}
+>
   <ModalBreadcrumbHeader
     section="API Keys"
     title="Create key"

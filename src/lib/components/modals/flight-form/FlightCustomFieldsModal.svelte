@@ -16,6 +16,7 @@
   let {
     definitions = [],
     values = $bindable<Record<number, unknown>>(),
+    dirty: outerDirty = $bindable(false),
     disabled = false,
     savedFieldIds,
     onOpenSettings,
@@ -26,6 +27,7 @@
   }: {
     definitions?: CustomFieldDefinition[];
     values?: Record<number, unknown>;
+    dirty?: boolean;
     disabled?: boolean;
     /** Field IDs that have values saved in the database. When provided,
      *  fields with defaults that aren't in this set are flagged as unsaved. */
@@ -41,6 +43,7 @@
   let open = $state(false);
   let errors = $state<Record<number, string>>({});
   let snapshot = $state<Record<number, unknown>>({});
+  let snapshotDirty = $state(false);
 
   // Seed default values whenever definitions or values change.
   // Only fills in fields that don't already have a value set.
@@ -61,6 +64,9 @@
   });
 
   const errorCount = $derived(Object.keys(errors).length);
+  const innerDirty = $derived(
+    JSON.stringify(values ?? {}) !== JSON.stringify(snapshot),
+  );
 
   /** True when there are defaulted field values that aren't yet saved on this entity. */
   const hasUnsavedDefaults = $derived.by(() => {
@@ -72,6 +78,7 @@
 
   const setValue = (id: number, val: unknown) => {
     values = { ...(values ?? {}), [id]: val };
+    outerDirty = true;
     // Clear error for this field on change
     if (errors[id]) {
       const { [id]: _, ...rest } = errors;
@@ -87,6 +94,7 @@
     errors = validateCustomFields(definitions, values ?? {});
     if (errorCount > 0) {
       snapshot = { ...(values ?? {}) };
+      snapshotDirty = outerDirty;
       open = true;
       return false;
     }
@@ -105,6 +113,7 @@
   {disabled}
   onclick={() => {
     snapshot = { ...(values ?? {}) };
+    snapshotDirty = outerDirty;
     open = true;
   }}
 >
@@ -127,7 +136,17 @@
   {/if}
 </Button>
 
-<Modal bind:open class="max-w-md" closeOnOutsideClick={false}>
+<Modal
+  bind:open
+  dismissal="form"
+  dirty={innerDirty}
+  onDiscard={() => {
+    values = { ...snapshot };
+    outerDirty = snapshotDirty;
+    errors = {};
+  }}
+  class="max-w-md"
+>
   <ModalHeader class="pb-0">
     <h2 class="text-lg font-medium">{title}</h2>
   </ModalHeader>
@@ -194,6 +213,7 @@
         variant="outline"
         onclick={() => {
           values = { ...snapshot };
+          outerDirty = snapshotDirty;
           errors = {};
           open = false;
         }}

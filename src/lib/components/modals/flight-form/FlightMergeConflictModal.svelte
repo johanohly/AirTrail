@@ -54,7 +54,7 @@
   };
 </script>
 
-<Modal bind:open class="max-w-xl" closeOnOutsideClick={false}>
+<Modal bind:open dismissal="dialog" class="max-w-xl">
   <ModalHeader class="pb-0">
     <h2 class="text-lg font-medium">Resolve data conflicts</h2>
   </ModalHeader>

@@ -1,7 +1,10 @@
 <script lang="ts" module>
   import { getContext, setContext } from 'svelte';
 
-  import type { DrawerParentContext, DrawerRootState } from './internal.svelte';
+  import type {
+    DrawerDismissAttempt,
+    DrawerParentContext,
+  } from './internal.svelte';
 
   const DrawerParentKey = Symbol('DrawerParent');
   const DrawerStateKey = Symbol('DrawerState');
@@ -25,6 +28,7 @@
     snapPoints,
     modal = true,
     dismissible = true,
+    beforeDismiss = (_attempt: DrawerDismissAttempt) => true,
     shouldScaleBackground = true,
     children,
   }: {
@@ -33,6 +37,9 @@
     snapPoints?: SnapPoint[];
     modal?: boolean;
     dismissible?: boolean;
+    beforeDismiss?: (
+      attempt: DrawerDismissAttempt,
+    ) => boolean | Promise<boolean>;
     shouldScaleBackground?: boolean;
     children?: Snippet;
   } = $props();
@@ -44,6 +51,7 @@
     {
       open: () => open,
       setOpen: (o) => (open = o),
+      beforeDismiss: (attempt) => beforeDismiss(attempt),
       modal: () => modal,
       dismissible: () => dismissible,
       snapPoints: () => snapPoints,

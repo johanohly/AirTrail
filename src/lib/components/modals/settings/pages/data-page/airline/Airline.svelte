@@ -167,7 +167,12 @@
 
 <EditAirline airline={airlineToEdit} bind:open={editOpen} />
 
-<Modal bind:open={syncDialogOpen} class="max-w-md">
+<Modal
+  bind:open={syncDialogOpen}
+  dismissal="dialog"
+  busy={syncing || syncingIcons}
+  class="max-w-md"
+>
   <div class="flex flex-col gap-1.5">
     <h2 class="text-lg font-semibold">Sync Airlines</h2>
     <p class="text-sm text-muted-foreground">

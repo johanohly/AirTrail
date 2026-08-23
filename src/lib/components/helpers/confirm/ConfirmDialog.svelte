@@ -32,7 +32,7 @@
   };
 </script>
 
-<Modal bind:open preset="alert">
+<Modal bind:open preset="alert" dismissal="dialog">
   <div class="flex flex-col gap-4">
     <div class="flex flex-col gap-1.5">
       <h2 class="text-lg font-semibold">{title}</h2>

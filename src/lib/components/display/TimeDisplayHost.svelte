@@ -76,6 +76,7 @@
   // disappear behind the tooltip when it's rendered inside a modal.
   const hostModalContext: ModalContext = {
     closeModal: () => {},
+    isBusy: () => false,
     registerHeader: () => {},
     registerFooter: () => {},
     getState: () => ({ hasHeader: false, hasFooter: false }),

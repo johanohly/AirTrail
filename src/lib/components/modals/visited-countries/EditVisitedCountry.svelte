@@ -41,25 +41,40 @@
 
   let loading = $state(false);
   const save = async () => {
-    if (!countryData) return;
+    if (!countryData || loading) return;
 
     loading = true;
-    const success = await api.visitedCountries.save.mutate({
-      code: countryData.alpha2,
-      status,
-      note: note ?? undefined,
-    });
-    if (success) {
-      await trpc.visitedCountries.list.utils.invalidate();
-      open = false;
-    } else {
+    try {
+      const success = await api.visitedCountries.save.mutate({
+        code: countryData.alpha2,
+        status,
+        note: note ?? undefined,
+      });
+      if (success) {
+        await trpc.visitedCountries.list.utils.invalidate();
+        open = false;
+      } else {
+        toast.error('Failed to save');
+      }
+    } catch (error) {
+      console.error(error);
       toast.error('Failed to save');
+    } finally {
+      loading = false;
     }
-    loading = false;
   };
 </script>
 
-<Modal bind:open>
+<Modal
+  bind:open
+  dismissal="form"
+  dirty={editingInfo?.status !== status || (editingInfo?.note ?? '') !== note}
+  busy={loading}
+  onDiscard={() => {
+    status = editingInfo?.status ?? null;
+    note = editingInfo?.note ?? '';
+  }}
+>
   <h2 class="text-lg font-bold max-md:mb-2">{countryData?.name}</h2>
   <div class="grid grid-cols-2 gap-2">
     {@render statusRadioItem('visited', 'Visited')}

@@ -46,18 +46,20 @@
       },
     },
   );
-  const { enhance, form: formData } = form;
+  const { enhance, submitting, tainted } = form;
 
   // Reset form data when airline changes
   $effect(() => {
     if (airline) {
-      $formData = {
-        id: airline.id,
-        name: airline.name,
-        icao: airline.icao,
-        iata: airline.iata,
-        iconPath: airline.iconPath,
-      };
+      form.reset({
+        data: {
+          id: airline.id,
+          name: airline.name,
+          icao: airline.icao,
+          iata: airline.iata,
+          iconPath: airline.iconPath,
+        },
+      });
       currentIconPath = airline.iconPath;
     }
   });
@@ -73,7 +75,14 @@
   };
 </script>
 
-<Modal bind:open closeOnOutsideClick={false} class="max-w-lg">
+<Modal
+  bind:open
+  dismissal="form"
+  dirty={form.isTainted($tainted)}
+  busy={$submitting}
+  onDiscard={() => form.reset()}
+  class="max-w-lg"
+>
   <ModalBreadcrumbHeader
     section="Airlines"
     title="Edit airline"
