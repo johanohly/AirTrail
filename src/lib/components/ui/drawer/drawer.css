@@ -85,7 +85,9 @@
   overflow: hidden;
   border-radius: calc(8px * var(--drawer-bg-progress, 0));
   transform: scale(
-      calc(1 - (1 - var(--drawer-bg-scale, 0.95)) * var(--drawer-bg-progress, 0))
+      calc(
+        1 - (1 - var(--drawer-bg-scale, 0.95)) * var(--drawer-bg-progress, 0)
+      )
     )
     translate3d(
       0,

@@ -57,13 +57,6 @@
 
   let activeTab: SettingsTabId = $state('general');
   $effect(() => {
-    if (!open) {
-      activeTab = 'general';
-      openModalsState.settingsTab = 'general';
-    }
-  });
-
-  $effect(() => {
     if (open) {
       activeTab = openModalsState.settingsTab;
     }
