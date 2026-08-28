@@ -41,9 +41,11 @@
   },
   "dependencies": {
     "@node-rs/argon2": "^2.0.2",
+    "@protomaps/basemaps": "^5.7.2",
     "geo-tz": "^8.1.6",
     "memoize": "^10.2.0",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "pmtiles": "^3.2.1"
   },
   "devDependencies": {
     "@date-fns/tz": "^1.4.1",

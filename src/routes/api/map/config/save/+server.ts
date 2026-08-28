@@ -4,11 +4,13 @@ import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
 import type { RequestHandler } from './$types';
 
+import { mergeMapSettings, toMapSettingsFormData } from '$lib/map/map-settings';
+import { getMapProviderConfigurationIssue } from '$lib/server/map/basemap-style';
 import { appConfig } from '$lib/server/utils/config';
-import { mapConfigSchema } from '$lib/zod/config';
+import { mapSettingsFormSchema } from '$lib/zod/config';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
-  const form = await superValidate(request, zod(mapConfigSchema));
+  const form = await superValidate(request, zod(mapSettingsFormSchema));
   if (!form.valid) return actionResult('failure', { form });
 
   const user = locals.user;
@@ -17,11 +19,22 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   }
 
   const currentConfig = (await appConfig.get())?.map;
+  if (!currentConfig) {
+    form.message = { type: 'error', text: 'Map configuration is unavailable' };
+    return actionResult('failure', { form });
+  }
 
-  for (const key of Object.keys(form.data) as Array<keyof typeof form.data>) {
+  const nextConfig = mergeMapSettings(currentConfig, form.data);
+
+  const providerIssue = getMapProviderConfigurationIssue(nextConfig);
+  if (providerIssue) {
+    form.message = { type: 'error', text: providerIssue };
+    return actionResult('failure', { form });
+  }
+
+  for (const key of Object.keys(nextConfig) as Array<keyof typeof nextConfig>) {
     if (
-      currentConfig &&
-      form.data[key] !== currentConfig[key] &&
+      nextConfig[key] !== currentConfig[key] &&
       appConfig.envConfigured?.map?.[key]
     ) {
       return error(403, {
@@ -31,13 +44,14 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     }
   }
 
-  const success = await appConfig.set({ map: form.data });
+  const success = await appConfig.set({ map: nextConfig });
 
   if (!success) {
     form.message = { type: 'error', text: 'Failed to update map config' };
     return actionResult('failure', { form });
   }
 
+  form.data = toMapSettingsFormData(nextConfig);
   form.message = { type: 'success', text: 'Map config updated' };
   return actionResult('success', { form });
 };

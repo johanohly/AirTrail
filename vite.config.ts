@@ -25,14 +25,43 @@ const pwaOptions = {
     // cache instead of re-fetching them from external providers.
     runtimeCaching: [
       {
-        // Carto basemap: style.json, sprite, glyphs, vector + raster tiles.
+        // CARTO vector basemap resources. Keys are part of the request URL, so
+        // rotating a key naturally creates a fresh cache entry.
         urlPattern: /^https:\/\/[^/]*\.?cartocdn\.com\/.*/i,
         handler: 'CacheFirst',
         options: {
-          cacheName: 'carto-basemap',
+          cacheName: 'carto-basemap-v2',
           expiration: {
             maxEntries: 3000,
             maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+          },
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
+      {
+        // OpenFreeMap styles, sprites, glyphs, and vector tiles.
+        urlPattern: /^https:\/\/[^/]*\.?openfreemap\.org\/.*/i,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'openfreemap-basemap',
+          expiration: {
+            maxEntries: 3000,
+            maxAgeSeconds: 60 * 60 * 24 * 30,
+          },
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
+      {
+        // Protomaps hosted tiles and the official glyph/sprite assets. Direct
+        // PMTiles range requests intentionally rely on the archive host cache.
+        urlPattern:
+          /^https:\/\/(api\.protomaps\.com|protomaps\.github\.io)\/.*/i,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'protomaps-basemap',
+          expiration: {
+            maxEntries: 3000,
+            maxAgeSeconds: 60 * 60 * 24 * 30,
           },
           cacheableResponse: { statuses: [0, 200] },
         },

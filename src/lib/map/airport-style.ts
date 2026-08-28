@@ -1,8 +1,8 @@
-import { normalizeCartoTheme } from '$lib/map/carto';
+import { normalizeMapTheme } from '$lib/map/basemap';
 
 export const AIRPORT_STYLE_ROUTE_PATH = '/api/map-styles/airport/style.json';
 export const getAirportGatePillImageId = (theme: string) =>
-  normalizeCartoTheme(theme) === 'dark'
+  normalizeMapTheme(theme) === 'dark'
     ? 'airport-gate-pill-dark'
     : 'airport-gate-pill-light';
 
@@ -1010,6 +1010,11 @@ type AirportStyleDocument = {
 
 export type AirportStyleTheme = 'light' | 'dark';
 
+export type AirportStyleFonts = {
+  regular: readonly string[];
+  emphasis: readonly string[];
+};
+
 const insertOverlayLayers = (
   style: AirportStyleDocument,
   layersToInsert: ReadonlyArray<Record<string, unknown>>,
@@ -1070,9 +1075,48 @@ const applyThemeOverrides = (
   });
 };
 
-export const buildPmtilesAirportStyle = (
+const applyAirportFonts = (
+  style: AirportStyleDocument,
+  fonts: AirportStyleFonts,
+) => {
+  style.layers = (style.layers ?? []).map((layer) => {
+    if (layer.source !== AIRPORT_SOURCE || layer.type !== 'symbol') {
+      return layer;
+    }
+
+    const layout = layer.layout;
+    if (!layout || typeof layout !== 'object' || Array.isArray(layout)) {
+      return layer;
+    }
+
+    const textFont = Reflect.get(layout, 'text-font');
+    const emphasized =
+      Array.isArray(textFont) &&
+      textFont.some(
+        (font) =>
+          typeof font === 'string' &&
+          (font.includes('Bold') || font.includes('SemiBold')),
+      );
+
+    return {
+      ...layer,
+      layout: {
+        ...layout,
+        'text-font': [...(emphasized ? fonts.emphasis : fonts.regular)],
+      },
+    };
+  });
+};
+
+export const buildAirportStyle = (
   style: Record<string, unknown>,
-  theme: AirportStyleTheme = 'light',
+  {
+    theme = 'light',
+    fonts,
+  }: {
+    theme?: AirportStyleTheme;
+    fonts: AirportStyleFonts;
+  },
 ) => {
   const rewrittenStyle = structuredClone(style) as AirportStyleDocument;
 
@@ -1083,6 +1127,8 @@ export const buildPmtilesAirportStyle = (
     [AIRPORT_SOURCE]: {
       type: 'vector',
       url: 'pmtiles:///airport-overlay.pmtiles',
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     },
   };
 
@@ -1109,6 +1155,7 @@ export const buildPmtilesAirportStyle = (
   });
 
   applyThemeOverrides(rewrittenStyle, theme);
+  applyAirportFonts(rewrittenStyle, fonts);
 
   return rewrittenStyle;
 };

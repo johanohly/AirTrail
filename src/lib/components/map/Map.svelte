@@ -44,9 +44,9 @@
   import { includeFocusedRouteOnMap } from '$lib/flight-visibility';
   import { AIRPORT_DETAIL_LAYER_IDS } from '$lib/map/airport-style';
   import {
-    getDefaultAppMapStyleUrl,
     getAppMapImages,
     getConfiguredAppMapStyleUrl,
+    isManagedAppMapStyleUrl,
   } from '$lib/map/app-style';
   import {
     createMapCameraController,
@@ -133,9 +133,7 @@
   const openAipLayers = $derived(
     getOpenAipOverlayLayers(mapPreferences.openAipGroups, openAipTheme),
   );
-  const usingDefaultAppStyle = $derived(
-    style === getDefaultAppMapStyleUrl(currentTheme, mapPreferences.basemap),
-  );
+  const usingDefaultAppStyle = $derived(isManagedAppMapStyleUrl(style));
   const openAipTileUrlTemplate = $derived(
     browser
       ? `${window.location.origin}${base}${OPENAIP_TILE_URL_TEMPLATE}`

@@ -6,9 +6,11 @@
       "name": "airtrail",
       "dependencies": {
         "@node-rs/argon2": "^2.0.2",
+        "@protomaps/basemaps": "^5.7.2",
         "geo-tz": "^8.1.6",
         "memoize": "^10.2.0",
         "pg": "^8.20.0",
+        "pmtiles": "^3.2.1",
       },
       "devDependencies": {
         "@date-fns/tz": "^1.4.1",
@@ -560,6 +562,8 @@
     "@probe.gl/log": ["@probe.gl/log@4.1.1", "", { "dependencies": { "@probe.gl/env": "4.1.1" } }, "sha512-kcZs9BT44pL7hS1OkRGKYRXI/SN9KejUlPD+BY40DguRLzdC5tLG/28WGMyfKdn/51GT4a0p+0P8xvDn1Ez+Kg=="],
 
     "@probe.gl/stats": ["@probe.gl/stats@4.1.1", "", {}, "sha512-4VpAyMHOqydSvPlEyHwXaE+AkIdR03nX+Qhlxsk2D/IW4OVmDZgIsvJB1cDzyEEtcfKcnaEbfXeiPgejBceT6g=="],
+
+    "@protomaps/basemaps": ["@protomaps/basemaps@5.7.2", "", { "bin": { "generate_style": "src/cli.ts" } }, "sha512-K1Yk6bWdULulYg+R2QRVXx4NzJZan5YQhpejEG0c1/sXruJrfPIPZuakpf3jwAgVmjIRVQwAv+yRafDeN0aaUQ=="],
 
     "@rolldown/binding-android-arm64": ["@rolldown/binding-android-arm64@1.0.3", "", { "os": "android", "cpu": "arm64" }, "sha512-454rs7jHngixp/NMxd5srYD57OnzSlZ/eFTETjORQHLwJG1lRtmNOJcBerZlfu4GjKqeq8aCCIQrMdHyhI51Hw=="],
 

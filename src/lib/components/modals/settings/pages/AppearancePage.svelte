@@ -1,77 +1,19 @@
 <script lang="ts">
-  import { invalidateAll } from '$app/navigation';
   import { page } from '$app/state';
   import { setMode, userPrefersMode } from 'mode-watcher';
   import type { Snippet } from 'svelte';
-  import { toast } from 'svelte-sonner';
-  import { defaults, type Infer, superForm } from 'sveltekit-superforms';
-  import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
   import { PageHeader } from '.';
+  import BasemapSettingsForm from './appearance-page/BasemapSettingsForm.svelte';
 
-  import { Locked } from '$lib/components/helpers';
-  import { Badge } from '$lib/components/ui/badge';
-  import * as Form from '$lib/components/ui/form';
-  import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import { Separator } from '$lib/components/ui/separator';
-  import {
-    getConfiguredAppMapStyleUrl,
-    getDefaultAppMapStyleUrl,
-  } from '$lib/map/app-style';
-  import { appConfig } from '$lib/state.svelte';
-  import { mapConfigSchema } from '$lib/zod/config';
 
   type ColorThemeMode = 'system' | 'light' | 'dark';
 
-  const form = superForm(
-    defaults<Infer<typeof mapConfigSchema>>(
-      appConfig?.config?.map ?? {
-        lightStyleUrl: getDefaultAppMapStyleUrl('light'),
-        darkStyleUrl: getDefaultAppMapStyleUrl('dark'),
-      },
-      zod(mapConfigSchema),
-    ),
-    {
-      resetForm: false,
-      validators: zod(mapConfigSchema),
-      onUpdated({ form }) {
-        if (form.message) {
-          if (form.message.type === 'success') {
-            invalidateAll();
-            toast.success(form.message.text);
-            return;
-          }
-          toast.error(form.message.text);
-        }
-      },
-    },
-  );
-  const { form: formData, enhance } = form;
-
   const user = $derived(page.data.user);
   const isAdmin = $derived(!!user && user.role !== 'user');
-  const defaultLightStyleUrl = getDefaultAppMapStyleUrl('light');
-  const defaultDarkStyleUrl = getDefaultAppMapStyleUrl('dark');
-
-  const changes = $derived.by(() => {
-    const savedConfig = appConfig.config?.map;
-    const savedLightStyleUrl =
-      savedConfig?.lightStyleUrl ?? getConfiguredAppMapStyleUrl('light');
-    const savedDarkStyleUrl =
-      savedConfig?.darkStyleUrl ?? getConfiguredAppMapStyleUrl('dark');
-
-    const currentLightStyleUrl =
-      $formData.lightStyleUrl.trim() || defaultLightStyleUrl;
-    const currentDarkStyleUrl =
-      $formData.darkStyleUrl.trim() || defaultDarkStyleUrl;
-
-    return (
-      currentLightStyleUrl !== savedLightStyleUrl ||
-      currentDarkStyleUrl !== savedDarkStyleUrl
-    );
-  });
 
   const isColorThemeMode = (value: string): value is ColorThemeMode =>
     value === 'system' || value === 'light' || value === 'dark';
@@ -219,76 +161,7 @@
 
     {#if isAdmin}
       <Separator />
-
-      <form
-        method="POST"
-        action="/api/map/config/save"
-        autocomplete="off"
-        class="space-y-4"
-        use:enhance
-      >
-        <div class="space-y-1">
-          <div class="flex flex-wrap items-center gap-2">
-            <h3 class="text-sm font-medium">Map Style URLs</h3>
-            <Badge variant="secondary" class="text-[10px]">Admin only</Badge>
-          </div>
-          <p class="text-muted-foreground text-[0.8rem]">
-            Configure the style JSON used by in-app maps for light and dark
-            mode. These URLs apply to every AirTrail user on this instance.
-            Relative AirTrail URLs and external style URLs are both supported.
-          </p>
-        </div>
-
-        <Locked
-          locked={appConfig.envConfigured?.map?.lightStyleUrl ?? false}
-          tooltip={lockedTooltip}
-        >
-          <Form.Field {form} name="lightStyleUrl">
-            <Form.Control>
-              {#snippet children({ props })}
-                <Form.Label>Light Mode Style URL</Form.Label>
-                <Input
-                  bind:value={$formData.lightStyleUrl}
-                  {...props}
-                  placeholder={defaultLightStyleUrl}
-                />
-              {/snippet}
-            </Form.Control>
-            <Form.FieldErrors />
-          </Form.Field>
-        </Locked>
-
-        <Locked
-          locked={appConfig.envConfigured?.map?.darkStyleUrl ?? false}
-          tooltip={lockedTooltip}
-        >
-          <Form.Field {form} name="darkStyleUrl">
-            <Form.Control>
-              {#snippet children({ props })}
-                <Form.Label>Dark Mode Style URL</Form.Label>
-                <Input
-                  bind:value={$formData.darkStyleUrl}
-                  {...props}
-                  placeholder={defaultDarkStyleUrl}
-                />
-              {/snippet}
-            </Form.Control>
-            <Form.FieldErrors />
-          </Form.Field>
-        </Locked>
-
-        <Form.Button disabled={!changes}>Save</Form.Button>
-      </form>
+      <BasemapSettingsForm />
     {/if}
   </div>
 </PageHeader>
-
-{#snippet lockedTooltip()}
-  <p>
-    This setting is locked because it is configured via environment variables.
-  </p>
-  <p>
-    To change this setting, update or delete the environment variable and
-    restart the server.
-  </p>
-{/snippet}

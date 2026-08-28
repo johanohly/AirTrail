@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/db';
-import { getDefaultAppMapStyleUrl } from '$lib/map/app-style';
 import { type DeepBoolean, deepSetAllValues } from '$lib/utils';
 import { deepMerge, removeUndefined, mapSetValues } from '$lib/utils/other';
 import { appConfigSchema, clientAppConfigSchema } from '$lib/zod/config';
@@ -95,8 +94,17 @@ export class AppConfig {
           openAipKey: null,
         },
         map: {
-          lightStyleUrl: getDefaultAppMapStyleUrl('light'),
-          darkStyleUrl: getDefaultAppMapStyleUrl('dark'),
+          provider: 'openfreemap',
+          cartoApiKey: null,
+          protomapsSourceKind: 'hosted',
+          protomapsApiKey: null,
+          protomapsSourceUrl: null,
+          protomapsMaxZoom: 15,
+          protomapsAssetsBaseUrl: 'https://protomaps.github.io/basemaps-assets',
+          protomapsLanguage: 'en',
+          lightStyleUrl: null,
+          darkStyleUrl: null,
+          styleRevision: 0,
         },
         data: {
           lastSynced: null,
@@ -191,10 +199,32 @@ export class AppConfig {
 
     const currentConfig = await this.get();
     const merged = deepMerge(currentConfig, envConfig);
-    const validConfig = appConfigSchema.safeParse(merged);
+    let validConfig = appConfigSchema.safeParse(merged);
     if (!validConfig.success) {
       console.error('Invalid app config in .env:', validConfig.error.issues);
       process.exit(-1);
+    }
+
+    if (currentConfig) {
+      const { styleRevision: currentRevision, ...currentMap } =
+        currentConfig.map;
+      const { styleRevision: _nextRevision, ...nextMap } = validConfig.data.map;
+      if (JSON.stringify(currentMap) !== JSON.stringify(nextMap)) {
+        validConfig = appConfigSchema.safeParse({
+          ...validConfig.data,
+          map: {
+            ...validConfig.data.map,
+            styleRevision: currentRevision + 1,
+          },
+        });
+        if (!validConfig.success) {
+          console.error(
+            'Failed to revise map configuration:',
+            validConfig.error.issues,
+          );
+          process.exit(-1);
+        }
+      }
     }
 
     await db.updateTable('appConfig').set('config', validConfig.data).execute();
