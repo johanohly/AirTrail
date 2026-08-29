@@ -61,6 +61,55 @@ type ResolvedProviderStyle = {
   creditsOpenStreetMap: boolean;
 };
 
+type StyleLayer = StyleDocument['layers'][number];
+
+const excludeAerodromes = ['!=', ['get', 'kind'], 'aerodrome'];
+
+const adaptProviderLayers = (
+  layers: StyleLayer[],
+  provider: MapProvider,
+): StyleLayer[] => {
+  switch (provider) {
+    case 'openfreemap':
+      return layers.filter(
+        (layer) =>
+          layer.type !== 'symbol' ||
+          layer['source-layer'] !== 'aerodrome_label',
+      );
+    case 'carto':
+      return layers;
+    case 'protomaps':
+      return layers.map((layer) => {
+        if (
+          layer.type !== 'symbol' ||
+          layer['source-layer'] !== 'pois' ||
+          layer.id !== 'pois'
+        ) {
+          return layer;
+        }
+
+        return {
+          ...layer,
+          filter: layer.filter
+            ? ['all', layer.filter, excludeAerodromes]
+            : excludeAerodromes,
+        };
+      });
+    default: {
+      const exhaustive: never = provider;
+      return exhaustive;
+    }
+  }
+};
+
+const adaptProviderStyle = (
+  style: StyleDocument,
+  provider: MapProvider,
+): StyleDocument => ({
+  ...style,
+  layers: adaptProviderLayers(style.layers, provider),
+});
+
 type CachedStyle = {
   value: StyleDocument;
   expiresAt: number;
@@ -335,11 +384,14 @@ export const loadProviderStyle = async ({
   switch (provider) {
     case 'openfreemap':
       return {
-        style: await fetchRemoteStyle({
-          cacheKey: `openfreemap:${theme}`,
-          fetchFn,
-          url: OPENFREEMAP_STYLE_URLS[theme],
-        }),
+        style: adaptProviderStyle(
+          await fetchRemoteStyle({
+            cacheKey: `openfreemap:${theme}`,
+            fetchFn,
+            url: OPENFREEMAP_STYLE_URLS[theme],
+          }),
+          provider,
+        ),
         fonts: PROVIDER_FONTS.openfreemap,
         creditsOpenStreetMap: true,
       };
@@ -351,7 +403,10 @@ export const loadProviderStyle = async ({
         url: appendApiKey(CARTO_STYLE_URLS[theme], config.cartoApiKey),
       });
       return {
-        style: await signCartoStyle(style, config.cartoApiKey, fetchFn),
+        style: adaptProviderStyle(
+          await signCartoStyle(style, config.cartoApiKey, fetchFn),
+          provider,
+        ),
         fonts: PROVIDER_FONTS.carto,
         creditsOpenStreetMap: true,
       };
@@ -360,15 +415,16 @@ export const loadProviderStyle = async ({
       const configurationIssue = getMapProviderConfigurationIssue(config);
       if (configurationIssue) throw new Error(configurationIssue);
       const style = buildProtomapsStyle(config, theme, requestOrigin);
+      const resolvedStyle =
+        config.protomapsSourceKind === 'hosted'
+          ? await inlineHostedProtomapsSource(
+              style,
+              config.protomapsApiKey ?? '',
+              fetchFn,
+            )
+          : style;
       return {
-        style:
-          config.protomapsSourceKind === 'hosted'
-            ? await inlineHostedProtomapsSource(
-                style,
-                config.protomapsApiKey ?? '',
-                fetchFn,
-              )
-            : style,
+        style: adaptProviderStyle(resolvedStyle, provider),
         fonts: PROVIDER_FONTS.protomaps,
         creditsOpenStreetMap: true,
       };
