@@ -12,10 +12,12 @@ import {
 import { db } from '$lib/db';
 import { hasPermission } from '$lib/server/authorization/authorize';
 import { loadLockedAuthorizationContext } from '$lib/server/authorization/context';
-import { canActOnUser } from '$lib/server/authorization/users';
+import {
+  canActOnUser,
+  listDirectoryUsers,
+} from '$lib/server/authorization/users';
 import { lockRoles } from '$lib/server/authorization/roles';
 import { createApiKey } from '$lib/server/utils/auth';
-import { publicUserQuery } from '$lib/server/utils/user';
 import { updatePreferencesSchema } from '$lib/zod/user';
 
 export const userRouter = router({
@@ -87,8 +89,8 @@ export const userRouter = router({
       return result.numDeletedRows > 0;
     });
   }),
-  list: permissionProcedure('users.directory.read').query(async () =>
-    publicUserQuery(db).execute(),
+  list: permissionProcedure('users.directory.read').query(async ({ ctx }) =>
+    listDirectoryUsers(ctx.authorization),
   ),
   listApiKeys: authedProcedure.query(async ({ ctx }) => {
     return db

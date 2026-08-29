@@ -34,6 +34,7 @@ export const publicUserFields = [
 export type PublicUser = Pick<User, (typeof publicUserFields)[number]> & {
   roleName: string | null;
 };
+export type DirectoryUser = PublicUser & { canManage: boolean };
 export type PageUser = PublicUser & { hasOAuthLinked: boolean };
 export type ApiKey = Omit<Selectable<api_key>, 'key' | 'userId'>;
 export type Aircraft = Selectable<aircraft>;

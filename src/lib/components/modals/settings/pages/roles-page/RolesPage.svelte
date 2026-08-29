@@ -7,10 +7,12 @@
   import { PageHeader } from '../index';
   import RoleModal, { type EditableRole } from './RoleModal.svelte';
 
+  import { page } from '$app/state';
   import type {
     Permission,
     PermissionGroup,
   } from '$lib/authorization/permissions';
+  import { canSetDefaultRole } from '$lib/authorization/permissions';
   import { Confirm } from '$lib/components/helpers';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
@@ -30,6 +32,7 @@
   let loading = $state(true);
   let modalOpen = $state(false);
   let editingRole = $state<EditableRole | null>(null);
+  const canSetDefault = $derived(canSetDefaultRole(page.data.authorization));
 
   const load = async () => {
     const result = await api.role.list.query();
@@ -77,6 +80,13 @@
       return 'Reassign its users before deleting this role';
     return 'Delete role';
   };
+
+  const defaultTooltip = (role: Role) => {
+    if (role.isDefault) return 'Default role';
+    if (!canSetDefault)
+      return 'Requires role assignment and OAuth management permissions';
+    return 'Make default';
+  };
 </script>
 
 <RoleModal
@@ -123,7 +133,7 @@
           </div>
           <div class="flex items-center gap-2">
             <TextTooltip
-              content={role.isDefault ? 'Default role' : 'Make default'}
+              content={defaultTooltip(role)}
               rootProps={{ delayDuration: 0 }}
             >
               <Button
@@ -133,7 +143,7 @@
                   ? `${role.name} is the default role`
                   : `Make ${role.name} the default role`}
                 aria-pressed={role.isDefault}
-                disabled={role.isDefault}
+                disabled={role.isDefault || !canSetDefault}
                 onclick={() => setDefault(role)}
               >
                 {#if role.isDefault}

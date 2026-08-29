@@ -2,7 +2,10 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 import { PERMISSION_GROUPS } from '$lib/authorization/permissions';
-import { hasPermission } from '$lib/server/authorization/authorize';
+import {
+  AuthorizationError,
+  hasPermission,
+} from '$lib/server/authorization/authorize';
 import {
   getOAuthRoleSettings,
   replaceOAuthRoleSettings,
@@ -13,6 +16,7 @@ import {
   listAssignableRoleOptions,
   listRoleOptions,
   listRoles,
+  RoleOperationError,
   setDefaultRole,
   updateRole,
 } from '$lib/server/authorization/roles';
@@ -21,10 +25,22 @@ import { oauthRoleMappingSettingsSchema } from '$lib/zod/oauth-role-mapping';
 import { roleInputSchema, roleUpdateSchema } from '$lib/zod/role';
 
 const roleError = (error: unknown): never => {
-  throw new TRPCError({
-    code: 'BAD_REQUEST',
-    message: error instanceof Error ? error.message : 'Role operation failed',
-  });
+  if (error instanceof AuthorizationError) {
+    throw new TRPCError({
+      code: error.status === 401 ? 'UNAUTHORIZED' : 'FORBIDDEN',
+      message: error.message,
+    });
+  }
+  if (error instanceof RoleOperationError) {
+    const code =
+      error.kind === 'conflict'
+        ? 'CONFLICT'
+        : error.kind === 'not_found'
+          ? 'NOT_FOUND'
+          : 'BAD_REQUEST';
+    throw new TRPCError({ code, message: error.message });
+  }
+  throw error;
 };
 
 export const roleRouter = router({

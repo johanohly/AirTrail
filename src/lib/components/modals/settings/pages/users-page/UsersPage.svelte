@@ -7,13 +7,16 @@
 
   import { invalidateAll } from '$app/navigation';
   import { page } from '$app/state';
-  import { hasClientPermission } from '$lib/authorization/permissions';
+  import {
+    canCreateUserAccount,
+    hasClientPermission,
+  } from '$lib/authorization/permissions';
   import { UserAvatar } from '$lib/components/display';
   import { Confirm } from '$lib/components/helpers';
   import UserModal from '$lib/components/modals/settings/pages/users-page/UserModal.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
-  import type { PublicUser } from '$lib/db/types';
+  import type { DirectoryUser, PublicUser } from '$lib/db/types';
   import { api } from '$lib/trpc';
   import { getPreferences, matchPreset, presets } from '$lib/utils/preferences';
 
@@ -33,26 +36,25 @@
     toast.success('User deleted.');
   };
 
-  const canDeleteUser = (current_user: PublicUser) => {
+  const canDeleteUser = (current_user: DirectoryUser) => {
     if (current_user.isOwner) return false;
     return (
       current_user.id === page.data.user?.id ||
-      hasClientPermission(page.data.authorization, 'users.delete')
+      (current_user.canManage &&
+        hasClientPermission(page.data.authorization, 'users.delete'))
     );
   };
 
-  const canEditUser = (current_user: PublicUser) => {
+  const canEditUser = (current_user: DirectoryUser) => {
     return (
       !current_user.isOwner &&
+      current_user.canManage &&
       (hasClientPermission(page.data.authorization, 'users.update') ||
         hasClientPermission(page.data.authorization, 'users.roles.assign'))
     );
   };
 
-  const canAddUser = $derived(
-    hasClientPermission(page.data.authorization, 'users.create') &&
-      hasClientPermission(page.data.authorization, 'users.roles.assign'),
-  );
+  const canAddUser = $derived(canCreateUserAccount(page.data.authorization));
 
   let addUserModal = $state(false);
   let editUserModal = $state(false);

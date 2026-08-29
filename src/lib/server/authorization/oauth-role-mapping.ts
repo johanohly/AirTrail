@@ -3,9 +3,8 @@ import type { Kysely, Transaction } from 'kysely';
 import { db } from '$lib/db';
 import type { DB } from '$lib/db/schema';
 import type { AuthorizationContext } from './context';
-import { loadLockedAuthorizationContext } from './context';
-import { hasPermission } from './authorize';
-import { actorCanAssignRole } from './roles';
+import { AuthorizationError, requireLockedPermissions } from './authorize';
+import { actorCanAssignRole, RoleOperationError } from './roles';
 import type {
   OAuthRoleMappingInput,
   OAuthRoleMappingMode,
@@ -130,16 +129,11 @@ export const replaceOAuthRoleSettings = async (
       .where('id', '=', 1)
       .forUpdate()
       .executeTakeFirstOrThrow();
-    const currentAuthorization = await loadLockedAuthorizationContext(
-      authorization.userId,
-      trx,
-    );
-    if (
-      !currentAuthorization ||
-      !hasPermission(currentAuthorization, 'instance.oauth.manage')
-    ) {
-      throw new Error('You cannot manage OAuth role mappings');
-    }
+    const currentAuthorization = await requireLockedPermissions({
+      userId: authorization.userId,
+      permissions: ['instance.oauth.manage'],
+      transaction: trx,
+    });
     const roleIds = oauthAssignmentRoleIds(settings.defaultRoleId, mappings);
     const roles = await trx
       .selectFrom('accessRole')
@@ -148,7 +142,10 @@ export const replaceOAuthRoleSettings = async (
       .forUpdate()
       .execute();
     if (roles.length !== roleIds.length) {
-      throw new Error('An OAuth role no longer exists');
+      throw new RoleOperationError(
+        'not_found',
+        'An OAuth role no longer exists',
+      );
     }
     if (mode !== 'off') {
       if (
@@ -158,13 +155,17 @@ export const replaceOAuthRoleSettings = async (
           trx,
         ))
       ) {
-        throw new Error('The OAuth fallback cannot assign this role');
+        throw new AuthorizationError(
+          'The OAuth fallback cannot assign this role',
+        );
       }
       for (const mapping of mappings) {
         if (
           !(await actorCanAssignRole(currentAuthorization, mapping.roleId, trx))
         ) {
-          throw new Error('An OAuth mapping cannot assign this role');
+          throw new AuthorizationError(
+            'An OAuth mapping cannot assign this role',
+          );
         }
       }
     }

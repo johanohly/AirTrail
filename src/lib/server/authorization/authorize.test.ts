@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Permission } from '$lib/authorization/permissions';
-import { permissionsStrictlyInclude } from '$lib/authorization/permissions';
+import {
+  canCreateUserAccount,
+  canRestoreAllFlights,
+  canSetDefaultRole,
+  permissionsStrictlyInclude,
+  type Permission,
+} from '$lib/authorization/permissions';
 import type { AuthorizationContext } from './context';
 import { hasPermission, permissionsAreSubset } from './authorize';
+import { canActOnUserWithPermissions } from './users';
 
 const context = (
   permissions: Permission[],
@@ -53,5 +59,58 @@ describe('RBAC authorization', () => {
         ['flight.read.any', 'flight.read.own'],
       ),
     ).toBe(false);
+  });
+
+  it('only manages users whose effective permissions are strictly lower', () => {
+    const authorization = context(['flight.read.any']);
+
+    expect(
+      canActOnUserWithPermissions(
+        authorization,
+        { isOwner: false, roleId: 'lower-role' },
+        ['flight.read.own'],
+      ),
+    ).toBe(true);
+    expect(
+      canActOnUserWithPermissions(
+        authorization,
+        { isOwner: false, roleId: 'peer-role' },
+        ['flight.read.any'],
+      ),
+    ).toBe(false);
+    expect(
+      canActOnUserWithPermissions(
+        authorization,
+        { isOwner: true, roleId: null },
+        [],
+      ),
+    ).toBe(false);
+  });
+
+  it('keeps composed actions unavailable until every permission is present', () => {
+    expect(canCreateUserAccount(context(['users.create']))).toBe(false);
+    expect(
+      canCreateUserAccount(context(['users.create', 'users.roles.assign'])),
+    ).toBe(true);
+
+    expect(canRestoreAllFlights(context(['flight.import.any']))).toBe(false);
+    expect(
+      canRestoreAllFlights(
+        context(['flight.import.any', 'users.directory.read']),
+      ),
+    ).toBe(true);
+
+    expect(
+      canSetDefaultRole(context(['roles.manage', 'users.roles.assign'])),
+    ).toBe(false);
+    expect(
+      canSetDefaultRole(
+        context([
+          'roles.manage',
+          'users.roles.assign',
+          'instance.oauth.manage',
+        ]),
+      ),
+    ).toBe(true);
   });
 });

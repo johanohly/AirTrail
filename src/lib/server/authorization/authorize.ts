@@ -3,7 +3,12 @@ import {
   isPermission,
   type Permission,
 } from '$lib/authorization/permissions';
-import type { AuthorizationContext } from './context';
+import type { DB } from '$lib/db/schema';
+import type { Transaction } from 'kysely';
+import {
+  loadLockedAuthorizationContext,
+  type AuthorizationContext,
+} from './context';
 
 export { hasPermission };
 
@@ -39,3 +44,27 @@ export const permissionsAreSubset = (
     (permission) =>
       isPermission(permission) && hasPermission(authorization, permission),
   );
+
+export const requireLockedPermissions = async ({
+  userId,
+  permissions,
+  transaction,
+}: {
+  userId: string;
+  permissions: readonly [Permission, ...Permission[]];
+  transaction: Transaction<DB>;
+}) => {
+  const authorization = await loadLockedAuthorizationContext(
+    userId,
+    transaction,
+  );
+  const [firstPermission, ...remainingPermissions] = permissions;
+  const requiredAuthorization = requirePermission(
+    authorization,
+    firstPermission,
+  );
+  for (const permission of remainingPermissions) {
+    requirePermission(requiredAuthorization, permission);
+  }
+  return requiredAuthorization;
+};

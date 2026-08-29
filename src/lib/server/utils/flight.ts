@@ -1,6 +1,7 @@
 import type { TZDate } from '@date-fns/tz';
 import { differenceInSeconds, isBefore, parseISO } from 'date-fns';
 import { type Insertable, sql } from 'kysely';
+import { isDeepStrictEqual } from 'node:util';
 import { z } from 'zod';
 
 import { db } from '$lib/db';
@@ -12,6 +13,7 @@ import {
   listAllFlightsPrimitive,
   listFlightBaseQuery,
   listFlightPrimitive,
+  resolveFlightPassengerChanges,
   updateFlightPrimitive,
   updateFlightPrimitiveWithConnection,
   upsertFlightTrackPrimitiveWithConnection,
@@ -30,8 +32,9 @@ import {
 } from '$lib/server/authorization/flight';
 import {
   CustomFieldValidationError,
-  persistEntityCustomFields,
-  wouldChangeEntityCustomFields,
+  persistEntityCustomFieldPlan,
+  prepareEntityCustomFieldPlan,
+  validateEntityCustomFieldPlan,
 } from '$lib/server/utils/custom-fields';
 import {
   getMissingFlightReferenceUpdate,
@@ -56,6 +59,59 @@ const assertDateOrder = (
 ): boolean => {
   if (!start || !end) return true;
   return !isBefore(end, start);
+};
+
+type PassengerRecord = Pick<
+  CreateFlight['passengers'][number],
+  | 'id'
+  | 'userId'
+  | 'guestName'
+  | 'seat'
+  | 'seatNumber'
+  | 'seatClass'
+  | 'flightReason'
+>;
+type ExistingPassengerRecord = PassengerRecord & { id: number };
+
+const canonicalPassengerRecords = (passengers: readonly PassengerRecord[]) =>
+  passengers
+    .map((passenger) => [
+      passenger.id === undefined ? null : passenger.id,
+      passenger.userId,
+      passenger.guestName,
+      passenger.seat,
+      passenger.seatNumber,
+      passenger.seatClass,
+      passenger.flightReason,
+    ])
+    .sort((left, right) => {
+      const leftId = left[0];
+      const rightId = right[0];
+      if (typeof leftId === 'number' && typeof rightId === 'number') {
+        return leftId - rightId;
+      }
+      if (typeof leftId === 'number') return -1;
+      if (typeof rightId === 'number') return 1;
+      return String(left[1] ?? left[2]).localeCompare(
+        String(right[1] ?? right[2]),
+      );
+    });
+
+export const passengerRecordsChanged = (
+  existing: readonly ExistingPassengerRecord[],
+  incoming: readonly PassengerRecord[],
+) => {
+  const resolvedIncoming = resolveFlightPassengerChanges(
+    [...existing],
+    [...incoming],
+  ).resolved.map(({ passenger, existing: resolvedExisting }) => ({
+    ...passenger,
+    id: resolvedExisting?.id ?? passenger.id,
+  }));
+  return !isDeepStrictEqual(
+    canonicalPassengerRecords(existing),
+    canonicalPassengerRecords(resolvedIncoming),
+  );
 };
 
 export const validateFlightDates = (flight: CreateFlight): string | null => {
@@ -157,46 +213,32 @@ export const validateAndSaveFlight = async (
             throw new AuthorizationError('Flight not found', 404);
           }
 
-          const existingPassengerSnapshot = flight.passengers.map(
-            (passenger) => ({
-              id: passenger.id,
-              userId: passenger.userId,
-              guestName: passenger.guestName,
-              seat: passenger.seat,
-              seatNumber: passenger.seatNumber,
-              seatClass: passenger.seatClass,
-              flightReason: passenger.flightReason,
-            }),
+          const resolvedPassengerChanges = resolveFlightPassengerChanges(
+            flight.passengers,
+            values.passengers,
           );
-          const incomingPassengers = values.passengers.map((passenger) => ({
-            id: passenger.id,
-            userId: passenger.userId,
-            guestName: passenger.guestName,
-            seat: passenger.seat,
-            seatNumber: passenger.seatNumber,
-            seatClass: passenger.seatClass,
-            flightReason: passenger.flightReason,
-          }));
-          const passengerRecordsChanged =
-            JSON.stringify(existingPassengerSnapshot) !==
-            JSON.stringify(incomingPassengers);
-          const passengerCustomFieldsChanged = (
-            await Promise.all(
-              values.passengers.map((passenger) =>
-                passenger.id
-                  ? wouldChangeEntityCustomFields(trx, {
-                      entityType: 'flight_passenger',
-                      entityId: String(passenger.id),
-                      values: passenger.customFields,
-                    })
-                  : Promise.resolve(
-                      Object.keys(passenger.customFields ?? {}).length > 0,
-                    ),
+          const passengerCustomFieldPlan = await prepareEntityCustomFieldPlan(
+            trx,
+            {
+              entityType: 'flight_passenger',
+              entities: resolvedPassengerChanges.resolved.map(
+                ({ passenger, existing }) => ({
+                  entityId: existing ? String(existing.id) : null,
+                  values: passenger.customFields,
+                }),
               ),
-            )
-          ).some(Boolean);
+            },
+          );
+          const flightCustomFieldPlan = await prepareEntityCustomFieldPlan(
+            trx,
+            {
+              entityType: 'flight',
+              entities: [{ entityId: String(updateId), values: customFields }],
+            },
+          );
           const passengersChanged =
-            passengerRecordsChanged || passengerCustomFieldsChanged;
+            passengerRecordsChanged(flight.passengers, values.passengers) ||
+            passengerCustomFieldPlan.entities.some(({ changed }) => changed);
           if (
             passengersChanged &&
             !(await canAccessFlight(
@@ -208,25 +250,25 @@ export const validateAndSaveFlight = async (
           ) {
             throw new AuthorizationError('Flight not found', 404);
           }
+          validateEntityCustomFieldPlan(flightCustomFieldPlan);
+          if (passengersChanged) {
+            validateEntityCustomFieldPlan(passengerCustomFieldPlan);
+          }
 
           const persistedPassengers = await updateFlightPrimitiveWithConnection(
             trx,
             updateId,
             values,
           );
-          await persistEntityCustomFields(trx, {
-            entityType: 'flight',
-            entityId: String(updateId),
-            values: customFields,
-          });
+          await persistEntityCustomFieldPlan(trx, flightCustomFieldPlan, [
+            String(updateId),
+          ]);
           if (passengersChanged) {
-            for (const passenger of persistedPassengers) {
-              await persistEntityCustomFields(trx, {
-                entityType: 'flight_passenger',
-                entityId: String(passenger.id),
-                values: passenger.input.customFields,
-              });
-            }
+            await persistEntityCustomFieldPlan(
+              trx,
+              passengerCustomFieldPlan,
+              persistedPassengers.map(({ id }) => String(id)),
+            );
           }
         });
       } catch (e) {
@@ -261,19 +303,32 @@ export const validateAndSaveFlight = async (
         throw new AuthorizationError();
       }
       flightId = await db.transaction().execute(async (trx) => {
-        const created = await createFlightPrimitiveWithConnection(trx, values);
-        await persistEntityCustomFields(trx, {
+        const flightCustomFieldPlan = await prepareEntityCustomFieldPlan(trx, {
           entityType: 'flight',
-          entityId: String(created.flightId),
-          values: customFields,
+          entities: [{ entityId: null, values: customFields }],
         });
-        for (const passenger of created.passengers) {
-          await persistEntityCustomFields(trx, {
+        const passengerCustomFieldPlan = await prepareEntityCustomFieldPlan(
+          trx,
+          {
             entityType: 'flight_passenger',
-            entityId: String(passenger.id),
-            values: passenger.input.customFields,
-          });
-        }
+            entities: values.passengers.map((passenger) => ({
+              entityId: null,
+              values: passenger.customFields,
+            })),
+          },
+        );
+        validateEntityCustomFieldPlan(flightCustomFieldPlan);
+        validateEntityCustomFieldPlan(passengerCustomFieldPlan);
+
+        const created = await createFlightPrimitiveWithConnection(trx, values);
+        await persistEntityCustomFieldPlan(trx, flightCustomFieldPlan, [
+          String(created.flightId),
+        ]);
+        await persistEntityCustomFieldPlan(
+          trx,
+          passengerCustomFieldPlan,
+          created.passengers.map(({ id }) => String(id)),
+        );
         return created.flightId;
       });
     } catch (e) {

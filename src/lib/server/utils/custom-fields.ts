@@ -168,91 +168,39 @@ export const persistEntityCustomFields = async (
     values?: IncomingValues;
   },
 ) => {
-  const defs = await db
-    .selectFrom('customFieldDefinition')
-    .select([
-      'id',
-      'key',
-      'label',
-      'fieldType',
-      'required',
-      'defaultValue',
-      'options',
-      'validationJson',
-    ])
-    .where('entityType', '=', entityType)
-    .where('active', '=', true)
-    .execute();
-
-  const defsById = new Map(defs.map((d) => [d.id, d]));
-  const defsByKey = new Map(defs.map((d) => [d.key, d]));
-
-  const existingRows = await db
-    .selectFrom('customFieldValue')
-    .select(['fieldId', 'value'])
-    .where('entityType', '=', entityType)
-    .where('entityId', '=', entityId)
-    .execute();
-
-  const existingValues = new Map<number, unknown>(
-    existingRows.map((row) => [row.fieldId, row.value]),
-  );
-
-  const incomingByFieldId = resolveIncomingValues(values, defsById, defsByKey);
-
-  // Auto-apply defaults for fields that are missing both saved and incoming values.
-  const defaultsToPersist = new Map<number, unknown>();
-  for (const def of defs) {
-    if (
-      def.defaultValue != null &&
-      !existingValues.has(def.id) &&
-      !incomingByFieldId.has(def.id)
-    ) {
-      defaultsToPersist.set(def.id, def.defaultValue);
-    }
-  }
-
-  const mergedValues = mergeValues(
-    existingValues,
-    defaultsToPersist,
-    incomingByFieldId,
-  );
-
-  for (const def of defs) {
-    const message = validateCustomFieldValue(def, mergedValues.get(def.id));
-    if (message) {
-      const detail =
-        message === `${def.label} is required`
-          ? 'is required'
-          : `${message.charAt(0).toLowerCase()}${message.slice(1)}`;
-      throw new CustomFieldValidationError(
-        `Custom field "${def.label}" ${detail}`,
-      );
-    }
-  }
-
-  const entriesToPersist = new Map<number, unknown | null>(defaultsToPersist);
-  for (const [fieldId, value] of incomingByFieldId) {
-    entriesToPersist.set(fieldId, value);
-  }
-
-  for (const [fieldId, value] of entriesToPersist) {
-    await persistEntry(db, entityType, entityId, fieldId, value);
-  }
+  const plan = await prepareEntityCustomFieldPlan(db, {
+    entityType,
+    entities: [{ entityId, values }],
+  });
+  validateEntityCustomFieldPlan(plan);
+  await persistEntityCustomFieldPlan(db, plan, [entityId]);
 };
 
-export const wouldChangeEntityCustomFields = async (
+type PlannedCustomFieldEntity = {
+  changed: boolean;
+  mergedValues: Map<number, unknown>;
+  entriesToPersist: Map<number, unknown | null>;
+};
+
+export type EntityCustomFieldPlan = {
+  entityType: EntityType;
+  definitions: Definition[];
+  entities: PlannedCustomFieldEntity[];
+};
+
+export const prepareEntityCustomFieldPlan = async (
   db: Kysely<DB>,
   {
     entityType,
-    entityId,
-    values,
+    entities,
   }: {
     entityType: EntityType;
-    entityId: string;
-    values?: IncomingValues;
+    entities: Array<{
+      entityId: string | null;
+      values?: IncomingValues;
+    }>;
   },
-) => {
+): Promise<EntityCustomFieldPlan> => {
   const definitions = await db
     .selectFrom('customFieldDefinition')
     .select([
@@ -268,28 +216,114 @@ export const wouldChangeEntityCustomFields = async (
     .where('entityType', '=', entityType)
     .where('active', '=', true)
     .execute();
-  const incoming = resolveIncomingValues(
-    values,
-    new Map(definitions.map((definition) => [definition.id, definition])),
-    new Map(definitions.map((definition) => [definition.key, definition])),
-  );
-  if (incoming.size === 0) return false;
 
-  const existing = new Map(
-    (
-      await db
-        .selectFrom('customFieldValue')
-        .select(['fieldId', 'value'])
-        .where('entityType', '=', entityType)
-        .where('entityId', '=', entityId)
-        .execute()
-    ).map((row) => [row.fieldId, row.value]),
+  const definitionsById = new Map(
+    definitions.map((definition) => [definition.id, definition]),
   );
+  const definitionsByKey = new Map(
+    definitions.map((definition) => [definition.key, definition]),
+  );
+  const entityIds = [
+    ...new Set(
+      entities.flatMap(({ entityId }) => (entityId === null ? [] : [entityId])),
+    ),
+  ];
+  const existingRows =
+    entityIds.length === 0
+      ? []
+      : await db
+          .selectFrom('customFieldValue')
+          .select(['entityId', 'fieldId', 'value'])
+          .where('entityType', '=', entityType)
+          .where('entityId', 'in', entityIds)
+          .execute();
+  const existingByEntity = new Map<string, Map<number, unknown>>();
+  for (const row of existingRows) {
+    const existing = existingByEntity.get(row.entityId) ?? new Map();
+    existing.set(row.fieldId, row.value);
+    existingByEntity.set(row.entityId, existing);
+  }
 
-  return [...incoming].some(([fieldId, value]) =>
-    isCustomFieldValueEmpty(value)
-      ? existing.has(fieldId)
-      : !existing.has(fieldId) ||
-        !isDeepStrictEqual(existing.get(fieldId), value),
-  );
+  const plannedEntities = entities.map(({ entityId, values }) => {
+    const existingValues =
+      entityId === null
+        ? new Map<number, unknown>()
+        : (existingByEntity.get(entityId) ?? new Map<number, unknown>());
+    const incomingValues = resolveIncomingValues(
+      values,
+      definitionsById,
+      definitionsByKey,
+    );
+
+    const defaultsToPersist = new Map<number, unknown>();
+    for (const definition of definitions) {
+      if (
+        definition.defaultValue != null &&
+        !existingValues.has(definition.id) &&
+        !incomingValues.has(definition.id)
+      ) {
+        defaultsToPersist.set(definition.id, definition.defaultValue);
+      }
+    }
+
+    const entriesToPersist = new Map<number, unknown | null>(defaultsToPersist);
+    for (const [fieldId, value] of incomingValues) {
+      entriesToPersist.set(fieldId, value);
+    }
+
+    return {
+      changed: [...incomingValues].some(([fieldId, value]) =>
+        isCustomFieldValueEmpty(value)
+          ? existingValues.has(fieldId)
+          : !existingValues.has(fieldId) ||
+            !isDeepStrictEqual(existingValues.get(fieldId), value),
+      ),
+      mergedValues: mergeValues(
+        existingValues,
+        defaultsToPersist,
+        incomingValues,
+      ),
+      entriesToPersist,
+    };
+  });
+
+  return { entityType, definitions, entities: plannedEntities };
+};
+
+export const validateEntityCustomFieldPlan = (plan: EntityCustomFieldPlan) => {
+  for (const entity of plan.entities) {
+    for (const definition of plan.definitions) {
+      const message = validateCustomFieldValue(
+        definition,
+        entity.mergedValues.get(definition.id),
+      );
+      if (!message) continue;
+      const detail =
+        message === `${definition.label} is required`
+          ? 'is required'
+          : `${message.charAt(0).toLowerCase()}${message.slice(1)}`;
+      throw new CustomFieldValidationError(
+        `Custom field "${definition.label}" ${detail}`,
+      );
+    }
+  }
+};
+
+export const persistEntityCustomFieldPlan = async (
+  db: Kysely<DB>,
+  plan: EntityCustomFieldPlan,
+  entityIds: readonly string[],
+) => {
+  if (entityIds.length !== plan.entities.length) {
+    throw new Error('Custom-field plan does not match its persisted entities');
+  }
+  for (const [index, entity] of plan.entities.entries()) {
+    const entityId = entityIds[index];
+    if (!entityId) {
+      throw new Error('Custom-field entity ID is missing');
+    }
+    for (const [fieldId, value] of entity.entriesToPersist) {
+      await persistEntry(db, plan.entityType, entityId, fieldId, value);
+    }
+  }
 };

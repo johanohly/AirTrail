@@ -5,11 +5,27 @@ import { isPermission, type Permission } from '$lib/authorization/permissions';
 import { db } from '$lib/db';
 import type { DB } from '$lib/db/schema';
 import type { AuthorizationContext } from './context';
-import { loadLockedAuthorizationContext } from './context';
-import { hasPermission, permissionsAreSubset } from './authorize';
+import {
+  AuthorizationError,
+  hasPermission,
+  permissionsAreSubset,
+  requireLockedPermissions,
+} from './authorize';
 import type { RoleInput } from '$lib/zod/role';
 
 type DatabaseConnection = Kysely<DB> | Transaction<DB>;
+
+type RoleOperationErrorKind = 'conflict' | 'invalid' | 'not_found';
+
+export class RoleOperationError extends Error {
+  constructor(
+    public readonly kind: RoleOperationErrorKind,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'RoleOperationError';
+  }
+}
 
 export const listRoles = async (connection: DatabaseConnection = db) => {
   const [roles, grants, settings, counts] = await Promise.all([
@@ -121,10 +137,15 @@ const validateRoleInput = async (
   excludeId?: string,
 ) => {
   if (!permissionsAreSubset(input.permissions, authorization)) {
-    throw new Error('A role cannot grant permissions you do not have');
+    throw new AuthorizationError(
+      'A role cannot grant permissions you do not have',
+    );
   }
   if (await roleNameExists(input.name, connection, excludeId)) {
-    throw new Error('A role with this name already exists');
+    throw new RoleOperationError(
+      'conflict',
+      'A role with this name already exists',
+    );
   }
 };
 
@@ -134,16 +155,11 @@ export const createRole = async (
 ) => {
   const id = generateId(15);
   await db.transaction().execute(async (trx) => {
-    const currentAuthorization = await loadLockedAuthorizationContext(
-      authorization.userId,
-      trx,
-    );
-    if (
-      !currentAuthorization ||
-      !hasPermission(currentAuthorization, 'roles.manage')
-    ) {
-      throw new Error('You cannot create roles');
-    }
+    const currentAuthorization = await requireLockedPermissions({
+      userId: authorization.userId,
+      permissions: ['roles.manage'],
+      transaction: trx,
+    });
     await validateRoleInput(input, currentAuthorization, trx);
     await trx
       .insertInto('accessRole')
@@ -174,27 +190,22 @@ export const updateRole = async (
   authorization: AuthorizationContext,
 ) => {
   await db.transaction().execute(async (trx) => {
-    const currentAuthorization = await loadLockedAuthorizationContext(
-      authorization.userId,
-      trx,
-    );
-    if (
-      !currentAuthorization ||
-      !hasPermission(currentAuthorization, 'roles.manage')
-    ) {
-      throw new Error('You cannot edit roles');
-    }
+    const currentAuthorization = await requireLockedPermissions({
+      userId: authorization.userId,
+      permissions: ['roles.manage'],
+      transaction: trx,
+    });
     const role = await trx
       .selectFrom('accessRole')
       .select('id')
       .where('id', '=', roleId)
       .forUpdate()
       .executeTakeFirst();
-    if (!role) throw new Error('Role not found');
+    if (!role) throw new RoleOperationError('not_found', 'Role not found');
 
     const beforePermissions = await getRolePermissions(roleId, trx);
     if (!permissionsAreSubset(beforePermissions, currentAuthorization)) {
-      throw new Error(
+      throw new AuthorizationError(
         'You cannot edit a role with permissions you do not have',
       );
     }
@@ -238,30 +249,24 @@ export const setDefaultRole = async (
       .where('id', '=', 1)
       .forUpdate()
       .executeTakeFirstOrThrow();
-    const currentAuthorization = await loadLockedAuthorizationContext(
-      authorization.userId,
-      trx,
-    );
-    if (
-      !currentAuthorization ||
-      !hasPermission(currentAuthorization, 'roles.manage')
-    ) {
-      throw new Error('You cannot set the default role');
-    }
+    const currentAuthorization = await requireLockedPermissions({
+      userId: authorization.userId,
+      permissions: [
+        'roles.manage',
+        'users.roles.assign',
+        'instance.oauth.manage',
+      ],
+      transaction: trx,
+    });
     const role = await trx
       .selectFrom('accessRole')
       .select('id')
       .where('id', '=', roleId)
       .forUpdate()
       .executeTakeFirst();
-    if (!role) throw new Error('Role not found');
-    if (
-      !permissionsAreSubset(
-        await getRolePermissions(roleId, trx),
-        currentAuthorization,
-      )
-    ) {
-      throw new Error('You cannot make this role the default');
+    if (!role) throw new RoleOperationError('not_found', 'Role not found');
+    if (!(await actorCanAssignRole(currentAuthorization, roleId, trx))) {
+      throw new AuthorizationError('You cannot make this role the default');
     }
     await trx
       .updateTable('authorizationSettings')
@@ -282,16 +287,11 @@ export const deleteRole = async (
       .where('id', '=', 1)
       .forUpdate()
       .executeTakeFirstOrThrow();
-    const currentAuthorization = await loadLockedAuthorizationContext(
-      authorization.userId,
-      trx,
-    );
-    if (
-      !currentAuthorization ||
-      !hasPermission(currentAuthorization, 'roles.manage')
-    ) {
-      throw new Error('You cannot delete roles');
-    }
+    const currentAuthorization = await requireLockedPermissions({
+      userId: authorization.userId,
+      permissions: ['roles.manage'],
+      transaction: trx,
+    });
     const role = await trx
       .selectFrom('accessRole')
       .selectAll()
@@ -302,7 +302,7 @@ export const deleteRole = async (
 
     const permissions = await getRolePermissions(roleId, trx);
     if (!permissionsAreSubset(permissions, currentAuthorization)) {
-      throw new Error(
+      throw new AuthorizationError(
         'You cannot delete a role with permissions you do not have',
       );
     }
@@ -314,9 +314,17 @@ export const deleteRole = async (
       .limit(1)
       .executeTakeFirst();
     if (settings.defaultRoleId === roleId) {
-      throw new Error('Choose another default role first');
+      throw new RoleOperationError(
+        'invalid',
+        'Choose another default role first',
+      );
     }
-    if (user) throw new Error('Reassign this role’s users first');
+    if (user) {
+      throw new RoleOperationError(
+        'invalid',
+        'Reassign this role’s users first',
+      );
+    }
 
     const result = await trx
       .deleteFrom('accessRole')

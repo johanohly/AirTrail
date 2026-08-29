@@ -73,7 +73,7 @@
       </CardContent>
     </Card>
 
-    {#if hasClientPermission(page.data.authorization, 'data.airports.manage') && hasClientPermission(page.data.authorization, 'data.aircraft.manage') && hasClientPermission(page.data.authorization, 'data.airlines.manage')}
+    {#if hasClientPermission(page.data.authorization, 'data.airports.manage')}
       <UpdateFromSource {fetchAirports} />
     {/if}
     {#if hasClientPermission(page.data.authorization, 'data.airports.manage')}
