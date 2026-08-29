@@ -60,6 +60,7 @@ type CachedStyle = {
 };
 
 const STYLE_TTL_MS = 60 * 60 * 1000;
+const STALE_STYLE_RETRY_MS = 60 * 1000;
 const STYLE_FETCH_TIMEOUT_MS = 8_000;
 const MAX_CACHED_STYLES = 12;
 const styleCache = new Map<string, CachedStyle>();
@@ -124,7 +125,9 @@ const fetchRemoteStyle = async ({
       return style;
     } catch (error) {
       if (cached) {
-        cached.lastUsedAt = Date.now();
+        const now = Date.now();
+        cached.expiresAt = now + STALE_STYLE_RETRY_MS;
+        cached.lastUsedAt = now;
         return cached.value;
       }
       throw error;

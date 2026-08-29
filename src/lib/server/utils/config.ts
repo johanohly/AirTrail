@@ -2,9 +2,15 @@ import { z } from 'zod';
 
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/db';
+import { mapConfigsHaveSameSettings } from '$lib/map/map-settings';
 import { type DeepBoolean, deepSetAllValues } from '$lib/utils';
 import { deepMerge, removeUndefined, mapSetValues } from '$lib/utils/other';
-import { appConfigSchema, clientAppConfigSchema } from '$lib/zod/config';
+import {
+  appConfigSchema,
+  clientAppConfigSchema,
+  DEFAULT_MAP_CONFIG,
+  type MapConfig,
+} from '$lib/zod/config';
 
 export type FullAppConfig = z.infer<typeof appConfigSchema>;
 export type ClientAppConfig = z.infer<typeof clientAppConfigSchema>;
@@ -19,6 +25,15 @@ export class AppConfig {
   // Whether a field has a value set. Useful in the frontend to know if a value is set even if the value itself is server-only.
   configured: DeepBoolean<FullAppConfig, boolean> | null = null;
   envConfigured: DeepBoolean<FullAppConfig, boolean> | null = null;
+
+  #reviseMapConfig(current: MapConfig, next: MapConfig): MapConfig {
+    return {
+      ...next,
+      styleRevision: mapConfigsHaveSameSettings(current, next)
+        ? current.styleRevision
+        : current.styleRevision + 1,
+    };
+  }
 
   async get({ withCache = true } = {}) {
     if (this.#appConfig && withCache) {
@@ -46,7 +61,11 @@ export class AppConfig {
 
     // Remove undefined values from the new config, as only unchanged values are undefined
     const merged = deepMerge(currentConfig, removeUndefined(config));
-    const newConfig = appConfigSchema.parse(merged);
+    const parsedConfig = appConfigSchema.parse(merged);
+    const newConfig = {
+      ...parsedConfig,
+      map: this.#reviseMapConfig(currentConfig.map, parsedConfig.map),
+    };
 
     const result = await db
       .updateTable('appConfig')
@@ -93,19 +112,7 @@ export class AppConfig {
           aeroDataBoxKey: null,
           openAipKey: null,
         },
-        map: {
-          provider: 'openfreemap',
-          cartoApiKey: null,
-          protomapsSourceKind: 'hosted',
-          protomapsApiKey: null,
-          protomapsSourceUrl: null,
-          protomapsMaxZoom: 15,
-          protomapsAssetsBaseUrl: 'https://protomaps.github.io/basemaps-assets',
-          protomapsLanguage: 'en',
-          lightStyleUrl: null,
-          darkStyleUrl: null,
-          styleRevision: 0,
-        },
+        map: { ...DEFAULT_MAP_CONFIG },
         data: {
           lastSynced: null,
         },
@@ -199,36 +206,21 @@ export class AppConfig {
 
     const currentConfig = await this.get();
     const merged = deepMerge(currentConfig, envConfig);
-    let validConfig = appConfigSchema.safeParse(merged);
+    const validConfig = appConfigSchema.safeParse(merged);
     if (!validConfig.success) {
       console.error('Invalid app config in .env:', validConfig.error.issues);
       process.exit(-1);
     }
 
-    if (currentConfig) {
-      const { styleRevision: currentRevision, ...currentMap } =
-        currentConfig.map;
-      const { styleRevision: _nextRevision, ...nextMap } = validConfig.data.map;
-      if (JSON.stringify(currentMap) !== JSON.stringify(nextMap)) {
-        validConfig = appConfigSchema.safeParse({
+    const nextConfig = currentConfig
+      ? {
           ...validConfig.data,
-          map: {
-            ...validConfig.data.map,
-            styleRevision: currentRevision + 1,
-          },
-        });
-        if (!validConfig.success) {
-          console.error(
-            'Failed to revise map configuration:',
-            validConfig.error.issues,
-          );
-          process.exit(-1);
+          map: this.#reviseMapConfig(currentConfig.map, validConfig.data.map),
         }
-      }
-    }
+      : validConfig.data;
 
-    await db.updateTable('appConfig').set('config', validConfig.data).execute();
-    this.#appConfig = validConfig.data;
+    await db.updateTable('appConfig').set('config', nextConfig).execute();
+    this.#appConfig = nextConfig;
 
     const allFields = deepSetAllValues(this.#appConfig, false);
     const envConfiguredFields = deepSetAllValues(envConfig, true);

@@ -14,7 +14,10 @@
     isManagedAppMapStyleUrl,
   } from '$lib/map/app-style';
   import { MAP_THEMES, type MapTheme } from '$lib/map/basemap';
-  import { toMapSettingsFormData } from '$lib/map/map-settings';
+  import {
+    hasMapSettingsChanges,
+    toMapSettingsFormData,
+  } from '$lib/map/map-settings';
   import { loadMapStyleForHealthCheck } from '$lib/map/map-style-health';
   import { appConfig } from '$lib/state.svelte';
   import { mapSettingsFormSchema } from '$lib/zod/config';
@@ -91,20 +94,10 @@
     const savedConfig = appConfig.config?.map;
     if (!savedConfig) return false;
 
-    return (
-      $formData.provider !== savedConfig.provider ||
-      !!$formData.cartoApiKey ||
-      $formData.clearCartoApiKey ||
-      $formData.protomapsSourceKind !== savedConfig.protomapsSourceKind ||
-      !!$formData.protomapsApiKey ||
-      $formData.clearProtomapsApiKey ||
-      $formData.protomapsSourceUrl !== (savedConfig.protomapsSourceUrl ?? '') ||
-      $formData.protomapsMaxZoom !== savedConfig.protomapsMaxZoom ||
-      $formData.protomapsAssetsBaseUrl !== savedConfig.protomapsAssetsBaseUrl ||
-      $formData.protomapsLanguage !== savedConfig.protomapsLanguage ||
-      $formData.lightStyleUrl !== (savedConfig.lightStyleUrl ?? '') ||
-      $formData.darkStyleUrl !== (savedConfig.darkStyleUrl ?? '')
-    );
+    return hasMapSettingsChanges(savedConfig, $formData, {
+      cartoApiKey: appConfig.configured?.map?.cartoApiKey ?? false,
+      protomapsApiKey: appConfig.configured?.map?.protomapsApiKey ?? false,
+    });
   });
 </script>
 

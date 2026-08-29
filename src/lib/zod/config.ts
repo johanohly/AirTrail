@@ -82,26 +82,41 @@ export const mapConfigSchema = z.object({
   styleRevision: z.coerce.number().int().nonnegative().default(0),
 });
 export type MapConfig = z.infer<typeof mapConfigSchema>;
+export const DEFAULT_MAP_CONFIG: Readonly<MapConfig> = Object.freeze(
+  mapConfigSchema.parse({}),
+);
 
 export const mapSettingsFormSchema = z.object({
   provider: z.enum(MAP_PROVIDERS),
   cartoApiKey: z.string().trim().default(''),
   clearCartoApiKey: z.boolean().default(false),
-  protomapsSourceKind: z.enum(PROTOMAPS_SOURCE_KINDS).default('hosted'),
+  protomapsSourceKind: z
+    .enum(PROTOMAPS_SOURCE_KINDS)
+    .default(DEFAULT_MAP_CONFIG.protomapsSourceKind),
   protomapsApiKey: z.string().trim().default(''),
   clearProtomapsApiKey: z.boolean().default(false),
   protomapsSourceUrl: z.string().trim().default(''),
   protomapsMaxZoom: z.preprocess(
     emptyFormValueToUndefined,
-    z.coerce.number().int().min(0).max(24).default(15),
+    z.coerce
+      .number()
+      .int()
+      .min(0)
+      .max(24)
+      .default(DEFAULT_MAP_CONFIG.protomapsMaxZoom),
   ),
   protomapsAssetsBaseUrl: z.preprocess(
     emptyFormValueToUndefined,
-    mapResourceBaseUrl.default(DEFAULT_PROTOMAPS_ASSETS_BASE_URL),
+    mapResourceBaseUrl.default(DEFAULT_MAP_CONFIG.protomapsAssetsBaseUrl),
   ),
   protomapsLanguage: z.preprocess(
     emptyFormValueToUndefined,
-    z.string().trim().min(2).max(16).default('en'),
+    z
+      .string()
+      .trim()
+      .min(2)
+      .max(16)
+      .default(DEFAULT_MAP_CONFIG.protomapsLanguage),
   ),
   lightStyleUrl: z.string().trim().default(''),
   darkStyleUrl: z.string().trim().default(''),

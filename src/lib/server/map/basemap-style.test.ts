@@ -163,4 +163,41 @@ describe('basemap providers', () => {
       maxzoom: 14,
     });
   });
+
+  test('backs off before retrying an upstream provider after serving stale style data', async () => {
+    vi.resetModules();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-29T10:00:00Z'));
+
+    try {
+      const { loadProviderStyle: loadFreshProviderStyle } =
+        await import('./basemap-style');
+      const fetchFn = vi.fn<typeof fetch>(async () => {
+        if (fetchFn.mock.calls.length === 1) {
+          return Response.json({
+            version: 8,
+            sources: {},
+            layers: [{ id: 'background', type: 'background' }],
+          });
+        }
+        throw new Error('provider unavailable');
+      });
+      const request = {
+        config: baseConfig(),
+        fetchFn,
+        requestOrigin: 'https://airtrail.example',
+        theme: 'light',
+      } satisfies Parameters<typeof loadFreshProviderStyle>[0];
+
+      await loadFreshProviderStyle(request);
+      vi.advanceTimersByTime(60 * 60 * 1000 + 1);
+      await loadFreshProviderStyle(request);
+      await loadFreshProviderStyle(request);
+
+      expect(fetchFn).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+      vi.resetModules();
+    }
+  });
 });
