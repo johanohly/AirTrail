@@ -2,7 +2,10 @@ import { layers, namedFlavor } from '@protomaps/basemaps';
 import { z } from 'zod';
 
 import type { MapProvider, MapTheme } from '$lib/map/basemap';
-import type { AirportStyleFonts } from '$lib/map/airport-style';
+import type {
+  AirportStyleFonts,
+  AirportStyleProvider,
+} from '$lib/map/airport-style';
 import type { MapConfig } from '$lib/zod/config';
 
 const OPENFREEMAP_STYLE_URLS = {
@@ -59,56 +62,8 @@ type ResolvedProviderStyle = {
   style: StyleDocument;
   fonts: AirportStyleFonts;
   creditsOpenStreetMap: boolean;
+  provider: AirportStyleProvider;
 };
-
-type StyleLayer = StyleDocument['layers'][number];
-
-const excludeAerodromes = ['!=', ['get', 'kind'], 'aerodrome'];
-
-const adaptProviderLayers = (
-  layers: StyleLayer[],
-  provider: MapProvider,
-): StyleLayer[] => {
-  switch (provider) {
-    case 'openfreemap':
-      return layers.filter(
-        (layer) =>
-          layer.type !== 'symbol' ||
-          layer['source-layer'] !== 'aerodrome_label',
-      );
-    case 'carto':
-      return layers;
-    case 'protomaps':
-      return layers.map((layer) => {
-        if (
-          layer.type !== 'symbol' ||
-          layer['source-layer'] !== 'pois' ||
-          layer.id !== 'pois'
-        ) {
-          return layer;
-        }
-
-        return {
-          ...layer,
-          filter: layer.filter
-            ? ['all', layer.filter, excludeAerodromes]
-            : excludeAerodromes,
-        };
-      });
-    default: {
-      const exhaustive: never = provider;
-      return exhaustive;
-    }
-  }
-};
-
-const adaptProviderStyle = (
-  style: StyleDocument,
-  provider: MapProvider,
-): StyleDocument => ({
-  ...style,
-  layers: adaptProviderLayers(style.layers, provider),
-});
 
 type CachedStyle = {
   value: StyleDocument;
@@ -384,16 +339,14 @@ export const loadProviderStyle = async ({
   switch (provider) {
     case 'openfreemap':
       return {
-        style: adaptProviderStyle(
-          await fetchRemoteStyle({
-            cacheKey: `openfreemap:${theme}`,
-            fetchFn,
-            url: OPENFREEMAP_STYLE_URLS[theme],
-          }),
-          provider,
-        ),
+        style: await fetchRemoteStyle({
+          cacheKey: `openfreemap:${theme}`,
+          fetchFn,
+          url: OPENFREEMAP_STYLE_URLS[theme],
+        }),
         fonts: PROVIDER_FONTS.openfreemap,
         creditsOpenStreetMap: true,
+        provider,
       };
     case 'carto': {
       if (!config.cartoApiKey) throw new Error('CARTO API key is missing');
@@ -403,12 +356,10 @@ export const loadProviderStyle = async ({
         url: appendApiKey(CARTO_STYLE_URLS[theme], config.cartoApiKey),
       });
       return {
-        style: adaptProviderStyle(
-          await signCartoStyle(style, config.cartoApiKey, fetchFn),
-          provider,
-        ),
+        style: await signCartoStyle(style, config.cartoApiKey, fetchFn),
         fonts: PROVIDER_FONTS.carto,
         creditsOpenStreetMap: true,
+        provider,
       };
     }
     case 'protomaps': {
@@ -424,9 +375,10 @@ export const loadProviderStyle = async ({
             )
           : style;
       return {
-        style: adaptProviderStyle(resolvedStyle, provider),
+        style: resolvedStyle,
         fonts: PROVIDER_FONTS.protomaps,
         creditsOpenStreetMap: true,
+        provider,
       };
     }
     default: {

@@ -39,11 +39,6 @@ describe('basemap providers', () => {
       'https://assets.example.com/basemaps/sprites/v4/dark',
     );
     expect(style.layers.length).toBeGreaterThan(20);
-    expect(style.layers.find((layer) => layer.id === 'pois')?.filter).toEqual([
-      'all',
-      expect.any(Array),
-      ['!=', ['get', 'kind'], 'aerodrome'],
-    ]);
     expect(fonts.emphasis).toEqual(['Noto Sans Medium']);
   });
 
@@ -172,7 +167,7 @@ describe('basemap providers', () => {
     });
   });
 
-  test('removes OpenFreeMap airport labels without hiding other layers', async () => {
+  test('preserves OpenFreeMap layers before composing the airport overlay', async () => {
     const fetchFn = vi.fn<typeof fetch>(async () =>
       Response.json({
         version: 8,
@@ -197,15 +192,17 @@ describe('basemap providers', () => {
       }),
     );
 
-    const { style } = await loadProviderStyle({
+    const { style, provider } = await loadProviderStyle({
       config: baseConfig(),
       fetchFn,
       requestOrigin: 'https://airtrail.example',
       theme: 'light',
     });
 
+    expect(provider).toBe('openfreemap');
     expect(style.layers.map((layer) => layer.id)).toEqual([
       'aeroway-runway',
+      'airport',
       'place-city',
     ]);
   });

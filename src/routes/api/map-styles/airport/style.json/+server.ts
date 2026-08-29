@@ -69,6 +69,7 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
             emphasis: ['Noto Sans Regular'],
           },
           creditsOpenStreetMap: false,
+          provider: 'local',
         };
         fallbackProvider = 'local';
       }
@@ -80,6 +81,7 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
           emphasis: ['Noto Sans Regular'],
         },
         creditsOpenStreetMap: false,
+        provider: 'local',
       };
       fallbackProvider = 'local';
     }
@@ -89,6 +91,7 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
     theme,
     fonts: resolved.fonts,
     creditsOpenStreetMap: resolved.creditsOpenStreetMap,
+    provider: resolved.provider,
   });
   const headers: Record<string, string> = {
     'cache-control': 'private, max-age=300, stale-while-revalidate=3600',

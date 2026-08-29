@@ -1,4 +1,4 @@
-import { normalizeMapTheme } from '$lib/map/basemap';
+import { normalizeMapTheme, type MapProvider } from '$lib/map/basemap';
 
 export const AIRPORT_STYLE_ROUTE_PATH = '/api/map-styles/airport/style.json';
 export const getAirportGatePillImageId = (theme: string) =>
@@ -1017,6 +1017,50 @@ export type AirportStyleFonts = {
   emphasis: readonly string[];
 };
 
+export type AirportStyleProvider = MapProvider | 'local';
+
+type AirportStyleLayer = NonNullable<AirportStyleDocument['layers']>[number];
+
+const excludeAerodromes = ['!=', ['get', 'kind'], 'aerodrome'];
+
+const adaptProviderLayers = (
+  layers: AirportStyleLayer[],
+  provider: AirportStyleProvider,
+): AirportStyleLayer[] => {
+  switch (provider) {
+    case 'openfreemap':
+      return layers.filter(
+        (layer) =>
+          layer.type !== 'symbol' ||
+          layer['source-layer'] !== 'aerodrome_label',
+      );
+    case 'carto':
+    case 'local':
+      return layers;
+    case 'protomaps':
+      return layers.map((layer) => {
+        if (
+          layer.type !== 'symbol' ||
+          layer['source-layer'] !== 'pois' ||
+          layer.id !== 'pois'
+        ) {
+          return layer;
+        }
+
+        return {
+          ...layer,
+          filter: layer.filter
+            ? ['all', layer.filter, excludeAerodromes]
+            : excludeAerodromes,
+        };
+      });
+    default: {
+      const exhaustive: never = provider;
+      return exhaustive;
+    }
+  }
+};
+
 const hasOpenStreetMapAttribution = (style: AirportStyleDocument) =>
   Object.values(style.sources ?? {}).some(
     (source) =>
@@ -1123,13 +1167,19 @@ export const buildAirportStyle = (
     theme = 'light',
     fonts,
     creditsOpenStreetMap = false,
+    provider,
   }: {
     theme?: AirportStyleTheme;
     fonts: AirportStyleFonts;
     creditsOpenStreetMap?: boolean;
+    provider: AirportStyleProvider;
   },
 ) => {
   const rewrittenStyle = structuredClone(style) as AirportStyleDocument;
+  rewrittenStyle.layers = adaptProviderLayers(
+    rewrittenStyle.layers ?? [],
+    provider,
+  );
   const needsOpenStreetMapAttribution =
     !creditsOpenStreetMap && !hasOpenStreetMapAttribution(rewrittenStyle);
 
