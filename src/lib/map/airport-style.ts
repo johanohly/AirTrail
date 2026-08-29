@@ -7,6 +7,8 @@ export const getAirportGatePillImageId = (theme: string) =>
     : 'airport-gate-pill-light';
 
 const AIRPORT_SOURCE = 'airport-overlay';
+const OPENSTREETMAP_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 const AIRPORT_FILL = '#ededed';
 const AIRPORT_FILL_DARK = '#e4e4e4';
 const AIRPORT_OUTLINE = '#d0d0d0';
@@ -1015,6 +1017,13 @@ export type AirportStyleFonts = {
   emphasis: readonly string[];
 };
 
+const hasOpenStreetMapAttribution = (style: AirportStyleDocument) =>
+  Object.values(style.sources ?? {}).some(
+    (source) =>
+      typeof source.attribution === 'string' &&
+      source.attribution.toLowerCase().includes('openstreetmap'),
+  );
+
 const insertOverlayLayers = (
   style: AirportStyleDocument,
   layersToInsert: ReadonlyArray<Record<string, unknown>>,
@@ -1113,12 +1122,16 @@ export const buildAirportStyle = (
   {
     theme = 'light',
     fonts,
+    creditsOpenStreetMap = false,
   }: {
     theme?: AirportStyleTheme;
     fonts: AirportStyleFonts;
+    creditsOpenStreetMap?: boolean;
   },
 ) => {
   const rewrittenStyle = structuredClone(style) as AirportStyleDocument;
+  const needsOpenStreetMapAttribution =
+    !creditsOpenStreetMap && !hasOpenStreetMapAttribution(rewrittenStyle);
 
   rewrittenStyle.name =
     theme === 'dark' ? 'Airport Style (Dark)' : 'Airport Style';
@@ -1127,8 +1140,9 @@ export const buildAirportStyle = (
     [AIRPORT_SOURCE]: {
       type: 'vector',
       url: 'pmtiles:///airport-overlay.pmtiles',
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      attribution: needsOpenStreetMapAttribution
+        ? OPENSTREETMAP_ATTRIBUTION
+        : '',
     },
   };
 

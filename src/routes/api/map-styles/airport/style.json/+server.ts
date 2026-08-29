@@ -68,6 +68,7 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
             regular: ['Noto Sans Regular'],
             emphasis: ['Noto Sans Regular'],
           },
+          creditsOpenStreetMap: false,
         };
         fallbackProvider = 'local';
       }
@@ -78,6 +79,7 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
           regular: ['Noto Sans Regular'],
           emphasis: ['Noto Sans Regular'],
         },
+        creditsOpenStreetMap: false,
       };
       fallbackProvider = 'local';
     }
@@ -86,6 +88,7 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
   const style = buildAirportStyle(resolved.style, {
     theme,
     fonts: resolved.fonts,
+    creditsOpenStreetMap: resolved.creditsOpenStreetMap,
   });
   const headers: Record<string, string> = {
     'cache-control': 'private, max-age=300, stale-while-revalidate=3600',

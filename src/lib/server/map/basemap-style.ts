@@ -17,6 +17,8 @@ const CARTO_STYLE_URLS = {
 
 const PROTOMAPS_ATTRIBUTION =
   '<a href="https://protomaps.com">Protomaps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+const PROTOMAPS_HOSTED_ATTRIBUTION =
+  '&copy; <a href="https://protomaps.com">Protomaps</a> | &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 const PROVIDER_FONTS = {
   openfreemap: {
@@ -52,6 +54,12 @@ const tileJsonSchema = z
   .loose();
 
 type StyleDocument = z.infer<typeof styleSchema>;
+
+type ResolvedProviderStyle = {
+  style: StyleDocument;
+  fonts: AirportStyleFonts;
+  creditsOpenStreetMap: boolean;
+};
 
 type CachedStyle = {
   value: StyleDocument;
@@ -217,7 +225,7 @@ const buildProtomapsStyle = (
           'https://api.protomaps.com/tiles/v4.json',
           config.protomapsApiKey ?? '',
         ),
-        attribution: PROTOMAPS_ATTRIBUTION,
+        attribution: PROTOMAPS_HOSTED_ATTRIBUTION,
       };
       break;
     case 'pmtiles':
@@ -276,7 +284,7 @@ const inlineHostedProtomapsSource = async (
   style.sources.protomaps = {
     type: 'vector',
     tiles: tileJson.tiles.map((tile) => appendApiKey(tile, apiKey)),
-    attribution: tileJson.attribution ?? PROTOMAPS_ATTRIBUTION,
+    attribution: PROTOMAPS_HOSTED_ATTRIBUTION,
     ...(tileJson.minzoom !== undefined ? { minzoom: tileJson.minzoom } : {}),
     ...(tileJson.maxzoom !== undefined ? { maxzoom: tileJson.maxzoom } : {}),
     ...(tileJson.bounds ? { bounds: tileJson.bounds } : {}),
@@ -323,7 +331,7 @@ export const loadProviderStyle = async ({
   provider?: MapProvider;
   requestOrigin: string;
   theme: MapTheme;
-}): Promise<{ style: StyleDocument; fonts: AirportStyleFonts }> => {
+}): Promise<ResolvedProviderStyle> => {
   switch (provider) {
     case 'openfreemap':
       return {
@@ -333,6 +341,7 @@ export const loadProviderStyle = async ({
           url: OPENFREEMAP_STYLE_URLS[theme],
         }),
         fonts: PROVIDER_FONTS.openfreemap,
+        creditsOpenStreetMap: true,
       };
     case 'carto': {
       if (!config.cartoApiKey) throw new Error('CARTO API key is missing');
@@ -344,6 +353,7 @@ export const loadProviderStyle = async ({
       return {
         style: await signCartoStyle(style, config.cartoApiKey, fetchFn),
         fonts: PROVIDER_FONTS.carto,
+        creditsOpenStreetMap: true,
       };
     }
     case 'protomaps': {
@@ -360,6 +370,7 @@ export const loadProviderStyle = async ({
               )
             : style,
         fonts: PROVIDER_FONTS.protomaps,
+        creditsOpenStreetMap: true,
       };
     }
     default: {

@@ -29,6 +29,8 @@ describe('basemap providers', () => {
     expect(style.sources.protomaps).toMatchObject({
       type: 'vector',
       url: 'pmtiles://https://tiles.example.com/world.pmtiles',
+      attribution:
+        '<a href="https://protomaps.com">Protomaps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     });
     expect(style.glyphs).toBe(
       'https://assets.example.com/basemaps/fonts/{fontstack}/{range}.pbf',
@@ -91,7 +93,8 @@ describe('basemap providers', () => {
       tiles: [
         'https://api.protomaps.com/tiles/v4/{z}/{x}/{y}.mvt?key=test-key',
       ],
-      attribution: 'Protomaps data attribution',
+      attribution:
+        '&copy; <a href="https://protomaps.com">Protomaps</a> | &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       minzoom: 0,
       maxzoom: 15,
     });
