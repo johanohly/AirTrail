@@ -4,9 +4,12 @@ import {
   generateBackup,
   serializeBackup,
   type BackupFormat,
-  type BackupScope,
 } from '$lib/server/utils/backup';
-import { hasPermission } from '$lib/server/authorization/authorize';
+import {
+  parseFlightScopeSearchParams,
+  resolveFlightScope,
+} from '$lib/flight-scope';
+import { canExportFlights } from '$lib/server/authorization/flight';
 import {
   apiError,
   authenticateApiKey,
@@ -25,12 +28,6 @@ const parseFormat = (value: string | null): BackupFormat | null => {
   return null;
 };
 
-const parseScope = (value: string | null): BackupScope | null => {
-  if (!value || value === 'mine') return 'mine';
-  if (value === 'user' || value === 'all') return value;
-  return null;
-};
-
 export const GET: RequestHandler = async ({ request, url }) => {
   const authentication = await authenticateApiKey(request);
   if (!authentication) {
@@ -43,22 +40,21 @@ export const GET: RequestHandler = async ({ request, url }) => {
     return apiError('Invalid format', 400);
   }
 
-  const scope = parseScope(url.searchParams.get('scope'));
-  if (!scope) {
-    return apiError('Invalid scope', 400);
+  const parsedScope = parseFlightScopeSearchParams(url.searchParams);
+  if (!parsedScope.success) {
+    return apiError(
+      parsedScope.reason === 'missing_user'
+        ? 'A userId query parameter is required for user scope'
+        : 'Invalid scope',
+      400,
+    );
   }
 
-  const permission =
-    scope === 'mine' ? 'flight.export.own' : 'flight.export.any';
-  if (!hasPermission(authorization, permission)) return forbidden();
+  if (!canExportFlights(authorization, parsedScope.data)) return forbidden();
 
-  const userId =
-    scope === 'mine' ? user.id : url.searchParams.get('userId') || undefined;
-  if (scope === 'user' && !userId) {
-    return apiError('A userId query parameter is required for user scope', 400);
-  }
-
-  const backup = await generateBackup({ scope, userId });
+  const backup = await generateBackup(
+    resolveFlightScope(parsedScope.data, user.id),
+  );
   const filename = `airtrail.${format === 'yaml' ? 'yaml' : 'json'}`;
 
   return new Response(serializeBackup(backup, format), {

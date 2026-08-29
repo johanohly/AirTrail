@@ -2,6 +2,7 @@
   import { ShieldCheck } from '@o7/icon/lucide';
   import { toast } from 'svelte-sonner';
 
+  import { invalidateAll } from '$app/navigation';
   import { page } from '$app/state';
   import {
     hasClientPermission,
@@ -19,6 +20,11 @@
   } from '$lib/components/ui/modal';
   import { api } from '$lib/trpc';
   import { getErrorText } from '$lib/utils/error';
+  import { openModalsState } from '$lib/state.svelte';
+  import {
+    ROLE_DESCRIPTION_MAX_LENGTH,
+    ROLE_NAME_MAX_LENGTH,
+  } from '$lib/zod/role';
 
   export type EditableRole = {
     id?: string;
@@ -71,11 +77,26 @@
       } else {
         await api.role.create.mutate(input);
       }
-      await onSaved();
       open = false;
       toast.success(role?.id ? 'Role updated.' : 'Role created.');
     } catch (error) {
       toast.error(getErrorText(error) || 'Could not save the role.');
+      saving = false;
+      return;
+    }
+
+    try {
+      await invalidateAll();
+      if (
+        hasClientPermission(page.data.authorization, 'roles.manage') ||
+        hasClientPermission(page.data.authorization, 'users.roles.assign')
+      ) {
+        await onSaved();
+      } else {
+        openModalsState.settingsTab = 'general';
+      }
+    } catch {
+      toast.error('Role saved, but the page could not be refreshed.');
     } finally {
       saving = false;
     }
@@ -92,14 +113,18 @@
     <div class="space-y-5">
       <div class="grid gap-2">
         <Label for="role-name">Name</Label>
-        <Input id="role-name" bind:value={name} maxlength={80} />
+        <Input
+          id="role-name"
+          bind:value={name}
+          maxlength={ROLE_NAME_MAX_LENGTH}
+        />
       </div>
       <div class="grid gap-2">
         <Label for="role-description">Description</Label>
         <Input
           id="role-description"
           bind:value={description}
-          maxlength={240}
+          maxlength={ROLE_DESCRIPTION_MAX_LENGTH}
           placeholder="What people with this role can do"
         />
       </div>

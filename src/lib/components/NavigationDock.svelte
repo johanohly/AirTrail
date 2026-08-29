@@ -62,7 +62,9 @@
     ) {
       items.push({ label: 'Tools', href: '/tools' });
     }
-    items.push({ label: 'Visited countries', href: '/visited-countries' });
+    if (hasClientPermission(page.data.authorization, 'flight.read.own')) {
+      items.push({ label: 'Visited countries', href: '/visited-countries' });
+    }
     return items;
   });
 </script>
@@ -87,9 +89,11 @@
         <DockTooltipItem item={listFlightsItem} />
         <DockTooltipItem item={flightsStatisticsItem} />
       {/if}
-      <DockDropdownItem items={otherItems} label="More">
-        <Grip />
-      </DockDropdownItem>
+      {#if otherItems.length > 0}
+        <DockDropdownItem items={otherItems} label="More">
+          <Grip />
+        </DockDropdownItem>
+      {/if}
       <Separator orientation="vertical" class="h-full w-px" />
       <DockTooltipItem item={settingsItem} />
     </Dock>

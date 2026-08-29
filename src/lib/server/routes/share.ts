@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 import { authedProcedure, publicProcedure, router } from '../trpc';
@@ -11,6 +12,15 @@ import {
   deleteShare,
   getPublicShareData,
 } from '$lib/server/utils/share';
+import { canShareOwnFlights } from '$lib/server/authorization/flight';
+
+const requireSharePermission = (
+  authorization: Parameters<typeof canShareOwnFlights>[0],
+) => {
+  if (!canShareOwnFlights(authorization)) {
+    throw new TRPCError({ code: 'FORBIDDEN' });
+  }
+};
 
 export const shareRouter = router({
   // List user's shares
@@ -21,14 +31,16 @@ export const shareRouter = router({
   // Create new share
   create: authedProcedure
     .input(shareCreateSchema)
-    .mutation(async ({ ctx: { user }, input }) => {
+    .mutation(async ({ ctx: { user, authorization }, input }) => {
+      requireSharePermission(authorization);
       return await createShare(user.id, input);
     }),
 
   // Update existing share
   update: authedProcedure
     .input(shareUpdateSchema)
-    .mutation(async ({ ctx: { user }, input }) => {
+    .mutation(async ({ ctx: { user, authorization }, input }) => {
+      requireSharePermission(authorization);
       return await updateShare(user.id, input);
     }),
 

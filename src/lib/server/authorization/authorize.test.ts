@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Permission } from '$lib/authorization/permissions';
+import { permissionsStrictlyInclude } from '$lib/authorization/permissions';
 import type { AuthorizationContext } from './context';
 import { hasPermission, permissionsAreSubset } from './authorize';
 
@@ -40,5 +41,17 @@ describe('RBAC authorization', () => {
 
   it('gives the owner every permission without a role', () => {
     expect(hasPermission(context([], true), 'tools.sql.execute')).toBe(true);
+  });
+
+  it('compares role hierarchy using effective permissions', () => {
+    expect(
+      permissionsStrictlyInclude(['flight.read.any'], ['flight.read.own']),
+    ).toBe(true);
+    expect(
+      permissionsStrictlyInclude(
+        ['flight.read.any'],
+        ['flight.read.any', 'flight.read.own'],
+      ),
+    ).toBe(false);
   });
 });

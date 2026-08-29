@@ -60,7 +60,7 @@
     onOpenFlight?: (flightId: number) => void;
   } = $props();
 
-  const showScopeBanner = $derived(flightScopeState.scope !== 'mine');
+  const showScopeBanner = $derived(flightScopeState.current.scope !== 'mine');
 
   // Only show completed flights
   const completedFlights = $derived.by(() =>

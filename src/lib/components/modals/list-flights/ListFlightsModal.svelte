@@ -19,12 +19,12 @@
     paginateFlightListYears,
     sortByDepartureDesc,
   } from './flight-list-groups';
+  import { createFlightListAccess } from './flight-list-access';
   import MobileFlightList from './MobileFlightList.svelte';
   import PastFlightsDivider from './PastFlightsDivider.svelte';
   import Toolbar from './Toolbar.svelte';
 
   import { page as appPage } from '$app/state';
-  import { hasClientPermission } from '$lib/authorization/permissions';
   import type { Airport } from '$lib/db/types';
   import { AirlineIcon, TimeDisplay } from '$lib/components/display';
   import {
@@ -44,11 +44,7 @@
   import * as Tooltip from '$lib/components/ui/tooltip';
   import type { NavigateFlights } from '$lib/flight-navigation';
   import { canShowFlightOnMap } from '$lib/flight-visibility';
-  import {
-    flightAddedState,
-    flightListFocusState,
-    flightScopeState,
-  } from '$lib/state.svelte';
+  import { flightAddedState, flightListFocusState } from '$lib/state.svelte';
   import {
     cn,
     cancelHighlight,
@@ -90,41 +86,19 @@
   } = $props();
 
   const prefs = $derived(getPreferences(appPage.data.user));
-  const canCreateFlight = $derived(
-    !readonly &&
-      hasClientPermission(appPage.data.authorization, 'flight.create.own'),
+  const access = $derived(
+    createFlightListAccess({
+      authorization: appPage.data.authorization,
+      userId: appPage.data.user?.id ?? null,
+      readonly,
+    }),
   );
-  const canUpdateAnyFlight = $derived(
-    !readonly &&
-      hasClientPermission(appPage.data.authorization, 'flight.update.any'),
-  );
-  const canUpdateOwnFlight = $derived(
-    !readonly &&
-      hasClientPermission(appPage.data.authorization, 'flight.update.own'),
-  );
-  const canDeleteAnyFlight = $derived(
-    !readonly &&
-      hasClientPermission(appPage.data.authorization, 'flight.delete.any'),
-  );
-  const canDeleteOwnFlight = $derived(
-    !readonly &&
-      hasClientPermission(appPage.data.authorization, 'flight.delete.own'),
-  );
-
-  const isOwnFlight = (flight: FlightData) =>
-    Boolean(
-      appPage.data.user &&
-      flight.passengers.some(
-        (passenger) => passenger.userId === appPage.data.user?.id,
-      ),
-    );
+  const canCreateFlight = $derived(access.canCreateFlight);
   const canUpdateFlight = (flight: FlightData) =>
-    canUpdateAnyFlight || (canUpdateOwnFlight && isOwnFlight(flight));
+    access.canUpdateFlight(flight);
   const canDeleteFlight = (flight: FlightData) =>
-    canDeleteAnyFlight || (canDeleteOwnFlight && isOwnFlight(flight));
-  const canBulkDelete = $derived(
-    filteredFlights.length > 0 && filteredFlights.every(canDeleteFlight),
-  );
+    access.canDeleteFlight(flight);
+  const canBulkDelete = $derived(access.canBulkDelete(filteredFlights));
 
   const formattedFlights = $derived.by(() => {
     const data = filteredFlights;

@@ -1,4 +1,5 @@
 import type { Kysely } from 'kysely';
+import { isDeepStrictEqual } from 'node:util';
 import { sql } from 'kysely';
 
 import type { DB } from '$lib/db/schema';
@@ -238,4 +239,57 @@ export const persistEntityCustomFields = async (
   for (const [fieldId, value] of entriesToPersist) {
     await persistEntry(db, entityType, entityId, fieldId, value);
   }
+};
+
+export const wouldChangeEntityCustomFields = async (
+  db: Kysely<DB>,
+  {
+    entityType,
+    entityId,
+    values,
+  }: {
+    entityType: EntityType;
+    entityId: string;
+    values?: IncomingValues;
+  },
+) => {
+  const definitions = await db
+    .selectFrom('customFieldDefinition')
+    .select([
+      'id',
+      'key',
+      'label',
+      'fieldType',
+      'required',
+      'defaultValue',
+      'options',
+      'validationJson',
+    ])
+    .where('entityType', '=', entityType)
+    .where('active', '=', true)
+    .execute();
+  const incoming = resolveIncomingValues(
+    values,
+    new Map(definitions.map((definition) => [definition.id, definition])),
+    new Map(definitions.map((definition) => [definition.key, definition])),
+  );
+  if (incoming.size === 0) return false;
+
+  const existing = new Map(
+    (
+      await db
+        .selectFrom('customFieldValue')
+        .select(['fieldId', 'value'])
+        .where('entityType', '=', entityType)
+        .where('entityId', '=', entityId)
+        .execute()
+    ).map((row) => [row.fieldId, row.value]),
+  );
+
+  return [...incoming].some(([fieldId, value]) =>
+    isCustomFieldValueEmpty(value)
+      ? existing.has(fieldId)
+      : !existing.has(fieldId) ||
+        !isDeepStrictEqual(existing.get(fieldId), value),
+  );
 };

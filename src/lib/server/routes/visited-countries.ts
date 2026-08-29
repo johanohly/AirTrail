@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { authedProcedure, router } from '../trpc';
+import { permissionProcedure, router } from '../trpc';
 
 import { db } from '$lib/db';
 import { VisitedCountryStatus } from '$lib/db/types';
@@ -22,7 +22,7 @@ const VisitedCountrySchema = z.object({
 });
 
 export const visitedCountriesRouter = router({
-  list: authedProcedure.query(async ({ ctx }) => {
+  list: permissionProcedure('flight.read.own').query(async ({ ctx }) => {
     const list = await db
       .selectFrom('visitedCountry')
       .select(['id', 'userId', 'note', 'code', 'status'])
@@ -31,7 +31,7 @@ export const visitedCountriesRouter = router({
 
     return list.filter((country) => countryFromAlpha2(country.code));
   }),
-  save: authedProcedure
+  save: permissionProcedure('flight.read.own')
     .input(VisitedCountrySchema)
     .mutation(async ({ ctx, input }) => {
       const status = input.status;
@@ -60,25 +60,27 @@ export const visitedCountriesRouter = router({
         return result.length > 0;
       }
     }),
-  importFlights: authedProcedure.mutation(async ({ ctx }) => {
-    const flights = await listFlights(ctx.user.id);
-    const countries = countryCodesFromFlights(flights);
+  importFlights: permissionProcedure('flight.read.own').mutation(
+    async ({ ctx }) => {
+      const flights = await listFlights(ctx.user.id);
+      const countries = countryCodesFromFlights(flights);
 
-    if (countries.size === 0) {
-      return 0;
-    }
+      if (countries.size === 0) {
+        return 0;
+      }
 
-    const result = await db
-      .insertInto('visitedCountry')
-      .values(
-        Array.from(countries).map((country) => ({
-          userId: ctx.user.id,
-          code: country,
-          status: 'visited',
-        })),
-      )
-      .onConflict((oc) => oc.columns(['userId', 'code']).doNothing())
-      .execute();
-    return Number(result?.[0]?.numInsertedOrUpdatedRows || 0);
-  }),
+      const result = await db
+        .insertInto('visitedCountry')
+        .values(
+          Array.from(countries).map((country) => ({
+            userId: ctx.user.id,
+            code: country,
+            status: 'visited',
+          })),
+        )
+        .onConflict((oc) => oc.columns(['userId', 'code']).doNothing())
+        .execute();
+      return Number(result?.[0]?.numInsertedOrUpdatedRows || 0);
+    },
+  ),
 });

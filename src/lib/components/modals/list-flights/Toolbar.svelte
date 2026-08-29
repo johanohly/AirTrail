@@ -12,6 +12,7 @@
 
   import { page as pageState } from '$app/state';
   import { hasClientPermission } from '$lib/authorization/permissions';
+  import type { FlightScope } from '$lib/flight-scope';
 
   import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
   import {
@@ -27,11 +28,7 @@
   import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import * as Select from '$lib/components/ui/select';
-  import {
-    flightScopeState,
-    setFlightScope,
-    type FlightScope,
-  } from '$lib/state.svelte';
+  import { flightScopeState, setFlightScope } from '$lib/state.svelte';
   import { api, trpc } from '$lib/trpc';
   import type { FlightData } from '$lib/utils';
 
@@ -68,6 +65,11 @@
   } = $props();
 
   const users = $derived(pageState.data.users);
+  const selectedUserId = $derived(
+    flightScopeState.current.scope === 'user'
+      ? flightScopeState.current.userId
+      : undefined,
+  );
   const isAdmin = $derived(
     hasClientPermission(pageState.data.authorization, 'flight.read.any'),
   );
@@ -78,20 +80,26 @@
     return z !== undefined ? `z-index: ${z + 1};` : undefined;
   });
 
-  const updateScope = (scope: FlightScope) => {
-    setFlightScope(
-      scope,
-      scope === 'user' ? (flightScopeState.userId ?? users[0]?.id) : undefined,
-    );
+  const updateScope = (scope: FlightScope['scope']) => {
+    const userId =
+      flightScopeState.current.scope === 'user'
+        ? flightScopeState.current.userId
+        : users[0]?.id;
+    if (scope === 'user') {
+      if (!userId) return;
+      setFlightScope({ scope, userId });
+    } else {
+      setFlightScope({ scope });
+    }
     selecting = false;
     selectedFlights = [];
     page = 1;
   };
 
   const scopeLabel = $derived.by(() => {
-    if (flightScopeState.scope === 'all') return 'Everyone';
-    if (flightScopeState.scope === 'user') {
-      const scopedUser = users.find((u) => u.id === flightScopeState.userId);
+    if (flightScopeState.current.scope === 'all') return 'Everyone';
+    if (flightScopeState.current.scope === 'user') {
+      const scopedUser = users.find((u) => u.id === selectedUserId);
       return scopedUser ? scopedUser.displayName : 'One user';
     }
     return 'Mine';
@@ -164,8 +172,12 @@
             <p class="text-sm font-medium">Flight visibility</p>
           </div>
           <RadioGroup.Root
-            value={flightScopeState.scope}
-            onValueChange={(value) => updateScope(value as FlightScope)}
+            value={flightScopeState.current.scope}
+            onValueChange={(value) => {
+              if (value === 'mine' || value === 'user' || value === 'all') {
+                updateScope(value);
+              }
+            }}
             class="grid grid-cols-3 gap-2"
           >
             <Label
@@ -188,17 +200,19 @@
             </Label>
           </RadioGroup.Root>
 
-          {#if flightScopeState.scope === 'user'}
+          {#if flightScopeState.current.scope === 'user'}
             <div class="space-y-2">
               <p class="text-xs font-medium text-muted-foreground">User</p>
               <Select.Root
                 type="single"
-                value={flightScopeState.userId}
-                onValueChange={(value) => setFlightScope('user', value)}
+                value={flightScopeState.current.userId}
+                onValueChange={(value) => {
+                  if (value) setFlightScope({ scope: 'user', userId: value });
+                }}
               >
                 <Select.Trigger>
-                  {users.find((u) => u.id === flightScopeState.userId)
-                    ?.displayName ?? 'Select a user'}
+                  {users.find((u) => u.id === selectedUserId)?.displayName ??
+                    'Select a user'}
                 </Select.Trigger>
                 <Select.Content>
                   {#each users as user (user.id)}

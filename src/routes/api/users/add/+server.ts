@@ -4,9 +4,10 @@ import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
 import type { RequestHandler } from './$types';
 
+import { db } from '$lib/db';
 import { hasPermission } from '$lib/server/authorization/authorize';
-import { actorCanAssignRole } from '$lib/server/authorization/roles';
-import { writeAuthorizationAudit } from '$lib/server/authorization/audit';
+import { loadLockedAuthorizationContext } from '$lib/server/authorization/context';
+import { actorCanAssignRole, lockRoles } from '$lib/server/authorization/roles';
 import { createUser, usernameExists } from '$lib/server/utils/auth';
 import { hashArgon2 } from '$lib/server/utils/hash';
 import { addUserSchema } from '$lib/zod/user';
@@ -28,38 +29,51 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   }
 
   const { username, password, displayName, roleId } = form.data;
-  if (!(await actorCanAssignRole(authorization, roleId))) {
-    return actionResult('error', 'You cannot assign this role.', 403);
-  }
+  const userId = generateId(15);
+  const passwordHash = await hashArgon2(password);
+  const outcome = await db.transaction().execute(async (trx) => {
+    const currentAuthorization = await loadLockedAuthorizationContext(
+      authorization.userId,
+      trx,
+    );
+    if (
+      !currentAuthorization ||
+      !hasPermission(currentAuthorization, 'users.create')
+    ) {
+      return 'forbidden';
+    }
+    await lockRoles(trx, [roleId]);
+    if (!(await actorCanAssignRole(currentAuthorization, roleId, trx))) {
+      return 'forbidden';
+    }
+    if (await usernameExists(username, undefined, trx)) {
+      return 'username_exists';
+    }
+    const success = await createUser(
+      userId,
+      username,
+      passwordHash,
+      displayName,
+      roleId,
+      undefined,
+      false,
+      trx,
+    );
+    if (!success) return 'failed';
+    return 'created';
+  });
 
-  const exists = await usernameExists(username);
-  if (exists) {
+  if (outcome === 'username_exists') {
     setError(form, 'username', 'Username already exists');
     return actionResult('failure', { form });
   }
-
-  const userId = generateId(15);
-  const passwordHash = await hashArgon2(password);
-
-  const success = await createUser(
-    userId,
-    username,
-    passwordHash,
-    displayName,
-    roleId,
-  );
-  if (!success) {
+  if (outcome === 'forbidden') {
+    return actionResult('error', 'You cannot assign this role.', 403);
+  }
+  if (outcome === 'failed') {
     form.message = { type: 'error', text: 'Failed to create user' };
     return actionResult('failure', { form });
   }
-
-  await writeAuthorizationAudit({
-    actorUserId: authorization.userId,
-    action: 'user.created',
-    targetType: 'user',
-    targetId: userId,
-    after: { username, displayName, roleId, roleAssignmentSource: 'local' },
-  });
 
   form.message = { type: 'success', text: 'User created' };
   return actionResult('success', { form });

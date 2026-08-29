@@ -8,8 +8,10 @@ import type { RequestHandler } from './$types';
 import { db } from '$lib/db';
 import type { User } from '$lib/db/types';
 import { lucia } from '$lib/server/auth';
-import { resolveOAuthRole } from '$lib/server/authorization/oauth-role-mapping';
-import { writeAuthorizationAudit } from '$lib/server/authorization/audit';
+import {
+  resolveOAuthRole,
+  updateOAuthManagedUserRole,
+} from '$lib/server/authorization/oauth-role-mapping';
 import { createSession, getUserWithOAuthId } from '$lib/server/utils/auth';
 import { appConfig } from '$lib/server/utils/config';
 import {
@@ -101,22 +103,11 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
   if (user && user.roleAssignmentSource === 'oauth') {
     const resolved = await resolveOAuthRole(profile, idTokenClaims);
     if (resolved.mode === 'on_login' && user.roleId !== resolved.roleId) {
-      const previousRoleId = user.roleId;
-      user = await db
-        .updateTable('user')
-        .set({ roleId: resolved.roleId })
-        .where('id', '=', user.id)
-        .returningAll()
-        .executeTakeFirst();
-      if (user) {
-        await writeAuthorizationAudit({
-          action: 'user.role_mapped',
-          targetType: 'user',
-          targetId: user.id,
-          before: { roleId: previousRoleId },
-          after: { roleId: resolved.roleId, source: 'oauth' },
-        });
-      }
+      const remappedUser = await updateOAuthManagedUserRole(
+        user.id,
+        resolved.roleId,
+      );
+      if (remappedUser) user = remappedUser;
     }
   }
 
@@ -181,24 +172,12 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
         username: username.data,
         displayName,
         oauthId: profile.sub,
-        role: 'user',
         roleId: resolved.roleId,
         roleAssignmentSource:
           resolved.mode === 'off' ? 'local' : ('oauth' as const),
       })
       .returningAll()
       .executeTakeFirst();
-    if (user) {
-      await writeAuthorizationAudit({
-        action: 'user.created_via_oauth',
-        targetType: 'user',
-        targetId: user.id,
-        after: {
-          roleId: resolved.roleId,
-          roleAssignmentSource: resolved.mode === 'off' ? 'local' : 'oauth',
-        },
-      });
-    }
   }
 
   if (!user) {

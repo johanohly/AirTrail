@@ -1,9 +1,11 @@
 import {
-  impliedPermission,
+  hasPermission,
   isPermission,
   type Permission,
 } from '$lib/authorization/permissions';
 import type { AuthorizationContext } from './context';
+
+export { hasPermission };
 
 export class AuthorizationError extends Error {
   constructor(
@@ -14,16 +16,6 @@ export class AuthorizationError extends Error {
     this.name = 'AuthorizationError';
   }
 }
-
-export const hasPermission = (
-  authorization: AuthorizationContext,
-  permission: Permission,
-) => {
-  if (authorization.isOwner) return true;
-  if (authorization.permissions.has(permission)) return true;
-  const implied = impliedPermission(permission);
-  return implied ? authorization.permissions.has(implied) : false;
-};
 
 export const requirePermission = (
   authorization: AuthorizationContext | null,

@@ -7,11 +7,16 @@ import { authedProcedure, router } from '../trpc';
 import { db } from '$lib/db';
 import type { CreateFlight } from '$lib/db/types';
 import {
+  DEFAULT_FLIGHT_SCOPE,
+  flightScopeSchema,
+  resolveFlightScope,
+} from '$lib/flight-scope';
+import {
   createFlight,
-  listAllFlights,
   createManyFlights,
   deleteFlight,
   listFlights,
+  listFlightsInScope,
   validateFlightDates,
 } from '$lib/server/utils/flight';
 import { getAircraftFromReg } from '$lib/server/utils/flight-lookup/aerodatabox';
@@ -20,37 +25,13 @@ import { validateFlightImportPermissions } from '$lib/server/utils/flight-import
 import { generateCsv } from '$lib/utils/csv';
 import { generateBackup, serializeBackup } from '$lib/server/utils/backup';
 import { hasPermission } from '$lib/server/authorization/authorize';
-import { canAccessFlight } from '$lib/server/authorization/flight';
-import type { Permission } from '$lib/authorization/permissions';
-
-const requireFlightCreation = (
-  authorization: Parameters<typeof hasPermission>[0],
-  passengers: Array<{ userId: string | null }>,
-) => {
-  const includesActor = passengers.some(
-    (passenger) => passenger.userId === authorization.userId,
-  );
-  const scope = includesActor ? 'own' : 'any';
-  if (!hasPermission(authorization, `flight.create.${scope}` as Permission)) {
-    throw new TRPCError({ code: 'FORBIDDEN' });
-  }
-  if (
-    passengers.length > 1 &&
-    !hasPermission(
-      authorization,
-      `flight.passengers.manage.${scope}` as Permission,
-    )
-  ) {
-    throw new TRPCError({ code: 'FORBIDDEN' });
-  }
-};
-
-const flightListInput = z
-  .object({
-    scope: z.enum(['mine', 'user', 'all']).default('mine'),
-    userId: z.string().optional(),
-  })
-  .optional();
+import {
+  canAccessFlight,
+  canAccessFlights,
+  canCreateFlight,
+  canExportFlights,
+  canListFlights,
+} from '$lib/server/authorization/flight';
 
 export const flightRouter = router({
   lookup: authedProcedure
@@ -99,33 +80,12 @@ export const flightRouter = router({
       return await getAircraftFromReg(input);
     }),
   list: authedProcedure
-    .input(flightListInput)
+    .input(flightScopeSchema.optional().default(DEFAULT_FLIGHT_SCOPE))
     .query(async ({ ctx: { user, authorization }, input }) => {
-      const scope = input?.scope ?? 'mine';
-
-      if (scope === 'mine') {
-        if (!hasPermission(authorization, 'flight.read.own')) {
-          throw new TRPCError({ code: 'FORBIDDEN' });
-        }
-        return await listFlights(user.id);
-      }
-
-      if (!hasPermission(authorization, 'flight.read.any')) {
+      if (!canListFlights(authorization, input)) {
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
-
-      if (scope === 'user') {
-        if (!input?.userId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'A user is required for this scope',
-          });
-        }
-
-        return await listFlights(input.userId);
-      }
-
-      return await listAllFlights();
+      return await listFlightsInScope(resolveFlightScope(input, user.id));
     }),
   delete: authedProcedure
     .input(z.number())
@@ -142,21 +102,8 @@ export const flightRouter = router({
     }),
   deleteMany: authedProcedure
     .input(z.array(z.number()))
-    .mutation(async ({ ctx: { user, authorization }, input }) => {
-      const result = await db
-        .selectFrom('flightPassenger')
-        .select('flightId')
-        .distinct()
-        .where('userId', '=', user.id)
-        .where('flightId', 'in', input)
-        .execute();
-      const flightIds = result.map((r) => r.flightId);
-
-      if (
-        !hasPermission(authorization, 'flight.delete.any') &&
-        (!hasPermission(authorization, 'flight.delete.own') ||
-          flightIds.length !== new Set(input).size)
-      ) {
+    .mutation(async ({ ctx: { authorization }, input }) => {
+      if (!(await canAccessFlights(authorization, 'delete', input))) {
         throw new TRPCError({ code: 'NOT_FOUND' });
       }
 
@@ -213,7 +160,9 @@ export const flightRouter = router({
   create: authedProcedure
     .input(z.custom<CreateFlight>())
     .mutation(async ({ ctx: { authorization }, input }) => {
-      requireFlightCreation(authorization, input.passengers);
+      if (!canCreateFlight(authorization, input.passengers)) {
+        throw new TRPCError({ code: 'FORBIDDEN' });
+      }
       const dateError = validateFlightDates(input);
       if (dateError) {
         throw new Error(dateError);
@@ -255,15 +204,17 @@ export const flightRouter = router({
     async ({ ctx: { user, authorization } }) => {
       // The personal export intentionally remains separate from general read.
       // It is a bulk data operation.
-      if (!hasPermission(authorization, 'flight.export.own')) {
+      if (!canExportFlights(authorization, DEFAULT_FLIGHT_SCOPE)) {
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
-      const backup = await generateBackup({ scope: 'mine', userId: user.id });
+      const backup = await generateBackup(
+        resolveFlightScope(DEFAULT_FLIGHT_SCOPE, user.id),
+      );
       return serializeBackup(backup, 'json');
     },
   ),
   exportCsv: authedProcedure.query(async ({ ctx: { user, authorization } }) => {
-    if (!hasPermission(authorization, 'flight.export.own')) {
+    if (!canExportFlights(authorization, DEFAULT_FLIGHT_SCOPE)) {
       throw new TRPCError({ code: 'FORBIDDEN' });
     }
     const res = await listFlights(user.id);

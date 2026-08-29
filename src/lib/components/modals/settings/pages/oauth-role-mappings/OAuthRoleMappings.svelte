@@ -9,18 +9,13 @@
   import * as Select from '$lib/components/ui/select';
   import { api } from '$lib/trpc';
   import { getErrorText } from '$lib/utils/error';
+  import type {
+    OAuthRoleMappingInput,
+    OAuthRoleMappingMode,
+  } from '$lib/zod/oauth-role-mapping';
 
-  type Mode = 'off' | 'on_create' | 'on_login';
-  type Mapping = {
-    claimSource: 'userinfo' | 'id_token';
-    claimPath: string;
-    operator: 'equals' | 'contains';
-    claimValue: string;
-    roleId: string;
-  };
-
-  let mode = $state<Mode>('off');
-  let mappings = $state<Mapping[]>([]);
+  let mode = $state<OAuthRoleMappingMode>('off');
+  let mappings = $state<OAuthRoleMappingInput[]>([]);
   let roles = $state<Array<{ id: string; name: string }>>([]);
   let loading = $state(true);
   let saving = $state(false);
@@ -28,7 +23,7 @@
   const load = async () => {
     const [settings, roleData] = await Promise.all([
       api.role.oauthMappings.query(),
-      api.role.list.query(),
+      api.role.oauthRoleOptions.query(),
     ]);
     mode = settings.oauthRoleMappingMode;
     mappings = settings.mappings.map((mapping) => ({
@@ -38,7 +33,7 @@
       claimValue: mapping.claimValue,
       roleId: mapping.roleId,
     }));
-    roles = roleData.roles;
+    roles = roleData;
     loading = false;
   };
 

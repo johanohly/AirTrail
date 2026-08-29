@@ -1,20 +1,19 @@
-import type { Transaction } from 'kysely';
+import type { Kysely, Transaction } from 'kysely';
 
 import { db } from '$lib/db';
 import type { DB } from '$lib/db/schema';
 import type { AuthorizationContext } from './context';
+import { loadLockedAuthorizationContext } from './context';
+import { hasPermission } from './authorize';
 import { actorCanAssignRole } from './roles';
-import { writeAuthorizationAudit } from './audit';
+import type {
+  OAuthRoleMappingInput,
+  OAuthRoleMappingMode,
+} from '$lib/zod/oauth-role-mapping';
 
-export type OAuthRoleMappingMode = 'off' | 'on_create' | 'on_login';
 export type OAuthClaims = Record<string, unknown>;
-export type OAuthRoleMappingInput = {
-  claimSource: 'userinfo' | 'id_token';
-  claimPath: string;
-  operator: 'equals' | 'contains';
-  claimValue: string;
-  roleId: string;
-};
+
+type DatabaseConnection = Kysely<DB> | Transaction<DB>;
 
 const decodePointerSegment = (segment: string) =>
   segment.replaceAll('~1', '/').replaceAll('~0', '~');
@@ -64,14 +63,21 @@ export const selectOAuthMappedRole = (
     );
   })?.roleId;
 
-export const getOAuthRoleSettings = async () => {
+export const oauthAssignmentRoleIds = (
+  defaultRoleId: string,
+  mappings: readonly OAuthRoleMappingInput[],
+) => [...new Set([defaultRoleId, ...mappings.map(({ roleId }) => roleId)])];
+
+export const getOAuthRoleSettings = async (
+  connection: DatabaseConnection = db,
+) => {
   const [settings, mappings] = await Promise.all([
-    db
+    connection
       .selectFrom('authorizationSettings')
       .select(['defaultRoleId', 'oauthRoleMappingMode'])
       .where('id', '=', 1)
       .executeTakeFirstOrThrow(),
-    db
+    connection
       .selectFrom('oauthRoleMapping')
       .selectAll()
       .orderBy('priority')
@@ -99,19 +105,70 @@ export const resolveOAuthRole = async (
   };
 };
 
+export const updateOAuthManagedUserRole = async (
+  userId: string,
+  roleId: string,
+  connection: DatabaseConnection = db,
+) =>
+  connection
+    .updateTable('user')
+    .set({ roleId })
+    .where('id', '=', userId)
+    .where('roleAssignmentSource', '=', 'oauth')
+    .returningAll()
+    .executeTakeFirst();
+
 export const replaceOAuthRoleSettings = async (
   mode: OAuthRoleMappingMode,
   mappings: OAuthRoleMappingInput[],
   authorization: AuthorizationContext,
 ) => {
-  for (const mapping of mappings) {
-    if (!(await actorCanAssignRole(authorization, mapping.roleId))) {
-      throw new Error('An OAuth mapping cannot assign this role');
+  await db.transaction().execute(async (trx) => {
+    const settings = await trx
+      .selectFrom('authorizationSettings')
+      .select(['defaultRoleId', 'oauthRoleMappingMode'])
+      .where('id', '=', 1)
+      .forUpdate()
+      .executeTakeFirstOrThrow();
+    const currentAuthorization = await loadLockedAuthorizationContext(
+      authorization.userId,
+      trx,
+    );
+    if (
+      !currentAuthorization ||
+      !hasPermission(currentAuthorization, 'instance.oauth.manage')
+    ) {
+      throw new Error('You cannot manage OAuth role mappings');
     }
-  }
+    const roleIds = oauthAssignmentRoleIds(settings.defaultRoleId, mappings);
+    const roles = await trx
+      .selectFrom('accessRole')
+      .select('id')
+      .where('id', 'in', roleIds)
+      .forUpdate()
+      .execute();
+    if (roles.length !== roleIds.length) {
+      throw new Error('An OAuth role no longer exists');
+    }
+    if (mode !== 'off') {
+      if (
+        !(await actorCanAssignRole(
+          currentAuthorization,
+          settings.defaultRoleId,
+          trx,
+        ))
+      ) {
+        throw new Error('The OAuth fallback cannot assign this role');
+      }
+      for (const mapping of mappings) {
+        if (
+          !(await actorCanAssignRole(currentAuthorization, mapping.roleId, trx))
+        ) {
+          throw new Error('An OAuth mapping cannot assign this role');
+        }
+      }
+    }
 
-  await db.transaction().execute(async (trx: Transaction<DB>) => {
-    const before = await getOAuthRoleSettings();
     await trx
       .updateTable('authorizationSettings')
       .set({ oauthRoleMappingMode: mode })
@@ -129,16 +186,5 @@ export const replaceOAuthRoleSettings = async (
         )
         .execute();
     }
-    await writeAuthorizationAudit(
-      {
-        actorUserId: authorization.userId,
-        action: 'oauth_role_mappings.updated',
-        targetType: 'authorization_settings',
-        targetId: '1',
-        before,
-        after: { mode, mappings },
-      },
-      trx,
-    );
   });
 };

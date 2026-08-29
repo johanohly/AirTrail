@@ -18,16 +18,20 @@ import {
 } from '$lib/db/queries';
 import type { DB } from '$lib/db/schema';
 import type { CreateFlight, Flight } from '$lib/db/types';
-import type { Permission } from '$lib/authorization/permissions';
+import type { ResolvedFlightScope } from '$lib/flight-scope';
 import {
   AuthorizationError,
   hasPermission,
 } from '$lib/server/authorization/authorize';
 import type { AuthorizationContext } from '$lib/server/authorization/context';
-import { canAccessFlight } from '$lib/server/authorization/flight';
+import {
+  canAccessFlight,
+  canCreateFlight,
+} from '$lib/server/authorization/flight';
 import {
   CustomFieldValidationError,
   persistEntityCustomFields,
+  wouldChangeEntityCustomFields,
 } from '$lib/server/utils/custom-fields';
 import {
   getMissingFlightReferenceUpdate,
@@ -100,6 +104,11 @@ export const listAllFlights = async () => {
   return await listAllFlightsPrimitive(db);
 };
 
+export const listFlightsInScope = async (scope: ResolvedFlightScope) =>
+  scope.scope === 'all'
+    ? await listAllFlights()
+    : await listFlights(scope.userId);
+
 export const getFlight = async (id: number) => {
   return await getFlightPrimitive(db, id);
 };
@@ -168,9 +177,26 @@ export const validateAndSaveFlight = async (
             seatClass: passenger.seatClass,
             flightReason: passenger.flightReason,
           }));
-          const passengersChanged =
+          const passengerRecordsChanged =
             JSON.stringify(existingPassengerSnapshot) !==
             JSON.stringify(incomingPassengers);
+          const passengerCustomFieldsChanged = (
+            await Promise.all(
+              values.passengers.map((passenger) =>
+                passenger.id
+                  ? wouldChangeEntityCustomFields(trx, {
+                      entityType: 'flight_passenger',
+                      entityId: String(passenger.id),
+                      values: passenger.customFields,
+                    })
+                  : Promise.resolve(
+                      Object.keys(passenger.customFields ?? {}).length > 0,
+                    ),
+              ),
+            )
+          ).some(Boolean);
+          const passengersChanged =
+            passengerRecordsChanged || passengerCustomFieldsChanged;
           if (
             passengersChanged &&
             !(await canAccessFlight(
@@ -193,12 +219,14 @@ export const validateAndSaveFlight = async (
             entityId: String(updateId),
             values: customFields,
           });
-          for (const passenger of persistedPassengers) {
-            await persistEntityCustomFields(trx, {
-              entityType: 'flight_passenger',
-              entityId: String(passenger.id),
-              values: passenger.input.customFields,
-            });
+          if (passengersChanged) {
+            for (const passenger of persistedPassengers) {
+              await persistEntityCustomFields(trx, {
+                entityType: 'flight_passenger',
+                entityId: String(passenger.id),
+                values: passenger.input.customFields,
+              });
+            }
           }
         });
       } catch (e) {
@@ -229,22 +257,7 @@ export const validateAndSaveFlight = async (
 
     let flightId: number;
     try {
-      const includesActor = values.passengers.some(
-        (passenger) => passenger.userId === authorization.userId,
-      );
-      const scope = includesActor ? 'own' : 'any';
-      if (
-        !hasPermission(authorization, `flight.create.${scope}` as Permission)
-      ) {
-        throw new AuthorizationError();
-      }
-      if (
-        (values.passengers.length > 1 || !includesActor) &&
-        !hasPermission(
-          authorization,
-          `flight.passengers.manage.${scope}` as Permission,
-        )
-      ) {
+      if (!canCreateFlight(authorization, values.passengers)) {
         throw new AuthorizationError();
       }
       flightId = await db.transaction().execute(async (trx) => {

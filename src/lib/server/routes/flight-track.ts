@@ -2,6 +2,11 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 import { db } from '$lib/db';
+import {
+  DEFAULT_FLIGHT_SCOPE,
+  flightScopeSchema,
+  resolveFlightScope,
+} from '$lib/flight-scope';
 import { authedProcedure, router } from '$lib/server/trpc';
 import { reduceFlightTrackForMap } from '$lib/track/render';
 import {
@@ -9,15 +14,10 @@ import {
   type FlightTrackRow,
   type FlightTrackSourceFormat,
 } from '$lib/track/schema';
-import { hasPermission } from '$lib/server/authorization/authorize';
-import { canAccessFlight } from '$lib/server/authorization/flight';
-
-const flightTrackListInput = z
-  .object({
-    scope: z.enum(['mine', 'user', 'all']).default('mine'),
-    userId: z.string().optional(),
-  })
-  .optional();
+import {
+  canAccessFlight,
+  canListFlights,
+} from '$lib/server/authorization/flight';
 
 const parseTrackRow = (
   row: {
@@ -41,29 +41,12 @@ const parseTrackRow = (
 
 export const flightTrackRouter = router({
   list: authedProcedure
-    .input(flightTrackListInput)
+    .input(flightScopeSchema.optional().default(DEFAULT_FLIGHT_SCOPE))
     .query(async ({ ctx: { user, authorization }, input }) => {
-      const scope = input?.scope ?? 'mine';
-
-      if (
-        scope === 'mine' &&
-        !hasPermission(authorization, 'flight.read.own')
-      ) {
+      if (!canListFlights(authorization, input)) {
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
-      if (
-        scope !== 'mine' &&
-        !hasPermission(authorization, 'flight.read.any')
-      ) {
-        throw new TRPCError({ code: 'FORBIDDEN' });
-      }
-
-      if (scope === 'user' && !input?.userId) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'A user is required for this scope',
-        });
-      }
+      const scope = resolveFlightScope(input, user.id);
 
       let query = db
         .selectFrom('flightTrack')
@@ -76,21 +59,14 @@ export const flightTrackRouter = router({
           'flightTrack.pointCount',
         ]);
 
-      let scopedUserId: string | null | undefined = null;
-      if (scope === 'mine') {
-        scopedUserId = user.id;
-      } else if (scope === 'user') {
-        scopedUserId = input?.userId;
-      }
-
-      if (scopedUserId) {
+      if (scope.scope === 'user') {
         query = query.where((eb) =>
           eb.exists(
             eb
               .selectFrom('flightPassenger')
               .select('flightPassenger.id')
               .whereRef('flightPassenger.flightId', '=', 'flight.id')
-              .where('flightPassenger.userId', '=', scopedUserId),
+              .where('flightPassenger.userId', '=', scope.userId),
           ),
         );
       }

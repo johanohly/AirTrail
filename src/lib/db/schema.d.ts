@@ -64,16 +64,6 @@ export type app_config = {
     id: Generated<number>;
     config: Generated<unknown>;
 };
-export type authorization_audit = {
-    id: Generated<number>;
-    actorUserId: string | null;
-    action: string;
-    targetType: string;
-    targetId: string;
-    before: unknown | null;
-    after: unknown | null;
-    createdAt: Generated<Timestamp>;
-};
 export type authorization_settings = {
     id: Generated<number>;
     defaultRoleId: string;
@@ -254,10 +244,6 @@ export type user = {
     username: string;
     displayName: string;
     password: string | null;
-    /**
-     * @kyselyType('user' | 'admin' | 'owner')
-     */
-    role: 'user' | 'admin' | 'owner';
     roleId: string | null;
     isOwner: Generated<boolean>;
     /**
@@ -319,7 +305,6 @@ export type DB = {
     airport: airport;
     apiKey: api_key;
     appConfig: app_config;
-    authorizationAudit: authorization_audit;
     authorizationSettings: authorization_settings;
     customFieldDefinition: custom_field_definition;
     customFieldValue: custom_field_value;

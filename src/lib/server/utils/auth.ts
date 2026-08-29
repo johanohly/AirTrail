@@ -1,8 +1,9 @@
 import type { Cookies } from '@sveltejs/kit';
-import { sql } from 'kysely';
+import { sql, type Kysely, type Transaction } from 'kysely';
 import type { Lucia } from 'lucia';
 
 import { db } from '$lib/db';
+import type { DB } from '$lib/db/schema';
 import { publicUserFields } from '$lib/db/types';
 import { hashSha256 } from '$lib/server/utils/hash';
 import { generateString } from '$lib/server/utils/random';
@@ -19,16 +20,15 @@ export const createUser = async (
   roleId: string | null,
   preferences?: Partial<Preferences>,
   isOwner = false,
+  connection: Kysely<DB> | Transaction<DB> = db,
 ) => {
-  const result = await db
+  const result = await connection
     .insertInto('user')
     .values({
       id,
       username,
       password,
       displayName,
-      // Kept for one migration cycle as rollback data; authorization never reads it.
-      role: isOwner ? 'owner' : 'user',
       roleId,
       isOwner,
       ...(preferences ?? {}),
@@ -66,7 +66,7 @@ export const getUserWithOAuthId = async (username: string) => {
   return db
     .selectFrom('user')
     .where(usernameEquals(username))
-    .select([...publicUserFields, 'oauthId', 'role'])
+    .select([...publicUserFields, 'oauthId'])
     .executeTakeFirst();
 };
 
@@ -109,8 +109,9 @@ export const deleteSession = async (lucia: Lucia, cookies: Cookies) => {
 export const usernameExists = async (
   username: string,
   excludeUserId?: string,
+  connection: Kysely<DB> | Transaction<DB> = db,
 ) => {
-  let query = db
+  let query = connection
     .selectFrom('user')
     .select(sql`1`.as('exists'))
     .where(usernameEquals(username));

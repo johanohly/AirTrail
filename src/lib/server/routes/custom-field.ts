@@ -110,7 +110,10 @@ async function assertEntityAccess(
       .executeTakeFirst();
 
     if (!passenger) throw new TRPCError({ code: 'NOT_FOUND' });
-    if (!(await canAccessFlight(authorization, action, passenger.flightId))) {
+    const flightAction = action === 'update' ? 'passengers.manage' : 'read';
+    if (
+      !(await canAccessFlight(authorization, flightAction, passenger.flightId))
+    ) {
       throw new TRPCError({ code: 'NOT_FOUND' });
     }
     return;

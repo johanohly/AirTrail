@@ -201,11 +201,8 @@ export const processAirTrailFile = async (
     acc[user.id] = user;
     return acc;
   }, {});
-  const users = await api.user.list.query();
   const localUsers =
-    options.importMode === 'restore'
-      ? users
-      : users.filter((localUser) => localUser.id === user.id);
+    options.importMode === 'restore' ? await api.user.list.query() : [user];
 
   const getMappedUserId = (exportedUserId: string) => {
     const exportedUser = dataUsers[exportedUserId];
@@ -266,7 +263,7 @@ export const processAirTrailFile = async (
       const dataUser = dataUsers?.[passenger.userId ?? ''];
       const mappedUserId = dataUser ? getMappedUserId(dataUser.id) : null;
       const user = mappedUserId
-        ? users.find((user) => user.id === mappedUserId)
+        ? localUsers.find((user) => user.id === mappedUserId)
         : null;
 
       /*

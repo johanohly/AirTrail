@@ -7,6 +7,7 @@
   import PageHeader from './PageHeader.svelte';
 
   import { page } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
   import { Confirm } from '$lib/components/helpers';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
@@ -16,6 +17,10 @@
   import { formatDate, getPreferences } from '$lib/utils/preferences';
 
   const prefs = $derived(getPreferences(page.data.user));
+  const canPublish = $derived(
+    hasClientPermission(page.data.authorization, 'flight.read.own') &&
+      hasClientPermission(page.data.authorization, 'flight.share.own'),
+  );
 
   const sharesQuery = trpc.share.list.query();
 
@@ -63,8 +68,17 @@
   <div class="space-y-4">
     <div class="flex gap-2 justify-between">
       <Input oninput={handleSearch} class="h-9" placeholder="Search shares" />
-      <CreateShare />
+      {#if canPublish}
+        <CreateShare />
+      {/if}
     </div>
+
+    {#if !canPublish}
+      <p class="rounded-md border p-3 text-sm text-muted-foreground">
+        Your role cannot publish flight data. Existing links are inactive, but
+        you can delete them below.
+      </p>
+    {/if}
 
     {#if $sharesQuery.isLoading}
       <p class="text-center text-muted-foreground py-8">Loading shares...</p>
@@ -136,28 +150,30 @@
               </div>
 
               <div class="flex items-center gap-2">
-                <TextTooltip content="Copy share URL">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onclick={() => copyShareUrl(share.slug)}
-                  >
-                    <Copy size={16} />
-                  </Button>
-                </TextTooltip>
-                <TextTooltip content="Preview in new tab">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onclick={() =>
-                      window.open(`/share/${share.slug}`, '_blank')}
-                  >
-                    <ExternalLink size={16} />
-                  </Button>
-                </TextTooltip>
-                {#key share}
-                  <EditShare {share} />
-                {/key}
+                {#if canPublish}
+                  <TextTooltip content="Copy share URL">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onclick={() => copyShareUrl(share.slug)}
+                    >
+                      <Copy size={16} />
+                    </Button>
+                  </TextTooltip>
+                  <TextTooltip content="Preview in new tab">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onclick={() =>
+                        window.open(`/share/${share.slug}`, '_blank')}
+                    >
+                      <ExternalLink size={16} />
+                    </Button>
+                  </TextTooltip>
+                  {#key share}
+                    <EditShare {share} />
+                  {/key}
+                {/if}
                 <TextTooltip content="Delete share">
                   <Confirm
                     title="Delete Share"

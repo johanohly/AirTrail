@@ -5,6 +5,8 @@
   import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
   import { invalidateAll } from '$app/navigation';
+  import { page } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
   import {
@@ -34,6 +36,12 @@
   } = $props();
 
   const isEdit = $derived(mode === 'edit');
+  const canUpdateProfile = $derived(
+    !isEdit || hasClientPermission(page.data.authorization, 'users.update'),
+  );
+  const canAssignRole = $derived(
+    hasClientPermission(page.data.authorization, 'users.roles.assign'),
+  );
   const schema = $derived(isEdit ? adminEditUserSchema : addUserSchema);
   let roles = $state<Array<{ id: string; name: string; isDefault: boolean }>>(
     [],
@@ -85,8 +93,7 @@
   $effect(() => {
     if (open) {
       void (async () => {
-        const result = await api.role.list.query();
-        roles = result.roles;
+        roles = canAssignRole ? await api.role.assignableOptions.query() : [];
         const data = getInitialData();
         form.reset({ data });
       })();
@@ -117,7 +124,11 @@
         <Form.Control>
           {#snippet children({ props })}
             <Form.Label>Username</Form.Label>
-            <Input bind:value={$formData.username} {...props} />
+            <Input
+              bind:value={$formData.username}
+              disabled={!canUpdateProfile}
+              {...props}
+            />
           {/snippet}
         </Form.Control>
         <Form.FieldErrors />
@@ -141,34 +152,46 @@
         <Form.Control>
           {#snippet children({ props })}
             <Form.Label>Name</Form.Label>
-            <Input bind:value={$formData.displayName} {...props} />
+            <Input
+              bind:value={$formData.displayName}
+              disabled={!canUpdateProfile}
+              {...props}
+            />
           {/snippet}
         </Form.Control>
         <Form.FieldErrors />
       </Form.Field>
-      <Form.Field {form} name="roleId" class="pt-1">
-        <Form.Control>
-          {#snippet children({ props })}
-            <Form.Label>Role</Form.Label>
-            <Select.Root
-              type="single"
-              name={props.name}
-              bind:value={$formData.roleId}
-            >
-              <Select.Trigger {...props}>
-                {roles.find((role) => role.id === $formData.roleId)?.name ??
-                  'Select a role'}
-              </Select.Trigger>
-              <Select.Content>
-                {#each roles as role}
-                  <Select.Item value={role.id} label={role.name} />
-                {/each}
-              </Select.Content>
-            </Select.Root>
-          {/snippet}
-        </Form.Control>
-        <Form.FieldErrors />
-      </Form.Field>
+      {#if canAssignRole}
+        <Form.Field {form} name="roleId" class="pt-1">
+          <Form.Control>
+            {#snippet children({ props })}
+              <Form.Label>Role</Form.Label>
+              <Select.Root
+                type="single"
+                name={props.name}
+                bind:value={$formData.roleId}
+              >
+                <Select.Trigger {...props}>
+                  {roles.find((role) => role.id === $formData.roleId)?.name ??
+                    'Select a role'}
+                </Select.Trigger>
+                <Select.Content>
+                  {#each roles as role}
+                    <Select.Item value={role.id} label={role.name} />
+                  {/each}
+                </Select.Content>
+              </Select.Root>
+            {/snippet}
+          </Form.Control>
+          <Form.FieldErrors />
+        </Form.Field>
+      {:else}
+        <input type="hidden" name="roleId" bind:value={$formData.roleId} />
+        <div class="grid gap-2 pt-1">
+          <Form.Label>Role</Form.Label>
+          <Input value={user?.roleName ?? 'No role'} disabled />
+        </div>
+      {/if}
       <Form.Button disabled={$submitting} class="mt-1">
         {isEdit ? 'Save' : 'Add'}
       </Form.Button>

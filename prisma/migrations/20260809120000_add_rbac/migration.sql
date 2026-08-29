@@ -69,6 +69,7 @@ INSERT INTO "access_role_permission" ("role_id", "permission") VALUES
   ('role-user', 'flight.import.own'),
   ('role-user', 'flight.export.own'),
   ('role-user', 'flight.passengers.manage.own'),
+  ('role-user', 'flight.share.own'),
   ('role-user', 'users.directory.read'),
   ('role-administrator', 'flight.read.any'),
   ('role-administrator', 'flight.create.any'),
@@ -77,6 +78,7 @@ INSERT INTO "access_role_permission" ("role_id", "permission") VALUES
   ('role-administrator', 'flight.import.any'),
   ('role-administrator', 'flight.export.any'),
   ('role-administrator', 'flight.passengers.manage.any'),
+  ('role-administrator', 'flight.share.own'),
   ('role-administrator', 'users.directory.read'),
   ('role-administrator', 'users.create'),
   ('role-administrator', 'users.update'),
@@ -113,24 +115,7 @@ ALTER TABLE "user"
 
 CREATE UNIQUE INDEX "user_single_owner_key" ON "user" ("is_owner") WHERE "is_owner";
 
+ALTER TABLE "user" DROP COLUMN "role";
+
 INSERT INTO "authorization_settings" ("id", "default_role_id")
 VALUES (1, 'role-user');
-
-CREATE TABLE "authorization_audit" (
-  "id" SERIAL NOT NULL,
-  "actor_user_id" TEXT,
-  "action" TEXT NOT NULL,
-  "target_type" TEXT NOT NULL,
-  "target_id" TEXT NOT NULL,
-  "before" JSONB,
-  "after" JSONB,
-  "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "authorization_audit_pkey" PRIMARY KEY ("id"),
-  CONSTRAINT "authorization_audit_actor_user_id_fkey"
-    FOREIGN KEY ("actor_user_id") REFERENCES "user"("id")
-    ON DELETE SET NULL ON UPDATE CASCADE
-);
-
-CREATE INDEX "authorization_audit_created_at_idx" ON "authorization_audit"("created_at");
-CREATE INDEX "authorization_audit_target_type_target_id_idx"
-  ON "authorization_audit"("target_type", "target_id");

@@ -18,3 +18,6 @@ export const oauthRoleMappingSettingsSchema = z.object({
   mode: oauthRoleMappingModeSchema,
   mappings: z.array(oauthRoleMappingSchema),
 });
+
+export type OAuthRoleMappingMode = z.infer<typeof oauthRoleMappingModeSchema>;
+export type OAuthRoleMappingInput = z.infer<typeof oauthRoleMappingSchema>;

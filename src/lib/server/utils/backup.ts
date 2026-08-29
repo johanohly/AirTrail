@@ -5,7 +5,8 @@ import {
   type FlightTrackInput,
 } from '$lib/track/schema';
 import { omit } from '$lib/utils/other';
-import { listAllFlights, listFlights } from '$lib/server/utils/flight';
+import { listFlightsInScope } from '$lib/server/utils/flight';
+import type { ResolvedFlightScope } from '$lib/flight-scope';
 
 type CfValueRow = {
   entityId: string;
@@ -14,7 +15,6 @@ type CfValueRow = {
   value: unknown;
 };
 
-export type BackupScope = 'mine' | 'user' | 'all';
 export type BackupFormat = 'json' | 'yaml';
 
 const collectEntityIds = (rows: CfValueRow[]) => {
@@ -53,30 +53,12 @@ const buildCfByFlight = (
   return cfByFlight;
 };
 
-const getFlightsForBackup = async (scope: BackupScope, userId?: string) => {
-  if (scope === 'all') {
-    return await listAllFlights();
-  }
-
-  if (!userId) {
-    throw new Error('A userId is required for this backup scope');
-  }
-
-  return await listFlights(userId);
-};
-
-export const generateBackup = async ({
-  scope,
-  userId,
-}: {
-  scope: BackupScope;
-  userId?: string;
-}) => {
+export const generateBackup = async (scope: ResolvedFlightScope) => {
   const users = await db
     .selectFrom('user')
     .select(['id', 'displayName', 'username'])
     .execute();
-  const res = await getFlightsForBackup(scope, userId);
+  const res = await listFlightsInScope(scope);
   const flightIds = res.map((f) => f.id);
   const passengerIds = res.flatMap((flight) =>
     flight.passengers.map((passenger) => passenger.id),

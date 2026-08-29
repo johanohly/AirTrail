@@ -10,8 +10,10 @@ import {
 } from '../trpc';
 
 import { db } from '$lib/db';
-import { writeAuthorizationAudit } from '$lib/server/authorization/audit';
-import { canManageUser } from '$lib/server/authorization/users';
+import { hasPermission } from '$lib/server/authorization/authorize';
+import { loadLockedAuthorizationContext } from '$lib/server/authorization/context';
+import { canActOnUser } from '$lib/server/authorization/users';
+import { lockRoles } from '$lib/server/authorization/roles';
 import { createApiKey } from '$lib/server/utils/auth';
 import { publicUserQuery } from '$lib/server/utils/user';
 import { updatePreferencesSchema } from '$lib/zod/user';
@@ -29,24 +31,31 @@ export const userRouter = router({
     return users.length > 0;
   }),
   delete: authedProcedure.input(z.string()).mutation(async ({ ctx, input }) => {
-    const user = await db
-      .selectFrom('user')
-      .select(['id', 'isOwner', 'roleId'])
-      .where('id', '=', input)
-      .executeTakeFirst();
-    if (!user) {
-      return false;
-    }
-
-    if (user.isOwner) throw new TRPCError({ code: 'FORBIDDEN' });
-    if (
-      ctx.user.id !== input &&
-      !(await canManageUser(ctx.authorization, input, 'users.delete'))
-    ) {
-      throw new TRPCError({ code: 'FORBIDDEN' });
-    }
-
     return await db.transaction().execute(async (trx) => {
+      const currentAuthorization = await loadLockedAuthorizationContext(
+        ctx.authorization.userId,
+        trx,
+      );
+      if (!currentAuthorization) {
+        throw new TRPCError({ code: 'FORBIDDEN' });
+      }
+      const user = await trx
+        .selectFrom('user')
+        .select(['id', 'isOwner', 'roleId'])
+        .where('id', '=', input)
+        .forUpdate()
+        .executeTakeFirst();
+      if (!user) return false;
+      if (user.isOwner) throw new TRPCError({ code: 'FORBIDDEN' });
+      await lockRoles(trx, [user.roleId]);
+      if (
+        ctx.user.id !== input &&
+        (!hasPermission(currentAuthorization, 'users.delete') ||
+          !(await canActOnUser(currentAuthorization, user, trx)))
+      ) {
+        throw new TRPCError({ code: 'FORBIDDEN' });
+      }
+
       const affectedFlights = await trx
         .selectFrom('flightPassenger')
         .select('flightId')
@@ -74,17 +83,6 @@ export const userRouter = router({
           )
           .execute();
       }
-
-      await writeAuthorizationAudit(
-        {
-          actorUserId: ctx.user.id === input ? null : ctx.user.id,
-          action: 'user.deleted',
-          targetType: 'user',
-          targetId: input,
-          before: user,
-        },
-        trx,
-      );
 
       return result.numDeletedRows > 0;
     });

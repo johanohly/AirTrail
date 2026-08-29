@@ -4,104 +4,104 @@ import { zod4 as zod } from 'sveltekit-superforms/adapters';
 import type { RequestHandler } from './$types';
 
 import { db } from '$lib/db';
-import { actorCanAssignRole } from '$lib/server/authorization/roles';
-import { canManageUser } from '$lib/server/authorization/users';
-import { writeAuthorizationAudit } from '$lib/server/authorization/audit';
+import { loadLockedAuthorizationContext } from '$lib/server/authorization/context';
+import { actorCanAssignRole, lockRoles } from '$lib/server/authorization/roles';
+import {
+  canActOnUser,
+  hasUserChangePermissions,
+} from '$lib/server/authorization/users';
 import { usernameExists } from '$lib/server/utils/auth';
 import { adminEditUserSchema } from '$lib/zod/user';
 
-const getChangedFields = <T extends Record<string, unknown>>(
-  newValues: T,
-  currentValues: Record<string, unknown>,
-): Partial<T> => {
-  const keys = Object.keys(newValues) as (keyof T)[];
-  return keys.reduce<Partial<T>>((changes, key) => {
-    if (newValues[key] !== currentValues[key as string]) {
-      changes[key] = newValues[key];
-    }
-    return changes;
-  }, {});
-};
+type UpdateResult =
+  | { kind: 'updated' }
+  | { kind: 'unchanged' }
+  | { kind: 'not_found' }
+  | { kind: 'username_exists' }
+  | { kind: 'forbidden' };
 
 export const POST: RequestHandler = async ({ locals, request }) => {
   const form = await superValidate(request, zod(adminEditUserSchema));
   if (!form.valid) return actionResult('failure', { form });
 
-  const { id: userId, username, displayName, roleId } = form.data;
-
-  if (!locals.authorization) {
+  const authorization = locals.authorization;
+  if (!authorization) {
     return actionResult('error', 'You must be logged in to edit users.', 401);
   }
 
-  const targetUser = await db
-    .selectFrom('user')
-    .selectAll()
-    .where('id', '=', userId)
-    .executeTakeFirst();
-
-  if (!targetUser) {
-    return actionResult('error', 'User not found.', 404);
-  }
-
-  if (!(await canManageUser(locals.authorization, userId, 'users.update'))) {
-    return actionResult('error', 'You cannot edit this user.', 403);
-  }
-  if (!(await actorCanAssignRole(locals.authorization, roleId))) {
-    return actionResult('error', 'You cannot assign this role.', 403);
-  }
-
-  const updatedFields = getChangedFields(
-    { username, displayName, roleId },
-    targetUser,
-  );
-  const update = {
-    ...updatedFields,
-    ...(updatedFields.roleId ? { roleAssignmentSource: 'local' as const } : {}),
-  };
-
-  if (Object.keys(update).length === 0) {
-    form.message = { type: 'error', text: 'No changes made' };
-    return actionResult('success', { form });
-  }
-
-  if (updatedFields.username) {
-    const exists = await usernameExists(updatedFields.username, userId);
-    if (exists) {
-      setError(form, 'username', 'Username already exists');
-      return actionResult('failure', { form });
+  const { id: userId, username, displayName, roleId } = form.data;
+  const outcome: UpdateResult = await db.transaction().execute(async (trx) => {
+    const currentAuthorization = await loadLockedAuthorizationContext(
+      authorization.userId,
+      trx,
+    );
+    if (!currentAuthorization) return { kind: 'forbidden' };
+    const target = await trx
+      .selectFrom('user')
+      .selectAll()
+      .where('id', '=', userId)
+      .forUpdate()
+      .executeTakeFirst();
+    if (!target) return { kind: 'not_found' };
+    await lockRoles(trx, [target.roleId, roleId]);
+    if (!(await canActOnUser(currentAuthorization, target, trx))) {
+      return { kind: 'forbidden' };
     }
-  }
 
-  const resp = await db.transaction().execute(async (trx) => {
+    const usernameChanged = username !== target.username;
+    const displayNameChanged = displayName !== target.displayName;
+    const roleChanged = roleId !== target.roleId;
+    const profileChanged = usernameChanged || displayNameChanged;
+    if (!profileChanged && !roleChanged) return { kind: 'unchanged' };
+
+    if (
+      !hasUserChangePermissions(currentAuthorization, {
+        profile: profileChanged,
+        role: roleChanged,
+      })
+    ) {
+      return { kind: 'forbidden' };
+    }
+    if (
+      roleChanged &&
+      !(await actorCanAssignRole(currentAuthorization, roleId, trx))
+    ) {
+      return { kind: 'forbidden' };
+    }
+    if (usernameChanged && (await usernameExists(username, userId, trx))) {
+      return { kind: 'username_exists' };
+    }
+
+    const update = {
+      ...(usernameChanged ? { username } : {}),
+      ...(displayNameChanged ? { displayName } : {}),
+      ...(roleChanged
+        ? { roleId, roleAssignmentSource: 'local' as const }
+        : {}),
+    };
     const result = await trx
       .updateTable('user')
       .set(update)
       .where('id', '=', userId)
       .executeTakeFirst();
-    await writeAuthorizationAudit(
-      {
-        actorUserId: locals.authorization!.userId,
-        action: 'user.updated',
-        targetType: 'user',
-        targetId: userId,
-        before: {
-          username: targetUser.username,
-          displayName: targetUser.displayName,
-          roleId: targetUser.roleId,
-          roleAssignmentSource: targetUser.roleAssignmentSource,
-        },
-        after: update,
-      },
-      trx,
-    );
-    return result;
+    if (!result.numUpdatedRows) return { kind: 'not_found' };
+
+    return { kind: 'updated' };
   });
 
-  if (!resp.numUpdatedRows) {
-    form.message = { type: 'error', text: 'Failed to edit user' };
-    return actionResult('failure', { form });
+  switch (outcome.kind) {
+    case 'updated':
+      form.message = { type: 'success', text: 'User updated' };
+      return actionResult('success', { form });
+    case 'unchanged':
+      form.message = { type: 'error', text: 'No changes made' };
+      return actionResult('success', { form });
+    case 'not_found':
+      return actionResult('error', 'User not found.', 404);
+    case 'username_exists':
+      setError(form, 'username', 'Username already exists');
+      return actionResult('failure', { form });
+    case 'forbidden':
+      return actionResult('error', 'You cannot make these changes.', 403);
   }
-
-  form.message = { type: 'success', text: 'User updated' };
-  return actionResult('success', { form });
 };

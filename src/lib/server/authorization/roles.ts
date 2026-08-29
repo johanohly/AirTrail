@@ -1,28 +1,26 @@
 import { generateId } from 'lucia';
-import { sql } from 'kysely';
+import { sql, type Kysely, type Transaction } from 'kysely';
 
-import { PERMISSIONS, type Permission } from '$lib/authorization/permissions';
+import { isPermission, type Permission } from '$lib/authorization/permissions';
 import { db } from '$lib/db';
+import type { DB } from '$lib/db/schema';
 import type { AuthorizationContext } from './context';
+import { loadLockedAuthorizationContext } from './context';
 import { hasPermission, permissionsAreSubset } from './authorize';
-import { writeAuthorizationAudit } from './audit';
+import type { RoleInput } from '$lib/zod/role';
 
-export type RoleInput = {
-  name: string;
-  description?: string | null;
-  permissions: Permission[];
-};
+type DatabaseConnection = Kysely<DB> | Transaction<DB>;
 
-export const listRoles = async () => {
+export const listRoles = async (connection: DatabaseConnection = db) => {
   const [roles, grants, settings, counts] = await Promise.all([
-    db.selectFrom('accessRole').selectAll().orderBy('name').execute(),
-    db.selectFrom('accessRolePermission').selectAll().execute(),
-    db
+    connection.selectFrom('accessRole').selectAll().orderBy('name').execute(),
+    connection.selectFrom('accessRolePermission').selectAll().execute(),
+    connection
       .selectFrom('authorizationSettings')
       .select('defaultRoleId')
       .where('id', '=', 1)
       .executeTakeFirstOrThrow(),
-    db
+    connection
       .selectFrom('user')
       .select(['roleId', (eb) => eb.fn.count('id').as('count')])
       .where('roleId', 'is not', null)
@@ -31,9 +29,9 @@ export const listRoles = async () => {
   ]);
   const permissionsByRole = new Map<string, Permission[]>();
   for (const grant of grants) {
-    if (!PERMISSIONS.includes(grant.permission as Permission)) continue;
+    if (!isPermission(grant.permission)) continue;
     const values = permissionsByRole.get(grant.roleId) ?? [];
-    values.push(grant.permission as Permission);
+    values.push(grant.permission);
     permissionsByRole.set(grant.roleId, values);
   }
   const countByRole = new Map(
@@ -48,30 +46,67 @@ export const listRoles = async () => {
   }));
 };
 
-export const getRolePermissions = async (roleId: string) =>
+export const getRolePermissions = async (
+  roleId: string,
+  connection: DatabaseConnection = db,
+) =>
   (
-    await db
+    await connection
       .selectFrom('accessRolePermission')
       .select('permission')
       .where('roleId', '=', roleId)
       .execute()
   )
     .map(({ permission }) => permission)
-    .filter((permission): permission is Permission =>
-      PERMISSIONS.includes(permission as Permission),
-    );
+    .filter(isPermission);
+
+export const lockRoles = async (
+  transaction: Transaction<DB>,
+  roleIds: readonly (string | null)[],
+) => {
+  const ids = [...new Set(roleIds.filter((roleId) => roleId !== null))].sort();
+  if (ids.length === 0) return;
+  const roles = await transaction
+    .selectFrom('accessRole')
+    .select('id')
+    .where('id', 'in', ids)
+    .orderBy('id')
+    .forUpdate()
+    .execute();
+  if (roles.length !== ids.length) throw new Error('Role not found');
+};
 
 export const actorCanAssignRole = async (
   authorization: AuthorizationContext,
   roleId: string,
+  connection: DatabaseConnection = db,
 ) => {
   if (!hasPermission(authorization, 'users.roles.assign')) return false;
-  const permissions = await getRolePermissions(roleId);
+  const permissions = await getRolePermissions(roleId, connection);
   return permissionsAreSubset(permissions, authorization);
 };
 
-const roleNameExists = async (name: string, excludeId?: string) => {
-  let query = db
+export const listAssignableRoleOptions = async (
+  authorization: AuthorizationContext,
+) => {
+  if (!hasPermission(authorization, 'users.roles.assign')) return [];
+  const roles = await listRoles();
+  return roles
+    .filter(({ permissions }) =>
+      permissionsAreSubset(permissions, authorization),
+    )
+    .map(({ id, name, isDefault }) => ({ id, name, isDefault }));
+};
+
+export const listRoleOptions = async () =>
+  db.selectFrom('accessRole').select(['id', 'name']).orderBy('name').execute();
+
+const roleNameExists = async (
+  name: string,
+  connection: DatabaseConnection,
+  excludeId?: string,
+) => {
+  let query = connection
     .selectFrom('accessRole')
     .select('id')
     .where(sql<boolean>`lower("name") = lower(${name})`);
@@ -82,12 +117,13 @@ const roleNameExists = async (name: string, excludeId?: string) => {
 const validateRoleInput = async (
   input: RoleInput,
   authorization: AuthorizationContext,
+  connection: DatabaseConnection,
   excludeId?: string,
 ) => {
   if (!permissionsAreSubset(input.permissions, authorization)) {
     throw new Error('A role cannot grant permissions you do not have');
   }
-  if (await roleNameExists(input.name, excludeId)) {
+  if (await roleNameExists(input.name, connection, excludeId)) {
     throw new Error('A role with this name already exists');
   }
 };
@@ -96,9 +132,19 @@ export const createRole = async (
   input: RoleInput,
   authorization: AuthorizationContext,
 ) => {
-  await validateRoleInput(input, authorization);
   const id = generateId(15);
   await db.transaction().execute(async (trx) => {
+    const currentAuthorization = await loadLockedAuthorizationContext(
+      authorization.userId,
+      trx,
+    );
+    if (
+      !currentAuthorization ||
+      !hasPermission(currentAuthorization, 'roles.manage')
+    ) {
+      throw new Error('You cannot create roles');
+    }
+    await validateRoleInput(input, currentAuthorization, trx);
     await trx
       .insertInto('accessRole')
       .values({
@@ -118,16 +164,6 @@ export const createRole = async (
         )
         .execute();
     }
-    await writeAuthorizationAudit(
-      {
-        actorUserId: authorization.userId,
-        action: 'role.created',
-        targetType: 'role',
-        targetId: id,
-        after: input,
-      },
-      trx,
-    );
   });
   return id;
 };
@@ -137,14 +173,33 @@ export const updateRole = async (
   input: RoleInput,
   authorization: AuthorizationContext,
 ) => {
-  await validateRoleInput(input, authorization, roleId);
-  const before = (await listRoles()).find((role) => role.id === roleId);
-  if (!before) throw new Error('Role not found');
-  if (!permissionsAreSubset(before.permissions, authorization)) {
-    throw new Error('You cannot edit a role with permissions you do not have');
-  }
-
   await db.transaction().execute(async (trx) => {
+    const currentAuthorization = await loadLockedAuthorizationContext(
+      authorization.userId,
+      trx,
+    );
+    if (
+      !currentAuthorization ||
+      !hasPermission(currentAuthorization, 'roles.manage')
+    ) {
+      throw new Error('You cannot edit roles');
+    }
+    const role = await trx
+      .selectFrom('accessRole')
+      .select('id')
+      .where('id', '=', roleId)
+      .forUpdate()
+      .executeTakeFirst();
+    if (!role) throw new Error('Role not found');
+
+    const beforePermissions = await getRolePermissions(roleId, trx);
+    if (!permissionsAreSubset(beforePermissions, currentAuthorization)) {
+      throw new Error(
+        'You cannot edit a role with permissions you do not have',
+      );
+    }
+    await validateRoleInput(input, currentAuthorization, trx, roleId);
+
     await trx
       .updateTable('accessRole')
       .set({
@@ -169,17 +224,6 @@ export const updateRole = async (
         )
         .execute();
     }
-    await writeAuthorizationAudit(
-      {
-        actorUserId: authorization.userId,
-        action: 'role.updated',
-        targetType: 'role',
-        targetId: roleId,
-        before,
-        after: input,
-      },
-      trx,
-    );
   });
 };
 
@@ -187,70 +231,96 @@ export const setDefaultRole = async (
   roleId: string,
   authorization: AuthorizationContext,
 ) => {
-  if (!permissionsAreSubset(await getRolePermissions(roleId), authorization)) {
-    throw new Error('You cannot make this role the default');
-  }
   await db.transaction().execute(async (trx) => {
-    const settings = await trx
+    await trx
       .selectFrom('authorizationSettings')
-      .select('defaultRoleId')
+      .select('id')
       .where('id', '=', 1)
       .forUpdate()
       .executeTakeFirstOrThrow();
+    const currentAuthorization = await loadLockedAuthorizationContext(
+      authorization.userId,
+      trx,
+    );
+    if (
+      !currentAuthorization ||
+      !hasPermission(currentAuthorization, 'roles.manage')
+    ) {
+      throw new Error('You cannot set the default role');
+    }
     const role = await trx
       .selectFrom('accessRole')
       .select('id')
       .where('id', '=', roleId)
+      .forUpdate()
       .executeTakeFirst();
     if (!role) throw new Error('Role not found');
+    if (
+      !permissionsAreSubset(
+        await getRolePermissions(roleId, trx),
+        currentAuthorization,
+      )
+    ) {
+      throw new Error('You cannot make this role the default');
+    }
     await trx
       .updateTable('authorizationSettings')
       .set({ defaultRoleId: roleId })
       .where('id', '=', 1)
       .execute();
-    await writeAuthorizationAudit(
-      {
-        actorUserId: authorization.userId,
-        action: 'role.default_changed',
-        targetType: 'role',
-        targetId: roleId,
-        before: { roleId: settings.defaultRoleId },
-        after: { roleId },
-      },
-      trx,
-    );
   });
 };
 
 export const deleteRole = async (
   roleId: string,
   authorization: AuthorizationContext,
-) => {
-  const role = (await listRoles()).find((candidate) => candidate.id === roleId);
-  if (!role) return false;
-  if (!permissionsAreSubset(role.permissions, authorization)) {
-    throw new Error(
-      'You cannot delete a role with permissions you do not have',
+) =>
+  db.transaction().execute(async (trx) => {
+    const settings = await trx
+      .selectFrom('authorizationSettings')
+      .select('defaultRoleId')
+      .where('id', '=', 1)
+      .forUpdate()
+      .executeTakeFirstOrThrow();
+    const currentAuthorization = await loadLockedAuthorizationContext(
+      authorization.userId,
+      trx,
     );
-  }
-  if (role.isDefault) throw new Error('Choose another default role first');
-  if (role.userCount) throw new Error('Reassign this role’s users first');
+    if (
+      !currentAuthorization ||
+      !hasPermission(currentAuthorization, 'roles.manage')
+    ) {
+      throw new Error('You cannot delete roles');
+    }
+    const role = await trx
+      .selectFrom('accessRole')
+      .selectAll()
+      .where('id', '=', roleId)
+      .forUpdate()
+      .executeTakeFirst();
+    if (!role) return false;
 
-  return await db.transaction().execute(async (trx) => {
+    const permissions = await getRolePermissions(roleId, trx);
+    if (!permissionsAreSubset(permissions, currentAuthorization)) {
+      throw new Error(
+        'You cannot delete a role with permissions you do not have',
+      );
+    }
+
+    const user = await trx
+      .selectFrom('user')
+      .select('id')
+      .where('roleId', '=', roleId)
+      .limit(1)
+      .executeTakeFirst();
+    if (settings.defaultRoleId === roleId) {
+      throw new Error('Choose another default role first');
+    }
+    if (user) throw new Error('Reassign this role’s users first');
+
     const result = await trx
       .deleteFrom('accessRole')
       .where('id', '=', roleId)
       .executeTakeFirst();
-    await writeAuthorizationAudit(
-      {
-        actorUserId: authorization.userId,
-        action: 'role.deleted',
-        targetType: 'role',
-        targetId: roleId,
-        before: role,
-      },
-      trx,
-    );
     return Number(result.numDeletedRows) > 0;
   });
-};

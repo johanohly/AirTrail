@@ -22,13 +22,13 @@ paths:
       tags:
         - 'Flight'
       summary: 'List flights'
-      description: "List flights visible to the authenticated API key. Regular users can only list their own flights. Admins and owners can also request a specific user's flights or all flights."
+      description: 'List flights visible to the authenticated API key. `scope=mine` requires `flight.read.own`. `scope=user` and `scope=all` require `flight.read.any`.'
       operationId: 'list-flights'
       parameters:
         - name: scope
           in: query
           required: false
-          description: 'Which flights to return. `mine` is the default. `user` and `all` require an admin or owner API key.'
+          description: 'Which flights to return. `mine` is the default. `user` and `all` require `flight.read.any`.'
           schema:
             type: string
             enum:
@@ -80,7 +80,7 @@ paths:
       tags:
         - 'Flight'
       summary: 'Export flights'
-      description: "Export an AirTrail backup visible to the authenticated API key. The JSON response matches the AirTrail import format. Regular users can only export their own flights. Admins and owners can also request a specific user's flights or all flights."
+      description: 'Export an AirTrail backup visible to the authenticated API key. The JSON response matches the AirTrail import format. `scope=mine` requires `flight.export.own`. `scope=user` and `scope=all` require `flight.export.any`.'
       operationId: 'export-flights'
       parameters:
         - name: format
@@ -97,7 +97,7 @@ paths:
         - name: scope
           in: query
           required: false
-          description: 'Which flights to export. `mine` is the default. `user` and `all` require an admin or owner API key.'
+          description: 'Which flights to export. `mine` is the default. `user` and `all` require `flight.export.any`.'
           schema:
             type: string
             enum:
@@ -152,7 +152,7 @@ paths:
       tags:
         - 'Flight'
       summary: 'Get flight details'
-      description: 'Get details of a specific flight by ID.'
+      description: 'Get details of a specific flight by ID. A passenger requires `flight.read.own`; access to any flight requires `flight.read.any`.'
       operationId: 'get-flight'
       parameters:
         - name: id
@@ -189,8 +189,8 @@ paths:
                     example: 'Flight id is not a number'
         '401':
           '$ref': '#/components/responses/401'
-        '403':
-          '$ref': '#/components/responses/403'
+        '404':
+          description: 'Flight not found or not visible to the authenticated API key'
         '500':
           '$ref': '#/components/responses/500'
       security:
@@ -200,7 +200,7 @@ paths:
       tags:
         - 'Flight'
       summary: 'Create or update a flight'
-      description: 'Create a new flight or update an existing one. If the `id` field is present, the flight will be updated. Otherwise, a new flight will be created.'
+      description: 'Create a new flight or update an existing one. Creating a flight for the API-key user requires `flight.create.own`; creating one for other users requires `flight.create.any`. Updating follows the equivalent `flight.update.*` permissions. On an existing flight, adding, removing, or changing passengers requires the matching `flight.passengers.manage.*` permission.'
       operationId: 'save-flight'
       requestBody:
         required: true
@@ -261,7 +261,7 @@ paths:
       tags:
         - 'Flight'
       summary: 'Delete a flight'
-      description: 'Delete a flight by ID.'
+      description: 'Delete a flight by ID. A passenger requires `flight.delete.own`; deleting any flight requires `flight.delete.any`.'
       operationId: 'delete-flight'
       requestBody:
         required: true
@@ -297,6 +297,8 @@ paths:
                     description: 'The list of validation errors.'
         '401':
           '$ref': '#/components/responses/401'
+        '403':
+          '$ref': '#/components/responses/403'
         '500':
           '$ref': '#/components/responses/500'
       security:
@@ -307,13 +309,13 @@ paths:
       tags:
         - 'Stats'
       summary: 'Get statistics'
-      description: "Get aggregated statistics for completed flights visible to the authenticated API key. Regular users can only retrieve their own statistics. Admins and owners can also request a specific user's statistics or statistics for all users."
+      description: 'Get aggregated statistics for completed flights visible to the authenticated API key. `scope=mine` requires `flight.read.own`. `scope=user` and `scope=all` require `flight.read.any`.'
       operationId: 'get-stats'
       parameters:
         - name: scope
           in: query
           required: false
-          description: 'Which flights to aggregate. `mine` is the default. `user` and `all` require an admin or owner API key.'
+          description: 'Which flights to aggregate. `mine` is the default. `user` and `all` require `flight.read.any`.'
           schema:
             type: string
             enum:

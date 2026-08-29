@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Copy, Plus, SquarePen, Star, Trash2 } from '@o7/icon/lucide';
+  import autoAnimate from '@formkit/auto-animate';
+  import { Copy, SquarePen, Star, Trash2 } from '@o7/icon/lucide';
   import { onMount } from 'svelte';
   import { toast } from 'svelte-sonner';
 
@@ -11,8 +12,9 @@
     PermissionGroup,
   } from '$lib/authorization/permissions';
   import { Confirm } from '$lib/components/helpers';
-  import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
+  import { Card } from '$lib/components/ui/card';
+  import { TextTooltip } from '$lib/components/ui/tooltip';
   import { api } from '$lib/trpc';
   import { getErrorText } from '$lib/utils/error';
 
@@ -25,28 +27,14 @@
 
   let roles = $state<Role[]>([]);
   let permissionGroups = $state<PermissionGroup[]>([]);
-  let audits = $state<
-    Array<{
-      id: number;
-      action: string;
-      targetType: string;
-      targetId: string;
-      createdAt: Date;
-      actorName: string | null;
-    }>
-  >([]);
   let loading = $state(true);
   let modalOpen = $state(false);
   let editingRole = $state<EditableRole | null>(null);
 
   const load = async () => {
-    const [result, auditResult] = await Promise.all([
-      api.role.list.query(),
-      api.role.audit.query(),
-    ]);
+    const result = await api.role.list.query();
     roles = result.roles;
     permissionGroups = result.permissionGroups;
-    audits = auditResult;
     loading = false;
   };
 
@@ -82,6 +70,13 @@
       toast.error(getErrorText(error) || 'Could not delete the role.');
     }
   };
+
+  const deleteTooltip = (role: Role) => {
+    if (role.isDefault) return 'The default role cannot be deleted';
+    if (role.userCount > 0)
+      return 'Reassign its users before deleting this role';
+    return 'Delete role';
+  };
 </script>
 
 <RoleModal
@@ -96,112 +91,123 @@
   subtitle="Define what users can access. User and Administrator are editable defaults, just like every other role."
 >
   {#snippet headerRight()}
-    <Button size="sm" onclick={() => openCreate()}>
-      <Plus class="mr-1 size-4" />
-      New role
-    </Button>
+    <Button onclick={() => openCreate()}>New role</Button>
   {/snippet}
 
   {#if loading}
     <p class="text-sm text-muted-foreground">Loading roles…</p>
   {:else}
-    <div class="divide-y rounded-md border">
+    <div use:autoAnimate class="space-y-2">
       {#each roles as role}
-        <div class="flex items-center gap-3 px-3 py-3">
-          <div class="min-w-0 flex-1">
-            <div class="flex flex-wrap items-center gap-2">
-              <h4 class="truncate font-medium">{role.name}</h4>
-              {#if role.isDefault}<Badge variant="secondary">Default</Badge
-                >{/if}
+        <Card level="2" class="flex items-center p-3">
+          <div class="flex items-center flex-1 gap-4 h-full min-w-0">
+            <div class="flex flex-col min-w-0 w-2/5">
+              <h4 class="truncate leading-5">{role.name}</h4>
+              <p
+                class="truncate text-sm text-muted-foreground"
+                title={role.description || 'No description'}
+              >
+                {role.description || 'No description'}
+              </p>
             </div>
-            <p class="truncate text-sm text-muted-foreground">
-              {role.description || 'No description'}
-            </p>
-            <p class="mt-1 text-xs text-muted-foreground">
-              {role.userCount}
-              {role.userCount === 1 ? 'user' : 'users'} ·
-              {role.permissions.length} permissions
-            </p>
+            <div class="flex flex-1 flex-col min-w-0">
+              <p class="truncate text-sm text-muted-foreground">
+                {role.userCount}
+                {role.userCount === 1 ? 'user' : 'users'}
+              </p>
+              <p class="truncate text-sm text-muted-foreground">
+                {role.permissions.length}
+                {role.permissions.length === 1 ? 'permission' : 'permissions'}
+              </p>
+            </div>
           </div>
-          <div class="flex shrink-0 items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              title="Make default"
-              aria-label={`Make ${role.name} the default role`}
-              disabled={role.isDefault}
-              onclick={() => setDefault(role)}
+          <div class="flex items-center gap-2">
+            <TextTooltip
+              content={role.isDefault ? 'Default role' : 'Make default'}
+              rootProps={{ delayDuration: 0 }}
             >
-              <Star class="size-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              title="Duplicate role"
-              aria-label={`Duplicate ${role.name}`}
-              onclick={() => openCreate(role)}
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label={role.isDefault
+                  ? `${role.name} is the default role`
+                  : `Make ${role.name} the default role`}
+                aria-pressed={role.isDefault}
+                disabled={role.isDefault}
+                onclick={() => setDefault(role)}
+              >
+                {#if role.isDefault}
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="text-blue-500"
+                    style="width: 20px; height: 20px"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"
+                    />
+                  </svg>
+                {:else}
+                  <Star size="20" />
+                {/if}
+              </Button>
+            </TextTooltip>
+            <TextTooltip
+              content="Duplicate role"
+              rootProps={{ delayDuration: 0 }}
             >
-              <Copy class="size-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              title="Edit role"
-              aria-label={`Edit ${role.name}`}
-              onclick={() => {
-                editingRole = role;
-                modalOpen = true;
-              }}
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label={`Duplicate ${role.name}`}
+                onclick={() => openCreate(role)}
+              >
+                <Copy size="20" />
+              </Button>
+            </TextTooltip>
+            <TextTooltip content="Edit role" rootProps={{ delayDuration: 0 }}>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label={`Edit ${role.name}`}
+                onclick={() => {
+                  editingRole = role;
+                  modalOpen = true;
+                }}
+              >
+                <SquarePen size="20" />
+              </Button>
+            </TextTooltip>
+            <TextTooltip
+              content={deleteTooltip(role)}
+              rootProps={{ delayDuration: 0 }}
             >
-              <SquarePen class="size-4" />
-            </Button>
-            <Confirm
-              title="Delete role"
-              description="This cannot be undone. Roles in use must be reassigned first."
-              onConfirm={() => deleteRole(role)}
-            >
-              {#snippet triggerContent({ props })}
-                <Button
-                  {...props}
-                  variant="ghost"
-                  size="icon"
-                  title="Delete role"
-                  aria-label={`Delete ${role.name}`}
-                  disabled={role.isDefault || role.userCount > 0}
-                >
-                  <Trash2 class="size-4" />
-                </Button>
-              {/snippet}
-            </Confirm>
+              <Confirm
+                title="Delete role"
+                description="This cannot be undone. Roles in use must be reassigned first."
+                onConfirm={() => deleteRole(role)}
+              >
+                {#snippet triggerContent({ props })}
+                  <Button
+                    {...props}
+                    variant="outline"
+                    size="icon"
+                    aria-label={`Delete ${role.name}`}
+                    disabled={role.isDefault || role.userCount > 0}
+                  >
+                    <Trash2 size="20" />
+                  </Button>
+                {/snippet}
+              </Confirm>
+            </TextTooltip>
           </div>
-        </div>
+        </Card>
       {/each}
     </div>
-
-    {#if audits.length}
-      <section class="space-y-2 pt-2">
-        <h3 class="text-sm font-semibold">Recent authorization changes</h3>
-        <div class="divide-y rounded-md border">
-          {#each audits.slice(0, 10) as audit}
-            <div class="flex items-start justify-between gap-4 px-3 py-2.5">
-              <div class="min-w-0">
-                <p class="truncate text-sm">
-                  {audit.action.replaceAll('_', ' ').replaceAll('.', ' ')}
-                </p>
-                <p class="truncate text-xs text-muted-foreground">
-                  {audit.actorName ?? 'System'} · {audit.targetType}
-                </p>
-              </div>
-              <time
-                class="shrink-0 text-xs tabular-nums text-muted-foreground"
-                datetime={audit.createdAt.toISOString()}
-              >
-                {audit.createdAt.toLocaleDateString()}
-              </time>
-            </div>
-          {/each}
-        </div>
-      </section>
-    {/if}
   {/if}
 </PageHeader>

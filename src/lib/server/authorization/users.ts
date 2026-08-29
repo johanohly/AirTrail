@@ -1,37 +1,36 @@
-import { PERMISSIONS } from '$lib/authorization/permissions';
+import type { Kysely, Transaction } from 'kysely';
+
+import {
+  permissionsStrictlyInclude,
+  type Permission,
+} from '$lib/authorization/permissions';
 import { db } from '$lib/db';
-import { hasPermission } from './authorize';
+import type { DB } from '$lib/db/schema';
 import type { AuthorizationContext } from './context';
 import { getRolePermissions } from './roles';
+import { hasPermission } from './authorize';
 
-const effectivePermissions = (permissions: string[]) =>
-  new Set(
-    PERMISSIONS.filter((permission) => {
-      if (permissions.includes(permission)) return true;
-      if (!permission.endsWith('.own')) return false;
-      return permissions.includes(`${permission.slice(0, -4)}.any`);
-    }),
-  );
+type DatabaseConnection = Kysely<DB> | Transaction<DB>;
+type ManageableUser = { isOwner: boolean; roleId: string | null };
 
-export const canManageUser = async (
+export const hasUserChangePermissions = (
   authorization: AuthorizationContext,
-  targetUserId: string,
-  permission: 'users.update' | 'users.delete',
+  changes: { profile: boolean; role: boolean },
+) =>
+  (!changes.profile || hasPermission(authorization, 'users.update')) &&
+  (!changes.role || hasPermission(authorization, 'users.roles.assign'));
+
+export const canActOnUser = async (
+  authorization: AuthorizationContext,
+  target: ManageableUser,
+  connection: DatabaseConnection = db,
 ) => {
-  if (!hasPermission(authorization, permission)) return false;
-  const target = await db
-    .selectFrom('user')
-    .select(['id', 'isOwner', 'roleId'])
-    .where('id', '=', targetUserId)
-    .executeTakeFirst();
-  if (!target || target.isOwner) return false;
+  if (target.isOwner) return false;
   if (authorization.isOwner) return true;
   if (!target.roleId) return false;
 
-  const targetSet = effectivePermissions(
-    await getRolePermissions(target.roleId),
+  return permissionsStrictlyInclude(
+    authorization.permissions,
+    await getRolePermissions(target.roleId, connection),
   );
-  const actorSet = effectivePermissions([...authorization.permissions]);
-  const subset = [...targetSet].every((permission) => actorSet.has(permission));
-  return subset && actorSet.size > targetSet.size;
 };

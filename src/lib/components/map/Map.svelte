@@ -104,7 +104,7 @@
     onNavigate?: NavigateFlights;
   } = $props();
 
-  const showScopeBanner = $derived(flightScopeState.scope !== 'mine');
+  const showScopeBanner = $derived(flightScopeState.current.scope !== 'mine');
   const alignStatusWithDetails = $derived(!!mapDetailsState.selection);
 
   let map: MapLibreMap | undefined = $state.raw(undefined);

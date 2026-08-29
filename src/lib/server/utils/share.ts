@@ -2,6 +2,8 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 import { db } from '$lib/db';
+import { canShareOwnFlights } from '$lib/server/authorization/flight';
+import { loadAuthorizationContext } from '$lib/server/authorization/context';
 import { listFlightBaseQuery } from '$lib/db/queries';
 import type {
   Airport,
@@ -222,6 +224,14 @@ export async function getPublicShareData(slug: string) {
     .executeTakeFirst();
 
   if (!share) {
+    throw new TRPCError({
+      code: 'NOT_FOUND',
+      message: 'Share not found or expired',
+    });
+  }
+
+  const authorization = await loadAuthorizationContext(share.userId);
+  if (!authorization || !canShareOwnFlights(authorization)) {
     throw new TRPCError({
       code: 'NOT_FOUND',
       message: 'Share not found or expired',

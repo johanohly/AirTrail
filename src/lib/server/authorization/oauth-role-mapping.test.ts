@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   readJsonPointer,
+  oauthAssignmentRoleIds,
   selectOAuthMappedRole,
-  type OAuthRoleMappingInput,
 } from './oauth-role-mapping';
+import type { OAuthRoleMappingInput } from '$lib/zod/oauth-role-mapping';
 
 const mapping = (
   overrides: Partial<OAuthRoleMappingInput> = {},
@@ -48,5 +49,14 @@ describe('OAuth role mapping', () => {
     expect(
       selectOAuthMappedRole([rule], {}, { department: 'operations' }),
     ).toBeUndefined();
+  });
+
+  it('validates the fallback role with every explicit mapping role', () => {
+    expect(
+      oauthAssignmentRoleIds('role-default', [
+        mapping({ roleId: 'role-ops' }),
+        mapping({ roleId: 'role-default' }),
+      ]),
+    ).toEqual(['role-default', 'role-ops']);
   });
 });

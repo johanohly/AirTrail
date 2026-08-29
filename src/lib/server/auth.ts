@@ -22,9 +22,6 @@ export const lucia = new Lucia(adapter, {
       username: db.username,
       // @ts-expect-error - Lucia establishes its own connection so the camel case translation layer does not get applied here
       displayName: db.display_name,
-      // Legacy role remains available for rollback, but authorization never
-      // reads it after the RBAC migration.
-      role: db.role,
       // @ts-expect-error - Lucia reads snake_case columns without Kysely's mapper
       roleId: db.role_id,
       // @ts-expect-error - Same as above

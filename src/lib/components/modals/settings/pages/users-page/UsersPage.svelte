@@ -44,8 +44,8 @@
   const canEditUser = (current_user: PublicUser) => {
     return (
       !current_user.isOwner &&
-      hasClientPermission(page.data.authorization, 'users.update') &&
-      hasClientPermission(page.data.authorization, 'users.roles.assign')
+      (hasClientPermission(page.data.authorization, 'users.update') ||
+        hasClientPermission(page.data.authorization, 'users.roles.assign'))
     );
   };
 

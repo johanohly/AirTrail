@@ -2,7 +2,6 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 import { PERMISSION_GROUPS } from '$lib/authorization/permissions';
-import { db } from '$lib/db';
 import { hasPermission } from '$lib/server/authorization/authorize';
 import {
   getOAuthRoleSettings,
@@ -11,6 +10,8 @@ import {
 import {
   createRole,
   deleteRole,
+  listAssignableRoleOptions,
+  listRoleOptions,
   listRoles,
   setDefaultRole,
   updateRole,
@@ -36,6 +37,12 @@ export const roleRouter = router({
     }
     return { roles: await listRoles(), permissionGroups: PERMISSION_GROUPS };
   }),
+  assignableOptions: permissionProcedure('users.roles.assign').query(
+    async ({ ctx }) => listAssignableRoleOptions(ctx.authorization),
+  ),
+  oauthRoleOptions: permissionProcedure('instance.oauth.manage').query(
+    listRoleOptions,
+  ),
   create: permissionProcedure('roles.manage')
     .input(roleInputSchema)
     .mutation(async ({ ctx, input }) => {
@@ -75,8 +82,8 @@ export const roleRouter = router({
         roleError(error);
       }
     }),
-  oauthMappings: permissionProcedure('instance.oauth.manage').query(
-    getOAuthRoleSettings,
+  oauthMappings: permissionProcedure('instance.oauth.manage').query(() =>
+    getOAuthRoleSettings(),
   ),
   updateOAuthMappings: permissionProcedure('instance.oauth.manage')
     .input(oauthRoleMappingSettingsSchema)
@@ -92,20 +99,4 @@ export const roleRouter = router({
         roleError(error);
       }
     }),
-  audit: permissionProcedure('roles.manage').query(async () =>
-    db
-      .selectFrom('authorizationAudit')
-      .leftJoin('user', 'user.id', 'authorizationAudit.actorUserId')
-      .select([
-        'authorizationAudit.id',
-        'authorizationAudit.action',
-        'authorizationAudit.targetType',
-        'authorizationAudit.targetId',
-        'authorizationAudit.createdAt',
-        'user.displayName as actorName',
-      ])
-      .orderBy('authorizationAudit.createdAt', 'desc')
-      .limit(50)
-      .execute(),
-  ),
 });

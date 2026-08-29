@@ -31,34 +31,49 @@
     mapDetailsState,
     openFlightDetails,
     openModalsState,
+    setFlightScope,
   } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
+  import { Card } from '$lib/components/ui/card';
+  import type { FlightScope } from '$lib/flight-scope';
   import { prepareFlightData } from '$lib/utils';
 
   const user = $derived(page.data.user);
+  const canReadOwnFlightsAtLoad = hasClientPermission(
+    page.data.authorization,
+    'flight.read.own',
+  );
+  const canReadOwnFlights = $derived(
+    hasClientPermission(page.data.authorization, 'flight.read.own'),
+  );
+  const canReadAnyFlights = $derived(
+    hasClientPermission(page.data.authorization, 'flight.read.any'),
+  );
   const canOnboardFlights = $derived(
     hasClientPermission(page.data.authorization, 'flight.create.own') ||
       hasClientPermission(page.data.authorization, 'flight.import.own'),
   );
 
-  const flightListInput = writable<{
-    scope: 'mine' | 'user' | 'all';
-    userId?: string;
-  }>({
-    scope: 'mine',
-  });
+  const flightListInput = writable<FlightScope>({ scope: 'mine' });
 
   $effect(() => {
-    flightListInput.set({
-      scope: flightScopeState.scope,
-      userId:
-        flightScopeState.scope === 'user' ? flightScopeState.userId : undefined,
-    });
+    let scope = flightScopeState.current;
+    if (scope.scope !== 'mine' && !canReadAnyFlights) {
+      scope = { scope: 'mine' };
+      setFlightScope(scope);
+    }
+    flightListInput.set(scope);
   });
 
-  const rawFlights = trpc.flight.list.query(flightListInput);
-  const rawFlightTracks = trpc.flightTrack.list.query(flightListInput);
-  const rawVisitedCountries = trpc.visitedCountries.list.query();
+  const rawFlights = trpc.flight.list.query(flightListInput, {
+    enabled: canReadOwnFlightsAtLoad,
+  });
+  const rawFlightTracks = trpc.flightTrack.list.query(flightListInput, {
+    enabled: canReadOwnFlightsAtLoad,
+  });
+  const rawVisitedCountries = trpc.visitedCountries.list.query(undefined, {
+    enabled: canReadOwnFlightsAtLoad,
+  });
 
   const flights = $derived.by(() => {
     const data = $rawFlights.data;
@@ -92,13 +107,17 @@
   let tempFilters: TempFilters = $state(createDefaultTempFilters());
 
   const effectiveSeatUserId = $derived.by(() => {
-    if (flightScopeState.scope === 'all') return undefined;
-    if (flightScopeState.scope === 'user') return flightScopeState.userId;
+    if (flightScopeState.current.scope === 'all') return undefined;
+    if (flightScopeState.current.scope === 'user') {
+      return flightScopeState.current.userId;
+    }
     return user?.id;
   });
 
-  const showPassengerDetails = $derived(flightScopeState.scope !== 'mine');
-  const showCountryStats = $derived(flightScopeState.scope === 'mine');
+  const showPassengerDetails = $derived(
+    flightScopeState.current.scope !== 'mine',
+  );
+  const showCountryStats = $derived(flightScopeState.current.scope === 'mine');
   let focusedListFlightId = $state<number | null>(null);
 
   $effect(() => {
@@ -186,43 +205,65 @@
   };
 </script>
 
-{#if !$rawFlights.isLoading && canOnboardFlights}
-  <FlightsOnboarding flightsCount={flights.length} />
-{/if}
-<ListFlightsModal
-  bind:open={openModalsState.listFlights}
-  bind:filters
-  bind:tempFilters
-  {flights}
-  filteredFlights={drilldownFlights}
-  {focusedFlightOutsideFilters}
-  {deleteFlight}
-  seatUserId={effectiveSeatUserId}
-  {showPassengerDetails}
-  onNavigate={navigateFlights}
-/>
-<StatisticsModal
-  bind:open={openModalsState.statistics}
-  {flights}
-  {filteredFlights}
-  bind:filters
-  visitedCountries={showCountryStats ? visitedCountriesData : []}
-  seatUserId={effectiveSeatUserId}
-  {showCountryStats}
-  onOpenFlight={openStatisticsFlight}
-/>
+{#if canReadOwnFlights}
+  {#if !$rawFlights.isLoading && canOnboardFlights}
+    <FlightsOnboarding flightsCount={flights.length} />
+  {/if}
+  <ListFlightsModal
+    bind:open={openModalsState.listFlights}
+    bind:filters
+    bind:tempFilters
+    {flights}
+    filteredFlights={drilldownFlights}
+    {focusedFlightOutsideFilters}
+    {deleteFlight}
+    seatUserId={effectiveSeatUserId}
+    {showPassengerDetails}
+    onNavigate={navigateFlights}
+  />
+  <StatisticsModal
+    bind:open={openModalsState.statistics}
+    {flights}
+    {filteredFlights}
+    bind:filters
+    visitedCountries={showCountryStats ? visitedCountriesData : []}
+    seatUserId={effectiveSeatUserId}
+    {showCountryStats}
+    onOpenFlight={openStatisticsFlight}
+  />
 
-<Map
-  bind:filters
-  bind:tempFilters
-  {flights}
-  {filteredFlights}
-  {flightTracks}
-  onNavigate={navigateFlights}
-/>
-<MapDetailsPane
-  {flights}
-  bind:filters
-  seatUserId={effectiveSeatUserId}
-  onNavigate={navigateFlights}
-/>
+  <Map
+    bind:filters
+    bind:tempFilters
+    {flights}
+    {filteredFlights}
+    {flightTracks}
+    onNavigate={navigateFlights}
+  />
+  <MapDetailsPane
+    {flights}
+    bind:filters
+    seatUserId={effectiveSeatUserId}
+    onNavigate={navigateFlights}
+  />
+{:else}
+  <Map
+    bind:filters
+    bind:tempFilters
+    flights={[]}
+    filteredFlights={[]}
+    flightTracks={[]}
+    onNavigate={navigateFlights}
+  />
+  <div
+    class="pointer-events-none fixed inset-0 z-10 grid place-items-center p-6"
+  >
+    <Card level="2" class="max-w-md p-6 text-center shadow-lg">
+      <h1 class="text-lg font-semibold">Flight access is unavailable</h1>
+      <p class="mt-2 text-sm text-muted-foreground">
+        Your role does not grant access to flight data. You can still use the
+        settings and tools available to your role.
+      </p>
+    </Card>
+  </div>
+{/if}
