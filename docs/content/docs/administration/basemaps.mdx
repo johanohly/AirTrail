@@ -21,18 +21,15 @@ setting.
 ## OpenFreeMap
 
 Select **OpenFreeMap** and save. No account or API key is needed. AirTrail uses
-the hosted Positron and Dark styles and preserves the required OpenFreeMap,
-OpenMapTiles, and OpenStreetMap attribution.
+the hosted Positron and Dark styles.
 
 ## CARTO
 
 Request a basemap key from [CARTO](https://carto.com/basemaps/apikey/) for the
 domain where AirTrail is hosted. Select **CARTO**, enter the key, and save.
 
-The key is a browser credential: map resources are requested directly from
-CARTO, so users can see it in their browser's network tools. Do not reuse a key
-across unrelated projects. AirTrail uses CARTO's vector service only; the
-retiring raster service is not used as a fallback.
+AirTrail sends the key to the browser when loading map resources. Restrict it to
+your AirTrail domain in CARTO.
 
 Environment configuration:
 
@@ -52,9 +49,6 @@ MAP_PROVIDER=protomaps
 MAP_PROTOMAPS_SOURCE_KIND=hosted
 MAP_PROTOMAPS_API_KEY=your-key
 ```
-
-The hosted API is free for non-commercial use. Commercial use requires
-sponsorship under the current Protomaps usage policy.
 
 ## Self-hosted Protomaps
 
@@ -83,10 +77,9 @@ A public PMTiles URL permits downloading the complete archive. Use a Protomaps
 CDN deployment with TileJSON or ZXY output when the underlying archive must stay
 private. See the [Protomaps deployment guide](https://docs.protomaps.com/deploy/).
 
-AirTrail uses the official Protomaps font and sprite assets by default. Mirror
-the `basemaps-assets` directory and set the base URL to remove that final
-third-party dependency. The setting accepts either an HTTP(S) URL or a
-root-relative path on the AirTrail origin:
+AirTrail uses the official Protomaps font and sprite assets by default. To host
+these assets yourself, mirror the `basemaps-assets` directory and set its base
+URL. You can use an HTTP(S) URL or a root-relative path on the AirTrail origin:
 
 ```dotenv
 MAP_PROTOMAPS_ASSETS_BASE_URL=https://tiles.example.com/basemaps-assets
@@ -99,9 +92,9 @@ layout as [protomaps/basemaps-assets](https://github.com/protomaps/basemaps-asse
 ## Advanced style URLs
 
 The advanced light and dark style fields accept relative AirTrail URLs or an
-external MapLibre Style JSON URL. A raw override replaces the managed style for
-that theme, including AirTrail's automatic airport-layer composition. Leave the
-fields blank to retain the managed provider.
+external MapLibre Style JSON URL. A custom URL replaces the managed style for
+that theme, so AirTrail does not add its airport layers. Leave the fields blank
+to use the selected provider.
 
 ```dotenv
 MAP_LIGHT_STYLE_URL=https://maps.example.com/light/style.json
