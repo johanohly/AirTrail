@@ -35,6 +35,8 @@ CREATE TABLE "authorization_settings" (
 CREATE TABLE "oauth_role_mapping" (
   "id" SERIAL NOT NULL,
   "priority" INTEGER NOT NULL,
+  "name" TEXT NOT NULL DEFAULT '',
+  "enabled" BOOLEAN NOT NULL DEFAULT true,
   "claim_source" TEXT NOT NULL,
   "claim_path" TEXT NOT NULL,
   "operator" TEXT NOT NULL,

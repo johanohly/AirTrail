@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   canCreateUserAccount,
+  canDeduplicateOwnFlights,
   canRestoreAllFlights,
   canSetDefaultRole,
   permissionsStrictlyInclude,
@@ -97,6 +98,15 @@ describe('RBAC authorization', () => {
     expect(
       canRestoreAllFlights(
         context(['flight.import.any', 'users.directory.read']),
+      ),
+    ).toBe(true);
+
+    expect(canDeduplicateOwnFlights(context(['flight.delete.own']))).toBe(
+      false,
+    );
+    expect(
+      canDeduplicateOwnFlights(
+        context(['flight.read.own', 'flight.delete.own']),
       ),
     ).toBe(true);
 

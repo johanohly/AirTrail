@@ -9,7 +9,10 @@
   } from '@o7/icon/lucide';
 
   import { page } from '$app/state';
-  import { hasClientPermission } from '$lib/authorization/permissions';
+  import {
+    canDeduplicateOwnFlights,
+    hasClientPermission,
+  } from '$lib/authorization/permissions';
   import {
     Dock,
     DockDropdownItem,
@@ -57,7 +60,7 @@
   const otherItems = $derived.by(() => {
     const items = [];
     if (
-      hasClientPermission(page.data.authorization, 'flight.delete.own') ||
+      canDeduplicateOwnFlights(page.data.authorization) ||
       hasClientPermission(page.data.authorization, 'tools.sql.execute')
     ) {
       items.push({ label: 'Tools', href: '/tools' });

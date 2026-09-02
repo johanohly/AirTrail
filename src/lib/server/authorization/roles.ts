@@ -28,21 +28,27 @@ export class RoleOperationError extends Error {
 }
 
 export const listRoles = async (connection: DatabaseConnection = db) => {
-  const [roles, grants, settings, counts] = await Promise.all([
-    connection.selectFrom('accessRole').selectAll().orderBy('name').execute(),
-    connection.selectFrom('accessRolePermission').selectAll().execute(),
-    connection
-      .selectFrom('authorizationSettings')
-      .select('defaultRoleId')
-      .where('id', '=', 1)
-      .executeTakeFirstOrThrow(),
-    connection
-      .selectFrom('user')
-      .select(['roleId', (eb) => eb.fn.count('id').as('count')])
-      .where('roleId', 'is not', null)
-      .groupBy('roleId')
-      .execute(),
-  ]);
+  const [roles, grants, settings, counts, oauthMappingCounts] =
+    await Promise.all([
+      connection.selectFrom('accessRole').selectAll().orderBy('name').execute(),
+      connection.selectFrom('accessRolePermission').selectAll().execute(),
+      connection
+        .selectFrom('authorizationSettings')
+        .select('defaultRoleId')
+        .where('id', '=', 1)
+        .executeTakeFirstOrThrow(),
+      connection
+        .selectFrom('user')
+        .select(['roleId', (eb) => eb.fn.count('id').as('count')])
+        .where('roleId', 'is not', null)
+        .groupBy('roleId')
+        .execute(),
+      connection
+        .selectFrom('oauthRoleMapping')
+        .select(['roleId', (eb) => eb.fn.count('id').as('count')])
+        .groupBy('roleId')
+        .execute(),
+    ]);
   const permissionsByRole = new Map<string, Permission[]>();
   for (const grant of grants) {
     if (!isPermission(grant.permission)) continue;
@@ -53,11 +59,15 @@ export const listRoles = async (connection: DatabaseConnection = db) => {
   const countByRole = new Map(
     counts.map(({ roleId, count }) => [roleId, Number(count)]),
   );
+  const oauthMappingCountByRole = new Map(
+    oauthMappingCounts.map(({ roleId, count }) => [roleId, Number(count)]),
+  );
 
   return roles.map((role) => ({
     ...role,
     permissions: permissionsByRole.get(role.id) ?? [],
     userCount: countByRole.get(role.id) ?? 0,
+    oauthMappingCount: oauthMappingCountByRole.get(role.id) ?? 0,
     isDefault: role.id === settings.defaultRoleId,
   }));
 };
@@ -323,6 +333,18 @@ export const deleteRole = async (
       throw new RoleOperationError(
         'invalid',
         'Reassign this role’s users first',
+      );
+    }
+    const oauthMapping = await trx
+      .selectFrom('oauthRoleMapping')
+      .select('id')
+      .where('roleId', '=', roleId)
+      .limit(1)
+      .executeTakeFirst();
+    if (oauthMapping) {
+      throw new RoleOperationError(
+        'invalid',
+        'Remove this role from OAuth mappings first',
       );
     }
 

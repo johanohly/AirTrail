@@ -1,4 +1,5 @@
 import type { Kysely, Transaction } from 'kysely';
+import { jsonArrayFrom } from 'kysely/helpers/postgres';
 
 import { db } from '$lib/db';
 import type { DB } from '$lib/db/schema';
@@ -11,6 +12,10 @@ import type {
 } from '$lib/zod/oauth-role-mapping';
 
 export type OAuthClaims = Record<string, unknown>;
+
+export type OAuthRoleEvaluation =
+  | { kind: 'matched'; roleId: string; ruleIndex: number }
+  | { kind: 'fallback'; roleId: string };
 
 type DatabaseConnection = Kysely<DB> | Transaction<DB>;
 
@@ -41,26 +46,64 @@ const matches = (
   operator: 'equals' | 'contains',
   expected: string,
 ) => {
-  if (operator === 'equals') return String(actual) === expected;
+  const isComparableClaim = (
+    value: unknown,
+  ): value is string | number | boolean =>
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean';
+
+  if (operator === 'equals') {
+    return isComparableClaim(actual) && String(actual) === expected;
+  }
   if (typeof actual === 'string') return actual.includes(expected);
   return (
-    Array.isArray(actual) && actual.some((value) => String(value) === expected)
+    Array.isArray(actual) &&
+    actual.some(
+      (value) => isComparableClaim(value) && String(value) === expected,
+    )
   );
 };
 
-export const selectOAuthMappedRole = (
+const findMatchingMappingIndex = (
   mappings: readonly OAuthRoleMappingInput[],
   userinfo: OAuthClaims,
   idToken: OAuthClaims,
 ) =>
-  mappings.find((candidate) => {
+  mappings.findIndex((candidate) => {
+    if (!candidate.enabled) return false;
     const claims = candidate.claimSource === 'userinfo' ? userinfo : idToken;
     return matches(
       readJsonPointer(claims, candidate.claimPath),
       candidate.operator,
       candidate.claimValue,
     );
-  })?.roleId;
+  });
+
+export const selectOAuthMappedRole = (
+  mappings: readonly OAuthRoleMappingInput[],
+  userinfo: OAuthClaims,
+  idToken: OAuthClaims,
+) => {
+  const ruleIndex = findMatchingMappingIndex(mappings, userinfo, idToken);
+  return ruleIndex === -1 ? undefined : mappings[ruleIndex]!.roleId;
+};
+
+export const evaluateOAuthRoleMappings = ({
+  mappings,
+  userinfo,
+  idToken,
+  defaultRoleId,
+}: {
+  mappings: readonly OAuthRoleMappingInput[];
+  userinfo: OAuthClaims;
+  idToken: OAuthClaims;
+  defaultRoleId: string;
+}): OAuthRoleEvaluation => {
+  const ruleIndex = findMatchingMappingIndex(mappings, userinfo, idToken);
+  if (ruleIndex === -1) return { kind: 'fallback', roleId: defaultRoleId };
+  return { kind: 'matched', roleId: mappings[ruleIndex]!.roleId, ruleIndex };
+};
 
 export const oauthAssignmentRoleIds = (
   defaultRoleId: string,
@@ -69,21 +112,76 @@ export const oauthAssignmentRoleIds = (
 
 export const getOAuthRoleSettings = async (
   connection: DatabaseConnection = db,
+) =>
+  connection
+    .selectFrom('authorizationSettings')
+    .innerJoin(
+      'accessRole as defaultRole',
+      'defaultRole.id',
+      'authorizationSettings.defaultRoleId',
+    )
+    .select([
+      'authorizationSettings.defaultRoleId',
+      'authorizationSettings.oauthRoleMappingMode',
+      'defaultRole.name as defaultRoleName',
+    ])
+    .select(() =>
+      jsonArrayFrom(
+        connection
+          .selectFrom('oauthRoleMapping')
+          .selectAll()
+          .orderBy('priority')
+          .orderBy('id'),
+      ).as('mappings'),
+    )
+    .where('authorizationSettings.id', '=', 1)
+    .executeTakeFirstOrThrow();
+
+export const getOAuthManagedUserCount = async (
+  connection: DatabaseConnection = db,
 ) => {
-  const [settings, mappings] = await Promise.all([
-    connection
-      .selectFrom('authorizationSettings')
-      .select(['defaultRoleId', 'oauthRoleMappingMode'])
-      .where('id', '=', 1)
-      .executeTakeFirstOrThrow(),
-    connection
-      .selectFrom('oauthRoleMapping')
-      .selectAll()
-      .orderBy('priority')
-      .orderBy('id')
-      .execute(),
-  ]);
-  return { ...settings, mappings };
+  const result = await connection
+    .selectFrom('user')
+    .select((eb) => eb.fn.countAll().as('count'))
+    .where('roleAssignmentSource', '=', 'oauth')
+    .executeTakeFirstOrThrow();
+  return Number(result.count);
+};
+
+export const testOAuthRoleMappings = async ({
+  mappings,
+  userinfo,
+  idToken,
+  connection = db,
+}: {
+  mappings: readonly OAuthRoleMappingInput[];
+  userinfo: OAuthClaims;
+  idToken: OAuthClaims;
+  connection?: DatabaseConnection;
+}) => {
+  const settings = await connection
+    .selectFrom('authorizationSettings')
+    .select('defaultRoleId')
+    .where('id', '=', 1)
+    .executeTakeFirstOrThrow();
+  const evaluation = evaluateOAuthRoleMappings({
+    mappings,
+    userinfo,
+    idToken,
+    defaultRoleId: settings.defaultRoleId,
+  });
+  const role = await connection
+    .selectFrom('accessRole')
+    .select('name')
+    .where('id', '=', evaluation.roleId)
+    .executeTakeFirst();
+  if (!role) {
+    throw new RoleOperationError(
+      'not_found',
+      'The resulting role no longer exists',
+    );
+  }
+  return { ...evaluation, roleName: role.name };
 };
 
 export const resolveOAuthRole = async (
@@ -97,9 +195,14 @@ export const resolveOAuthRole = async (
       mode: settings.oauthRoleMappingMode,
     };
   }
-  const roleId = selectOAuthMappedRole(settings.mappings, userinfo, idToken);
+  const evaluation = evaluateOAuthRoleMappings({
+    mappings: settings.mappings,
+    userinfo,
+    idToken,
+    defaultRoleId: settings.defaultRoleId,
+  });
   return {
-    roleId: roleId ?? settings.defaultRoleId,
+    roleId: evaluation.roleId,
     mode: settings.oauthRoleMappingMode,
   };
 };

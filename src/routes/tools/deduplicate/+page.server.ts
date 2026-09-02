@@ -2,8 +2,8 @@ import { error, redirect } from '@sveltejs/kit';
 
 import type { PageServerLoad } from './$types';
 
+import { canDeduplicateOwnFlights } from '$lib/authorization/permissions';
 import type { Flight } from '$lib/db/types';
-import { hasPermission } from '$lib/server/authorization/authorize';
 import { listFlights } from '$lib/server/utils/flight';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -13,8 +13,7 @@ export const load: PageServerLoad = async ({ locals }) => {
   }
   if (
     !locals.authorization ||
-    !hasPermission(locals.authorization, 'flight.read.own') ||
-    !hasPermission(locals.authorization, 'flight.delete.own')
+    !canDeduplicateOwnFlights(locals.authorization)
   ) {
     return error(403, 'Forbidden');
   }

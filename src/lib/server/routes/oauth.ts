@@ -1,16 +1,54 @@
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { authedProcedure, publicProcedure, router } from '../trpc';
+import {
+  authedProcedure,
+  permissionProcedure,
+  publicProcedure,
+  router,
+} from '../trpc';
 
 import { db } from '$lib/db';
 import { appConfig } from '$lib/server/utils/config';
 import {
+  discoverOAuthClient,
   getAuthorizeUrl,
+  OAuthConfigurationError,
   OAUTH_CODE_VERIFIER_COOKIE,
   OAUTH_STATE_COOKIE,
 } from '$lib/server/utils/oauth';
+import { oauthConfigSchema } from '$lib/zod/config';
 
 export const oauthRouter = router({
+  testConfiguration: permissionProcedure('instance.oauth.manage')
+    .input(oauthConfigSchema)
+    .mutation(async ({ input }) => {
+      const currentConfig = await appConfig.get();
+      if (!currentConfig) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Could not load the current OAuth configuration.',
+        });
+      }
+      try {
+        const client = await discoverOAuthClient({
+          ...input,
+          clientSecret: input.clientSecret || currentConfig.oauth.clientSecret,
+        });
+        const metadata = client.serverMetadata();
+        return {
+          issuer: metadata.issuer,
+          authorizationEndpoint: metadata.authorization_endpoint ?? null,
+          tokenEndpoint: metadata.token_endpoint ?? null,
+          supportsPkce: metadata.supportsPKCE(),
+        };
+      } catch (error) {
+        if (error instanceof OAuthConfigurationError) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: error.message });
+        }
+        throw error;
+      }
+    }),
   authorize: publicProcedure
     .input(z.string())
     .mutation(async ({ ctx, input }) => {

@@ -17,6 +17,20 @@ type CfValueRow = {
 
 export type BackupFormat = 'json' | 'yaml';
 
+export const referencedBackupUserIds = (
+  flights: readonly {
+    passengers: readonly { userId: string | null }[];
+  }[],
+) => [
+  ...new Set(
+    flights.flatMap((flight) =>
+      flight.passengers.flatMap((passenger) =>
+        passenger.userId ? [passenger.userId] : [],
+      ),
+    ),
+  ),
+];
+
 const collectEntityIds = (rows: CfValueRow[]) => {
   const ids = {
     airport: new Set<number>(),
@@ -54,11 +68,16 @@ const buildCfByFlight = (
 };
 
 export const generateBackup = async (scope: ResolvedFlightScope) => {
-  const users = await db
-    .selectFrom('user')
-    .select(['id', 'displayName', 'username'])
-    .execute();
   const res = await listFlightsInScope(scope);
+  const userIds = referencedBackupUserIds(res);
+  const users =
+    userIds.length === 0
+      ? []
+      : await db
+          .selectFrom('user')
+          .select(['id', 'displayName', 'username'])
+          .where('id', 'in', userIds)
+          .execute();
   const flightIds = res.map((f) => f.id);
   const passengerIds = res.flatMap((flight) =>
     flight.passengers.map((passenger) => passenger.id),

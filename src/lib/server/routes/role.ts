@@ -7,8 +7,10 @@ import {
   hasPermission,
 } from '$lib/server/authorization/authorize';
 import {
+  getOAuthManagedUserCount,
   getOAuthRoleSettings,
   replaceOAuthRoleSettings,
+  testOAuthRoleMappings,
 } from '$lib/server/authorization/oauth-role-mapping';
 import {
   createRole,
@@ -21,7 +23,10 @@ import {
   updateRole,
 } from '$lib/server/authorization/roles';
 import { authedProcedure, permissionProcedure, router } from '$lib/server/trpc';
-import { oauthRoleMappingSettingsSchema } from '$lib/zod/oauth-role-mapping';
+import {
+  oauthRoleMappingSettingsSchema,
+  oauthRoleMappingTestSchema,
+} from '$lib/zod/oauth-role-mapping';
 import { roleInputSchema, roleUpdateSchema } from '$lib/zod/role';
 
 const roleError = (error: unknown): never => {
@@ -98,9 +103,15 @@ export const roleRouter = router({
         roleError(error);
       }
     }),
-  oauthMappings: permissionProcedure('instance.oauth.manage').query(() =>
-    getOAuthRoleSettings(),
+  oauthMappings: permissionProcedure('instance.oauth.manage').query(
+    async () => ({
+      ...(await getOAuthRoleSettings()),
+      oauthManagedUserCount: await getOAuthManagedUserCount(),
+    }),
   ),
+  testOAuthMappings: permissionProcedure('instance.oauth.manage')
+    .input(oauthRoleMappingTestSchema)
+    .mutation(async ({ input }) => testOAuthRoleMappings(input)),
   updateOAuthMappings: permissionProcedure('instance.oauth.manage')
     .input(oauthRoleMappingSettingsSchema)
     .mutation(async ({ ctx, input }) => {

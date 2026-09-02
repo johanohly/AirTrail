@@ -66,6 +66,7 @@
     dismissal,
     dirty = false,
     busy = false,
+    confirmExplicitClose = false,
     onDiscard,
     closeButton,
     dialogNoPadding = false,
@@ -91,6 +92,7 @@
     dismissal?: ModalDismissalMode;
     dirty?: boolean;
     busy?: boolean;
+    confirmExplicitClose?: boolean;
     onDiscard?: () => void | Promise<void>;
     closeButton?: boolean;
     dialogNoPadding?: boolean;
@@ -300,7 +302,8 @@
       )}
       closeButton={resolvedCloseButton}
       closeButtonDisabled={busy}
-      onClose={() => void requestClose('explicit')}
+      onClose={() =>
+        void requestClose(confirmExplicitClose ? 'programmatic' : 'explicit')}
       preventScroll={false}
       escapeKeydownBehavior="close"
       onEscapeKeydown={handleDialogEscape}

@@ -23,6 +23,7 @@
   type Role = EditableRole & {
     id: string;
     userCount: number;
+    oauthMappingCount: number;
     isDefault: boolean;
     permissions: Permission[];
   };
@@ -78,6 +79,8 @@
     if (role.isDefault) return 'The default role cannot be deleted';
     if (role.userCount > 0)
       return 'Reassign its users before deleting this role';
+    if (role.oauthMappingCount > 0)
+      return 'Remove this role from OAuth mappings before deleting it';
     return 'Delete role';
   };
 
@@ -199,7 +202,7 @@
             >
               <Confirm
                 title="Delete role"
-                description="This cannot be undone. Roles in use must be reassigned first."
+                description="This cannot be undone. Roles assigned to users or OAuth mappings must be removed first."
                 onConfirm={() => deleteRole(role)}
               >
                 {#snippet triggerContent({ props })}
@@ -208,7 +211,9 @@
                     variant="outline"
                     size="icon"
                     aria-label={`Delete ${role.name}`}
-                    disabled={role.isDefault || role.userCount > 0}
+                    disabled={role.isDefault ||
+                      role.userCount > 0 ||
+                      role.oauthMappingCount > 0}
                   >
                     <Trash2 size="20" />
                   </Button>

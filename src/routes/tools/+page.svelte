@@ -3,7 +3,10 @@
 
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
-  import { hasClientPermission } from '$lib/authorization/permissions';
+  import {
+    canDeduplicateOwnFlights,
+    hasClientPermission,
+  } from '$lib/authorization/permissions';
 </script>
 
 <div class="container h-full flex flex-col items-center justify-center gap-2">
@@ -23,7 +26,7 @@
         </div>
       </a>
     {/if}
-    {#if hasClientPermission(page.data.authorization, 'flight.delete.own')}
+    {#if canDeduplicateOwnFlights(page.data.authorization)}
       <a
         href={resolve('/tools/deduplicate')}
         class="flex items-center space-x-4 rounded-md border p-4 transition-colors hover:bg-card-hover"

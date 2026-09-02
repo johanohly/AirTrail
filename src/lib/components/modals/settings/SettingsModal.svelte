@@ -86,10 +86,15 @@
   } = $props();
 
   let activeTab: SettingsTabId = $state('general');
+  let oauthDirty = $state(false);
+  let oauthVisited = $state(false);
   $effect(() => {
     if (open) {
       activeTab = openModalsState.settingsTab;
     }
+  });
+  $effect(() => {
+    if (open && activeTab === 'oauth') oauthVisited = true;
   });
 
   const user = $derived(page.data.user);
@@ -104,6 +109,16 @@
       canAccessAdminSetting(setting.permissions),
     ),
   );
+  const canAccessOAuth = $derived(
+    canAccessAdminSetting(['instance.oauth.manage']),
+  );
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen) return;
+    activeTab = 'general';
+    oauthDirty = false;
+    oauthVisited = false;
+  };
 
   const [send, receive] = crossfade({
     duration: 250,
@@ -123,7 +138,15 @@
   });
 </script>
 
-<Modal bind:open class="md:max-w-5xl" drawerNoPadding>
+<Modal
+  bind:open
+  class="md:max-w-5xl"
+  drawerNoPadding
+  dismissal="form"
+  dirty={oauthDirty}
+  confirmExplicitClose
+  onOpenChange={handleOpenChange}
+>
   <AnimatedSizeContainer
     height={$isMediumScreen}
     class={cn(
@@ -239,8 +262,11 @@
             <UsersPage />
           {:else if activeTab === 'roles'}
             <RolesPage />
-          {:else if activeTab === 'oauth'}
-            <OAuthPage />
+          {/if}
+          {#if open && oauthVisited && canAccessOAuth}
+            <div hidden={activeTab !== 'oauth'}>
+              <OAuthPage bind:dirty={oauthDirty} />
+            </div>
           {/if}
         </div>
       </div>

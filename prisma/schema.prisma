@@ -91,6 +91,8 @@ model authorization_settings {
 model oauth_role_mapping {
   id          Int    @id @default(autoincrement())
   priority    Int
+  name        String @default("")
+  enabled     Boolean @default(true)
   /// @kyselyType('userinfo' | 'id_token')
   claim_source String
   claim_path   String

@@ -119,6 +119,22 @@ const mergeValues = (
   return merged;
 };
 
+export const getCustomFieldEntriesToPersist = (
+  existingValues: ReadonlyMap<number, unknown>,
+  defaultsToPersist: ReadonlyMap<number, unknown>,
+  incomingValues: ReadonlyMap<number, unknown | null>,
+) => {
+  const entries = new Map<number, unknown | null>(defaultsToPersist);
+  for (const [fieldId, value] of incomingValues) {
+    const changesExistingValue = isCustomFieldValueEmpty(value)
+      ? existingValues.has(fieldId)
+      : !existingValues.has(fieldId) ||
+        !isDeepStrictEqual(existingValues.get(fieldId), value);
+    if (changesExistingValue) entries.set(fieldId, value);
+  }
+  return entries;
+};
+
 /** Write or delete a single custom field value row. */
 const persistEntry = async (
   db: Kysely<DB>,
@@ -266,18 +282,14 @@ export const prepareEntityCustomFieldPlan = async (
       }
     }
 
-    const entriesToPersist = new Map<number, unknown | null>(defaultsToPersist);
-    for (const [fieldId, value] of incomingValues) {
-      entriesToPersist.set(fieldId, value);
-    }
+    const entriesToPersist = getCustomFieldEntriesToPersist(
+      existingValues,
+      defaultsToPersist,
+      incomingValues,
+    );
 
     return {
-      changed: [...incomingValues].some(([fieldId, value]) =>
-        isCustomFieldValueEmpty(value)
-          ? existingValues.has(fieldId)
-          : !existingValues.has(fieldId) ||
-            !isDeepStrictEqual(existingValues.get(fieldId), value),
-      ),
+      changed: entriesToPersist.size > 0,
       mergedValues: mergeValues(
         existingValues,
         defaultsToPersist,

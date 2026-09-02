@@ -272,6 +272,12 @@ export const canRestoreAllFlights = (authorization: PermissionSubject | null) =>
   hasPermission(authorization, 'flight.import.any') &&
   hasPermission(authorization, 'users.directory.read');
 
+export const canDeduplicateOwnFlights = (
+  authorization: PermissionSubject | null,
+) =>
+  hasPermission(authorization, 'flight.read.own') &&
+  hasPermission(authorization, 'flight.delete.own');
+
 export const canSetDefaultRole = (authorization: PermissionSubject | null) =>
   hasPermission(authorization, 'roles.manage') &&
   hasPermission(authorization, 'users.roles.assign') &&

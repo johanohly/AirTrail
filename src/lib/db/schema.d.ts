@@ -203,6 +203,8 @@ export type oauth_link_token = {
 export type oauth_role_mapping = {
     id: Generated<number>;
     priority: number;
+    name: Generated<string>;
+    enabled: Generated<boolean>;
     /**
      * @kyselyType('userinfo' | 'id_token')
      */
