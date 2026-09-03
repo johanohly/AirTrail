@@ -42,9 +42,10 @@
     | { kind: 'loading' }
     | { kind: 'error'; message: string }
     | { kind: 'ready' };
-  type TestResult =
-    | { kind: 'matched'; roleId: string; roleName: string; ruleIndex: number }
-    | { kind: 'fallback'; roleId: string; roleName: string };
+  type TestResult = Awaited<
+    ReturnType<typeof api.role.testOAuthMappings.mutate>
+  >;
+  type TestRuleDiagnostic = TestResult['diagnostics'][number];
   type TestState =
     | { kind: 'idle' }
     | { kind: 'loading' }
@@ -54,7 +55,15 @@
     | { kind: 'valid'; value: OAuthClaims }
     | { kind: 'invalid'; message: string };
 
-  let { dirty = $bindable(false) }: { dirty?: boolean } = $props();
+  let {
+    dirty = $bindable(false),
+    scope = '',
+    onReviewConnection,
+  }: {
+    dirty?: boolean;
+    scope?: string;
+    onReviewConnection?: () => void;
+  } = $props();
 
   let mode = $state<OAuthRoleMappingMode>('off');
   let mappings = $state<MappingDraft[]>([]);
@@ -76,6 +85,7 @@
   let idTokenError = $state('');
   let testState = $state<TestState>({ kind: 'idle' });
   let testedFingerprint = $state('');
+  let testedMappings = $state<OAuthRoleMappingInput[]>([]);
 
   const toInput = ({
     draftId: _,
@@ -107,6 +117,14 @@
   const showRules = $derived(mode !== 'off' || editInactiveRules);
   const enabledRuleCount = $derived(
     mappings.filter((mapping) => mapping.enabled).length,
+  );
+  const groupScopeMissing = $derived(
+    mappings.some(
+      (mapping) =>
+        mapping.enabled &&
+        (mapping.claimPath === '/groups' ||
+          mapping.claimPath.startsWith('/groups/')),
+    ) && !scope.trim().split(/\s+/).includes('groups'),
   );
 
   $effect(() => {
@@ -157,6 +175,7 @@
       editInactiveRules = false;
       testState = { kind: 'idle' };
       testedFingerprint = '';
+      testedMappings = [];
       loadState = { kind: 'ready' };
     } catch (error) {
       loadState = {
@@ -170,12 +189,48 @@
 
   const ruleLabel = (mapping: MappingDraft, index: number) =>
     mapping.name.trim() || `Rule ${index + 1}`;
+  const testedRuleLabel = (index: number) =>
+    testedMappings[index]?.name.trim() || `Rule ${index + 1}`;
   const roleName = (roleId: string) =>
     roles.find((role) => role.id === roleId)?.name ?? 'Select a role';
   const ruleSummary = (mapping: MappingDraft) => {
     const source = mapping.claimSource === 'userinfo' ? 'UserInfo' : 'ID token';
     const comparison = mapping.operator === 'equals' ? 'equals' : 'contains';
     return `When ${source} claim ${mapping.claimPath || '/claim'} ${comparison} "${mapping.claimValue || 'value'}", assign ${roleName(mapping.roleId)}.`;
+  };
+
+  const diagnosticText = (diagnostic: TestRuleDiagnostic) => {
+    const mapping = testedMappings[diagnostic.ruleIndex];
+    const label = testedRuleLabel(diagnostic.ruleIndex);
+    const source =
+      mapping?.claimSource === 'id_token' ? 'ID token' : 'UserInfo';
+    const path = mapping?.claimPath || 'the configured claim';
+    switch (diagnostic.kind) {
+      case 'matched':
+        return `${label}: matched ${diagnostic.actual}.`;
+      case 'disabled':
+        return `${label}: this rule is disabled.`;
+      case 'missing_claim':
+        return `${label}: ${source} does not contain ${path}. Check the selected source and path${path === '/groups' ? ", then verify the provider's group scope or claim mapper" : ''}.`;
+      case 'array_requires_contains':
+        return `${label}: ${path} is an array, but Equals only compares one value. Use Contains to match an array item.`;
+      case 'unsupported_array_items':
+        return `${label}: ${path} is an array of objects. Point the rule at a text, number, or true/false value inside each item, or change the provider claim format.`;
+      case 'unsupported_claim_type':
+        if (diagnostic.claimType === 'object') {
+          return `${label}: ${path} is an object. Point the rule at a value inside it, such as ${path}/roles.`;
+        }
+        if (diagnostic.claimType === 'null') {
+          return `${label}: ${path} is null. Check the provider's claim mapping.`;
+        }
+        return `${label}: ${path} is a ${diagnostic.claimType}. Contains only works with text or arrays; use Equals instead.`;
+      case 'value_mismatch':
+        return `${label}: ${path} was found, but it did not match "${mapping?.claimValue ?? ''}". Received ${diagnostic.actual}. Matching is case-sensitive.`;
+      default: {
+        const exhaustive: never = diagnostic;
+        return exhaustive;
+      }
+    }
   };
 
   const addMapping = async () => {
@@ -259,6 +314,7 @@
     editInactiveRules = false;
     testState = { kind: 'idle' };
     testedFingerprint = '';
+    testedMappings = [];
     announcement = 'Unsaved role assignment changes reset.';
   };
 
@@ -292,6 +348,7 @@
       });
       testState = { kind: 'success', result };
       testedFingerprint = draftFingerprint;
+      testedMappings = mappingPayload.map((mapping) => ({ ...mapping }));
     } catch (error) {
       testState = {
         kind: 'error',
@@ -389,6 +446,26 @@
         role assignments are never overwritten.
       </p>
     </div>
+
+    {#if groupScopeMissing && showRules}
+      <Alert.Root variant="warning">
+        <TriangleAlert />
+        <Alert.Title>The groups claim may not be requested</Alert.Title>
+        <Alert.Description class="space-y-3">
+          <p>
+            The current connection scope does not include
+            <strong>groups</strong>. Some providers omit /groups unless a group
+            membership scope or claim mapper is configured. Update the
+            connection, then sign in again before testing fresh claims.
+          </p>
+          {#if onReviewConnection}
+            <Button variant="outline" size="sm" onclick={onReviewConnection}>
+              Review connection scopes
+            </Button>
+          {/if}
+        </Alert.Description>
+      </Alert.Root>
+    {/if}
 
     {#if mode === 'on_login'}
       <Alert.Root variant="warning">
@@ -708,8 +785,9 @@
         </summary>
         <div class="space-y-4 border-t p-4">
           <p class="text-sm text-muted-foreground">
-            Paste sanitized claims from your identity provider. AirTrail uses
-            the same evaluator as the login flow and does not save this sample.
+            Paste sanitized claims from a recent sign-in. If you changed scopes
+            or provider claim mappings, sign in again first. AirTrail uses the
+            same evaluator as login and does not save this sample.
           </p>
           <div class="grid gap-3 sm:grid-cols-2">
             <div class="grid gap-1.5">
@@ -770,21 +848,32 @@
             {/if}
           </div>
           {#if testState.kind === 'success'}
-            <Alert.Root variant="success">
-              <Info />
-              <Alert.Title
-                >{testState.result.roleName} would be assigned</Alert.Title
-              >
-              <Alert.Description>
-                {#if testState.result.kind === 'matched'}
-                  {ruleLabel(
-                    mappings[testState.result.ruleIndex]!,
-                    testState.result.ruleIndex,
-                  )} matched first.
-                {:else}
-                  No enabled rule matched, so AirTrail used the default role.
-                {/if}
-              </Alert.Description>
+            <Alert.Root
+              variant={testState.result.kind === 'matched'
+                ? 'success'
+                : 'warning'}
+            >
+              {#if testState.result.kind === 'matched'}
+                <Info />
+                <Alert.Title
+                  >{testState.result.roleName} would be assigned</Alert.Title
+                >
+                <Alert.Description>
+                  {testedRuleLabel(testState.result.ruleIndex)} matched first.
+                </Alert.Description>
+              {:else}
+                <TriangleAlert />
+                <Alert.Title>
+                  No rule matched. {testState.result.roleName} would be assigned.
+                </Alert.Title>
+                <Alert.Description>
+                  <ul class="list-disc space-y-1 pl-4">
+                    {#each testState.result.diagnostics as diagnostic}
+                      <li>{diagnosticText(diagnostic)}</li>
+                    {/each}
+                  </ul>
+                </Alert.Description>
+              {/if}
             </Alert.Root>
           {:else if testState.kind === 'error'}
             <Alert.Root variant="destructive">

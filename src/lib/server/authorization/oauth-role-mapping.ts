@@ -17,6 +17,20 @@ export type OAuthRoleEvaluation =
   | { kind: 'matched'; roleId: string; ruleIndex: number }
   | { kind: 'fallback'; roleId: string };
 
+export type OAuthRoleRuleDiagnostic =
+  | { kind: 'matched'; ruleIndex: number; actual: string }
+  | { kind: 'disabled'; ruleIndex: number }
+  | { kind: 'missing_claim'; ruleIndex: number }
+  | { kind: 'array_requires_contains'; ruleIndex: number; actual: string }
+  | { kind: 'unsupported_array_items'; ruleIndex: number; actual: string }
+  | {
+      kind: 'unsupported_claim_type';
+      ruleIndex: number;
+      claimType: 'null' | 'object' | 'number' | 'boolean';
+      actual: string;
+    }
+  | { kind: 'value_mismatch'; ruleIndex: number; actual: string };
+
 type DatabaseConnection = Kysely<DB> | Transaction<DB>;
 
 const decodePointerSegment = (segment: string) =>
@@ -41,18 +55,18 @@ export const readJsonPointer = (value: unknown, pointer: string): unknown => {
     }, value);
 };
 
+const isComparableClaim = (
+  value: unknown,
+): value is string | number | boolean =>
+  typeof value === 'string' ||
+  typeof value === 'number' ||
+  typeof value === 'boolean';
+
 const matches = (
   actual: unknown,
   operator: 'equals' | 'contains',
   expected: string,
 ) => {
-  const isComparableClaim = (
-    value: unknown,
-  ): value is string | number | boolean =>
-    typeof value === 'string' ||
-    typeof value === 'number' ||
-    typeof value === 'boolean';
-
   if (operator === 'equals') {
     return isComparableClaim(actual) && String(actual) === expected;
   }
@@ -64,6 +78,81 @@ const matches = (
     )
   );
 };
+
+const summarizeClaim = (value: unknown): string => {
+  if (value === undefined) return '<missing>';
+  if (value === null) return '<null>';
+  if (Array.isArray(value)) {
+    const values = value
+      .slice(0, 20)
+      .map((item) =>
+        isComparableClaim(item) ? String(item).slice(0, 200) : typeof item,
+      );
+    return `[${values.join(', ')}${value.length > values.length ? ', …' : ''}]`;
+  }
+  if (typeof value === 'object') {
+    const keys = Object.keys(value);
+    return `{keys: ${keys.slice(0, 20).join(', ')}${keys.length > 20 ? ', …' : ''}}`;
+  }
+  return String(value).slice(0, 200);
+};
+
+const unsupportedClaimType = (
+  value: unknown,
+): 'null' | 'object' | 'number' | 'boolean' => {
+  if (value === null) return 'null';
+  if (typeof value === 'number') return 'number';
+  if (typeof value === 'boolean') return 'boolean';
+  return 'object';
+};
+
+export const diagnoseOAuthRoleMappings = (
+  mappings: readonly OAuthRoleMappingInput[],
+  userinfo: OAuthClaims,
+  idToken: OAuthClaims,
+): OAuthRoleRuleDiagnostic[] =>
+  mappings.map((mapping, ruleIndex) => {
+    if (!mapping.enabled) return { kind: 'disabled', ruleIndex };
+    const claims = mapping.claimSource === 'userinfo' ? userinfo : idToken;
+    const actual = readJsonPointer(claims, mapping.claimPath);
+    if (actual === undefined) return { kind: 'missing_claim', ruleIndex };
+    const actualSummary = summarizeClaim(actual);
+    if (matches(actual, mapping.operator, mapping.claimValue)) {
+      return { kind: 'matched', ruleIndex, actual: actualSummary };
+    }
+    if (mapping.operator === 'equals' && Array.isArray(actual)) {
+      return actual.length === 0 || actual.some(isComparableClaim)
+        ? { kind: 'array_requires_contains', ruleIndex, actual: actualSummary }
+        : { kind: 'unsupported_array_items', ruleIndex, actual: actualSummary };
+    }
+    if (
+      mapping.operator === 'contains' &&
+      Array.isArray(actual) &&
+      actual.length > 0 &&
+      !actual.some(isComparableClaim)
+    ) {
+      return {
+        kind: 'unsupported_array_items',
+        ruleIndex,
+        actual: actualSummary,
+      };
+    }
+    const supportedType =
+      mapping.operator === 'equals'
+        ? typeof actual === 'string' ||
+          typeof actual === 'number' ||
+          typeof actual === 'boolean'
+        : typeof actual === 'string' || Array.isArray(actual);
+    if (!supportedType) {
+      return {
+        kind: 'unsupported_claim_type',
+        ruleIndex,
+        claimType: unsupportedClaimType(actual),
+        actual: actualSummary,
+      };
+    }
+    return { kind: 'value_mismatch', ruleIndex, actual: actualSummary };
+  });
 
 const findMatchingMappingIndex = (
   mappings: readonly OAuthRoleMappingInput[],
@@ -181,7 +270,11 @@ export const testOAuthRoleMappings = async ({
       'The resulting role no longer exists',
     );
   }
-  return { ...evaluation, roleName: role.name };
+  return {
+    ...evaluation,
+    roleName: role.name,
+    diagnostics: diagnoseOAuthRoleMappings(mappings, userinfo, idToken),
+  };
 };
 
 export const resolveOAuthRole = async (

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ChevronRight, Info, TriangleAlert } from '@o7/icon/lucide';
   import { Collapsible } from 'bits-ui';
+  import { onDestroy, tick } from 'svelte';
   import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod4 as zod } from 'sveltekit-superforms/adapters';
@@ -20,7 +21,7 @@
   import * as Tabs from '$lib/components/ui/tabs';
   import { appConfig } from '$lib/state.svelte';
   import { api } from '$lib/trpc';
-  import { cn } from '$lib/utils';
+  import { cancelHighlight, cn, highlightElement } from '$lib/utils';
   import { getErrorText } from '$lib/utils/error';
   import { oauthConfigSchema } from '$lib/zod/config';
 
@@ -41,6 +42,8 @@
   let mappingDirty = $state(false);
   let connectionTest = $state<ConnectionTestState>({ kind: 'idle' });
   let testedConnectionFingerprint = $state('');
+  let scopeField: HTMLDivElement | null = $state(null);
+  let scopeInput: HTMLInputElement | null = $state(null);
 
   const form = superForm(
     defaults<Infer<typeof oauthConfigSchema>>(
@@ -115,6 +118,18 @@
     if (!dirty) return;
     event.preventDefault();
   };
+
+  const reviewConnectionScope = async () => {
+    activeSection = 'connection';
+    await tick();
+
+    if (scopeField) void highlightElement(scopeField, { scrollOffset: 0 });
+    scopeInput?.focus({ preventScroll: true });
+  };
+
+  onDestroy(() => {
+    if (scopeField) cancelHighlight(scopeField);
+  });
 </script>
 
 <svelte:window onbeforeunload={warnBeforeUnload} />
@@ -249,16 +264,19 @@
           locked={appConfig.envConfigured?.oauth?.scope ?? false}
           tooltip={lockedTooltip}
         >
-          <Form.Field {form} name="scope">
+          <Form.Field bind:ref={scopeField} {form} name="scope">
             <Form.Control>
               {#snippet children({ props })}
                 <div class="grid gap-1">
                   <Form.Label>Scope</Form.Label>
                   <Form.Description>
-                    The scope of the OAuth provider (space-separated).
+                    Space-separated scopes requested at sign-in. For group-based
+                    role rules, check your provider's group membership scope and
+                    claim mapper.
                   </Form.Description>
                 </div>
                 <Input
+                  bind:ref={scopeInput}
                   bind:value={$formData.scope}
                   {...props}
                   placeholder="openid profile"
@@ -530,7 +548,11 @@
     </Tabs.Content>
 
     <Tabs.Content value="roles" class="mt-0">
-      <OAuthRoleMappings bind:dirty={mappingDirty} />
+      <OAuthRoleMappings
+        bind:dirty={mappingDirty}
+        scope={$formData.scope ?? ''}
+        onReviewConnection={reviewConnectionScope}
+      />
     </Tabs.Content>
   </Tabs.Root>
 </PageHeader>

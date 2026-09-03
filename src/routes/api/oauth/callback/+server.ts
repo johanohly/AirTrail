@@ -165,6 +165,7 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
       profile.name ??
       `${profile.given_name || ''} ${profile.family_name || ''}`;
     const resolved = await resolveOAuthRole(profile, idTokenClaims);
+    const roleAssignmentSource = resolved.mode === 'off' ? 'local' : 'oauth';
     user = await db
       .insertInto('user')
       .values({
@@ -173,8 +174,7 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
         displayName,
         oauthId: profile.sub,
         roleId: resolved.roleId,
-        roleAssignmentSource:
-          resolved.mode === 'off' ? 'local' : ('oauth' as const),
+        roleAssignmentSource,
       })
       .returningAll()
       .executeTakeFirst();

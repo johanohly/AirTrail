@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  diagnoseOAuthRoleMappings,
   evaluateOAuthRoleMappings,
-  readJsonPointer,
   oauthAssignmentRoleIds,
+  readJsonPointer,
   selectOAuthMappedRole,
 } from './oauth-role-mapping';
 import {
@@ -92,6 +93,60 @@ describe('OAuth role mapping', () => {
         defaultRoleId: 'role-default',
       }),
     ).toEqual({ kind: 'fallback', roleId: 'role-default' });
+  });
+
+  it('explains common rule mismatches', () => {
+    expect(
+      diagnoseOAuthRoleMappings(
+        [
+          mapping({ claimPath: '/missing' }),
+          mapping({ operator: 'equals' }),
+          mapping({ claimPath: '/metadata', operator: 'contains' }),
+          mapping({ claimValue: 'airtrail-admins' }),
+          mapping({ enabled: false }),
+        ],
+        {
+          groups: ['airtrail-users'],
+          metadata: { department: 'Operations' },
+        },
+        {},
+      ),
+    ).toEqual([
+      { kind: 'missing_claim', ruleIndex: 0 },
+      {
+        actual: '[airtrail-users]',
+        kind: 'array_requires_contains',
+        ruleIndex: 1,
+      },
+      {
+        actual: '{keys: department}',
+        claimType: 'object',
+        kind: 'unsupported_claim_type',
+        ruleIndex: 2,
+      },
+      {
+        actual: '[airtrail-users]',
+        kind: 'value_mismatch',
+        ruleIndex: 3,
+      },
+      { kind: 'disabled', ruleIndex: 4 },
+    ]);
+  });
+
+  it('explains arrays that contain only objects', () => {
+    expect(
+      diagnoseOAuthRoleMappings(
+        [mapping({ claimValue: 'airtrail-admins' })],
+        { groups: [{ name: 'airtrail-admins' }] },
+        {},
+      ),
+    ).toEqual([
+      {
+        actual: '[object]',
+        kind: 'unsupported_array_items',
+        ruleIndex: 0,
+      },
+    ]);
   });
 
   it('does not match missing or null claims by string coercion', () => {
