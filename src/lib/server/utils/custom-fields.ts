@@ -12,7 +12,7 @@ import {
 
 type InputValueArray = Array<{ fieldId: number; value?: unknown | null }>;
 type InputValueRecord = Record<string, unknown>;
-type IncomingValues = InputValueArray | InputValueRecord | null | undefined;
+type IncomingValues = InputValueArray | InputValueRecord | null;
 
 export class CustomFieldValidationError extends Error {
   constructor(message: string) {
@@ -25,7 +25,7 @@ type NormalizedIncomingEntry =
   | { fieldId: number; value: unknown | null }
   | { key: string; value: unknown | null };
 
-const normalizeIncomingEntries = (values: IncomingValues) => {
+const normalizeIncomingEntries = (values: IncomingValues | undefined) => {
   const normalized: NormalizedIncomingEntry[] = [];
 
   if (!values) return normalized;
@@ -69,7 +69,7 @@ type Definition = {
 
 /** Resolve incoming entries (by fieldId or key) to a map of fieldId → value. */
 const resolveIncomingValues = (
-  values: IncomingValues,
+  values: IncomingValues | undefined,
   defsById: Map<number, Definition>,
   defsByKey: Map<string, Definition>,
 ): Map<number, unknown | null> => {

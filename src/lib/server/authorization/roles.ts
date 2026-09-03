@@ -90,7 +90,9 @@ export const lockRoles = async (
   transaction: Transaction<DB>,
   roleIds: readonly (string | null)[],
 ) => {
-  const ids = [...new Set(roleIds.filter((roleId) => roleId !== null))].sort();
+  const ids = [...new Set(roleIds.filter((roleId) => roleId !== null))].sort(
+    (left, right) => left.localeCompare(right),
+  );
   if (ids.length === 0) return;
   const roles = await transaction
     .selectFrom('accessRole')

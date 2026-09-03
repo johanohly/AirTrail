@@ -41,15 +41,15 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
   const hashedPassword = await hashArgon2(password);
 
   // Always create the first user as the owner
-  const success = await createUser(
-    userId,
+  const success = await createUser({
+    id: userId,
     username,
-    hashedPassword,
+    password: hashedPassword,
     displayName,
-    null,
+    roleId: null,
     preferences,
-    true,
-  );
+    isOwner: true,
+  });
 
   if (!success) {
     form.message = { type: 'error', text: 'Failed to create user' };

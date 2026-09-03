@@ -21,10 +21,7 @@ import {
 import type { DB } from '$lib/db/schema';
 import type { CreateFlight, Flight } from '$lib/db/types';
 import type { ResolvedFlightScope } from '$lib/flight-scope';
-import {
-  AuthorizationError,
-  hasPermission,
-} from '$lib/server/authorization/authorize';
+import { AuthorizationError } from '$lib/server/authorization/authorize';
 import type { AuthorizationContext } from '$lib/server/authorization/context';
 import {
   canAccessFlight,

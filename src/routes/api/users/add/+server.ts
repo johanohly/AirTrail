@@ -49,16 +49,14 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     if (await usernameExists(username, undefined, trx)) {
       return 'username_exists';
     }
-    const success = await createUser(
-      userId,
+    const success = await createUser({
+      id: userId,
       username,
-      passwordHash,
+      password: passwordHash,
       displayName,
       roleId,
-      undefined,
-      false,
-      trx,
-    );
+      connection: trx,
+    });
     if (!success) return 'failed';
     return 'created';
   });

@@ -29,6 +29,15 @@ import {
 } from '$lib/zod/oauth-role-mapping';
 import { roleInputSchema, roleUpdateSchema } from '$lib/zod/role';
 
+const roleErrorCodes = {
+  conflict: 'CONFLICT',
+  not_found: 'NOT_FOUND',
+  invalid: 'BAD_REQUEST',
+} satisfies Record<
+  RoleOperationError['kind'],
+  'CONFLICT' | 'NOT_FOUND' | 'BAD_REQUEST'
+>;
+
 const roleError = (error: unknown): never => {
   if (error instanceof AuthorizationError) {
     throw new TRPCError({
@@ -37,12 +46,7 @@ const roleError = (error: unknown): never => {
     });
   }
   if (error instanceof RoleOperationError) {
-    const code =
-      error.kind === 'conflict'
-        ? 'CONFLICT'
-        : error.kind === 'not_found'
-          ? 'NOT_FOUND'
-          : 'BAD_REQUEST';
+    const code = roleErrorCodes[error.kind];
     throw new TRPCError({ code, message: error.message });
   }
   throw error;

@@ -126,7 +126,8 @@
             <Form.Label>Username</Form.Label>
             <Input
               bind:value={$formData.username}
-              disabled={!canUpdateProfile}
+              class="read-only:cursor-default read-only:opacity-70"
+              readonly={!canUpdateProfile}
               {...props}
             />
           {/snippet}
@@ -154,7 +155,8 @@
             <Form.Label>Name</Form.Label>
             <Input
               bind:value={$formData.displayName}
-              disabled={!canUpdateProfile}
+              class="read-only:cursor-default read-only:opacity-70"
+              readonly={!canUpdateProfile}
               {...props}
             />
           {/snippet}

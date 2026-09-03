@@ -12,16 +12,27 @@ import type { Preferences } from '$lib/zod/user';
 const usernameEquals = (username: string) =>
   sql<boolean>`lower("username") = lower(${username})` as any;
 
-export const createUser = async (
-  id: string,
-  username: string,
-  password: string,
-  displayName: string,
-  roleId: string | null,
-  preferences?: Partial<Preferences>,
+type DatabaseConnection = Kysely<DB> | Transaction<DB>;
+
+export const createUser = async ({
+  id,
+  username,
+  password,
+  displayName,
+  roleId,
+  preferences,
   isOwner = false,
-  connection: Kysely<DB> | Transaction<DB> = db,
-) => {
+  connection = db,
+}: {
+  id: string;
+  username: string;
+  password: string;
+  displayName: string;
+  roleId: string | null;
+  preferences?: Partial<Preferences>;
+  isOwner?: boolean;
+  connection?: DatabaseConnection;
+}) => {
   const result = await connection
     .insertInto('user')
     .values({
