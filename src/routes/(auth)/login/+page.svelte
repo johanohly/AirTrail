@@ -81,7 +81,8 @@
         return;
       }
 
-      await goto('/', { invalidateAll: true });
+      const result: { redirectTo?: string } = await resp.json();
+      await goto(result.redirectTo ?? '/', { invalidateAll: true });
       return;
     }
 

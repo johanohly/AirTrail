@@ -185,5 +185,11 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
   }
 
   await createSession(lucia, user.id, cookies);
-  return json({ success: true });
+  const oauthRequest = cookies.get('airtrail_oauth_request');
+  return json({
+    success: true,
+    redirectTo: oauthRequest
+      ? `/oauth/consent?id=${encodeURIComponent(oauthRequest)}`
+      : '/',
+  });
 };

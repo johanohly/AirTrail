@@ -6,6 +6,7 @@
   import ApiKeys from './ApiKeys.svelte';
   import EditPassword from './EditPassword.svelte';
   import OAuth from './OAuth.svelte';
+  import ConnectedApps from './ConnectedApps.svelte';
 
   import { page } from '$app/state';
   import { hasClientPermission } from '$lib/authorization/permissions';
@@ -38,6 +39,7 @@
   </div>
   <OAuth {user} />
   <ApiKeys />
+  <ConnectedApps />
   {#if hasClientPermission(page.data.authorization, 'flight.delete.own')}
     <div class="flex items-center justify-between p-4 rounded-lg border">
       <h4 class="font-medium leading-4">Danger zone</h4>
