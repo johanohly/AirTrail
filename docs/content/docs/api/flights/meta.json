@@ -1,0 +1,15 @@
+{
+  "title": "Flights",
+  "pages": [
+    "api-v1-list-flights",
+    "api-v1-get-flight",
+    "api-v1-create-flight",
+    "api-v1-update-flight",
+    "api-v1-delete-flight",
+    "api-v1-get-flight-track",
+    "api-v1-set-flight-track",
+    "api-v1-delete-flight-track",
+    "api-v1-get-stats",
+    "api-v1-export-flights"
+  ]
+}
