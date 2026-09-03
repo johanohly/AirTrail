@@ -59,6 +59,7 @@ export type api_key = {
     key: string;
     createdAt: Generated<Timestamp>;
     lastUsed: Timestamp | null;
+    scopes: string[];
 };
 export type app_config = {
     id: Generated<number>;
@@ -192,12 +193,82 @@ export type flight_track = {
     createdAt: Generated<Timestamp>;
     updatedAt: Generated<Timestamp>;
 };
+export type oauth_access_token = {
+    tokenHash: string;
+    clientId: string;
+    userId: string;
+    grantId: string;
+    refreshFamilyId: string | null;
+    scopes: string[];
+    resource: string;
+    expiresAt: Timestamp;
+    revokedAt: Timestamp | null;
+    createdAt: Generated<Timestamp>;
+};
+export type oauth_authorization_code = {
+    codeHash: string;
+    clientId: string;
+    userId: string;
+    grantId: string;
+    redirectUri: string;
+    scopes: string[];
+    resource: string;
+    codeChallenge: string;
+    expiresAt: Timestamp;
+    usedAt: Timestamp | null;
+    createdAt: Generated<Timestamp>;
+};
+export type oauth_authorization_request = {
+    id: string;
+    clientId: string;
+    userId: string | null;
+    redirectUri: string;
+    scopes: string[];
+    resource: string;
+    state: string | null;
+    codeChallenge: string;
+    expiresAt: Timestamp;
+    createdAt: Generated<Timestamp>;
+};
+export type oauth_client = {
+    id: string;
+    name: string;
+    clientSecretHash: string | null;
+    tokenEndpointAuthMethod: Generated<string>;
+    createdAt: Generated<Timestamp>;
+};
+export type oauth_client_redirect_uri = {
+    clientId: string;
+    redirectUri: string;
+};
+export type oauth_grant = {
+    id: string;
+    clientId: string;
+    userId: string;
+    resource: string;
+    scopes: string[];
+    createdAt: Generated<Timestamp>;
+    updatedAt: Generated<Timestamp>;
+};
 export type oauth_link_token = {
     id: string;
     token: string;
     userId: string;
     oauthSub: string;
     expiresAt: Timestamp;
+    createdAt: Generated<Timestamp>;
+};
+export type oauth_refresh_token = {
+    tokenHash: string;
+    clientId: string;
+    userId: string;
+    grantId: string;
+    familyId: string;
+    scopes: string[];
+    resource: string;
+    expiresAt: Timestamp;
+    usedAt: Timestamp | null;
+    revokedAt: Timestamp | null;
     createdAt: Generated<Timestamp>;
 };
 export type oauth_role_mapping = {
@@ -313,7 +384,14 @@ export type DB = {
     flight: flight;
     flightPassenger: flight_passenger;
     flightTrack: flight_track;
+    oauthAccessToken: oauth_access_token;
+    oauthAuthorizationCode: oauth_authorization_code;
+    oauthAuthorizationRequest: oauth_authorization_request;
+    oauthClient: oauth_client;
+    oauthClientRedirectUri: oauth_client_redirect_uri;
+    oauthGrant: oauth_grant;
     oauthLinkToken: oauth_link_token;
+    oauthRefreshToken: oauth_refresh_token;
     oauthRoleMapping: oauth_role_mapping;
     publicShare: public_share;
     session: session;

@@ -12,6 +12,7 @@
   } from '$lib/components/ui/modal';
   import type { ApiKey } from '$lib/db/types';
   import { api } from '$lib/trpc';
+  import { API_SCOPES } from '$lib/api/v1/scopes';
 
   let { keys = $bindable() }: { keys: ApiKey[] } = $props();
 
@@ -32,7 +33,13 @@
       }
 
       key = result;
-      keys.push({ name, createdAt: new Date(), lastUsed: null, id: 1111 });
+      keys.push({
+        name,
+        createdAt: new Date(),
+        lastUsed: null,
+        id: 1111,
+        scopes: [...API_SCOPES],
+      });
       toast.success('API key created');
     } catch (error) {
       console.error(error);

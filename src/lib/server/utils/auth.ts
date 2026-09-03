@@ -8,6 +8,7 @@ import { publicUserFields } from '$lib/db/types';
 import { hashSha256 } from '$lib/server/utils/hash';
 import { generateString } from '$lib/server/utils/random';
 import type { Preferences } from '$lib/zod/user';
+import { API_SCOPES } from '$lib/api/v1/scopes';
 
 const usernameEquals = (username: string) =>
   sql<boolean>`lower("username") = lower(${username})` as any;
@@ -140,7 +141,7 @@ export const createApiKey = async (userId: string, name: string) => {
   const hash = hashSha256(key);
   const result = await db
     .insertInto('apiKey')
-    .values({ name, key: hash, userId })
+    .values({ name, key: hash, userId, scopes: [...API_SCOPES] })
     .executeTakeFirst();
   return result.numInsertedOrUpdatedRows && result.numInsertedOrUpdatedRows > 0
     ? key

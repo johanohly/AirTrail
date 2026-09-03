@@ -95,7 +95,7 @@ export const userRouter = router({
   listApiKeys: authedProcedure.query(async ({ ctx }) => {
     return db
       .selectFrom('apiKey')
-      .select(['id', 'name', 'createdAt', 'lastUsed'])
+      .select(['id', 'name', 'createdAt', 'lastUsed', 'scopes'])
       .where('userId', '=', ctx.user.id)
       .execute();
   }),
@@ -109,6 +109,31 @@ export const userRouter = router({
     .mutation(async ({ ctx, input }) => {
       const result = await db
         .deleteFrom('apiKey')
+        .where('id', '=', input)
+        .where('userId', '=', ctx.user.id)
+        .executeTakeFirst();
+      return result.numDeletedRows > 0;
+    }),
+  listConnectedApps: authedProcedure.query(async ({ ctx }) =>
+    db
+      .selectFrom('oauthGrant')
+      .innerJoin('oauthClient', 'oauthClient.id', 'oauthGrant.clientId')
+      .select([
+        'oauthGrant.id',
+        'oauthGrant.resource',
+        'oauthGrant.scopes',
+        'oauthGrant.updatedAt',
+        'oauthClient.name',
+      ])
+      .where('oauthGrant.userId', '=', ctx.user.id)
+      .orderBy('oauthGrant.updatedAt', 'desc')
+      .execute(),
+  ),
+  revokeConnectedApp: authedProcedure
+    .input(z.string())
+    .mutation(async ({ ctx, input }) => {
+      const result = await db
+        .deleteFrom('oauthGrant')
         .where('id', '=', input)
         .where('userId', '=', ctx.user.id)
         .executeTakeFirst();
