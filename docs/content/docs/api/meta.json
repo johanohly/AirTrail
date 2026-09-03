@@ -1,6 +1,7 @@
 {
   "title": "API",
   "pages": [
+    "model-context-protocol",
     "discovery",
     "flights",
     "reference-data",

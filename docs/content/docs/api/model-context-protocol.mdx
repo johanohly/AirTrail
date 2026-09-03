@@ -1,0 +1,90 @@
+---
+title: Model Context Protocol
+description: Connect an MCP client to your AirTrail instance.
+---
+
+AirTrail includes a remote [Model Context Protocol](https://modelcontextprotocol.io/) server. MCP clients can use it to read and manage AirTrail data with the same permissions as the connected user.
+
+## Connect
+
+Use your AirTrail instance's MCP endpoint:
+
+```text
+https://your-instance.example/api/mcp
+```
+
+The server uses the Streamable HTTP transport. In clients that support remote MCP and OAuth, adding this URL is enough. The client discovers AirTrail's OAuth endpoints, opens the consent screen, and stores the resulting tokens.
+
+A typical client configuration looks like this:
+
+```json
+{
+  "mcpServers": {
+    "airtrail": {
+      "url": "https://your-instance.example/api/mcp"
+    }
+  }
+}
+```
+
+The exact configuration format depends on the MCP client.
+
+## Authentication
+
+OAuth is the recommended option. AirTrail supports dynamic client registration, the authorization code flow with PKCE, refresh tokens, and protected-resource discovery. The user signs in to AirTrail and approves the scopes requested by the MCP client.
+
+Clients without OAuth support can use a personal API key. Create one under **Settings > Security > API keys**, select only the scopes the client needs, and send it as a bearer token:
+
+```json
+{
+  "mcpServers": {
+    "airtrail": {
+      "url": "https://your-instance.example/api/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+Never put an API key in a shared configuration file or commit it to source control.
+
+## Permissions and scopes
+
+Every operation must pass two checks:
+
+1. The user's current AirTrail role must permit the action.
+2. The OAuth grant or API key must include the required scope.
+
+The credential can narrow a user's access, but cannot grant permissions that the user does not have. Changes to the user's role take effect on later MCP calls without requiring a new credential.
+
+## Available tools
+
+| Area | Tools |
+| --- | --- |
+| Profile | `airtrail_get_profile`, `airtrail_list_custom_fields`, `airtrail_update_preferences` |
+| Flights | `airtrail_list_flights`, `airtrail_get_flight`, `airtrail_create_flight`, `airtrail_update_flight`, `airtrail_delete_flight` |
+| Flight tracks | `airtrail_get_flight_track`, `airtrail_set_flight_track`, `airtrail_delete_flight_track` |
+| Statistics | `airtrail_get_stats` |
+| Airports | `airtrail_search_airports`, `airtrail_get_airport` |
+| Airlines | `airtrail_search_airlines`, `airtrail_get_airline` |
+| Aircraft | `airtrail_search_aircraft`, `airtrail_get_aircraft` |
+| Visited countries | `airtrail_list_visited_countries`, `airtrail_set_visited_country`, `airtrail_remove_visited_country` |
+| Public shares | `airtrail_list_shares`, `airtrail_create_share`, `airtrail_update_share`, `airtrail_delete_share` |
+
+Clients receive the complete tool names, descriptions, input schemas, and destructive-action annotations during MCP initialization. AirTrail also publishes the connected profile as the `airtrail://profile` resource.
+
+Flight listings use cursor pagination. Pass the returned `page.nextCursor` value unchanged as `cursor` on the next call. A `null` cursor means there are no more pages.
+
+## HTTP discovery and transport behavior
+
+A regular `GET /api/mcp` request returns a public JSON document with the endpoint URL, transport, authentication metadata, API discovery URL, and this documentation URL.
+
+The MCP server is stateless and returns JSON responses to MCP requests sent with `POST`. It does not provide the optional standalone Server-Sent Events channel. MCP clients that request that channel with `Accept: text/event-stream` receive `405 Method Not Allowed`, as defined by the Streamable HTTP transport. Session deletion is not needed and `DELETE` also returns `405` after authentication.
+
+OAuth clients can discover authorization metadata at:
+
+```text
+https://your-instance.example/.well-known/oauth-protected-resource/api/mcp
+```

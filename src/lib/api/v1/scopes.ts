@@ -37,6 +37,16 @@ export const API_SCOPES = [
 
 export type ApiScope = (typeof API_SCOPES)[number];
 
+export const MCP_DEFAULT_SCOPES = [
+  'profile.read',
+  'flight.read.own',
+  'reference_data.read',
+  'stats.read',
+  'tracks.read',
+  'visited_countries.read',
+  'shares.read',
+] as const satisfies readonly ApiScope[];
+
 const apiScopeSet: ReadonlySet<string> = new Set(API_SCOPES);
 
 export const isApiScope = (value: string): value is ApiScope =>
