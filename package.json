@@ -40,6 +40,7 @@
     "data:validate-icons": "bun scripts/data/validate-icons.js"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@node-rs/argon2": "^2.0.2",
     "@protomaps/basemaps": "^5.7.2",
     "geo-tz": "^8.1.6",
