@@ -79,7 +79,7 @@ Flight listings use cursor pagination. Pass the returned `page.nextCursor` value
 
 ## HTTP discovery and transport behavior
 
-A regular `GET /api/mcp` request returns a public JSON document with the endpoint URL, transport, authentication metadata, API discovery URL, and this documentation URL.
+A regular `GET /api/mcp` request returns a public JSON document with the endpoint URL, transport, authentication metadata, API discovery URL, and this documentation URL. The API discovery document is available at both `/api` and `/api/v1`.
 
 The MCP server is stateless and returns JSON responses to MCP requests sent with `POST`. It does not provide the optional standalone Server-Sent Events channel. MCP clients that request that channel with `Accept: text/event-stream` receive `405 Method Not Allowed`, as defined by the Streamable HTTP transport. Session deletion is not needed and `DELETE` also returns `405` after authentication.
 

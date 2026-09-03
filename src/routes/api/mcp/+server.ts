@@ -76,7 +76,7 @@ export const GET: RequestHandler = async ({ request, url }) => {
           bearerHeader: 'Authorization: Bearer <credential>',
           protectedResourceMetadata: `${url.origin}/.well-known/oauth-protected-resource/api/mcp`,
         },
-        apiDiscovery: `${url.origin}/api/v1`,
+        apiDiscovery: `${url.origin}/api`,
         documentation:
           'https://airtrail.johan.ohly.dk/docs/api/model-context-protocol',
       },
