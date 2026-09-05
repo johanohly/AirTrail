@@ -29,6 +29,8 @@
     if (!open) activeSnapPoint = defaultSnapPoint;
   });
 
+  let isContentAtTop = $state(true);
+
   const handleWindowKeydown = (e: KeyboardEvent) => {
     if (!open || !$isMediumScreen || e.key !== 'Escape' || e.defaultPrevented)
       return;
@@ -97,6 +99,8 @@
     {/if}
     <Separator />
     <div
+      data-vaul-no-drag={isContentAtTop ? undefined : true}
+      onscroll={(e) => (isContentAtTop = e.currentTarget.scrollTop <= 0)}
       class="scrollbar-subtle flex-1 divide-y divide-border/60 overflow-y-auto pb-[env(safe-area-inset-bottom)]"
     >
       {@render children()}
