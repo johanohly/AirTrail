@@ -31,6 +31,10 @@
 
   let isContentAtTop = $state(true);
 
+  $effect(() => {
+    if (!open || $isMediumScreen) isContentAtTop = true;
+  });
+
   const handleWindowKeydown = (e: KeyboardEvent) => {
     if (!open || !$isMediumScreen || e.key !== 'Escape' || e.defaultPrevented)
       return;
