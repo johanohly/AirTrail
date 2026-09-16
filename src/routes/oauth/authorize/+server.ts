@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/db';
+import { MCP_DEFAULT_SCOPES } from '$lib/api/v1/scopes';
 import { oauthError } from '$lib/server/oauth/http';
 import { oauthScopes, validateRedirectUri } from '$lib/server/oauth/server';
 import { generateString } from '$lib/server/utils/random';
@@ -13,7 +14,7 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
   const method = url.searchParams.get('code_challenge_method');
   const resource = url.searchParams.get('resource');
   const state = url.searchParams.get('state');
-  const requested =
+  const requestedByClient =
     url.searchParams.get('scope')?.split(/\s+/).filter(Boolean) ?? [];
   if (
     !clientId ||
@@ -38,6 +39,10 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
       'invalid_target',
       'resource must identify this AirTrail API or MCP endpoint',
     );
+  const requested =
+    requestedByClient.length === 0 && resource === `${url.origin}/api/mcp`
+      ? [...MCP_DEFAULT_SCOPES]
+      : requestedByClient;
   if (!/^[A-Za-z0-9_-]{43}$/.test(codeChallenge))
     return oauthError(
       'invalid_request',

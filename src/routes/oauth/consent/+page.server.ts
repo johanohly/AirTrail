@@ -1,7 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/db';
-import { API_SCOPE_DESCRIPTIONS, type ApiScope } from '$lib/api/v1/scopes';
+import { grantableScopes, isApiScope } from '$lib/api/v1/scopes';
 import { addOAuthRedirectError } from '$lib/server/oauth/http';
 import { issueAuthorizationCode, oauthScopes } from '$lib/server/oauth/server';
 import { authorizationAllowsScope } from '$lib/server/api/v1/access';
@@ -24,20 +24,22 @@ export const load: PageServerLoad = async ({ url, locals }) => {
   const id = url.searchParams.get('id');
   if (!locals.user)
     throw redirect(303, `/login?oauth_request=${encodeURIComponent(id ?? '')}`);
+  if (!locals.authorization) throw error(401, 'Login is required');
   const request = id ? await loadRequest(id) : null;
   if (!request)
     throw error(
       400,
       'This authorization request has expired. Return to the app and try again.',
     );
+  const resource = new URL(request.resource);
   return {
     id: request.id,
     clientName: request.clientName,
-    resource: new URL(request.resource).host,
-    scopes: request.scopes.map((scope) => ({
-      name: scope,
-      description: API_SCOPE_DESCRIPTIONS[scope as ApiScope] ?? scope,
-    })),
+    resource: `${resource.host}${resource.pathname}`,
+    authorizationTarget:
+      resource.pathname === '/api/mcp' ? 'MCP server' : 'API',
+    redirectHost: new URL(request.redirectUri).host,
+    scopes: grantableScopes(locals.authorization),
   };
 };
 
@@ -48,6 +50,7 @@ export const actions: Actions = {
     const form = await request.formData();
     const id = form.get('id');
     const decision = form.get('decision');
+    const submittedScopeValues = form.getAll('scope');
     if (typeof id !== 'string')
       throw error(400, 'Invalid authorization request');
     const authRequest = await loadRequest(id);
@@ -71,11 +74,35 @@ export const actions: Actions = {
           authRequest.state,
         ).href,
       );
-    const unavailable = authRequest.scopes.find(
+    if (submittedScopeValues.some((scope) => typeof scope !== 'string'))
+      throw redirect(
+        303,
+        addOAuthRedirectError(
+          authRequest.redirectUri,
+          'invalid_scope',
+          'The submitted scopes are invalid',
+          authRequest.state,
+        ).href,
+      );
+    const submittedScopes = submittedScopeValues.filter(
+      (scope): scope is string => typeof scope === 'string',
+    );
+    if (submittedScopes.some((scope) => !isApiScope(scope)))
+      throw redirect(
+        303,
+        addOAuthRedirectError(
+          authRequest.redirectUri,
+          'invalid_scope',
+          'The submitted scopes are invalid',
+          authRequest.state,
+        ).href,
+      );
+    const approvedScopes = oauthScopes(submittedScopes);
+    const unavailable = approvedScopes.find(
       (scope) =>
         !authorizationAllowsScope(
           { authorization: locals.authorization! },
-          scope as ApiScope,
+          scope,
         ),
     );
     if (unavailable)
@@ -92,7 +119,7 @@ export const actions: Actions = {
       clientId: authRequest.clientId,
       userId: locals.user.id,
       redirectUri: authRequest.redirectUri,
-      scopes: oauthScopes(authRequest.scopes),
+      scopes: approvedScopes,
       resource: authRequest.resource,
       codeChallenge: authRequest.codeChallenge,
     });

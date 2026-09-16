@@ -31,7 +31,7 @@ The exact configuration format depends on the MCP client.
 
 ## Authentication
 
-OAuth is the recommended option. AirTrail supports dynamic client registration, the authorization code flow with PKCE, refresh tokens, and protected-resource discovery. The user signs in to AirTrail and approves the scopes requested by the MCP client.
+OAuth is the recommended option. AirTrail supports dynamic client registration, the authorization code flow with PKCE, refresh tokens, and protected-resource discovery. The consent screen starts with a read-only access template. The user can keep it, choose full access, or select individual permissions that their role allows.
 
 Clients without OAuth support can use a personal API key. Create one under **Settings > Security > API keys**, select only the scopes the client needs, and send it as a bearer token:
 
