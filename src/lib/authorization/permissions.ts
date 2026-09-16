@@ -235,7 +235,19 @@ export const isPermission = (value: string): value is Permission =>
 export const impliedPermission = (permission: Permission): Permission | null =>
   IMPLIED_PERMISSIONS[permission] ?? null;
 
-type PermissionSubject = {
+/** Remove narrower grants that are already covered by a broader grant. */
+export const normalizePermissions = (
+  permissions: Iterable<Permission>,
+): Permission[] => {
+  const normalized = new Set(permissions);
+  for (const permission of PERMISSIONS) {
+    const broader = impliedPermission(permission);
+    if (broader && normalized.has(broader)) normalized.delete(permission);
+  }
+  return [...normalized];
+};
+
+export type PermissionSubject = {
   readonly isOwner: boolean;
   readonly permissions: Iterable<Permission>;
 };

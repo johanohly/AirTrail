@@ -1,5 +1,0 @@
-timestamp	unit	decision	status	evidence
-2026-09-03T21:16:00+02:00	baseline	Base feat/api-v1-mcp on pushed feat/rbac commit bfe1c46d	VERIFIED	git worktree list; git log
-2026-09-03T21:16:00+02:00	baseline	Require 355 existing unit tests and E2E TypeScript check before implementation	VERIFIED	bun run test:unit; bun run check:e2e
-2026-09-03T21:16:00+02:00	architecture	REST and MCP are sibling adapters over shared typed operations	VERIFIED	implementation plan approved in thread
-2026-09-03T21:16:00+02:00	architecture	OAuth tokens and API keys resolve to one scoped principal	VERIFIED	implementation plan approved in thread

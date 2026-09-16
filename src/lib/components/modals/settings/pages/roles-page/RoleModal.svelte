@@ -6,11 +6,16 @@
   import { page } from '$app/state';
   import {
     hasClientPermission,
+    impliedPermission,
     type Permission,
     type PermissionGroup,
   } from '$lib/authorization/permissions';
+  import {
+    groupAccessItems,
+    type AccessRow,
+  } from '$lib/authorization/access-presentation';
+  import AccessCheckbox from '$lib/components/access/AccessCheckbox.svelte';
   import { Button } from '$lib/components/ui/button';
-  import { Checkbox } from '$lib/components/ui/checkbox';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import {
@@ -33,6 +38,9 @@
     permissions: Permission[];
   };
 
+  type PermissionItem = PermissionGroup['permissions'][number];
+  type PermissionRow = AccessRow<PermissionItem>;
+
   let {
     open = $bindable(),
     role,
@@ -54,13 +62,107 @@
     if (!open) return;
     name = role?.name ?? '';
     description = role?.description ?? '';
-    permissions = [...(role?.permissions ?? [])];
+    permissions = withReadForWrite(role?.permissions ?? []);
   });
 
-  const togglePermission = (permission: Permission, checked: boolean) => {
-    permissions = checked
-      ? [...new Set([...permissions, permission])]
-      : permissions.filter((candidate) => candidate !== permission);
+  const presentedPermissionGroups = $derived(
+    permissionGroups.map((group) => ({
+      label: group.label,
+      rows: groupAccessItems(group.permissions, (permission) => permission.key),
+    })),
+  );
+  const availablePermissions = (action: PermissionRow['actions'][number]) =>
+    action.items.filter((permission) =>
+      hasClientPermission(page.data.authorization, permission.key),
+    );
+  const permissionIsImplied = (permission: PermissionItem) => {
+    const broader = impliedPermission(permission.key);
+    return broader !== null && permissions.includes(broader);
+  };
+  const permissionIsEffective = (permission: PermissionItem) =>
+    permissions.includes(permission.key) || permissionIsImplied(permission);
+  const actionChecked = (action: PermissionRow['actions'][number]) =>
+    availablePermissions(action).length > 0 &&
+    availablePermissions(action).every(permissionIsEffective);
+  const actionIndeterminate = (action: PermissionRow['actions'][number]) =>
+    availablePermissions(action).some(permissionIsEffective) &&
+    !actionChecked(action);
+  const rowAction = (row: PermissionRow, kind: 'read' | 'write') =>
+    row.actions.find((action) => action.action === kind);
+  const rowWriteActive = (row: PermissionRow) => {
+    const write = rowAction(row, 'write');
+    return (
+      write !== undefined &&
+      availablePermissions(write).some(permissionIsEffective)
+    );
+  };
+  const readLockedByWrite = (
+    row: PermissionRow,
+    action: PermissionRow['actions'][number],
+  ) => action.action === 'read' && rowWriteActive(row);
+  const actionInherited = (
+    row: PermissionRow,
+    action: PermissionRow['actions'][number],
+  ) => {
+    const available = availablePermissions(action);
+    return (
+      (available.length > 0 && available.every(permissionIsImplied)) ||
+      readLockedByWrite(row, action)
+    );
+  };
+  const actionTitle = (
+    row: PermissionRow,
+    action: PermissionRow['actions'][number],
+  ) => {
+    const details = action.items
+      .map((permission) => permission.description)
+      .join(' · ');
+    if (readLockedByWrite(row, action))
+      return `Included by Write access. ${details}`;
+    const available = availablePermissions(action);
+    return available.length > 0 && available.every(permissionIsImplied)
+      ? `Included by All flights. ${details}`
+      : details;
+  };
+  const withReadForWrite = (keys: readonly Permission[]) => {
+    const result = new Set(keys);
+    for (const group of presentedPermissionGroups) {
+      for (const row of group.rows) {
+        const write = rowAction(row, 'write');
+        const read = rowAction(row, 'read');
+        if (!write || !read) continue;
+        if (!write.items.some((permission) => result.has(permission.key)))
+          continue;
+        for (const permission of availablePermissions(read))
+          result.add(permission.key);
+      }
+    }
+    return [...result];
+  };
+  const toggleAction = (
+    row: PermissionRow,
+    action: PermissionRow['actions'][number],
+  ) => {
+    if (readLockedByWrite(row, action)) return;
+    const available = availablePermissions(action);
+    const checked = available.every(permissionIsEffective);
+    const changed = new Set(permissions);
+    for (const permission of available) {
+      if (permissionIsImplied(permission)) continue;
+      if (checked) {
+        changed.delete(permission.key);
+      } else {
+        changed.add(permission.key);
+        for (const candidate of permissions) {
+          if (impliedPermission(candidate) === permission.key)
+            changed.delete(candidate);
+        }
+      }
+    }
+    permissions =
+      action.action === 'write' && !checked
+        ? withReadForWrite([...changed])
+        : [...changed];
   };
 
   const save = async () => {
@@ -130,39 +232,34 @@
       </div>
 
       <div class="space-y-5">
-        {#each permissionGroups as group}
+        {#each presentedPermissionGroups as group}
           <section class="space-y-2">
             <h3 class="text-sm font-semibold">{group.label}</h3>
             <div class="divide-y rounded-md border">
-              {#each group.permissions as permission}
-                {@const available = hasClientPermission(
-                  page.data.authorization,
-                  permission.key,
-                )}
-                <label
-                  class="flex items-start gap-3 px-3 py-2.5"
-                  class:cursor-pointer={available}
-                  class:opacity-55={!available}
+              {#each group.rows as row (row.key)}
+                <div
+                  class="grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-3 py-2"
                 >
-                  <Checkbox
-                    bind:checked={
-                      () => permissions.includes(permission.key),
-                      (checked) => togglePermission(permission.key, checked)
-                    }
-                    disabled={!available}
-                    class="mt-0.5"
-                  />
-                  <span class="min-w-0">
-                    <span class="block text-sm font-medium">
-                      {permission.label}
-                    </span>
-                    <span
-                      class="block text-xs leading-relaxed text-muted-foreground"
-                    >
-                      {permission.description}
-                    </span>
-                  </span>
-                </label>
+                  <span class="min-w-0 truncate text-sm">{row.label}</span>
+                  <div
+                    class="inline-flex h-7 shrink-0 gap-3 rounded-md border bg-muted/30 px-1.5"
+                    aria-label={`${row.label} access`}
+                  >
+                    {#each row.actions as action (action.action)}
+                      {@const available = availablePermissions(action)}
+                      <AccessCheckbox
+                        checked={actionChecked(action)}
+                        indeterminate={actionIndeterminate(action)}
+                        inherited={actionInherited(row, action)}
+                        disabled={available.length === 0 ||
+                          actionInherited(row, action)}
+                        label={action.action === 'read' ? 'Read' : 'Write'}
+                        title={actionTitle(row, action)}
+                        onclick={() => toggleAction(row, action)}
+                      />
+                    {/each}
+                  </div>
+                </div>
               {/each}
             </div>
           </section>

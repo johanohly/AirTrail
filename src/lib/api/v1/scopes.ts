@@ -1,3 +1,10 @@
+import {
+  hasPermission,
+  isPermission,
+  type Permission,
+  type PermissionSubject,
+} from '$lib/authorization/permissions';
+
 export const API_SCOPES = [
   'profile.read',
   'preferences.write',
@@ -47,6 +54,21 @@ export const MCP_DEFAULT_SCOPES = [
   'shares.read',
 ] as const satisfies readonly ApiScope[];
 
+export const OAUTH_READONLY_SCOPES = [
+  'profile.read',
+  'flight.read.own',
+  'flight.read.any',
+  'flight.export.own',
+  'flight.export.any',
+  'users.directory.read',
+  'reference_data.read',
+  'stats.read',
+  'tracks.read',
+  'visited_countries.read',
+  'shares.read',
+  'weather.read',
+] as const satisfies readonly ApiScope[];
+
 const apiScopeSet: ReadonlySet<string> = new Set(API_SCOPES);
 
 export const isApiScope = (value: string): value is ApiScope =>
@@ -88,3 +110,42 @@ export const API_SCOPE_DESCRIPTIONS: Record<ApiScope, string> = {
   'shares.write': 'Create and change public shares',
   'weather.read': 'Read weather for visible airports',
 };
+
+const scopeFallbackPermissions: Partial<Record<ApiScope, Permission>> = {
+  'stats.read': 'flight.read.own',
+  'tracks.read': 'flight.read.own',
+  'tracks.write': 'flight.update.own',
+  'visited_countries.read': 'flight.read.own',
+  'visited_countries.write': 'flight.read.own',
+  'shares.read': 'flight.share.own',
+  'shares.write': 'flight.share.own',
+  'weather.read': 'flight.read.own',
+};
+
+export const authorizationAllowsScope = (
+  authorization: PermissionSubject | null,
+  scope: ApiScope,
+) => {
+  if (isPermission(scope)) return hasPermission(authorization, scope);
+  const permission = scopeFallbackPermissions[scope];
+  return permission ? hasPermission(authorization, permission) : true;
+};
+
+export type GrantableScope = {
+  name: ApiScope;
+  description: string;
+  readOnly: boolean;
+};
+
+const readonlyScopeSet: ReadonlySet<ApiScope> = new Set(OAUTH_READONLY_SCOPES);
+
+export const grantableScopes = (
+  authorization: PermissionSubject | null,
+): GrantableScope[] =>
+  API_SCOPES.filter((scope) =>
+    authorizationAllowsScope(authorization, scope),
+  ).map((scope) => ({
+    name: scope,
+    description: API_SCOPE_DESCRIPTIONS[scope],
+    readOnly: readonlyScopeSet.has(scope),
+  }));
