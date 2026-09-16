@@ -6,6 +6,7 @@
   import { Card } from '$lib/components/ui/card';
   import { Collapsible } from '$lib/components/ui/collapsible';
   import { Confirm } from '$lib/components/helpers';
+  import { accessSummary } from '$lib/authorization/access-presentation';
 
   type ConnectedApp = Awaited<
     ReturnType<typeof api.user.listConnectedApps.query>
@@ -42,7 +43,7 @@
           class="truncate text-xs text-muted-foreground"
           title={app.scopes.join(', ')}
         >
-          {app.scopes.join(', ')}
+          {accessSummary(app.scopes)}
         </p>
       </div>
       <Confirm

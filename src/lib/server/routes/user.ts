@@ -19,6 +19,8 @@ import {
 import { lockRoles } from '$lib/server/authorization/roles';
 import { createApiKey } from '$lib/server/utils/auth';
 import { updatePreferencesSchema } from '$lib/zod/user';
+import { isApiScope, type ApiScope } from '$lib/api/v1/scopes';
+import { authorizationAllowsScope } from '$lib/server/api/v1/access';
 
 export const userRouter = router({
   me: authedProcedure.query(({ ctx: { user } }) => {
@@ -100,9 +102,23 @@ export const userRouter = router({
       .execute();
   }),
   createApiKey: authedProcedure
-    .input(z.string())
+    .input(
+      z.object({ name: z.string().trim().min(1), scopes: z.array(z.string()) }),
+    )
     .mutation(async ({ ctx, input }) => {
-      return await createApiKey(ctx.user.id, input);
+      const scopes = [...new Set(input.scopes)].filter(
+        isApiScope,
+      ) as ApiScope[];
+      if (
+        scopes.length !== input.scopes.length ||
+        scopes.some((scope) => !authorizationAllowsScope(ctx, scope))
+      ) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'One or more requested scopes are not available.',
+        });
+      }
+      return await createApiKey(ctx.user.id, input.name, scopes);
     }),
   deleteApiKey: authedProcedure
     .input(z.number())

@@ -12,6 +12,7 @@
   import { Collapsible } from '$lib/components/ui/collapsible';
   import type { ApiKey } from '$lib/db/types';
   import { api } from '$lib/trpc';
+  import { accessSummary } from '$lib/authorization/access-presentation';
 
   let loaded = $state(false);
   let keys: ApiKey[] = $state([]);
@@ -54,6 +55,12 @@
                 {formatRelative(key.lastUsed, new Date())}
               </TimeDisplay>
             {/if}
+          </p>
+          <p
+            class="mt-1 text-xs text-muted-foreground"
+            title={key.scopes.join(', ')}
+          >
+            {accessSummary(key.scopes)}
           </p>
         </div>
         <div class="flex items-center pr-1">
