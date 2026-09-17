@@ -110,6 +110,7 @@ export class AppConfig {
         },
         integrations: {
           aeroDataBoxKey: null,
+          aeroDataBoxEndpoint: 'rapidapi',
           openAipKey: null,
         },
         map: { ...DEFAULT_MAP_CONFIG },

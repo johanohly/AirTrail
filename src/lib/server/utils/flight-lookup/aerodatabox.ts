@@ -19,8 +19,22 @@ import { getAirlineByIcao, getAirlineByIata } from '$lib/server/utils/airline';
 import { getAirportByIcao } from '$lib/server/utils/airport';
 import { appConfig } from '$lib/server/utils/config';
 import { RequestRateLimiter } from '$lib/utils/ratelimiter';
+import type { AeroDataBoxEndpoint } from '$lib/zod/config';
 
-const BASE_URL = 'https://aerodatabox.p.rapidapi.com';
+const AERODATABOX_PROVIDER_CONFIG: Record<
+  AeroDataBoxEndpoint,
+  { baseUrl: string; authHeader: string }
+> = {
+  rapidapi: {
+    baseUrl: 'https://aerodatabox.p.rapidapi.com',
+    authHeader: 'x-rapidapi-key',
+  },
+  direct: {
+    baseUrl: 'https://api.aerodatabox.com',
+    authHeader: 'X-Api-Key',
+  },
+};
+
 const rateLimiter = new RequestRateLimiter(1, 1, 2, 1, 1000);
 
 function sanitizeFlightNumber(fn: string): string {
@@ -45,6 +59,8 @@ export async function getFlightRoute(
   if (!apiKey) {
     throw new Error('AeroDataBox API key not configured');
   }
+  const endpoint = config?.integrations?.aeroDataBoxEndpoint ?? 'rapidapi';
+  const { baseUrl, authHeader } = AERODATABOX_PROVIDER_CONFIG[endpoint];
 
   const cleaned = sanitizeFlightNumber(flightNumber);
 
@@ -55,21 +71,21 @@ export async function getFlightRoute(
 
   let url: string;
   if (date) {
-    url = `${BASE_URL}/flights/number/${encodeURIComponent(
+    url = `${baseUrl}/flights/number/${encodeURIComponent(
       cleaned,
     )}/${format(date, 'yyyy-MM-dd')}?dateLocalRole=Both&withAircraftImage=false&withLocation=false`;
   } else {
     const now = new Date();
     const fromDate = format(subDays(now, 2), 'yyyy-MM-dd');
     const toDate = format(addDays(now, 2), 'yyyy-MM-dd');
-    url = `${BASE_URL}/flights/number/${encodeURIComponent(
+    url = `${baseUrl}/flights/number/${encodeURIComponent(
       cleaned,
     )}/${fromDate}/${toDate}?dateLocalRole=Both&withAircraftImage=false&withLocation=false`;
   }
 
   const resp = await fetch(url, {
     headers: {
-      'x-rapidapi-key': apiKey,
+      [authHeader]: apiKey,
     },
   });
 
@@ -193,11 +209,13 @@ export async function getAircraftFromReg(
   if (!apiKey) {
     throw new Error('AeroDataBox API key not configured');
   }
+  const endpoint = config?.integrations?.aeroDataBoxEndpoint ?? 'rapidapi';
+  const { baseUrl, authHeader } = AERODATABOX_PROVIDER_CONFIG[endpoint];
 
-  const url = `${BASE_URL}/aircrafts/reg/${encodeURIComponent(reg)}`;
+  const url = `${baseUrl}/aircrafts/reg/${encodeURIComponent(reg)}`;
   const resp = await fetch(url, {
     headers: {
-      'x-rapidapi-key': apiKey,
+      [authHeader]: apiKey,
     },
   });
 

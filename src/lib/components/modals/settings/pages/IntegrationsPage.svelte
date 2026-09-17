@@ -11,12 +11,17 @@
   import { Locked } from '$lib/components/helpers';
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
+  import * as Select from '$lib/components/ui/select';
   import { appConfig } from '$lib/state.svelte';
   import { integrationsConfigSchema } from '$lib/zod/config';
 
   const form = superForm(
     defaults<Infer<typeof integrationsConfigSchema>>(
-      { aeroDataBoxKey: null, openAipKey: null },
+      {
+        aeroDataBoxKey: null,
+        aeroDataBoxEndpoint: 'rapidapi',
+        openAipKey: null,
+      },
       zod(integrationsConfigSchema),
     ),
     {
@@ -37,6 +42,7 @@
   const { form: formData, enhance } = form;
 
   let savedKey: string | null = $state(null);
+  let savedEndpoint: 'rapidapi' | 'direct' | null = $state(null);
   let savedOpenAipKey: string | null = $state(null);
 
   onMount(async () => {
@@ -45,8 +51,10 @@
       if (res.ok) {
         const data = await res.json();
         savedKey = data.aeroDataBoxKey ?? null;
+        savedEndpoint = data.aeroDataBoxEndpoint ?? 'rapidapi';
         savedOpenAipKey = data.openAipKey ?? null;
         $formData.aeroDataBoxKey = savedKey ?? '';
+        $formData.aeroDataBoxEndpoint = savedEndpoint ?? 'rapidapi';
         $formData.openAipKey = savedOpenAipKey ?? '';
       }
     } catch (e) {
@@ -57,9 +65,15 @@
   const changes = $derived.by(() => {
     const current = $formData.aeroDataBoxKey ?? '';
     const base = savedKey ?? '';
+    const currentEndpoint = $formData.aeroDataBoxEndpoint ?? 'rapidapi';
+    const baseEndpoint = savedEndpoint ?? 'rapidapi';
     const currentOpenAip = $formData.openAipKey ?? '';
     const baseOpenAip = savedOpenAipKey ?? '';
-    return current !== base || currentOpenAip !== baseOpenAip;
+    return (
+      current !== base ||
+      currentEndpoint !== baseEndpoint ||
+      currentOpenAip !== baseOpenAip
+    );
   });
 </script>
 
@@ -105,6 +119,49 @@
           {/snippet}
         </Form.Control>
         <Form.FieldErrors />
+      </Form.Field>
+    </Locked>
+
+    <Locked
+      locked={appConfig.envConfigured?.integrations?.aeroDataBoxEndpoint ??
+        false}
+      tooltip={lockedTooltip}
+    >
+      <Form.Field {form} name="aeroDataBoxEndpoint">
+        <Form.Control>
+          {#snippet children({ props })}
+            <Form.Label>AeroDataBox Endpoint</Form.Label>
+            <Form.Description>
+              Choose the gateway matching where you got your API key above.
+            </Form.Description>
+            <Select.Root
+              type="single"
+              name={props.name}
+              bind:value={$formData.aeroDataBoxEndpoint}
+            >
+              <Select.Trigger {...props} class="w-full">
+                {$formData.aeroDataBoxEndpoint === 'direct'
+                  ? 'AeroDataBox Direct'
+                  : 'RapidAPI (default)'}
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="rapidapi" label="RapidAPI (default)" />
+                <Select.Item value="direct" label="AeroDataBox Direct" />
+              </Select.Content>
+            </Select.Root>
+          {/snippet}
+        </Form.Control>
+        <Form.FieldErrors />
+        {#if $formData.aeroDataBoxEndpoint === 'rapidapi'}
+          <p class="text-muted-foreground text-[0.8rem]">
+            Use an API key from your RapidAPI AeroDataBox subscription.
+          </p>
+        {:else}
+          <p class="text-muted-foreground text-[0.8rem]">
+            Use an API key from your AeroDataBox Direct subscription
+            (aerodatabox.com).
+          </p>
+        {/if}
       </Form.Field>
     </Locked>
 
