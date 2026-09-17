@@ -17,6 +17,19 @@
  * ambient authority for a cross-site form post to borrow. Every cookie-
  * authenticated form endpoint -- the consent action and the form-encoded save
  * handlers under /api -- stays protected.
+ *
+ * Verified against a production build, not just read: with the option removed,
+ * a form-encoded POST with no Origin is 403 before routing, and it reaches the
+ * handler once the option is set.
+ *
+ * What turning the option off does NOT cover: the remote-function check a few
+ * lines above it in the same `if (!DEV)` block. Any non-GET to a remote
+ * endpoint is 403 unless the Origin matches exactly, unconditionally. The app
+ * uses no `$app/remote` today, so this is inert -- but adopting remote
+ * functions would reintroduce the very breakage this file exists to fix, with
+ * no config flag to disable it, so a call from a non-browser client would need
+ * exempting here too. `csrf.test.ts` pins the installed SvelteKit so that
+ * block cannot change out from under this reasoning silently.
  */
 
 /** Content types a browser can produce from a plain form, per SvelteKit. */

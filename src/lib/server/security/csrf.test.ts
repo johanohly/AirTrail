@@ -74,4 +74,21 @@ describe('sveltekit configuration', () => {
     );
     expect(options).toContain('checkOrigin');
   });
+
+  /*
+   * The reasoning in csrf.ts assumes the remote-function check is a separate,
+   * unconditional branch that turning the option off does not reach. If a future
+   * SvelteKit moves or drops it, that assumption is stale -- so read it rather
+   * than assume it, and fail with the disagreement instead of discovering it in
+   * production.
+   */
+  it('keeps the remote-function origin check reachable only outside the option', () => {
+    const respond = readFileSync(
+      'node_modules/@sveltejs/kit/src/runtime/server/respond.js',
+      'utf8',
+    );
+    expect(respond).toMatch(
+      /remote_id\)\s*\{[\s\S]{0,200}\}\s*else if \(options\.csrf_check_origin\)/,
+    );
+  });
 });
