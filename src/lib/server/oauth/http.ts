@@ -2,10 +2,35 @@ import { json } from '@sveltejs/kit';
 
 import { API_SCOPES } from '$lib/api/v1/scopes';
 
-export const oauthError = (error: string, description: string, status = 400) =>
+export const oauthError = (
+  error: string,
+  description: string,
+  status = 400,
+  headers: HeadersInit = {},
+) =>
   json(
     { error, error_description: description },
-    { status, headers: { 'Cache-Control': 'no-store', Pragma: 'no-cache' } },
+    {
+      status,
+      headers: {
+        'Cache-Control': 'no-store',
+        Pragma: 'no-cache',
+        ...headers,
+      },
+    },
+  );
+
+/*
+ * RFC 6749 has no dedicated status for throttling, so `429` with the
+ * extensible `temporarily_unavailable` code is used -- the closest fit in the
+ * registry, and what clients already treat as retryable.
+ */
+export const oauthRateLimited = (retryAfterSeconds: number) =>
+  oauthError(
+    'temporarily_unavailable',
+    'Too many requests. Retry later.',
+    429,
+    { 'Retry-After': String(retryAfterSeconds) },
   );
 
 export const tokenResponse = (tokens: {
