@@ -387,7 +387,7 @@ components:
         instance: { type: object, additionalProperties: true }
         authentication: { type: object, additionalProperties: true }
         mcp: { type: object, additionalProperties: true }
-        scopes: { type: array, items: { type: object, required: [name, description], properties: { name: { type: string }, description: { type: string } } } }
+        scopes: { type: array, items: { type: object, required: [name, description], properties: { name: { type: string, description: Scope name, enum: [profile.read, preferences.write, flight.read.own, flight.read.any, flight.create.own, flight.create.any, flight.update.own, flight.update.any, flight.delete.own, flight.delete.any, flight.export.own, flight.export.any, flight.passengers.manage.own, flight.passengers.manage.any, flight.share.own, users.directory.read, users.create, users.update, users.delete, users.roles.assign, data.airports.manage, data.airlines.manage, data.aircraft.manage, custom_fields.read, custom_fields.manage, roles.manage, reference_data.read, stats.read, tracks.read, tracks.write, visited_countries.read, visited_countries.write, shares.read, shares.write, weather.read] }, description: { type: string } } } }
     Page:
       type: object
       required: [nextCursor]
@@ -428,6 +428,22 @@ components:
         continent: { type: string, enum: [AF, AS, EU, NA, OC, SA, AN] }
         country: { type: string }
         custom: { type: boolean }
+    FlightAirport:
+      type: object
+      description: The airport shape embedded in a flight, with renamed coordinates.
+      required: [id, icao, iata, name, municipality, latitude, longitude, timezone, type, continent, country]
+      properties:
+        id: { type: integer }
+        icao: { type: string }
+        iata: { type: [string, 'null'] }
+        name: { type: string }
+        municipality: { type: [string, 'null'] }
+        latitude: { type: number }
+        longitude: { type: number }
+        timezone: { type: string }
+        type: { type: string, enum: [small_airport, medium_airport, large_airport, heliport, balloonport, seaplane_base, closed] }
+        continent: { type: string, enum: [AF, AS, EU, NA, OC, SA, AN] }
+        country: { type: string }
     Airline:
       type: object
       required: [id, name, icao, iata, iconPath]
@@ -443,10 +459,10 @@ components:
         id: { type: integer }
         user: { anyOf: [{ $ref: '#/components/schemas/User' }, { type: 'null' }] }
         guestName: { type: [string, 'null'] }
-        seat: { type: [string, 'null'], enum: [window, aisle, middle, pilot, copilot, jumpseat, other, null] }
+        seat: { type: [string, 'null'], enum: [window, aisle, middle, pilot, copilot, jumpseat, other] }
         seatNumber: { type: [string, 'null'] }
-        seatClass: { type: [string, 'null'], enum: [economy, economy+, business, first, private, null] }
-        flightReason: { type: [string, 'null'], enum: [leisure, business, crew, other, null] }
+        seatClass: { type: [string, 'null'], enum: [economy, economy+, business, first, private] }
+        flightReason: { type: [string, 'null'], enum: [leisure, business, crew, other] }
     PassengerInput:
       type: object
       description: Exactly one of userId and guestName is required.
@@ -454,10 +470,10 @@ components:
         id: { type: integer, minimum: 1 }
         userId: { type: [string, 'null'] }
         guestName: { type: [string, 'null'], maxLength: 100 }
-        seat: { type: [string, 'null'], enum: [window, aisle, middle, pilot, copilot, jumpseat, other, null] }
+        seat: { type: [string, 'null'], enum: [window, aisle, middle, pilot, copilot, jumpseat, other] }
         seatNumber: { type: [string, 'null'], maxLength: 20 }
-        seatClass: { type: [string, 'null'], enum: [economy, economy+, business, first, private, null] }
-        flightReason: { type: [string, 'null'], enum: [leisure, business, crew, other, null] }
+        seatClass: { type: [string, 'null'], enum: [economy, economy+, business, first, private] }
+        flightReason: { type: [string, 'null'], enum: [leisure, business, crew, other] }
         customFields: { type: object, additionalProperties: true }
     TrackSummary:
       type: object
@@ -481,9 +497,13 @@ components:
         - type: object
           required: [flightId, pointCount, createdAt, updatedAt]
           properties: { flightId: { type: integer }, pointCount: { type: integer }, createdAt: { type: string, format: date-time }, updatedAt: { type: string, format: date-time } }
+    # Server-rendered aliases: `from`/`to` carry latitude and longitude where
+    # the stored record uses `lat`/`lon`, so the flight shape is spelled out
+    # separately from `Airport` rather than referenced.
     Flight:
       type: object
-      required: [id, date, datePrecision, passengers]
+      required: [id, date, datePrecision, from, to, airline, aircraft, passengers, track]
+      description: A stored flight, or null field, joined to its reference data.
       properties:
         id: { type: integer }
         date: { type: string, format: date }
@@ -504,8 +524,8 @@ components:
         flightNumber: { type: [string, 'null'] }
         aircraftReg: { type: [string, 'null'] }
         note: { type: [string, 'null'] }
-        from: { anyOf: [{ $ref: '#/components/schemas/Airport' }, { type: 'null' }] }
-        to: { anyOf: [{ $ref: '#/components/schemas/Airport' }, { type: 'null' }] }
+        from: { anyOf: [{ $ref: '#/components/schemas/FlightAirport' }, { type: 'null' }] }
+        to: { anyOf: [{ $ref: '#/components/schemas/FlightAirport' }, { type: 'null' }] }
         airline: { anyOf: [{ $ref: '#/components/schemas/Airline' }, { type: 'null' }] }
         aircraft: { anyOf: [{ $ref: '#/components/schemas/Aircraft' }, { type: 'null' }] }
         passengers: { type: array, items: { $ref: '#/components/schemas/Passenger' } }
@@ -542,24 +562,24 @@ components:
     FlightResponse: { type: object, required: [data], properties: { data: { $ref: '#/components/schemas/Flight' } } }
     FlightCollection: { type: object, required: [data, page], properties: { data: { type: array, items: { $ref: '#/components/schemas/Flight' } }, page: { $ref: '#/components/schemas/Page' } } }
     TrackResponse: { type: object, required: [data], properties: { data: { anyOf: [{ $ref: '#/components/schemas/Track' }, { type: 'null' }] } } }
-    AirportResponse: { type: object, properties: { data: { $ref: '#/components/schemas/Airport' } } }
-    AirlineResponse: { type: object, properties: { data: { $ref: '#/components/schemas/Airline' } } }
-    AircraftResponse: { type: object, properties: { data: { $ref: '#/components/schemas/Aircraft' } } }
-    AirportCollection: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Airport' } }, page: { $ref: '#/components/schemas/Page' } } }
-    AirlineCollection: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Airline' } }, page: { $ref: '#/components/schemas/Page' } } }
-    AircraftCollection: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Aircraft' } }, page: { $ref: '#/components/schemas/Page' } } }
+    AirportResponse: { type: object, required: [data], properties: { data: { $ref: '#/components/schemas/Airport' } } }
+    AirlineResponse: { type: object, required: [data], properties: { data: { $ref: '#/components/schemas/Airline' } } }
+    AircraftResponse: { type: object, required: [data], properties: { data: { $ref: '#/components/schemas/Aircraft' } } }
+    AirportCollection: { type: object, required: [data, page], properties: { data: { type: array, items: { $ref: '#/components/schemas/Airport' } }, page: { $ref: '#/components/schemas/Page' } } }
+    AirlineCollection: { type: object, required: [data, page], properties: { data: { type: array, items: { $ref: '#/components/schemas/Airline' } }, page: { $ref: '#/components/schemas/Page' } } }
+    AircraftCollection: { type: object, required: [data, page], properties: { data: { type: array, items: { $ref: '#/components/schemas/Aircraft' } }, page: { $ref: '#/components/schemas/Page' } } }
     Stats:
       type: object
       required: [flights, distanceKm, durationSeconds, airports, topAirline, topAirport, topAircraft, topRoute]
       properties: { flights: { type: integer }, distanceKm: { type: integer }, durationSeconds: { type: integer }, airports: { type: integer }, topAirline: { type: [object, 'null'] }, topAirport: { type: [object, 'null'] }, topAircraft: { type: [object, 'null'] }, topRoute: { type: [object, 'null'] } }
-    StatsResponse: { type: object, properties: { data: { $ref: '#/components/schemas/Stats' } } }
+    StatsResponse: { type: object, required: [data], properties: { data: { $ref: '#/components/schemas/Stats' } } }
     Preferences:
       type: object
       properties: { distanceUnit: { type: string, enum: [km, mi, nm] }, windSpeedUnit: { type: string, enum: [kt, mph, kmh, ms] }, temperatureUnit: { type: string, enum: [c, f] }, pressureUnit: { type: string, enum: [hpa, inhg] }, timeFormat: { type: string, enum: [12h, 24h, auto] }, dateFormat: { type: string, enum: [iso, us, eu, auto] }, weekStartsOn: { type: string, enum: [mon, sun, auto] }, flightTimeDisplay: { type: string, enum: [airport, utc, system] } }
     VisitedCountryInput: { type: object, required: [code, status], properties: { code: { type: string, minLength: 2, maxLength: 2 }, status: { type: string, enum: [lived, visited, layover, wishlist] }, note: { type: [string, 'null'], maxLength: 1000 } } }
-    VisitedCountry: { type: object, required: [id, code, status, note], properties: { id: { type: integer }, code: { type: string }, status: { type: string }, note: { type: [string, 'null'] } } }
-    VisitedCountryResponse: { type: object, properties: { data: { $ref: '#/components/schemas/VisitedCountry' } } }
-    VisitedCountriesResponse: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/VisitedCountry' } } } }
+    VisitedCountry: { type: object, required: [id, code, status, note], properties: { id: { type: integer }, code: { type: string, minLength: 2, maxLength: 2 }, status: { type: string, enum: [lived, visited, layover, wishlist] }, note: { type: [string, 'null'] } } }
+    VisitedCountryResponse: { type: object, required: [data], properties: { data: { $ref: '#/components/schemas/VisitedCountry' } } }
+    VisitedCountriesResponse: { type: object, required: [data], properties: { data: { type: array, items: { $ref: '#/components/schemas/VisitedCountry' } } } }
     ShareInput: { type: object, required: [slug], properties: { slug: { type: string, minLength: 3, maxLength: 80, pattern: '^[a-zA-Z0-9_-]+$' }, expiresAt: { type: [string, 'null'], format: date-time }, showMap: { type: boolean }, showStats: { type: boolean }, showFlightList: { type: boolean }, dateFrom: { type: [string, 'null'] }, dateTo: { type: [string, 'null'] }, showFlightNumbers: { type: boolean }, showAirlines: { type: boolean }, showAircraft: { type: boolean }, showTimes: { type: boolean }, showTracks: { type: boolean }, showDates: { type: boolean }, showSeat: { type: boolean } } }
     Share:
       allOf:
@@ -567,8 +587,8 @@ components:
         - type: object
           required: [id, createdAt]
           properties: { id: { type: integer }, createdAt: { type: string, format: date-time } }
-    ShareResponse: { type: object, properties: { data: { $ref: '#/components/schemas/Share' } } }
-    SharesResponse: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Share' } } } }
+    ShareResponse: { type: object, required: [data], properties: { data: { $ref: '#/components/schemas/Share' } } }
+    SharesResponse: { type: object, required: [data], properties: { data: { type: array, items: { $ref: '#/components/schemas/Share' } } } }
     RoleInput: { type: object, required: [name, permissions], properties: { name: { type: string, maxLength: 50 }, description: { type: [string, 'null'], maxLength: 200 }, permissions: { type: array, items: { type: string } } } }
     Role:
       allOf:
@@ -576,9 +596,9 @@ components:
         - type: object
           required: [id, userCount, oauthMappingCount, isDefault]
           properties: { id: { type: string }, userCount: { type: integer }, oauthMappingCount: { type: integer }, isDefault: { type: boolean }, createdAt: { type: string, format: date-time }, updatedAt: { type: string, format: date-time } }
-    UsersResponse: { type: object, properties: { data: { type: array, items: { allOf: [{ $ref: '#/components/schemas/User' }], properties: { canManage: { type: boolean }, roleId: { type: [string, 'null'] }, roleName: { type: [string, 'null'] }, isOwner: { type: boolean } } } } } }
-    RolesResponse: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Role' } } } }
+    UsersResponse: { type: object, required: [data], properties: { data: { type: array, items: { allOf: [{ $ref: '#/components/schemas/User' }], properties: { canManage: { type: boolean }, roleId: { type: [string, 'null'] }, roleName: { type: [string, 'null'] }, isOwner: { type: boolean } } } } } }
+    RolesResponse: { type: object, required: [data], properties: { data: { type: array, items: { $ref: '#/components/schemas/Role' } } } }
     CustomField: { type: object, required: [id, entityType, key, label, fieldType, required, order], properties: { id: { type: integer }, entityType: { type: string, enum: [flight, flight_passenger] }, key: { type: string }, label: { type: string }, description: { type: [string, 'null'] }, fieldType: { type: string, enum: [text, textarea, number, boolean, date, select, multi-select, airport, airline, aircraft] }, required: { type: boolean }, order: { type: integer }, defaultValue: {}, options: {} } }
-    CustomFieldsResponse: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/CustomField' } } } }
-    CreatedResponse: { type: object, properties: { data: { type: object, required: [id], properties: { id: { oneOf: [{ type: string }, { type: integer }] } } } } }
-    UpdatedResponse: { type: object, properties: { data: { type: object, additionalProperties: true } } }
+    CustomFieldsResponse: { type: object, required: [data], properties: { data: { type: array, items: { $ref: '#/components/schemas/CustomField' } } } }
+    CreatedResponse: { type: object, required: [data], properties: { data: { type: object, required: [id], properties: { id: { oneOf: [{ type: string }, { type: integer }] } } } } }
+    UpdatedResponse: { type: object, required: [data], properties: { data: { type: object, additionalProperties: true } } }
