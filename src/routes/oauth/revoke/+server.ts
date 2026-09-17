@@ -1,9 +1,13 @@
 import type { RequestHandler } from './$types';
 import { db } from '$lib/db';
+import { oauthError, readForm } from '$lib/server/oauth/http';
 import { hashSha256 } from '$lib/server/utils/hash';
 
 export const POST: RequestHandler = async ({ request }) => {
-  const form = await request.formData();
+  const form = await readForm(request);
+  if (!form)
+    return oauthError('invalid_request', 'Request body must be form-encoded');
+
   const token = form.get('token');
   if (typeof token === 'string' && token.length > 0) {
     const hash = hashSha256(token);

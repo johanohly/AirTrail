@@ -33,6 +33,35 @@ export const oauthRateLimited = (retryAfterSeconds: number) =>
     { 'Retry-After': String(retryAfterSeconds) },
   );
 
+/*
+ * Every OAuth error response must be a JSON object (RFC 6749 section 5.2), and
+ * clients are entitled to refuse a body they cannot parse. `request.formData()`
+ * throws on a body whose content type is not a form type, which made the token
+ * and revocation endpoints answer `500 {"message":"Internal Error"}` -- an
+ * unparseable body from an endpoint a client may call before it is
+ * authenticated. Returning undefined for anything unreadable is the point: the
+ * handlers already treat a missing field as a protocol error, so a malformed
+ * request lands on the spec-compliant path instead of the exception path.
+ */
+export const readForm = async (request: Request) => {
+  const contentType =
+    request.headers
+      .get('content-type')
+      ?.split(';', 1)[0]
+      ?.trim()
+      .toLowerCase() ?? '';
+  if (
+    contentType !== 'application/x-www-form-urlencoded' &&
+    contentType !== 'multipart/form-data'
+  )
+    return undefined;
+  try {
+    return await request.formData();
+  } catch {
+    return undefined;
+  }
+};
+
 export const tokenResponse = (tokens: {
   accessToken: string;
   refreshToken: string;

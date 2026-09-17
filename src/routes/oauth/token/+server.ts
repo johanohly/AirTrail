@@ -1,21 +1,39 @@
 import { verifyArgon2 } from '$lib/server/utils/hash';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/db';
-import { oauthError, tokenResponse } from '$lib/server/oauth/http';
+import {
+  oauthError,
+  oauthRateLimited,
+  readForm,
+  tokenResponse,
+} from '$lib/server/oauth/http';
 import {
   consumeAuthorizationCode,
   issueTokens,
   oauthScopes,
   rotateRefreshToken,
 } from '$lib/server/oauth/server';
+import {
+  clientIdentity,
+  RATE_LIMITS,
+  rateLimiter,
+} from '$lib/server/security/rate-limit';
 
 const formValue = (form: FormData, key: string) => {
   const value = form.get(key);
   return typeof value === 'string' ? value : null;
 };
 
-export const POST: RequestHandler = async ({ request }) => {
-  const form = await request.formData();
+export const POST: RequestHandler = async ({ request, getClientAddress }) => {
+  const limit = rateLimiter.check(
+    RATE_LIMITS.oauthToken,
+    clientIdentity(getClientAddress),
+  );
+  if (!limit.allowed) return oauthRateLimited(limit.retryAfterSeconds);
+
+  const form = await readForm(request);
+  if (!form)
+    return oauthError('invalid_request', 'Request body must be form-encoded');
   const grantType = formValue(form, 'grant_type');
   const resource = formValue(form, 'resource');
   const clientId = formValue(form, 'client_id');
