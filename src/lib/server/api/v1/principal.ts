@@ -1,6 +1,6 @@
 import { db } from '$lib/db';
 import { isApiScope, type ApiScope } from '$lib/api/v1/scopes';
-import type { User } from '$lib/db/types';
+import { publicUserFields, type User } from '$lib/db/types';
 import {
   loadAuthorizationContext,
   type AuthorizationContext,
@@ -37,41 +37,34 @@ const parseBearer = (request: Request) => {
 const validScopes = (scopes: readonly string[]) =>
   new Set(scopes.filter(isApiScope));
 
-const userFields = [
-  'user.id',
-  'user.username',
-  'user.displayName',
-  'user.roleId',
-  'user.isOwner',
-  'user.roleAssignmentSource',
-  'user.oauthId',
-  'user.distanceUnit',
-  'user.windSpeedUnit',
-  'user.temperatureUnit',
-  'user.pressureUnit',
-  'user.timeFormat',
-  'user.dateFormat',
-  'user.weekStartsOn',
-  'user.flightTimeDisplay',
-] as const;
+/*
+ * The columns that make up a `User`, derived from the canonical
+ * `publicUserFields` rather than re-listed. `_NoUnselectedUserColumns` fails to
+ * compile if a column is added to `User` without being selected here, which is
+ * the guarantee the previous hand-written identity cast was standing in for.
+ */
+const userColumns = [
+  ...publicUserFields,
+  'oauthId',
+] as const satisfies readonly (keyof User)[];
 
-const toUser = (row: {
-  id: string;
-  username: string;
-  displayName: string;
-  roleId: string | null;
-  isOwner: boolean;
-  roleAssignmentSource: 'local' | 'oauth';
-  oauthId: string | null;
-  distanceUnit: User['distanceUnit'];
-  windSpeedUnit: User['windSpeedUnit'];
-  temperatureUnit: User['temperatureUnit'];
-  pressureUnit: User['pressureUnit'];
-  timeFormat: User['timeFormat'];
-  dateFormat: User['dateFormat'];
-  weekStartsOn: User['weekStartsOn'];
-  flightTimeDisplay: User['flightTimeDisplay'];
-}): User => row;
+type AssertNever<T extends never> = T;
+type _NoUnselectedUserColumns = AssertNever<
+  Exclude<keyof User, (typeof userColumns)[number]>
+>;
+
+const qualify = <const Fields extends readonly string[]>(fields: Fields) =>
+  fields.map((field) => `user.${field}`) as {
+    -readonly [K in keyof Fields]: `user.${Fields[K] & string}`;
+  };
+
+const userFields = qualify(userColumns);
+
+/** Projects only the user columns, so credential fields cannot ride along. */
+const toUser = (row: Record<string, unknown>): User =>
+  Object.fromEntries(
+    userColumns.map((column) => [column, row[column]]),
+  ) as unknown as User;
 
 export const authenticateApiPrincipal = async (
   request: Request,

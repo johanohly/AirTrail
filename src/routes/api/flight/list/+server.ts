@@ -6,11 +6,13 @@ import {
   parseFlightScopeSearchParams,
   resolveFlightScope,
 } from '$lib/flight-scope';
+import { flightScope, flightScopeOwnership } from '$lib/api/v1/scopes';
 import { canListFlights } from '$lib/server/authorization/flight';
 import {
   apiError,
   authenticateApiKey,
   forbidden,
+  requireScope,
   unauthorized,
 } from '$lib/server/utils/api';
 import { listFlightsInScope } from '$lib/server/utils/flight';
@@ -31,6 +33,11 @@ export const GET: RequestHandler = async ({ request, url }) => {
       400,
     );
   }
+  const denied = requireScope(
+    authentication,
+    flightScope('read', flightScopeOwnership(parsedScope.data, user.id)),
+  );
+  if (denied) return denied;
   if (!canListFlights(authorization, parsedScope.data)) return forbidden();
 
   const flights = await listFlightsInScope(

@@ -19,8 +19,11 @@ import {
 import { lockRoles } from '$lib/server/authorization/roles';
 import { createApiKey } from '$lib/server/utils/auth';
 import { updatePreferencesSchema } from '$lib/zod/user';
-import { isApiScope, type ApiScope } from '$lib/api/v1/scopes';
-import { authorizationAllowsScope } from '$lib/server/api/v1/access';
+import {
+  authorizationAllowsScope,
+  isApiScope,
+  isGrantableScope,
+} from '$lib/api/v1/scopes';
 
 export const userRouter = router({
   me: authedProcedure.query(({ ctx: { user } }) => {
@@ -106,12 +109,14 @@ export const userRouter = router({
       z.object({ name: z.string().trim().min(1), scopes: z.array(z.string()) }),
     )
     .mutation(async ({ ctx, input }) => {
-      const scopes = [...new Set(input.scopes)].filter(
-        isApiScope,
-      ) as ApiScope[];
+      const scopes = [...new Set(input.scopes)].filter(isApiScope);
       if (
-        scopes.length !== input.scopes.length ||
-        scopes.some((scope) => !authorizationAllowsScope(ctx, scope))
+        scopes.length !== new Set(input.scopes).size ||
+        scopes.some(
+          (scope) =>
+            !isGrantableScope(scope) ||
+            !authorizationAllowsScope(ctx.authorization, scope),
+        )
       ) {
         throw new TRPCError({
           code: 'FORBIDDEN',

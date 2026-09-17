@@ -1,10 +1,5 @@
-import { json } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
-
-import { version } from '$app/environment';
-import { createApiDiscovery } from '$lib/api/v1/discovery';
-
-export const GET: RequestHandler = async () =>
-  json(createApiDiscovery(version), {
-    headers: { 'Cache-Control': 'public, max-age=60' },
-  });
+/*
+ * Discovery is mirrored at the API root so a client that only knows the origin
+ * can find it. Same document as /api/v1.
+ */
+export { GET } from '../api/v1/+server';

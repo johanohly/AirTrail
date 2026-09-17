@@ -47,12 +47,12 @@
         return;
       }
 
-      key = result;
+      key = result.key;
       keys.push({
         name,
-        createdAt: new Date(),
+        createdAt: result.createdAt,
         lastUsed: null,
-        id: 1111,
+        id: result.id,
         scopes: [...selectedScopes],
       });
       toast.success('API key created');

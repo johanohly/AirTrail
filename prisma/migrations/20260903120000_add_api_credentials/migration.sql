@@ -7,10 +7,18 @@ ALTER TABLE "api_key"
     'flight.passengers.manage.any', 'flight.share.own', 'users.directory.read',
     'users.create', 'users.update', 'users.delete', 'users.roles.assign',
     'data.airports.manage', 'data.airlines.manage', 'data.aircraft.manage',
-    'custom_fields.manage', 'roles.manage', 'reference_data.read', 'stats.read',
+    'custom_fields.read', 'custom_fields.manage', 'roles.manage',
+    'reference_data.read', 'stats.read',
     'tracks.read', 'tracks.write', 'visited_countries.read',
     'visited_countries.write', 'shares.read', 'shares.write', 'weather.read'
   ]::TEXT[];
+
+-- The default exists only to backfill keys created before scoping. Dropping it
+-- keeps the column in step with prisma/schema.prisma (which declares no
+-- default, so `prisma migrate dev` would otherwise emit a spurious DROP), and
+-- stops any future insert path that forgets `scopes` from silently minting a
+-- fully-privileged key.
+ALTER TABLE "api_key" ALTER COLUMN "scopes" DROP DEFAULT;
 
 CREATE TABLE "oauth_client" (
   "id" TEXT PRIMARY KEY,

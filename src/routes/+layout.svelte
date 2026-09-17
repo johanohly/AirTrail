@@ -60,7 +60,7 @@
         {@render children()}
       </main>
 
-      {#if data.user && !page.error && !['/login', '/setup'].includes(page.url.pathname) && !page.url.pathname.startsWith('/oauth/')}
+      {#if data.user && !page.error && page.data.chrome !== false}
         <NavigationDock />
       {/if}
     </TooltipProvider>

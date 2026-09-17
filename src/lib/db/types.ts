@@ -11,7 +11,11 @@ import type {
   visited_country,
 } from '$lib/db/schema';
 import type { FlightTrackInput } from '$lib/track/schema';
-import type { Insertable, Selectable } from 'kysely';
+import type { Insertable, Kysely, Selectable, Transaction } from 'kysely';
+import type { DB } from '$lib/db/schema';
+
+/** Either a pooled connection or an open transaction. */
+export type DatabaseConnection = Kysely<DB> | Transaction<DB>;
 
 export type FullUser = Selectable<user>;
 export type User = Omit<FullUser, 'password'>;

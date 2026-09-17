@@ -3,7 +3,12 @@ import type { RequestHandler } from './$types';
 import { db } from '$lib/db';
 import { MCP_DEFAULT_SCOPES } from '$lib/api/v1/scopes';
 import { oauthError } from '$lib/server/oauth/http';
-import { oauthScopes, validateRedirectUri } from '$lib/server/oauth/server';
+import {
+  cleanupExpiredOAuthRecords,
+  oauthScopes,
+  validateRedirectUri,
+} from '$lib/server/oauth/server';
+import { OAUTH_REQUEST_COOKIE } from '$lib/server/oauth/resume';
 import { generateString } from '$lib/server/utils/random';
 
 export const GET: RequestHandler = async ({ url, locals, cookies }) => {
@@ -51,6 +56,7 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
   const scopes = oauthScopes(requested);
   if (scopes.length !== requested.length)
     return oauthError('invalid_scope', 'One or more scopes are unsupported');
+  await cleanupExpiredOAuthRecords();
   const requestId = generateString();
   await db
     .insertInto('oauthAuthorizationRequest')
@@ -66,17 +72,15 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
       expiresAt: new Date(Date.now() + 10 * 60_000),
     })
     .execute();
-  cookies.set('airtrail_oauth_request', requestId, {
+  cookies.set(OAUTH_REQUEST_COOKIE, requestId, {
     path: '/',
     httpOnly: true,
     sameSite: 'lax',
     secure: url.protocol === 'https:',
     maxAge: 600,
   });
-  if (!locals.user)
-    throw redirect(
-      303,
-      `/login?oauth_request=${encodeURIComponent(requestId)}`,
-    );
+  // The pending request is carried in the cookie, which is what the login
+  // handlers read; no query parameter is needed or was ever consumed.
+  if (!locals.user) throw redirect(303, '/login');
   throw redirect(303, `/oauth/consent?id=${encodeURIComponent(requestId)}`);
 };

@@ -8,8 +8,11 @@ import {
   apiError,
   authenticateApiKey,
   forbidden,
+  requireScope,
   unauthorized,
 } from '$lib/server/utils/api';
+import { isFlightParticipant } from '$lib/server/authorization/flight';
+import { flightScope } from '$lib/api/v1/scopes';
 import { deleteFlight, getFlight } from '$lib/server/utils/flight';
 
 const deleteFlightSchema = z.object({
@@ -30,7 +33,7 @@ export const POST: RequestHandler = async ({ request }) => {
   if (!authentication) {
     return unauthorized();
   }
-  const { authorization } = authentication;
+  const { authorization, user } = authentication;
 
   const flight = await getFlight(parsed.data.id);
   if (!flight) {
@@ -40,6 +43,13 @@ export const POST: RequestHandler = async ({ request }) => {
   if (!(await canAccessFlight(authorization, 'delete', parsed.data.id))) {
     return forbidden();
   }
+
+  const participant = await isFlightParticipant(user.id, parsed.data.id);
+  const denied = requireScope(
+    authentication,
+    flightScope('delete', participant ? 'own' : 'any'),
+  );
+  if (denied) return denied;
 
   const result = await deleteFlight(parsed.data.id);
 

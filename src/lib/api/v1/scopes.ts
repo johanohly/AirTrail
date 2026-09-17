@@ -1,9 +1,9 @@
 import {
   hasPermission,
-  isPermission,
   type Permission,
   type PermissionSubject,
 } from '$lib/authorization/permissions';
+import type { FlightScope } from '$lib/flight-scope';
 
 export const API_SCOPES = [
   'profile.read',
@@ -29,6 +29,7 @@ export const API_SCOPES = [
   'data.airports.manage',
   'data.airlines.manage',
   'data.aircraft.manage',
+  'custom_fields.read',
   'custom_fields.manage',
   'roles.manage',
   'reference_data.read',
@@ -52,6 +53,7 @@ export const MCP_DEFAULT_SCOPES = [
   'tracks.read',
   'visited_countries.read',
   'shares.read',
+  'custom_fields.read',
 ] as const satisfies readonly ApiScope[];
 
 export const OAUTH_READONLY_SCOPES = [
@@ -66,7 +68,7 @@ export const OAUTH_READONLY_SCOPES = [
   'tracks.read',
   'visited_countries.read',
   'shares.read',
-  'weather.read',
+  'custom_fields.read',
 ] as const satisfies readonly ApiScope[];
 
 const apiScopeSet: ReadonlySet<string> = new Set(API_SCOPES);
@@ -98,6 +100,7 @@ export const API_SCOPE_DESCRIPTIONS: Record<ApiScope, string> = {
   'data.airports.manage': 'Manage airports',
   'data.airlines.manage': 'Manage airlines',
   'data.aircraft.manage': 'Manage aircraft',
+  'custom_fields.read': 'Read custom-field definitions',
   'custom_fields.manage': 'Manage custom-field definitions',
   'roles.manage': 'Manage access roles',
   'reference_data.read': 'Read airport, airline, and aircraft data',
@@ -111,7 +114,40 @@ export const API_SCOPE_DESCRIPTIONS: Record<ApiScope, string> = {
   'weather.read': 'Read weather for visible airports',
 };
 
-const scopeFallbackPermissions: Partial<Record<ApiScope, Permission>> = {
+/*
+ * Every scope maps to the permission a user must hold before they can grant it,
+ * or to `null` when holding the credential is sufficient on its own. This is a
+ * total `Record`, not a `Partial`: adding a scope without classifying it here is
+ * a compile error rather than a silent grant.
+ */
+const scopePermissions: Record<ApiScope, Permission | null> = {
+  'profile.read': null,
+  'preferences.write': null,
+  'reference_data.read': null,
+  'flight.read.own': 'flight.read.own',
+  'flight.read.any': 'flight.read.any',
+  'flight.create.own': 'flight.create.own',
+  'flight.create.any': 'flight.create.any',
+  'flight.update.own': 'flight.update.own',
+  'flight.update.any': 'flight.update.any',
+  'flight.delete.own': 'flight.delete.own',
+  'flight.delete.any': 'flight.delete.any',
+  'flight.export.own': 'flight.export.own',
+  'flight.export.any': 'flight.export.any',
+  'flight.passengers.manage.own': 'flight.passengers.manage.own',
+  'flight.passengers.manage.any': 'flight.passengers.manage.any',
+  'flight.share.own': 'flight.share.own',
+  'users.directory.read': 'users.directory.read',
+  'users.create': 'users.create',
+  'users.update': 'users.update',
+  'users.delete': 'users.delete',
+  'users.roles.assign': 'users.roles.assign',
+  'data.airports.manage': 'data.airports.manage',
+  'data.airlines.manage': 'data.airlines.manage',
+  'data.aircraft.manage': 'data.aircraft.manage',
+  'custom_fields.read': null,
+  'custom_fields.manage': 'custom_fields.manage',
+  'roles.manage': 'roles.manage',
   'stats.read': 'flight.read.own',
   'tracks.read': 'flight.read.own',
   'tracks.write': 'flight.update.own',
@@ -126,10 +162,69 @@ export const authorizationAllowsScope = (
   authorization: PermissionSubject | null,
   scope: ApiScope,
 ) => {
-  if (isPermission(scope)) return hasPermission(authorization, scope);
-  const permission = scopeFallbackPermissions[scope];
-  return permission ? hasPermission(authorization, permission) : true;
+  const permission = scopePermissions[scope];
+  return permission === null ? true : hasPermission(authorization, permission);
 };
+
+/*
+ * Scopes that exist in the catalog and the OpenAPI document but that no route or
+ * MCP tool consumes yet. They are never offered at consent or at API-key
+ * creation, so nobody is asked to approve a capability that does nothing.
+ * `api-contract.test.ts` asserts this list stays accurate in both directions.
+ */
+export const UNIMPLEMENTED_SCOPES = [
+  'users.create',
+  'users.update',
+  'users.delete',
+  'users.roles.assign',
+  'data.airports.manage',
+  'data.airlines.manage',
+  'data.aircraft.manage',
+  'custom_fields.manage',
+  'weather.read',
+] as const satisfies readonly ApiScope[];
+
+const unimplementedScopeSet: ReadonlySet<ApiScope> = new Set(
+  UNIMPLEMENTED_SCOPES,
+);
+
+export const isGrantableScope = (scope: ApiScope) =>
+  !unimplementedScopeSet.has(scope);
+
+export type FlightScopeAction =
+  'read' | 'create' | 'update' | 'delete' | 'export';
+export type FlightScopeOwnership = 'own' | 'any';
+
+/*
+ * Builds `flight.<action>.<own|any>` instead of spelling the ternary out at each
+ * call site. The assertion below fails to compile if any combination stops
+ * existing in API_SCOPES.
+ */
+export const flightScope = <
+  const Action extends FlightScopeAction,
+  const Ownership extends FlightScopeOwnership,
+>(
+  action: Action,
+  ownership: Ownership,
+): `flight.${Action}.${Ownership}` => `flight.${action}.${ownership}`;
+
+/*
+ * A flight-scope query is "own" only when it resolves to the caller's own
+ * flights; `scope=user` with somebody else's id, or `scope=all`, needs `.any`.
+ * Shared by v0 and v1 so the two surfaces cannot drift on what counts as own.
+ */
+export const flightScopeOwnership = (
+  scope: FlightScope,
+  actorUserId: string,
+): FlightScopeOwnership =>
+  scope.scope === 'mine' ||
+  (scope.scope === 'user' && scope.userId === actorUserId)
+    ? 'own'
+    : 'any';
+
+type AssertAssignable<T extends ApiScope> = T;
+type _AllFlightScopesExist =
+  AssertAssignable<`flight.${FlightScopeAction}.${FlightScopeOwnership}`>;
 
 export type GrantableScope = {
   name: ApiScope;
@@ -142,8 +237,9 @@ const readonlyScopeSet: ReadonlySet<ApiScope> = new Set(OAUTH_READONLY_SCOPES);
 export const grantableScopes = (
   authorization: PermissionSubject | null,
 ): GrantableScope[] =>
-  API_SCOPES.filter((scope) =>
-    authorizationAllowsScope(authorization, scope),
+  API_SCOPES.filter(
+    (scope) =>
+      isGrantableScope(scope) && authorizationAllowsScope(authorization, scope),
   ).map((scope) => ({
     name: scope,
     description: API_SCOPE_DESCRIPTIONS[scope],

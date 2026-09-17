@@ -1,8 +1,9 @@
-import { type Handle, type ServerInit } from '@sveltejs/kit';
+import { text, type Handle, type ServerInit } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import type { Cookie } from 'lucia';
 
 import '$lib/zod/setup';
+import { isCrossSiteFormPost } from '$lib/server/security/csrf';
 import { lucia } from '$lib/server/auth';
 import { loadAuthorizationContext } from '$lib/server/authorization/context';
 import { validateAirlineIcons } from '$lib/server/utils/airline';
@@ -32,6 +33,24 @@ export const init: ServerInit = async () => {
   await ensureInitialDataSync();
   await validateAirlineIcons();
   await syncAirlineIcons({ onlyIfNoIcons: true });
+};
+
+const csrfHandle: Handle = async ({ event, resolve }) => {
+  const { request, url } = event;
+  if (
+    isCrossSiteFormPost({
+      method: request.method,
+      pathname: url.pathname,
+      contentType: request.headers.get('content-type'),
+      origin: request.headers.get('origin'),
+      expectedOrigin: url.origin,
+    })
+  ) {
+    return text(`Cross-site ${request.method} form submissions are forbidden`, {
+      status: 403,
+    });
+  }
+  return resolve(event);
 };
 
 const authHandle: Handle = async ({ event, resolve }) => {
@@ -80,6 +99,7 @@ const dropExcessiveLinkHeaderHandle: Handle = async ({ event, resolve }) => {
 };
 
 export const handle: Handle = sequence(
+  csrfHandle,
   authHandle,
   dropExcessiveLinkHeaderHandle,
 );

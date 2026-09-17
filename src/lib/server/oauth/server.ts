@@ -2,6 +2,11 @@ import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { db } from '$lib/db';
 import { hashArgon2, hashSha256 } from '$lib/server/utils/hash';
 import { isApiScope, type ApiScope } from '$lib/api/v1/scopes';
+import type { DatabaseConnection } from '$lib/db/types';
+
+const ACCESS_TOKEN_TTL_MS = 3_600_000;
+const REFRESH_TOKEN_TTL_MS = 30 * 24 * 3_600_000;
+const AUTHORIZATION_CODE_TTL_MS = 60_000;
 
 export const oauthScopes = (values: readonly string[]) =>
   [...new Set(values.filter(isApiScope))] as ApiScope[];
@@ -64,34 +69,27 @@ export const issueAuthorizationCode = async (input: {
   codeChallenge: string;
 }) => {
   const code = randomOpaque(32);
-  const grantId = randomUUID();
   const now = new Date();
   await db.transaction().execute(async (trx) => {
+    // oauth_grant has a unique key on (client_id, user_id, resource), so this
+    // is one statement rather than a read plus a branch with a TOCTOU window.
     const grant = await trx
-      .selectFrom('oauthGrant')
-      .select('id')
-      .where('clientId', '=', input.clientId)
-      .where('userId', '=', input.userId)
-      .where('resource', '=', input.resource)
-      .executeTakeFirst();
-    const actualGrantId = grant?.id ?? grantId;
-    if (!grant)
-      await trx
-        .insertInto('oauthGrant')
-        .values({
-          id: actualGrantId,
-          clientId: input.clientId,
-          userId: input.userId,
-          resource: input.resource,
-          scopes: input.scopes,
-        })
-        .execute();
-    else
-      await trx
-        .updateTable('oauthGrant')
-        .set({ scopes: input.scopes, updatedAt: now })
-        .where('id', '=', actualGrantId)
-        .execute();
+      .insertInto('oauthGrant')
+      .values({
+        id: randomUUID(),
+        clientId: input.clientId,
+        userId: input.userId,
+        resource: input.resource,
+        scopes: input.scopes,
+      })
+      .onConflict((oc) =>
+        oc
+          .columns(['clientId', 'userId', 'resource'])
+          .doUpdateSet({ scopes: input.scopes, updatedAt: now }),
+      )
+      .returning('id')
+      .executeTakeFirstOrThrow();
+    const actualGrantId = grant.id;
     await trx
       .insertInto('oauthAuthorizationCode')
       .values({
@@ -103,11 +101,27 @@ export const issueAuthorizationCode = async (input: {
         scopes: input.scopes,
         resource: input.resource,
         codeChallenge: input.codeChallenge,
-        expiresAt: new Date(now.getTime() + 60_000),
+        expiresAt: new Date(now.getTime() + AUTHORIZATION_CODE_TTL_MS),
       })
       .execute();
   });
   return code;
+};
+
+const revokeGrantTokens = async (trx: DatabaseConnection, grantId: string) => {
+  const now = new Date();
+  await trx
+    .updateTable('oauthAccessToken')
+    .set({ revokedAt: now })
+    .where('grantId', '=', grantId)
+    .where('revokedAt', 'is', null)
+    .execute();
+  await trx
+    .updateTable('oauthRefreshToken')
+    .set({ revokedAt: now })
+    .where('grantId', '=', grantId)
+    .where('revokedAt', 'is', null)
+    .execute();
 };
 
 export const consumeAuthorizationCode = async (input: {
@@ -124,9 +138,17 @@ export const consumeAuthorizationCode = async (input: {
       .where('codeHash', '=', hashSha256(input.code))
       .forUpdate()
       .executeTakeFirst();
+    if (found?.usedAt) {
+      /*
+       * The code was already redeemed. RFC 6749 4.1.2 requires revoking the
+       * tokens it produced, because a replay means the code leaked. The refresh
+       * family is the unit of revocation, exactly as in rotateRefreshToken.
+       */
+      await revokeGrantTokens(trx, found.grantId);
+      return null;
+    }
     if (
       !found ||
-      found.usedAt ||
       found.expiresAt < new Date() ||
       found.clientId !== input.clientId ||
       found.redirectUri !== input.redirectUri ||
@@ -146,53 +168,59 @@ export const consumeAuthorizationCode = async (input: {
   return row;
 };
 
-export const issueTokens = async (code: {
+type TokenGrant = {
   clientId: string;
   userId: string;
   grantId: string;
-  scopes: string[];
+  scopes: ApiScope[];
   resource: string;
-}) => {
+};
+
+/** Writes one access/refresh pair. The only place token lifetimes are set. */
+const insertTokenPair = async (
+  trx: DatabaseConnection,
+  grant: TokenGrant,
+  familyId: string,
+) => {
   const accessToken = randomOpaque();
   const refreshToken = randomOpaque();
-  const familyId = randomUUID();
-  const now = new Date();
-  await db.transaction().execute(async (trx) => {
-    await trx
-      .insertInto('oauthAccessToken')
-      .values({
-        tokenHash: hashSha256(accessToken),
-        clientId: code.clientId,
-        userId: code.userId,
-        grantId: code.grantId,
-        refreshFamilyId: familyId,
-        scopes: code.scopes,
-        resource: code.resource,
-        expiresAt: new Date(now.getTime() + 3_600_000),
-      })
-      .execute();
-    await trx
-      .insertInto('oauthRefreshToken')
-      .values({
-        tokenHash: hashSha256(refreshToken),
-        clientId: code.clientId,
-        userId: code.userId,
-        grantId: code.grantId,
-        familyId,
-        scopes: code.scopes,
-        resource: code.resource,
-        expiresAt: new Date(now.getTime() + 30 * 24 * 3_600_000),
-      })
-      .execute();
-  });
+  const now = Date.now();
+  const shared = {
+    clientId: grant.clientId,
+    userId: grant.userId,
+    grantId: grant.grantId,
+    scopes: grant.scopes,
+    resource: grant.resource,
+  };
+  await trx
+    .insertInto('oauthAccessToken')
+    .values({
+      ...shared,
+      tokenHash: hashSha256(accessToken),
+      refreshFamilyId: familyId,
+      expiresAt: new Date(now + ACCESS_TOKEN_TTL_MS),
+    })
+    .execute();
+  await trx
+    .insertInto('oauthRefreshToken')
+    .values({
+      ...shared,
+      tokenHash: hashSha256(refreshToken),
+      familyId,
+      expiresAt: new Date(now + REFRESH_TOKEN_TTL_MS),
+    })
+    .execute();
   return {
     accessToken,
     refreshToken,
-    expiresIn: 3600,
-    scope: code.scopes.join(' '),
+    expiresIn: Math.floor(ACCESS_TOKEN_TTL_MS / 1000),
+    scope: grant.scopes.join(' '),
     tokenType: 'Bearer' as const,
   };
 };
+
+export const issueTokens = async (code: TokenGrant) =>
+  db.transaction().execute((trx) => insertTokenPair(trx, code, randomUUID()));
 
 export const rotateRefreshToken = async (
   raw: string,
@@ -233,40 +261,38 @@ export const rotateRefreshToken = async (
       .set({ usedAt: new Date() })
       .where('tokenHash', '=', hash)
       .execute();
-    const accessToken = randomOpaque();
-    const refreshToken = randomOpaque();
-    await trx
-      .insertInto('oauthAccessToken')
-      .values({
-        tokenHash: hashSha256(accessToken),
+    return insertTokenPair(
+      trx,
+      {
         clientId: token.clientId,
         userId: token.userId,
         grantId: token.grantId,
-        refreshFamilyId: token.familyId,
-        scopes: token.scopes,
+        scopes: oauthScopes(token.scopes),
         resource: token.resource,
-        expiresAt: new Date(Date.now() + 3_600_000),
-      })
-      .execute();
-    await trx
-      .insertInto('oauthRefreshToken')
-      .values({
-        tokenHash: hashSha256(refreshToken),
-        clientId: token.clientId,
-        userId: token.userId,
-        grantId: token.grantId,
-        familyId: token.familyId,
-        scopes: token.scopes,
-        resource: token.resource,
-        expiresAt: new Date(Date.now() + 30 * 24 * 3_600_000),
-      })
-      .execute();
-    return {
-      accessToken,
-      refreshToken,
-      expiresIn: 3600,
-      scope: token.scopes.join(' '),
-      tokenType: 'Bearer' as const,
-    };
+      },
+      token.familyId,
+    );
   });
+};
+
+/*
+ * /oauth/authorize inserts an authorization-request row on every unauthenticated
+ * GET, and nothing else ever removes those rows. There is no scheduler in this
+ * codebase, so cleanup is opportunistic at the point of growth -- the same shape
+ * as listUserShares/deleteExpiredShares. All four deletes hit indexed columns.
+ */
+export const cleanupExpiredOAuthRecords = async () => {
+  const now = new Date();
+  await Promise.all([
+    db
+      .deleteFrom('oauthAuthorizationRequest')
+      .where('expiresAt', '<', now)
+      .execute(),
+    db
+      .deleteFrom('oauthAuthorizationCode')
+      .where('expiresAt', '<', now)
+      .execute(),
+    db.deleteFrom('oauthAccessToken').where('expiresAt', '<', now).execute(),
+    db.deleteFrom('oauthRefreshToken').where('expiresAt', '<', now).execute(),
+  ]);
 };

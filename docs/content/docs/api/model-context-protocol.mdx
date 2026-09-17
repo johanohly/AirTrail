@@ -31,7 +31,7 @@ The exact configuration format depends on the MCP client.
 
 ## Authentication
 
-OAuth is the recommended option. AirTrail supports dynamic client registration, the authorization code flow with PKCE, refresh tokens, and protected-resource discovery. The consent screen starts with a read-only access template. The user can keep it, choose full access, or select individual permissions that their role allows.
+OAuth is the recommended option. AirTrail supports dynamic client registration, the authorization code flow with PKCE, refresh tokens, and protected-resource discovery. The consent screen pre-selects exactly the scopes the client requested. The user can approve those, widen the grant to anything else their role allows, or narrow it further before approving.
 
 Clients without OAuth support can use a personal API key. Create one under **Settings > Security > API keys**, select only the scopes the client needs, and send it as a bearer token:
 
@@ -64,7 +64,7 @@ The credential can narrow a user's access, but cannot grant permissions that the
 | Area | Tools |
 | --- | --- |
 | Profile | `airtrail_get_profile`, `airtrail_list_custom_fields`, `airtrail_update_preferences` |
-| Flights | `airtrail_list_flights`, `airtrail_get_flight`, `airtrail_create_flight`, `airtrail_update_flight`, `airtrail_delete_flight` |
+| Flights | `airtrail_list_flights`, `airtrail_get_flight`, `airtrail_create_flight`, `airtrail_update_flight`, `airtrail_delete_flight`, `airtrail_export_flights` |
 | Flight tracks | `airtrail_get_flight_track`, `airtrail_set_flight_track`, `airtrail_delete_flight_track` |
 | Statistics | `airtrail_get_stats` |
 | Airports | `airtrail_search_airports`, `airtrail_get_airport` |

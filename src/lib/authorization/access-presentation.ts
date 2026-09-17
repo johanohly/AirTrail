@@ -4,6 +4,45 @@ export type AccessPresentation = {
   group: string;
   label: string;
   action: AccessAction;
+  /*
+   * True when nothing in the table below matched and the raw key is being shown
+   * as its own label. Nothing renders this differently -- it exists so
+   * `api-contract.test.ts` can assert that no shipped scope or permission ever
+   * reaches the fallback, which is the guarantee a string-prefix chain cannot
+   * give on its own.
+   */
+  fallback?: true;
+};
+
+export const ACCESS_CATEGORY_ORDER = [
+  'Profile',
+  'Flights',
+  'Reference data',
+  'Personal data',
+  'Administration',
+] as const;
+
+export type AccessCategory = (typeof ACCESS_CATEGORY_ORDER)[number];
+
+export const accessCategory = (name: string): AccessCategory => {
+  if (
+    name.startsWith('flight.') ||
+    name.startsWith('tracks.') ||
+    name === 'stats.read' ||
+    name === 'weather.read'
+  )
+    return 'Flights';
+  if (name.startsWith('data.') || name === 'reference_data.read')
+    return 'Reference data';
+  if (name.startsWith('visited_countries.') || name.startsWith('shares.'))
+    return 'Personal data';
+  if (
+    name.startsWith('users.') ||
+    name.startsWith('roles.') ||
+    name.startsWith('custom_fields.')
+  )
+    return 'Administration';
+  return 'Profile';
 };
 
 export type AccessAction = 'read' | 'write';
@@ -63,6 +102,8 @@ export const accessPresentation = (name: string): AccessPresentation => {
     return access('airlines', 'Airlines', 'write');
   if (name.startsWith('data.aircraft.'))
     return access('aircraft', 'Aircraft', 'write');
+  if (name === 'custom_fields.read')
+    return access('custom_fields', 'Custom fields', 'read');
   if (name === 'custom_fields.manage')
     return access('custom_fields', 'Custom fields', 'write');
   if (name === 'roles.manage') return access('roles', 'Roles', 'write');
@@ -76,7 +117,7 @@ export const accessPresentation = (name: string): AccessPresentation => {
     return access('releases', 'Release updates', 'read');
   if (name === 'tools.sql.execute')
     return access('sql', 'SQL console', 'write');
-  return access(name, name, 'write');
+  return { ...access(name, name, 'write'), fallback: true };
 };
 
 export const groupAccessItems = <T>(

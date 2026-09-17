@@ -1,50 +1,24 @@
 import { json } from '@sveltejs/kit';
 
-import { db } from '$lib/db';
-import type { User } from '$lib/db/types';
+import { authorizationAllowsScope, type ApiScope } from '$lib/api/v1/scopes';
 import {
-  loadAuthorizationContext,
-  type AuthorizationContext,
-} from '$lib/server/authorization/context';
-import { hashSha256 } from '$lib/server/utils/hash';
+  authenticateApiPrincipal,
+  principalHasScope,
+  type ApiPrincipal,
+} from '$lib/server/api/v1/principal';
 
-export type ApiKeyAuthentication = {
-  user: User;
-  authorization: AuthorizationContext;
-};
+export type ApiKeyAuthentication = ApiPrincipal;
 
-export const authenticateApiKey = async (
+/*
+ * v0 routes predate scoped credentials, so they used to authenticate through a
+ * path that never read `api_key.scopes` at all -- a key restricted to
+ * `flight.read.own` on /api/v1 still got unscoped writes here. Delegating to the
+ * v1 principal means both API surfaces resolve the same credential, and the
+ * routes below gate on `requireScope`.
+ */
+export const authenticateApiKey = (
   request: Request,
-): Promise<ApiKeyAuthentication | null> => {
-  const apiKey = request.headers.get('Authorization')?.split('Bearer ')[1];
-  if (!apiKey) {
-    return null;
-  }
-  const hash = hashSha256(apiKey);
-  const user = await db
-    .selectFrom('user')
-    .where(
-      'id',
-      '=',
-      db.selectFrom('apiKey').where('key', '=', hash).select('userId'),
-    )
-    .selectAll()
-    .executeTakeFirst();
-
-  if (user) {
-    await db
-      .updateTable('apiKey')
-      .set({ lastUsed: new Date() })
-      .where('key', '=', hash)
-      .execute();
-  }
-
-  if (!user) return null;
-
-  const authorization = await loadAuthorizationContext(user.id);
-  if (!authorization) return null;
-  return { user, authorization };
-};
+): Promise<ApiKeyAuthentication | null> => authenticateApiPrincipal(request);
 
 export const apiError = (message: string, status = 500) => {
   return json({ success: false, message }, { status });
@@ -56,4 +30,21 @@ export const unauthorized = () => {
 
 export const forbidden = () => {
   return apiError('Forbidden', 403);
+};
+
+/**
+ * Returns an error response when the credential does not carry `scope`, or null
+ * when it does. Mirrors `requireApiScope`, in the v0 response shape.
+ */
+export const requireScope = (
+  authentication: ApiKeyAuthentication,
+  scope: ApiScope,
+) => {
+  if (!principalHasScope(authentication, scope)) {
+    return apiError(`This credential requires the ${scope} scope`, 403);
+  }
+  if (!authorizationAllowsScope(authentication.authorization, scope)) {
+    return forbidden();
+  }
+  return null;
 };

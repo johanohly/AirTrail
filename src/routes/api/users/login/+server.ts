@@ -4,6 +4,7 @@ import { zod4 as zod } from 'sveltekit-superforms/adapters';
 import type { RequestHandler } from './$types';
 
 import { lucia } from '$lib/server/auth';
+import { postLoginTarget } from '$lib/server/oauth/resume';
 import { createSession, getUserWithPassword } from '$lib/server/utils/auth';
 import { verifyArgon2 } from '$lib/server/utils/hash';
 import { linkOAuthAccountWithToken } from '$lib/server/utils/oauth-link-token';
@@ -58,13 +59,5 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 
   await createSession(lucia, user.id, cookies);
 
-  const oauthRequest = cookies.get('airtrail_oauth_request');
-  if (oauthRequest) {
-    return actionResult(
-      'redirect',
-      `/oauth/consent?id=${encodeURIComponent(oauthRequest)}`,
-      303,
-    );
-  }
-  return actionResult('redirect', '/', 303);
+  return actionResult('redirect', postLoginTarget(cookies), 303);
 };

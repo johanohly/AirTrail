@@ -5,12 +5,21 @@ import { apiV1Unauthorized } from '$lib/server/api/v1/errors';
 import { handleMcpRequest } from '$lib/server/mcp/server';
 import { MCP_DEFAULT_SCOPES } from '$lib/api/v1/scopes';
 
-const forbiddenOrigin = (request: Request, origin: string) => {
-  const requestOrigin = request.headers.get('Origin');
-  return requestOrigin && requestOrigin !== origin
-    ? new Response('Forbidden origin', { status: 403 })
-    : null;
-};
+/*
+ * There is deliberately no same-origin check here, unlike every other mutating
+ * endpoint. This route derives its authority solely from the `Authorization`
+ * header: it never reads cookies or `locals`, and `authenticateApiPrincipal`
+ * takes the credential from the header alone. With no ambient authority, a
+ * cross-site request can present nothing a same-site one could not, so refusing
+ * it adds no security -- and it broke every browser-based MCP client, whose
+ * page necessarily runs on a different origin than the server.
+ *
+ * An earlier version compared the request's `Origin` against `url.origin`. That
+ * is a string against a server-derived value, so it also refused legitimate
+ * requests whenever a proxy made the public origin differ from the decoded one.
+ * `src/hooks.server.ts` still enforces the origin for cookie-authenticated form
+ * posts, which is where the check actually protects something.
+ */
 
 const authenticateMcpRequest = async (request: Request, origin: string) => {
   const principal = await authenticateApiPrincipal(
@@ -37,9 +46,6 @@ const methodNotAllowed = () =>
   });
 
 export const POST: RequestHandler = async ({ request, url }) => {
-  const originError = forbiddenOrigin(request, url.origin);
-  if (originError) return originError;
-
   const principal = await authenticateMcpRequest(request, url.origin);
   if (principal instanceof Response) return principal;
 
@@ -58,9 +64,6 @@ export const POST: RequestHandler = async ({ request, url }) => {
 };
 
 export const GET: RequestHandler = async ({ request, url }) => {
-  const originError = forbiddenOrigin(request, url.origin);
-  if (originError) return originError;
-
   if (!request.headers.get('Accept')?.includes('text/event-stream')) {
     return json(
       {
@@ -95,25 +98,33 @@ export const GET: RequestHandler = async ({ request, url }) => {
 };
 
 export const DELETE: RequestHandler = async ({ request, url }) => {
-  const originError = forbiddenOrigin(request, url.origin);
-  if (originError) return originError;
-
   const principal = await authenticateMcpRequest(request, url.origin);
   if (principal instanceof Response) return principal;
   return methodNotAllowed();
 };
 
-export const OPTIONS: RequestHandler = async ({ request, url }) => {
-  const originError = forbiddenOrigin(request, url.origin);
-  if (originError) return originError;
+/*
+ * A preflight carries no credentials and no authority, and the browser refuses
+ * to send the real request unless this succeeds -- so this cannot be gated on
+ * anything, including authentication. It reflects the requesting origin rather
+ * than allowing `*` so the answer stays correct if credentialed requests are
+ * ever added. (Note that SvelteKit's own CORS handling runs before this handler
+ * and already sets `Access-Control-Allow-Origin`; these headers make the
+ * intended contract explicit and are what the route test asserts on.)
+ */
+export const OPTIONS: RequestHandler = async ({ request }) => {
+  const requestOrigin = request.headers.get('Origin');
   return new Response(null, {
     status: 204,
     headers: {
       Allow: 'POST, OPTIONS',
-      'Access-Control-Allow-Origin': url.origin,
+      ...(requestOrigin
+        ? { 'Access-Control-Allow-Origin': requestOrigin }
+        : {}),
       'Access-Control-Allow-Headers':
         'Authorization, Content-Type, MCP-Protocol-Version',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      Vary: 'Origin',
     },
   });
 };

@@ -14,8 +14,10 @@ import {
   apiError,
   authenticateApiKey,
   forbidden,
+  requireScope,
   unauthorized,
 } from '$lib/server/utils/api';
+import { flightScope, flightScopeOwnership } from '$lib/api/v1/scopes';
 
 const contentTypes: Record<BackupFormat, string> = {
   json: 'application/json; charset=utf-8',
@@ -49,6 +51,12 @@ export const GET: RequestHandler = async ({ request, url }) => {
       400,
     );
   }
+
+  const denied = requireScope(
+    authentication,
+    flightScope('export', flightScopeOwnership(parsedScope.data, user.id)),
+  );
+  if (denied) return denied;
 
   if (!canExportFlights(authorization, parsedScope.data)) return forbidden();
 

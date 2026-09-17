@@ -14,6 +14,7 @@ import {
 import type { ApiPrincipal } from './principal';
 import { ApiOperationError } from './errors';
 import { requireApiScope } from './access';
+import { flightScope } from '$lib/api/v1/scopes';
 
 const authorize = async (
   principal: ApiPrincipal,
@@ -32,13 +33,7 @@ const authorize = async (
   requireApiScope(principal, write ? 'tracks.write' : 'tracks.read');
   requireApiScope(
     principal,
-    participant
-      ? write
-        ? 'flight.update.own'
-        : 'flight.read.own'
-      : write
-        ? 'flight.update.any'
-        : 'flight.read.any',
+    flightScope(write ? 'update' : 'read', participant ? 'own' : 'any'),
   );
 };
 

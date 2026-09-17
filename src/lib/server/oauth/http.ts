@@ -1,5 +1,7 @@
 import { json } from '@sveltejs/kit';
 
+import { API_SCOPES } from '$lib/api/v1/scopes';
+
 export const oauthError = (error: string, description: string, status = 400) =>
   json(
     { error, error_description: description },
@@ -24,7 +26,8 @@ export const tokenResponse = (tokens: {
     { headers: { 'Cache-Control': 'no-store', Pragma: 'no-cache' } },
   );
 
-export const addOAuthRedirectError = (
+/** Builds the redirect that reports an OAuth failure back to the client. */
+export const oauthRedirectError = (
   redirectUri: string,
   error: string,
   description: string,
@@ -34,5 +37,17 @@ export const addOAuthRedirectError = (
   target.searchParams.set('error', error);
   target.searchParams.set('error_description', description);
   if (state) target.searchParams.set('state', state);
-  return target;
+  return target.href;
 };
+
+/** RFC 9728 protected-resource metadata, shared by /api/v1 and /api/mcp. */
+export const protectedResourceMetadata = (origin: string, path: string) =>
+  json(
+    {
+      resource: `${origin}${path}`,
+      authorization_servers: [origin],
+      bearer_methods_supported: ['header'],
+      scopes_supported: API_SCOPES,
+    },
+    { headers: { 'Cache-Control': 'public, max-age=300' } },
+  );

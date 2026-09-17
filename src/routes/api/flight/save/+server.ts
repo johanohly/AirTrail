@@ -9,8 +9,11 @@ import { getAirportByIata, getAirportByIcao } from '$lib/server/utils/airport';
 import {
   apiError,
   authenticateApiKey,
+  requireScope,
   unauthorized,
 } from '$lib/server/utils/api';
+import { isFlightParticipant } from '$lib/server/authorization/flight';
+import { flightScope } from '$lib/api/v1/scopes';
 import { validateAndSaveFlight } from '$lib/server/utils/flight';
 import { aircraftSchema } from '$lib/zod/aircraft';
 import { airlineSchema } from '$lib/zod/airline';
@@ -162,6 +165,20 @@ export const POST: RequestHandler = async ({ request }) => {
   if (data.passengers[0]?.userId === '<USER_ID>') {
     data.passengers[0].userId = user.id;
   }
+
+  const existingId = parsed.data.id ?? null;
+  const participant =
+    existingId === null
+      ? data.passengers.some((passenger) => passenger.userId === user.id)
+      : await isFlightParticipant(user.id, existingId);
+  const denied = requireScope(
+    authentication,
+    flightScope(
+      existingId === null ? 'create' : 'update',
+      participant ? 'own' : 'any',
+    ),
+  );
+  if (denied) return denied;
 
   const result = await validateAndSaveFlight(authorization, data);
   if (!result.success) {

@@ -159,6 +159,9 @@ paths:
       tags: [Reference data]
       operationId: api-v1-search-airports
       summary: Search airports
+      description: >-
+        Returns a bounded set of best matches and is not paginated; `page.nextCursor`
+        is always null. Narrow the query to reach other results.
       parameters: [{ $ref: '#/components/parameters/SearchQuery' }]
       responses:
         '200': { description: Matching airports., content: { application/json: { schema: { $ref: '#/components/schemas/AirportCollection' } } } }
@@ -176,6 +179,9 @@ paths:
       tags: [Reference data]
       operationId: api-v1-search-airlines
       summary: Search airlines
+      description: >-
+        Returns a bounded set of best matches and is not paginated; `page.nextCursor`
+        is always null. Narrow the query to reach other results.
       parameters: [{ $ref: '#/components/parameters/SearchQuery' }]
       responses:
         '200': { description: Matching airlines., content: { application/json: { schema: { $ref: '#/components/schemas/AirlineCollection' } } } }
@@ -193,6 +199,9 @@ paths:
       tags: [Reference data]
       operationId: api-v1-search-aircraft
       summary: Search aircraft types
+      description: >-
+        Returns a bounded set of best matches and is not paginated; `page.nextCursor`
+        is always null. Narrow the query to reach other results.
       parameters: [{ $ref: '#/components/parameters/SearchQuery' }]
       responses:
         '200': { description: Matching aircraft types., content: { application/json: { schema: { $ref: '#/components/schemas/AircraftCollection' } } } }
@@ -210,6 +219,7 @@ paths:
       tags: [Personal data]
       operationId: api-v1-list-custom-fields
       summary: List active custom-field definitions
+      description: Requires the `custom_fields.read` scope.
       responses:
         '200': { description: Definitions., content: { application/json: { schema: { $ref: '#/components/schemas/CustomFieldsResponse' } } } }
   /api/v1/preferences:
@@ -260,6 +270,7 @@ paths:
         content: { application/json: { schema: { $ref: '#/components/schemas/ShareInput' } } }
       responses:
         '201': { description: Created share., content: { application/json: { schema: { $ref: '#/components/schemas/ShareResponse' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
   /api/v1/shares/{id}:
     parameters: [{ $ref: '#/components/parameters/ReferenceId' }]
     put:
@@ -271,6 +282,7 @@ paths:
         content: { application/json: { schema: { $ref: '#/components/schemas/ShareInput' } } }
       responses:
         '200': { description: Updated share., content: { application/json: { schema: { $ref: '#/components/schemas/ShareResponse' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
         '404': { $ref: '#/components/responses/NotFound' }
     delete:
       tags: [Personal data]
@@ -354,6 +366,7 @@ components:
     Forbidden: { description: Current RBAC authority or credential scope is insufficient., content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
     NotFound: { description: Resource not found or not visible., content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
     ValidationFailed: { description: Request validation failed., content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    Conflict: { description: The request conflicts with an existing resource., content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
   schemas:
     ErrorResponse:
       type: object
@@ -544,7 +557,7 @@ components:
       type: object
       properties: { distanceUnit: { type: string, enum: [km, mi, nm] }, windSpeedUnit: { type: string, enum: [kt, mph, kmh, ms] }, temperatureUnit: { type: string, enum: [c, f] }, pressureUnit: { type: string, enum: [hpa, inhg] }, timeFormat: { type: string, enum: [12h, 24h, auto] }, dateFormat: { type: string, enum: [iso, us, eu, auto] }, weekStartsOn: { type: string, enum: [mon, sun, auto] }, flightTimeDisplay: { type: string, enum: [airport, utc, system] } }
     VisitedCountryInput: { type: object, required: [code, status], properties: { code: { type: string, minLength: 2, maxLength: 2 }, status: { type: string, enum: [lived, visited, layover, wishlist] }, note: { type: [string, 'null'], maxLength: 1000 } } }
-    VisitedCountry: { type: object, required: [id, code, status, note, userId], properties: { id: { type: integer }, code: { type: string }, status: { type: string }, note: { type: [string, 'null'] }, userId: { type: string } } }
+    VisitedCountry: { type: object, required: [id, code, status, note], properties: { id: { type: integer }, code: { type: string }, status: { type: string }, note: { type: [string, 'null'] } } }
     VisitedCountryResponse: { type: object, properties: { data: { $ref: '#/components/schemas/VisitedCountry' } } }
     VisitedCountriesResponse: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/VisitedCountry' } } } }
     ShareInput: { type: object, required: [slug], properties: { slug: { type: string, minLength: 3, maxLength: 80, pattern: '^[a-zA-Z0-9_-]+$' }, expiresAt: { type: [string, 'null'], format: date-time }, showMap: { type: boolean }, showStats: { type: boolean }, showFlightList: { type: boolean }, dateFrom: { type: [string, 'null'] }, dateTo: { type: [string, 'null'] }, showFlightNumbers: { type: boolean }, showAirlines: { type: boolean }, showAircraft: { type: boolean }, showTimes: { type: boolean }, showTracks: { type: boolean }, showDates: { type: boolean }, showSeat: { type: boolean } } }
@@ -552,8 +565,8 @@ components:
       allOf:
         - { $ref: '#/components/schemas/ShareInput' }
         - type: object
-          required: [id, userId, createdAt]
-          properties: { id: { type: integer }, userId: { type: string }, createdAt: { type: string, format: date-time } }
+          required: [id, createdAt]
+          properties: { id: { type: integer }, createdAt: { type: string, format: date-time } }
     ShareResponse: { type: object, properties: { data: { $ref: '#/components/schemas/Share' } } }
     SharesResponse: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Share' } } } }
     RoleInput: { type: object, required: [name, permissions], properties: { name: { type: string, maxLength: 50 }, description: { type: [string, 'null'], maxLength: 200 }, permissions: { type: array, items: { type: string } } } }
@@ -565,6 +578,7 @@ components:
           properties: { id: { type: string }, userCount: { type: integer }, oauthMappingCount: { type: integer }, isDefault: { type: boolean }, createdAt: { type: string, format: date-time }, updatedAt: { type: string, format: date-time } }
     UsersResponse: { type: object, properties: { data: { type: array, items: { allOf: [{ $ref: '#/components/schemas/User' }], properties: { canManage: { type: boolean }, roleId: { type: [string, 'null'] }, roleName: { type: [string, 'null'] }, isOwner: { type: boolean } } } } } }
     RolesResponse: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Role' } } } }
-    CustomFieldsResponse: { type: object, properties: { data: { type: array, items: { type: object, additionalProperties: true } } } }
+    CustomField: { type: object, required: [id, entityType, key, label, fieldType, required, order], properties: { id: { type: integer }, entityType: { type: string, enum: [flight, flight_passenger] }, key: { type: string }, label: { type: string }, description: { type: [string, 'null'] }, fieldType: { type: string, enum: [text, textarea, number, boolean, date, select, multi-select, airport, airline, aircraft] }, required: { type: boolean }, order: { type: integer }, defaultValue: {}, options: {} } }
+    CustomFieldsResponse: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/CustomField' } } } }
     CreatedResponse: { type: object, properties: { data: { type: object, required: [id], properties: { id: { oneOf: [{ type: string }, { type: integer }] } } } } }
     UpdatedResponse: { type: object, properties: { data: { type: object, additionalProperties: true } } }

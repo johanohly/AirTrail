@@ -51,19 +51,27 @@ export const apiV1Error = (
     },
   );
 
-export const apiV1Unauthorized = (scope?: string) =>
-  apiV1Error(
+/*
+ * RFC 9728 clients discover where to authenticate from `resource_metadata`.
+ * /api/mcp already advertised it; /api/v1 did not, so a client that hit the
+ * REST API first had no way to find the protected-resource document that
+ * /.well-known/oauth-protected-resource/api/v1 has been serving all along.
+ */
+export const apiV1Unauthorized = (scope?: string, url?: URL) => {
+  const challenge = ['Bearer'];
+  if (scope) challenge.push(`scope="${scope}"`);
+  if (url)
+    challenge.push(
+      `resource_metadata="${url.origin}/.well-known/oauth-protected-resource/api/v1"`,
+    );
+  return apiV1Error(
     'unauthorized',
     'A valid bearer credential is required',
     401,
     undefined,
-    {
-      'WWW-Authenticate': [
-        'Bearer',
-        ...(scope ? [`scope="${scope}"`] : []),
-      ].join(scope ? ' ' : ''),
-    },
+    { 'WWW-Authenticate': challenge.join(', ') },
   );
+};
 
 export const zodErrorDetails = (error: ZodError) =>
   error.issues.map((issue) => ({

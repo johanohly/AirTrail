@@ -9,8 +9,9 @@
   import type { ApiScope } from '$lib/api/v1/scopes';
 
   const { data }: PageProps = $props();
+  // Pre-select only what the client asked for, not everything the role allows.
   let selectedScopeNames = $state<ApiScope[]>(
-    data.scopes.filter((scope) => scope.readOnly).map((scope) => scope.name),
+    data.scopes.filter((scope) => scope.requested).map((scope) => scope.name),
   );
 </script>
 

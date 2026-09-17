@@ -8,6 +8,7 @@ import type { RequestHandler } from './$types';
 import { db } from '$lib/db';
 import type { User } from '$lib/db/types';
 import { lucia } from '$lib/server/auth';
+import { postLoginTarget } from '$lib/server/oauth/resume';
 import {
   resolveOAuthRole,
   updateOAuthManagedUserRole,
@@ -185,11 +186,5 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
   }
 
   await createSession(lucia, user.id, cookies);
-  const oauthRequest = cookies.get('airtrail_oauth_request');
-  return json({
-    success: true,
-    redirectTo: oauthRequest
-      ? `/oauth/consent?id=${encodeURIComponent(oauthRequest)}`
-      : '/',
-  });
+  return json({ success: true, redirectTo: postLoginTarget(cookies) });
 };

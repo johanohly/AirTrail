@@ -1,4 +1,5 @@
 import { db } from '$lib/db';
+import type { DatabaseConnection } from '$lib/db/types';
 import {
   createFlightPrimitiveWithConnection,
   getFlightPrimitive,
@@ -6,6 +7,7 @@ import {
   updateFlightPrimitiveWithConnection,
 } from '$lib/db/queries';
 import type { CreateFlight } from '$lib/db/types';
+import { flightScope } from '$lib/api/v1/scopes';
 import type { z } from 'zod';
 import type { flightInputSchema } from '$lib/api/v1/schemas';
 import type { ApiPrincipal } from './principal';
@@ -25,8 +27,21 @@ import { requireApiScope } from './access';
 
 type FlightInput = z.infer<typeof flightInputSchema>;
 
+/*
+ * `track` is part of the flight payload and flows through to the flight_track
+ * table, where a null value deletes the existing track. Writing it through a
+ * flight create/update must therefore cost the same scope as writing it through
+ * /flights/{id}/track, or `tracks.write` would be trivially bypassable.
+ */
+const requireTrackScopeWhenWritten = (
+  principal: ApiPrincipal,
+  input: FlightInput,
+) => {
+  if ('track' in input) requireApiScope(principal, 'tracks.write');
+};
+
 const resolveReferences = async (
-  connection: typeof db,
+  connection: DatabaseConnection,
   input: FlightInput,
 ): Promise<CreateFlight> => {
   const [from, to, aircraft, airline] = await Promise.all([
@@ -99,8 +114,9 @@ export const createApiFlight = async (
   );
   requireApiScope(
     principal,
-    includesActor ? 'flight.create.own' : 'flight.create.any',
+    flightScope('create', includesActor ? 'own' : 'any'),
   );
+  requireTrackScopeWhenWritten(principal, input);
   if (!canCreateFlight(principal.authorization, input.passengers))
     throw new ApiOperationError(
       'forbidden',
@@ -108,7 +124,7 @@ export const createApiFlight = async (
       403,
     );
   return db.transaction().execute(async (trx) => {
-    const values = await resolveReferences(trx as typeof db, input);
+    const values = await resolveReferences(trx, input);
     const flightPlan = await prepareEntityCustomFieldPlan(trx, {
       entityType: 'flight',
       entities: [{ entityId: null, values: input.customFields }],
@@ -150,9 +166,10 @@ export const updateApiFlight = async (
     const participant = await isFlightParticipant(principal.user.id, id, trx);
     requireApiScope(
       principal,
-      participant ? 'flight.update.own' : 'flight.update.any',
+      flightScope('update', participant ? 'own' : 'any'),
     );
-    const values = await resolveReferences(trx as typeof db, input);
+    requireTrackScopeWhenWritten(principal, input);
+    const values = await resolveReferences(trx, input);
     const changes = resolveFlightPassengerChanges(
       existing.passengers,
       values.passengers,
@@ -213,7 +230,7 @@ export const deleteApiFlight = async (principal: ApiPrincipal, id: number) => {
   const participant = await isFlightParticipant(principal.user.id, id);
   requireApiScope(
     principal,
-    participant ? 'flight.delete.own' : 'flight.delete.any',
+    flightScope('delete', participant ? 'own' : 'any'),
   );
   const deleted = await db
     .deleteFrom('flight')

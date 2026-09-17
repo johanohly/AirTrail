@@ -14,7 +14,7 @@
     groupAccessItems,
     type AccessRow,
   } from '$lib/authorization/access-presentation';
-  import AccessCheckbox from '$lib/components/access/AccessCheckbox.svelte';
+  import AccessMatrix from '$lib/components/access/AccessMatrix.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
@@ -236,31 +236,19 @@
           <section class="space-y-2">
             <h3 class="text-sm font-semibold">{group.label}</h3>
             <div class="divide-y rounded-md border">
-              {#each group.rows as row (row.key)}
-                <div
-                  class="grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-3 py-2"
-                >
-                  <span class="min-w-0 truncate text-sm">{row.label}</span>
-                  <div
-                    class="inline-flex h-7 shrink-0 gap-3 rounded-md border bg-muted/30 px-1.5"
-                    aria-label={`${row.label} access`}
-                  >
-                    {#each row.actions as action (action.action)}
-                      {@const available = availablePermissions(action)}
-                      <AccessCheckbox
-                        checked={actionChecked(action)}
-                        indeterminate={actionIndeterminate(action)}
-                        inherited={actionInherited(row, action)}
-                        disabled={available.length === 0 ||
-                          actionInherited(row, action)}
-                        label={action.action === 'read' ? 'Read' : 'Write'}
-                        title={actionTitle(row, action)}
-                        onclick={() => toggleAction(row, action)}
-                      />
-                    {/each}
-                  </div>
-                </div>
-              {/each}
+              <AccessMatrix
+                rows={group.rows}
+                cellState={(row, action) => ({
+                  checked: actionChecked(action),
+                  indeterminate: actionIndeterminate(action),
+                  inherited: actionInherited(row, action),
+                  disabled:
+                    availablePermissions(action).length === 0 ||
+                    actionInherited(row, action),
+                  title: actionTitle(row, action),
+                })}
+                onToggle={toggleAction}
+              />
             </div>
           </section>
         {/each}

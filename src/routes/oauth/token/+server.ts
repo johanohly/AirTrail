@@ -5,6 +5,7 @@ import { oauthError, tokenResponse } from '$lib/server/oauth/http';
 import {
   consumeAuthorizationCode,
   issueTokens,
+  oauthScopes,
   rotateRefreshToken,
 } from '$lib/server/oauth/server';
 
@@ -73,5 +74,7 @@ export const POST: RequestHandler = async ({ request }) => {
       'invalid_grant',
       'Authorization code is invalid or expired',
     );
-  return tokenResponse(await issueTokens(row));
+  return tokenResponse(
+    await issueTokens({ ...row, scopes: oauthScopes(row.scopes) }),
+  );
 };

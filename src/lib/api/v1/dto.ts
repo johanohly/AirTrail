@@ -1,3 +1,9 @@
+import type { Selectable } from 'kysely';
+import type {
+  custom_field_definition,
+  public_share,
+  visited_country,
+} from '$lib/db/schema';
 import type {
   Aircraft,
   Airline,
@@ -97,4 +103,51 @@ export const toFlightDto = (
   aircraft: toAircraftDto(flight.aircraft),
   passengers: flight.passengers.map(toPassengerDto),
   track,
+});
+
+/*
+ * Shares, visited countries and custom fields used to be returned with
+ * `selectAll()`, which made every column of those tables part of the public v1
+ * contract -- including `userId` -- and turned any future column addition into a
+ * silent API change. These project explicitly, like every other resource.
+ */
+export const toShareDto = (share: Selectable<public_share>) => ({
+  id: share.id,
+  slug: share.slug,
+  expiresAt: share.expiresAt,
+  createdAt: share.createdAt,
+  showMap: share.showMap,
+  showStats: share.showStats,
+  showFlightList: share.showFlightList,
+  dateFrom: share.dateFrom,
+  dateTo: share.dateTo,
+  showFlightNumbers: share.showFlightNumbers,
+  showAirlines: share.showAirlines,
+  showAircraft: share.showAircraft,
+  showTimes: share.showTimes,
+  showTracks: share.showTracks,
+  showDates: share.showDates,
+  showSeat: share.showSeat,
+});
+
+export const toVisitedCountryDto = (country: Selectable<visited_country>) => ({
+  id: country.id,
+  code: country.code,
+  status: country.status,
+  note: country.note,
+});
+
+export const toCustomFieldDto = (
+  field: Selectable<custom_field_definition>,
+) => ({
+  id: field.id,
+  entityType: field.entityType,
+  key: field.key,
+  label: field.label,
+  description: field.description,
+  fieldType: field.fieldType,
+  required: field.required,
+  order: field.order,
+  defaultValue: field.defaultValue,
+  options: field.options,
 });

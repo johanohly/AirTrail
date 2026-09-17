@@ -7,7 +7,7 @@ import type { FlightTrackSummary } from '$lib/api/v1/dto';
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
 
-const encodeCursor = (flight: Pick<Flight, 'date' | 'id'>) =>
+export const encodeCursor = (flight: Pick<Flight, 'date' | 'id'>) =>
   Buffer.from(JSON.stringify({ date: flight.date, id: flight.id })).toString(
     'base64url',
   );
@@ -101,4 +101,23 @@ export const listFlightsPage = async (
   );
 
   return { flights, tracks, nextCursor };
+};
+
+/** The same track summary shape the list endpoint embeds, for a single flight. */
+export const getFlightTrackSummary = async (
+  flightId: number,
+): Promise<FlightTrackSummary | null> => {
+  const row = await db
+    .selectFrom('flightTrack')
+    .select(['pointCount', 'updatedAt', 'sourceFormat', 'sourceName'])
+    .where('flightId', '=', flightId)
+    .executeTakeFirst();
+  return row
+    ? {
+        pointCount: row.pointCount,
+        updatedAt: row.updatedAt.toISOString(),
+        sourceFormat: row.sourceFormat,
+        sourceName: row.sourceName,
+      }
+    : null;
 };

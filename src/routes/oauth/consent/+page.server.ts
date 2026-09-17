@@ -1,10 +1,16 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/db';
-import { grantableScopes, isApiScope } from '$lib/api/v1/scopes';
-import { addOAuthRedirectError } from '$lib/server/oauth/http';
+import {
+  authorizationAllowsScope,
+  grantableScopes,
+  isApiScope,
+  isGrantableScope,
+  type ApiScope,
+} from '$lib/api/v1/scopes';
+import { oauthRedirectError } from '$lib/server/oauth/http';
+import { OAUTH_REQUEST_COOKIE } from '$lib/server/oauth/resume';
 import { issueAuthorizationCode, oauthScopes } from '$lib/server/oauth/server';
-import { authorizationAllowsScope } from '$lib/server/api/v1/access';
 
 const loadRequest = (id: string) =>
   db
@@ -22,8 +28,7 @@ const loadRequest = (id: string) =>
 
 export const load: PageServerLoad = async ({ url, locals }) => {
   const id = url.searchParams.get('id');
-  if (!locals.user)
-    throw redirect(303, `/login?oauth_request=${encodeURIComponent(id ?? '')}`);
+  if (!locals.user) throw redirect(303, '/login');
   if (!locals.authorization) throw error(401, 'Login is required');
   const request = id ? await loadRequest(id) : null;
   if (!request)
@@ -32,6 +37,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
       'This authorization request has expired. Return to the app and try again.',
     );
   const resource = new URL(request.resource);
+  const grantable = grantableScopes(locals.authorization);
+  const requested = new Set(request.scopes.filter(isApiScope));
   return {
     id: request.id,
     clientName: request.clientName,
@@ -39,87 +46,84 @@ export const load: PageServerLoad = async ({ url, locals }) => {
     authorizationTarget:
       resource.pathname === '/api/mcp' ? 'MCP server' : 'API',
     redirectHost: new URL(request.redirectUri).host,
-    scopes: grantableScopes(locals.authorization),
+    /*
+     * Every scope the user *could* grant is still shown, so they can widen the
+     * grant deliberately, but only the ones the client actually asked for are
+     * pre-selected. Pre-checking everything read-only meant the default action
+     * on an admin account handed over flight.read.any and users.directory.read
+     * to a client that had asked for nothing but profile.read.
+     */
+    scopes: grantable.map((scope) => ({
+      ...scope,
+      requested: requested.has(scope.name),
+    })),
   };
 };
 
 export const actions: Actions = {
   default: async ({ request, locals, cookies }) => {
-    if (!locals.user || !locals.authorization)
-      throw error(401, 'Login is required');
+    const { user, authorization } = locals;
+    if (!user || !authorization) throw error(401, 'Login is required');
+
     const form = await request.formData();
     const id = form.get('id');
     const decision = form.get('decision');
-    const submittedScopeValues = form.getAll('scope');
+    const submitted = form
+      .getAll('scope')
+      .filter((value): value is string => typeof value === 'string');
+
     if (typeof id !== 'string')
       throw error(400, 'Invalid authorization request');
-    const authRequest = await loadRequest(id);
-    if (
-      !authRequest ||
-      (authRequest.userId && authRequest.userId !== locals.user.id)
-    )
+
+    /*
+     * The request id must match the cookie set by /oauth/authorize. Without
+     * this, a request created while logged out (userId null) could be approved
+     * by any signed-in user who learned its id.
+     */
+    if (cookies.get(OAUTH_REQUEST_COOKIE) !== id)
       throw error(400, 'This authorization request has expired');
+
+    const authRequest = await loadRequest(id);
+    if (!authRequest || (authRequest.userId && authRequest.userId !== user.id))
+      throw error(400, 'This authorization request has expired');
+
     await db
       .deleteFrom('oauthAuthorizationRequest')
       .where('id', '=', id)
       .execute();
-    cookies.delete('airtrail_oauth_request', { path: '/' });
-    if (decision !== 'approve')
-      throw redirect(
+    cookies.delete(OAUTH_REQUEST_COOKIE, { path: '/' });
+
+    const deny = (code: string, description: string) =>
+      redirect(
         303,
-        addOAuthRedirectError(
+        oauthRedirectError(
           authRequest.redirectUri,
-          'access_denied',
-          'The user denied access',
+          code,
+          description,
           authRequest.state,
-        ).href,
-      );
-    if (submittedScopeValues.some((scope) => typeof scope !== 'string'))
-      throw redirect(
-        303,
-        addOAuthRedirectError(
-          authRequest.redirectUri,
-          'invalid_scope',
-          'The submitted scopes are invalid',
-          authRequest.state,
-        ).href,
-      );
-    const submittedScopes = submittedScopeValues.filter(
-      (scope): scope is string => typeof scope === 'string',
-    );
-    if (submittedScopes.some((scope) => !isApiScope(scope)))
-      throw redirect(
-        303,
-        addOAuthRedirectError(
-          authRequest.redirectUri,
-          'invalid_scope',
-          'The submitted scopes are invalid',
-          authRequest.state,
-        ).href,
-      );
-    const approvedScopes = oauthScopes(submittedScopes);
-    const unavailable = approvedScopes.find(
-      (scope) =>
-        !authorizationAllowsScope(
-          { authorization: locals.authorization! },
-          scope,
         ),
-    );
-    if (unavailable)
-      throw redirect(
-        303,
-        addOAuthRedirectError(
-          authRequest.redirectUri,
-          'invalid_scope',
-          `The current role cannot grant ${unavailable}`,
-          authRequest.state,
-        ).href,
       );
+
+    if (decision !== 'approve')
+      throw deny('access_denied', 'The user denied access');
+
+    if (!submitted.every(isApiScope))
+      throw deny('invalid_scope', 'The submitted scopes are invalid');
+
+    const approved = oauthScopes(submitted);
+    const rejected = approved.find(
+      (scope: ApiScope) =>
+        !isGrantableScope(scope) ||
+        !authorizationAllowsScope(authorization, scope),
+    );
+    if (rejected)
+      throw deny('invalid_scope', `The current role cannot grant ${rejected}`);
+
     const code = await issueAuthorizationCode({
       clientId: authRequest.clientId,
-      userId: locals.user.id,
+      userId: user.id,
       redirectUri: authRequest.redirectUri,
-      scopes: approvedScopes,
+      scopes: approved,
       resource: authRequest.resource,
       codeChallenge: authRequest.codeChallenge,
     });

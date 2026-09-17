@@ -1,21 +1,15 @@
-import type { RequestHandler } from './$types';
-import { findAirports } from '$lib/server/utils/airport';
-import { toAirportDto } from '$lib/api/v1/dto';
-import { authenticateRestPrincipal } from '$lib/server/api/v1/authenticate';
-import { apiV1Unauthorized } from '$lib/server/api/v1/errors';
-import { requireApiScope } from '$lib/server/api/v1/access';
-import { apiV1Collection, handleApiV1Error } from '$lib/server/api/v1/response';
+import { apiRoute } from '$lib/server/api/v1/route';
+import { apiV1Collection } from '$lib/server/api/v1/response';
+import { searchAirports } from '$lib/server/api/v1/services/reference';
 
-export const GET: RequestHandler = async (event) => {
-  const principal = await authenticateRestPrincipal(event);
-  if (!principal) return apiV1Unauthorized('reference_data.read');
-  try {
-    requireApiScope(principal, 'reference_data.read');
-    const query = event.url.searchParams.get('query')?.trim() ?? '';
-    return apiV1Collection((await findAirports(query)).map(toAirportDto), {
-      nextCursor: null,
-    });
-  } catch (error) {
-    return handleApiV1Error(error);
-  }
-};
+export const GET = apiRoute(
+  'reference_data.read',
+  async ({ principal, event }) =>
+    apiV1Collection(
+      await searchAirports(
+        principal,
+        event.url.searchParams.get('query')?.trim() ?? '',
+      ),
+      { nextCursor: null },
+    ),
+);

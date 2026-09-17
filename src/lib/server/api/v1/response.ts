@@ -22,6 +22,9 @@ export const handleApiV1Error = (error: unknown) => {
   if (error instanceof ApiOperationError) {
     return apiV1Error(error.code, error.message, error.status, error.details);
   }
+  // Unexpected errors are not shown to the caller, so they have to be logged
+  // here or every 500 from the v1 API is undebuggable.
+  console.error('[api/v1] unhandled error', error);
   return apiV1Error(
     'internal_error',
     'The request could not be completed',
