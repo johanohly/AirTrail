@@ -5,13 +5,43 @@ import type { RequestHandler } from './$types';
 
 import { lucia } from '$lib/server/auth';
 import { postLoginTarget } from '$lib/server/oauth/resume';
+import {
+  clientIdentity,
+  RATE_LIMITS,
+  rateLimiter,
+} from '$lib/server/security/rate-limit';
 import { createSession, getUserWithPassword } from '$lib/server/utils/auth';
 import { verifyArgon2 } from '$lib/server/utils/hash';
 import { linkOAuthAccountWithToken } from '$lib/server/utils/oauth-link-token';
 import { signInSchema } from '$lib/zod/auth';
 
-export const POST: RequestHandler = async ({ cookies, request }) => {
+export const POST: RequestHandler = async ({
+  cookies,
+  request,
+  getClientAddress,
+}) => {
   const form = await superValidate(request, zod(signInSchema));
+
+  /*
+   * Throttled before the password is checked, which is the expensive step, and
+   * keyed by address and by address-plus-username so that neither one address
+   * nor one account can be hammered. Reported as an ordinary form failure so
+   * the login page shows it like any other message.
+   */
+  const identity = clientIdentity(getClientAddress);
+  const attempts = [
+    rateLimiter.check(RATE_LIMITS.loginAddress, identity),
+    rateLimiter.check(RATE_LIMITS.loginAccount, form.data.username),
+  ];
+  const blocked = attempts.find((attempt) => !attempt.allowed);
+  if (blocked?.allowed === false) {
+    form.message = {
+      type: 'error',
+      text: `Too many login attempts. Try again in ${blocked.retryAfterSeconds} seconds.`,
+    };
+    return actionResult('failure', { form });
+  }
+
   if (!form.valid) {
     return actionResult('failure', { form });
   }

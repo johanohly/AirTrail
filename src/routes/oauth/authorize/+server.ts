@@ -2,16 +2,36 @@ import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/db';
 import { MCP_DEFAULT_SCOPES } from '$lib/api/v1/scopes';
-import { oauthError } from '$lib/server/oauth/http';
+import { oauthError, oauthRateLimited } from '$lib/server/oauth/http';
+import { OAUTH_REQUEST_COOKIE } from '$lib/server/oauth/resume';
+import {
+  clientIdentity,
+  RATE_LIMITS,
+  rateLimiter,
+} from '$lib/server/security/rate-limit';
 import {
   cleanupExpiredOAuthRecords,
   oauthScopes,
   validateRedirectUri,
 } from '$lib/server/oauth/server';
-import { OAUTH_REQUEST_COOKIE } from '$lib/server/oauth/resume';
 import { generateString } from '$lib/server/utils/random';
 
-export const GET: RequestHandler = async ({ url, locals, cookies }) => {
+export const GET: RequestHandler = async ({
+  url,
+  locals,
+  cookies,
+  getClientAddress,
+}) => {
+  /*
+   * Answered with JSON rather than a redirect: `redirect_uri` has not been
+   * validated yet, and echoing it before that check would be an open redirect.
+   */
+  const limit = rateLimiter.check(
+    RATE_LIMITS.oauthAuthorize,
+    clientIdentity(getClientAddress),
+  );
+  if (!limit.allowed) return oauthRateLimited(limit.retryAfterSeconds);
+
   const clientId = url.searchParams.get('client_id');
   const redirectUri = url.searchParams.get('redirect_uri');
   const responseType = url.searchParams.get('response_type');
