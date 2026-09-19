@@ -95,6 +95,8 @@ export const rateLimiter = createRateLimiter();
 export const RATE_LIMITS = {
   /** Token issuance: refresh and code exchange. */
   oauthToken: { name: 'oauth:token', limit: 30, windowMs: 60_000 },
+  /** Token revocation; a client revokes a handful of tokens at sign-out. */
+  oauthRevoke: { name: 'oauth:revoke', limit: 30, windowMs: 60_000 },
   /** Dynamic client registration; legitimately rare. */
   oauthRegister: { name: 'oauth:register', limit: 10, windowMs: 60_000 },
   /** Authorization requests; a login round trip is several redirects. */

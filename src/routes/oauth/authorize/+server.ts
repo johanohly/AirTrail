@@ -1,7 +1,10 @@
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/db';
-import { MCP_DEFAULT_SCOPES } from '$lib/api/v1/scopes';
+import {
+  PROTECTED_RESOURCES,
+  protectedResourceKey,
+} from '$lib/api/v1/resources';
 import { oauthError, oauthRateLimited } from '$lib/server/oauth/http';
 import { OAUTH_REQUEST_COOKIE } from '$lib/server/oauth/resume';
 import {
@@ -56,17 +59,15 @@ export const GET: RequestHandler = async ({
   }
   if (!(await validateRedirectUri(clientId, redirectUri)))
     return oauthError('invalid_request', 'redirect_uri is not registered');
-  if (
-    resource !== `${url.origin}/api/v1` &&
-    resource !== `${url.origin}/api/mcp`
-  )
+  const resourceKey = protectedResourceKey(url.origin, resource);
+  if (!resourceKey)
     return oauthError(
       'invalid_target',
       'resource must identify this AirTrail API or MCP endpoint',
     );
   const requested =
-    requestedByClient.length === 0 && resource === `${url.origin}/api/mcp`
-      ? [...MCP_DEFAULT_SCOPES]
+    requestedByClient.length === 0
+      ? [...PROTECTED_RESOURCES[resourceKey].defaultScopes]
       : requestedByClient;
   if (!/^[A-Za-z0-9_-]{43}$/.test(codeChallenge))
     return oauthError(

@@ -17,11 +17,8 @@ import {
   parsePage,
 } from '../flight-read';
 import { getFlight } from '$lib/server/utils/flight';
-import {
-  canAccessFlight,
-  isFlightParticipant,
-} from '$lib/server/authorization/flight';
-import { requireApiScope } from '../access';
+import { canAccessFlight } from '$lib/server/authorization/flight';
+import { requireApiScope, requireFlightScope } from '../access';
 import { ApiOperationError } from '../errors';
 import type { ApiPrincipal } from '../principal';
 
@@ -109,11 +106,18 @@ export const exportFlights = async (
   return generateBackup(resolveFlightScope(parsed.data, principal.user.id));
 };
 
+/** The DTO without a scope check, for reads already authorized by a write. */
+export const readFlightDto = async (id: number) => {
+  const flight = await getFlight(id);
+  if (!flight)
+    throw new ApiOperationError('not_found', 'Flight not found', 404);
+  return toFlightDto(flight, await getFlightTrackSummary(id));
+};
+
 export const getFlightById = async (principal: ApiPrincipal, id: number) => {
   const flight = await getFlight(id);
   if (!flight || !(await canAccessFlight(principal.authorization, 'read', id)))
     throw new ApiOperationError('not_found', 'Flight not found', 404);
-  const participant = await isFlightParticipant(principal.user.id, id);
-  requireApiScope(principal, flightScope('read', participant ? 'own' : 'any'));
+  await requireFlightScope(principal, 'read', id);
   return toFlightDto(flight, await getFlightTrackSummary(id));
 };

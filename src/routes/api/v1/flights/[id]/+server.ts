@@ -6,7 +6,10 @@ import {
 } from '$lib/server/api/v1/flight-write';
 import { apiRoute } from '$lib/server/api/v1/route';
 import { apiV1Data } from '$lib/server/api/v1/response';
-import { getFlightById } from '$lib/server/api/v1/services/flights';
+import {
+  getFlightById,
+  readFlightDto,
+} from '$lib/server/api/v1/services/flights';
 
 export const GET = apiRoute('flight.read.own', async ({ principal, event }) =>
   apiV1Data(await getFlightById(principal, parsePositiveId(event.params.id!))),
@@ -18,7 +21,7 @@ export const PUT = apiRoute(
     const id = parsePositiveId(event.params.id!);
     const input = await parseJsonBody(event.request, flightInputSchema);
     await updateApiFlight(principal, id, input);
-    return apiV1Data(await getFlightById(principal, id));
+    return apiV1Data(await readFlightDto(id));
   },
 );
 

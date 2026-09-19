@@ -1,6 +1,7 @@
 import type { RequestEvent, RequestHandler } from '@sveltejs/kit';
 
 import type { ApiScope } from '$lib/api/v1/scopes';
+import { protectedResourceUrl } from '$lib/api/v1/resources';
 import { requireApiScope } from './access';
 import { apiV1Unauthorized } from './errors';
 import { authenticateApiPrincipal, type ApiPrincipal } from './principal';
@@ -32,9 +33,9 @@ export const apiRoute =
   async (event) => {
     const principal = await authenticateApiPrincipal(
       event.request,
-      `${event.url.origin}/api/v1`,
+      protectedResourceUrl(event.url.origin, 'apiV1'),
     );
-    if (!principal) return apiV1Unauthorized(scope, event.url);
+    if (!principal) return apiV1Unauthorized('apiV1', scope, event.url.origin);
     try {
       requireApiScope(principal, scope);
       return await handler({ principal, event: event as Event });

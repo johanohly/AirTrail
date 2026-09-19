@@ -14,6 +14,7 @@
     groupAccessItems,
     type AccessRow,
   } from '$lib/authorization/access-presentation';
+  import { createAccessSelection } from '$lib/authorization/access-selection';
   import AccessMatrix from '$lib/components/access/AccessMatrix.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
@@ -81,33 +82,18 @@
   };
   const permissionIsEffective = (permission: PermissionItem) =>
     permissions.includes(permission.key) || permissionIsImplied(permission);
-  const actionChecked = (action: PermissionRow['actions'][number]) =>
-    availablePermissions(action).length > 0 &&
-    availablePermissions(action).every(permissionIsEffective);
-  const actionIndeterminate = (action: PermissionRow['actions'][number]) =>
-    availablePermissions(action).some(permissionIsEffective) &&
-    !actionChecked(action);
-  const rowAction = (row: PermissionRow, kind: 'read' | 'write') =>
-    row.actions.find((action) => action.action === kind);
-  const rowWriteActive = (row: PermissionRow) => {
-    const write = rowAction(row, 'write');
-    return (
-      write !== undefined &&
-      availablePermissions(write).some(permissionIsEffective)
-    );
-  };
-  const readLockedByWrite = (
-    row: PermissionRow,
-    action: PermissionRow['actions'][number],
-  ) => action.action === 'read' && rowWriteActive(row);
+  const selection = createAccessSelection<PermissionItem>({
+    isEffective: permissionIsEffective,
+    selectable: availablePermissions,
+  });
   const actionInherited = (
     row: PermissionRow,
     action: PermissionRow['actions'][number],
   ) => {
-    const available = availablePermissions(action);
+    const available = selection.actionItems(action);
     return (
       (available.length > 0 && available.every(permissionIsImplied)) ||
-      readLockedByWrite(row, action)
+      selection.readLockedByWrite(row, action)
     );
   };
   const actionTitle = (
@@ -117,9 +103,9 @@
     const details = action.items
       .map((permission) => permission.description)
       .join(' · ');
-    if (readLockedByWrite(row, action))
+    if (selection.readLockedByWrite(row, action))
       return `Included by Write access. ${details}`;
-    const available = availablePermissions(action);
+    const available = selection.actionItems(action);
     return available.length > 0 && available.every(permissionIsImplied)
       ? `Included by All flights. ${details}`
       : details;
@@ -128,12 +114,12 @@
     const result = new Set(keys);
     for (const group of presentedPermissionGroups) {
       for (const row of group.rows) {
-        const write = rowAction(row, 'write');
-        const read = rowAction(row, 'read');
+        const write = selection.rowAction(row, 'write');
+        const read = selection.rowAction(row, 'read');
         if (!write || !read) continue;
         if (!write.items.some((permission) => result.has(permission.key)))
           continue;
-        for (const permission of availablePermissions(read))
+        for (const permission of selection.actionItems(read))
           result.add(permission.key);
       }
     }
@@ -143,8 +129,8 @@
     row: PermissionRow,
     action: PermissionRow['actions'][number],
   ) => {
-    if (readLockedByWrite(row, action)) return;
-    const available = availablePermissions(action);
+    if (selection.readLockedByWrite(row, action)) return;
+    const available = selection.actionItems(action);
     const checked = available.every(permissionIsEffective);
     const changed = new Set(permissions);
     for (const permission of available) {
@@ -239,11 +225,11 @@
               <AccessMatrix
                 rows={group.rows}
                 cellState={(row, action) => ({
-                  checked: actionChecked(action),
-                  indeterminate: actionIndeterminate(action),
+                  checked: selection.actionChecked(action),
+                  indeterminate: selection.actionIndeterminate(action),
                   inherited: actionInherited(row, action),
                   disabled:
-                    availablePermissions(action).length === 0 ||
+                    selection.actionItems(action).length === 0 ||
                     actionInherited(row, action),
                   title: actionTitle(row, action),
                 })}

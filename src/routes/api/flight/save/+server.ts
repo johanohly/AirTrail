@@ -12,9 +12,13 @@ import {
   requireScope,
   unauthorized,
 } from '$lib/server/utils/api';
-import { isFlightParticipant } from '$lib/server/authorization/flight';
+import { flightOwnership } from '$lib/server/authorization/flight';
 import { flightScope } from '$lib/api/v1/scopes';
-import { validateAndSaveFlight } from '$lib/server/utils/flight';
+import {
+  getFlight,
+  passengerRecordsChanged,
+  validateAndSaveFlight,
+} from '$lib/server/utils/flight';
 import { aircraftSchema } from '$lib/zod/aircraft';
 import { airlineSchema } from '$lib/zod/airline';
 import { flightSchema, validateFlightDepartureDate } from '$lib/zod/flight';
@@ -167,18 +171,43 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   const existingId = parsed.data.id ?? null;
-  const participant =
+  const ownership =
     existingId === null
       ? data.passengers.some((passenger) => passenger.userId === user.id)
-      : await isFlightParticipant(user.id, existingId);
+        ? 'own'
+        : 'any'
+      : await flightOwnership(user.id, existingId);
   const denied = requireScope(
     authentication,
-    flightScope(
-      existingId === null ? 'create' : 'update',
-      participant ? 'own' : 'any',
-    ),
+    flightScope(existingId === null ? 'create' : 'update', ownership),
   );
   if (denied) return denied;
+
+  /*
+   * `track` and passengers are part of the flight payload and flow through to
+   * flight_track and flight_passenger, so writing them here must cost the same
+   * scopes as writing them directly -- otherwise those scopes are trivially
+   * bypassable through this legacy endpoint.
+   */
+  if ('track' in parsed.data) {
+    const trackDenied = requireScope(authentication, 'tracks.write');
+    if (trackDenied) return trackDenied;
+  }
+  if (existingId !== null) {
+    const existing = await getFlight(existingId);
+    if (
+      existing &&
+      passengerRecordsChanged(existing.passengers, data.passengers)
+    ) {
+      const passengersDenied = requireScope(
+        authentication,
+        ownership === 'own'
+          ? 'flight.passengers.manage.own'
+          : 'flight.passengers.manage.any',
+      );
+      if (passengersDenied) return passengersDenied;
+    }
+  }
 
   const result = await validateAndSaveFlight(authorization, data);
   if (!result.success) {

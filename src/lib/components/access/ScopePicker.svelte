@@ -12,6 +12,7 @@
     type AccessCategory,
     type AccessRow,
   } from '$lib/authorization/access-presentation';
+  import { createAccessSelection } from '$lib/authorization/access-selection';
 
   type Template = 'readonly' | 'full' | 'custom';
   type ScopeRow = AccessRow<GrantableScope>;
@@ -61,32 +62,21 @@
     selected =
       template === 'readonly' ? [...readonlyNames] : [...availableNames];
   };
+  const selection = createAccessSelection<GrantableScope>({
+    isEffective: (scope) => selectedSet.has(scope.name),
+  });
   const actionNames = (action: ScopeAction) =>
-    action.items.map((scope) => scope.name);
-  const actionSelected = (action: ScopeAction) =>
-    actionNames(action).every(isSelected);
-  const actionIndeterminate = (action: ScopeAction) => {
-    const names = actionNames(action);
-    return names.some(isSelected) && !names.every(isSelected);
-  };
-  const rowAction = (row: ScopeRow, kind: ScopeAction['action']) =>
-    row.actions.find((action) => action.action === kind);
-  const rowWriteSelected = (row: ScopeRow) => {
-    const write = rowAction(row, 'write');
-    return write !== undefined && actionNames(write).some(isSelected);
-  };
-  const readLocked = (row: ScopeRow, action: ScopeAction) =>
-    action.action === 'read' && rowWriteSelected(row);
+    selection.actionItems(action).map((scope) => scope.name);
   const actionTitle = (row: ScopeRow, action: ScopeAction) => {
     const details = action.items
       .map((scope) => `${scope.name}: ${scope.description}`)
       .join(' · ');
-    return readLocked(row, action)
+    return selection.readLockedByWrite(row, action)
       ? `Included by Write access. ${details}`
       : details;
   };
   const toggleAction = (row: ScopeRow, action: ScopeAction) => {
-    if (readLocked(row, action)) return;
+    if (selection.readLockedByWrite(row, action)) return;
     const names = actionNames(action);
     const next = new Set(selected);
     if (names.every(isSelected)) {
@@ -94,7 +84,9 @@
     } else {
       names.forEach((name) => next.add(name));
       const read =
-        action.action === 'write' ? rowAction(row, 'read') : undefined;
+        action.action === 'write'
+          ? selection.rowAction(row, 'read')
+          : undefined;
       if (read) actionNames(read).forEach((name) => next.add(name));
     }
     selected = [...next];
@@ -252,10 +244,10 @@
               rows={group.rows}
               rowClass="border-t border-dashed pl-9"
               cellState={(row, action) => ({
-                checked: actionSelected(action),
-                indeterminate: actionIndeterminate(action),
-                inherited: readLocked(row, action),
-                disabled: readLocked(row, action),
+                checked: selection.actionChecked(action),
+                indeterminate: selection.actionIndeterminate(action),
+                inherited: selection.readLockedByWrite(row, action),
+                disabled: selection.readLockedByWrite(row, action),
                 title: actionTitle(row, action),
               })}
               onToggle={toggleAction}

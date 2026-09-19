@@ -1,13 +1,13 @@
-import { verifyArgon2 } from '$lib/server/utils/hash';
 import type { RequestHandler } from './$types';
-import { db } from '$lib/db';
 import {
+  formValue,
   oauthError,
   oauthRateLimited,
   readForm,
   tokenResponse,
 } from '$lib/server/oauth/http';
 import {
+  authenticateClient,
   consumeAuthorizationCode,
   issueTokens,
   oauthScopes,
@@ -18,11 +18,6 @@ import {
   RATE_LIMITS,
   rateLimiter,
 } from '$lib/server/security/rate-limit';
-
-const formValue = (form: FormData, key: string) => {
-  const value = form.get(key);
-  return typeof value === 'string' ? value : null;
-};
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const limit = rateLimiter.check(
@@ -42,22 +37,12 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       'invalid_request',
       'grant_type, resource, and client_id are required',
     );
-  const client = await db
-    .selectFrom('oauthClient')
-    .selectAll()
-    .where('id', '=', clientId)
-    .executeTakeFirst();
+  const client = await authenticateClient(
+    clientId,
+    formValue(form, 'client_secret'),
+  );
   if (!client)
     return oauthError('invalid_client', 'Client authentication failed', 401);
-  const clientSecret = formValue(form, 'client_secret');
-  if (
-    client.tokenEndpointAuthMethod === 'client_secret_post' &&
-    (!client.clientSecretHash ||
-      !clientSecret ||
-      !(await verifyArgon2(client.clientSecretHash, clientSecret)))
-  ) {
-    return oauthError('invalid_client', 'Client authentication failed', 401);
-  }
   if (grantType === 'refresh_token') {
     const refresh = formValue(form, 'refresh_token');
     if (!refresh)

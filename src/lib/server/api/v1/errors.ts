@@ -1,6 +1,11 @@
 import { json } from '@sveltejs/kit';
 import type { ZodError } from 'zod';
 
+import {
+  protectedResourceMetadataUrl,
+  type ProtectedResourceKey,
+} from '$lib/api/v1/resources';
+
 export const API_V1_ERROR_CODES = [
   'bad_request',
   'conflict',
@@ -57,12 +62,16 @@ export const apiV1Error = (
  * REST API first had no way to find the protected-resource document that
  * /.well-known/oauth-protected-resource/api/v1 has been serving all along.
  */
-export const apiV1Unauthorized = (scope?: string, url?: URL) => {
+export const apiV1Unauthorized = (
+  resource: ProtectedResourceKey,
+  scope?: string,
+  origin?: string,
+) => {
   const challenge = ['Bearer'];
   if (scope) challenge.push(`scope="${scope}"`);
-  if (url)
+  if (origin)
     challenge.push(
-      `resource_metadata="${url.origin}/.well-known/oauth-protected-resource/api/v1"`,
+      `resource_metadata="${protectedResourceMetadataUrl(origin, resource)}"`,
     );
   return apiV1Error(
     'unauthorized',

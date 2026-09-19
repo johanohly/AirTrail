@@ -6,11 +6,9 @@ import { canAccessFlight } from '$lib/server/authorization/flight';
 import {
   apiError,
   authenticateApiKey,
-  requireScope,
+  requireFlightScope,
   unauthorized,
 } from '$lib/server/utils/api';
-import { isFlightParticipant } from '$lib/server/authorization/flight';
-import { flightScope } from '$lib/api/v1/scopes';
 import { getFlight } from '$lib/server/utils/flight';
 
 export const GET: RequestHandler = async ({ request, params }) => {
@@ -18,7 +16,7 @@ export const GET: RequestHandler = async ({ request, params }) => {
   if (!authentication) {
     return unauthorized();
   }
-  const { authorization, user } = authentication;
+  const { authorization } = authentication;
 
   const id = +params.id;
   if (isNaN(id)) {
@@ -33,11 +31,7 @@ export const GET: RequestHandler = async ({ request, params }) => {
     return apiError('Flight not found', 404);
   }
 
-  const participant = await isFlightParticipant(user.id, id);
-  const denied = requireScope(
-    authentication,
-    flightScope('read', participant ? 'own' : 'any'),
-  );
+  const denied = await requireFlightScope(authentication, 'read', id);
   if (denied) return denied;
 
   return json({ success: true, flight });

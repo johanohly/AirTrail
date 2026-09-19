@@ -7,14 +7,10 @@ import {
   flightTrackPayloadSchema,
   type FlightTrackInput,
 } from '$lib/track/schema';
-import {
-  canAccessFlight,
-  isFlightParticipant,
-} from '$lib/server/authorization/flight';
+import { canAccessFlight } from '$lib/server/authorization/flight';
 import type { ApiPrincipal } from './principal';
 import { ApiOperationError } from './errors';
-import { requireApiScope } from './access';
-import { flightScope } from '$lib/api/v1/scopes';
+import { requireApiScope, requireFlightScope } from './access';
 
 const authorize = async (
   principal: ApiPrincipal,
@@ -29,19 +25,16 @@ const authorize = async (
     ))
   )
     throw new ApiOperationError('not_found', 'Flight not found', 404);
-  const participant = await isFlightParticipant(principal.user.id, flightId);
   requireApiScope(principal, write ? 'tracks.write' : 'tracks.read');
-  requireApiScope(
-    principal,
-    flightScope(write ? 'update' : 'read', participant ? 'own' : 'any'),
-  );
+  await requireFlightScope(principal, write ? 'update' : 'read', flightId);
 };
 
-export const getApiFlightTrack = async (
-  principal: ApiPrincipal,
-  flightId: number,
-) => {
-  await authorize(principal, flightId, false);
+/*
+ * The read-back after a write deliberately does not re-check read scopes: the
+ * write was already authorized, and a credential holding `tracks.write` without
+ * `tracks.read` must not get a 403 for an operation that committed.
+ */
+const readTrack = async (flightId: number) => {
   const row = await db
     .selectFrom('flightTrack')
     .selectAll()
@@ -59,6 +52,14 @@ export const getApiFlightTrack = async (
   };
 };
 
+export const getApiFlightTrack = async (
+  principal: ApiPrincipal,
+  flightId: number,
+) => {
+  await authorize(principal, flightId, false);
+  return readTrack(flightId);
+};
+
 export const setApiFlightTrack = async (
   principal: ApiPrincipal,
   flightId: number,
@@ -66,7 +67,7 @@ export const setApiFlightTrack = async (
 ) => {
   await authorize(principal, flightId, true);
   await upsertFlightTrackPrimitiveWithConnection(db, flightId, track);
-  return getApiFlightTrack(principal, flightId);
+  return readTrack(flightId);
 };
 
 export const deleteApiFlightTrack = async (

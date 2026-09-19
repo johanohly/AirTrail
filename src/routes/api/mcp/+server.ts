@@ -3,7 +3,11 @@ import { json } from '@sveltejs/kit';
 import { authenticateApiPrincipal } from '$lib/server/api/v1/principal';
 import { apiV1Unauthorized } from '$lib/server/api/v1/errors';
 import { handleMcpRequest } from '$lib/server/mcp/server';
-import { MCP_DEFAULT_SCOPES } from '$lib/api/v1/scopes';
+import {
+  PROTECTED_RESOURCES,
+  protectedResourceMetadataUrl,
+  protectedResourceUrl,
+} from '$lib/api/v1/resources';
 
 /*
  * There is deliberately no same-origin check here, unlike every other mutating
@@ -24,16 +28,15 @@ import { MCP_DEFAULT_SCOPES } from '$lib/api/v1/scopes';
 const authenticateMcpRequest = async (request: Request, origin: string) => {
   const principal = await authenticateApiPrincipal(
     request,
-    `${origin}/api/mcp`,
+    protectedResourceUrl(origin, 'mcp'),
   );
   if (principal) return principal;
 
-  const response = apiV1Unauthorized(MCP_DEFAULT_SCOPES.join(' '));
-  response.headers.set(
-    'WWW-Authenticate',
-    `Bearer resource_metadata="${origin}/.well-known/oauth-protected-resource/api/mcp" scope="${MCP_DEFAULT_SCOPES.join(' ')}"`,
+  return apiV1Unauthorized(
+    'mcp',
+    PROTECTED_RESOURCES.mcp.defaultScopes.join(' '),
+    origin,
   );
-  return response;
 };
 
 const methodNotAllowed = () =>
@@ -71,13 +74,16 @@ export const GET: RequestHandler = async ({ request, url }) => {
         protocol: 'Model Context Protocol',
         transport: {
           type: 'streamable-http',
-          endpoint: `${url.origin}/api/mcp`,
+          endpoint: protectedResourceUrl(url.origin, 'mcp'),
           stateless: true,
         },
         authentication: {
           methods: ['api_key', 'oauth2_authorization_code_pkce'],
           bearerHeader: 'Authorization: Bearer <credential>',
-          protectedResourceMetadata: `${url.origin}/.well-known/oauth-protected-resource/api/mcp`,
+          protectedResourceMetadata: protectedResourceMetadataUrl(
+            url.origin,
+            'mcp',
+          ),
         },
         apiDiscovery: `${url.origin}/api`,
         documentation:

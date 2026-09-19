@@ -62,9 +62,12 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       'Only authorization code and refresh token grants are supported',
     );
   }
+  // The redirect-uri table is keyed on (client_id, redirect_uri), so a repeated
+  // URI would fail the whole insert.
+  const redirectUris = [...new Set(parsed.data.redirect_uris)];
   const client = await createClient({
     name: parsed.data.client_name,
-    redirectUris: parsed.data.redirect_uris,
+    redirectUris,
     tokenEndpointAuthMethod: parsed.data.token_endpoint_auth_method,
   });
   return json(
@@ -72,7 +75,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       client_id: client.clientId,
       ...(client.clientSecret ? { client_secret: client.clientSecret } : {}),
       client_name: parsed.data.client_name,
-      redirect_uris: parsed.data.redirect_uris,
+      redirect_uris: redirectUris,
       token_endpoint_auth_method: parsed.data.token_endpoint_auth_method,
       grant_types: ['authorization_code', 'refresh_token'],
       response_types: ['code'],

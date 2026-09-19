@@ -1,11 +1,17 @@
 import { json } from '@sveltejs/kit';
 
-import { authorizationAllowsScope, type ApiScope } from '$lib/api/v1/scopes';
+import {
+  authorizationAllowsScope,
+  flightScope,
+  type ApiScope,
+  type FlightScopeAction,
+} from '$lib/api/v1/scopes';
 import {
   authenticateApiPrincipal,
   principalHasScope,
   type ApiPrincipal,
 } from '$lib/server/api/v1/principal';
+import { flightOwnership } from '$lib/server/authorization/flight';
 
 export type ApiKeyAuthentication = ApiPrincipal;
 
@@ -47,4 +53,18 @@ export const requireScope = (
     return forbidden();
   }
   return null;
+};
+
+/**
+ * Resolves the caller's ownership for one flight and requires the matching
+ * `flight.<action>.<own|any>` scope, in the v0 response shape. The v1 services
+ * use the same ownership decision through `requireFlightScope`.
+ */
+export const requireFlightScope = async (
+  authentication: ApiKeyAuthentication,
+  action: FlightScopeAction,
+  flightId: number,
+): Promise<Response | null> => {
+  const ownership = await flightOwnership(authentication.user.id, flightId);
+  return requireScope(authentication, flightScope(action, ownership));
 };

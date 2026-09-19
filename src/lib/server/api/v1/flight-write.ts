@@ -1,11 +1,6 @@
 import { db } from '$lib/db';
 import type { DatabaseConnection } from '$lib/db/types';
-import {
-  createFlightPrimitiveWithConnection,
-  getFlightPrimitive,
-  resolveFlightPassengerChanges,
-  updateFlightPrimitiveWithConnection,
-} from '$lib/db/queries';
+import { getFlightPrimitive } from '$lib/db/queries';
 import type { CreateFlight } from '$lib/db/types';
 import { flightScope } from '$lib/api/v1/scopes';
 import type { z } from 'zod';
@@ -15,15 +10,13 @@ import { ApiOperationError } from './errors';
 import {
   canAccessFlight,
   canCreateFlight,
+  flightOwnership,
 } from '$lib/server/authorization/flight';
-import { isFlightParticipant } from '$lib/server/authorization/flight';
-import { passengerRecordsChanged } from '$lib/server/utils/flight';
 import {
-  prepareEntityCustomFieldPlan,
-  persistEntityCustomFieldPlan,
-  validateEntityCustomFieldPlan,
-} from '$lib/server/utils/custom-fields';
-import { requireApiScope } from './access';
+  persistFlightAggregate,
+  planFlightAggregate,
+} from '$lib/server/utils/flight';
+import { requireApiScope, requireFlightScope } from './access';
 
 type FlightInput = z.infer<typeof flightInputSchema>;
 
@@ -125,29 +118,12 @@ export const createApiFlight = async (
     );
   return db.transaction().execute(async (trx) => {
     const values = await resolveReferences(trx, input);
-    const flightPlan = await prepareEntityCustomFieldPlan(trx, {
-      entityType: 'flight',
-      entities: [{ entityId: null, values: input.customFields }],
+    const plan = await planFlightAggregate(trx, {
+      existing: null,
+      values,
+      customFields: input.customFields,
     });
-    const passengerPlan = await prepareEntityCustomFieldPlan(trx, {
-      entityType: 'flight_passenger',
-      entities: input.passengers.map((passenger) => ({
-        entityId: null,
-        values: passenger.customFields,
-      })),
-    });
-    validateEntityCustomFieldPlan(flightPlan);
-    validateEntityCustomFieldPlan(passengerPlan);
-    const created = await createFlightPrimitiveWithConnection(trx, values);
-    await persistEntityCustomFieldPlan(trx, flightPlan, [
-      String(created.flightId),
-    ]);
-    await persistEntityCustomFieldPlan(
-      trx,
-      passengerPlan,
-      created.passengers.map(({ id }) => String(id)),
-    );
-    return created.flightId;
+    return persistFlightAggregate(trx, { existing: null, values, plan });
   });
 };
 
@@ -163,23 +139,17 @@ export const updateApiFlight = async (
       !(await canAccessFlight(principal.authorization, 'update', id, trx))
     )
       throw new ApiOperationError('not_found', 'Flight not found', 404);
-    const participant = await isFlightParticipant(principal.user.id, id, trx);
-    requireApiScope(
-      principal,
-      flightScope('update', participant ? 'own' : 'any'),
-    );
+    const ownership = await flightOwnership(principal.user.id, id, trx);
+    requireApiScope(principal, flightScope('update', ownership));
     requireTrackScopeWhenWritten(principal, input);
     const values = await resolveReferences(trx, input);
-    const changes = resolveFlightPassengerChanges(
-      existing.passengers,
-      values.passengers,
-    );
-    const passengersChanged = passengerRecordsChanged(
-      existing.passengers,
-      values.passengers,
-    );
+    const plan = await planFlightAggregate(trx, {
+      existing,
+      values,
+      customFields: input.customFields,
+    });
     if (
-      passengersChanged &&
+      plan.passengersChanged &&
       !(await canAccessFlight(
         principal.authorization,
         'passengers.manage',
@@ -188,38 +158,14 @@ export const updateApiFlight = async (
       ))
     )
       throw new ApiOperationError('not_found', 'Flight not found', 404);
-    if (passengersChanged)
+    if (plan.passengersChanged)
       requireApiScope(
         principal,
-        participant
+        ownership === 'own'
           ? 'flight.passengers.manage.own'
           : 'flight.passengers.manage.any',
       );
-    const flightPlan = await prepareEntityCustomFieldPlan(trx, {
-      entityType: 'flight',
-      entities: [{ entityId: String(id), values: input.customFields }],
-    });
-    const passengerPlan = await prepareEntityCustomFieldPlan(trx, {
-      entityType: 'flight_passenger',
-      entities: changes.resolved.map(({ passenger, existing }) => ({
-        entityId: existing ? String(existing.id) : null,
-        values: passenger.customFields,
-      })),
-    });
-    validateEntityCustomFieldPlan(flightPlan);
-    if (passengersChanged) validateEntityCustomFieldPlan(passengerPlan);
-    const persisted = await updateFlightPrimitiveWithConnection(
-      trx,
-      id,
-      values,
-    );
-    await persistEntityCustomFieldPlan(trx, flightPlan, [String(id)]);
-    if (passengersChanged)
-      await persistEntityCustomFieldPlan(
-        trx,
-        passengerPlan,
-        persisted.map(({ id }) => String(id)),
-      );
+    await persistFlightAggregate(trx, { existing, values, plan });
     return id;
   });
 };
@@ -227,11 +173,7 @@ export const updateApiFlight = async (
 export const deleteApiFlight = async (principal: ApiPrincipal, id: number) => {
   if (!(await canAccessFlight(principal.authorization, 'delete', id)))
     throw new ApiOperationError('not_found', 'Flight not found', 404);
-  const participant = await isFlightParticipant(principal.user.id, id);
-  requireApiScope(
-    principal,
-    flightScope('delete', participant ? 'own' : 'any'),
-  );
+  await requireFlightScope(principal, 'delete', id);
   const deleted = await db
     .deleteFrom('flight')
     .where('id', '=', id)

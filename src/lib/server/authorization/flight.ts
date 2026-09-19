@@ -90,6 +90,14 @@ export const isFlightParticipant = async (
       .executeTakeFirst(),
   );
 
+/** The ownership scope a caller holds for one flight, from participation. */
+export const flightOwnership = async (
+  userId: string,
+  flightId: number,
+  connection: Kysely<DB> = db,
+): Promise<FlightOwnershipScope> =>
+  (await isFlightParticipant(userId, flightId, connection)) ? 'own' : 'any';
+
 export const canAccessFlight = async (
   authorization: AuthorizationContext,
   action: FlightAccessAction,

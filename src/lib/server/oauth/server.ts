@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { db } from '$lib/db';
-import { hashArgon2, hashSha256 } from '$lib/server/utils/hash';
+import { hashArgon2, hashSha256, verifyArgon2 } from '$lib/server/utils/hash';
 import { isApiScope, type ApiScope } from '$lib/api/v1/scopes';
 import type { DatabaseConnection } from '$lib/db/types';
 
@@ -45,6 +45,32 @@ export const createClient = async (input: {
       .execute();
   });
   return { clientId: id, clientSecret: secret };
+};
+
+/*
+ * Client authentication at the token and revocation endpoints. A public client
+ * (`token_endpoint_auth_method: 'none'`) holds its `client_id` alone; a
+ * confidential one must also present the secret it was issued.
+ */
+export const authenticateClient = async (
+  clientId: string | null,
+  clientSecret: string | null,
+) => {
+  if (!clientId) return null;
+  const client = await db
+    .selectFrom('oauthClient')
+    .selectAll()
+    .where('id', '=', clientId)
+    .executeTakeFirst();
+  if (!client) return null;
+  if (
+    client.tokenEndpointAuthMethod === 'client_secret_post' &&
+    (!client.clientSecretHash ||
+      !clientSecret ||
+      !(await verifyArgon2(client.clientSecretHash, clientSecret)))
+  )
+    return null;
+  return client;
 };
 
 export const validateRedirectUri = async (
@@ -122,6 +148,59 @@ const revokeGrantTokens = async (trx: DatabaseConnection, grantId: string) => {
     .where('grantId', '=', grantId)
     .where('revokedAt', 'is', null)
     .execute();
+};
+
+/** Revokes every token in a refresh family, access tokens included. */
+const revokeRefreshFamily = async (
+  trx: DatabaseConnection,
+  familyId: string,
+) => {
+  const now = new Date();
+  await trx
+    .updateTable('oauthRefreshToken')
+    .set({ revokedAt: now })
+    .where('familyId', '=', familyId)
+    .where('revokedAt', 'is', null)
+    .execute();
+  await trx
+    .updateTable('oauthAccessToken')
+    .set({ revokedAt: now })
+    .where('refreshFamilyId', '=', familyId)
+    .where('revokedAt', 'is', null)
+    .execute();
+};
+
+/*
+ * RFC 7009: a client may revoke a token it was issued. Revoking an access token
+ * invalidates that token; revoking a refresh token revokes its whole family --
+ * the same unit `rotateRefreshToken` uses on reuse detection. Tokens issued to
+ * another client are left untouched.
+ */
+export const revokeIssuedToken = async (rawToken: string, clientId: string) => {
+  const hash = hashSha256(rawToken);
+  await db.transaction().execute(async (trx) => {
+    const access = await trx
+      .selectFrom('oauthAccessToken')
+      .select('tokenHash')
+      .where('tokenHash', '=', hash)
+      .where('clientId', '=', clientId)
+      .executeTakeFirst();
+    if (access) {
+      await trx
+        .updateTable('oauthAccessToken')
+        .set({ revokedAt: new Date() })
+        .where('tokenHash', '=', hash)
+        .execute();
+      return;
+    }
+    const refresh = await trx
+      .selectFrom('oauthRefreshToken')
+      .select('familyId')
+      .where('tokenHash', '=', hash)
+      .where('clientId', '=', clientId)
+      .executeTakeFirst();
+    if (refresh) await revokeRefreshFamily(trx, refresh.familyId);
+  });
 };
 
 export const consumeAuthorizationCode = async (input: {
@@ -244,16 +323,7 @@ export const rotateRefreshToken = async (
     )
       return null;
     if (token.usedAt) {
-      await trx
-        .updateTable('oauthRefreshToken')
-        .set({ revokedAt: new Date() })
-        .where('familyId', '=', token.familyId)
-        .execute();
-      await trx
-        .updateTable('oauthAccessToken')
-        .set({ revokedAt: new Date() })
-        .where('refreshFamilyId', '=', token.familyId)
-        .execute();
+      await revokeRefreshFamily(trx, token.familyId);
       return null;
     }
     await trx

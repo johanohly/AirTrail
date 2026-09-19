@@ -167,6 +167,13 @@ export const updatePreferences = async (
   input: PreferencesInput,
 ) => {
   requireApiScope(principal, 'preferences.write');
+  // An empty patch compiles to `update "user" set`, which Postgres rejects.
+  if (Object.keys(input).length === 0)
+    throw new ApiOperationError(
+      'bad_request',
+      'At least one preference must be provided',
+      400,
+    );
   await db
     .updateTable('user')
     .set(input)
