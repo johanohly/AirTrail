@@ -32,6 +32,8 @@
  * block cannot change out from under this reasoning silently.
  */
 
+import { mediaType } from '$lib/server/utils/http';
+
 /** Content types a browser can produce from a plain form, per SvelteKit. */
 const FORM_CONTENT_TYPES = new Set([
   'application/x-www-form-urlencoded',
@@ -52,8 +54,6 @@ export const isCrossSiteFormPost = (request: {
 }) => {
   if (CSRF_EXEMPT_PATHS.has(request.pathname)) return false;
   if (!MUTATING_METHODS.has(request.method)) return false;
-  const contentType =
-    request.contentType?.split(';', 1)[0]?.trim().toLowerCase() ?? '';
-  if (!FORM_CONTENT_TYPES.has(contentType)) return false;
+  if (!FORM_CONTENT_TYPES.has(mediaType(request.contentType))) return false;
   return request.origin !== request.expectedOrigin;
 };

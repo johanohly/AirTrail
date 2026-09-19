@@ -1,6 +1,6 @@
-import { parseFlightScopeSearchParams } from '$lib/flight-scope';
 import { serializeBackup, type BackupFormat } from '$lib/server/utils/backup';
 import { ApiOperationError } from '$lib/server/api/v1/errors';
+import { parseFlightScope } from '$lib/server/api/v1/query';
 import { apiRoute } from '$lib/server/api/v1/route';
 import { exportFlights } from '$lib/server/api/v1/services/flights';
 
@@ -12,7 +12,7 @@ const contentTypes: Record<BackupFormat, string> = {
 const parseFormat = (value: string): BackupFormat => {
   if (value === 'json') return 'json';
   if (value === 'yaml' || value === 'yml') return 'yaml';
-  throw new ApiOperationError('bad_request', 'Invalid format', 400);
+  throw new ApiOperationError('bad_request', 'Invalid format');
 };
 
 export const GET = apiRoute(
@@ -21,7 +21,10 @@ export const GET = apiRoute(
     const format = parseFormat(event.url.searchParams.get('format') ?? 'json');
     const backup = await exportFlights(
       principal,
-      parseFlightScopeSearchParams(event.url.searchParams),
+      parseFlightScope(
+        event.url.searchParams.get('scope'),
+        event.url.searchParams.get('userId'),
+      ),
     );
     return new Response(serializeBackup(backup, format), {
       headers: {

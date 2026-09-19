@@ -2,7 +2,11 @@ import { db } from '$lib/db';
 import type { DatabaseConnection } from '$lib/db/types';
 import { getFlightPrimitive } from '$lib/db/queries';
 import type { CreateFlight } from '$lib/db/types';
-import { flightScope } from '$lib/api/v1/scopes';
+import {
+  flightScope,
+  passengersManageScope,
+  type FlightScopeOwnership,
+} from '$lib/api/v1/scopes';
 import type { z } from 'zod';
 import type { flightInputSchema } from '$lib/api/v1/schemas';
 import type { ApiPrincipal } from './principal';
@@ -10,7 +14,6 @@ import { ApiOperationError } from './errors';
 import {
   canAccessFlight,
   canCreateFlight,
-  flightOwnership,
 } from '$lib/server/authorization/flight';
 import {
   persistFlightAggregate,
@@ -33,54 +36,75 @@ const requireTrackScopeWhenWritten = (
   if ('track' in input) requireApiScope(principal, 'tracks.write');
 };
 
+/*
+ * The passenger half of a flight update, keyed on the write plan's
+ * `passengersChanged` so a custom-field-only edit is authorized like any other
+ * passenger change. `ownership` is the caller's already-resolved scope.
+ */
+export const requirePassengerManageScope = async (
+  principal: ApiPrincipal,
+  trx: DatabaseConnection,
+  flightId: number,
+  {
+    ownership,
+    passengersChanged,
+  }: { ownership: FlightScopeOwnership; passengersChanged: boolean },
+) => {
+  if (!passengersChanged) return;
+  if (
+    !(await canAccessFlight(
+      principal.authorization,
+      'passengers.manage',
+      flightId,
+      trx,
+    ))
+  )
+    throw new ApiOperationError('not_found', 'Flight not found');
+  requireApiScope(principal, passengersManageScope(ownership));
+};
+
 const resolveReferences = async (
   connection: DatabaseConnection,
   input: FlightInput,
 ): Promise<CreateFlight> => {
-  const [from, to, aircraft, airline] = await Promise.all([
-    connection
-      .selectFrom('airport')
-      .selectAll()
-      .where('id', '=', input.fromId)
-      .executeTakeFirst(),
-    connection
-      .selectFrom('airport')
-      .selectAll()
-      .where('id', '=', input.toId)
-      .executeTakeFirst(),
-    input.aircraftId
-      ? connection
-          .selectFrom('aircraft')
-          .selectAll()
-          .where('id', '=', input.aircraftId)
-          .executeTakeFirst()
-      : null,
-    input.airlineId
-      ? connection
-          .selectFrom('airline')
-          .selectAll()
-          .where('id', '=', input.airlineId)
-          .executeTakeFirst()
-      : null,
-  ]);
+  /*
+   * Sequential on purpose: these run inside the caller's Kysely transaction,
+   * and concurrent queries on one transaction connection are not a supported
+   * guarantee even though node-postgres currently queues them.
+   */
+  const from = await connection
+    .selectFrom('airport')
+    .selectAll()
+    .where('id', '=', input.fromId)
+    .executeTakeFirst();
+  const to = await connection
+    .selectFrom('airport')
+    .selectAll()
+    .where('id', '=', input.toId)
+    .executeTakeFirst();
+  const aircraft = input.aircraftId
+    ? await connection
+        .selectFrom('aircraft')
+        .selectAll()
+        .where('id', '=', input.aircraftId)
+        .executeTakeFirst()
+    : null;
+  const airline = input.airlineId
+    ? await connection
+        .selectFrom('airline')
+        .selectAll()
+        .where('id', '=', input.airlineId)
+        .executeTakeFirst()
+    : null;
   if (!from || !to)
     throw new ApiOperationError(
       'validation_failed',
       'Departure and arrival airports must exist',
-      422,
     );
   if (input.aircraftId && !aircraft)
-    throw new ApiOperationError(
-      'validation_failed',
-      'Aircraft does not exist',
-      422,
-    );
+    throw new ApiOperationError('validation_failed', 'Aircraft does not exist');
   if (input.airlineId && !airline)
-    throw new ApiOperationError(
-      'validation_failed',
-      'Airline does not exist',
-      422,
-    );
+    throw new ApiOperationError('validation_failed', 'Airline does not exist');
   const {
     fromId: _fromId,
     toId: _toId,
@@ -114,7 +138,6 @@ export const createApiFlight = async (
     throw new ApiOperationError(
       'forbidden',
       'The current role cannot create this flight',
-      403,
     );
   return db.transaction().execute(async (trx) => {
     const values = await resolveReferences(trx, input);
@@ -134,13 +157,8 @@ export const updateApiFlight = async (
 ) => {
   return db.transaction().execute(async (trx) => {
     const existing = await getFlightPrimitive(trx, id);
-    if (
-      !existing ||
-      !(await canAccessFlight(principal.authorization, 'update', id, trx))
-    )
-      throw new ApiOperationError('not_found', 'Flight not found', 404);
-    const ownership = await flightOwnership(principal.user.id, id, trx);
-    requireApiScope(principal, flightScope('update', ownership));
+    if (!existing) throw new ApiOperationError('not_found', 'Flight not found');
+    const ownership = await requireFlightScope(principal, 'update', id, trx);
     requireTrackScopeWhenWritten(principal, input);
     const values = await resolveReferences(trx, input);
     const plan = await planFlightAggregate(trx, {
@@ -148,36 +166,21 @@ export const updateApiFlight = async (
       values,
       customFields: input.customFields,
     });
-    if (
-      plan.passengersChanged &&
-      !(await canAccessFlight(
-        principal.authorization,
-        'passengers.manage',
-        id,
-        trx,
-      ))
-    )
-      throw new ApiOperationError('not_found', 'Flight not found', 404);
-    if (plan.passengersChanged)
-      requireApiScope(
-        principal,
-        ownership === 'own'
-          ? 'flight.passengers.manage.own'
-          : 'flight.passengers.manage.any',
-      );
+    await requirePassengerManageScope(principal, trx, id, {
+      ownership,
+      passengersChanged: plan.passengersChanged,
+    });
     await persistFlightAggregate(trx, { existing, values, plan });
     return id;
   });
 };
 
 export const deleteApiFlight = async (principal: ApiPrincipal, id: number) => {
-  if (!(await canAccessFlight(principal.authorization, 'delete', id)))
-    throw new ApiOperationError('not_found', 'Flight not found', 404);
   await requireFlightScope(principal, 'delete', id);
   const deleted = await db
     .deleteFrom('flight')
     .where('id', '=', id)
     .executeTakeFirst();
   if (deleted.numDeletedRows !== 1n)
-    throw new ApiOperationError('not_found', 'Flight not found', 404);
+    throw new ApiOperationError('not_found', 'Flight not found');
 };

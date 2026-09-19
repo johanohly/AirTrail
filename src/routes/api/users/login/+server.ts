@@ -33,7 +33,7 @@ export const POST: RequestHandler = async ({
     rateLimiter.check(RATE_LIMITS.loginAddress, identity),
     rateLimiter.check(
       RATE_LIMITS.loginAccount,
-      form.data.username.toLowerCase(),
+      `${identity}:${form.data.username.toLowerCase()}`,
     ),
   ];
   const blocked = attempts.find((attempt) => !attempt.allowed);

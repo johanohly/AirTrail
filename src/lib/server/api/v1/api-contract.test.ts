@@ -20,7 +20,8 @@ import { flightInputSchema } from '$lib/api/v1/schemas';
 import { pkceChallenge } from '$lib/server/oauth/server';
 import { effectiveApiPermissions } from '$lib/server/api/v1/access';
 import { principalHasScope, type ApiPrincipal } from './principal';
-import { encodeCursor, parsePage } from './flight-read';
+import { encodeCursor } from './flight-read';
+import { parsePage } from './query';
 import {
   accessPresentation,
   accessSummary,
@@ -38,6 +39,51 @@ const routeFiles = (dir: string): string[] =>
     if (statSync(full).isDirectory()) return routeFiles(full);
     return entry === '+server.ts' ? [full] : [];
   });
+
+const sourceFiles = (dir: string): string[] =>
+  readdirSync(dir).flatMap((entry) => {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) return sourceFiles(full);
+    return entry.endsWith('.ts') && !entry.endsWith('.test.ts') ? [full] : [];
+  });
+
+/*
+ * Every scope the implementation actually checks, read back out of the source.
+ * Literal scope names are picked up directly; `flightScope` /
+ * `requireFlightScope` calls build their name from an action, and
+ * `flight.<action>.${ownership}` template literals and `passengersManageScope`
+ * spell an ownership, so all the variants each can produce are added. The test
+ * file itself is excluded so its own assertions cannot be mistaken for code.
+ */
+const implementedScopes = (): Set<string> => {
+  const source = [
+    ...routeFiles(join(process.cwd(), 'src/routes/api/v1')),
+    ...sourceFiles(join(process.cwd(), 'src/lib/server/api/v1')),
+    ...sourceFiles(join(process.cwd(), 'src/lib/server/mcp')),
+  ]
+    .map((file) => readFileSync(file, 'utf8'))
+    .join('\n');
+
+  const found = new Set<string>();
+  const addOwnershipVariants = (action: string) => {
+    found.add(`flight.${action}.own`);
+    found.add(`flight.${action}.any`);
+  };
+
+  for (const match of source.matchAll(/'([a-z][a-z_.]*)'/g))
+    if (isApiScope(match[1]!)) found.add(match[1]!);
+  for (const match of source.matchAll(
+    /\b(?:flightScope|requireFlightScope)\(\s*[^)]*?'(\w+)'/g,
+  ))
+    addOwnershipVariants(match[1]!);
+  for (const match of source.matchAll(/flight\.(\w+)\.\$\{/g))
+    addOwnershipVariants(match[1]!);
+  if (source.includes('passengersManageScope(')) {
+    found.add('flight.passengers.manage.own');
+    found.add('flight.passengers.manage.any');
+  }
+  return found;
+};
 
 const principal = (scopes: ApiScope[]): ApiPrincipal =>
   ({
@@ -125,6 +171,20 @@ describe('scope catalog', () => {
     }
   });
 
+  /*
+   * The load-bearing half: the unimplemented list is now derived from what the
+   * routes and services actually check. A scope offered but never checked (the
+   * way `flight.share.own` was) is counted as implemented, so it must be listed
+   * here; a listed scope that gets implemented must be removed. Drift either
+   * way fails.
+   */
+  it('lists exactly the catalog scopes nothing implements', () => {
+    const implemented = implementedScopes();
+    for (const scope of implemented) expect(API_SCOPES).toContain(scope);
+    const expected = API_SCOPES.filter((scope) => !implemented.has(scope));
+    expect([...UNIMPLEMENTED_SCOPES].sort()).toEqual([...expected].sort());
+  });
+
   it('keeps the read-only and MCP default sets grantable', () => {
     for (const scope of [...OAUTH_READONLY_SCOPES, ...MCP_DEFAULT_SCOPES]) {
       expect(isGrantableScope(scope)).toBe(true);
@@ -175,12 +235,15 @@ describe('flight scope resolution', () => {
 describe('pagination', () => {
   it('round-trips a cursor', () => {
     const cursor = encodeCursor({ date: '2026-01-01', id: 42 });
-    expect(parsePage('10', cursor)).toEqual({ limit: 10, cursor });
+    expect(parsePage('10', cursor)).toEqual({
+      limit: 10,
+      cursor: { date: '2026-01-01', id: 42 },
+    });
   });
 
   it('rejects untrusted cursors', () => {
     for (const bad of ['not-base64!!', btoa('null'), btoa('{}'), btoa('[]')]) {
-      expect(parsePage('10', bad)).toBeNull();
+      expect(() => parsePage('10', bad)).toThrow();
     }
   });
 
@@ -188,17 +251,17 @@ describe('pagination', () => {
     expect(parsePage(null, null)).toEqual({ limit: 50, cursor: null });
     expect(parsePage('1', null)).toEqual({ limit: 1, cursor: null });
     expect(parsePage('100', null)).toEqual({ limit: 100, cursor: null });
-    expect(parsePage('0', null)).toBeNull();
-    expect(parsePage('101', null)).toBeNull();
-    expect(parsePage('abc', null)).toBeNull();
+    for (const bad of ['0', '101', 'abc'])
+      expect(() => parsePage(bad, null)).toThrow();
   });
 });
 
 describe('access presentation', () => {
   /*
-   * accessPresentation falls back to rendering the raw key as its own label,
-   * defaulted to write. Nothing shipped may hit that path, or the consent screen
-   * shows a user `custom_fields.read` and calls it a write permission.
+   * accessPresentation falls back to rendering the raw key as its own group and
+   * label, defaulted to write. Nothing shipped may hit that path, or the consent
+   * screen shows a user `custom_fields.read` and calls it a write permission.
+   * A fallback is recognisable because its group is the raw key.
    */
   it('has a real label for every scope and permission', () => {
     const keys = [
@@ -206,7 +269,7 @@ describe('access presentation', () => {
       ...PERMISSION_CATALOG.map((permission) => permission.key),
     ];
     const unlabelled = keys.filter(
-      (key) => accessPresentation(key).fallback === true,
+      (key) => accessPresentation(key).group === key,
     );
     expect(unlabelled).toEqual([]);
   });

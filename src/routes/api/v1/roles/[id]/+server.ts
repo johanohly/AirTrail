@@ -1,5 +1,6 @@
 import { roleInputSchema } from '$lib/zod/role';
 import { parseJsonBody } from '$lib/server/api/v1/body';
+import { ApiOperationError } from '$lib/server/api/v1/errors';
 import { apiRoute } from '$lib/server/api/v1/route';
 import { apiV1Data } from '$lib/server/api/v1/response';
 import { deleteRole, updateRole } from '$lib/server/authorization/roles';
@@ -11,6 +12,7 @@ export const PUT = apiRoute('roles.manage', async ({ principal, event }) => {
 });
 
 export const DELETE = apiRoute('roles.manage', async ({ principal, event }) => {
-  await deleteRole(event.params.id!, principal.authorization);
+  const deleted = await deleteRole(event.params.id!, principal.authorization);
+  if (!deleted) throw new ApiOperationError('not_found', 'Role not found');
   return new Response(null, { status: 204 });
 });

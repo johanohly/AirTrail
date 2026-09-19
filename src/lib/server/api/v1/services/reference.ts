@@ -7,12 +7,6 @@ import { requireApiScope } from '../access';
 import { ApiOperationError } from '../errors';
 import type { ApiPrincipal } from '../principal';
 
-const REFERENCE_TABLES = {
-  airport: { table: 'airport', label: 'Airport', dto: toAirportDto },
-  airline: { table: 'airline', label: 'Airline', dto: toAirlineDto },
-  aircraft: { table: 'aircraft', label: 'Aircraft', dto: toAircraftDto },
-} as const;
-
 export const searchAirports = async (
   principal: ApiPrincipal,
   query: string,
@@ -37,25 +31,59 @@ export const searchAircraft = async (
   return ((await findAircraft(query)) ?? []).map(toAircraftDto);
 };
 
-const getReferenceRow = async (
+/*
+ * Each getter owns its table query so the row type and the DTO stay correlated
+ * (`dto(row)`, not `dto(row as never)`); only the not-found handling is shared.
+ */
+const getReferenceRow = async <T>(
   principal: ApiPrincipal,
-  kind: keyof typeof REFERENCE_TABLES,
-  id: number,
-) => {
+  load: () => Promise<T | null>,
+  label: string,
+): Promise<T> => {
   requireApiScope(principal, 'reference_data.read');
-  const { table, label, dto } = REFERENCE_TABLES[kind];
-  const row = await db
-    .selectFrom(table)
-    .selectAll()
-    .where('id', '=', id)
-    .executeTakeFirst();
-  if (!row) throw new ApiOperationError('not_found', `${label} not found`, 404);
-  return dto(row as never);
+  const row = await load();
+  if (!row) throw new ApiOperationError('not_found', `${label} not found`);
+  return row;
 };
 
 export const getAirport = (principal: ApiPrincipal, id: number) =>
-  getReferenceRow(principal, 'airport', id);
+  getReferenceRow(
+    principal,
+    async () => {
+      const row = await db
+        .selectFrom('airport')
+        .selectAll()
+        .where('id', '=', id)
+        .executeTakeFirst();
+      return row ? toAirportDto(row) : null;
+    },
+    'Airport',
+  );
+
 export const getAirline = (principal: ApiPrincipal, id: number) =>
-  getReferenceRow(principal, 'airline', id);
+  getReferenceRow(
+    principal,
+    async () => {
+      const row = await db
+        .selectFrom('airline')
+        .selectAll()
+        .where('id', '=', id)
+        .executeTakeFirst();
+      return row ? toAirlineDto(row) : null;
+    },
+    'Airline',
+  );
+
 export const getAircraft = (principal: ApiPrincipal, id: number) =>
-  getReferenceRow(principal, 'aircraft', id);
+  getReferenceRow(
+    principal,
+    async () => {
+      const row = await db
+        .selectFrom('aircraft')
+        .selectAll()
+        .where('id', '=', id)
+        .executeTakeFirst();
+      return row ? toAircraftDto(row) : null;
+    },
+    'Aircraft',
+  );

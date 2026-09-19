@@ -1,5 +1,6 @@
 import { shareInputSchema } from '$lib/api/v1/schemas';
-import { parseJsonBody, parsePositiveId } from '$lib/server/api/v1/body';
+import { parseJsonBody } from '$lib/server/api/v1/body';
+import { parsePositiveId } from '$lib/server/api/v1/params';
 import { apiRoute } from '$lib/server/api/v1/route';
 import { apiV1Data } from '$lib/server/api/v1/response';
 import { deleteShare, updateShare } from '$lib/server/api/v1/services/personal';

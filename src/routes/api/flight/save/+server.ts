@@ -13,12 +13,10 @@ import {
   unauthorized,
 } from '$lib/server/utils/api';
 import { flightOwnership } from '$lib/server/authorization/flight';
-import { flightScope } from '$lib/api/v1/scopes';
-import {
-  getFlight,
-  passengerRecordsChanged,
-  validateAndSaveFlight,
-} from '$lib/server/utils/flight';
+import { AuthorizationError } from '$lib/server/authorization/authorize';
+import { flightScope, passengersManageScope } from '$lib/api/v1/scopes';
+import { principalHasScope } from '$lib/server/api/v1/principal';
+import { validateAndSaveFlight } from '$lib/server/utils/flight';
 import { aircraftSchema } from '$lib/zod/aircraft';
 import { airlineSchema } from '$lib/zod/airline';
 import { flightSchema, validateFlightDepartureDate } from '$lib/zod/flight';
@@ -184,32 +182,33 @@ export const POST: RequestHandler = async ({ request }) => {
   if (denied) return denied;
 
   /*
-   * `track` and passengers are part of the flight payload and flow through to
-   * flight_track and flight_passenger, so writing them here must cost the same
-   * scopes as writing them directly -- otherwise those scopes are trivially
-   * bypassable through this legacy endpoint.
+   * `track` is part of the flight payload and flows through to flight_track, so
+   * writing it here must cost the same scope as writing it directly -- otherwise
+   * `tracks.write` is trivially bypassable through this legacy endpoint.
    */
   if ('track' in parsed.data) {
     const trackDenied = requireScope(authentication, 'tracks.write');
     if (trackDenied) return trackDenied;
   }
-  if (existingId !== null) {
-    const existing = await getFlight(existingId);
-    if (
-      existing &&
-      passengerRecordsChanged(existing.passengers, data.passengers)
-    ) {
-      const passengersDenied = requireScope(
-        authentication,
-        ownership === 'own'
-          ? 'flight.passengers.manage.own'
-          : 'flight.passengers.manage.any',
-      );
-      if (passengersDenied) return passengersDenied;
-    }
-  }
 
-  const result = await validateAndSaveFlight(authorization, data);
+  /*
+   * Passenger scope is enforced inside `validateAndSaveFlight`, against the same
+   * `plan.passengersChanged` the write itself uses. Deciding it here from
+   * `passengerRecordsChanged` ignored passenger custom fields, so a change that
+   * only touched those skipped the scope check while still being persisted.
+   */
+  const result = await validateAndSaveFlight(
+    authorization,
+    data,
+    (scopeOwnership) => {
+      const scope = passengersManageScope(scopeOwnership);
+      if (!principalHasScope(authentication, scope))
+        throw new AuthorizationError(
+          `This credential requires the ${scope} scope`,
+          403,
+        );
+    },
+  );
   if (!result.success) {
     // @ts-expect-error - this should be valid
     return apiError(result.message, result.status || 500);

@@ -5,6 +5,7 @@ import {
   protectedResourceUrl,
   type ProtectedResourceKey,
 } from '$lib/api/v1/resources';
+import { mediaType } from '$lib/server/utils/http';
 
 export const oauthError = (
   error: string,
@@ -53,12 +54,7 @@ export const formValue = (form: FormData, key: string) => {
 };
 
 export const readForm = async (request: Request) => {
-  const contentType =
-    request.headers
-      .get('content-type')
-      ?.split(';', 1)[0]
-      ?.trim()
-      .toLowerCase() ?? '';
+  const contentType = mediaType(request.headers.get('content-type'));
   if (
     contentType !== 'application/x-www-form-urlencoded' &&
     contentType !== 'multipart/form-data'

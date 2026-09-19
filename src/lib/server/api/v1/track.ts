@@ -7,9 +7,7 @@ import {
   flightTrackPayloadSchema,
   type FlightTrackInput,
 } from '$lib/track/schema';
-import { canAccessFlight } from '$lib/server/authorization/flight';
 import type { ApiPrincipal } from './principal';
-import { ApiOperationError } from './errors';
 import { requireApiScope, requireFlightScope } from './access';
 
 const authorize = async (
@@ -17,16 +15,8 @@ const authorize = async (
   flightId: number,
   write: boolean,
 ) => {
-  if (
-    !(await canAccessFlight(
-      principal.authorization,
-      write ? 'update' : 'read',
-      flightId,
-    ))
-  )
-    throw new ApiOperationError('not_found', 'Flight not found', 404);
-  requireApiScope(principal, write ? 'tracks.write' : 'tracks.read');
   await requireFlightScope(principal, write ? 'update' : 'read', flightId);
+  requireApiScope(principal, write ? 'tracks.write' : 'tracks.read');
 };
 
 /*

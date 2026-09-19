@@ -26,6 +26,7 @@ import type { AuthorizationContext } from '$lib/server/authorization/context';
 import {
   canAccessFlight,
   canCreateFlight,
+  flightOwnership,
 } from '$lib/server/authorization/flight';
 import {
   CustomFieldValidationError,
@@ -273,9 +274,20 @@ export const persistFlightAggregate = async (
   return created.flightId;
 };
 
+/*
+ * Called after the write plan is known to be changing passengers, with the
+ * caller's resolved ownership. Scoped API callers use it to enforce the
+ * credential's passenger scope against `plan.passengersChanged` -- the same
+ * decision the v1 write path makes -- instead of a cheaper predicate that
+ * ignored passenger custom fields. Session callers pass nothing: their
+ * authorization is already the role check made below.
+ */
+export type PassengerChangeGuard = (ownership: 'own' | 'any') => void;
+
 export const validateAndSaveFlight = async (
   authorization: AuthorizationContext,
   data: z.infer<typeof flightSchema>,
+  guardPassengerScope?: PassengerChangeGuard,
 ): Promise<ErrorActionResult & { id?: number }> => {
   const pathError = (path: string, message: string): ErrorActionResult => {
     return { success: false, type: 'path', path, message };
@@ -318,16 +330,20 @@ export const validateAndSaveFlight = async (
             values,
             customFields,
           });
-          if (
-            plan.passengersChanged &&
-            !(await canAccessFlight(
-              authorization,
-              'passengers.manage',
-              updateId,
-              trx,
-            ))
-          ) {
-            throw new AuthorizationError('Flight not found', 404);
+          if (plan.passengersChanged) {
+            if (
+              !(await canAccessFlight(
+                authorization,
+                'passengers.manage',
+                updateId,
+                trx,
+              ))
+            ) {
+              throw new AuthorizationError('Flight not found', 404);
+            }
+            guardPassengerScope?.(
+              await flightOwnership(authorization.userId, updateId, trx),
+            );
           }
           await persistFlightAggregate(trx, { existing: flight, values, plan });
         });

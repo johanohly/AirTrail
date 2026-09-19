@@ -20,7 +20,6 @@ export const API_SCOPES = [
   'flight.export.any',
   'flight.passengers.manage.own',
   'flight.passengers.manage.any',
-  'flight.share.own',
   'users.directory.read',
   'users.create',
   'users.update',
@@ -91,7 +90,6 @@ export const API_SCOPE_DESCRIPTIONS: Record<ApiScope, string> = {
   'flight.export.any': "Export any user's flights",
   'flight.passengers.manage.own': 'Manage passengers on own flights',
   'flight.passengers.manage.any': 'Manage passengers on any flight',
-  'flight.share.own': 'Manage the user’s public flight shares',
   'users.directory.read': 'Read the user directory',
   'users.create': 'Create user accounts',
   'users.update': 'Update manageable user accounts',
@@ -104,9 +102,10 @@ export const API_SCOPE_DESCRIPTIONS: Record<ApiScope, string> = {
   'custom_fields.manage': 'Manage custom-field definitions',
   'roles.manage': 'Manage access roles',
   'reference_data.read': 'Read airport, airline, and aircraft data',
-  'stats.read': 'Read flight statistics',
-  'tracks.read': 'Read flight tracks',
-  'tracks.write': 'Write and delete flight tracks',
+  'stats.read': 'Read flight statistics (also needs flight read access)',
+  'tracks.read': 'Read flight tracks (also needs flight read access)',
+  'tracks.write':
+    'Write and delete flight tracks (also needs flight update access)',
   'visited_countries.read': 'Read visited countries',
   'visited_countries.write': 'Change visited countries',
   'shares.read': 'Read public-share settings',
@@ -136,7 +135,6 @@ const scopePermissions: Record<ApiScope, Permission | null> = {
   'flight.export.any': 'flight.export.any',
   'flight.passengers.manage.own': 'flight.passengers.manage.own',
   'flight.passengers.manage.any': 'flight.passengers.manage.any',
-  'flight.share.own': 'flight.share.own',
   'users.directory.read': 'users.directory.read',
   'users.create': 'users.create',
   'users.update': 'users.update',
@@ -170,7 +168,9 @@ export const authorizationAllowsScope = (
  * Scopes that exist in the catalog and the OpenAPI document but that no route or
  * MCP tool consumes yet. They are never offered at consent or at API-key
  * creation, so nobody is asked to approve a capability that does nothing.
- * `api-contract.test.ts` asserts this list stays accurate in both directions.
+ * `api-contract.test.ts` derives the scopes the implementation actually checks
+ * from the source and asserts this list is exactly the complement, so a scope
+ * that is offered but unused (or listed but implemented) fails the build.
  */
 export const UNIMPLEMENTED_SCOPES = [
   'users.create',
@@ -207,6 +207,17 @@ export const flightScope = <
   action: Action,
   ownership: Ownership,
 ): `flight.${Action}.${Ownership}` => `flight.${action}.${ownership}`;
+
+/*
+ * The passenger-management scope for an ownership. Kept beside `flightScope`
+ * (which covers read/create/update/delete/export) so a caller checks
+ * `plan.passengersChanged` against a single spelling rather than re-listing the
+ * own/any variants.
+ */
+export const passengersManageScope = (ownership: FlightScopeOwnership) =>
+  ownership === 'own'
+    ? ('flight.passengers.manage.own' as const)
+    : ('flight.passengers.manage.any' as const);
 
 /*
  * A flight-scope query is "own" only when it resolves to the caller's own

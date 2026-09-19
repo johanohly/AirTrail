@@ -1,19 +1,5 @@
 import { OAUTH_READONLY_SCOPES } from '$lib/api/v1/scopes';
 
-export type AccessPresentation = {
-  group: string;
-  label: string;
-  action: AccessAction;
-  /*
-   * True when nothing in the table below matched and the raw key is being shown
-   * as its own label. Nothing renders this differently -- it exists so
-   * `api-contract.test.ts` can assert that no shipped scope or permission ever
-   * reaches the fallback, which is the guarantee a string-prefix chain cannot
-   * give on its own.
-   */
-  fallback?: true;
-};
-
 export const ACCESS_CATEGORY_ORDER = [
   'Profile',
   'Flights',
@@ -24,28 +10,14 @@ export const ACCESS_CATEGORY_ORDER = [
 
 export type AccessCategory = (typeof ACCESS_CATEGORY_ORDER)[number];
 
-export const accessCategory = (name: string): AccessCategory => {
-  if (
-    name.startsWith('flight.') ||
-    name.startsWith('tracks.') ||
-    name === 'stats.read' ||
-    name === 'weather.read'
-  )
-    return 'Flights';
-  if (name.startsWith('data.') || name === 'reference_data.read')
-    return 'Reference data';
-  if (name.startsWith('visited_countries.') || name.startsWith('shares.'))
-    return 'Personal data';
-  if (
-    name.startsWith('users.') ||
-    name.startsWith('roles.') ||
-    name.startsWith('custom_fields.')
-  )
-    return 'Administration';
-  return 'Profile';
-};
-
 export type AccessAction = 'read' | 'write';
+
+export type AccessPresentation = {
+  category: AccessCategory;
+  group: string;
+  label: string;
+  action: AccessAction;
+};
 
 export type AccessRow<T> = {
   key: string;
@@ -54,11 +26,18 @@ export type AccessRow<T> = {
 };
 
 const access = (
+  category: AccessCategory,
   group: string,
   label: string,
   action: AccessAction,
-): AccessPresentation => ({ group, label, action });
+): AccessPresentation => ({ category, group, label, action });
 
+/*
+ * The single classifier over scope and permission names: it decides the
+ * top-level category, the row group, the label and the read/write axis at once.
+ * Splitting the category out into its own prefix chain meant two tables had to
+ * agree on every new key.
+ */
 export const accessPresentation = (name: string): AccessPresentation => {
   const flight =
     /^flight\.(read|create|update|delete|import|export|passengers\.manage|share)\.(own|any)$/.exec(
@@ -68,6 +47,7 @@ export const accessPresentation = (name: string): AccessPresentation => {
     const operation = flight[1] ?? '';
     const ownership = flight[2] ?? '';
     return access(
+      'Flights',
       `flight.${ownership}`,
       ownership === 'own' ? 'Your flights' : 'All flights',
       operation === 'read' || operation === 'export' ? 'read' : 'write',
@@ -83,41 +63,51 @@ export const accessPresentation = (name: string): AccessPresentation => {
         : resource === 'visited_countries'
           ? 'Visited countries'
           : 'Public shares';
-    return access(resource, label, paired[2] === 'read' ? 'read' : 'write');
+    return access(
+      resource === 'tracks' ? 'Flights' : 'Personal data',
+      resource,
+      label,
+      paired[2] === 'read' ? 'read' : 'write',
+    );
   }
 
-  if (name === 'profile.read') return access('profile', 'Profile', 'read');
+  if (name === 'profile.read')
+    return access('Profile', 'profile', 'Profile', 'read');
   if (name === 'preferences.write')
-    return access('preferences', 'Preferences', 'write');
+    return access('Profile', 'preferences', 'Preferences', 'write');
   if (name === 'reference_data.read')
-    return access('reference_data', 'Reference data', 'read');
+    return access('Reference data', 'reference_data', 'Reference data', 'read');
   if (name === 'stats.read')
-    return access('stats', 'Flight statistics', 'read');
-  if (name === 'weather.read') return access('weather', 'Weather', 'read');
-  if (name === 'users.directory.read') return access('users', 'Users', 'read');
-  if (name.startsWith('users.')) return access('users', 'Users', 'write');
+    return access('Flights', 'stats', 'Flight statistics', 'read');
+  if (name === 'weather.read')
+    return access('Flights', 'weather', 'Weather', 'read');
+  if (name === 'users.directory.read')
+    return access('Administration', 'users', 'Users', 'read');
+  if (name.startsWith('users.'))
+    return access('Administration', 'users', 'Users', 'write');
   if (name.startsWith('data.airports.'))
-    return access('airports', 'Airports', 'write');
+    return access('Reference data', 'airports', 'Airports', 'write');
   if (name.startsWith('data.airlines.'))
-    return access('airlines', 'Airlines', 'write');
+    return access('Reference data', 'airlines', 'Airlines', 'write');
   if (name.startsWith('data.aircraft.'))
-    return access('aircraft', 'Aircraft', 'write');
+    return access('Reference data', 'aircraft', 'Aircraft', 'write');
   if (name === 'custom_fields.read')
-    return access('custom_fields', 'Custom fields', 'read');
+    return access('Administration', 'custom_fields', 'Custom fields', 'read');
   if (name === 'custom_fields.manage')
-    return access('custom_fields', 'Custom fields', 'write');
-  if (name === 'roles.manage') return access('roles', 'Roles', 'write');
+    return access('Administration', 'custom_fields', 'Custom fields', 'write');
+  if (name === 'roles.manage')
+    return access('Administration', 'roles', 'Roles', 'write');
   if (name === 'instance.oauth.manage')
-    return access('oauth', 'OAuth', 'write');
+    return access('Profile', 'oauth', 'OAuth', 'write');
   if (name === 'instance.integrations.manage')
-    return access('integrations', 'Integrations', 'write');
+    return access('Profile', 'integrations', 'Integrations', 'write');
   if (name === 'instance.map.manage')
-    return access('map', 'Map settings', 'write');
+    return access('Profile', 'map', 'Map settings', 'write');
   if (name === 'instance.release.check')
-    return access('releases', 'Release updates', 'read');
+    return access('Profile', 'releases', 'Release updates', 'read');
   if (name === 'tools.sql.execute')
-    return access('sql', 'SQL console', 'write');
-  return { ...access(name, name, 'write'), fallback: true };
+    return access('Profile', 'sql', 'SQL console', 'write');
+  return access('Profile', name, name, 'write');
 };
 
 export const groupAccessItems = <T>(

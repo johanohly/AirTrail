@@ -1,7 +1,7 @@
 import { flightInputSchema } from '$lib/api/v1/schemas';
-import { parseFlightScopeSearchParams } from '$lib/flight-scope';
 import { parseJsonBody } from '$lib/server/api/v1/body';
 import { createApiFlight } from '$lib/server/api/v1/flight-write';
+import { parseFlightScope, parsePage } from '$lib/server/api/v1/query';
 import { apiRoute } from '$lib/server/api/v1/route';
 import { apiV1Collection, apiV1Data } from '$lib/server/api/v1/response';
 import { listFlights } from '$lib/server/api/v1/services/flights';
@@ -9,11 +9,14 @@ import { listFlights } from '$lib/server/api/v1/services/flights';
 export const GET = apiRoute('flight.read.own', async ({ principal, event }) => {
   const { data, nextCursor } = await listFlights(
     principal,
-    parseFlightScopeSearchParams(event.url.searchParams),
-    {
-      limit: event.url.searchParams.get('limit'),
-      cursor: event.url.searchParams.get('cursor'),
-    },
+    parseFlightScope(
+      event.url.searchParams.get('scope'),
+      event.url.searchParams.get('userId'),
+    ),
+    parsePage(
+      event.url.searchParams.get('limit'),
+      event.url.searchParams.get('cursor'),
+    ),
   );
   return apiV1Collection(data, { nextCursor });
 });

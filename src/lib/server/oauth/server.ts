@@ -134,38 +134,37 @@ export const issueAuthorizationCode = async (input: {
   return code;
 };
 
-const revokeGrantTokens = async (trx: DatabaseConnection, grantId: string) => {
-  const now = new Date();
-  await trx
-    .updateTable('oauthAccessToken')
-    .set({ revokedAt: now })
-    .where('grantId', '=', grantId)
-    .where('revokedAt', 'is', null)
-    .execute();
-  await trx
-    .updateTable('oauthRefreshToken')
-    .set({ revokedAt: now })
-    .where('grantId', '=', grantId)
-    .where('revokedAt', 'is', null)
-    .execute();
-};
-
-/** Revokes every token in a refresh family, access tokens included. */
-const revokeRefreshFamily = async (
+/** Revokes both the access and refresh tokens for a grant or a refresh family. */
+const revokeTokenPair = async (
   trx: DatabaseConnection,
-  familyId: string,
+  target: { grantId: string } | { familyId: string },
 ) => {
   const now = new Date();
+  if ('grantId' in target) {
+    await trx
+      .updateTable('oauthAccessToken')
+      .set({ revokedAt: now })
+      .where('grantId', '=', target.grantId)
+      .where('revokedAt', 'is', null)
+      .execute();
+    await trx
+      .updateTable('oauthRefreshToken')
+      .set({ revokedAt: now })
+      .where('grantId', '=', target.grantId)
+      .where('revokedAt', 'is', null)
+      .execute();
+    return;
+  }
   await trx
     .updateTable('oauthRefreshToken')
     .set({ revokedAt: now })
-    .where('familyId', '=', familyId)
+    .where('familyId', '=', target.familyId)
     .where('revokedAt', 'is', null)
     .execute();
   await trx
     .updateTable('oauthAccessToken')
     .set({ revokedAt: now })
-    .where('refreshFamilyId', '=', familyId)
+    .where('refreshFamilyId', '=', target.familyId)
     .where('revokedAt', 'is', null)
     .execute();
 };
@@ -199,7 +198,7 @@ export const revokeIssuedToken = async (rawToken: string, clientId: string) => {
       .where('tokenHash', '=', hash)
       .where('clientId', '=', clientId)
       .executeTakeFirst();
-    if (refresh) await revokeRefreshFamily(trx, refresh.familyId);
+    if (refresh) await revokeTokenPair(trx, { familyId: refresh.familyId });
   });
 };
 
@@ -223,7 +222,7 @@ export const consumeAuthorizationCode = async (input: {
        * tokens it produced, because a replay means the code leaked. The refresh
        * family is the unit of revocation, exactly as in rotateRefreshToken.
        */
-      await revokeGrantTokens(trx, found.grantId);
+      await revokeTokenPair(trx, { grantId: found.grantId });
       return null;
     }
     if (
@@ -323,7 +322,7 @@ export const rotateRefreshToken = async (
     )
       return null;
     if (token.usedAt) {
-      await revokeRefreshFamily(trx, token.familyId);
+      await revokeTokenPair(trx, { familyId: token.familyId });
       return null;
     }
     await trx

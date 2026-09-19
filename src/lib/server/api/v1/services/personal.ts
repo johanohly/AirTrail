@@ -56,7 +56,7 @@ export const createShare = async (
     .where('slug', '=', input.slug)
     .executeTakeFirst();
   if (exists)
-    throw new ApiOperationError('conflict', 'Share slug already exists', 409);
+    throw new ApiOperationError('conflict', 'Share slug already exists');
   const row = await db
     .insertInto('publicShare')
     .values({ ...shareValues(input), userId: principal.user.id })
@@ -78,7 +78,7 @@ export const updateShare = async (
     .where('id', '!=', id)
     .executeTakeFirst();
   if (conflict)
-    throw new ApiOperationError('conflict', 'Share slug already exists', 409);
+    throw new ApiOperationError('conflict', 'Share slug already exists');
   const row = await db
     .updateTable('publicShare')
     .set(shareValues(input))
@@ -86,7 +86,7 @@ export const updateShare = async (
     .where('userId', '=', principal.user.id)
     .returningAll()
     .executeTakeFirst();
-  if (!row) throw new ApiOperationError('not_found', 'Share not found', 404);
+  if (!row) throw new ApiOperationError('not_found', 'Share not found');
   return toShareDto(row);
 };
 
@@ -98,7 +98,7 @@ export const deleteShare = async (principal: ApiPrincipal, id: number) => {
     .where('userId', '=', principal.user.id)
     .executeTakeFirst();
   if (!deleted.numDeletedRows)
-    throw new ApiOperationError('not_found', 'Share not found', 404);
+    throw new ApiOperationError('not_found', 'Share not found');
 };
 
 export const listVisitedCountries = async (principal: ApiPrincipal) => {
@@ -140,7 +140,6 @@ export const removeVisitedCountry = async (
     throw new ApiOperationError(
       'bad_request',
       'A two-letter country code is required',
-      400,
     );
   await db
     .deleteFrom('visitedCountry')
@@ -172,7 +171,6 @@ export const updatePreferences = async (
     throw new ApiOperationError(
       'bad_request',
       'At least one preference must be provided',
-      400,
     );
   await db
     .updateTable('user')

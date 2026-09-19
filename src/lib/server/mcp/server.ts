@@ -7,10 +7,10 @@ import {
   shareInputSchema,
   visitedCountryInputSchema,
 } from '$lib/api/v1/schemas';
-import { parseFlightScopeSearchParams } from '$lib/flight-scope';
 import { updatePreferencesSchema } from '$lib/zod/user';
 import { flightTrackInputSchema } from '$lib/track/schema';
 import type { ApiPrincipal } from '$lib/server/api/v1/principal';
+import { parsePage } from '$lib/server/api/v1/query';
 import {
   createApiFlight,
   deleteApiFlight,
@@ -64,9 +64,6 @@ const destructive = { annotations: { destructiveHint: true } } as const;
 export const createMcpServer = (principal: ApiPrincipal) => {
   const server = new McpServer({ name: 'airtrail', version: '1.0.0' });
 
-  const flightScopeParams = (scope: 'mine' | 'all') =>
-    parseFlightScopeSearchParams(new URLSearchParams({ scope }));
-
   server.registerTool(
     'airtrail_get_profile',
     { description: 'Get the authenticated AirTrail profile' },
@@ -84,10 +81,7 @@ export const createMcpServer = (principal: ApiPrincipal) => {
       },
     },
     mcpTool('Unable to list flights', ({ scope, limit, cursor }) =>
-      listFlights(principal, flightScopeParams(scope), {
-        limit: String(limit),
-        cursor: cursor ?? null,
-      }),
+      listFlights(principal, { scope }, parsePage(limit, cursor ?? null)),
     ),
   );
 
@@ -140,7 +134,7 @@ export const createMcpServer = (principal: ApiPrincipal) => {
       inputSchema: { scope: z.enum(['mine', 'all']).default('mine') },
     },
     mcpTool('Unable to export flights', ({ scope }) =>
-      exportFlights(principal, flightScopeParams(scope)),
+      exportFlights(principal, { scope }),
     ),
   );
 
@@ -183,7 +177,7 @@ export const createMcpServer = (principal: ApiPrincipal) => {
       inputSchema: { scope: z.enum(['mine', 'all']).default('mine') },
     },
     mcpTool('Unable to load statistics', ({ scope }) =>
-      getFlightStats(principal, flightScopeParams(scope)),
+      getFlightStats(principal, { scope }),
     ),
   );
 

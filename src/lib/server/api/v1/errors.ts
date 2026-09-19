@@ -6,6 +6,10 @@ import {
   type ProtectedResourceKey,
 } from '$lib/api/v1/resources';
 
+export const responseHeaders = {
+  'Cache-Control': 'private, no-store',
+} as const;
+
 export const API_V1_ERROR_CODES = [
   'bad_request',
   'conflict',
@@ -20,22 +24,40 @@ export const API_V1_ERROR_CODES = [
 
 export type ApiV1ErrorCode = (typeof API_V1_ERROR_CODES)[number];
 
+/*
+ * The status is a function of the code, so it lives here once instead of being
+ * retyped at every throw site -- where nothing stopped `not_found` from being
+ * paired with 500.
+ */
+export const API_V1_ERROR_STATUS: Record<ApiV1ErrorCode, number> = {
+  bad_request: 400,
+  conflict: 409,
+  forbidden: 403,
+  insufficient_scope: 403,
+  internal_error: 500,
+  invalid_json: 400,
+  not_found: 404,
+  unauthorized: 401,
+  validation_failed: 422,
+};
+
 export class ApiOperationError extends Error {
+  readonly status: number;
+
   constructor(
     readonly code: ApiV1ErrorCode,
     message: string,
-    readonly status: number,
     readonly details?: unknown,
   ) {
     super(message);
     this.name = 'ApiOperationError';
+    this.status = API_V1_ERROR_STATUS[code];
   }
 }
 
 export const apiV1Error = (
   code: ApiV1ErrorCode,
   message: string,
-  status: number,
   details?: unknown,
   headers?: HeadersInit,
 ) =>
@@ -48,9 +70,9 @@ export const apiV1Error = (
       },
     },
     {
-      status,
+      status: API_V1_ERROR_STATUS[code],
       headers: {
-        'Cache-Control': 'private, no-store',
+        ...responseHeaders,
         ...headers,
       },
     },
@@ -76,7 +98,6 @@ export const apiV1Unauthorized = (
   return apiV1Error(
     'unauthorized',
     'A valid bearer credential is required',
-    401,
     undefined,
     { 'WWW-Authenticate': challenge.join(', ') },
   );
@@ -88,7 +109,3 @@ export const zodErrorDetails = (error: ZodError) =>
     path: issue.path.map(String),
     message: issue.message,
   }));
-
-export const responseHeaders = {
-  'Cache-Control': 'private, no-store',
-} as const;

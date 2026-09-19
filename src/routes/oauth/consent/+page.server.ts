@@ -26,12 +26,22 @@ const loadRequest = (id: string) =>
     .where('oauthAuthorizationRequest.expiresAt', '>', new Date())
     .executeTakeFirst();
 
-export const load: PageServerLoad = async ({ url, locals }) => {
+export const load: PageServerLoad = async ({ url, locals, cookies }) => {
   const id = url.searchParams.get('id');
   if (!locals.user) throw redirect(303, '/login');
   if (!locals.authorization) throw error(401, 'Login is required');
-  const request = id ? await loadRequest(id) : null;
-  if (!request)
+  /*
+   * The same cookie and user binding the action enforces, applied before any
+   * request details are rendered: without it any signed-in user who learned an
+   * id could read the client name, redirect host and requested scopes.
+   */
+  if (!id || cookies.get(OAUTH_REQUEST_COOKIE) !== id)
+    throw error(
+      400,
+      'This authorization request has expired. Return to the app and try again.',
+    );
+  const request = await loadRequest(id);
+  if (!request || (request.userId && request.userId !== locals.user.id))
     throw error(
       400,
       'This authorization request has expired. Return to the app and try again.',

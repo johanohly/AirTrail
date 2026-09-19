@@ -6,7 +6,7 @@
   import { cn } from '$lib/utils';
   import type { ApiScope, GrantableScope } from '$lib/api/v1/scopes';
   import {
-    accessCategory,
+    accessPresentation,
     groupAccessItems,
     ACCESS_CATEGORY_ORDER,
     type AccessCategory,
@@ -97,7 +97,7 @@
   const grouped = $derived.by(() =>
     ACCESS_CATEGORY_ORDER.map((category) => {
       const matching = scopes.filter((scope) => {
-        if (accessCategory(scope.name) !== category) return false;
+        if (accessPresentation(scope.name).category !== category) return false;
         if (!normalizedSearch) return true;
         return `${scope.name} ${scope.description}`
           .toLowerCase()

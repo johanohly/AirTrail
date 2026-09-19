@@ -1,5 +1,6 @@
 import { flightInputSchema } from '$lib/api/v1/schemas';
-import { parseJsonBody, parsePositiveId } from '$lib/server/api/v1/body';
+import { parseJsonBody } from '$lib/server/api/v1/body';
+import { parsePositiveId } from '$lib/server/api/v1/params';
 import {
   deleteApiFlight,
   updateApiFlight,

@@ -4,15 +4,17 @@ import type { Flight } from '$lib/db/types';
 import type { ResolvedFlightScope } from '$lib/flight-scope';
 import type { FlightTrackSummary } from '$lib/api/v1/dto';
 
-const DEFAULT_LIMIT = 50;
-const MAX_LIMIT = 100;
+export type DecodedCursor = { date: string; id: number };
+
+/** A page request whose cursor has already been decoded and trusted. */
+export type FlightPage = { limit: number; cursor: DecodedCursor | null };
 
 export const encodeCursor = (flight: Pick<Flight, 'date' | 'id'>) =>
   Buffer.from(JSON.stringify({ date: flight.date, id: flight.id })).toString(
     'base64url',
   );
 
-const decodeCursor = (value: string) => {
+export const decodeCursor = (value: string): DecodedCursor | null => {
   try {
     const parsed: unknown = JSON.parse(
       Buffer.from(value, 'base64url').toString('utf8'),
@@ -30,18 +32,9 @@ const decodeCursor = (value: string) => {
   }
 };
 
-export const parsePage = (limitValue: string | null, cursor: string | null) => {
-  const limit = limitValue === null ? DEFAULT_LIMIT : Number(limitValue);
-  if (!Number.isSafeInteger(limit) || limit < 1 || limit > MAX_LIMIT) {
-    return null;
-  }
-  if (cursor !== null && !decodeCursor(cursor)) return null;
-  return { limit, cursor };
-};
-
 export const listFlightsPage = async (
   scope: ResolvedFlightScope,
-  page: { limit: number; cursor: string | null },
+  page: FlightPage,
 ) => {
   let query = listFlightBaseQuery(
     db,
@@ -50,8 +43,7 @@ export const listFlightsPage = async (
     .orderBy('flight.date', 'desc')
     .orderBy('flight.id', 'desc');
 
-  const cursor = page.cursor ? decodeCursor(page.cursor) : null;
-  if (page.cursor && !cursor) return null;
+  const cursor = page.cursor;
   if (cursor) {
     query = query.where((eb) =>
       eb.or([
