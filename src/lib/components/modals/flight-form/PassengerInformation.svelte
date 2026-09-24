@@ -163,11 +163,9 @@
                         value={$formData.passengers[index]?.flightReason ??
                           undefined}
                         onValueChange={(value) => {
-                          const passenger = $formData.passengers[index];
-                          if (passenger) {
-                            passenger.flightReason = isFlightReason(value)
-                              ? value
-                              : null;
+                          if ($formData.passengers[index]) {
+                            $formData.passengers[index].flightReason =
+                              isFlightReason(value) ? value : null;
                           }
                         }}
                         allowDeselect
