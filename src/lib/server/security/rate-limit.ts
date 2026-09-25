@@ -1,5 +1,7 @@
 import type { RequestEvent } from '@sveltejs/kit';
 
+import { env } from '$env/dynamic/private';
+
 /*
  * In-process, fixed-window rate limiting for the unauthenticated endpoints that
  * do expensive work (argon2 at login) or write a row per request (OAuth
@@ -126,6 +128,9 @@ export const checkRateLimit = (
   rule: RateLimitRule,
   key?: string,
 ): RateLimitResult => {
+  // The e2e suite signs in from one address far faster than any person would.
+  if (env.DISABLE_RATE_LIMITS === 'true')
+    return { allowed: true, remaining: rule.limit };
   const identity = clientIdentity(event.getClientAddress);
   if (identity === null) return { allowed: true, remaining: rule.limit };
   return rateLimiter.check(rule, key ? `${identity}:${key}` : identity);
