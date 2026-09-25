@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { DELETE, GET, POST } from './+server';
+import { GET, POST } from './+server';
 
 /*
  * No credential lookup finds anything: every query chain resolves to no row,
