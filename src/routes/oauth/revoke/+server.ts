@@ -6,23 +6,16 @@ import {
 import {
   formValue,
   oauthError,
-  oauthRateLimited,
+  oauthRateLimit,
   readForm,
 } from '$lib/server/oauth/http';
-import {
-  clientIdentity,
-  RATE_LIMITS,
-  rateLimiter,
-} from '$lib/server/security/rate-limit';
+import { RATE_LIMITS } from '$lib/server/security/rate-limit';
 
-export const POST: RequestHandler = async ({ request, getClientAddress }) => {
-  const limit = rateLimiter.check(
-    RATE_LIMITS.oauthRevoke,
-    clientIdentity(getClientAddress),
-  );
-  if (!limit.allowed) return oauthRateLimited(limit.retryAfterSeconds);
+export const POST: RequestHandler = async (event) => {
+  const limited = oauthRateLimit(event, RATE_LIMITS.oauthRevoke);
+  if (limited) return limited;
 
-  const form = await readForm(request);
+  const form = await readForm(event.request);
   if (!form)
     return oauthError('invalid_request', 'Request body must be form-encoded');
 

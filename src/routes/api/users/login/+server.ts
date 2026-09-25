@@ -5,21 +5,14 @@ import type { RequestHandler } from './$types';
 
 import { lucia } from '$lib/server/auth';
 import { postLoginTarget } from '$lib/server/oauth/resume';
-import {
-  clientIdentity,
-  RATE_LIMITS,
-  rateLimiter,
-} from '$lib/server/security/rate-limit';
+import { checkRateLimit, RATE_LIMITS } from '$lib/server/security/rate-limit';
 import { createSession, getUserWithPassword } from '$lib/server/utils/auth';
 import { verifyArgon2 } from '$lib/server/utils/hash';
 import { linkOAuthAccountWithToken } from '$lib/server/utils/oauth-link-token';
 import { signInSchema } from '$lib/zod/auth';
 
-export const POST: RequestHandler = async ({
-  cookies,
-  request,
-  getClientAddress,
-}) => {
+export const POST: RequestHandler = async (event) => {
+  const { cookies, request } = event;
   const form = await superValidate(request, zod(signInSchema));
 
   /*
@@ -28,12 +21,12 @@ export const POST: RequestHandler = async ({
    * nor one account can be hammered. Reported as an ordinary form failure so
    * the login page shows it like any other message.
    */
-  const identity = clientIdentity(getClientAddress);
   const attempts = [
-    rateLimiter.check(RATE_LIMITS.loginAddress, identity),
-    rateLimiter.check(
+    checkRateLimit(event, RATE_LIMITS.loginAddress),
+    checkRateLimit(
+      event,
       RATE_LIMITS.loginAccount,
-      `${identity}:${form.data.username.toLowerCase()}`,
+      form.data.username.toLowerCase(),
     ),
   ];
   const blocked = attempts.find((attempt) => !attempt.allowed);

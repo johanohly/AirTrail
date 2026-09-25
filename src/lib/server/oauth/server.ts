@@ -1,15 +1,15 @@
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { db } from '$lib/db';
 import { hashArgon2, hashSha256, verifyArgon2 } from '$lib/server/utils/hash';
-import { isApiScope, type ApiScope } from '$lib/api/v1/scopes';
+import { parseScopes, type ApiScope } from '$lib/api/v1/scopes';
 import type { DatabaseConnection } from '$lib/db/types';
 
 const ACCESS_TOKEN_TTL_MS = 3_600_000;
 const REFRESH_TOKEN_TTL_MS = 30 * 24 * 3_600_000;
 const AUTHORIZATION_CODE_TTL_MS = 60_000;
-
-export const oauthScopes = (values: readonly string[]) =>
-  [...new Set(values.filter(isApiScope))] as ApiScope[];
+export const AUTHORIZATION_REQUEST_TTL_MS = 10 * 60_000;
+/** A registered client that never obtained a grant is removed after this. */
+const UNUSED_CLIENT_TTL_MS = 24 * 3_600_000;
 
 export const randomOpaque = (bytes = 32) =>
   randomBytes(bytes).toString('base64url');
@@ -216,19 +216,19 @@ export const consumeAuthorizationCode = async (input: {
       .where('codeHash', '=', hashSha256(input.code))
       .forUpdate()
       .executeTakeFirst();
-    if (found?.usedAt) {
+    if (!found || found.clientId !== input.clientId) return null;
+    if (found.usedAt) {
       /*
        * The code was already redeemed. RFC 6749 4.1.2 requires revoking the
-       * tokens it produced, because a replay means the code leaked. The refresh
-       * family is the unit of revocation, exactly as in rotateRefreshToken.
+       * tokens it produced, because a replay means the code leaked. Only the
+       * client it was issued to can trigger this, so a third party holding a
+       * spent code cannot revoke someone else's grant.
        */
       await revokeTokenPair(trx, { grantId: found.grantId });
       return null;
     }
     if (
-      !found ||
       found.expiresAt < new Date() ||
-      found.clientId !== input.clientId ||
       found.redirectUri !== input.redirectUri ||
       found.resource !== input.resource ||
       pkceChallenge(input.verifier) !== found.codeChallenge
@@ -297,8 +297,8 @@ const insertTokenPair = async (
   };
 };
 
-export const issueTokens = async (code: TokenGrant) =>
-  db.transaction().execute((trx) => insertTokenPair(trx, code, randomUUID()));
+export const issueTokens = async (grant: TokenGrant) =>
+  db.transaction().execute((trx) => insertTokenPair(trx, grant, randomUUID()));
 
 export const rotateRefreshToken = async (
   raw: string,
@@ -309,8 +309,10 @@ export const rotateRefreshToken = async (
   return db.transaction().execute(async (trx) => {
     const token = await trx
       .selectFrom('oauthRefreshToken')
-      .selectAll()
-      .where('tokenHash', '=', hash)
+      .innerJoin('oauthGrant', 'oauthGrant.id', 'oauthRefreshToken.grantId')
+      .selectAll('oauthRefreshToken')
+      .select('oauthGrant.scopes as grantScopes')
+      .where('oauthRefreshToken.tokenHash', '=', hash)
       .forUpdate()
       .executeTakeFirst();
     if (
@@ -336,7 +338,10 @@ export const rotateRefreshToken = async (
         clientId: token.clientId,
         userId: token.userId,
         grantId: token.grantId,
-        scopes: oauthScopes(token.scopes),
+        // Re-approving the client with fewer scopes narrows the family too.
+        scopes: parseScopes(token.scopes).filter((scope) =>
+          token.grantScopes.includes(scope),
+        ),
         resource: token.resource,
       },
       token.familyId,
@@ -345,14 +350,27 @@ export const rotateRefreshToken = async (
 };
 
 /*
- * /oauth/authorize inserts an authorization-request row on every unauthenticated
- * GET, and nothing else ever removes those rows. There is no scheduler in this
- * codebase, so cleanup is opportunistic at the point of growth -- the same shape
- * as listUserShares/deleteExpiredShares. All four deletes hit indexed columns.
+ * There is no scheduler in this codebase, so expired rows are removed
+ * opportunistically where they are created: /oauth/authorize and
+ * /oauth/register, both unauthenticated. The same shape as
+ * listUserShares/deleteExpiredShares.
  */
 export const cleanupExpiredOAuthRecords = async () => {
   const now = new Date();
   await Promise.all([
+    db
+      .deleteFrom('oauthClient')
+      .where('createdAt', '<', new Date(now.getTime() - UNUSED_CLIENT_TTL_MS))
+      .where(({ not, exists, selectFrom }) =>
+        not(
+          exists(
+            selectFrom('oauthGrant')
+              .select('oauthGrant.id')
+              .whereRef('oauthGrant.clientId', '=', 'oauthClient.id'),
+          ),
+        ),
+      )
+      .execute(),
     db
       .deleteFrom('oauthAuthorizationRequest')
       .where('expiresAt', '<', now)

@@ -305,6 +305,8 @@ paths:
                     description: 'The list of validation errors.'
         '401':
           '$ref': '#/components/responses/401'
+        '404':
+          description: 'Flight not found'
         '403':
           '$ref': '#/components/responses/403'
         '500':

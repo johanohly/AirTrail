@@ -1,3 +1,5 @@
+import type { AccessPlacement } from './access-presentation';
+
 const PERMISSION_GROUPS_DEFINITION = [
   { key: 'flights', label: 'Flights' },
   { key: 'users', label: 'Users' },
@@ -10,7 +12,7 @@ type PermissionGroupKey = (typeof PERMISSION_GROUPS_DEFINITION)[number]['key'];
 type PermissionDefinition = {
   key: string;
   group: PermissionGroupKey;
-  label: string;
+  access: AccessPlacement;
   description: string;
 };
 
@@ -18,182 +20,182 @@ export const PERMISSION_CATALOG = [
   {
     key: 'flight.read.own',
     group: 'flights',
-    label: 'View own flights',
+    access: { row: 'flight.own', action: 'read' },
     description: 'View flights where the user is a passenger.',
   },
   {
     key: 'flight.read.any',
     group: 'flights',
-    label: 'View all flights',
+    access: { row: 'flight.any', action: 'read' },
     description: "View every user's flights, tracks, and statistics.",
   },
   {
     key: 'flight.create.own',
     group: 'flights',
-    label: 'Add own flights',
+    access: { row: 'flight.own', action: 'write' },
     description: 'Create flights that include the user as a passenger.',
   },
   {
     key: 'flight.create.any',
     group: 'flights',
-    label: 'Add flights for anyone',
+    access: { row: 'flight.any', action: 'write' },
     description: 'Create flights without being a passenger.',
   },
   {
     key: 'flight.update.own',
     group: 'flights',
-    label: 'Edit own flights',
+    access: { row: 'flight.own', action: 'write' },
     description: 'Edit flights where the user is a passenger.',
   },
   {
     key: 'flight.update.any',
     group: 'flights',
-    label: 'Edit all flights',
+    access: { row: 'flight.any', action: 'write' },
     description: "Edit any user's flight.",
   },
   {
     key: 'flight.delete.own',
     group: 'flights',
-    label: 'Delete own flights',
+    access: { row: 'flight.own', action: 'write' },
     description: 'Delete flights where the user is a passenger.',
   },
   {
     key: 'flight.delete.any',
     group: 'flights',
-    label: 'Delete all flights',
+    access: { row: 'flight.any', action: 'write' },
     description: "Delete any user's flight.",
   },
   {
     key: 'flight.import.own',
     group: 'flights',
-    label: 'Import own flights',
+    access: { row: 'flight.own', action: 'write' },
     description: 'Import personal flight data.',
   },
   {
     key: 'flight.import.any',
     group: 'flights',
-    label: 'Restore all flights',
+    access: { row: 'flight.any', action: 'write' },
     description: 'Import data for any user.',
   },
   {
     key: 'flight.export.own',
     group: 'flights',
-    label: 'Export own flights',
+    access: { row: 'flight.own', action: 'read' },
     description: 'Export personal flight data.',
   },
   {
     key: 'flight.export.any',
     group: 'flights',
-    label: 'Export all flights',
+    access: { row: 'flight.any', action: 'read' },
     description: "Export any user's or all users' flight data.",
   },
   {
     key: 'flight.passengers.manage.own',
     group: 'flights',
-    label: 'Manage passengers on own flights',
+    access: { row: 'flight.own', action: 'write' },
     description: 'Add, edit, or remove passengers on participating flights.',
   },
   {
     key: 'flight.passengers.manage.any',
     group: 'flights',
-    label: 'Manage passengers on all flights',
+    access: { row: 'flight.any', action: 'write' },
     description: 'Add, edit, or remove passengers on any flight.',
   },
   {
     key: 'flight.share.own',
     group: 'flights',
-    label: 'Share own flights',
+    access: { row: 'flight.own', action: 'write' },
     description: 'Publish personal flight data through public share links.',
   },
   {
     key: 'users.directory.read',
     group: 'users',
-    label: 'View user directory',
+    access: { row: 'users', action: 'read' },
     description: 'See users in selectors and settings.',
   },
   {
     key: 'users.create',
     group: 'users',
-    label: 'Create users',
+    access: { row: 'users', action: 'write' },
     description: 'Create local user accounts.',
   },
   {
     key: 'users.update',
     group: 'users',
-    label: 'Edit users',
+    access: { row: 'users', action: 'write' },
     description: 'Edit users with fewer permissions.',
   },
   {
     key: 'users.delete',
     group: 'users',
-    label: 'Delete users',
+    access: { row: 'users', action: 'write' },
     description: 'Delete users with fewer permissions.',
   },
   {
     key: 'users.roles.assign',
     group: 'users',
-    label: 'Assign roles',
+    access: { row: 'users', action: 'write' },
     description: 'Assign roles that do not exceed the actor’s permissions.',
   },
   {
     key: 'data.airports.manage',
     group: 'configuration',
-    label: 'Manage airports',
+    access: { row: 'airports', action: 'write' },
     description: 'Create, edit, delete, and synchronize airports.',
   },
   {
     key: 'data.aircraft.manage',
     group: 'configuration',
-    label: 'Manage aircraft',
+    access: { row: 'aircraft', action: 'write' },
     description: 'Create, edit, delete, and synchronize aircraft.',
   },
   {
     key: 'data.airlines.manage',
     group: 'configuration',
-    label: 'Manage airlines',
+    access: { row: 'airlines', action: 'write' },
     description: 'Create, edit, delete, and synchronize airlines and icons.',
   },
   {
     key: 'custom_fields.manage',
     group: 'configuration',
-    label: 'Manage custom fields',
+    access: { row: 'custom_fields', action: 'write' },
     description: 'Create and change custom-field definitions.',
   },
   {
     key: 'instance.oauth.manage',
     group: 'configuration',
-    label: 'Manage OAuth',
+    access: { row: 'instance', action: 'write' },
     description: 'Configure OAuth and role mappings.',
   },
   {
     key: 'instance.integrations.manage',
     group: 'configuration',
-    label: 'Manage integrations',
+    access: { row: 'instance', action: 'write' },
     description: 'Configure external data integrations.',
   },
   {
     key: 'instance.map.manage',
     group: 'configuration',
-    label: 'Manage map settings',
+    access: { row: 'instance', action: 'write' },
     description: 'Configure instance-wide map styles.',
   },
   {
     key: 'instance.release.check',
     group: 'configuration',
-    label: 'Check releases',
+    access: { row: 'instance', action: 'read' },
     description: 'Check for and display newer AirTrail releases.',
   },
   {
     key: 'roles.manage',
     group: 'security',
-    label: 'Manage roles',
+    access: { row: 'roles', action: 'write' },
     description:
       'Create and edit roles without granting unavailable permissions.',
   },
   {
     key: 'tools.sql.execute',
     group: 'security',
-    label: 'Execute SQL',
+    access: { row: 'sql', action: 'write' },
     description: 'Run arbitrary SQL against the AirTrail database.',
   },
 ] as const satisfies readonly PermissionDefinition[];
@@ -206,7 +208,7 @@ export const PERMISSIONS: Permission[] = PERMISSION_CATALOG.map(
 
 export type PermissionGroup = {
   label: string;
-  permissions: Array<{ key: Permission; label: string; description: string }>;
+  permissions: Array<{ key: Permission; description: string }>;
 };
 
 export const PERMISSION_GROUPS: PermissionGroup[] =
@@ -214,7 +216,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] =
     label: group.label,
     permissions: PERMISSION_CATALOG.filter(
       (permission) => permission.group === group.key,
-    ).map(({ key, label, description }) => ({ key, label, description })),
+    ).map(({ key, description }) => ({ key, description })),
   }));
 
 const IMPLIED_PERMISSIONS: Partial<Record<Permission, Permission>> = {

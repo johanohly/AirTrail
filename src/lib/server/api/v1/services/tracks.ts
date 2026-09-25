@@ -7,22 +7,13 @@ import {
   flightTrackPayloadSchema,
   type FlightTrackInput,
 } from '$lib/track/schema';
-import type { ApiPrincipal } from './principal';
-import { requireApiScope, requireFlightScope } from './access';
-
-const authorize = async (
-  principal: ApiPrincipal,
-  flightId: number,
-  write: boolean,
-) => {
-  await requireFlightScope(principal, write ? 'update' : 'read', flightId);
-  requireApiScope(principal, write ? 'tracks.write' : 'tracks.read');
-};
+import { requireFlightScope } from '../access';
+import type { ApiPrincipal } from '../principal';
 
 /*
- * The read-back after a write deliberately does not re-check read scopes: the
- * write was already authorized, and a credential holding `tracks.write` without
- * `tracks.read` must not get a 403 for an operation that committed.
+ * Not re-checked against read scopes after a write: a credential holding
+ * `tracks.write` without `tracks.read` must not get a 403 for an operation
+ * that committed.
  */
 const readTrack = async (flightId: number) => {
   const row = await db
@@ -42,28 +33,28 @@ const readTrack = async (flightId: number) => {
   };
 };
 
-export const getApiFlightTrack = async (
+export const getFlightTrack = async (
   principal: ApiPrincipal,
   flightId: number,
 ) => {
-  await authorize(principal, flightId, false);
+  await requireFlightScope(principal, 'read', flightId);
   return readTrack(flightId);
 };
 
-export const setApiFlightTrack = async (
+export const setFlightTrack = async (
   principal: ApiPrincipal,
   flightId: number,
   track: FlightTrackInput,
 ) => {
-  await authorize(principal, flightId, true);
+  await requireFlightScope(principal, 'update', flightId);
   await upsertFlightTrackPrimitiveWithConnection(db, flightId, track);
   return readTrack(flightId);
 };
 
-export const deleteApiFlightTrack = async (
+export const deleteFlightTrack = async (
   principal: ApiPrincipal,
   flightId: number,
 ) => {
-  await authorize(principal, flightId, true);
+  await requireFlightScope(principal, 'update', flightId);
   await deleteFlightTrackPrimitiveWithConnection(db, flightId);
 };

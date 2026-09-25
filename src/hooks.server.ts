@@ -3,6 +3,11 @@ import { sequence } from '@sveltejs/kit/hooks';
 import type { Cookie } from 'lucia';
 
 import '$lib/zod/setup';
+import {
+  corsPreflight,
+  isCorsPath,
+  withCorsHeaders,
+} from '$lib/server/security/cors';
 import { isCrossSiteFormPost } from '$lib/server/security/csrf';
 import { lucia } from '$lib/server/auth';
 import { loadAuthorizationContext } from '$lib/server/authorization/context';
@@ -33,6 +38,12 @@ export const init: ServerInit = async () => {
   await ensureInitialDataSync();
   await validateAirlineIcons();
   await syncAirlineIcons({ onlyIfNoIcons: true });
+};
+
+const corsHandle: Handle = async ({ event, resolve }) => {
+  if (!isCorsPath(event.url.pathname)) return resolve(event);
+  if (event.request.method === 'OPTIONS') return corsPreflight();
+  return withCorsHeaders(await resolve(event));
 };
 
 const csrfHandle: Handle = async ({ event, resolve }) => {
@@ -99,6 +110,7 @@ const dropExcessiveLinkHeaderHandle: Handle = async ({ event, resolve }) => {
 };
 
 export const handle: Handle = sequence(
+  corsHandle,
   csrfHandle,
   authHandle,
   dropExcessiveLinkHeaderHandle,

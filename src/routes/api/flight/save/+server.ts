@@ -1,22 +1,15 @@
 import { json } from '@sveltejs/kit';
 import { z } from 'zod';
 
-import type { RequestHandler } from './$types';
-
 import { getAircraftByIcao } from '$lib/server/utils/aircraft';
 import { getAirlineByIcao } from '$lib/server/utils/airline';
 import { getAirportByIata, getAirportByIcao } from '$lib/server/utils/airport';
+import { apiFlightWriter } from '$lib/server/api/v1/access';
+import { apiError, legacyApiRoute } from '$lib/server/utils/api';
 import {
-  apiError,
-  authenticateApiKey,
-  requireScope,
-  unauthorized,
-} from '$lib/server/utils/api';
-import { flightOwnership } from '$lib/server/authorization/flight';
-import { AuthorizationError } from '$lib/server/authorization/authorize';
-import { flightScope, passengersManageScope } from '$lib/api/v1/scopes';
-import { principalHasScope } from '$lib/server/api/v1/principal';
-import { validateAndSaveFlight } from '$lib/server/utils/flight';
+  flightValuesFromForm,
+  saveFlightAggregate,
+} from '$lib/server/utils/flight';
 import { aircraftSchema } from '$lib/zod/aircraft';
 import { airlineSchema } from '$lib/zod/airline';
 import { flightSchema, validateFlightDepartureDate } from '$lib/zod/flight';
@@ -80,8 +73,8 @@ const getAirportByCode = async (input: string) => {
   return (await getAirportByIcao(input)) ?? (await getAirportByIata(input));
 };
 
-export const POST: RequestHandler = async ({ request }) => {
-  const body = await request.json();
+export const POST = legacyApiRoute(async ({ principal, event }) => {
+  const body = await event.request.json();
   const filled = {
     ...defaultFlight,
     ...body,
@@ -124,12 +117,6 @@ export const POST: RequestHandler = async ({ request }) => {
     );
   }
 
-  const authentication = await authenticateApiKey(request);
-  if (!authentication) {
-    return unauthorized();
-  }
-  const { user, authorization } = authentication;
-
   const from = await getAirportByCode(parsed.data.from);
   if (!from) {
     return apiError('Invalid departure airport');
@@ -165,54 +152,18 @@ export const POST: RequestHandler = async ({ request }) => {
   };
 
   if (data.passengers[0]?.userId === '<USER_ID>') {
-    data.passengers[0].userId = user.id;
+    data.passengers[0].userId = principal.user.id;
+  }
+
+  const prepared = flightValuesFromForm(data);
+  if (!('values' in prepared)) {
+    return apiError(prepared.message, 400);
   }
 
   const existingId = parsed.data.id ?? null;
-  const ownership =
-    existingId === null
-      ? data.passengers.some((passenger) => passenger.userId === user.id)
-        ? 'own'
-        : 'any'
-      : await flightOwnership(user.id, existingId);
-  const denied = requireScope(
-    authentication,
-    flightScope(existingId === null ? 'create' : 'update', ownership),
-  );
-  if (denied) return denied;
-
-  /*
-   * `track` is part of the flight payload and flows through to flight_track, so
-   * writing it here must cost the same scope as writing it directly -- otherwise
-   * `tracks.write` is trivially bypassable through this legacy endpoint.
-   */
-  if ('track' in parsed.data) {
-    const trackDenied = requireScope(authentication, 'tracks.write');
-    if (trackDenied) return trackDenied;
-  }
-
-  /*
-   * Passenger scope is enforced inside `validateAndSaveFlight`, against the same
-   * `plan.passengersChanged` the write itself uses. Deciding it here from
-   * `passengerRecordsChanged` ignored passenger custom fields, so a change that
-   * only touched those skipped the scope check while still being persisted.
-   */
-  const result = await validateAndSaveFlight(
-    authorization,
-    data,
-    (scopeOwnership) => {
-      const scope = passengersManageScope(scopeOwnership);
-      if (!principalHasScope(authentication, scope))
-        throw new AuthorizationError(
-          `This credential requires the ${scope} scope`,
-          403,
-        );
-    },
-  );
-  if (!result.success) {
-    // @ts-expect-error - this should be valid
-    return apiError(result.message, result.status || 500);
-  }
-
-  return json({ success: true, ...(result.id && { id: result.id }) });
-};
+  const id = await saveFlightAggregate(apiFlightWriter(principal), {
+    id: existingId,
+    ...prepared,
+  });
+  return json({ success: true, ...(existingId === null ? { id } : {}) });
+});

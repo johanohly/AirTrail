@@ -10,10 +10,7 @@
     type Permission,
     type PermissionGroup,
   } from '$lib/authorization/permissions';
-  import {
-    groupAccessItems,
-    type AccessRow,
-  } from '$lib/authorization/access-presentation';
+  import { groupAccessItems } from '$lib/authorization/access-presentation';
   import { createAccessSelection } from '$lib/authorization/access-selection';
   import AccessMatrix from '$lib/components/access/AccessMatrix.svelte';
   import { Button } from '$lib/components/ui/button';
@@ -40,7 +37,6 @@
   };
 
   type PermissionItem = PermissionGroup['permissions'][number];
-  type PermissionRow = AccessRow<PermissionItem>;
 
   let {
     open = $bindable(),
@@ -63,7 +59,7 @@
     if (!open) return;
     name = role?.name ?? '';
     description = role?.description ?? '';
-    permissions = withReadForWrite(role?.permissions ?? []);
+    permissions = selection.withReadForWrite(role?.permissions ?? [], allRows);
   });
 
   const presentedPermissionGroups = $derived(
@@ -72,84 +68,19 @@
       rows: groupAccessItems(group.permissions, (permission) => permission.key),
     })),
   );
-  const availablePermissions = (action: PermissionRow['actions'][number]) =>
-    action.items.filter((permission) =>
-      hasClientPermission(page.data.authorization, permission.key),
-    );
-  const permissionIsImplied = (permission: PermissionItem) => {
-    const broader = impliedPermission(permission.key);
-    return broader !== null && permissions.includes(broader);
-  };
-  const permissionIsEffective = (permission: PermissionItem) =>
-    permissions.includes(permission.key) || permissionIsImplied(permission);
-  const selection = createAccessSelection<PermissionItem>({
-    isEffective: permissionIsEffective,
-    selectable: availablePermissions,
+  // Clearing a broader grant can leave a held write without its read.
+  const allRows = $derived(
+    presentedPermissionGroups.flatMap((group) => group.rows),
+  );
+  const selection = createAccessSelection<PermissionItem, Permission>({
+    key: (permission) => permission.key,
+    describe: (permission) => permission.description,
+    selectable: (action) =>
+      action.items.filter((permission) =>
+        hasClientPermission(page.data.authorization, permission.key),
+      ),
+    broader: impliedPermission,
   });
-  const actionInherited = (
-    row: PermissionRow,
-    action: PermissionRow['actions'][number],
-  ) => {
-    const available = selection.actionItems(action);
-    return (
-      (available.length > 0 && available.every(permissionIsImplied)) ||
-      selection.readLockedByWrite(row, action)
-    );
-  };
-  const actionTitle = (
-    row: PermissionRow,
-    action: PermissionRow['actions'][number],
-  ) => {
-    const details = action.items
-      .map((permission) => permission.description)
-      .join(' · ');
-    if (selection.readLockedByWrite(row, action))
-      return `Included by Write access. ${details}`;
-    const available = selection.actionItems(action);
-    return available.length > 0 && available.every(permissionIsImplied)
-      ? `Included by All flights. ${details}`
-      : details;
-  };
-  const withReadForWrite = (keys: readonly Permission[]) => {
-    const result = new Set(keys);
-    for (const group of presentedPermissionGroups) {
-      for (const row of group.rows) {
-        const write = selection.rowAction(row, 'write');
-        const read = selection.rowAction(row, 'read');
-        if (!write || !read) continue;
-        if (!write.items.some((permission) => result.has(permission.key)))
-          continue;
-        for (const permission of selection.actionItems(read))
-          result.add(permission.key);
-      }
-    }
-    return [...result];
-  };
-  const toggleAction = (
-    row: PermissionRow,
-    action: PermissionRow['actions'][number],
-  ) => {
-    if (selection.readLockedByWrite(row, action)) return;
-    const available = selection.actionItems(action);
-    const checked = available.every(permissionIsEffective);
-    const changed = new Set(permissions);
-    for (const permission of available) {
-      if (permissionIsImplied(permission)) continue;
-      if (checked) {
-        changed.delete(permission.key);
-      } else {
-        changed.add(permission.key);
-        for (const candidate of permissions) {
-          if (impliedPermission(candidate) === permission.key)
-            changed.delete(candidate);
-        }
-      }
-    }
-    permissions =
-      action.action === 'write' && !checked
-        ? withReadForWrite([...changed])
-        : [...changed];
-  };
 
   const save = async () => {
     if (!name.trim()) return void toast.error('Enter a role name.');
@@ -225,15 +156,26 @@
               <AccessMatrix
                 rows={group.rows}
                 cellState={(row, action) => ({
-                  checked: selection.actionChecked(action),
-                  indeterminate: selection.actionIndeterminate(action),
-                  inherited: actionInherited(row, action),
+                  checked: selection.actionChecked(permissions, action),
+                  indeterminate: selection.actionIndeterminate(
+                    permissions,
+                    action,
+                  ),
+                  inherited: selection.actionInherited(
+                    permissions,
+                    row,
+                    action,
+                  ),
                   disabled:
                     selection.actionItems(action).length === 0 ||
-                    actionInherited(row, action),
-                  title: actionTitle(row, action),
+                    selection.actionInherited(permissions, row, action),
+                  title: selection.actionTitle(permissions, row, action),
                 })}
-                onToggle={toggleAction}
+                onToggle={(row, action) =>
+                  (permissions = selection.withReadForWrite(
+                    selection.toggle(permissions, row, action),
+                    allRows,
+                  ))}
               />
             </div>
           </section>

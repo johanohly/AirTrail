@@ -5,35 +5,25 @@ import {
   PROTECTED_RESOURCES,
   protectedResourceKey,
 } from '$lib/api/v1/resources';
-import { oauthError, oauthRateLimited } from '$lib/server/oauth/http';
+import { parseScopes } from '$lib/api/v1/scopes';
+import { oauthError, oauthRateLimit } from '$lib/server/oauth/http';
 import { OAUTH_REQUEST_COOKIE } from '$lib/server/oauth/resume';
+import { RATE_LIMITS } from '$lib/server/security/rate-limit';
 import {
-  clientIdentity,
-  RATE_LIMITS,
-  rateLimiter,
-} from '$lib/server/security/rate-limit';
-import {
+  AUTHORIZATION_REQUEST_TTL_MS,
   cleanupExpiredOAuthRecords,
-  oauthScopes,
   validateRedirectUri,
 } from '$lib/server/oauth/server';
 import { generateString } from '$lib/server/utils/random';
 
-export const GET: RequestHandler = async ({
-  url,
-  locals,
-  cookies,
-  getClientAddress,
-}) => {
+export const GET: RequestHandler = async (event) => {
+  const { url, locals, cookies } = event;
   /*
    * Answered with JSON rather than a redirect: `redirect_uri` has not been
    * validated yet, and echoing it before that check would be an open redirect.
    */
-  const limit = rateLimiter.check(
-    RATE_LIMITS.oauthAuthorize,
-    clientIdentity(getClientAddress),
-  );
-  if (!limit.allowed) return oauthRateLimited(limit.retryAfterSeconds);
+  const limited = oauthRateLimit(event, RATE_LIMITS.oauthAuthorize);
+  if (limited) return limited;
 
   const clientId = url.searchParams.get('client_id');
   const redirectUri = url.searchParams.get('redirect_uri');
@@ -74,7 +64,7 @@ export const GET: RequestHandler = async ({
       'invalid_request',
       'code_challenge must be an S256 challenge',
     );
-  const scopes = oauthScopes(requested);
+  const scopes = parseScopes(requested);
   if (scopes.length !== requested.length)
     return oauthError('invalid_scope', 'One or more scopes are unsupported');
   await cleanupExpiredOAuthRecords();
@@ -90,7 +80,7 @@ export const GET: RequestHandler = async ({
       resource,
       state,
       codeChallenge,
-      expiresAt: new Date(Date.now() + 10 * 60_000),
+      expiresAt: new Date(Date.now() + AUTHORIZATION_REQUEST_TTL_MS),
     })
     .execute();
   cookies.set(OAUTH_REQUEST_COOKIE, requestId, {
@@ -98,10 +88,8 @@ export const GET: RequestHandler = async ({
     httpOnly: true,
     sameSite: 'lax',
     secure: url.protocol === 'https:',
-    maxAge: 600,
+    maxAge: AUTHORIZATION_REQUEST_TTL_MS / 1000,
   });
-  // The pending request is carried in the cookie, which is what the login
-  // handlers read; no query parameter is needed or was ever consumed.
   if (!locals.user) throw redirect(303, '/login');
   throw redirect(303, `/oauth/consent?id=${encodeURIComponent(requestId)}`);
 };

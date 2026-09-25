@@ -1,10 +1,11 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+  checkRateLimit,
   clientIdentity,
   createRateLimiter,
+  RATE_LIMITS,
+  rateLimiter,
   type RateLimitRule,
 } from './rate-limit';
 
@@ -61,34 +62,100 @@ describe('client identity', () => {
 
   /*
    * `getClientAddress` throws when ADDRESS_HEADER is set but the request has no
-   * such header. A limiter that propagated that would turn a proxy
-   * misconfiguration into a 500 on the login and token endpoints.
+   * such header. Pooling those requests would let one caller lock every user
+   * out, so they are not limited at all.
    */
-  it('falls back to a shared bucket instead of throwing', () => {
+  it('reports no identity when the address is unavailable', () => {
     expect(
       clientIdentity(() => {
         throw new Error('Address header was specified but is absent');
       }),
-    ).toBe('unknown');
-    expect(clientIdentity(() => '')).toBe('unknown');
+    ).toBeNull();
+    expect(clientIdentity(() => '')).toBeNull();
+  });
+
+  it('does not limit requests without an identity', () => {
+    const event = {
+      getClientAddress: () => {
+        throw new Error('absent');
+      },
+    };
+    for (let i = 0; i < 20; i += 1)
+      expect(checkRateLimit(event, rule).allowed).toBe(true);
   });
 });
 
 /*
- * The endpoints deliberately guarded, because each is unauthenticated and
- * either does expensive work or writes a row per request. Scanned from source
- * so a rewrite that drops the check fails here rather than in production.
+ * The unauthenticated endpoints that each do expensive work or write a row per
+ * request. Each is called once its address has used up the rule, and must
+ * answer before doing any of that work.
  */
-const GUARDED_ROUTES = [
-  'src/routes/oauth/token/+server.ts',
-  'src/routes/oauth/register/+server.ts',
-  'src/routes/oauth/authorize/+server.ts',
-  'src/routes/api/users/login/+server.ts',
-];
-
 describe('guarded endpoints', () => {
-  it.each(GUARDED_ROUTES)('%s checks a rate limit', (file) => {
-    const source = readFileSync(join(process.cwd(), file), 'utf8');
-    expect(source).toContain('rateLimiter.check');
+  const exhaust = (address: string, limit: RateLimitRule) => {
+    for (let i = 0; i < limit.limit; i += 1) rateLimiter.check(limit, address);
+  };
+  const event = (address: string, request: Request) => ({
+    request,
+    url: new URL(request.url),
+    getClientAddress: () => address,
+    locals: {},
+    cookies: { get: () => undefined, set: () => {}, delete: () => {} },
+  });
+  const form = (url: string) =>
+    new Request(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: 'username=someone&password=secret',
+    });
+
+  it.each([
+    [
+      'token',
+      RATE_LIMITS.oauthToken,
+      () => import('../../../routes/oauth/token/+server'),
+      'POST',
+    ],
+    [
+      'revoke',
+      RATE_LIMITS.oauthRevoke,
+      () => import('../../../routes/oauth/revoke/+server'),
+      'POST',
+    ],
+    [
+      'register',
+      RATE_LIMITS.oauthRegister,
+      () => import('../../../routes/oauth/register/+server'),
+      'POST',
+    ],
+    [
+      'authorize',
+      RATE_LIMITS.oauthAuthorize,
+      () => import('../../../routes/oauth/authorize/+server'),
+      'GET',
+    ],
+  ] as const)('/oauth/%s answers 429', async (name, limit, load, method) => {
+    const address = `198.51.100.${name.length}`;
+    exhaust(address, limit);
+    const handler = (await load())[method] as (
+      event: unknown,
+    ) => Promise<Response>;
+    const url = `https://airtrail.example/oauth/${name}`;
+    const response = await handler(
+      event(address, method === 'GET' ? new Request(url) : form(url)),
+    );
+    expect(response.status).toBe(429);
+    expect(response.headers.get('Retry-After')).toBeTruthy();
+  });
+
+  it('refuses a login attempt once the address is exhausted', async () => {
+    const address = '198.51.100.200';
+    exhaust(address, RATE_LIMITS.loginAddress);
+    const { POST } = await import('../../../routes/api/users/login/+server');
+    const response = await POST(
+      event(address, form('https://airtrail.example/api/users/login')) as never,
+    );
+    expect(JSON.stringify(await response.json())).toContain(
+      'Too many login attempts',
+    );
   });
 });

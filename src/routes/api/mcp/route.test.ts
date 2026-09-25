@@ -1,12 +1,24 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { DELETE, GET, OPTIONS, POST } from './+server';
+import { DELETE, GET, POST } from './+server';
 
 /*
- * These call the handlers directly with a minimal event rather than going
- * through a server, because the behaviour under test is the route's own
- * decisions: which requests are refused before authentication is considered,
- * and what a preflight answers.
+ * No credential lookup finds anything: every query chain resolves to no row,
+ * so these tests need no database.
+ */
+vi.mock('$lib/db', () => {
+  const query: object = new Proxy(() => query, {
+    get: (_, key) =>
+      key === 'executeTakeFirst' ? async () => undefined : query,
+    apply: () => query,
+  });
+  return { db: query };
+});
+
+/*
+ * These call the handlers directly with a minimal event, because the behaviour
+ * under test is the route's own decisions: which requests are refused before
+ * authentication is considered.
  */
 
 const event = (
@@ -15,9 +27,11 @@ const event = (
     origin?: string;
     accept?: string;
     authorization?: string;
+    cookie?: string;
   } = {},
 ) => {
   const headers = new Headers({ host: 'airtrail.example' });
+  if (overrides.cookie) headers.set('cookie', overrides.cookie);
   if (overrides.origin) headers.set('origin', overrides.origin);
   if (overrides.accept) headers.set('accept', overrides.accept);
   if (overrides.authorization)
@@ -38,11 +52,8 @@ const run = async (
 ) => (handler as (event: never) => Promise<Response>)(event(overrides));
 
 /*
- * The regression. A browser-based MCP client runs on a different origin than
- * the server by definition, and the route used to refuse it with 403 -- before
- * authentication, so the client never saw a WWW-Authenticate and never started
- * the OAuth flow. Reproduced with MCPJam on 127.0.0.1:6274 against a server on
- * localhost:5173.
+ * A browser-based MCP client runs on another origin by definition, and must
+ * reach authentication to see the WWW-Authenticate that starts the OAuth flow.
  */
 describe('cross-origin requests', () => {
   it('does not refuse a cross-origin POST before authentication', async () => {
@@ -51,35 +62,6 @@ describe('cross-origin requests', () => {
     expect(response.headers.get('WWW-Authenticate')).toContain(
       'resource_metadata=',
     );
-  });
-
-  it('answers a cross-origin preflight, which the browser requires', async () => {
-    const response = await run(OPTIONS, {
-      method: 'OPTIONS',
-      origin: 'http://127.0.0.1:6274',
-    });
-    expect(response.status).toBe(204);
-    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(
-      'http://127.0.0.1:6274',
-    );
-    expect(response.headers.get('Access-Control-Allow-Headers')).toContain(
-      'MCP-Protocol-Version',
-    );
-    expect(response.headers.get('Access-Control-Allow-Methods')).toContain(
-      'POST',
-    );
-  });
-
-  it('reflects the origin rather than allowing any', async () => {
-    const response = await run(OPTIONS, {
-      method: 'OPTIONS',
-      origin: 'https://evil.example',
-    });
-    expect(response.status).toBe(204);
-    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(
-      'https://evil.example',
-    );
-    expect(response.headers.get('Access-Control-Allow-Credentials')).toBeNull();
   });
 
   it('reveals nothing unauthenticated regardless of origin', async () => {
@@ -116,7 +98,7 @@ describe('authentication is still required', () => {
      * The property that makes dropping the origin check safe: with no cookie
      * accepted here, a cross-site request has no ambient authority to borrow.
      */
-    const response = await run(POST, { authorization: '' });
+    const response = await run(POST, { cookie: 'auth_session=valid-session' });
     expect(response.status).toBe(401);
   });
 

@@ -1,13 +1,12 @@
 import { json } from '@sveltejs/kit';
 import { z } from 'zod';
 import type { RequestHandler } from './$types';
-import { createClient } from '$lib/server/oauth/server';
-import { oauthError, oauthRateLimited } from '$lib/server/oauth/http';
 import {
-  clientIdentity,
-  RATE_LIMITS,
-  rateLimiter,
-} from '$lib/server/security/rate-limit';
+  cleanupExpiredOAuthRecords,
+  createClient,
+} from '$lib/server/oauth/server';
+import { oauthError, oauthRateLimit } from '$lib/server/oauth/http';
+import { RATE_LIMITS } from '$lib/server/security/rate-limit';
 
 const registrationSchema = z.object({
   client_name: z.string().trim().min(1).max(100),
@@ -31,16 +30,13 @@ const validRedirect = (value: string) => {
   );
 };
 
-export const POST: RequestHandler = async ({ request, getClientAddress }) => {
-  const limit = rateLimiter.check(
-    RATE_LIMITS.oauthRegister,
-    clientIdentity(getClientAddress),
-  );
-  if (!limit.allowed) return oauthRateLimited(limit.retryAfterSeconds);
+export const POST: RequestHandler = async (event) => {
+  const limited = oauthRateLimit(event, RATE_LIMITS.oauthRegister);
+  if (limited) return limited;
 
   let body: unknown;
   try {
-    body = await request.json();
+    body = await event.request.json();
   } catch {
     return oauthError('invalid_client_metadata', 'Request body must be JSON');
   }
@@ -65,6 +61,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   // The redirect-uri table is keyed on (client_id, redirect_uri), so a repeated
   // URI would fail the whole insert.
   const redirectUris = [...new Set(parsed.data.redirect_uris)];
+  await cleanupExpiredOAuthRecords();
   const client = await createClient({
     name: parsed.data.client_name,
     redirectUris,

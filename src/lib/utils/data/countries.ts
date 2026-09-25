@@ -11,6 +11,9 @@ export const countryFromAlpha2 = (alpha: string): Country | undefined => {
   return COUNTRIES.find((country) => country.alpha2 === alpha);
 };
 
+export const isKnownCountryCode = (code: string) =>
+  countryFromAlpha2(code) !== undefined;
+
 export const countryCodesFromFlights = (
   flights: readonly FlightCountryEndpoints[],
 ): Set<string> => {

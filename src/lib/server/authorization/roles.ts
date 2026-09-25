@@ -1,5 +1,6 @@
+import type { DatabaseConnection } from '$lib/db/types';
 import { generateId } from 'lucia';
-import { sql, type Kysely, type Transaction } from 'kysely';
+import { sql, type Transaction } from 'kysely';
 
 import {
   isPermission,
@@ -16,8 +17,6 @@ import {
   requireLockedPermissions,
 } from './authorize';
 import type { RoleInput } from '$lib/zod/role';
-
-type DatabaseConnection = Kysely<DB> | Transaction<DB>;
 
 type RoleOperationErrorKind = 'conflict' | 'invalid' | 'not_found';
 

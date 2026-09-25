@@ -1,7 +1,9 @@
 import { json } from '@sveltejs/kit';
 
+import { PassengerResolutionError } from '$lib/db/queries';
 import { AuthorizationError } from '$lib/server/authorization/authorize';
 import { RoleOperationError } from '$lib/server/authorization/roles';
+import { CustomFieldValidationError } from '$lib/server/utils/custom-fields';
 import {
   ApiOperationError,
   apiV1Error,
@@ -34,20 +36,29 @@ export const apiV1Collection = <T>(
     { ...init, headers: { ...responseHeaders, ...init?.headers } },
   );
 
+/** A domain error whose message is written for callers, as the v1 error it maps to. */
+export const asApiOperationError = (
+  error: unknown,
+): ApiOperationError | null => {
+  if (error instanceof ApiOperationError) return error;
+  if (
+    error instanceof CustomFieldValidationError ||
+    error instanceof PassengerResolutionError
+  )
+    return new ApiOperationError('validation_failed', error.message);
+  if (error instanceof RoleOperationError)
+    return new ApiOperationError(ROLE_ERROR_CODE[error.kind], error.message);
+  if (error instanceof AuthorizationError)
+    return new ApiOperationError(
+      authorizationErrorCode(error.status),
+      error.message,
+    );
+  return null;
+};
+
 export const handleApiV1Error = (error: unknown) => {
-  if (error instanceof ApiOperationError) {
-    return apiV1Error(error.code, error.message, error.details);
-  }
-  // The role services throw these instead of an ApiOperationError. Without the
-  // mapping an expected 409/404/403 surfaced as a 500 (and got logged as one).
-  if (error instanceof RoleOperationError) {
-    return apiV1Error(ROLE_ERROR_CODE[error.kind], error.message);
-  }
-  if (error instanceof AuthorizationError) {
-    return apiV1Error(authorizationErrorCode(error.status), error.message);
-  }
-  // Unexpected errors are not shown to the caller, so they have to be logged
-  // here or every 500 from the v1 API is undebuggable.
+  const known = asApiOperationError(error);
+  if (known) return apiV1Error(known.code, known.message, known.details);
   console.error('[api/v1] unhandled error', error);
   return apiV1Error('internal_error', 'The request could not be completed');
 };

@@ -1,9 +1,10 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 
 import { API_SCOPES } from '$lib/api/v1/scopes';
+import { API_V1_ERROR_CODES } from '$lib/server/api/v1/errors';
 import {
   flightInputSchema,
   passengerInputSchema,
@@ -199,19 +200,7 @@ describe('enum vocabularies', () => {
 
   it('spells the error codes the API can actually return', () => {
     const codes = schema('ErrorResponse').properties.error.properties.code.enum;
-    expect([...codes].sort()).toEqual(
-      [
-        'bad_request',
-        'conflict',
-        'forbidden',
-        'insufficient_scope',
-        'internal_error',
-        'invalid_json',
-        'not_found',
-        'unauthorized',
-        'validation_failed',
-      ].sort(),
-    );
+    expect([...codes].sort()).toEqual([...API_V1_ERROR_CODES].sort());
   });
 
   it('advertises the discoverable scopes', () => {
@@ -240,50 +229,41 @@ describe('input schemas', () => {
     },
   );
 
+  /** A value Zod accepts for each field some input schema requires. */
+  const requiredFieldValues: Record<string, unknown> = {
+    date: '2026-01-01',
+    fromId: 1,
+    toId: 1,
+    passengers: [{ userId: 'u1', guestName: null }],
+    code: 'DE',
+    status: 'visited',
+    coordinates: [
+      [0, 0],
+      [1, 1],
+    ],
+    sourceFormat: 'gpx',
+  };
+
   it.each([
     [
       'FlightInput',
       flightInputSchema,
       ['date', 'fromId', 'toId', 'passengers'],
     ],
-    ['ShareInput', shareInputSchema, ['slug']],
+    ['ShareInput', shareInputSchema, []],
     ['VisitedCountryInput', visitedCountryInputSchema, ['code', 'status']],
     ['TrackInput', flightTrackInputSchema, ['coordinates', 'sourceFormat']],
   ] as [string, unknown, string[]][])(
     '%s requires the fields Zod requires',
     (name, zodSchema, alwaysRequired) => {
-      const documented = requiredOf(name).sort();
-      expect(documented).toEqual([...alwaysRequired].sort());
+      expect(requiredOf(name).sort()).toEqual([...alwaysRequired].sort());
 
-      /*
-       * Anything Zod rejects when absent, but which has a default, is not
-       * required by the transport. Verify that split rather than trusting it.
-       */
+      // Fields with a Zod default are not required by the transport.
       const parsed = (
         zodSchema as { safeParse: (input: unknown) => { success: boolean } }
       ).safeParse(
         Object.fromEntries(
-          alwaysRequired.map((field) => [
-            field,
-            field === 'passengers'
-              ? [{ userId: 'u1', guestName: null }]
-              : field === 'coordinates'
-                ? [
-                    [0, 0],
-                    [1, 1],
-                  ]
-                : field === 'fromId' || field === 'toId'
-                  ? 1
-                  : field === 'slug'
-                    ? 'a-slug'
-                    : field === 'code'
-                      ? 'DE'
-                      : field === 'status'
-                        ? 'visited'
-                        : field === 'sourceFormat'
-                          ? 'gpx'
-                          : '2026-01-01',
-          ]),
+          alwaysRequired.map((field) => [field, requiredFieldValues[field]]),
         ),
       );
       expect(parsed.success).toBe(true);
@@ -338,38 +318,5 @@ describe('response shapes', () => {
       'AircraftCollection',
     ])
       expect(requiredOf(name).sort()).toEqual(['data', 'page']);
-  });
-
-  it('documents a response for every route', () => {
-    expect(Object.keys(spec.paths).length).toBeGreaterThan(15);
-  });
-});
-
-/*
- * A route that ships without a matching path entry is invisible to clients, and
- * the reverse documents an endpoint that does not exist. Both are drift.
- */
-describe('documented paths', () => {
-  const routePaths = () => {
-    const root = join(process.cwd(), 'src/routes/api/v1');
-    const walk = (dir: string): string[] =>
-      readdirSync(dir).flatMap((entry) => {
-        const full = join(dir, entry);
-        if (statSync(full).isDirectory()) return walk(full);
-        if (entry !== '+server.ts') return [];
-        const relative = full
-          .slice(root.length)
-          .replace(/\/?\+server\.ts$/, '')
-          .replace(/\[\.\.\.(\w+)\]/g, '{$1}')
-          .replace(/\[(\w+)\]/g, '{$1}');
-        return [relative === '' ? '/api/v1' : `/api/v1${relative}`];
-      });
-    return walk(root)
-      .filter((path) => path !== '/api/v1/openapi.yaml')
-      .sort();
-  };
-
-  it('matches the routes on disk', () => {
-    expect(Object.keys(spec.paths).sort()).toEqual(routePaths());
   });
 });

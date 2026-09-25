@@ -106,10 +106,8 @@ export const toFlightDto = (
 });
 
 /*
- * Shares, visited countries and custom fields used to be returned with
- * `selectAll()`, which made every column of those tables part of the public v1
- * contract -- including `userId` -- and turned any future column addition into a
- * silent API change. These project explicitly, like every other resource.
+ * Explicit projections, so a new column (or `userId`) never becomes part of the
+ * public contract by accident.
  */
 export const toShareDto = (share: Selectable<public_share>) => ({
   id: share.id,

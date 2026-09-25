@@ -1,26 +1,30 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { describe, expect, it } from 'vitest';
 
+import { API_OPERATIONS, type ApiOperation } from '$lib/api/v1/operations';
 import {
   API_SCOPES,
-  API_SCOPE_DESCRIPTIONS,
   MCP_DEFAULT_SCOPES,
-  OAUTH_READONLY_SCOPES,
-  UNIMPLEMENTED_SCOPES,
   authorizationAllowsScope,
   flightScope,
   flightScopeOwnership,
   grantableScopes,
+  grantableSubset,
   isApiScope,
-  isGrantableScope,
+  parseScopes,
+  scopeDefinition,
   type ApiScope,
 } from '$lib/api/v1/scopes';
 import { flightInputSchema } from '$lib/api/v1/schemas';
 import { pkceChallenge } from '$lib/server/oauth/server';
 import { effectiveApiPermissions } from '$lib/server/api/v1/access';
+import { createMcpServer } from '$lib/server/mcp/server';
 import { principalHasScope, type ApiPrincipal } from './principal';
-import { encodeCursor } from './flight-read';
+import { encodeCursor } from './services/flight-page';
 import { parsePage } from './query';
 import {
   accessPresentation,
@@ -31,59 +35,34 @@ import {
   PERMISSION_CATALOG,
 } from '$lib/authorization/permissions';
 
-const V1_ROUTES = join(process.cwd(), 'src/routes/api/v1');
-
-const routeFiles = (dir: string): string[] =>
-  readdirSync(dir).flatMap((entry) => {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) return routeFiles(full);
-    return entry === '+server.ts' ? [full] : [];
-  });
-
-const sourceFiles = (dir: string): string[] =>
-  readdirSync(dir).flatMap((entry) => {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) return sourceFiles(full);
-    return entry.endsWith('.ts') && !entry.endsWith('.test.ts') ? [full] : [];
-  });
-
-/*
- * Every scope the implementation actually checks, read back out of the source.
- * Literal scope names are picked up directly; `flightScope` /
- * `requireFlightScope` calls build their name from an action, and
- * `flight.<action>.${ownership}` template literals and `passengersManageScope`
- * spell an ownership, so all the variants each can produce are added. The test
- * file itself is excluded so its own assertions cannot be mistaken for code.
- */
-const implementedScopes = (): Set<string> => {
-  const source = [
-    ...routeFiles(join(process.cwd(), 'src/routes/api/v1')),
-    ...sourceFiles(join(process.cwd(), 'src/lib/server/api/v1')),
-    ...sourceFiles(join(process.cwd(), 'src/lib/server/mcp')),
-  ]
-    .map((file) => readFileSync(file, 'utf8'))
-    .join('\n');
-
-  const found = new Set<string>();
-  const addOwnershipVariants = (action: string) => {
-    found.add(`flight.${action}.own`);
-    found.add(`flight.${action}.any`);
-  };
-
-  for (const match of source.matchAll(/'([a-z][a-z_.]*)'/g))
-    if (isApiScope(match[1]!)) found.add(match[1]!);
-  for (const match of source.matchAll(
-    /\b(?:flightScope|requireFlightScope)\(\s*[^)]*?'(\w+)'/g,
-  ))
-    addOwnershipVariants(match[1]!);
-  for (const match of source.matchAll(/flight\.(\w+)\.\$\{/g))
-    addOwnershipVariants(match[1]!);
-  if (source.includes('passengersManageScope(')) {
-    found.add('flight.passengers.manage.own');
-    found.add('flight.passengers.manage.any');
-  }
-  return found;
+const { parse } = createRequire(import.meta.url)('yaml') as {
+  parse: (source: string) => Record<string, any>;
 };
+const spec = parse(
+  readFileSync(join(process.cwd(), 'src/lib/api/v1/openapi.yaml'), 'utf8'),
+);
+
+const operations = Object.entries(API_OPERATIONS) as [string, ApiOperation][];
+
+type DocumentedOperation = {
+  path: string;
+  method: string;
+  operationId: string;
+  security?: Record<string, string[]>[];
+  'x-conditional-scopes'?: string[];
+  responses: Record<string, unknown>;
+};
+
+const documentedOperations: DocumentedOperation[] = Object.entries(
+  spec.paths as Record<string, Record<string, any>>,
+).flatMap(([path, item]) =>
+  ['get', 'post', 'put', 'delete']
+    .filter((method) => item[method])
+    .map((method) => ({ path, method, ...item[method] })),
+);
+const authenticated = documentedOperations.filter(
+  (operation) => operation.security?.length !== 0,
+);
 
 const principal = (scopes: ApiScope[]): ApiPrincipal =>
   ({
@@ -99,33 +78,164 @@ const principal = (scopes: ApiScope[]): ApiPrincipal =>
     credential: { kind: 'apiKey', keyId: 1, scopes: new Set(scopes) },
   }) as unknown as ApiPrincipal;
 
-describe('route scope enforcement', () => {
-  /*
-   * The load-bearing test. Every /api/v1 handler must be built with `apiRoute`,
-   * which takes its scope as a required argument -- so a route cannot ship
-   * without a scope check unless someone deliberately bypasses the adapter.
-   * A GET handler that skipped it is exactly what shipped before.
-   */
-  const files = routeFiles(V1_ROUTES);
-
-  it('finds the v1 routes', () => {
-    expect(files.length).toBeGreaterThan(15);
+describe('operation registry', () => {
+  it('documents every registered operation and nothing else', () => {
+    expect(
+      authenticated.map((operation) => operation.operationId).sort(),
+    ).toEqual(Object.keys(API_OPERATIONS).sort());
   });
 
-  it.each(files)('%s declares its scope via apiRoute', (file) => {
-    const source = readFileSync(file, 'utf8');
-    // The discovery document is deliberately public.
-    if (source.includes('createApiDiscovery')) return;
-    // The OpenAPI document is deliberately public.
-    if (source.includes('openapi.yaml?raw')) return;
+  it.each(authenticated)(
+    '$operationId documents the registered scopes',
+    (operation) => {
+      const registered = API_OPERATIONS[
+        operation.operationId as keyof typeof API_OPERATIONS
+      ] as ApiOperation;
+      expect(operation.security).toEqual([
+        { bearerAuth: [...registered.requires] },
+      ]);
+      expect(operation['x-conditional-scopes']).toEqual(
+        registered.conditional ? [...registered.conditional] : undefined,
+      );
+      expect(Object.keys(operation.responses)).toEqual(
+        expect.arrayContaining(['401', '403']),
+      );
+    },
+  );
 
-    expect(source).toContain('apiRoute(');
-    expect(source).not.toContain('authenticateApiPrincipal');
-    for (const handler of source.matchAll(
-      /export const (GET|POST|PUT|DELETE|PATCH)\s*=\s*(\w+)/g,
-    )) {
-      expect(handler[2]).toBe('apiRoute');
-    }
+  it('leaves no scope that no operation needs', () => {
+    const used = new Set(
+      operations.flatMap(([, operation]) => [
+        ...operation.requires,
+        ...(operation.conditional ?? []),
+      ]),
+    );
+    expect(API_SCOPES.filter((scope) => !used.has(scope))).toEqual([]);
+  });
+});
+
+/*
+ * Every handler under /api/v1 is called without a credential. An `apiRoute`
+ * handler answers 401 with a challenge naming its operation's scopes, so this
+ * proves each route is built with `apiRoute` and declares the operation the
+ * OpenAPI document gives it.
+ */
+describe('routes', () => {
+  const modules = import.meta.glob<Record<string, unknown>>(
+    '/src/routes/api/v1/**/+server.ts',
+    { eager: true },
+  );
+  const routeHandlers = Object.entries(modules).flatMap(([file, module]) => {
+    const path = file
+      .replace('/src/routes', '')
+      .replace(/\/\+server\.ts$/, '')
+      .replace(/\[(\w+)\]/g, '{$1}');
+    return Object.entries(module)
+      .filter(([name]) => ['GET', 'POST', 'PUT', 'DELETE'].includes(name))
+      .map(([method, handler]) => ({
+        path,
+        method: method.toLowerCase(),
+        handler: handler as (event: unknown) => Promise<Response>,
+      }));
+  });
+  const documented = (path: string, method: string) =>
+    documentedOperations.find(
+      (operation) => operation.path === path && operation.method === method,
+    );
+
+  it('matches the documented operations', () => {
+    const routes = routeHandlers
+      .filter(({ path }) => path !== '/api/v1/openapi.yaml')
+      .map(({ path, method }) => `${method} ${path}`)
+      .sort();
+    expect(routes).toEqual(
+      documentedOperations
+        .map(({ path, method }) => `${method} ${path}`)
+        .sort(),
+    );
+  });
+
+  it.each(
+    routeHandlers.filter(({ path, method }) => {
+      const operation = documented(path, method);
+      return operation !== undefined && operation.security?.length !== 0;
+    }),
+  )('$method $path challenges for its scopes', async (route) => {
+    const operation = documented(route.path, route.method);
+    expect(operation).toBeDefined();
+    const url = new URL(
+      `https://airtrail.example${route.path.replace('{id}', '1')}`,
+    );
+    const response = await route.handler({
+      request: new Request(url, { method: route.method.toUpperCase() }),
+      url,
+      params: { id: '1' },
+    });
+    expect(response.status).toBe(401);
+    const registered = API_OPERATIONS[
+      operation!.operationId as keyof typeof API_OPERATIONS
+    ] as ApiOperation;
+    expect(response.headers.get('WWW-Authenticate')).toContain(
+      `scope="${registered.requires.join(' ')}"`,
+    );
+  });
+});
+
+describe('mcp tools', () => {
+  const connect = async (scopes: ApiScope[]) => {
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+    await createMcpServer(principal(scopes)).connect(serverTransport);
+    const client = new Client({ name: 'test', version: '1.0.0' });
+    await client.connect(clientTransport);
+    return client;
+  };
+  const registeredTools = operations
+    .map(([, operation]) => operation.mcpTool)
+    .filter(Boolean)
+    .sort();
+
+  it('registers exactly the registry tools', async () => {
+    const client = await connect([]);
+    const { tools } = await client.listTools();
+    expect(tools.map((tool) => tool.name).sort()).toEqual(registeredTools);
+  });
+
+  it('requires the registered scopes before running', async () => {
+    const client = await connect([]);
+    const result = await client.callTool({
+      name: 'airtrail_get_profile',
+      arguments: {},
+    });
+    expect(result.isError).toBe(true);
+    expect(JSON.stringify(result.content)).toContain('profile.read');
+  });
+
+  it('runs with the registered scopes', async () => {
+    const client = await connect(['profile.read']);
+    const result = await client.callTool({
+      name: 'airtrail_get_profile',
+      arguments: {},
+    });
+    expect(result.isError).toBeFalsy();
+  });
+
+  it('are the tools the documentation lists', () => {
+    const page = readFileSync(
+      join(process.cwd(), 'docs/content/docs/api/model-context-protocol.mdx'),
+      'utf8',
+    );
+    const listed = [...new Set(page.match(/airtrail_[a-z_]+/g))].sort();
+    expect(listed).toEqual(registeredTools);
+  });
+
+  it('keeps the MCP default scopes usable by MCP tools', () => {
+    const mcpScopes = new Set(
+      operations
+        .filter(([, operation]) => operation.mcpTool)
+        .flatMap(([, operation]) => operation.requires),
+    );
+    for (const scope of MCP_DEFAULT_SCOPES) expect(mcpScopes).toContain(scope);
   });
 });
 
@@ -133,20 +243,17 @@ describe('scope catalog', () => {
   it('rejects unknown scopes', () => {
     expect(isApiScope('flight.read.own')).toBe(true);
     expect(isApiScope('admin')).toBe(false);
+    expect(parseScopes(['admin', 'profile.read', 'profile.read'])).toEqual([
+      'profile.read',
+    ]);
   });
 
-  it('describes and classifies every scope', () => {
-    for (const scope of API_SCOPES) {
-      expect(API_SCOPE_DESCRIPTIONS[scope]).toBeTruthy();
-    }
+  it('describes every scope', () => {
+    for (const scope of API_SCOPES)
+      expect(scopeDefinition(scope).description).toBeTruthy();
   });
 
-  /*
-   * authorizationAllowsScope used to return true for any scope that was neither
-   * a permission nor in a partial fallback table, so a newly added scope
-   * silently required no permission at all. The map is total now; this pins it.
-   */
-  it('never allows an unknown scope by default', () => {
+  it('only lets a role without permissions grant capability scopes', () => {
     const nobody = { isOwner: false, permissions: [] as never[] };
     const allowed = API_SCOPES.filter((scope) =>
       authorizationAllowsScope(nobody, scope),
@@ -161,34 +268,23 @@ describe('scope catalog', () => {
     );
   });
 
-  it('only offers scopes something implements', () => {
-    for (const scope of UNIMPLEMENTED_SCOPES) {
-      expect(isGrantableScope(scope)).toBe(false);
-    }
-    const offered = grantableScopes({ isOwner: true, permissions: [] });
-    for (const scope of offered) {
-      expect(UNIMPLEMENTED_SCOPES).not.toContain(scope.name);
-    }
+  it('accepts a requested set only when all of it is grantable', () => {
+    const owner = { isOwner: true, permissions: [] as never[] };
+    const nobody = { isOwner: false, permissions: [] as never[] };
+    expect(grantableSubset(owner, ['flight.read.any'])).toEqual([
+      'flight.read.any',
+    ]);
+    expect(grantableSubset(nobody, ['flight.read.any'])).toBeNull();
+    expect(grantableSubset(owner, ['weather.read'])).toBeNull();
   });
 
-  /*
-   * The load-bearing half: the unimplemented list is now derived from what the
-   * routes and services actually check. A scope offered but never checked (the
-   * way `flight.share.own` was) is counted as implemented, so it must be listed
-   * here; a listed scope that gets implemented must be removed. Drift either
-   * way fails.
-   */
-  it('lists exactly the catalog scopes nothing implements', () => {
-    const implemented = implementedScopes();
-    for (const scope of implemented) expect(API_SCOPES).toContain(scope);
-    const expected = API_SCOPES.filter((scope) => !implemented.has(scope));
-    expect([...UNIMPLEMENTED_SCOPES].sort()).toEqual([...expected].sort());
-  });
-
-  it('keeps the read-only and MCP default sets grantable', () => {
-    for (const scope of [...OAUTH_READONLY_SCOPES, ...MCP_DEFAULT_SCOPES]) {
-      expect(isGrantableScope(scope)).toBe(true);
-    }
+  it('marks read and export scopes read-only', () => {
+    const readOnly = grantableScopes({ isOwner: true, permissions: [] })
+      .filter((scope) => scope.readOnly)
+      .map((scope) => scope.name);
+    expect(readOnly).toContain('flight.export.any');
+    expect(readOnly).toContain('stats.read');
+    expect(readOnly).not.toContain('tracks.write');
   });
 });
 
@@ -200,6 +296,12 @@ describe('principalHasScope', () => {
     expect(
       principalHasScope(principal(['flight.read.own']), 'flight.read.any'),
     ).toBe(false);
+    expect(
+      principalHasScope(
+        principal(['flight.passengers.manage.any']),
+        'flight.passengers.manage.own',
+      ),
+    ).toBe(true);
   });
 
   it('does not broaden across resources', () => {
@@ -213,13 +315,11 @@ describe('principalHasScope', () => {
 describe('flight scope resolution', () => {
   it('builds the scope name for each action and ownership', () => {
     expect(flightScope('read', 'own')).toBe('flight.read.own');
-    expect(flightScope('export', 'any')).toBe('flight.export.any');
+    expect(flightScope('passengers.manage', 'any')).toBe(
+      'flight.passengers.manage.any',
+    );
   });
 
-  /*
-   * The list, export and stats endpoints each computed this independently and
-   * disagreed: the export treated scope=mine as own, the others did not.
-   */
   it("counts only the caller's own flights as own", () => {
     expect(flightScopeOwnership({ scope: 'mine' }, 'u1')).toBe('own');
     expect(flightScopeOwnership({ scope: 'user', userId: 'u1' }, 'u1')).toBe(
@@ -257,27 +357,34 @@ describe('pagination', () => {
 });
 
 describe('access presentation', () => {
-  /*
-   * accessPresentation falls back to rendering the raw key as its own group and
-   * label, defaulted to write. Nothing shipped may hit that path, or the consent
-   * screen shows a user `custom_fields.read` and calls it a write permission.
-   * A fallback is recognisable because its group is the raw key.
-   */
-  it('has a real label for every scope and permission', () => {
-    const keys = [
+  it('places every scope and permission', () => {
+    for (const key of [
       ...API_SCOPES,
       ...PERMISSION_CATALOG.map((permission) => permission.key),
-    ];
-    const unlabelled = keys.filter(
-      (key) => accessPresentation(key).group === key,
+    ])
+      expect(() => accessPresentation(key)).not.toThrow();
+  });
+
+  it('files instance settings and SQL under administration', () => {
+    expect(accessPresentation('instance.map.manage').category).toBe(
+      'Administration',
     );
-    expect(unlabelled).toEqual([]);
+    expect(accessPresentation('tools.sql.execute').category).toBe(
+      'Administration',
+    );
   });
 
   it('summarises read-only and read-write grants differently', () => {
     expect(accessSummary([])).toBe('No access');
     expect(accessSummary(['flight.read.own'])).toMatch(/^Read only/);
     expect(accessSummary(['flight.delete.own'])).toMatch(/^Read and write/);
+  });
+
+  it('ignores stored scopes that no longer exist', () => {
+    expect(accessSummary(['weather.read'])).toBe('No access');
+    expect(accessSummary(['weather.read', 'profile.read'])).toBe(
+      'Read only · Profile (read)',
+    );
   });
 });
 

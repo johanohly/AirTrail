@@ -48,7 +48,7 @@ export const shareRouter = router({
   delete: authedProcedure
     .input(z.string())
     .mutation(async ({ ctx: { user }, input }) => {
-      return await deleteShare(user.id, input);
+      return await deleteShare(user.id, parseInt(input));
     }),
 
   // Get public share data (no auth required)

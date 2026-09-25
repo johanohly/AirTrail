@@ -2,6 +2,9 @@
   import { ChevronRight, Info, Search } from '@o7/icon/lucide';
 
   import AccessMatrix from '$lib/components/access/AccessMatrix.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import * as Tabs from '$lib/components/ui/tabs';
   import { HelpTooltip } from '$lib/components/ui/tooltip';
   import { cn } from '$lib/utils';
   import type { ApiScope, GrantableScope } from '$lib/api/v1/scopes';
@@ -10,13 +13,10 @@
     groupAccessItems,
     ACCESS_CATEGORY_ORDER,
     type AccessCategory,
-    type AccessRow,
   } from '$lib/authorization/access-presentation';
   import { createAccessSelection } from '$lib/authorization/access-selection';
 
   type Template = 'readonly' | 'full' | 'custom';
-  type ScopeRow = AccessRow<GrantableScope>;
-  type ScopeAction = ScopeRow['actions'][number];
 
   let {
     scopes,
@@ -62,35 +62,10 @@
     selected =
       template === 'readonly' ? [...readonlyNames] : [...availableNames];
   };
-  const selection = createAccessSelection<GrantableScope>({
-    isEffective: (scope) => selectedSet.has(scope.name),
+  const selection = createAccessSelection<GrantableScope, ApiScope>({
+    key: (scope) => scope.name,
+    describe: (scope) => `${scope.name}: ${scope.description}`,
   });
-  const actionNames = (action: ScopeAction) =>
-    selection.actionItems(action).map((scope) => scope.name);
-  const actionTitle = (row: ScopeRow, action: ScopeAction) => {
-    const details = action.items
-      .map((scope) => `${scope.name}: ${scope.description}`)
-      .join(' · ');
-    return selection.readLockedByWrite(row, action)
-      ? `Included by Write access. ${details}`
-      : details;
-  };
-  const toggleAction = (row: ScopeRow, action: ScopeAction) => {
-    if (selection.readLockedByWrite(row, action)) return;
-    const names = actionNames(action);
-    const next = new Set(selected);
-    if (names.every(isSelected)) {
-      names.forEach((name) => next.delete(name));
-    } else {
-      names.forEach((name) => next.add(name));
-      const read =
-        action.action === 'write'
-          ? selection.rowAction(row, 'read')
-          : undefined;
-      if (read) actionNames(read).forEach((name) => next.add(name));
-    }
-    selected = [...next];
-  };
   const toggleAll = () => {
     selected = allSelected ? [] : [...availableNames];
   };
@@ -147,27 +122,25 @@
     </HelpTooltip>
   </div>
 
-  <div
-    class="mb-4 inline-flex max-w-full self-start rounded-md border bg-muted p-0.5"
+  <Tabs.Root
+    value={activeTemplate}
+    onValueChange={(value) => {
+      if (value === 'readonly' || value === 'full') applyTemplate(value);
+    }}
+    activationMode="manual"
+    class="mb-4 self-start"
   >
-    {#each templates as template (template.key)}
-      <button
-        type="button"
-        class={cn(
-          'inline-flex min-h-8 items-center gap-2 rounded px-3 text-left text-sm font-medium transition-colors focus-visible:z-10 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
-          activeTemplate === template.key &&
-            'bg-background text-foreground shadow-sm',
-        )}
-        aria-pressed={activeTemplate === template.key}
-        onclick={() => applyTemplate(template.key)}
-      >
-        <span>{template.label}</span>
-        <span class="text-xs font-normal text-muted-foreground"
-          >{template.count}</span
-        >
-      </button>
-    {/each}
-  </div>
+    <Tabs.List>
+      {#each templates as template (template.key)}
+        <Tabs.Trigger value={template.key} class="px-3">
+          {template.label}
+          <span class="text-xs font-normal text-muted-foreground"
+            >{template.count}</span
+          >
+        </Tabs.Trigger>
+      {/each}
+    </Tabs.List>
+  </Tabs.Root>
 
   <div class="mb-3 flex items-center justify-between gap-4">
     <div class="flex items-center gap-1.5">
@@ -176,13 +149,14 @@
         <Info size={14} />
       </HelpTooltip>
     </div>
-    <button
-      type="button"
-      class="text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+    <Button
+      variant="ghost"
+      size="sm"
+      class="h-7 px-2 text-muted-foreground"
       onclick={toggleAll}
     >
       {allSelected ? 'Deselect all' : 'Select all'}
-    </button>
+    </Button>
   </div>
 
   <div class="mb-3 flex items-center gap-3">
@@ -192,19 +166,20 @@
         class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
         aria-hidden="true"
       />
-      <input
+      <Input
         type="search"
         bind:value={search}
         placeholder="Search permissions..."
         aria-label="Search permissions"
-        class="h-9 w-full rounded-md border border-input bg-background px-3 pl-8 text-sm outline-hidden transition-[border-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
+        class="pl-8"
       />
     </div>
     {#if search}
-      <button
-        type="button"
-        class="shrink-0 text-xs text-muted-foreground transition-colors hover:text-foreground"
-        onclick={() => (search = '')}>Clear</button
+      <Button
+        variant="ghost"
+        size="sm"
+        class="h-7 shrink-0 px-2 text-muted-foreground"
+        onclick={() => (search = '')}>Clear</Button
       >
     {/if}
     <span class="shrink-0 text-xs tabular-nums text-muted-foreground"
@@ -244,13 +219,14 @@
               rows={group.rows}
               rowClass="border-t border-dashed pl-9"
               cellState={(row, action) => ({
-                checked: selection.actionChecked(action),
-                indeterminate: selection.actionIndeterminate(action),
-                inherited: selection.readLockedByWrite(row, action),
-                disabled: selection.readLockedByWrite(row, action),
-                title: actionTitle(row, action),
+                checked: selection.actionChecked(selected, action),
+                indeterminate: selection.actionIndeterminate(selected, action),
+                inherited: selection.actionInherited(selected, row, action),
+                disabled: selection.actionInherited(selected, row, action),
+                title: selection.actionTitle(selected, row, action),
               })}
-              onToggle={toggleAction}
+              onToggle={(row, action) =>
+                (selected = selection.toggle(selected, row, action))}
             />
           </div>
         {/if}

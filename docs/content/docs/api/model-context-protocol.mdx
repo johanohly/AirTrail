@@ -75,9 +75,11 @@ The credential can narrow a user's access, but cannot grant permissions that the
 
 Clients receive the complete tool names, descriptions, input schemas, and destructive-action annotations during MCP initialization. AirTrail also publishes the connected profile as the `airtrail://profile` resource.
 
-Flight listings use cursor pagination. Pass the returned `page.nextCursor` value unchanged as `cursor` on the next call. A `null` cursor means there are no more pages.
+Each tool performs the same operation as its REST endpoint, requires the same scopes, and returns the same data. The flight list, export, and statistics tools take the REST `scope` (`mine`, `user`, or `all`) and `userId` arguments. Flight listings use cursor pagination: pass the returned `page.nextCursor` value unchanged as `cursor` on the next call. A `null` cursor means there are no more pages.
 
 ## HTTP discovery and transport behavior
+
+The endpoint accepts cross-origin requests, so browser-based MCP clients can connect; it authenticates from the `Authorization` header only and never uses cookies.
 
 A regular `GET /api/mcp` request returns a public JSON document with the endpoint URL, transport, authentication metadata, API discovery URL, and this documentation URL. The API discovery document is available at both `/api` and `/api/v1`.
 

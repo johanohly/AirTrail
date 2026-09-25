@@ -1,8 +1,9 @@
 import type { RequestHandler } from './$types';
+import { parseScopes } from '$lib/api/v1/scopes';
 import {
   formValue,
   oauthError,
-  oauthRateLimited,
+  oauthRateLimit,
   readForm,
   tokenResponse,
 } from '$lib/server/oauth/http';
@@ -10,21 +11,14 @@ import {
   authenticateClient,
   consumeAuthorizationCode,
   issueTokens,
-  oauthScopes,
   rotateRefreshToken,
 } from '$lib/server/oauth/server';
-import {
-  clientIdentity,
-  RATE_LIMITS,
-  rateLimiter,
-} from '$lib/server/security/rate-limit';
+import { RATE_LIMITS } from '$lib/server/security/rate-limit';
 
-export const POST: RequestHandler = async ({ request, getClientAddress }) => {
-  const limit = rateLimiter.check(
-    RATE_LIMITS.oauthToken,
-    clientIdentity(getClientAddress),
-  );
-  if (!limit.allowed) return oauthRateLimited(limit.retryAfterSeconds);
+export const POST: RequestHandler = async (event) => {
+  const limited = oauthRateLimit(event, RATE_LIMITS.oauthToken);
+  if (limited) return limited;
+  const { request } = event;
 
   const form = await readForm(request);
   if (!form)
@@ -60,10 +54,10 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const code = formValue(form, 'code');
   const verifier = formValue(form, 'code_verifier');
   const redirectUri = formValue(form, 'redirect_uri');
-  if (!code || !clientId || !verifier || !redirectUri)
+  if (!code || !verifier || !redirectUri)
     return oauthError(
       'invalid_request',
-      'code, client_id, redirect_uri, and code_verifier are required',
+      'code, redirect_uri, and code_verifier are required',
     );
   const row = await consumeAuthorizationCode({
     code,
@@ -78,6 +72,6 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       'Authorization code is invalid or expired',
     );
   return tokenResponse(
-    await issueTokens({ ...row, scopes: oauthScopes(row.scopes) }),
+    await issueTokens({ ...row, scopes: parseScopes(row.scopes) }),
   );
 };

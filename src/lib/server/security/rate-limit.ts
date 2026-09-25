@@ -1,14 +1,11 @@
+import type { RequestEvent } from '@sveltejs/kit';
+
 /*
- * In-process, fixed-window rate limiting.
- *
- * There is no scheduler or shared cache in this codebase, so windows live in a
- * per-process Map. That covers the endpoints this guards: all four are
- * unauthenticated, and each either does deliberately expensive work (the argon2
- * verification in the login handler) or writes a row on every request
- * (/oauth/register and /oauth/authorize). It is explicitly per-process though:
- * each instance behind a load balancer counts separately, and a restart clears
- * every window. If AirTrail is ever run with more than one replica, move the
- * store to Postgres or Redis behind `createRateLimiter`'s interface.
+ * In-process, fixed-window rate limiting for the unauthenticated endpoints that
+ * do expensive work (argon2 at login) or write a row per request (OAuth
+ * registration and authorization). Windows live in a per-process Map, so each
+ * replica counts separately and a restart clears them; a multi-replica
+ * deployment would need a shared store behind `createRateLimiter`.
  */
 
 export type RateLimitRule = {
@@ -108,15 +105,28 @@ export const RATE_LIMITS = {
 } as const satisfies Record<string, RateLimitRule>;
 
 /*
- * `getClientAddress` throws when ADDRESS_HEADER names a header the request does
- * not carry, which happens if the app is deployed without the reverse proxy it
- * is configured for. Fall back to one shared bucket: over-limiting every caller
- * is the safe direction to fail in.
+ * The address comes from the socket unless the operator sets ADDRESS_HEADER
+ * behind a reverse proxy. `getClientAddress` throws when that header is
+ * configured but absent, meaning the request bypassed the proxy. Such a caller
+ * could forge the header anyway, so the request is not limited rather than
+ * pooled into one bucket every client would share.
  */
-export const clientIdentity = (getClientAddress: () => string): string => {
+export const clientIdentity = (
+  getClientAddress: () => string,
+): string | null => {
   try {
-    return getClientAddress() || 'unknown';
+    return getClientAddress() || null;
   } catch {
-    return 'unknown';
+    return null;
   }
+};
+
+export const checkRateLimit = (
+  event: Pick<RequestEvent, 'getClientAddress'>,
+  rule: RateLimitRule,
+  key?: string,
+): RateLimitResult => {
+  const identity = clientIdentity(event.getClientAddress);
+  if (identity === null) return { allowed: true, remaining: rule.limit };
+  return rateLimiter.check(rule, key ? `${identity}:${key}` : identity);
 };

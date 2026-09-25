@@ -1,6 +1,6 @@
 import type { TZDate } from '@date-fns/tz';
 import { differenceInSeconds, isBefore, parseISO } from 'date-fns';
-import { type Insertable, type Kysely, sql } from 'kysely';
+import { type Insertable, sql } from 'kysely';
 import { isDeepStrictEqual } from 'node:util';
 import { z } from 'zod';
 
@@ -13,21 +13,23 @@ import {
   listAllFlightsPrimitive,
   listFlightBaseQuery,
   listFlightPrimitive,
+  PassengerResolutionError,
   resolveFlightPassengerChanges,
   updateFlightPrimitive,
   updateFlightPrimitiveWithConnection,
   upsertFlightTrackPrimitiveWithConnection,
 } from '$lib/db/queries';
 import type { DB } from '$lib/db/schema';
-import type { CreateFlight, Flight } from '$lib/db/types';
+import type { CreateFlight, DatabaseConnection, Flight } from '$lib/db/types';
 import type { ResolvedFlightScope } from '$lib/flight-scope';
 import { AuthorizationError } from '$lib/server/authorization/authorize';
 import type { AuthorizationContext } from '$lib/server/authorization/context';
 import {
-  canAccessFlight,
+  canAccessResolvedOwnership,
   canCreateFlight,
   flightOwnership,
 } from '$lib/server/authorization/flight';
+import { flightScope, type ApiScope } from '$lib/api/v1/scopes';
 import {
   CustomFieldValidationError,
   persistEntityCustomFieldPlan,
@@ -179,13 +181,9 @@ type FlightAggregatePlan = {
   passengersChanged: boolean;
 };
 
-/*
- * Building the custom-field plans and deciding whether passengers changed is the
- * part every flight write shares: the v0 form save, the v1 REST create/update
- * and the MCP tools. `existing` is null for a create.
- */
+/** Custom-field plans and the passenger-change decision. `existing` is null for a create. */
 export const planFlightAggregate = async (
-  trx: Kysely<DB>,
+  trx: DatabaseConnection,
   {
     existing,
     values,
@@ -227,12 +225,11 @@ export const planFlightAggregate = async (
 
 /*
  * Writes a planned flight aggregate -- flight row, passengers, custom fields and
- * track -- inside the caller's transaction, validating the plans first. The
- * caller authorizes before calling, using `plan.passengersChanged` to decide
- * whether passengers may be managed. Returns the flight id.
+ * track -- inside the caller's transaction, validating the plans first.
+ * Returns the flight id.
  */
 export const persistFlightAggregate = async (
-  trx: Kysely<DB>,
+  trx: DatabaseConnection,
   {
     existing,
     values,
@@ -274,21 +271,100 @@ export const persistFlightAggregate = async (
   return created.flightId;
 };
 
-/*
- * Called after the write plan is known to be changing passengers, with the
- * caller's resolved ownership. Scoped API callers use it to enforce the
- * credential's passenger scope against `plan.passengersChanged` -- the same
- * decision the v1 write path makes -- instead of a cheaper predicate that
- * ignored passenger custom fields. Session callers pass nothing: their
- * authorization is already the role check made below.
+/**
+ * Who is writing a flight: their role, and for API callers the check that their
+ * credential carries a scope. Session callers have no credential to check.
  */
-export type PassengerChangeGuard = (ownership: 'own' | 'any') => void;
+export type FlightWriter = {
+  authorization: AuthorizationContext;
+  requireScope: (scope: ApiScope) => void;
+};
 
-export const validateAndSaveFlight = async (
+export const sessionFlightWriter = (
   authorization: AuthorizationContext,
+): FlightWriter => ({ authorization, requireScope: () => {} });
+
+/*
+ * The authorization and write of a flight aggregate, shared by the web form,
+ * the legacy API, v1 REST and MCP. Role denials throw AuthorizationError and
+ * credential denials come from `writer.requireScope`, so every surface enforces
+ * the same rules against the same `plan.passengersChanged` the write uses.
+ */
+export const saveFlightAggregate = async (
+  { authorization, requireScope }: FlightWriter,
+  {
+    id,
+    values,
+    customFields,
+  }: {
+    id: number | null;
+    values: CreateFlight;
+    customFields: Record<string, unknown>;
+  },
+): Promise<number> => {
+  // A null track deletes the stored one, so any track in the payload is a write.
+  if (values.track !== undefined) requireScope('tracks.write');
+
+  if (id === null) {
+    const ownership = values.passengers.some(
+      (passenger) => passenger.userId === authorization.userId,
+    )
+      ? 'own'
+      : 'any';
+    if (!canCreateFlight(authorization, values.passengers))
+      throw new AuthorizationError(
+        'The current role cannot create this flight',
+      );
+    requireScope(flightScope('create', ownership));
+    if (values.passengers.length > 1)
+      requireScope(flightScope('passengers.manage', ownership));
+    return db.transaction().execute(async (trx) => {
+      const plan = await planFlightAggregate(trx, {
+        existing: null,
+        values,
+        customFields,
+      });
+      return persistFlightAggregate(trx, { existing: null, values, plan });
+    });
+  }
+
+  return db.transaction().execute(async (trx) => {
+    const existing = await getFlightPrimitive(trx, id);
+    if (!existing) throw new AuthorizationError('Flight not found', 404);
+    const ownership = await flightOwnership(authorization.userId, id, trx);
+    if (!canAccessResolvedOwnership(authorization, 'update', ownership))
+      throw new AuthorizationError('Flight not found', 404);
+    requireScope(flightScope('update', ownership));
+
+    const plan = await planFlightAggregate(trx, {
+      existing,
+      values,
+      customFields,
+    });
+    if (plan.passengersChanged) {
+      if (
+        !canAccessResolvedOwnership(
+          authorization,
+          'passengers.manage',
+          ownership,
+        )
+      )
+        throw new AuthorizationError('Flight not found', 404);
+      requireScope(flightScope('passengers.manage', ownership));
+    }
+    return persistFlightAggregate(trx, { existing, values, plan });
+  });
+};
+
+type FlightFormValues = {
+  values: CreateFlight;
+  customFields: Record<string, unknown>;
+};
+
+/** Converts a submitted flight form into the values a write stores. */
+export const flightValuesFromForm = (
   data: z.infer<typeof flightSchema>,
-  guardPassengerScope?: PassengerChangeGuard,
-): Promise<ErrorActionResult & { id?: number }> => {
+): ErrorActionResult | FlightFormValues => {
   const pathError = (path: string, message: string): ErrorActionResult => {
     return { success: false, type: 'path', path, message };
   };
@@ -307,113 +383,6 @@ export const validateAndSaveFlight = async (
     } catch {
       return { error: pathError(path, 'Invalid time format') };
     }
-  };
-
-  const saveFlightValues = async (
-    values: CreateFlight,
-    customFields: Record<string, unknown>,
-  ): Promise<ErrorActionResult & { id?: number }> => {
-    const updateId = data.id;
-    if (updateId) {
-      try {
-        await db.transaction().execute(async (trx) => {
-          const flight = await getFlightPrimitive(trx, updateId);
-          if (
-            !flight ||
-            !(await canAccessFlight(authorization, 'update', updateId, trx))
-          ) {
-            throw new AuthorizationError('Flight not found', 404);
-          }
-
-          const plan = await planFlightAggregate(trx, {
-            existing: flight,
-            values,
-            customFields,
-          });
-          if (plan.passengersChanged) {
-            if (
-              !(await canAccessFlight(
-                authorization,
-                'passengers.manage',
-                updateId,
-                trx,
-              ))
-            ) {
-              throw new AuthorizationError('Flight not found', 404);
-            }
-            guardPassengerScope?.(
-              await flightOwnership(authorization.userId, updateId, trx),
-            );
-          }
-          await persistFlightAggregate(trx, { existing: flight, values, plan });
-        });
-      } catch (e) {
-        if (e instanceof AuthorizationError) {
-          return {
-            success: false,
-            type: 'httpError',
-            status: e.status,
-            message: e.message,
-          };
-        }
-        if (e instanceof CustomFieldValidationError) {
-          return {
-            success: false,
-            type: 'error',
-            message: e.message,
-          };
-        }
-        return {
-          success: false,
-          type: 'error',
-          message: 'Failed to update flight',
-        };
-      }
-
-      return { success: true, message: 'Flight updated successfully' };
-    }
-
-    let flightId: number;
-    try {
-      if (!canCreateFlight(authorization, values.passengers)) {
-        throw new AuthorizationError();
-      }
-      flightId = await db.transaction().execute(async (trx) => {
-        const plan = await planFlightAggregate(trx, {
-          existing: null,
-          values,
-          customFields,
-        });
-        return persistFlightAggregate(trx, { existing: null, values, plan });
-      });
-    } catch (e) {
-      if (e instanceof AuthorizationError) {
-        return {
-          success: false,
-          type: 'httpError',
-          status: e.status,
-          message: e.message,
-        };
-      }
-      if (e instanceof CustomFieldValidationError) {
-        return {
-          success: false,
-          type: 'error',
-          message: e.message,
-        };
-      }
-      return {
-        success: false,
-        type: 'error',
-        message: 'Failed to add flight',
-      };
-    }
-
-    return {
-      success: true,
-      message: 'Flight added',
-      id: flightId,
-    };
   };
 
   const from = data.from;
@@ -480,7 +449,7 @@ export const validateAndSaveFlight = async (
       track,
     };
 
-    return await saveFlightValues(values, customFields);
+    return { values, customFields };
   }
 
   // Either departure or departureScheduled must be set
@@ -660,7 +629,46 @@ export const validateAndSaveFlight = async (
     track,
   };
 
-  return await saveFlightValues(values, customFields);
+  return { values, customFields };
+};
+
+export const validateAndSaveFlight = async (
+  writer: FlightWriter,
+  data: z.infer<typeof flightSchema>,
+): Promise<ErrorActionResult> => {
+  const prepared = flightValuesFromForm(data);
+  if (!('values' in prepared)) return prepared;
+  const updating = Boolean(data.id);
+  try {
+    const id = await saveFlightAggregate(writer, {
+      id: data.id ?? null,
+      ...prepared,
+    });
+    return updating
+      ? { success: true, message: 'Flight updated successfully' }
+      : { success: true, message: 'Flight added', id };
+  } catch (e) {
+    if (e instanceof AuthorizationError) {
+      return {
+        success: false,
+        type: 'httpError',
+        status: e.status,
+        message: e.message,
+      };
+    }
+    if (
+      e instanceof CustomFieldValidationError ||
+      e instanceof PassengerResolutionError
+    ) {
+      return { success: false, type: 'error', message: e.message };
+    }
+    console.error('Failed to save flight', e);
+    return {
+      success: false,
+      type: 'error',
+      message: updating ? 'Failed to update flight' : 'Failed to add flight',
+    };
+  }
 };
 
 export const deleteFlight = async (id: number) => {

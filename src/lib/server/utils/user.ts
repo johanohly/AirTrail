@@ -1,8 +1,11 @@
 import type { Kysely } from 'kysely';
+import type { z } from 'zod';
 
 import type { DB } from '$lib/db/schema';
 import type { PageUser, PublicUser, User } from '$lib/db/types';
 import type { AuthorizationContext } from '$lib/server/authorization/context';
+import { db } from '$lib/db';
+import type { updatePreferencesSchema } from '$lib/zod/user';
 
 export { publicUserFields as publicUserSelect } from '$lib/db/types';
 
@@ -87,3 +90,16 @@ export const toPageUser = (
   flightTimeDisplay: user.flightTimeDisplay,
   hasOAuthLinked: Boolean(user.oauthId),
 });
+
+/** An empty patch is a no-op rather than an `update "user" set` Postgres rejects. */
+export const updateUserPreferences = async (
+  userId: string,
+  preferences: z.infer<typeof updatePreferencesSchema>,
+) => {
+  if (Object.keys(preferences).length === 0) return;
+  await db
+    .updateTable('user')
+    .set(preferences)
+    .where('id', '=', userId)
+    .execute();
+};

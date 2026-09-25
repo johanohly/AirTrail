@@ -9,24 +9,23 @@ import {
 } from '$lib/api/v1/schemas';
 import { updatePreferencesSchema } from '$lib/zod/user';
 import { flightTrackInputSchema } from '$lib/track/schema';
+import { requireOperation } from '$lib/server/api/v1/access';
 import type { ApiPrincipal } from '$lib/server/api/v1/principal';
-import { parsePage } from '$lib/server/api/v1/query';
+import { parseFlightScope, parsePage } from '$lib/server/api/v1/query';
 import {
-  createApiFlight,
-  deleteApiFlight,
-  updateApiFlight,
-} from '$lib/server/api/v1/flight-write';
-import {
-  deleteApiFlightTrack,
-  getApiFlightTrack,
-  setApiFlightTrack,
-} from '$lib/server/api/v1/track';
-import {
+  createFlight,
+  deleteFlight,
   exportFlights,
-  getFlightById,
+  getFlight,
   getFlightStats,
   listFlights,
+  updateFlight,
 } from '$lib/server/api/v1/services/flights';
+import {
+  deleteFlightTrack,
+  getFlightTrack,
+  setFlightTrack,
+} from '$lib/server/api/v1/services/tracks';
 import {
   createShare,
   deleteShare,
@@ -47,273 +46,285 @@ import {
   searchAirlines,
   searchAirports,
 } from '$lib/server/api/v1/services/reference';
-import { mcpTool } from './tool';
+import { operationTools } from './tool';
 
-/** A positive integer `id`, shared by every by-id tool. */
 const idInput = { id: z.number().int().positive() };
+const queryInput = { query: z.string().min(1) };
+const noInput = {};
+/** The same `scope`/`userId` pair the REST query string takes. */
+const flightScopeInput = {
+  scope: z.enum(['mine', 'user', 'all']).default('mine'),
+  userId: z.string().min(1).optional(),
+};
 const destructive = { annotations: { destructiveHint: true } } as const;
 
-/*
- * Every tool is a thin projection of the same service the REST route calls, so
- * the two surfaces cannot drift on scope enforcement or on business rules. They
- * previously re-queried the database independently and had already diverged at
- * birth: the profile tool enforced no scope at all, the share tools skipped both
- * the showTracks invariant and the slug conflict check, and custom fields came
- * back in a different order.
- */
-export const createMcpServer = (principal: ApiPrincipal) => {
-  const server = new McpServer({ name: 'airtrail', version: '1.0.0' });
-
-  server.registerTool(
-    'airtrail_get_profile',
-    { description: 'Get the authenticated AirTrail profile' },
-    mcpTool('Unable to load profile', () => getProfile(principal)),
+const toFlightScope = ({ scope, userId }: { scope: string; userId?: string }) =>
+  parseFlightScope(
+    new URLSearchParams({ scope, ...(userId ? { userId } : {}) }),
   );
 
-  server.registerTool(
-    'airtrail_list_flights',
+export const createMcpServer = (principal: ApiPrincipal) => {
+  const server = new McpServer({ name: 'airtrail', version: '1.0.0' });
+  const tool = operationTools(server, principal);
+
+  tool(
+    'api-v1-get-me',
+    {
+      description: 'Get the authenticated AirTrail profile',
+      inputSchema: noInput,
+    },
+    'Unable to load profile',
+    () => getProfile(principal),
+  );
+
+  tool(
+    'api-v1-list-flights',
     {
       description: 'List visible AirTrail flights',
       inputSchema: {
-        scope: z.enum(['mine', 'all']).default('mine'),
+        ...flightScopeInput,
         limit: z.number().int().min(1).max(100).default(50),
         cursor: z.string().nullable().optional(),
       },
     },
-    mcpTool('Unable to list flights', ({ scope, limit, cursor }) =>
-      listFlights(principal, { scope }, parsePage(limit, cursor ?? null)),
-    ),
+    'Unable to list flights',
+    ({ limit, cursor, ...scope }) =>
+      listFlights(
+        principal,
+        toFlightScope(scope),
+        parsePage(limit, cursor ?? null),
+      ),
   );
 
-  server.registerTool(
-    'airtrail_get_flight',
+  tool(
+    'api-v1-get-flight',
     { description: 'Get one visible AirTrail flight', inputSchema: idInput },
-    mcpTool('Unable to load flight', ({ id }) => getFlightById(principal, id)),
+    'Unable to load flight',
+    ({ id }) => getFlight(principal, id),
   );
 
-  server.registerTool(
-    'airtrail_create_flight',
+  tool(
+    'api-v1-create-flight',
     {
       description: 'Create an AirTrail flight',
       inputSchema: flightInputSchema,
     },
-    mcpTool('Unable to create flight', async (input) => ({
-      id: await createApiFlight(principal, input),
-    })),
+    'Unable to create flight',
+    async (input) => ({ id: await createFlight(principal, input) }),
   );
 
-  server.registerTool(
-    'airtrail_update_flight',
+  tool(
+    'api-v1-update-flight',
     {
       description: 'Replace an AirTrail flight',
       inputSchema: flightInputSchema.extend(idInput),
     },
-    mcpTool('Unable to update flight', async ({ id, ...input }) => {
-      await updateApiFlight(principal, id, input);
-      return { id, updated: true };
-    }),
+    'Unable to update flight',
+    ({ id, ...input }) => updateFlight(principal, id, input),
   );
 
-  server.registerTool(
-    'airtrail_delete_flight',
+  tool(
+    'api-v1-delete-flight',
     {
       description: 'Delete an AirTrail flight',
       inputSchema: idInput,
       ...destructive,
     },
-    mcpTool('Unable to delete flight', async ({ id }) => {
-      await deleteApiFlight(principal, id);
+    'Unable to delete flight',
+    async ({ id }) => {
+      await deleteFlight(principal, id);
       return { id, deleted: true };
-    }),
+    },
   );
 
-  server.registerTool(
-    'airtrail_export_flights',
+  tool(
+    'api-v1-export-flights',
     {
       description: 'Export visible flights as a backup document',
-      inputSchema: { scope: z.enum(['mine', 'all']).default('mine') },
+      inputSchema: flightScopeInput,
     },
-    mcpTool('Unable to export flights', ({ scope }) =>
-      exportFlights(principal, { scope }),
-    ),
+    'Unable to export flights',
+    (scope) => exportFlights(principal, toFlightScope(scope)),
   );
 
-  server.registerTool(
-    'airtrail_get_flight_track',
+  tool(
+    'api-v1-get-flight-track',
     { description: 'Get a flight track', inputSchema: idInput },
-    mcpTool('Unable to load track', ({ id }) =>
-      getApiFlightTrack(principal, id),
-    ),
+    'Unable to load track',
+    ({ id }) => getFlightTrack(principal, id),
   );
 
-  server.registerTool(
-    'airtrail_set_flight_track',
+  tool(
+    'api-v1-set-flight-track',
     {
       description: 'Replace a flight track',
       inputSchema: flightTrackInputSchema.extend(idInput),
     },
-    mcpTool('Unable to save track', ({ id, ...track }) =>
-      setApiFlightTrack(principal, id, track),
-    ),
+    'Unable to save track',
+    ({ id, ...track }) => setFlightTrack(principal, id, track),
   );
 
-  server.registerTool(
-    'airtrail_delete_flight_track',
+  tool(
+    'api-v1-delete-flight-track',
     {
       description: 'Delete a flight track',
       inputSchema: idInput,
       ...destructive,
     },
-    mcpTool('Unable to delete track', async ({ id }) => {
-      await deleteApiFlightTrack(principal, id);
+    'Unable to delete track',
+    async ({ id }) => {
+      await deleteFlightTrack(principal, id);
       return { id, deleted: true };
-    }),
-  );
-
-  server.registerTool(
-    'airtrail_get_stats',
-    {
-      description: 'Get flight statistics',
-      inputSchema: { scope: z.enum(['mine', 'all']).default('mine') },
     },
-    mcpTool('Unable to load statistics', ({ scope }) =>
-      getFlightStats(principal, { scope }),
-    ),
   );
 
-  const query = { query: z.string().min(1) };
-  server.registerTool(
-    'airtrail_search_airports',
+  tool(
+    'api-v1-get-stats',
+    { description: 'Get flight statistics', inputSchema: flightScopeInput },
+    'Unable to load statistics',
+    (scope) => getFlightStats(principal, toFlightScope(scope)),
+  );
+
+  tool(
+    'api-v1-search-airports',
     {
       description: 'Search airports by name, ICAO, or IATA',
-      inputSchema: query,
+      inputSchema: queryInput,
     },
-    mcpTool('Unable to search airports', ({ query }) =>
-      searchAirports(principal, query),
-    ),
+    'Unable to search airports',
+    ({ query }) => searchAirports(query),
   );
-  server.registerTool(
-    'airtrail_get_airport',
+  tool(
+    'api-v1-get-airport',
     { description: 'Get an airport by id', inputSchema: idInput },
-    mcpTool('Unable to load airport', ({ id }) => getAirport(principal, id)),
+    'Unable to load airport',
+    ({ id }) => getAirport(id),
   );
-  server.registerTool(
-    'airtrail_search_airlines',
-    { description: 'Search airlines', inputSchema: query },
-    mcpTool('Unable to search airlines', ({ query }) =>
-      searchAirlines(principal, query),
-    ),
+  tool(
+    'api-v1-search-airlines',
+    { description: 'Search airlines', inputSchema: queryInput },
+    'Unable to search airlines',
+    ({ query }) => searchAirlines(query),
   );
-  server.registerTool(
-    'airtrail_get_airline',
+  tool(
+    'api-v1-get-airline',
     { description: 'Get an airline by id', inputSchema: idInput },
-    mcpTool('Unable to load airline', ({ id }) => getAirline(principal, id)),
+    'Unable to load airline',
+    ({ id }) => getAirline(id),
   );
-  server.registerTool(
-    'airtrail_search_aircraft',
-    { description: 'Search aircraft types', inputSchema: query },
-    mcpTool('Unable to search aircraft', ({ query }) =>
-      searchAircraft(principal, query),
-    ),
+  tool(
+    'api-v1-search-aircraft',
+    { description: 'Search aircraft types', inputSchema: queryInput },
+    'Unable to search aircraft',
+    ({ query }) => searchAircraft(query),
   );
-  server.registerTool(
-    'airtrail_get_aircraft',
+  tool(
+    'api-v1-get-aircraft',
     { description: 'Get an aircraft type by id', inputSchema: idInput },
-    mcpTool('Unable to load aircraft', ({ id }) => getAircraft(principal, id)),
+    'Unable to load aircraft',
+    ({ id }) => getAircraft(id),
   );
 
-  server.registerTool(
-    'airtrail_list_custom_fields',
-    { description: 'List active custom field definitions' },
-    mcpTool('Unable to load custom fields', () => listCustomFields(principal)),
+  tool(
+    'api-v1-list-custom-fields',
+    {
+      description: 'List active custom field definitions',
+      inputSchema: noInput,
+    },
+    'Unable to load custom fields',
+    () => listCustomFields(),
   );
 
-  server.registerTool(
-    'airtrail_update_preferences',
+  tool(
+    'api-v1-update-preferences',
     {
       description: 'Update profile preferences',
       inputSchema: updatePreferencesSchema,
     },
-    mcpTool('Unable to update preferences', (input) =>
-      updatePreferences(principal, input),
-    ),
+    'Unable to update preferences',
+    (input) => updatePreferences(principal, input),
   );
 
-  server.registerTool(
-    'airtrail_list_visited_countries',
-    { description: 'List personal visited countries' },
-    mcpTool('Unable to load countries', () => listVisitedCountries(principal)),
+  tool(
+    'api-v1-list-visited-countries',
+    { description: 'List personal visited countries', inputSchema: noInput },
+    'Unable to load countries',
+    () => listVisitedCountries(principal),
   );
-  server.registerTool(
-    'airtrail_set_visited_country',
+  tool(
+    'api-v1-set-visited-country',
     {
       description: 'Create or update a visited country',
       inputSchema: visitedCountryInputSchema,
     },
-    mcpTool('Unable to save country', (input) =>
-      setVisitedCountry(principal, input),
-    ),
+    'Unable to save country',
+    (input) => setVisitedCountry(principal, input),
   );
-  server.registerTool(
-    'airtrail_remove_visited_country',
+  tool(
+    'api-v1-remove-visited-country',
     {
       description: 'Remove a visited country',
       inputSchema: { code: z.string().length(2) },
       ...destructive,
     },
-    mcpTool('Unable to remove country', async ({ code }) => ({
+    'Unable to remove country',
+    async ({ code }) => ({
       code: await removeVisitedCountry(principal, code),
       deleted: true,
-    })),
+    }),
   );
 
-  server.registerTool(
-    'airtrail_list_shares',
-    { description: 'List personal public shares' },
-    mcpTool('Unable to load shares', () => listShares(principal)),
+  tool(
+    'api-v1-list-shares',
+    { description: 'List personal public shares', inputSchema: noInput },
+    'Unable to load shares',
+    () => listShares(principal),
   );
-  server.registerTool(
-    'airtrail_create_share',
+  tool(
+    'api-v1-create-share',
     { description: 'Create a public share', inputSchema: shareInputSchema },
-    mcpTool('Unable to create share', (input) => createShare(principal, input)),
+    'Unable to create share',
+    (input) => createShare(principal, input),
   );
-  server.registerTool(
-    'airtrail_update_share',
+  tool(
+    'api-v1-update-share',
     {
       description: 'Replace a public share',
       inputSchema: shareInputSchema.extend(idInput),
     },
-    mcpTool('Unable to update share', ({ id, ...input }) =>
-      updateShare(principal, id, input),
-    ),
+    'Unable to update share',
+    ({ id, ...input }) => updateShare(principal, id, input),
   );
-  server.registerTool(
-    'airtrail_delete_share',
+  tool(
+    'api-v1-delete-share',
     {
       description: 'Delete a public share',
       inputSchema: idInput,
       ...destructive,
     },
-    mcpTool('Unable to delete share', async ({ id }) => {
+    'Unable to delete share',
+    async ({ id }) => {
       await deleteShare(principal, id);
       return { id, deleted: true };
-    }),
+    },
   );
 
   server.registerResource(
     'airtrail-profile',
     'airtrail://profile',
     { mimeType: 'application/json' },
-    // Goes through getProfile, so it costs profile.read like the tool does.
-    async () => ({
-      contents: [
-        {
-          uri: 'airtrail://profile',
-          mimeType: 'application/json',
-          text: JSON.stringify(getProfile(principal)),
-        },
-      ],
-    }),
+    async () => {
+      requireOperation(principal, 'api-v1-get-me');
+      return {
+        contents: [
+          {
+            uri: 'airtrail://profile',
+            mimeType: 'application/json',
+            text: JSON.stringify(getProfile(principal)),
+          },
+        ],
+      };
+    },
   );
 
   return server;

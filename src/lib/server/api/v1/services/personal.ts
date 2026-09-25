@@ -1,181 +1,111 @@
-import { z } from 'zod';
+import type { z } from 'zod';
 
-import { db } from '$lib/db';
 import {
   toCustomFieldDto,
   toShareDto,
   toVisitedCountryDto,
 } from '$lib/api/v1/dto';
-import {
+import type {
   shareInputSchema,
   visitedCountryInputSchema,
 } from '$lib/api/v1/schemas';
-import { updatePreferencesSchema } from '$lib/zod/user';
-import { requireApiScope } from '../access';
+import { db } from '$lib/db';
+import {
+  deleteShare as deleteUserShare,
+  insertShare,
+  listUserShares,
+  patchShare,
+  ShareSlugTakenError,
+} from '$lib/server/utils/share';
+import { updateUserPreferences } from '$lib/server/utils/user';
+import { isKnownCountryCode } from '$lib/utils/data/countries';
+import {
+  listVisitedCountries as listUserVisitedCountries,
+  removeVisitedCountry as removeUserVisitedCountry,
+  setVisitedCountry as setUserVisitedCountry,
+} from '$lib/server/utils/visited-countries';
+import type { updatePreferencesSchema } from '$lib/zod/user';
 import { ApiOperationError } from '../errors';
 import type { ApiPrincipal } from '../principal';
 
-/*
- * The single implementation of every personal-data operation. Both the REST
- * routes and the MCP tools call these, so the two surfaces cannot drift on
- * scope enforcement, ordering, field projection or invariants -- which they had
- * already done at birth on share normalization, slug conflicts and custom-field
- * ordering.
- */
-
 type ShareInput = z.infer<typeof shareInputSchema>;
-type VisitedCountryInput = z.infer<typeof visitedCountryInputSchema>;
-type PreferencesInput = z.infer<typeof updatePreferencesSchema>;
 
-/** `showTracks` is meaningless without the map, and the renderer assumes it. */
-const shareValues = (input: ShareInput) => ({
+const shareValues = ({ expiresAt, ...input }: ShareInput) => ({
   ...input,
-  expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
-  showTracks: input.showMap && input.showTracks,
+  expiresAt: expiresAt ? new Date(expiresAt) : null,
 });
 
-export const listShares = async (principal: ApiPrincipal) => {
-  requireApiScope(principal, 'shares.read');
-  const rows = await db
-    .selectFrom('publicShare')
-    .selectAll()
-    .where('userId', '=', principal.user.id)
-    .orderBy('createdAt', 'desc')
-    .execute();
-  return rows.map(toShareDto);
+const slugConflict = (error: unknown): never => {
+  if (error instanceof ShareSlugTakenError)
+    throw new ApiOperationError('conflict', 'Share slug already exists');
+  throw error;
 };
 
-export const createShare = async (
-  principal: ApiPrincipal,
-  input: ShareInput,
-) => {
-  requireApiScope(principal, 'shares.write');
-  const exists = await db
-    .selectFrom('publicShare')
-    .select('id')
-    .where('slug', '=', input.slug)
-    .executeTakeFirst();
-  if (exists)
-    throw new ApiOperationError('conflict', 'Share slug already exists');
-  const row = await db
-    .insertInto('publicShare')
-    .values({ ...shareValues(input), userId: principal.user.id })
-    .returningAll()
-    .executeTakeFirstOrThrow();
-  return toShareDto(row);
-};
+export const listShares = async (principal: ApiPrincipal) =>
+  (await listUserShares(principal.user.id)).map(toShareDto);
+
+export const createShare = async (principal: ApiPrincipal, input: ShareInput) =>
+  toShareDto(
+    await insertShare(principal.user.id, shareValues(input)).catch(
+      slugConflict,
+    ),
+  );
 
 export const updateShare = async (
   principal: ApiPrincipal,
   id: number,
   input: ShareInput,
 ) => {
-  requireApiScope(principal, 'shares.write');
-  const conflict = await db
-    .selectFrom('publicShare')
-    .select('id')
-    .where('slug', '=', input.slug)
-    .where('id', '!=', id)
-    .executeTakeFirst();
-  if (conflict)
-    throw new ApiOperationError('conflict', 'Share slug already exists');
-  const row = await db
-    .updateTable('publicShare')
-    .set(shareValues(input))
-    .where('id', '=', id)
-    .where('userId', '=', principal.user.id)
-    .returningAll()
-    .executeTakeFirst();
+  const row = await patchShare(principal.user.id, id, shareValues(input)).catch(
+    slugConflict,
+  );
   if (!row) throw new ApiOperationError('not_found', 'Share not found');
   return toShareDto(row);
 };
 
 export const deleteShare = async (principal: ApiPrincipal, id: number) => {
-  requireApiScope(principal, 'shares.write');
-  const deleted = await db
-    .deleteFrom('publicShare')
-    .where('id', '=', id)
-    .where('userId', '=', principal.user.id)
-    .executeTakeFirst();
-  if (!deleted.numDeletedRows)
+  if (!(await deleteUserShare(principal.user.id, id)))
     throw new ApiOperationError('not_found', 'Share not found');
 };
 
-export const listVisitedCountries = async (principal: ApiPrincipal) => {
-  requireApiScope(principal, 'visited_countries.read');
-  const rows = await db
-    .selectFrom('visitedCountry')
-    .selectAll()
-    .where('userId', '=', principal.user.id)
-    .orderBy('code')
-    .execute();
-  return rows.map(toVisitedCountryDto);
-};
+export const listVisitedCountries = async (principal: ApiPrincipal) =>
+  (await listUserVisitedCountries(principal.user.id)).map(toVisitedCountryDto);
 
 export const setVisitedCountry = async (
   principal: ApiPrincipal,
-  input: VisitedCountryInput,
-) => {
-  requireApiScope(principal, 'visited_countries.write');
-  const row = await db
-    .insertInto('visitedCountry')
-    .values({ ...input, userId: principal.user.id })
-    .onConflict((oc) =>
-      oc
-        .columns(['userId', 'code'])
-        .doUpdateSet({ status: input.status, note: input.note }),
-    )
-    .returningAll()
-    .executeTakeFirstOrThrow();
-  return toVisitedCountryDto(row);
-};
+  input: z.infer<typeof visitedCountryInputSchema>,
+) => toVisitedCountryDto(await setUserVisitedCountry(principal.user.id, input));
 
 export const removeVisitedCountry = async (
   principal: ApiPrincipal,
   rawCode: string | null,
 ) => {
-  requireApiScope(principal, 'visited_countries.write');
   const code = rawCode?.toUpperCase();
-  if (!code || code.length !== 2)
+  if (!code || !isKnownCountryCode(code))
     throw new ApiOperationError(
       'bad_request',
-      'A two-letter country code is required',
+      'A known country code is required',
     );
-  await db
-    .deleteFrom('visitedCountry')
-    .where('userId', '=', principal.user.id)
-    .where('code', '=', code)
-    .execute();
+  await removeUserVisitedCountry(principal.user.id, code);
   return code;
 };
 
-export const listCustomFields = async (principal: ApiPrincipal) => {
-  requireApiScope(principal, 'custom_fields.read');
+export const listCustomFields = async () => {
   const rows = await db
     .selectFrom('customFieldDefinition')
     .selectAll()
     .where('active', '=', true)
     .orderBy('entityType')
     .orderBy('order')
+    .orderBy('label')
     .execute();
   return rows.map(toCustomFieldDto);
 };
 
 export const updatePreferences = async (
   principal: ApiPrincipal,
-  input: PreferencesInput,
+  input: z.infer<typeof updatePreferencesSchema>,
 ) => {
-  requireApiScope(principal, 'preferences.write');
-  // An empty patch compiles to `update "user" set`, which Postgres rejects.
-  if (Object.keys(input).length === 0)
-    throw new ApiOperationError(
-      'bad_request',
-      'At least one preference must be provided',
-    );
-  await db
-    .updateTable('user')
-    .set(input)
-    .where('id', '=', principal.user.id)
-    .execute();
+  await updateUserPreferences(principal.user.id, input);
   return { updated: true };
 };

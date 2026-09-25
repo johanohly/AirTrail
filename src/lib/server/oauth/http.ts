@@ -1,10 +1,14 @@
-import { json } from '@sveltejs/kit';
+import { json, type RequestEvent } from '@sveltejs/kit';
 
 import { API_SCOPES } from '$lib/api/v1/scopes';
 import {
   protectedResourceUrl,
   type ProtectedResourceKey,
 } from '$lib/api/v1/resources';
+import {
+  checkRateLimit,
+  type RateLimitRule,
+} from '$lib/server/security/rate-limit';
 import { mediaType } from '$lib/server/utils/http';
 
 export const oauthError = (
@@ -26,33 +30,35 @@ export const oauthError = (
   );
 
 /*
- * RFC 6749 has no dedicated status for throttling, so `429` with the
- * extensible `temporarily_unavailable` code is used -- the closest fit in the
- * registry, and what clients already treat as retryable.
+ * The throttling response for an unauthenticated OAuth endpoint, or null when
+ * the caller is under `rule`. RFC 6749 has no dedicated status for throttling,
+ * so `429` with the extensible `temporarily_unavailable` code is used, which
+ * clients already treat as retryable.
  */
-export const oauthRateLimited = (retryAfterSeconds: number) =>
-  oauthError(
+export const oauthRateLimit = (
+  event: Pick<RequestEvent, 'getClientAddress'>,
+  rule: RateLimitRule,
+) => {
+  const limit = checkRateLimit(event, rule);
+  if (limit.allowed) return null;
+  return oauthError(
     'temporarily_unavailable',
     'Too many requests. Retry later.',
     429,
-    { 'Retry-After': String(retryAfterSeconds) },
+    { 'Retry-After': String(limit.retryAfterSeconds) },
   );
+};
 
-/*
- * Every OAuth error response must be a JSON object (RFC 6749 section 5.2), and
- * clients are entitled to refuse a body they cannot parse. `request.formData()`
- * throws on a body whose content type is not a form type, which made the token
- * and revocation endpoints answer `500 {"message":"Internal Error"}` -- an
- * unparseable body from an endpoint a client may call before it is
- * authenticated. Returning undefined for anything unreadable is the point: the
- * handlers already treat a missing field as a protocol error, so a malformed
- * request lands on the spec-compliant path instead of the exception path.
- */
 export const formValue = (form: FormData, key: string) => {
   const value = form.get(key);
   return typeof value === 'string' ? value : null;
 };
 
+/*
+ * Every OAuth error must be a JSON object (RFC 6749 section 5.2), but
+ * `request.formData()` throws on a non-form body. Returning undefined for
+ * anything unreadable lets the handlers answer it as a protocol error.
+ */
 export const readForm = async (request: Request) => {
   const contentType = mediaType(request.headers.get('content-type'));
   if (

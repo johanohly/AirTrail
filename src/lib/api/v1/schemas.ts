@@ -7,6 +7,7 @@ import {
   VisitedCountryStatus,
 } from '$lib/db/types';
 import { flightTrackInputSchema } from '$lib/track/schema';
+import { isKnownCountryCode } from '$lib/utils/data/countries';
 
 const nullableText = z.string().max(500).nullable().optional().default(null);
 const nullableDateTime = z
@@ -64,7 +65,8 @@ export const visitedCountryInputSchema = z.object({
   code: z
     .string()
     .length(2)
-    .transform((value) => value.toUpperCase()),
+    .transform((value) => value.toUpperCase())
+    .refine(isKnownCountryCode, 'Unknown country code'),
   status: z.enum(VisitedCountryStatus),
   note: z.string().max(1000).nullable().optional().default(null),
 });
@@ -73,9 +75,12 @@ export const shareInputSchema = z.object({
   slug: z
     .string()
     .trim()
-    .min(3)
-    .max(80)
-    .regex(/^[a-zA-Z0-9_-]+$/),
+    .min(1)
+    .max(50)
+    .regex(/^[a-zA-Z0-9_-]+$/)
+    .nullable()
+    .optional()
+    .default(null),
   expiresAt: z
     .string()
     .datetime({ offset: true })

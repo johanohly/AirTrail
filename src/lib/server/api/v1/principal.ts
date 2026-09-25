@@ -1,5 +1,5 @@
 import { db } from '$lib/db';
-import { isApiScope, type ApiScope } from '$lib/api/v1/scopes';
+import { parseScopes, scopeSetCovers, type ApiScope } from '$lib/api/v1/scopes';
 import { publicUserFields, type User } from '$lib/db/types';
 import {
   loadAuthorizationContext,
@@ -34,14 +34,9 @@ const parseBearer = (request: Request) => {
   return match?.[1] ?? null;
 };
 
-const validScopes = (scopes: readonly string[]) =>
-  new Set(scopes.filter(isApiScope));
-
 /*
- * The columns that make up a `User`, derived from the canonical
- * `publicUserFields` rather than re-listed. `_NoUnselectedUserColumns` fails to
- * compile if a column is added to `User` without being selected here, which is
- * the guarantee the previous hand-written identity cast was standing in for.
+ * The columns that make up a `User`. `_NoUnselectedUserColumns` fails to
+ * compile if a column is added to `User` without being selected here.
  */
 const userColumns = [
   ...publicUserFields,
@@ -66,9 +61,13 @@ const toUser = (row: Record<string, unknown>): User =>
     userColumns.map((column) => [column, row[column]]),
   ) as unknown as User;
 
+/**
+ * Resolves the bearer credential. OAuth access tokens are accepted only for the
+ * resource they were issued to; pass `null` to accept API keys alone.
+ */
 export const authenticateApiPrincipal = async (
   request: Request,
-  expectedResource?: string,
+  resource: string | null,
 ): Promise<ApiPrincipal | null> => {
   const rawToken = parseBearer(request);
   if (!rawToken) return null;
@@ -102,11 +101,12 @@ export const authenticateApiPrincipal = async (
       credential: {
         kind: 'apiKey',
         keyId: apiKey.keyId,
-        scopes: validScopes(apiKey.scopes),
+        scopes: new Set(parseScopes(apiKey.scopes)),
       },
     };
   }
 
+  if (resource === null) return null;
   const token = await db
     .selectFrom('oauthAccessToken')
     .innerJoin('user', 'user.id', 'oauthAccessToken.userId')
@@ -119,13 +119,12 @@ export const authenticateApiPrincipal = async (
       ...userFields,
     ])
     .where('oauthAccessToken.tokenHash', '=', hash)
+    .where('oauthAccessToken.resource', '=', resource)
     .where('oauthAccessToken.expiresAt', '>', new Date())
     .where('oauthAccessToken.revokedAt', 'is', null)
     .executeTakeFirst();
 
-  if (!token || (expectedResource && token.resource !== expectedResource)) {
-    return null;
-  }
+  if (!token) return null;
   const authorization = await loadAuthorizationContext(token.userId);
   if (!authorization) return null;
 
@@ -137,15 +136,10 @@ export const authenticateApiPrincipal = async (
       clientId: token.clientId,
       grantId: token.grantId,
       resource: token.resource,
-      scopes: validScopes(token.scopes),
+      scopes: new Set(parseScopes(token.scopes)),
     },
   };
 };
 
-export const principalHasScope = (principal: ApiPrincipal, scope: ApiScope) => {
-  if (principal.credential.scopes.has(scope)) return true;
-  const broader = scope.endsWith('.own')
-    ? (`${scope.slice(0, -4)}.any` as ApiScope)
-    : null;
-  return broader ? principal.credential.scopes.has(broader) : false;
-};
+export const principalHasScope = (principal: ApiPrincipal, scope: ApiScope) =>
+  scopeSetCovers(principal.credential.scopes, scope);

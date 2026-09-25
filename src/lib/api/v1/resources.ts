@@ -7,12 +7,7 @@ export type ProtectedResource = {
   defaultScopes: readonly string[];
 };
 
-/*
- * The protected resources an OAuth credential can address. One model replaces the
- * path strings, metadata URLs and `if` branches that were spread across the
- * discovery document, the challenge builder, the authorize endpoint and the MCP
- * route.
- */
+/** The protected resources an OAuth credential can address. */
 export const PROTECTED_RESOURCES = {
   apiV1: { path: '/api/v1', defaultScopes: [] },
   mcp: { path: '/api/mcp', defaultScopes: MCP_DEFAULT_SCOPES },

@@ -1,35 +1,13 @@
 /*
- * Reimplementation of SvelteKit's origin check, which is turned off in
- * svelte.config.js.
+ * SvelteKit's origin check, reimplemented because the built-in one (turned off
+ * in svelte.config.js) runs before routing with no way to exempt a route. The
+ * OAuth token and revocation endpoints must accept form POSTs from non-browser
+ * clients, which send no Origin (RFC 6749 3.2, 4.1.3). They authenticate from
+ * the request body and never read cookies, so exempting them leaves no ambient
+ * authority to borrow; every cookie-authenticated form endpoint stays checked.
  *
- * Why it is replaced rather than configured: the built-in check runs in
- * `respond()` before routing and before hooks, so no route can opt out of it,
- * and its `trustedOrigins` allowance is consulted only when an Origin header is
- * present. The OAuth token and revocation endpoints must accept
- * `application/x-www-form-urlencoded` POSTs from non-browser clients (RFC 6749
- * sections 3.2 and 4.1.3), which send no Origin at all -- so the built-in
- * rejected every one of them with 403 in production while passing in dev, where
- * the check is compiled out.
- *
- * Exempting those two endpoints is sound rather than a trade: neither reads
- * cookies or `locals`. They authenticate from the request body (client secret,
- * authorization code plus PKCE verifier, or refresh token), so there is no
- * ambient authority for a cross-site form post to borrow. Every cookie-
- * authenticated form endpoint -- the consent action and the form-encoded save
- * handlers under /api -- stays protected.
- *
- * Verified against a production build, not just read: with the option removed,
- * a form-encoded POST with no Origin is 403 before routing, and it reaches the
- * handler once the option is set.
- *
- * What turning the option off does NOT cover: the remote-function check a few
- * lines above it in the same `if (!DEV)` block. Any non-GET to a remote
- * endpoint is 403 unless the Origin matches exactly, unconditionally. The app
- * uses no `$app/remote` today, so this is inert -- but adopting remote
- * functions would reintroduce the very breakage this file exists to fix, with
- * no config flag to disable it, so a call from a non-browser client would need
- * exempting here too. `csrf.test.ts` pins the installed SvelteKit so that
- * block cannot change out from under this reasoning silently.
+ * SvelteKit's remote-function origin check is not affected by the option. The
+ * app uses no `$app/remote`; adopting it would need the same exemption.
  */
 
 import { mediaType } from '$lib/server/utils/http';

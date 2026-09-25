@@ -1,31 +1,28 @@
-import type { FlightScope } from '$lib/flight-scope';
+import {
+  parseFlightScopeSearchParams,
+  type FlightScope,
+} from '$lib/flight-scope';
 import { ApiOperationError } from './errors';
-import { decodeCursor, type FlightPage } from './flight-read';
-
-/*
- * Query-string parsing lives at the transport boundary: routes pass raw values,
- * MCP passes its already-typed arguments, and both get the same typed domain
- * value or a v1 error. Services then accept `FlightScope` / `FlightPage`
- * directly instead of re-parsing HTTP artifacts.
- */
+import { decodeCursor, type FlightPage } from './services/flight-page';
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
 
+const FLIGHT_SCOPE_ERRORS = {
+  invalid_scope: 'Invalid scope',
+  missing_user: 'A userId query parameter is required for user scope',
+} as const;
+
 export const parseFlightScope = (
-  scope: string | null,
-  userId: string | null,
+  searchParams: URLSearchParams,
 ): FlightScope => {
-  if (scope === null || scope === 'mine') return { scope: 'mine' };
-  if (scope === 'all') return { scope: 'all' };
-  if (scope !== 'user')
-    throw new ApiOperationError('bad_request', 'Invalid scope');
-  if (!userId)
+  const parsed = parseFlightScopeSearchParams(searchParams);
+  if (!parsed.success)
     throw new ApiOperationError(
       'bad_request',
-      'A userId query parameter is required for user scope',
+      FLIGHT_SCOPE_ERRORS[parsed.reason],
     );
-  return { scope: 'user', userId };
+  return parsed.data;
 };
 
 export const parsePage = (

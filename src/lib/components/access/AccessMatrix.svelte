@@ -1,6 +1,6 @@
 <script lang="ts" generics="T">
-  import AccessCheckbox from '$lib/components/access/AccessCheckbox.svelte';
   import type { AccessRow } from '$lib/authorization/access-presentation';
+  import { Checkbox } from '$lib/components/ui/checkbox';
   import { cn } from '$lib/utils';
 
   type Action = AccessRow<T>['actions'][number];
@@ -47,15 +47,21 @@
     >
       {#each row.actions as action (action.action)}
         {@const state = cellState(row, action)}
-        <AccessCheckbox
-          checked={state.checked}
-          indeterminate={state.indeterminate}
-          inherited={state.inherited}
-          disabled={state.disabled}
-          label={action.action === 'read' ? 'Read' : 'Write'}
+        <label
+          class="inline-flex h-7 items-center gap-2 whitespace-nowrap text-xs text-foreground has-disabled:cursor-not-allowed has-disabled:text-muted-foreground"
           title={state.title}
-          onclick={() => onToggle(row, action)}
-        />
+        >
+          <Checkbox
+            bind:checked={() => state.checked, () => onToggle(row, action)}
+            indeterminate={state.indeterminate}
+            disabled={state.disabled}
+            class={cn(
+              state.inherited &&
+                'border-muted-foreground data-[state=checked]:bg-muted-foreground',
+            )}
+          />
+          {action.action === 'read' ? 'Read' : 'Write'}
+        </label>
       {/each}
     </div>
   </div>

@@ -5,7 +5,7 @@ import { apiV1Data } from '$lib/server/api/v1/response';
 import { updatePreferences } from '$lib/server/api/v1/services/personal';
 
 export const PUT = apiRoute(
-  'preferences.write',
+  'api-v1-update-preferences',
   async ({ principal, event }) => {
     const input = await parseJsonBody(event.request, updatePreferencesSchema);
     return apiV1Data(await updatePreferences(principal, input));

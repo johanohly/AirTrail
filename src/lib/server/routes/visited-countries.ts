@@ -7,58 +7,36 @@ import { VisitedCountryStatus } from '$lib/db/types';
 import { listFlights } from '$lib/server/utils/flight';
 import {
   countryCodesFromFlights,
-  countryFromAlpha2,
+  isKnownCountryCode,
 } from '$lib/utils/data/countries';
+import {
+  listVisitedCountries,
+  removeVisitedCountry,
+  setVisitedCountry,
+} from '$lib/server/utils/visited-countries';
 
 const VisitedCountrySchema = z.object({
-  code: z
-    .string()
-    .length(2)
-    .refine((code) => countryFromAlpha2(code), {
-      message: 'Unknown country code',
-    }),
+  code: z.string().length(2).refine(isKnownCountryCode, {
+    message: 'Unknown country code',
+  }),
   status: z.enum(VisitedCountryStatus).nullable(),
   note: z.string().nullable(),
 });
 
 export const visitedCountriesRouter = router({
-  list: permissionProcedure('flight.read.own').query(async ({ ctx }) => {
-    const list = await db
-      .selectFrom('visitedCountry')
-      .select(['id', 'userId', 'note', 'code', 'status'])
-      .where('userId', '=', ctx.user.id)
-      .execute();
-
-    return list.filter((country) => countryFromAlpha2(country.code));
-  }),
+  list: permissionProcedure('flight.read.own').query(({ ctx }) =>
+    listVisitedCountries(ctx.user.id),
+  ),
   save: permissionProcedure('flight.read.own')
     .input(VisitedCountrySchema)
     .mutation(async ({ ctx, input }) => {
-      const status = input.status;
+      const { code, status, note } = input;
       if (status) {
-        const result = await db
-          .insertInto('visitedCountry')
-          .values({
-            userId: ctx.user.id,
-            code: input.code,
-            status,
-            note: input.note,
-          })
-          .onConflict((oc) =>
-            oc
-              .columns(['userId', 'code'])
-              .doUpdateSet({ status, note: input.note }),
-          )
-          .execute();
-        return result.length > 0;
-      } else {
-        const result = await db
-          .deleteFrom('visitedCountry')
-          .where('userId', '=', ctx.user.id)
-          .where('code', '=', input.code)
-          .execute();
-        return result.length > 0;
+        await setVisitedCountry(ctx.user.id, { code, status, note });
+        return true;
       }
+      const result = await removeVisitedCountry(ctx.user.id, code);
+      return result.length > 0;
     }),
   importFlights: permissionProcedure('flight.read.own').mutation(
     async ({ ctx }) => {

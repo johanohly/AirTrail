@@ -3,9 +3,11 @@ info:
   title: AirTrail API v1
   version: 1.0.0
   description: >-
-    The versioned public API for AirTrail integrations and custom clients.
-    OAuth access tokens and personal API keys use the same bearer header.
-    Credential scopes are a ceiling over the user's current RBAC permissions.
+    The versioned public API for AirTrail integrations and custom clients. OAuth access tokens and
+    personal API keys use the same bearer header. Credential scopes are a ceiling over the user's
+    current RBAC permissions. Each operation lists the scopes every call needs under `security`;
+    `x-conditional-scopes` lists scopes needed only for some targets or payloads, such as another
+    user's flight.
 servers:
   - url: '{protocol}://{domain}'
     description: Your AirTrail instance.
@@ -20,11 +22,16 @@ servers:
 security:
   - bearerAuth: []
 tags:
-  - { name: Discovery, description: API metadata and the connected identity. }
-  - { name: Flights, description: Flights, tracks, exports, and statistics. }
-  - { name: Reference data, description: Airports, airlines, and aircraft types. }
-  - { name: Personal data, description: Preferences, visited countries, and shares. }
-  - { name: Administration, description: Users and RBAC roles. }
+  - name: Discovery
+    description: API metadata and the connected identity.
+  - name: Flights
+    description: Flights, tracks, exports, and statistics.
+  - name: Reference data
+    description: Airports, airlines, and aircraft types.
+  - name: Personal data
+    description: Preferences, visited countries, and shares.
+  - name: Administration
+    description: Users and RBAC roles.
 paths:
   /api/v1:
     get:
@@ -35,299 +42,698 @@ paths:
       responses:
         '200':
           description: API versions, authentication methods, MCP endpoint, and supported scopes.
-          content: { application/json: { schema: { $ref: '#/components/schemas/Discovery' } } }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Discovery'
   /api/v1/me:
     get:
       tags: [Discovery]
       operationId: api-v1-get-me
+      security:
+        - bearerAuth: [profile.read]
       summary: Get the authenticated profile
       responses:
         '200':
           description: Profile, role, effective permissions, and credential scopes.
-          content: { application/json: { schema: { $ref: '#/components/schemas/ProfileResponse' } } }
-        '401': { $ref: '#/components/responses/Unauthorized' }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /api/v1/flights:
     get:
       tags: [Flights]
       operationId: api-v1-list-flights
+      security:
+        - bearerAuth: [flight.read.own]
       summary: List visible flights
       description: >-
-        Returns flights in deterministic descending order by flight date, then
-        descending ID. Results are cursor-paginated. Start without a cursor,
-        then pass the returned `page.nextCursor` value unchanged as `cursor`
-        to fetch the next page. When `page.nextCursor` is `null`, the response
-        is the last page. Cursors are opaque and must not be decoded or
+        Returns flights in deterministic descending order by flight date, then descending ID.
+        Results are cursor-paginated. Start without a cursor, then pass the returned
+        `page.nextCursor` value unchanged as `cursor` to fetch the next page. When `page.nextCursor`
+        is `null`, the response is the last page. Cursors are opaque and must not be decoded or
         constructed by clients.
+      x-conditional-scopes: [flight.read.any]
       parameters:
-        - { $ref: '#/components/parameters/FlightScope' }
-        - { $ref: '#/components/parameters/UserId' }
-        - { $ref: '#/components/parameters/Limit' }
-        - { $ref: '#/components/parameters/Cursor' }
+        - $ref: '#/components/parameters/FlightScope'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
       responses:
         '200':
           description: Cursor-paginated flights.
-          content: { application/json: { schema: { $ref: '#/components/schemas/FlightCollection' } } }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlightCollection'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     post:
       tags: [Flights]
       operationId: api-v1-create-flight
+      security:
+        - bearerAuth: [flight.create.own]
       summary: Create a flight
-      requestBody: { $ref: '#/components/requestBodies/Flight' }
+      x-conditional-scopes:
+        - flight.create.any
+        - flight.passengers.manage.own
+        - flight.passengers.manage.any
+        - tracks.write
+      requestBody:
+        $ref: '#/components/requestBodies/Flight'
       responses:
         '201':
           description: Flight created.
-          content: { application/json: { schema: { $ref: '#/components/schemas/CreatedResponse' } } }
-        '422': { $ref: '#/components/responses/ValidationFailed' }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatedResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
   /api/v1/flights/{id}:
-    parameters: [{ $ref: '#/components/parameters/FlightId' }]
+    parameters:
+      - $ref: '#/components/parameters/FlightId'
     get:
       tags: [Flights]
       operationId: api-v1-get-flight
+      security:
+        - bearerAuth: [flight.read.own]
       summary: Get a visible flight
+      x-conditional-scopes: [flight.read.any]
       responses:
-        '200': { description: Flight details., content: { application/json: { schema: { $ref: '#/components/schemas/FlightResponse' } } } }
-        '404': { $ref: '#/components/responses/NotFound' }
+        '200':
+          description: Flight details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlightResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
     put:
       tags: [Flights]
       operationId: api-v1-update-flight
+      security:
+        - bearerAuth: [flight.update.own]
       summary: Replace a flight
-      requestBody: { $ref: '#/components/requestBodies/Flight' }
+      x-conditional-scopes:
+        - flight.update.any
+        - flight.passengers.manage.own
+        - flight.passengers.manage.any
+        - tracks.write
+      requestBody:
+        $ref: '#/components/requestBodies/Flight'
       responses:
-        '200': { description: Updated flight., content: { application/json: { schema: { $ref: '#/components/schemas/FlightResponse' } } } }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '200':
+          description: Updated flight.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlightResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
     delete:
       tags: [Flights]
       operationId: api-v1-delete-flight
+      security:
+        - bearerAuth: [flight.delete.own]
       summary: Delete a flight
+      x-conditional-scopes: [flight.delete.any]
       responses:
-        '204': { description: Flight deleted. }
-        '404': { $ref: '#/components/responses/NotFound' }
+        '204':
+          description: Flight deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /api/v1/flights/{id}/track:
-    parameters: [{ $ref: '#/components/parameters/FlightId' }]
+    parameters:
+      - $ref: '#/components/parameters/FlightId'
     get:
       tags: [Flights]
       operationId: api-v1-get-flight-track
+      security:
+        - bearerAuth: [tracks.read, flight.read.own]
       summary: Get a flight track
+      x-conditional-scopes: [flight.read.any]
       responses:
-        '200': { description: Track or null., content: { application/json: { schema: { $ref: '#/components/schemas/TrackResponse' } } } }
-        '404': { $ref: '#/components/responses/NotFound' }
+        '200':
+          description: Track or null.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
     put:
       tags: [Flights]
       operationId: api-v1-set-flight-track
+      security:
+        - bearerAuth: [tracks.write, flight.update.own]
       summary: Replace a flight track
+      x-conditional-scopes: [flight.update.any]
       requestBody:
         required: true
-        content: { application/json: { schema: { $ref: '#/components/schemas/TrackInput' } } }
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrackInput'
       responses:
-        '200': { description: Saved track., content: { application/json: { schema: { $ref: '#/components/schemas/TrackResponse' } } } }
-        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '200':
+          description: Saved track.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
     delete:
       tags: [Flights]
       operationId: api-v1-delete-flight-track
+      security:
+        - bearerAuth: [tracks.write, flight.update.own]
       summary: Delete a flight track
-      responses: { '204': { description: Track deleted. } }
+      x-conditional-scopes: [flight.update.any]
+      responses:
+        '204':
+          description: Track deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /api/v1/flights/export:
     get:
       tags: [Flights]
       operationId: api-v1-export-flights
+      security:
+        - bearerAuth: [flight.export.own]
       summary: Export visible flights
+      x-conditional-scopes: [flight.export.any]
       parameters:
-        - { name: format, in: query, schema: { type: string, enum: [json, yaml, yml], default: json } }
-        - { $ref: '#/components/parameters/FlightScope' }
-        - { $ref: '#/components/parameters/UserId' }
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, yaml, yml]
+            default: json
+        - $ref: '#/components/parameters/FlightScope'
+        - $ref: '#/components/parameters/UserId'
       responses:
         '200':
           description: AirTrail backup.
           content:
-            application/json: { schema: { type: object } }
-            application/yaml: { schema: { type: string } }
-        '403': { $ref: '#/components/responses/Forbidden' }
+            application/json:
+              schema:
+                type: object
+            application/yaml:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /api/v1/stats:
     get:
       tags: [Flights]
       operationId: api-v1-get-stats
+      security:
+        - bearerAuth: [stats.read, flight.read.own]
       summary: Get flight statistics
+      x-conditional-scopes: [flight.read.any]
       parameters:
-        - { $ref: '#/components/parameters/FlightScope' }
-        - { $ref: '#/components/parameters/UserId' }
+        - $ref: '#/components/parameters/FlightScope'
+        - $ref: '#/components/parameters/UserId'
       responses:
-        '200': { description: Statistics., content: { application/json: { schema: { $ref: '#/components/schemas/StatsResponse' } } } }
+        '200':
+          description: Statistics.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /api/v1/airports:
     get:
       tags: [Reference data]
       operationId: api-v1-search-airports
+      security:
+        - bearerAuth: [reference_data.read]
       summary: Search airports
       description: >-
-        Returns a bounded set of best matches and is not paginated; `page.nextCursor`
-        is always null. Narrow the query to reach other results.
-      parameters: [{ $ref: '#/components/parameters/SearchQuery' }]
+        Returns a bounded set of best matches and is not paginated; `page.nextCursor` is always
+        null. Narrow the query to reach other results.
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
       responses:
-        '200': { description: Matching airports., content: { application/json: { schema: { $ref: '#/components/schemas/AirportCollection' } } } }
+        '200':
+          description: Matching airports.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AirportCollection'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /api/v1/airports/{id}:
     get:
       tags: [Reference data]
       operationId: api-v1-get-airport
+      security:
+        - bearerAuth: [reference_data.read]
       summary: Get an airport
-      parameters: [{ $ref: '#/components/parameters/ReferenceId' }]
+      parameters:
+        - $ref: '#/components/parameters/ReferenceId'
       responses:
-        '200': { description: Airport., content: { application/json: { schema: { $ref: '#/components/schemas/AirportResponse' } } } }
-        '404': { $ref: '#/components/responses/NotFound' }
+        '200':
+          description: Airport.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AirportResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /api/v1/airlines:
     get:
       tags: [Reference data]
       operationId: api-v1-search-airlines
+      security:
+        - bearerAuth: [reference_data.read]
       summary: Search airlines
       description: >-
-        Returns a bounded set of best matches and is not paginated; `page.nextCursor`
-        is always null. Narrow the query to reach other results.
-      parameters: [{ $ref: '#/components/parameters/SearchQuery' }]
+        Returns a bounded set of best matches and is not paginated; `page.nextCursor` is always
+        null. Narrow the query to reach other results.
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
       responses:
-        '200': { description: Matching airlines., content: { application/json: { schema: { $ref: '#/components/schemas/AirlineCollection' } } } }
+        '200':
+          description: Matching airlines.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AirlineCollection'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /api/v1/airlines/{id}:
     get:
       tags: [Reference data]
       operationId: api-v1-get-airline
+      security:
+        - bearerAuth: [reference_data.read]
       summary: Get an airline
-      parameters: [{ $ref: '#/components/parameters/ReferenceId' }]
+      parameters:
+        - $ref: '#/components/parameters/ReferenceId'
       responses:
-        '200': { description: Airline., content: { application/json: { schema: { $ref: '#/components/schemas/AirlineResponse' } } } }
-        '404': { $ref: '#/components/responses/NotFound' }
+        '200':
+          description: Airline.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AirlineResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /api/v1/aircraft:
     get:
       tags: [Reference data]
       operationId: api-v1-search-aircraft
+      security:
+        - bearerAuth: [reference_data.read]
       summary: Search aircraft types
       description: >-
-        Returns a bounded set of best matches and is not paginated; `page.nextCursor`
-        is always null. Narrow the query to reach other results.
-      parameters: [{ $ref: '#/components/parameters/SearchQuery' }]
+        Returns a bounded set of best matches and is not paginated; `page.nextCursor` is always
+        null. Narrow the query to reach other results.
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
       responses:
-        '200': { description: Matching aircraft types., content: { application/json: { schema: { $ref: '#/components/schemas/AircraftCollection' } } } }
+        '200':
+          description: Matching aircraft types.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AircraftCollection'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /api/v1/aircraft/{id}:
     get:
       tags: [Reference data]
       operationId: api-v1-get-aircraft
+      security:
+        - bearerAuth: [reference_data.read]
       summary: Get an aircraft type
-      parameters: [{ $ref: '#/components/parameters/ReferenceId' }]
+      parameters:
+        - $ref: '#/components/parameters/ReferenceId'
       responses:
-        '200': { description: Aircraft type., content: { application/json: { schema: { $ref: '#/components/schemas/AircraftResponse' } } } }
-        '404': { $ref: '#/components/responses/NotFound' }
+        '200':
+          description: Aircraft type.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AircraftResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /api/v1/custom-fields:
     get:
       tags: [Personal data]
       operationId: api-v1-list-custom-fields
+      security:
+        - bearerAuth: [custom_fields.read]
       summary: List active custom-field definitions
-      description: Requires the `custom_fields.read` scope.
       responses:
-        '200': { description: Definitions., content: { application/json: { schema: { $ref: '#/components/schemas/CustomFieldsResponse' } } } }
+        '200':
+          description: Definitions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomFieldsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /api/v1/preferences:
     put:
       tags: [Personal data]
       operationId: api-v1-update-preferences
+      security:
+        - bearerAuth: [preferences.write]
       summary: Update personal preferences
       requestBody:
         required: true
-        content: { application/json: { schema: { $ref: '#/components/schemas/Preferences' } } }
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Preferences'
       responses:
-        '200': { description: Preferences updated., content: { application/json: { schema: { $ref: '#/components/schemas/UpdatedResponse' } } } }
+        '200':
+          description: Preferences updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdatedResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /api/v1/visited-countries:
     get:
       tags: [Personal data]
       operationId: api-v1-list-visited-countries
+      security:
+        - bearerAuth: [visited_countries.read]
       summary: List visited countries
       responses:
-        '200': { description: Visited countries., content: { application/json: { schema: { $ref: '#/components/schemas/VisitedCountriesResponse' } } } }
+        '200':
+          description: Visited countries.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitedCountriesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     put:
       tags: [Personal data]
       operationId: api-v1-set-visited-country
+      security:
+        - bearerAuth: [visited_countries.write]
       summary: Set a visited country
       requestBody:
         required: true
-        content: { application/json: { schema: { $ref: '#/components/schemas/VisitedCountryInput' } } }
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisitedCountryInput'
       responses:
-        '200': { description: Saved country., content: { application/json: { schema: { $ref: '#/components/schemas/VisitedCountryResponse' } } } }
+        '200':
+          description: Saved country.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitedCountryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     delete:
       tags: [Personal data]
       operationId: api-v1-remove-visited-country
+      security:
+        - bearerAuth: [visited_countries.write]
       summary: Remove a visited country
-      parameters: [{ name: code, in: query, required: true, schema: { type: string, minLength: 2, maxLength: 2 } }]
-      responses: { '204': { description: Country removed. } }
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+      responses:
+        '204':
+          description: Country removed.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /api/v1/shares:
     get:
       tags: [Personal data]
       operationId: api-v1-list-shares
+      security:
+        - bearerAuth: [shares.read]
       summary: List public shares
       responses:
-        '200': { description: Shares., content: { application/json: { schema: { $ref: '#/components/schemas/SharesResponse' } } } }
+        '200':
+          description: Shares.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     post:
       tags: [Personal data]
       operationId: api-v1-create-share
+      security:
+        - bearerAuth: [shares.write]
       summary: Create a public share
       requestBody:
         required: true
-        content: { application/json: { schema: { $ref: '#/components/schemas/ShareInput' } } }
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShareInput'
       responses:
-        '201': { description: Created share., content: { application/json: { schema: { $ref: '#/components/schemas/ShareResponse' } } } }
-        '409': { $ref: '#/components/responses/Conflict' }
+        '201':
+          description: Created share.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /api/v1/shares/{id}:
-    parameters: [{ $ref: '#/components/parameters/ReferenceId' }]
+    parameters:
+      - $ref: '#/components/parameters/ReferenceId'
     put:
       tags: [Personal data]
       operationId: api-v1-update-share
+      security:
+        - bearerAuth: [shares.write]
       summary: Replace a public share
       requestBody:
         required: true
-        content: { application/json: { schema: { $ref: '#/components/schemas/ShareInput' } } }
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShareInput'
       responses:
-        '200': { description: Updated share., content: { application/json: { schema: { $ref: '#/components/schemas/ShareResponse' } } } }
-        '409': { $ref: '#/components/responses/Conflict' }
-        '404': { $ref: '#/components/responses/NotFound' }
+        '200':
+          description: Updated share.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
     delete:
       tags: [Personal data]
       operationId: api-v1-delete-share
+      security:
+        - bearerAuth: [shares.write]
       summary: Delete a public share
-      responses: { '204': { description: Share deleted. }, '404': { $ref: '#/components/responses/NotFound' } }
+      responses:
+        '204':
+          description: Share deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /api/v1/users:
     get:
       tags: [Administration]
       operationId: api-v1-list-users
+      security:
+        - bearerAuth: [users.directory.read]
       summary: List the user directory
       responses:
-        '200': { description: Visible users., content: { application/json: { schema: { $ref: '#/components/schemas/UsersResponse' } } } }
+        '200':
+          description: Visible users.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /api/v1/roles:
     get:
       tags: [Administration]
       operationId: api-v1-list-roles
+      security:
+        - bearerAuth: [roles.manage]
       summary: List access roles
       responses:
-        '200': { description: Roles., content: { application/json: { schema: { $ref: '#/components/schemas/RolesResponse' } } } }
+        '200':
+          description: Roles.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RolesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     post:
       tags: [Administration]
       operationId: api-v1-create-role
+      security:
+        - bearerAuth: [roles.manage]
       summary: Create an access role
       requestBody:
         required: true
-        content: { application/json: { schema: { $ref: '#/components/schemas/RoleInput' } } }
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleInput'
       responses:
-        '201': { description: Role created., content: { application/json: { schema: { $ref: '#/components/schemas/CreatedResponse' } } } }
+        '201':
+          description: Role created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatedResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /api/v1/roles/{id}:
-    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
     put:
       tags: [Administration]
       operationId: api-v1-update-role
+      security:
+        - bearerAuth: [roles.manage]
       summary: Replace an access role
       requestBody:
         required: true
-        content: { application/json: { schema: { $ref: '#/components/schemas/RoleInput' } } }
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleInput'
       responses:
-        '200': { description: Role updated., content: { application/json: { schema: { $ref: '#/components/schemas/UpdatedResponse' } } } }
+        '200':
+          description: Role updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdatedResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     delete:
       tags: [Administration]
       operationId: api-v1-delete-role
+      security:
+        - bearerAuth: [roles.manage]
       summary: Delete an access role
-      responses: { '204': { description: Role deleted. } }
+      responses:
+        '204':
+          description: Role deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 components:
   securitySchemes:
     bearerAuth:
@@ -335,38 +741,113 @@ components:
       scheme: bearer
       bearerFormat: API key or OAuth 2.1 access token
       description: >-
-        Send `Authorization: Bearer <credential>`. Create API keys in AirTrail
-        Security settings. OAuth clients use authorization code with PKCE S256
-        and a resource identifier matching `/api/v1`.
+        Send `Authorization: Bearer <credential>`. Create API keys in AirTrail Security settings.
+        OAuth clients use authorization code with PKCE S256 and a resource identifier matching
+        `/api/v1`.
   parameters:
-    FlightId: { name: id, in: path, required: true, description: Flight ID., schema: { type: integer, minimum: 1 } }
-    ReferenceId: { name: id, in: path, required: true, description: Resource ID., schema: { type: integer, minimum: 1 } }
-    FlightScope: { name: scope, in: query, description: Flight ownership scope., schema: { type: string, enum: [mine, user, all], default: mine } }
-    UserId: { name: userId, in: query, description: User ID required when scope=user., schema: { type: string } }
-    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+    FlightId:
+      name: id
+      in: path
+      required: true
+      description: Flight ID.
+      schema:
+        type: integer
+        minimum: 1
+    ReferenceId:
+      name: id
+      in: path
+      required: true
+      description: Resource ID.
+      schema:
+        type: integer
+        minimum: 1
+    FlightScope:
+      name: scope
+      in: query
+      description: Flight ownership scope.
+      schema:
+        type: string
+        enum: [mine, user, all]
+        default: mine
+    UserId:
+      name: userId
+      in: query
+      description: User ID required when scope=user.
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
     Cursor:
       name: cursor
       in: query
       description: >-
-        An opaque pagination cursor returned in `page.nextCursor`. Pass it
-        unchanged to retrieve the next page. Omit it for the first page. A
-        `null` `page.nextCursor` means there are no more pages.
-      schema: { type: string }
-    SearchQuery: { name: query, in: query, required: true, schema: { type: string, minLength: 1 } }
+        An opaque pagination cursor returned in `page.nextCursor`. Pass it unchanged to retrieve the
+        next page. Omit it for the first page. A `null` `page.nextCursor` means there are no more
+        pages.
+      schema:
+        type: string
+    SearchQuery:
+      name: query
+      in: query
+      required: true
+      schema:
+        type: string
+        minLength: 1
   requestBodies:
     Flight:
       required: true
-      content: { application/json: { schema: { $ref: '#/components/schemas/FlightInput' } } }
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/FlightInput'
   responses:
-    BadRequest: { description: Invalid request., content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    BadRequest:
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     Unauthorized:
       description: Missing or invalid bearer credential.
-      headers: { WWW-Authenticate: { description: Bearer challenge and OAuth resource metadata., schema: { type: string } } }
-      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
-    Forbidden: { description: Current RBAC authority or credential scope is insufficient., content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-    NotFound: { description: Resource not found or not visible., content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-    ValidationFailed: { description: Request validation failed., content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-    Conflict: { description: The request conflicts with an existing resource., content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+      headers:
+        WWW-Authenticate:
+          description: Bearer challenge and OAuth resource metadata.
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Current RBAC authority or credential scope is insufficient.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found or not visible.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationFailed:
+      description: Request validation failed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: The request conflicts with an existing resource.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
   schemas:
     ErrorResponse:
       type: object
@@ -376,18 +857,83 @@ components:
           type: object
           required: [code, message]
           properties:
-            code: { type: string, enum: [bad_request, conflict, forbidden, insufficient_scope, internal_error, invalid_json, not_found, unauthorized, validation_failed] }
-            message: { type: string }
-            details: { type: array, items: { type: object, additionalProperties: true } }
+            code:
+              type: string
+              enum:
+                - bad_request
+                - conflict
+                - forbidden
+                - insufficient_scope
+                - internal_error
+                - invalid_json
+                - not_found
+                - unauthorized
+                - validation_failed
+            message:
+              type: string
+            details:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
     Discovery:
       type: object
-      required: [api, instance, authentication, mcp, scopes]
+      required:
+        - api
+        - instance
+        - authentication
+        - mcp
+        - scopes
       properties:
-        api: { type: object, additionalProperties: true }
-        instance: { type: object, additionalProperties: true }
-        authentication: { type: object, additionalProperties: true }
-        mcp: { type: object, additionalProperties: true }
-        scopes: { type: array, items: { type: object, required: [name, description], properties: { name: { type: string, description: Scope name, enum: [profile.read, preferences.write, flight.read.own, flight.read.any, flight.create.own, flight.create.any, flight.update.own, flight.update.any, flight.delete.own, flight.delete.any, flight.export.own, flight.export.any, flight.passengers.manage.own, flight.passengers.manage.any, users.directory.read, users.create, users.update, users.delete, users.roles.assign, data.airports.manage, data.airlines.manage, data.aircraft.manage, custom_fields.read, custom_fields.manage, roles.manage, reference_data.read, stats.read, tracks.read, tracks.write, visited_countries.read, visited_countries.write, shares.read, shares.write, weather.read] }, description: { type: string } } } }
+        api:
+          type: object
+          additionalProperties: true
+        instance:
+          type: object
+          additionalProperties: true
+        authentication:
+          type: object
+          additionalProperties: true
+        mcp:
+          type: object
+          additionalProperties: true
+        scopes:
+          type: array
+          items:
+            type: object
+            required: [name, description]
+            properties:
+              name:
+                type: string
+                description: Scope name
+                enum:
+                  - flight.read.own
+                  - flight.read.any
+                  - flight.create.own
+                  - flight.create.any
+                  - flight.update.own
+                  - flight.update.any
+                  - flight.delete.own
+                  - flight.delete.any
+                  - flight.export.own
+                  - flight.export.any
+                  - flight.passengers.manage.own
+                  - flight.passengers.manage.any
+                  - users.directory.read
+                  - roles.manage
+                  - profile.read
+                  - preferences.write
+                  - reference_data.read
+                  - custom_fields.read
+                  - stats.read
+                  - tracks.read
+                  - tracks.write
+                  - visited_countries.read
+                  - visited_countries.write
+                  - shares.read
+                  - shares.write
+              description:
+                type: string
     Page:
       type: object
       required: [nextCursor]
@@ -395,210 +941,879 @@ components:
         nextCursor:
           type: [string, 'null']
           description: >-
-            The opaque cursor for the next page. Send this value as the
-            `cursor` query parameter. `null` indicates the last page.
+            The opaque cursor for the next page. Send this value as the `cursor` query parameter.
+            `null` indicates the last page.
     User:
       type: object
       required: [id, username, displayName]
-      properties: { id: { type: string }, username: { type: string }, displayName: { type: string } }
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: string
     Profile:
       allOf:
-        - { $ref: '#/components/schemas/User' }
+        - $ref: '#/components/schemas/User'
         - type: object
           required: [role, isOwner, permissions, credential]
           properties:
-            role: { type: [object, 'null'], properties: { id: { type: [string, 'null'] }, name: { type: string } } }
-            isOwner: { type: boolean }
-            permissions: { type: array, items: { type: string } }
-            credential: { type: object, required: [kind, scopes], properties: { kind: { type: string, enum: [apiKey, oauth] }, scopes: { type: array, items: { type: string } } } }
-    ProfileResponse: { type: object, required: [data], properties: { data: { $ref: '#/components/schemas/Profile' } } }
+            role:
+              type: [object, 'null']
+              properties:
+                id:
+                  type: [string, 'null']
+                name:
+                  type: string
+            isOwner:
+              type: boolean
+            permissions:
+              type: array
+              items:
+                type: string
+            credential:
+              type: object
+              required: [kind, scopes]
+              properties:
+                kind:
+                  type: string
+                  enum: [apiKey, oauth]
+                scopes:
+                  type: array
+                  items:
+                    type: string
+    ProfileResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Profile'
     Airport:
       type: object
-      required: [id, icao, iata, name, municipality, latitude, longitude, timezone, type, continent, country, custom]
+      required:
+        - id
+        - icao
+        - iata
+        - name
+        - municipality
+        - latitude
+        - longitude
+        - timezone
+        - type
+        - continent
+        - country
+        - custom
       properties:
-        id: { type: integer }
-        icao: { type: string }
-        iata: { type: [string, 'null'] }
-        name: { type: string }
-        municipality: { type: [string, 'null'] }
-        latitude: { type: number }
-        longitude: { type: number }
-        timezone: { type: string }
-        type: { type: string, enum: [small_airport, medium_airport, large_airport, heliport, balloonport, seaplane_base, closed] }
-        continent: { type: string, enum: [AF, AS, EU, NA, OC, SA, AN] }
-        country: { type: string }
-        custom: { type: boolean }
+        id:
+          type: integer
+        icao:
+          type: string
+        iata:
+          type: [string, 'null']
+        name:
+          type: string
+        municipality:
+          type: [string, 'null']
+        latitude:
+          type: number
+        longitude:
+          type: number
+        timezone:
+          type: string
+        type:
+          type: string
+          enum:
+            - small_airport
+            - medium_airport
+            - large_airport
+            - heliport
+            - balloonport
+            - seaplane_base
+            - closed
+        continent:
+          type: string
+          enum:
+            - AF
+            - AS
+            - EU
+            - NA
+            - OC
+            - SA
+            - AN
+        country:
+          type: string
+        custom:
+          type: boolean
     FlightAirport:
       type: object
       description: The airport shape embedded in a flight, with renamed coordinates.
-      required: [id, icao, iata, name, municipality, latitude, longitude, timezone, type, continent, country]
+      required:
+        - id
+        - icao
+        - iata
+        - name
+        - municipality
+        - latitude
+        - longitude
+        - timezone
+        - type
+        - continent
+        - country
       properties:
-        id: { type: integer }
-        icao: { type: string }
-        iata: { type: [string, 'null'] }
-        name: { type: string }
-        municipality: { type: [string, 'null'] }
-        latitude: { type: number }
-        longitude: { type: number }
-        timezone: { type: string }
-        type: { type: string, enum: [small_airport, medium_airport, large_airport, heliport, balloonport, seaplane_base, closed] }
-        continent: { type: string, enum: [AF, AS, EU, NA, OC, SA, AN] }
-        country: { type: string }
+        id:
+          type: integer
+        icao:
+          type: string
+        iata:
+          type: [string, 'null']
+        name:
+          type: string
+        municipality:
+          type: [string, 'null']
+        latitude:
+          type: number
+        longitude:
+          type: number
+        timezone:
+          type: string
+        type:
+          type: string
+          enum:
+            - small_airport
+            - medium_airport
+            - large_airport
+            - heliport
+            - balloonport
+            - seaplane_base
+            - closed
+        continent:
+          type: string
+          enum:
+            - AF
+            - AS
+            - EU
+            - NA
+            - OC
+            - SA
+            - AN
+        country:
+          type: string
     Airline:
       type: object
-      required: [id, name, icao, iata, iconPath]
-      properties: { id: { type: integer }, name: { type: string }, icao: { type: [string, 'null'] }, iata: { type: [string, 'null'] }, iconPath: { type: [string, 'null'] } }
+      required:
+        - id
+        - name
+        - icao
+        - iata
+        - iconPath
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        icao:
+          type: [string, 'null']
+        iata:
+          type: [string, 'null']
+        iconPath:
+          type: [string, 'null']
     Aircraft:
       type: object
       required: [id, name, icao]
-      properties: { id: { type: integer }, name: { type: string }, icao: { type: [string, 'null'] } }
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        icao:
+          type: [string, 'null']
     Passenger:
       type: object
-      required: [id, user, guestName, seat, seatNumber, seatClass, flightReason]
+      required:
+        - id
+        - user
+        - guestName
+        - seat
+        - seatNumber
+        - seatClass
+        - flightReason
       properties:
-        id: { type: integer }
-        user: { anyOf: [{ $ref: '#/components/schemas/User' }, { type: 'null' }] }
-        guestName: { type: [string, 'null'] }
-        seat: { type: [string, 'null'], enum: [window, aisle, middle, pilot, copilot, jumpseat, other] }
-        seatNumber: { type: [string, 'null'] }
-        seatClass: { type: [string, 'null'], enum: [economy, economy+, business, first, private] }
-        flightReason: { type: [string, 'null'], enum: [leisure, business, crew, other] }
+        id:
+          type: integer
+        user:
+          anyOf:
+            - $ref: '#/components/schemas/User'
+            - type: 'null'
+        guestName:
+          type: [string, 'null']
+        seat:
+          type: [string, 'null']
+          enum:
+            - window
+            - aisle
+            - middle
+            - pilot
+            - copilot
+            - jumpseat
+            - other
+        seatNumber:
+          type: [string, 'null']
+        seatClass:
+          type: [string, 'null']
+          enum:
+            - economy
+            - economy+
+            - business
+            - first
+            - private
+        flightReason:
+          type: [string, 'null']
+          enum: [leisure, business, crew, other]
     PassengerInput:
       type: object
       description: Exactly one of userId and guestName is required.
       properties:
-        id: { type: integer, minimum: 1 }
-        userId: { type: [string, 'null'] }
-        guestName: { type: [string, 'null'], maxLength: 100 }
-        seat: { type: [string, 'null'], enum: [window, aisle, middle, pilot, copilot, jumpseat, other] }
-        seatNumber: { type: [string, 'null'], maxLength: 20 }
-        seatClass: { type: [string, 'null'], enum: [economy, economy+, business, first, private] }
-        flightReason: { type: [string, 'null'], enum: [leisure, business, crew, other] }
-        customFields: { type: object, additionalProperties: true }
+        id:
+          type: integer
+          minimum: 1
+        userId:
+          type: [string, 'null']
+        guestName:
+          type: [string, 'null']
+          maxLength: 100
+        seat:
+          type: [string, 'null']
+          enum:
+            - window
+            - aisle
+            - middle
+            - pilot
+            - copilot
+            - jumpseat
+            - other
+        seatNumber:
+          type: [string, 'null']
+          maxLength: 20
+        seatClass:
+          type: [string, 'null']
+          enum:
+            - economy
+            - economy+
+            - business
+            - first
+            - private
+        flightReason:
+          type: [string, 'null']
+          enum: [leisure, business, crew, other]
+        customFields:
+          type: object
+          additionalProperties: true
     TrackSummary:
       type: object
       required: [pointCount, updatedAt, sourceFormat, sourceName]
-      properties: { pointCount: { type: integer }, updatedAt: { type: string, format: date-time }, sourceFormat: { type: string }, sourceName: { type: [string, 'null'] } }
+      properties:
+        pointCount:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+        sourceFormat:
+          type: string
+        sourceName:
+          type: [string, 'null']
     TrackInput:
       type: object
       required: [coordinates, sourceFormat]
       properties:
-        coordinates: { type: array, minItems: 2, maxItems: 100000, items: { type: array, minItems: 2, maxItems: 3, items: { type: number } } }
-        sourceFormat: { type: string, enum: [gpx, kml, csv, readsb] }
-        sourceName: { type: [string, 'null'], maxLength: 255 }
-        times: { type: array, items: { type: integer } }
-        groundSpeedKt: { type: array, items: { type: number } }
-        trackDeg: { type: array, items: { type: number } }
-        ground: { type: array, items: { type: boolean } }
-        estimated: { type: array, items: { type: boolean } }
+        coordinates:
+          type: array
+          minItems: 2
+          maxItems: 100000
+          items:
+            type: array
+            minItems: 2
+            maxItems: 3
+            items:
+              type: number
+        sourceFormat:
+          type: string
+          enum: [gpx, kml, csv, readsb]
+        sourceName:
+          type: [string, 'null']
+          maxLength: 255
+        times:
+          type: array
+          items:
+            type: integer
+        groundSpeedKt:
+          type: array
+          items:
+            type: number
+        trackDeg:
+          type: array
+          items:
+            type: number
+        ground:
+          type: array
+          items:
+            type: boolean
+        estimated:
+          type: array
+          items:
+            type: boolean
     Track:
       allOf:
-        - { $ref: '#/components/schemas/TrackInput' }
+        - $ref: '#/components/schemas/TrackInput'
         - type: object
           required: [flightId, pointCount, createdAt, updatedAt]
-          properties: { flightId: { type: integer }, pointCount: { type: integer }, createdAt: { type: string, format: date-time }, updatedAt: { type: string, format: date-time } }
+          properties:
+            flightId:
+              type: integer
+            pointCount:
+              type: integer
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
     # Server-rendered aliases: `from`/`to` carry latitude and longitude where
     # the stored record uses `lat`/`lon`, so the flight shape is spelled out
     # separately from `Airport` rather than referenced.
     Flight:
       type: object
-      required: [id, date, datePrecision, from, to, airline, aircraft, passengers, track]
+      required:
+        - id
+        - date
+        - datePrecision
+        - from
+        - to
+        - airline
+        - aircraft
+        - passengers
+        - track
       description: A stored flight, or null field, joined to its reference data.
       properties:
-        id: { type: integer }
-        date: { type: string, format: date }
-        datePrecision: { type: string, enum: [day, month, year] }
-        departure: { type: [string, 'null'], format: date-time }
-        arrival: { type: [string, 'null'], format: date-time }
-        departureScheduled: { type: [string, 'null'], format: date-time }
-        arrivalScheduled: { type: [string, 'null'], format: date-time }
-        takeoffScheduled: { type: [string, 'null'], format: date-time }
-        takeoffActual: { type: [string, 'null'], format: date-time }
-        landingScheduled: { type: [string, 'null'], format: date-time }
-        landingActual: { type: [string, 'null'], format: date-time }
-        duration: { type: [integer, 'null'] }
-        departureTerminal: { type: [string, 'null'] }
-        departureGate: { type: [string, 'null'] }
-        arrivalTerminal: { type: [string, 'null'] }
-        arrivalGate: { type: [string, 'null'] }
-        flightNumber: { type: [string, 'null'] }
-        aircraftReg: { type: [string, 'null'] }
-        note: { type: [string, 'null'] }
-        from: { anyOf: [{ $ref: '#/components/schemas/FlightAirport' }, { type: 'null' }] }
-        to: { anyOf: [{ $ref: '#/components/schemas/FlightAirport' }, { type: 'null' }] }
-        airline: { anyOf: [{ $ref: '#/components/schemas/Airline' }, { type: 'null' }] }
-        aircraft: { anyOf: [{ $ref: '#/components/schemas/Aircraft' }, { type: 'null' }] }
-        passengers: { type: array, items: { $ref: '#/components/schemas/Passenger' } }
-        track: { anyOf: [{ $ref: '#/components/schemas/TrackSummary' }, { type: 'null' }] }
+        id:
+          type: integer
+        date:
+          type: string
+          format: date
+        datePrecision:
+          type: string
+          enum: [day, month, year]
+        departure:
+          type: [string, 'null']
+          format: date-time
+        arrival:
+          type: [string, 'null']
+          format: date-time
+        departureScheduled:
+          type: [string, 'null']
+          format: date-time
+        arrivalScheduled:
+          type: [string, 'null']
+          format: date-time
+        takeoffScheduled:
+          type: [string, 'null']
+          format: date-time
+        takeoffActual:
+          type: [string, 'null']
+          format: date-time
+        landingScheduled:
+          type: [string, 'null']
+          format: date-time
+        landingActual:
+          type: [string, 'null']
+          format: date-time
+        duration:
+          type: [integer, 'null']
+        departureTerminal:
+          type: [string, 'null']
+        departureGate:
+          type: [string, 'null']
+        arrivalTerminal:
+          type: [string, 'null']
+        arrivalGate:
+          type: [string, 'null']
+        flightNumber:
+          type: [string, 'null']
+        aircraftReg:
+          type: [string, 'null']
+        note:
+          type: [string, 'null']
+        from:
+          anyOf:
+            - $ref: '#/components/schemas/FlightAirport'
+            - type: 'null'
+        to:
+          anyOf:
+            - $ref: '#/components/schemas/FlightAirport'
+            - type: 'null'
+        airline:
+          anyOf:
+            - $ref: '#/components/schemas/Airline'
+            - type: 'null'
+        aircraft:
+          anyOf:
+            - $ref: '#/components/schemas/Aircraft'
+            - type: 'null'
+        passengers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Passenger'
+        track:
+          anyOf:
+            - $ref: '#/components/schemas/TrackSummary'
+            - type: 'null'
     FlightInput:
       type: object
       required: [date, fromId, toId, passengers]
       properties:
-        date: { type: string, format: date }
-        datePrecision: { type: string, enum: [day, month, year], default: day }
-        departure: { type: [string, 'null'], format: date-time }
-        arrival: { type: [string, 'null'], format: date-time }
-        departureScheduled: { type: [string, 'null'], format: date-time }
-        arrivalScheduled: { type: [string, 'null'], format: date-time }
-        takeoffScheduled: { type: [string, 'null'], format: date-time }
-        takeoffActual: { type: [string, 'null'], format: date-time }
-        landingScheduled: { type: [string, 'null'], format: date-time }
-        landingActual: { type: [string, 'null'], format: date-time }
-        duration: { type: [integer, 'null'], minimum: 0 }
-        departureTerminal: { type: [string, 'null'], maxLength: 500 }
-        departureGate: { type: [string, 'null'], maxLength: 500 }
-        arrivalTerminal: { type: [string, 'null'], maxLength: 500 }
-        arrivalGate: { type: [string, 'null'], maxLength: 500 }
-        flightNumber: { type: [string, 'null'], maxLength: 500 }
-        aircraftReg: { type: [string, 'null'], maxLength: 500 }
-        note: { type: [string, 'null'], maxLength: 10000 }
-        fromId: { type: integer, minimum: 1 }
-        toId: { type: integer, minimum: 1 }
-        aircraftId: { type: [integer, 'null'], minimum: 1 }
-        airlineId: { type: [integer, 'null'], minimum: 1 }
-        passengers: { type: array, minItems: 1, items: { $ref: '#/components/schemas/PassengerInput' } }
-        track: { anyOf: [{ $ref: '#/components/schemas/TrackInput' }, { type: 'null' }] }
-        customFields: { type: object, additionalProperties: true }
-    FlightResponse: { type: object, required: [data], properties: { data: { $ref: '#/components/schemas/Flight' } } }
-    FlightCollection: { type: object, required: [data, page], properties: { data: { type: array, items: { $ref: '#/components/schemas/Flight' } }, page: { $ref: '#/components/schemas/Page' } } }
-    TrackResponse: { type: object, required: [data], properties: { data: { anyOf: [{ $ref: '#/components/schemas/Track' }, { type: 'null' }] } } }
-    AirportResponse: { type: object, required: [data], properties: { data: { $ref: '#/components/schemas/Airport' } } }
-    AirlineResponse: { type: object, required: [data], properties: { data: { $ref: '#/components/schemas/Airline' } } }
-    AircraftResponse: { type: object, required: [data], properties: { data: { $ref: '#/components/schemas/Aircraft' } } }
-    AirportCollection: { type: object, required: [data, page], properties: { data: { type: array, items: { $ref: '#/components/schemas/Airport' } }, page: { $ref: '#/components/schemas/Page' } } }
-    AirlineCollection: { type: object, required: [data, page], properties: { data: { type: array, items: { $ref: '#/components/schemas/Airline' } }, page: { $ref: '#/components/schemas/Page' } } }
-    AircraftCollection: { type: object, required: [data, page], properties: { data: { type: array, items: { $ref: '#/components/schemas/Aircraft' } }, page: { $ref: '#/components/schemas/Page' } } }
+        date:
+          type: string
+          format: date
+        datePrecision:
+          type: string
+          enum: [day, month, year]
+          default: day
+        departure:
+          type: [string, 'null']
+          format: date-time
+        arrival:
+          type: [string, 'null']
+          format: date-time
+        departureScheduled:
+          type: [string, 'null']
+          format: date-time
+        arrivalScheduled:
+          type: [string, 'null']
+          format: date-time
+        takeoffScheduled:
+          type: [string, 'null']
+          format: date-time
+        takeoffActual:
+          type: [string, 'null']
+          format: date-time
+        landingScheduled:
+          type: [string, 'null']
+          format: date-time
+        landingActual:
+          type: [string, 'null']
+          format: date-time
+        duration:
+          type: [integer, 'null']
+          minimum: 0
+        departureTerminal:
+          type: [string, 'null']
+          maxLength: 500
+        departureGate:
+          type: [string, 'null']
+          maxLength: 500
+        arrivalTerminal:
+          type: [string, 'null']
+          maxLength: 500
+        arrivalGate:
+          type: [string, 'null']
+          maxLength: 500
+        flightNumber:
+          type: [string, 'null']
+          maxLength: 500
+        aircraftReg:
+          type: [string, 'null']
+          maxLength: 500
+        note:
+          type: [string, 'null']
+          maxLength: 10000
+        fromId:
+          type: integer
+          minimum: 1
+        toId:
+          type: integer
+          minimum: 1
+        aircraftId:
+          type: [integer, 'null']
+          minimum: 1
+        airlineId:
+          type: [integer, 'null']
+          minimum: 1
+        passengers:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/PassengerInput'
+        track:
+          anyOf:
+            - $ref: '#/components/schemas/TrackInput'
+            - type: 'null'
+        customFields:
+          type: object
+          additionalProperties: true
+    FlightResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Flight'
+    FlightCollection:
+      type: object
+      required: [data, page]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Flight'
+        page:
+          $ref: '#/components/schemas/Page'
+    TrackResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          anyOf:
+            - $ref: '#/components/schemas/Track'
+            - type: 'null'
+    AirportResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Airport'
+    AirlineResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Airline'
+    AircraftResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Aircraft'
+    AirportCollection:
+      type: object
+      required: [data, page]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Airport'
+        page:
+          $ref: '#/components/schemas/Page'
+    AirlineCollection:
+      type: object
+      required: [data, page]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Airline'
+        page:
+          $ref: '#/components/schemas/Page'
+    AircraftCollection:
+      type: object
+      required: [data, page]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Aircraft'
+        page:
+          $ref: '#/components/schemas/Page'
     Stats:
       type: object
-      required: [flights, distanceKm, durationSeconds, airports, topAirline, topAirport, topAircraft, topRoute]
-      properties: { flights: { type: integer }, distanceKm: { type: integer }, durationSeconds: { type: integer }, airports: { type: integer }, topAirline: { type: [object, 'null'] }, topAirport: { type: [object, 'null'] }, topAircraft: { type: [object, 'null'] }, topRoute: { type: [object, 'null'] } }
-    StatsResponse: { type: object, required: [data], properties: { data: { $ref: '#/components/schemas/Stats' } } }
+      required:
+        - flights
+        - distanceKm
+        - durationSeconds
+        - airports
+        - topAirline
+        - topAirport
+        - topAircraft
+        - topRoute
+      properties:
+        flights:
+          type: integer
+        distanceKm:
+          type: integer
+        durationSeconds:
+          type: integer
+        airports:
+          type: integer
+        topAirline:
+          type: [object, 'null']
+        topAirport:
+          type: [object, 'null']
+        topAircraft:
+          type: [object, 'null']
+        topRoute:
+          type: [object, 'null']
+    StatsResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Stats'
     Preferences:
       type: object
-      properties: { distanceUnit: { type: string, enum: [km, mi, nm] }, windSpeedUnit: { type: string, enum: [kt, mph, kmh, ms] }, temperatureUnit: { type: string, enum: [c, f] }, pressureUnit: { type: string, enum: [hpa, inhg] }, timeFormat: { type: string, enum: [12h, 24h, auto] }, dateFormat: { type: string, enum: [iso, us, eu, auto] }, weekStartsOn: { type: string, enum: [mon, sun, auto] }, flightTimeDisplay: { type: string, enum: [airport, utc, system] } }
-    VisitedCountryInput: { type: object, required: [code, status], properties: { code: { type: string, minLength: 2, maxLength: 2 }, status: { type: string, enum: [lived, visited, layover, wishlist] }, note: { type: [string, 'null'], maxLength: 1000 } } }
-    VisitedCountry: { type: object, required: [id, code, status, note], properties: { id: { type: integer }, code: { type: string, minLength: 2, maxLength: 2 }, status: { type: string, enum: [lived, visited, layover, wishlist] }, note: { type: [string, 'null'] } } }
-    VisitedCountryResponse: { type: object, required: [data], properties: { data: { $ref: '#/components/schemas/VisitedCountry' } } }
-    VisitedCountriesResponse: { type: object, required: [data], properties: { data: { type: array, items: { $ref: '#/components/schemas/VisitedCountry' } } } }
-    ShareInput: { type: object, required: [slug], properties: { slug: { type: string, minLength: 3, maxLength: 80, pattern: '^[a-zA-Z0-9_-]+$' }, expiresAt: { type: [string, 'null'], format: date-time }, showMap: { type: boolean }, showStats: { type: boolean }, showFlightList: { type: boolean }, dateFrom: { type: [string, 'null'] }, dateTo: { type: [string, 'null'] }, showFlightNumbers: { type: boolean }, showAirlines: { type: boolean }, showAircraft: { type: boolean }, showTimes: { type: boolean }, showTracks: { type: boolean }, showDates: { type: boolean }, showSeat: { type: boolean } } }
+      properties:
+        distanceUnit:
+          type: string
+          enum: [km, mi, nm]
+        windSpeedUnit:
+          type: string
+          enum: [kt, mph, kmh, ms]
+        temperatureUnit:
+          type: string
+          enum: [c, f]
+        pressureUnit:
+          type: string
+          enum: [hpa, inhg]
+        timeFormat:
+          type: string
+          enum: [12h, 24h, auto]
+        dateFormat:
+          type: string
+          enum: [iso, us, eu, auto]
+        weekStartsOn:
+          type: string
+          enum: [mon, sun, auto]
+        flightTimeDisplay:
+          type: string
+          enum: [airport, utc, system]
+    VisitedCountryInput:
+      type: object
+      required: [code, status]
+      properties:
+        code:
+          type: string
+          minLength: 2
+          maxLength: 2
+        status:
+          type: string
+          enum: [lived, visited, layover, wishlist]
+        note:
+          type: [string, 'null']
+          maxLength: 1000
+    VisitedCountry:
+      type: object
+      required: [id, code, status, note]
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+          minLength: 2
+          maxLength: 2
+        status:
+          type: string
+          enum: [lived, visited, layover, wishlist]
+        note:
+          type: [string, 'null']
+    VisitedCountryResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/VisitedCountry'
+    VisitedCountriesResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisitedCountry'
+    ShareInput:
+      type: object
+      properties:
+        slug:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 50
+          pattern: ^[a-zA-Z0-9_-]+$
+          description: Public URL slug. Generated when omitted.
+        expiresAt:
+          type: [string, 'null']
+          format: date-time
+        showMap:
+          type: boolean
+        showStats:
+          type: boolean
+        showFlightList:
+          type: boolean
+        dateFrom:
+          type: [string, 'null']
+        dateTo:
+          type: [string, 'null']
+        showFlightNumbers:
+          type: boolean
+        showAirlines:
+          type: boolean
+        showAircraft:
+          type: boolean
+        showTimes:
+          type: boolean
+        showTracks:
+          type: boolean
+        showDates:
+          type: boolean
+        showSeat:
+          type: boolean
     Share:
       allOf:
-        - { $ref: '#/components/schemas/ShareInput' }
+        - $ref: '#/components/schemas/ShareInput'
         - type: object
           required: [id, createdAt]
-          properties: { id: { type: integer }, createdAt: { type: string, format: date-time } }
-    ShareResponse: { type: object, required: [data], properties: { data: { $ref: '#/components/schemas/Share' } } }
-    SharesResponse: { type: object, required: [data], properties: { data: { type: array, items: { $ref: '#/components/schemas/Share' } } } }
-    RoleInput: { type: object, required: [name, permissions], properties: { name: { type: string, maxLength: 50 }, description: { type: [string, 'null'], maxLength: 200 }, permissions: { type: array, items: { type: string } } } }
+          properties:
+            id:
+              type: integer
+            createdAt:
+              type: string
+              format: date-time
+    ShareResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Share'
+    SharesResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Share'
+    RoleInput:
+      type: object
+      required: [name, permissions]
+      properties:
+        name:
+          type: string
+          maxLength: 50
+        description:
+          type: [string, 'null']
+          maxLength: 200
+        permissions:
+          type: array
+          items:
+            type: string
     Role:
       allOf:
-        - { $ref: '#/components/schemas/RoleInput' }
+        - $ref: '#/components/schemas/RoleInput'
         - type: object
           required: [id, userCount, oauthMappingCount, isDefault]
-          properties: { id: { type: string }, userCount: { type: integer }, oauthMappingCount: { type: integer }, isDefault: { type: boolean }, createdAt: { type: string, format: date-time }, updatedAt: { type: string, format: date-time } }
-    UsersResponse: { type: object, required: [data], properties: { data: { type: array, items: { allOf: [{ $ref: '#/components/schemas/User' }], properties: { canManage: { type: boolean }, roleId: { type: [string, 'null'] }, roleName: { type: [string, 'null'] }, isOwner: { type: boolean } } } } } }
-    RolesResponse: { type: object, required: [data], properties: { data: { type: array, items: { $ref: '#/components/schemas/Role' } } } }
-    CustomField: { type: object, required: [id, entityType, key, label, fieldType, required, order], properties: { id: { type: integer }, entityType: { type: string, enum: [flight, flight_passenger] }, key: { type: string }, label: { type: string }, description: { type: [string, 'null'] }, fieldType: { type: string, enum: [text, textarea, number, boolean, date, select, multi-select, airport, airline, aircraft] }, required: { type: boolean }, order: { type: integer }, defaultValue: {}, options: {} } }
-    CustomFieldsResponse: { type: object, required: [data], properties: { data: { type: array, items: { $ref: '#/components/schemas/CustomField' } } } }
-    CreatedResponse: { type: object, required: [data], properties: { data: { type: object, required: [id], properties: { id: { oneOf: [{ type: string }, { type: integer }] } } } } }
-    UpdatedResponse: { type: object, required: [data], properties: { data: { type: object, additionalProperties: true } } }
+          properties:
+            id:
+              type: string
+            userCount:
+              type: integer
+            oauthMappingCount:
+              type: integer
+            isDefault:
+              type: boolean
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    UsersResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/User'
+            properties:
+              canManage:
+                type: boolean
+              roleId:
+                type: [string, 'null']
+              roleName:
+                type: [string, 'null']
+              isOwner:
+                type: boolean
+    RolesResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+    CustomField:
+      type: object
+      required:
+        - id
+        - entityType
+        - key
+        - label
+        - fieldType
+        - required
+        - order
+      properties:
+        id:
+          type: integer
+        entityType:
+          type: string
+          enum: [flight, flight_passenger]
+        key:
+          type: string
+        label:
+          type: string
+        description:
+          type: [string, 'null']
+        fieldType:
+          type: string
+          enum:
+            - text
+            - textarea
+            - number
+            - boolean
+            - date
+            - select
+            - multi-select
+            - airport
+            - airline
+            - aircraft
+        required:
+          type: boolean
+        order:
+          type: integer
+        defaultValue:
+          {}
+        options:
+          {}
+    CustomFieldsResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomField'
+    CreatedResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [id]
+          properties:
+            id:
+              oneOf:
+                - type: string
+                - type: integer
+    UpdatedResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: true

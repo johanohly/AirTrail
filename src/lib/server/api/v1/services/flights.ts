@@ -1,117 +1,172 @@
-import { flightScope, flightScopeOwnership } from '$lib/api/v1/scopes';
-import { resolveFlightScope, type FlightScope } from '$lib/flight-scope';
-import { hasPermission } from '$lib/authorization/permissions';
-import { listFlightsInScope } from '$lib/server/utils/flight';
-import { computeCompletedFlightStatsSummary } from '$lib/stats/summary';
+import type { z } from 'zod';
+
 import { toFlightDto } from '$lib/api/v1/dto';
+import type { flightInputSchema } from '$lib/api/v1/schemas';
+import { flightScope, flightScopeOwnership } from '$lib/api/v1/scopes';
+import { db } from '$lib/db';
+import type { CreateFlight, DatabaseConnection } from '$lib/db/types';
+import { resolveFlightScope, type FlightScope } from '$lib/flight-scope';
 import { generateBackup } from '$lib/server/utils/backup';
+import {
+  getFlight as loadFlight,
+  listFlightsInScope,
+  saveFlightAggregate,
+} from '$lib/server/utils/flight';
+import { computeCompletedFlightStatsSummary } from '$lib/stats/summary';
+import {
+  apiFlightWriter,
+  requireApiScope,
+  requireFlightScope,
+} from '../access';
+import { ApiOperationError } from '../errors';
+import type { ApiPrincipal } from '../principal';
 import {
   getFlightTrackSummary,
   listFlightsPage,
   type FlightPage,
-} from '../flight-read';
-import { getFlight } from '$lib/server/utils/flight';
-import { requireApiScope, requireFlightScope } from '../access';
-import { ApiOperationError } from '../errors';
-import type { ApiPrincipal } from '../principal';
+} from './flight-page';
+
+type FlightInput = z.infer<typeof flightInputSchema>;
 
 /*
- * Resolving "which flights may this caller see" is the one decision the flight
- * list, the export and the stats endpoint must agree on. They previously each
- * computed it slightly differently -- the export treated `scope=mine` as own
- * while the other two did not consider it at all.
- *
- * `action` selects the credential scope (`flight.read.*` / `flight.export.*`);
- * `permitted` is the matching role check for the resolved ownership. The
- * ownership decision therefore lives here once; the query-string parse and its
- * error live at the transport boundary in `query.ts`.
+ * Which flights a list, export or stats call may see: the credential needs
+ * `flight.<action>.<own|any>` for the resolved ownership, which the role must
+ * also permit.
  */
-export const resolveFlightScopeAccess = (
+export const visibleFlightScope = (
   principal: ApiPrincipal,
   scope: FlightScope,
-  {
-    action,
-    permitted,
-  }: {
-    action: 'read' | 'export';
-    permitted: (ownership: 'own' | 'any') => boolean;
-  },
-): FlightScope => {
-  const ownership = flightScopeOwnership(scope, principal.user.id);
-  requireApiScope(principal, flightScope(action, ownership));
-  if (!permitted(ownership))
-    throw new ApiOperationError(
-      'forbidden',
-      `The current role cannot ${action} this flight scope`,
-    );
-  return scope;
+  action: 'read' | 'export',
+) => {
+  requireApiScope(
+    principal,
+    flightScope(action, flightScopeOwnership(scope, principal.user.id)),
+  );
+  return resolveFlightScope(scope, principal.user.id);
 };
-
-const readScopeAccess = (principal: ApiPrincipal) => ({
-  action: 'read' as const,
-  permitted: (ownership: 'own' | 'any') =>
-    hasPermission(principal.authorization, `flight.read.${ownership}`),
-});
 
 export const getFlightStats = async (
   principal: ApiPrincipal,
   scope: FlightScope,
-) => {
-  requireApiScope(principal, 'stats.read');
-  const resolved = resolveFlightScopeAccess(
-    principal,
-    scope,
-    readScopeAccess(principal),
+) =>
+  computeCompletedFlightStatsSummary(
+    await listFlightsInScope(visibleFlightScope(principal, scope, 'read')),
   );
-  return computeCompletedFlightStatsSummary(
-    await listFlightsInScope(resolveFlightScope(resolved, principal.user.id)),
-  );
-};
 
 export const listFlights = async (
   principal: ApiPrincipal,
   scope: FlightScope,
   page: FlightPage,
 ) => {
-  const resolved = resolveFlightScopeAccess(
-    principal,
-    scope,
-    readScopeAccess(principal),
-  );
   const result = await listFlightsPage(
-    resolveFlightScope(resolved, principal.user.id),
+    visibleFlightScope(principal, scope, 'read'),
     page,
   );
   return {
     data: result.flights.map((flight) =>
       toFlightDto(flight, result.tracks.get(flight.id) ?? null),
     ),
-    nextCursor: result.nextCursor,
+    page: { nextCursor: result.nextCursor },
   };
 };
 
 export const exportFlights = async (
   principal: ApiPrincipal,
   scope: FlightScope,
-) => {
-  const resolved = resolveFlightScopeAccess(principal, scope, {
-    action: 'export',
-    permitted: (ownership) =>
-      hasPermission(principal.authorization, `flight.export.${ownership}`),
-  });
-  return generateBackup(resolveFlightScope(resolved, principal.user.id));
-};
+) => generateBackup(visibleFlightScope(principal, scope, 'export'));
 
-/** The DTO without a scope check, for reads already authorized by a write. */
-export const readFlightDto = async (id: number) => {
-  const flight = await getFlight(id);
+const flightDto = async (id: number) => {
+  const flight = await loadFlight(id);
   if (!flight) throw new ApiOperationError('not_found', 'Flight not found');
   return toFlightDto(flight, await getFlightTrackSummary(id));
 };
 
-export const getFlightById = async (principal: ApiPrincipal, id: number) => {
-  const flight = await getFlight(id);
-  if (!flight) throw new ApiOperationError('not_found', 'Flight not found');
+export const getFlight = async (principal: ApiPrincipal, id: number) => {
   await requireFlightScope(principal, 'read', id);
-  return toFlightDto(flight, await getFlightTrackSummary(id));
+  return flightDto(id);
+};
+
+const resolveReferences = async (
+  connection: DatabaseConnection,
+  input: FlightInput,
+): Promise<CreateFlight> => {
+  const from = await connection
+    .selectFrom('airport')
+    .selectAll()
+    .where('id', '=', input.fromId)
+    .executeTakeFirst();
+  const to = await connection
+    .selectFrom('airport')
+    .selectAll()
+    .where('id', '=', input.toId)
+    .executeTakeFirst();
+  const aircraft = input.aircraftId
+    ? await connection
+        .selectFrom('aircraft')
+        .selectAll()
+        .where('id', '=', input.aircraftId)
+        .executeTakeFirst()
+    : null;
+  const airline = input.airlineId
+    ? await connection
+        .selectFrom('airline')
+        .selectAll()
+        .where('id', '=', input.airlineId)
+        .executeTakeFirst()
+    : null;
+  if (!from || !to)
+    throw new ApiOperationError(
+      'validation_failed',
+      'Departure and arrival airports must exist',
+    );
+  if (input.aircraftId && !aircraft)
+    throw new ApiOperationError('validation_failed', 'Aircraft does not exist');
+  if (input.airlineId && !airline)
+    throw new ApiOperationError('validation_failed', 'Airline does not exist');
+  const {
+    fromId: _fromId,
+    toId: _toId,
+    aircraftId: _aircraftId,
+    airlineId: _airlineId,
+    customFields: _customFields,
+    ...rest
+  } = input;
+  return {
+    ...rest,
+    from,
+    to,
+    aircraft: aircraft ?? null,
+    airline: airline ?? null,
+  };
+};
+
+const saveFlight = async (
+  principal: ApiPrincipal,
+  id: number | null,
+  input: FlightInput,
+) =>
+  saveFlightAggregate(apiFlightWriter(principal), {
+    id,
+    values: await resolveReferences(db, input),
+    customFields: input.customFields,
+  });
+
+export const createFlight = (principal: ApiPrincipal, input: FlightInput) =>
+  saveFlight(principal, null, input);
+
+/** Returns the updated flight. */
+export const updateFlight = async (
+  principal: ApiPrincipal,
+  id: number,
+  input: FlightInput,
+) => flightDto(await saveFlight(principal, id, input));
+
+export const deleteFlight = async (principal: ApiPrincipal, id: number) => {
+  await requireFlightScope(principal, 'delete', id);
+  const deleted = await db
+    .deleteFrom('flight')
+    .where('id', '=', id)
+    .executeTakeFirst();
+  if (deleted.numDeletedRows !== 1n)
+    throw new ApiOperationError('not_found', 'Flight not found');
 };

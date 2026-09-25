@@ -6,6 +6,7 @@
   import ScopePicker from '$lib/components/access/ScopePicker.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
+  import { MCP_DOCUMENTATION_URL } from '$lib/api/v1/discovery';
   import type { ApiScope } from '$lib/api/v1/scopes';
 
   const { data }: PageProps = $props();
@@ -93,11 +94,6 @@
           />
         </section>
 
-        <p class="mb-6 text-xs leading-relaxed text-muted-foreground">
-          You can revoke this access at any time in Settings → Security →
-          Connected apps.
-        </p>
-
         <form
           method="POST"
           class="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end"
@@ -130,7 +126,7 @@
     <a href="/" class="transition-colors hover:text-foreground">AirTrail</a>
     <span class="mx-2" aria-hidden="true">·</span>
     <a
-      href="https://airtrail.johan.ohly.dk/docs/api/model-context-protocol"
+      href={MCP_DOCUMENTATION_URL}
       class="transition-colors hover:text-foreground">MCP docs</a
     >
   </footer>

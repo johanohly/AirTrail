@@ -1,24 +1,22 @@
-import type { Kysely } from 'kysely';
-
 import {
   effectivePermissions,
   PERMISSIONS,
 } from '$lib/authorization/permissions';
+import { API_OPERATIONS, type ApiOperationId } from '$lib/api/v1/operations';
 import {
   authorizationAllowsScope,
   flightScope,
   type ApiScope,
   type FlightScopeOwnership,
 } from '$lib/api/v1/scopes';
-import type { DB } from '$lib/db/schema';
+import type { DatabaseConnection } from '$lib/db/types';
 import {
   canAccessResolvedOwnership,
   flightOwnership,
-  type FlightAccessAction,
 } from '$lib/server/authorization/flight';
-import type { ApiPrincipal } from './principal';
-import { principalHasScope } from './principal';
+import type { FlightWriter } from '$lib/server/utils/flight';
 import { ApiOperationError } from './errors';
+import { principalHasScope, type ApiPrincipal } from './principal';
 
 export const requireApiScope = (principal: ApiPrincipal, scope: ApiScope) => {
   if (!principalHasScope(principal, scope)) {
@@ -35,22 +33,25 @@ export const requireApiScope = (principal: ApiPrincipal, scope: ApiScope) => {
   }
 };
 
+/** The scopes every call to `operation` needs, from the operation registry. */
+export const requireOperation = (
+  principal: ApiPrincipal,
+  operation: ApiOperationId,
+) => {
+  for (const scope of API_OPERATIONS[operation].requires)
+    requireApiScope(principal, scope);
+};
+
 /*
- * The single decision for "may this credential act on this flight": resolve the
- * caller's ownership from participation once, then apply both the role check
- * (`canAccessResolvedOwnership`) and the credential scope check
- * (`flight.<action>.<own|any>`). Callers that previously called
- * `canAccessFlight` and then `flightOwnership` paid for two identical
- * `flight_participant` reads and held two copies of the ownership rule.
- *
- * The role denial stays masked as `not_found`; the scope denial is a distinct
- * 403, matching the surfaces this replaced.
+ * "May this credential act on this flight": resolve ownership from
+ * participation once, then apply the role check and the matching
+ * `flight.<action>.<own|any>` scope. A role denial is masked as `not_found`.
  */
 export const requireFlightScope = async (
   principal: ApiPrincipal,
-  action: Exclude<FlightAccessAction, 'passengers.manage'>,
+  action: 'read' | 'update' | 'delete',
   flightId: number,
-  connection?: Kysely<DB>,
+  connection?: DatabaseConnection,
 ): Promise<FlightScopeOwnership> => {
   const ownership = await flightOwnership(
     principal.user.id,
@@ -63,6 +64,11 @@ export const requireFlightScope = async (
   requireApiScope(principal, flightScope(action, ownership));
   return ownership;
 };
+
+export const apiFlightWriter = (principal: ApiPrincipal): FlightWriter => ({
+  authorization: principal.authorization,
+  requireScope: (scope) => requireApiScope(principal, scope),
+});
 
 export const effectiveApiPermissions = (
   principal: Pick<ApiPrincipal, 'authorization'>,

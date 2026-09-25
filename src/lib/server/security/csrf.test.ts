@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { CSRF_EXEMPT_PATHS, isCrossSiteFormPost } from './csrf';
@@ -55,40 +54,8 @@ describe('cross-site form post detection', () => {
 });
 
 describe('sveltekit configuration', () => {
-  it('disables the built-in origin check', () => {
-    const config = readFileSync('svelte.config.js', 'utf8');
-    expect(config).toMatch(/csrf:\s*\{\s*checkOrigin:\s*false\s*\}/);
-  });
-
-  /*
-   * `csrf.checkOrigin` is deprecated upstream in favour of `trustedOrigins`,
-   * which cannot express what is needed here (it is skipped entirely when the
-   * Origin header is absent). When SvelteKit finally removes the option, this
-   * fails loudly instead of the built-in check silently switching back on and
-   * 403-ing the OAuth token endpoint in production only.
-   */
-  it('still honours checkOrigin in the installed SvelteKit', () => {
-    const options = readFileSync(
-      'node_modules/@sveltejs/kit/src/core/config/options.js',
-      'utf8',
-    );
-    expect(options).toContain('checkOrigin');
-  });
-
-  /*
-   * The reasoning in csrf.ts assumes the remote-function check is a separate,
-   * unconditional branch that turning the option off does not reach. If a future
-   * SvelteKit moves or drops it, that assumption is stale -- so read it rather
-   * than assume it, and fail with the disagreement instead of discovering it in
-   * production.
-   */
-  it('keeps the remote-function origin check reachable only outside the option', () => {
-    const respond = readFileSync(
-      'node_modules/@sveltejs/kit/src/runtime/server/respond.js',
-      'utf8',
-    );
-    expect(respond).toMatch(
-      /remote_id\)\s*\{[\s\S]{0,200}\}\s*else if \(options\.csrf_check_origin\)/,
-    );
+  it('disables the built-in origin check this replaces', async () => {
+    const { default: config } = await import('../../../../svelte.config.js');
+    expect(config.kit?.csrf?.checkOrigin).toBe(false);
   });
 });

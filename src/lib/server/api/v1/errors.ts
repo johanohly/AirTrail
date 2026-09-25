@@ -24,11 +24,7 @@ export const API_V1_ERROR_CODES = [
 
 export type ApiV1ErrorCode = (typeof API_V1_ERROR_CODES)[number];
 
-/*
- * The status is a function of the code, so it lives here once instead of being
- * retyped at every throw site -- where nothing stopped `not_found` from being
- * paired with 500.
- */
+/** Each code has one status, so a throw site cannot pair them wrongly. */
 export const API_V1_ERROR_STATUS: Record<ApiV1ErrorCode, number> = {
   bad_request: 400,
   conflict: 409,
@@ -78,12 +74,7 @@ export const apiV1Error = (
     },
   );
 
-/*
- * RFC 9728 clients discover where to authenticate from `resource_metadata`.
- * /api/mcp already advertised it; /api/v1 did not, so a client that hit the
- * REST API first had no way to find the protected-resource document that
- * /.well-known/oauth-protected-resource/api/v1 has been serving all along.
- */
+/** RFC 9728 clients find where to authenticate from `resource_metadata`. */
 export const apiV1Unauthorized = (
   resource: ProtectedResourceKey,
   scope?: string,

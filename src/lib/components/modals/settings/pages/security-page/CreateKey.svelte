@@ -29,6 +29,13 @@
   let key = $state('');
   let selectedScopes = $state<ApiScope[]>([]);
 
+  const scopesChanged = $derived.by(() => {
+    const defaults = new Set(readonlyScopeNames());
+    return (
+      selectedScopes.length !== defaults.size ||
+      selectedScopes.some((scope) => !defaults.has(scope))
+    );
+  });
   const canCreate = $derived(
     name.trim().length > 0 && selectedScopes.length > 0 && !loading,
   );
@@ -79,10 +86,11 @@
   bind:open
   class="max-w-2xl"
   dismissal={key ? 'view' : 'form'}
-  dirty={!key && name.length > 0}
+  dirty={!key && (name.length > 0 || scopesChanged)}
   busy={loading}
   onDiscard={() => {
     name = '';
+    selectedScopes = readonlyScopeNames();
   }}
 >
   <ModalBreadcrumbHeader

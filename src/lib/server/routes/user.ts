@@ -18,12 +18,9 @@ import {
 } from '$lib/server/authorization/users';
 import { lockRoles } from '$lib/server/authorization/roles';
 import { createApiKey } from '$lib/server/utils/auth';
+import { updateUserPreferences } from '$lib/server/utils/user';
 import { updatePreferencesSchema } from '$lib/zod/user';
-import {
-  authorizationAllowsScope,
-  isApiScope,
-  isGrantableScope,
-} from '$lib/api/v1/scopes';
+import { grantableSubset } from '$lib/api/v1/scopes';
 
 export const userRouter = router({
   me: authedProcedure.query(({ ctx: { user } }) => {
@@ -109,15 +106,8 @@ export const userRouter = router({
       z.object({ name: z.string().trim().min(1), scopes: z.array(z.string()) }),
     )
     .mutation(async ({ ctx, input }) => {
-      const scopes = [...new Set(input.scopes)].filter(isApiScope);
-      if (
-        scopes.length !== new Set(input.scopes).size ||
-        scopes.some(
-          (scope) =>
-            !isGrantableScope(scope) ||
-            !authorizationAllowsScope(ctx.authorization, scope),
-        )
-      ) {
+      const scopes = grantableSubset(ctx.authorization, input.scopes);
+      if (!scopes) {
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'One or more requested scopes are not available.',
@@ -163,12 +153,7 @@ export const userRouter = router({
   updatePreferences: authedProcedure
     .input(updatePreferencesSchema)
     .mutation(async ({ ctx, input }) => {
-      if (Object.keys(input).length === 0) return true;
-      const result = await db
-        .updateTable('user')
-        .set(input)
-        .where('id', '=', ctx.user.id)
-        .executeTakeFirst();
-      return Number(result.numUpdatedRows) > 0;
+      await updateUserPreferences(ctx.user.id, input);
+      return true;
     }),
 });
