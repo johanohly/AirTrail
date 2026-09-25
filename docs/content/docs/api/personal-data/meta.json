@@ -1,0 +1,14 @@
+{
+  "title": "Personal data",
+  "pages": [
+    "api-v1-update-preferences",
+    "api-v1-list-custom-fields",
+    "api-v1-list-visited-countries",
+    "api-v1-set-visited-country",
+    "api-v1-remove-visited-country",
+    "api-v1-list-shares",
+    "api-v1-create-share",
+    "api-v1-update-share",
+    "api-v1-delete-share"
+  ]
+}

@@ -33,6 +33,9 @@ AirTrail requires Docker Compose version 2.x or higher.
     **Configure the environment variables**
 
     - Set the `ORIGIN` variable to the single URL that will be used to access the application.
+    - If AirTrail runs behind a reverse proxy, set `ADDRESS_HEADER=X-Forwarded-For` so login and OAuth rate limits
+      apply per client instead of to the proxy's address. Leave it unset when clients connect to AirTrail directly, since
+      they could otherwise forge the header.
     - Populate custom database information if necessary.
     - Consider changing DB_PASSWORD to a custom value. Postgres is not publicly exposed, so this password is only used for
       local authentication. To avoid issues with Docker parsing this value, it is best to use only the characters A-Za-z0-9.

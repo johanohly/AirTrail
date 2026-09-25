@@ -1,11 +1,10 @@
-import type { Kysely, Transaction } from 'kysely';
+import type { DatabaseConnection } from '$lib/db/types';
+import type { Transaction } from 'kysely';
 
 import { db } from '$lib/db';
 import type { DB } from '$lib/db/schema';
 import type { Permission } from '$lib/authorization/permissions';
 import { isPermission } from '$lib/authorization/permissions';
-
-type DatabaseConnection = Kysely<DB> | Transaction<DB>;
 
 export type AuthorizationContext = {
   userId: string;

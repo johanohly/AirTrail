@@ -1,18 +1,16 @@
 import type { Cookies } from '@sveltejs/kit';
-import { sql, type Kysely, type Transaction } from 'kysely';
+import { sql } from 'kysely';
 import type { Lucia } from 'lucia';
 
 import { db } from '$lib/db';
-import type { DB } from '$lib/db/schema';
-import { publicUserFields } from '$lib/db/types';
+import { publicUserFields, type DatabaseConnection } from '$lib/db/types';
 import { hashSha256 } from '$lib/server/utils/hash';
 import { generateString } from '$lib/server/utils/random';
 import type { Preferences } from '$lib/zod/user';
+import type { ApiScope } from '$lib/api/v1/scopes';
 
 const usernameEquals = (username: string) =>
   sql<boolean>`lower("username") = lower(${username})` as any;
-
-type DatabaseConnection = Kysely<DB> | Transaction<DB>;
 
 export const createUser = async ({
   id,
@@ -120,7 +118,7 @@ export const deleteSession = async (lucia: Lucia, cookies: Cookies) => {
 export const usernameExists = async (
   username: string,
   excludeUserId?: string,
-  connection: Kysely<DB> | Transaction<DB> = db,
+  connection: DatabaseConnection = db,
 ) => {
   let query = connection
     .selectFrom('user')
@@ -135,16 +133,26 @@ export const usernameExists = async (
   return users.length > 0;
 };
 
-export const createApiKey = async (userId: string, name: string) => {
+export const createApiKey = async (
+  userId: string,
+  name: string,
+  scopes: readonly ApiScope[],
+) => {
   const key = generateString();
   const hash = hashSha256(key);
-  const result = await db
+  // Returns the row id too, so callers can render the new key optimistically
+  // with its real identity instead of inventing a placeholder.
+  const row = await db
     .insertInto('apiKey')
-    .values({ name, key: hash, userId })
+    .values({
+      name,
+      key: hash,
+      userId,
+      scopes: [...new Set(scopes)],
+    })
+    .returning(['id', 'createdAt'])
     .executeTakeFirst();
-  return result.numInsertedOrUpdatedRows && result.numInsertedOrUpdatedRows > 0
-    ? key
-    : null;
+  return row ? { key, id: row.id, createdAt: row.createdAt } : null;
 };
 
 export const isSetup = async () => {

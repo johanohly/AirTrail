@@ -6,11 +6,14 @@
   import { page } from '$app/state';
   import {
     hasClientPermission,
+    impliedPermission,
     type Permission,
     type PermissionGroup,
   } from '$lib/authorization/permissions';
+  import { groupAccessItems } from '$lib/authorization/access-presentation';
+  import { createAccessSelection } from '$lib/authorization/access-selection';
+  import AccessMatrix from '$lib/components/access/AccessMatrix.svelte';
   import { Button } from '$lib/components/ui/button';
-  import { Checkbox } from '$lib/components/ui/checkbox';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import {
@@ -33,6 +36,8 @@
     permissions: Permission[];
   };
 
+  type PermissionItem = PermissionGroup['permissions'][number];
+
   let {
     open = $bindable(),
     role,
@@ -54,14 +59,28 @@
     if (!open) return;
     name = role?.name ?? '';
     description = role?.description ?? '';
-    permissions = [...(role?.permissions ?? [])];
+    permissions = selection.withReadForWrite(role?.permissions ?? [], allRows);
   });
 
-  const togglePermission = (permission: Permission, checked: boolean) => {
-    permissions = checked
-      ? [...new Set([...permissions, permission])]
-      : permissions.filter((candidate) => candidate !== permission);
-  };
+  const presentedPermissionGroups = $derived(
+    permissionGroups.map((group) => ({
+      label: group.label,
+      rows: groupAccessItems(group.permissions, (permission) => permission.key),
+    })),
+  );
+  // Clearing a broader grant can leave a held write without its read.
+  const allRows = $derived(
+    presentedPermissionGroups.flatMap((group) => group.rows),
+  );
+  const selection = createAccessSelection<PermissionItem, Permission>({
+    key: (permission) => permission.key,
+    describe: (permission) => permission.description,
+    selectable: (action) =>
+      action.items.filter((permission) =>
+        hasClientPermission(page.data.authorization, permission.key),
+      ),
+    broader: impliedPermission,
+  });
 
   const save = async () => {
     if (!name.trim()) return void toast.error('Enter a role name.');
@@ -130,40 +149,34 @@
       </div>
 
       <div class="space-y-5">
-        {#each permissionGroups as group}
+        {#each presentedPermissionGroups as group}
           <section class="space-y-2">
             <h3 class="text-sm font-semibold">{group.label}</h3>
             <div class="divide-y rounded-md border">
-              {#each group.permissions as permission}
-                {@const available = hasClientPermission(
-                  page.data.authorization,
-                  permission.key,
-                )}
-                <label
-                  class="flex items-start gap-3 px-3 py-2.5"
-                  class:cursor-pointer={available}
-                  class:opacity-55={!available}
-                >
-                  <Checkbox
-                    bind:checked={
-                      () => permissions.includes(permission.key),
-                      (checked) => togglePermission(permission.key, checked)
-                    }
-                    disabled={!available}
-                    class="mt-0.5"
-                  />
-                  <span class="min-w-0">
-                    <span class="block text-sm font-medium">
-                      {permission.label}
-                    </span>
-                    <span
-                      class="block text-xs leading-relaxed text-muted-foreground"
-                    >
-                      {permission.description}
-                    </span>
-                  </span>
-                </label>
-              {/each}
+              <AccessMatrix
+                rows={group.rows}
+                cellState={(row, action) => ({
+                  checked: selection.actionChecked(permissions, action),
+                  indeterminate: selection.actionIndeterminate(
+                    permissions,
+                    action,
+                  ),
+                  inherited: selection.actionInherited(
+                    permissions,
+                    row,
+                    action,
+                  ),
+                  disabled:
+                    selection.actionItems(action).length === 0 ||
+                    selection.actionInherited(permissions, row, action),
+                  title: selection.actionTitle(permissions, row, action),
+                })}
+                onToggle={(row, action) =>
+                  (permissions = selection.withReadForWrite(
+                    selection.toggle(permissions, row, action),
+                    allRows,
+                  ))}
+              />
             </div>
           </section>
         {/each}

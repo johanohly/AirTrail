@@ -237,3 +237,30 @@ export const serializeBackup = (backup: unknown, format: BackupFormat) => {
   }
   return `${JSON.stringify(backup, null, 2)}\n`;
 };
+
+/** `json` when absent; null for a format that is not supported. */
+export const parseBackupFormat = (
+  value: string | null,
+): BackupFormat | null => {
+  if (value === null || value === 'json') return 'json';
+  if (value === 'yaml' || value === 'yml') return 'yaml';
+  return null;
+};
+
+const BACKUP_CONTENT_TYPES: Record<BackupFormat, string> = {
+  json: 'application/json; charset=utf-8',
+  yaml: 'application/yaml; charset=utf-8',
+};
+
+export const backupDownload = (
+  backup: unknown,
+  format: BackupFormat,
+  headers: Record<string, string> = {},
+) =>
+  new Response(serializeBackup(backup, format), {
+    headers: {
+      'Content-Disposition': `attachment; filename="airtrail.${format}"`,
+      'Content-Type': BACKUP_CONTENT_TYPES[format],
+      ...headers,
+    },
+  });

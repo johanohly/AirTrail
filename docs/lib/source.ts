@@ -10,7 +10,7 @@ export type DocsPageData = DocData & {
 };
 
 export const openapi = createOpenAPI({
-  input: ["./openapi.yaml"],
+  input: ["./openapi.yaml", "../src/lib/api/v1/openapi.yaml"],
 });
 
 export const source = loader({
