@@ -1,68 +1,102 @@
 ---
 title: Docker Compose
+description: The recommended way to install AirTrail.
 ---
 
-The easiest way to install AirTrail is to use Docker Compose.
-Below are the steps to get started.
-AirTrail requires Docker Compose version 2.x or higher.
+Docker Compose runs AirTrail and its PostgreSQL database from two files. You need Docker with Compose v2; see the [requirements](/docs/install/requirements).
 
 <div className="steps">
   <div className="step">
-      **Download the required files**
+    **Download the files**
 
-      Create a new directory to hold the `docker-compose.yml` and `.env` files.
+    Create a directory for AirTrail and download the Compose file and the example environment file into it:
 
-      ```bash
-      mkdir airtrail
-      cd airtrail
-      ```
+    ```bash
+    mkdir airtrail
+    cd airtrail
+    wget -O docker-compose.yml https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker/production/compose.yml
+    wget -O .env https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example
+    ```
 
-      Download the [docker-compose.yml](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker/production/compose.yml) and [.env](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example) files.
-
-      ```bash
-      wget -O docker-compose.yml https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker/production/compose.yml
-      wget -O .env https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example
-      ```
-
-      or download the files manually from the repository.
-
-      Note: If you download the files manually, the `.env.example` file should be renamed to `.env`.
+    If you download [compose.yml](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker/production/compose.yml) and [.env.example](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example) by hand, save them as `docker-compose.yml` and `.env`.
 
   </div>
   <div className="step">
-    **Configure the environment variables**
+    **Edit `.env`**
 
-    - Set the `ORIGIN` variable to the single URL that will be used to access the application.
-    - If AirTrail runs behind a reverse proxy, set `ADDRESS_HEADER=X-Forwarded-For` so login and OAuth rate limits
-      apply per client instead of to the proxy's address. Leave it unset when clients connect to AirTrail directly, since
-      they could otherwise forge the header.
-    - Populate custom database information if necessary.
-    - Consider changing DB_PASSWORD to a custom value. Postgres is not publicly exposed, so this password is only used for
-      local authentication. To avoid issues with Docker parsing this value, it is best to use only the characters A-Za-z0-9.
+    - Set `ORIGIN` to the exact URL you will open AirTrail at, for example `https://airtrail.example.com` or `http://192.168.1.20:3000`. Sign-in fails if the browser's address does not match it.
+    - Change `DB_PASSWORD` to a random value using only the characters `A-Za-z0-9`, and put the **same** value in `DB_URL` in place of `password`. The two must always match.
+    - If AirTrail will run behind a reverse proxy, also set `ADDRESS_HEADER=X-Forwarded-For`. See [Reverse proxy](/docs/install/reverse-proxy).
+
+    Every other setting is optional. See [Environment variables](/docs/administration/environment-variables) for the full list.
+
+    <Callout type="warn">
+      Leave optional variables commented out rather than empty. Postgres keeps its password after the first start, so changing `DB_PASSWORD` later also requires changing it inside the database.
+    </Callout>
 
   </div>
   <div className="step">
-    **Start the application**
+    **Start AirTrail**
 
-    From the directory where the `docker-compose.yml` amd `.env` files are located, run the following command:
+    From the directory with both files, run:
 
     ```bash
     docker compose up -d
     ```
 
-    <Callout title="Docker version">
-      If you get an error `unknown shorthand flag: 'd' in -d`, you are probably running the wrong Docker version. (This
-      happens, for example, with the docker.io package in Ubuntu 22.04.3 LTS.) You can correct the problem by `apt remove`
-      ing
-      Ubuntu's docker.io package and installing docker and docker-compose
-      via [Docker's official repository](https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository).
+    The first start downloads airport and airline data, which takes a minute. Follow the progress with `docker compose logs -f airtrail`.
 
-      Note that the correct command really is `docker compose`, not `docker-compose`.
+    <Callout title="unknown shorthand flag: 'd' in -d">
+      You are running an old Docker, such as the `docker.io` package on some Ubuntu releases. Remove it and install Docker from [Docker's official repository](https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository). The command is `docker compose`, not `docker-compose`.
     </Callout>
+
+  </div>
+  <div className="step">
+    **Finish setup**
+
+    Open the URL from `ORIGIN` and follow the [post-installation](/docs/install/post-installation) steps.
 
   </div>
 </div>
 
-### Updating
+## What the Compose file sets up
 
-See the [Updating](/docs/install/updating) guide for instructions on how to upgrade to a new version of AirTrail.
+| Service    | Container     | Purpose                                              |
+| ---------- | ------------- | ---------------------------------------------------- |
+| `airtrail` | `airtrail`    | The web app, published on port 3000                  |
+| `db`       | `airtrail_db` | PostgreSQL 16, reachable only from the `airtrail` container |
+
+Two named volumes hold your data: `db_data` (the database) and `uploads` (airline icons you upload). Both are included in [backups](/docs/administration/backup).
+
+Database migrations run automatically every time the `airtrail` container starts.
+
+### Uploads and file permissions
+
+The app runs as user and group `1000:1000` and must be able to write to the uploads directory (`UPLOAD_LOCATION`, `/app/uploads` by default). The named volume in the Compose file handles this for you. Installations created before v3.13 may need a one-time fix; see [Troubleshooting](/docs/administration/troubleshooting#uploading-an-airline-icon-fails).
+
+If you prefer a folder on the host, replace the volume with a bind mount and give the folder to UID 1000:
+
+```yaml
+    volumes:
+      - ./data/uploads:/app/uploads
+```
+
+```bash
+mkdir -p data/uploads
+sudo chown -R 1000:1000 data/uploads
+```
+
+### Exposing the port
+
+The Compose file publishes port 3000 on every interface. When a reverse proxy on the same host is the only thing that should reach AirTrail, bind it to localhost instead:
+
+```yaml
+    ports:
+      - 127.0.0.1:3000:3000
+```
+
+## Next steps
+
+- [Put AirTrail behind a reverse proxy](/docs/install/reverse-proxy) with HTTPS.
+- [Back up](/docs/administration/backup) the database and uploads.
+- [Keep AirTrail up to date](/docs/install/updating).

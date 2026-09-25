@@ -1,88 +1,89 @@
 ---
 title: Admin CLI
+description: Manage users and roles from the command line.
 ---
 
-The AirTrail Docker image comes with a built-in administrative CLI (`airtrail-admin`) for managing your instance directly from the command line. This is useful for tasks like resetting passwords when you're locked out of the web interface, or managing user roles.
+The AirTrail Docker image includes `airtrail-admin`, a command-line tool for tasks you cannot do from the web interface, such as resetting a password when you are locked out.
 
 ## Usage
 
-Run commands inside a running AirTrail container using `docker exec`:
+Run commands inside the running AirTrail container:
 
 ```bash
-docker exec -it <container-name> airtrail-admin <command>
+docker exec -it airtrail airtrail-admin <command>
 ```
 
-<Callout>
-  Replace `<container-name>` with your AirTrail container name. If you used the default Docker Compose setup, this is typically `airtrail`.
+`airtrail` is the container name from the default Compose file. Find yours with `docker ps` if you changed it. Run `airtrail-admin help` for the list of commands.
+
+<Callout type="warn">
+  Keep the `-it` flags. The interactive commands read your answers from the
+  terminal.
 </Callout>
 
-For a list of available commands, run:
+For a [manual installation](/docs/install/manual), run the same script with Node from the installation directory:
 
 ```bash
-docker exec -it airtrail airtrail-admin help
+node --env-file=.env docker/admin.js <command>
 ```
 
 ## Commands
 
 ### list-users
 
-Lists all users with their roles and account details.
+Lists every user with their role. The owner is shown as `Owner`.
 
 ```bash
 docker exec -it airtrail airtrail-admin list-users
 ```
 
-Example output:
-
 ```
 Users (3):
 
-  Username  Display Name  Role   OAuth  ID
-  --------  ------------  -----  -----  ---------------
-  alice     Alice Smith   owner  no     abc123def456ghi
-  bob       Bob Jones     admin  yes    jkl789mno012pqr
-  charlie   Charlie Lee   user   no     stu345vwx678yza
+  Username  Display Name  Role           OAuth  ID
+  --------  ------------  -------------  -----  ---------------
+  alice     Alice Smith   Owner          no     abc123def456ghi
+  bob       Bob Jones     Administrator  yes    jkl789mno012pqr
+  charlie   Charlie Lee   User           no     stu345vwx678yza
+```
+
+### list-roles
+
+Lists the roles, how many users have each, and which one new users get by default.
+
+```bash
+docker exec -it airtrail airtrail-admin list-roles
 ```
 
 ### reset-password
 
-Interactively reset any user's password. You will be prompted for the username and new password.
+Sets a new password for any user, including the owner. You are asked for the username and the new password twice. Passwords must be at least 8 characters, and typing is hidden.
 
 ```bash
 docker exec -it airtrail airtrail-admin reset-password
 ```
 
-<Callout type="warn">
-  The `-it` flags are required for interactive commands, as they need access to
-  your terminal for input.
-</Callout>
+### set-role
 
-The password must be at least 8 characters long. Input is hidden and you will be asked to confirm the new password.
+Assigns a role to a user. You are asked for the username and the role, by name or ID (see `list-roles`).
 
-### grant-admin
+```bash
+docker exec -it airtrail airtrail-admin set-role
+```
 
-Promote a regular user to the admin role. You will be prompted for the username.
+The owner's role cannot be changed. Roles assigned here count as manual assignments, so [OAuth role mapping](/docs/administration/roles#oauth-role-mapping) does not overwrite them at the next sign-in.
+
+### grant-admin and revoke-admin
+
+Shortcuts for `set-role`. `grant-admin` assigns the built-in **Administrator** role; `revoke-admin` assigns the default role for new users.
 
 ```bash
 docker exec -it airtrail airtrail-admin grant-admin
-```
-
-<Callout>
-  The owner role cannot be changed. This command only works on users with the
-  `user` role.
-</Callout>
-
-### revoke-admin
-
-Demote an admin back to a regular user. You will be prompted for the username.
-
-```bash
 docker exec -it airtrail airtrail-admin revoke-admin
 ```
 
 ### version
 
-Print the current AirTrail version.
+Prints the installed AirTrail version.
 
 ```bash
 docker exec -it airtrail airtrail-admin version

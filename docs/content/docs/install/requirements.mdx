@@ -1,24 +1,46 @@
 ---
 title: Requirements
+description: What your server needs to run AirTrail.
 ---
-
-Before you start the installation, make sure your system meets the following requirements:
 
 ## Software
 
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
+For the recommended [Docker Compose](/docs/install/docker-compose) installation:
+
+- [Docker Engine](https://docs.docker.com/engine/install/) or Docker Desktop
+- [Docker Compose](https://docs.docker.com/compose/install/) v2 (the `docker compose` command, not `docker-compose`)
+
+For a [manual installation](/docs/install/manual) without Docker you need Node.js 22, Bun, Git and PostgreSQL 16 instead.
+
+## Platforms
+
+AirTrail images are published for **linux/amd64** and **linux/arm64**, so they run on:
+
+- Linux servers and virtual machines (most tested; Ubuntu and Debian are common choices)
+- ARM single-board computers such as the Raspberry Pi 4 and 5 with a 64-bit OS
+- NAS devices that run containers, such as [Synology](/docs/install/synology)
+- macOS and Windows through Docker Desktop, which is fine for trying AirTrail out
+
+32-bit ARM (armv7) is not supported.
 
 ## Hardware
 
-AirTrail requires very little hardware resources to run. The following are the recommended minimum requirements:
+| | Minimum | Recommended |
+| --- | --- | --- |
+| CPU | 1 core | 2 cores |
+| Memory | 1 GB | 2 GB |
+| Disk | 2 GB free | 5 GB free |
 
-- 2 CPU cores
-- 2 GB RAM
-- 10 GB disk space
+These figures come from running the published image with its PostgreSQL container:
 
-The above requirements are for a small-scale deployment. For larger deployments, you may need to increase the resources accordingly.
+- **Memory:** the first start loads about 86,000 airports, and the app briefly peaks around 600 MB before settling at about 75 MB when idle. It also starts successfully when capped at 512 MB, with the database capped at 256 MB. With 10,000 flights, listing all flights, computing statistics or exporting them peaks at about 375 MB for the app and 190 MB for the database.
+- **CPU:** the same requests take under a second each on one core.
+- **Disk:** the AirTrail image is about 570 MB, including a 200 MB map data file, and PostgreSQL about 290 MB. A database with 10,000 flights and all reference data is about 25 MB. Detailed [flight tracks](/docs/features/flight-tracks) and uploaded icons add to this.
 
-## Operating System
+A Raspberry Pi 4 or 5 with 2 GB or more is plenty for a household.
 
-AirTrail has only been tested on Linux. We recommend using Ubuntu 20.04 LTS or higher.
+## Network
+
+- Clients reach AirTrail on port **3000** by default. For access over the internet, use a [reverse proxy](/docs/install/reverse-proxy) with HTTPS.
+- The server makes outbound HTTPS requests to download airport and airline data and to reach optional integrations such as [AeroDataBox](/docs/integrations/aerodatabox). Behind a corporate proxy, see [Outbound proxy](/docs/administration/outbound-proxy).
+- Browsers load map tiles from the configured [basemap provider](/docs/administration/basemaps).

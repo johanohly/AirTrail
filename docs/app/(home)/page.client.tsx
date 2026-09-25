@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   type ComponentProps,
@@ -6,14 +6,14 @@ import {
   useEffect,
   useRef,
   useState,
-} from 'react';
+} from "react";
 
 function cn(...classes: (string | false | undefined | null)[]) {
-  return classes.filter(Boolean).join(' ');
+  return classes.filter(Boolean).join(" ");
 }
 
 const FLIGHT_PATH =
-  'M100 480 C250 460, 380 220, 550 240 S780 380, 950 180 S1180 220, 1300 120';
+  "M100 480 C250 460, 380 220, 550 240 S780 380, 950 180 S1180 220, 1300 120";
 
 // Cubic bezier easing (matching the old animateMotion feel)
 function cubicBezier(
@@ -21,11 +21,11 @@ function cubicBezier(
   p1x: number,
   p1y: number,
   p2x: number,
-  p2y: number,
+  p2y: number
 ): number {
   // Newton-Raphson to find t for x, then evaluate y
   let guessT = t;
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 8; i += 1) {
     const x =
       3 * p1x * guessT * (1 - guessT) ** 2 +
       3 * p2x * guessT ** 2 * (1 - guessT) +
@@ -36,7 +36,9 @@ function cubicBezier(
       6 * p2x * guessT * (1 - guessT) -
       3 * p2x * guessT ** 2 +
       3 * guessT ** 2;
-    if (Math.abs(x - t) < 0.0001) break;
+    if (Math.abs(x - t) < 0.0001) {
+      break;
+    }
     guessT -= (x - t) / dx;
   }
   return (
@@ -63,7 +65,9 @@ export function FlightPath({ className }: Readonly<{ className?: string }>) {
     const route = routeRef.current;
     const trail = trailRef.current;
     const plane = planeRef.current;
-    if (!route || !trail || !plane) return;
+    if (!(route && trail && plane)) {
+      return;
+    }
 
     const totalLength = route.getTotalLength();
     trail.style.strokeDasharray = `${totalLength}`;
@@ -102,10 +106,10 @@ export function FlightPath({ className }: Readonly<{ className?: string }>) {
         (180 / Math.PI);
 
       plane.setAttribute(
-        'transform',
-        `translate(${point.x}, ${point.y}) rotate(${angle})`,
+        "transform",
+        `translate(${point.x}, ${point.y}) rotate(${angle})`
       );
-      plane.style.opacity = '1';
+      plane.style.opacity = "1";
 
       if (linearProgress < 1) {
         rafId = requestAnimationFrame(animate);
@@ -118,65 +122,66 @@ export function FlightPath({ className }: Readonly<{ className?: string }>) {
 
   return (
     <svg
-      viewBox="0 0 1400 600"
-      fill="none"
+      aria-hidden="true"
       className={cn(
-        'absolute inset-0 size-full transition-opacity duration-1000',
-        mounted ? 'opacity-100' : 'opacity-0',
-        className,
+        "absolute inset-0 size-full transition-opacity duration-1000",
+        mounted ? "opacity-100" : "opacity-0",
+        className
       )}
+      fill="none"
+      viewBox="0 0 1400 600"
       xmlns="http://www.w3.org/2000/svg"
     >
       {/* Dashed route -- the planned path, visible immediately at low opacity */}
       <path
-        ref={routeRef}
         d={FLIGHT_PATH}
-        stroke="url(#flightGradient)"
-        strokeWidth="1.5"
-        strokeDasharray="8 6"
         fill="none"
         opacity="0.3"
+        ref={routeRef}
+        stroke="url(#flightGradient)"
+        strokeDasharray="8 6"
+        strokeWidth="1.5"
       />
 
       {/* Solid trail -- drawn in by JS in sync with the plane */}
       <path
-        ref={trailRef}
         d={FLIGHT_PATH}
-        stroke="url(#flightGradient)"
-        strokeWidth="2"
-        strokeLinecap="round"
         fill="none"
+        ref={trailRef}
+        stroke="url(#flightGradient)"
+        strokeLinecap="round"
+        strokeWidth="2"
       />
 
       {/* Departure dot */}
-      <circle cx="100" cy="480" r="5" className="fill-fd-primary/60" />
-      <circle cx="100" cy="480" r="10" className="fill-fd-primary/15" />
+      <circle className="fill-fd-primary/60" cx="100" cy="480" r="5" />
+      <circle className="fill-fd-primary/15" cx="100" cy="480" r="10" />
 
       {/* Arrival dot (pulsing) */}
       <circle
+        className="flight-dot-pulse fill-fd-primary"
         cx="1300"
         cy="120"
         r="5"
-        className="fill-fd-primary flight-dot-pulse"
       />
       <circle
+        className="flight-dot-pulse fill-fd-primary/15"
         cx="1300"
         cy="120"
         r="12"
-        className="fill-fd-primary/15 flight-dot-pulse"
       />
 
       {/* Airplane -- positioned by JS, rotated to face direction of travel */}
       <g ref={planeRef} style={{ opacity: 0 }}>
         <path
-          d="M0 -10 L2 -8 L2 -3 L8 2 L8 4 L2 1 L2 5 L4 7 L4 8.5 L0 7 L-4 8.5 L-4 7 L-2 5 L-2 1 L-8 4 L-8 2 L-2 -3 L-2 -8 Z"
           className="fill-fd-primary"
+          d="M0 -10 L2 -8 L2 -3 L8 2 L8 4 L2 1 L2 5 L4 7 L4 8.5 L0 7 L-4 8.5 L-4 7 L-2 5 L-2 1 L-8 4 L-8 2 L-2 -3 L-2 -8 Z"
           transform="scale(1.4) rotate(90)"
         />
       </g>
 
       <defs>
-        <linearGradient id="flightGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+        <linearGradient id="flightGradient" x1="0%" x2="100%" y1="0%" y2="0%">
           <stop
             offset="0%"
             stopColor="var(--color-fd-primary)"
@@ -218,33 +223,35 @@ function CopyButton({
 
   return (
     <button
-      type="button"
-      onClick={handleCopy}
       className={cn(
-        'inline-flex items-center justify-center rounded-md border bg-fd-secondary px-2 py-1 text-fd-muted-foreground text-xs transition-colors hover:bg-fd-accent hover:text-fd-foreground',
-        className ?? '',
+        "inline-flex items-center justify-center rounded-md border bg-fd-secondary px-2 py-1 text-fd-muted-foreground text-xs transition-colors hover:bg-fd-accent hover:text-fd-foreground",
+        className ?? ""
       )}
+      onClick={handleCopy}
       title="Copy to clipboard"
+      type="button"
     >
       {copied ? (
         <svg
+          aria-hidden="true"
           className="size-3.5"
-          viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="2.5"
+          viewBox="0 0 24 24"
         >
           <polyline points="20 6 9 17 4 12" />
         </svg>
       ) : (
         <svg
+          aria-hidden="true"
           className="size-3.5"
-          viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
+          viewBox="0 0 24 24"
         >
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+          <rect height="13" rx="2" ry="2" width="13" x="9" y="9" />
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
         </svg>
       )}
@@ -254,7 +261,7 @@ function CopyButton({
 
 // Install command with typewriter on first view, then static + copy button
 const INSTALL_CMD =
-  'bash <(curl -o- https://raw.githubusercontent.com/JohanOhly/AirTrail/main/scripts/install.sh)';
+  "bash <(curl -o- https://raw.githubusercontent.com/JohanOhly/AirTrail/main/scripts/install.sh)";
 
 export function InstallCommand() {
   const ref = useRef<HTMLDivElement>(null);
@@ -265,7 +272,9 @@ export function InstallCommand() {
   // Start typing once visible
   useEffect(() => {
     const element = ref.current;
-    if (!element) return;
+    if (!element) {
+      return;
+    }
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -273,7 +282,7 @@ export function InstallCommand() {
           observer.unobserve(element);
         }
       },
-      { threshold: 0.5 },
+      { threshold: 0.5 }
     );
     observer.observe(element);
     return () => observer.disconnect();
@@ -281,26 +290,29 @@ export function InstallCommand() {
 
   // Typewriter tick
   useEffect(() => {
-    if (!started || finished) return;
-    const timer = setTimeout(() => setTick((prev) => prev + 1), 35);
-    return () => clearTimeout(timer);
-  }, [started, tick, finished]);
+    if (!started || finished) {
+      return;
+    }
+    const timer = setInterval(() => setTick((prev) => prev + 1), 35);
+    return () => clearInterval(timer);
+  }, [started, finished]);
 
   return (
-    <div ref={ref} className="relative mt-6 w-full">
+    <div className="relative mt-6 w-full" ref={ref}>
       <pre className="overflow-x-auto rounded-xl border bg-fd-card text-sm shadow-lg">
         <div className="flex flex-row items-center gap-2 border-b px-4 py-2.5 text-fd-muted-foreground">
           <svg
+            aria-hidden="true"
             className="size-4"
-            viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
+            viewBox="0 0 24 24"
           >
             <polyline points="4 17 10 11 4 5" />
-            <line x1="12" y1="19" x2="20" y2="19" />
+            <line x1="12" x2="20" y1="19" y2="19" />
           </svg>
-          <span className="font-medium text-xs tracking-wide uppercase">
+          <span className="font-medium text-xs uppercase tracking-wide">
             Terminal
           </span>
           <div className="grow" />
@@ -308,7 +320,7 @@ export function InstallCommand() {
         </div>
         <code className="block p-4 text-fd-foreground">
           <span className="select-none text-fd-primary">$ </span>
-          {started ? INSTALL_CMD.substring(0, tick) : ''}
+          {started ? INSTALL_CMD.slice(0, tick) : ""}
           {started && !finished && (
             <span className="inline-block h-4 w-[2px] animate-pulse bg-fd-primary align-middle" />
           )}
@@ -345,7 +357,9 @@ export function FadeInOnScroll({
 
   useEffect(() => {
     const element = ref.current;
-    if (!element) return;
+    if (!element) {
+      return;
+    }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -354,7 +368,7 @@ export function FadeInOnScroll({
           observer.unobserve(element);
         }
       },
-      { threshold: 0.15 },
+      { threshold: 0.15 }
     );
 
     observer.observe(element);
@@ -363,12 +377,12 @@ export function FadeInOnScroll({
 
   return (
     <div
-      ref={ref}
       className={cn(
-        'transition-all duration-700 ease-out',
-        visible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0',
-        className,
+        "transition-all duration-700 ease-out",
+        visible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0",
+        className
       )}
+      ref={ref}
       style={{ transitionDelay: `${delay}ms` }}
     >
       {children}
@@ -380,71 +394,77 @@ export function FadeInOnScroll({
 function ImageLightbox({ onClose }: Readonly<{ onClose: () => void }>) {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === "Escape") {
+        onClose();
+      }
     };
-    document.addEventListener('keydown', handleKey);
-    document.body.style.overflow = 'hidden';
+    document.addEventListener("keydown", handleKey);
+    document.body.style.overflow = "hidden";
     return () => {
-      document.removeEventListener('keydown', handleKey);
-      document.body.style.overflow = '';
+      document.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = "";
     };
   }, [onClose]);
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <button
+      aria-label="Close screenshot"
       className="lightbox-overlay fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-black/80 p-4 backdrop-blur-sm md:p-8"
       onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') onClose();
-      }}
+      type="button"
     >
       <img
-        src="/dark.png"
         alt="AirTrail screenshot"
         className="lightbox-image hidden max-h-[90vh] max-w-full rounded-lg shadow-2xl dark:block"
+        height={1295}
+        src="/dark.png"
+        width={2560}
       />
       <img
-        src="/light.png"
         alt="AirTrail screenshot"
         className="lightbox-image max-h-[90vh] max-w-full rounded-lg shadow-2xl dark:hidden"
+        height={1295}
+        src="/light.png"
+        width={2560}
       />
-    </div>
+    </button>
   );
 }
 
 // Preview image (mobile full-width) -- click to enlarge
-export function PreviewImage(props: Readonly<ComponentProps<'div'>>) {
+export function PreviewImage(props: Readonly<ComponentProps<"button">>) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   return (
     <>
-      <div
+      <button
         {...props}
-        role="button"
-        tabIndex={0}
+        aria-label="Enlarge screenshot"
         className={cn(
-          'relative cursor-zoom-in overflow-hidden rounded-xl border shadow-2xl',
-          props.className ?? '',
+          "relative block w-full cursor-zoom-in overflow-hidden rounded-xl border shadow-2xl",
+          props.className ?? ""
         )}
         onClick={() => setLightboxOpen(true)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') setLightboxOpen(true);
-        }}
+        type="button"
       >
         <img
-          src="/dark.png"
           alt="AirTrail screenshot"
           className="hidden w-full dark:block"
+          height={1295}
+          src="/dark.png"
+          width={2560}
         />
         <img
-          src="/light.png"
           alt="AirTrail screenshot"
           className="w-full dark:hidden"
+          height={1295}
+          src="/light.png"
+          width={2560}
         />
-      </div>
-      {lightboxOpen && <ImageLightbox onClose={() => setLightboxOpen(false)} />}
+      </button>
+      {lightboxOpen ? (
+        <ImageLightbox onClose={() => setLightboxOpen(false)} />
+      ) : null}
     </>
   );
 }
@@ -455,27 +475,30 @@ export function HeroImage({ className }: Readonly<{ className?: string }>) {
 
   return (
     <>
-      <div
-        role="button"
-        tabIndex={0}
-        className={cn('cursor-zoom-in pointer-events-auto', className ?? '')}
+      <button
+        aria-label="Enlarge screenshot"
+        className={cn("pointer-events-auto cursor-zoom-in", className ?? "")}
         onClick={() => setLightboxOpen(true)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') setLightboxOpen(true);
-        }}
+        type="button"
       >
         <img
-          src="/dark.png"
           alt="AirTrail preview"
           className="hidden rounded-xl border shadow-2xl dark:block"
+          height={1295}
+          src="/dark.png"
+          width={2560}
         />
         <img
-          src="/light.png"
           alt="AirTrail preview"
           className="rounded-xl border shadow-2xl dark:hidden"
+          height={1295}
+          src="/light.png"
+          width={2560}
         />
-      </div>
-      {lightboxOpen && <ImageLightbox onClose={() => setLightboxOpen(false)} />}
+      </button>
+      {lightboxOpen ? (
+        <ImageLightbox onClose={() => setLightboxOpen(false)} />
+      ) : null}
     </>
   );
 }

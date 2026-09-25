@@ -1,0 +1,90 @@
+---
+title: Environment Variables
+description: Every setting AirTrail reads from the environment.
+---
+
+AirTrail reads its configuration from environment variables. With Docker Compose they live in the `.env` file next to `docker-compose.yml`; after editing it, apply the change with `docker compose up -d`. For a manual installation, pass the file with `node --env-file=.env build`.
+
+<Callout type="warn">
+  Comment out a variable you do not use instead of leaving it empty. An empty
+  value (`KEY=`) is treated as not set.
+</Callout>
+
+## Core
+
+| Variable          | Required | Default | Description |
+| ----------------- | -------- | ------- | ----------- |
+| `ORIGIN`          | Yes      |         | The exact URL users open AirTrail at, such as `https://airtrail.example.com`. Must match the browser's address bar, or sign-in fails. |
+| `DB_URL`          | Yes      |         | PostgreSQL connection URL, for example `postgres://airtrail:password@db:5432/airtrail`. |
+| `UPLOAD_LOCATION` | No       |         | Directory for uploaded files such as airline icons. Uploads are disabled when unset. The Docker setup uses `/app/uploads`, backed by the `uploads` volume. |
+| `BODY_SIZE_LIMIT` | No       | `20M`   | Largest request body accepted. Flight forms with detailed tracks can be large. |
+
+## Docker database
+
+These configure the `db` container in the Compose file. They are not read by AirTrail itself, so keep the password in `DB_URL` in sync with `DB_PASSWORD`.
+
+| Variable           | Default    | Description |
+| ------------------ | ---------- | ----------- |
+| `DB_PASSWORD`      | `password` | Postgres password. Use letters and digits only. Changing it after the first start also requires changing it inside the database. |
+| `DB_USERNAME`      | `airtrail` | Postgres user. |
+| `DB_DATABASE_NAME` | `airtrail` | Postgres database name. |
+
+## Network and proxies
+
+| Variable         | Default | Description |
+| ---------------- | ------- | ----------- |
+| `ADDRESS_HEADER` |         | Header holding the client address behind a [reverse proxy](/docs/install/reverse-proxy), usually `X-Forwarded-For`. Rate limits use it. Leave unset when clients connect directly. |
+| `XFF_DEPTH`      | `1`     | How many proxies sit in front of AirTrail, counted from the right of `X-Forwarded-For`. |
+| `PORT`           | `3000`  | Port to listen on (manual installations). |
+| `HOST`           | `0.0.0.0` | Address to listen on (manual installations). |
+
+For outbound traffic through a corporate proxy (`NODE_USE_ENV_PROXY`, `HTTPS_PROXY`, `NO_PROXY`, `NODE_EXTRA_CA_CERTS`), see [Outbound proxy](/docs/administration/outbound-proxy).
+
+## Settings you can also change in the app
+
+The variables below mirror settings on the **Settings** pages. When a variable is set, AirTrail applies it on startup and locks the matching field in the app so it can only be changed in the environment. Removing the variable unlocks the field again, keeping the last value.
+
+### OAuth sign-in
+
+See [OAuth](/docs/features/oauth) for what each setting does.
+
+| Variable | Default |
+| -------- | ------- |
+| `OAUTH_ENABLED` | `false` |
+| `OAUTH_ISSUER_URL` | |
+| `OAUTH_CLIENT_ID` | |
+| `OAUTH_CLIENT_SECRET` | |
+| `OAUTH_TOKEN_ENDPOINT_AUTH_METHOD` | `client_secret_post` |
+| `OAUTH_SCOPE` | `openid profile` |
+| `OAUTH_PROMPT` | |
+| `OAUTH_AUTO_REGISTER` | `true` |
+| `OAUTH_AUTO_LOGIN` | `false` |
+| `OAUTH_HIDE_PASSWORD_FORM` | `false` |
+| `OAUTH_BUTTON_TEXT` | `Log in with SSO` |
+| `OAUTH_ALLOW_INSECURE_HTTP` | `false` |
+
+`OAUTH_ALLOW_INSECURE_HTTP=true` allows an identity provider served over plain HTTP. Use it only on a trusted local network.
+
+### Integrations
+
+| Variable | Description |
+| -------- | ----------- |
+| `INTEGRATIONS_AERO_DATA_BOX_KEY` | API key for [AeroDataBox](/docs/integrations/aerodatabox) flight lookups. |
+| `INTEGRATIONS_OPEN_AIP_KEY` | API key for the [OpenAIP](/docs/integrations/openaip) map overlay. |
+
+### Basemaps
+
+See [Basemaps](/docs/administration/basemaps) for how these combine.
+
+| Variable | Default |
+| -------- | ------- |
+| `MAP_PROVIDER` | `openfreemap` |
+| `MAP_CARTO_API_KEY` | |
+| `MAP_PROTOMAPS_SOURCE_KIND` | `hosted` |
+| `MAP_PROTOMAPS_API_KEY` | |
+| `MAP_PROTOMAPS_SOURCE_URL` | |
+| `MAP_PROTOMAPS_MAX_ZOOM` | `15` |
+| `MAP_PROTOMAPS_ASSETS_BASE_URL` | `https://protomaps.github.io/basemaps-assets` |
+| `MAP_PROTOMAPS_LANGUAGE` | `en` |
+| `MAP_LIGHT_STYLE_URL` | |
+| `MAP_DARK_STYLE_URL` | |

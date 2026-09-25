@@ -1,21 +1,32 @@
 ---
 title: Contributing
+description: Report bugs, suggest features, and contribute code.
 ---
 
-AirTrail is an open-source project, and we welcome contributions from the community.
-Whether you are a developer, designer, or a user, there are many ways you can contribute to the project.
+AirTrail is an open-source project, and contributions of every kind are welcome.
 
-## Reporting Issues
+## Reporting issues
 
-If you encounter a bug, please open an issue on the [GitHub repository](https://github.com/JohanOhly/AirTrail/issues).
-Before opening an issue, please check if a similar issue has already been reported.
+If you find a bug, [open an issue](https://github.com/JohanOhly/AirTrail/issues) on GitHub. Search the existing issues first. A good report includes:
 
-## Suggestions and Feedback
+- The AirTrail version (shown next to the title in **Settings**, or run `airtrail-admin version`).
+- How you installed it (Docker Compose, Portainer, manual, and so on).
+- What you did, what you expected, and what happened instead.
+- Relevant log output, for example from `docker compose logs airtrail`.
 
-If you have suggestions or feedback on how we can improve AirTrail, please open
-a [new discussion](https://github.com/johanohly/AirTrail/discussions/new).
+## Suggestions and feedback
 
-## Contributing Code
+For ideas and questions, start a [discussion](https://github.com/JohanOhly/AirTrail/discussions/new).
 
-If you are a developer and would like to contribute code to AirTrail, we would love to have your help.
-Please refer to the [Contributing Guidelines](/docs/development/contributing-guidelines) for more information.
+## Contributing code
+
+Open an issue before starting on a larger change, so the approach can be agreed first.
+
+To run AirTrail locally for development:
+
+1. Clone the repository and copy `.env.example` to `.env`.
+2. In `.env`, set `ORIGIN` to `http://localhost:5173` and change `db` to `localhost` in `DB_URL`.
+3. Run `bun setup` to install dependencies, start the database, run the migrations and start the app.
+4. Afterwards, `bun d` starts the app. Open `http://localhost:5173` and sign in as `test` with password `password`.
+
+Pull requests use [Conventional Commits](https://www.conventionalcommits.org/) titles. The full guidelines, including code style and the review process, are in [CONTRIBUTING.md](https://github.com/JohanOhly/AirTrail/blob/main/CONTRIBUTING.md).

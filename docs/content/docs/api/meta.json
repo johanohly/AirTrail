@@ -1,6 +1,7 @@
 {
   "title": "API",
   "pages": [
+    "getting-started",
     "model-context-protocol",
     "discovery",
     "flights",

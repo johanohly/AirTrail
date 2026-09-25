@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { liteClient } from 'algoliasearch/lite';
-import { useDocsSearch } from 'fumadocs-core/search/client';
+import { useDocsSearch } from "fumadocs-core/search/client";
+import { staticClient } from "fumadocs-core/search/client/orama-static";
 import {
   SearchDialog,
   SearchDialogClose,
@@ -12,42 +12,31 @@ import {
   SearchDialogList,
   SearchDialogOverlay,
   type SharedProps,
-} from 'fumadocs-ui/components/dialog/search';
-import posthog from 'posthog-js';
-import { useCallback, useRef } from 'react';
+} from "fumadocs-ui/components/dialog/search";
+import posthog from "posthog-js";
+import { useCallback, useRef } from "react";
 
-const appId = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID;
-const apiKey = process.env.NEXT_PUBLIC_ALGOLIA_API_KEY;
-const indexName = process.env.NEXT_PUBLIC_ALGOLIA_INDEX;
-
-if (!(appId && apiKey && indexName)) {
-  throw new Error('Algolia credentials');
-}
-
-const client = liteClient(appId, apiKey);
+// The index is prerendered to /api/search at build time and searched in the browser.
+const client = staticClient({});
 
 export default function CustomSearchDialog(props: SharedProps) {
-  const { search, setSearch, query } = useDocsSearch({
-    type: 'algolia',
-    client,
-    indexName: indexName!,
-  });
+  const { search, setSearch, query } = useDocsSearch({ client });
 
   // Track search with debounce to avoid excessive events
-  const lastSearchRef = useRef<string>('');
+  const lastSearchRef = useRef<string>("");
   const handleSearchChange = useCallback(
     (value: string) => {
       setSearch(value);
       // Only track when there's a meaningful search query (3+ chars)
       if (value.length >= 3 && value !== lastSearchRef.current) {
         lastSearchRef.current = value;
-        posthog.capture('search_performed', {
+        posthog.capture("search_performed", {
+          result_count: query.data === "empty" ? 0 : (query.data?.length ?? 0),
           search_query: value,
-          result_count: query.data !== 'empty' ? (query.data?.length ?? 0) : 0,
         });
       }
     },
-    [setSearch, query.data],
+    [setSearch, query.data]
   );
 
   return (
@@ -64,7 +53,7 @@ export default function CustomSearchDialog(props: SharedProps) {
           <SearchDialogInput />
           <SearchDialogClose />
         </SearchDialogHeader>
-        <SearchDialogList items={query.data !== 'empty' ? query.data : null} />
+        <SearchDialogList items={query.data === "empty" ? null : query.data} />
       </SearchDialogContent>
     </SearchDialog>
   );

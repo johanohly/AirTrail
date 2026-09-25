@@ -1,9 +1,7 @@
-@import 'tailwindcss';
-@import 'fumadocs-ui/css/black.css';
-@import 'fumadocs-ui/css/preset.css';
-
-@source '../node_modules/fumadocs-ui/dist/**/*.js';
-@source '../node_modules/fumadocs-openapi/dist/**/*.js';
+@import "tailwindcss";
+@import "fumadocs-ui/css/black.css";
+@import "fumadocs-ui/css/preset.css";
+@import "fumadocs-openapi/css/preset.css";
 
 /* ── Light Theme ── */
 :root {
@@ -26,7 +24,7 @@
   background-color: white;
 }
 
-#nd-subnav a[data-active='true'] {
+#nd-subnav a[data-active="true"] {
   color: var(--color-fd-primary);
 }
 
@@ -86,8 +84,8 @@
 .aurora-section .aurora {
   position: absolute;
   inset: 0;
-  height: 100%;
   z-index: 0;
+  height: 100%;
   filter: blur(2rem);
 }
 
@@ -144,14 +142,14 @@
 }
 
 .landing-btn-primary::after {
-  content: '';
   position: absolute;
   inset: -1px;
-  border-radius: inherit;
+  z-index: -1;
+  content: "";
   background: var(--color-fd-primary);
+  border-radius: inherit;
   opacity: 0;
   filter: blur(12px);
-  z-index: -1;
   transition: opacity 0.3s ease;
 }
 

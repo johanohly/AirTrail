@@ -1,38 +1,52 @@
 ---
 title: Quick Start
+description: Choose an installation method and get AirTrail running.
 next:
   label: Requirements
   link: /docs/install/requirements
 ---
 
-## Requirements
+AirTrail runs as two containers: the app and a PostgreSQL database. Most people run it with Docker Compose on a Linux server, NAS or Raspberry Pi. Check the [requirements](/docs/install/requirements) first.
 
-Check the [requirements](/docs/install/requirements) to make sure your system is ready for the installation.
-
-## Installation
-
-The recommended way to self-host AirTrail is to use Docker Compose.
-Follow the instructions in the [Docker Compose installation guide](/docs/install/docker-compose) to get started.
+## Choose how to install
 
 <Cards>
-  <Card title="One-Click" href="/docs/install/one-click">
-    Deploy AirTrail on Railway or use the local install script.
-  </Card>
   <Card title="Docker Compose" href="/docs/install/docker-compose">
-    This is the recommended way to install AirTrail.
+    Recommended. Two files and one command on any machine with Docker.
+  </Card>
+  <Card title="One-click" href="/docs/install/one-click">
+    Deploy on Railway, or run the install script on a Linux or macOS host.
   </Card>
   <Card title="Portainer" href="/docs/install/portainer">
-    If you prefer a graphical user interface, you can use Portainer.
+    Deploy the Compose stack from Portainer's web interface.
   </Card>
   <Card title="Synology NAS" href="/docs/install/synology">
-    If you have a Synology NAS, you can use follow a dedicated guide.
+    Run AirTrail in Container Manager on a Synology NAS.
   </Card>
   <Card title="Manual" href="/docs/install/manual">
-    If you prefer to install AirTrail manually ("bare metal"), you can follow
-    this guide.
+    Build and run AirTrail from source, without Docker.
   </Card>
 </Cards>
 
-## Try it out
+## The short version
 
-Once you have AirTrail up and running, you should follow the [Post Installation](/docs/install/post-installation) guide to get started.
+On a machine with Docker and Docker Compose v2:
+
+```bash
+mkdir airtrail && cd airtrail
+wget -O docker-compose.yml https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker/production/compose.yml
+wget -O .env https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example
+```
+
+Edit `.env`: set `ORIGIN` to the URL you will open AirTrail at, and change `DB_PASSWORD` together with the password inside `DB_URL`. Then start it:
+
+```bash
+docker compose up -d
+```
+
+Open the URL from `ORIGIN` and follow the [post-installation](/docs/install/post-installation) steps. The [Docker Compose guide](/docs/install/docker-compose) explains each step in detail.
+
+## Before you open it to the internet
+
+- Put AirTrail behind a [reverse proxy](/docs/install/reverse-proxy) with HTTPS.
+- Set up [backups](/docs/administration/backup) of the database and uploads.

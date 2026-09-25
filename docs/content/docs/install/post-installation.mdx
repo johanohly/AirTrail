@@ -1,24 +1,39 @@
 ---
 title: Post Installation
+description: Create the owner account and start adding flights.
 ---
 
-Right after you have AirTrail up and running, you should follow the steps below to get started.
+Once AirTrail is running, open the URL you set as `ORIGIN`. With the default Docker setup on your local network that is `http://<server-address>:3000`.
 
 <Callout>
-  If you followed the installation guide, you can access the AirTrail application by visiting `http://<host-ip-address>:3000` in your web browser.
+  If the page does not load or sign-in fails straight away, check
+  [Troubleshooting](/docs/administration/troubleshooting). The most common cause
+  is an `ORIGIN` that does not match the address in the browser.
 </Callout>
 
-## Register the owner user
+## Create the owner account
 
-The first thing you should do is to create the owner user. This user will have full access to the AirTrail application.
-When you visit the AirTrail application for the first time, you will be guided through the owner user registration process.
+The first visit opens the **Welcome** screen, where you create the first account. This account is the **owner**: it has every permission and its role can never be changed or removed. Choose a strong password.
 
-## Create other users
+If you lose access to the owner account, reset its password with the [admin CLI](/docs/administration/admin-cli#reset-password).
 
-If you have friends or family members who want to use AirTrail to track their flights as well, you can create user accounts for them.
+## Add other people
 
-To create a new user, go to the settings page, and click on the "Users" tab. Enter the required information and click on the "Add User" button.
+Everyone who uses the instance gets their own account and flight history. To add someone, open **Settings → Users** and click **Add user**. Choose their username, password, name and **Role**:
+
+- **User** manages their own flights and account.
+- **Administrator** can also manage other users, all flights, reference data and instance settings.
+
+You can change these roles or create your own under **Settings → Roles**. See [Roles and permissions](/docs/administration/roles).
+
+To let people sign in with an existing account from Authentik, Keycloak, Google or another OpenID Connect provider instead, set up [OAuth](/docs/features/oauth).
 
 ## Add flights
 
-Start adding flights to your account to see the map slowly fill up with your flight paths. You can [add flights manually](/docs/features/add-flight) or [import them](/docs/features/import) from various sources.
+Start adding flights to watch the map fill up. You can [add flights by hand](/docs/features/add-flight) or [import them](/docs/features/import) from other apps and trackers.
+
+## Recommended next steps
+
+- Put the instance behind a [reverse proxy](/docs/install/reverse-proxy) with HTTPS before exposing it to the internet.
+- Set up [backups](/docs/administration/backup).
+- Optionally add an [AeroDataBox](/docs/integrations/aerodatabox) key for better flight lookups.

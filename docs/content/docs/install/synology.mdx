@@ -1,5 +1,31 @@
 ---
 title: Synology NAS
+description: Run AirTrail in Container Manager on a Synology NAS.
 ---
 
-If you have a Synology NAS, you can follow the awesome guide by [mariushosting](https://mariushosting.com/how-to-install-airtrail-on-your-synology-nas/).
+AirTrail runs on Synology NAS models that support **Container Manager** (DSM 7.2 and later). The image is available for both Intel/AMD (x86-64) and ARM64 models.
+
+## Create the project
+
+<div className="steps">
+  <div className="step">
+    In **File Station**, create a folder for AirTrail, for example `docker/airtrail`, with a `data/uploads` folder inside it.
+  </div>
+  <div className="step">
+    Download [compose.yml](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker/production/compose.yml) and [.env.example](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example). Save them in that folder as `docker-compose.yml` and `.env`, and edit `.env` as described in the [Docker Compose guide](/docs/install/docker-compose).
+  </div>
+  <div className="step">
+    In **Container Manager → Project**, click **Create**, choose the folder, and select **Use existing docker-compose.yml**. Finish the wizard to build and start the project.
+  </div>
+  <div className="step">
+    Open `http://<nas-address>:3000` (or the URL in `ORIGIN`) and follow the [post-installation](/docs/install/post-installation) steps.
+  </div>
+</div>
+
+## Things to watch
+
+- **Port 3000 in use:** change the left side of the `ports` entry, for example `3010:3000`, and update `ORIGIN` to match.
+- **Uploads permissions:** if you bind-mount `data/uploads` instead of using the named volume, it must be writable by UID 1000. See [Uploads and file permissions](/docs/install/docker-compose#uploads-and-file-permissions).
+- **HTTPS:** DSM's built-in reverse proxy (**Control Panel → Login Portal → Advanced → Reverse Proxy**) can publish AirTrail over HTTPS. Then follow the [reverse proxy guide](/docs/install/reverse-proxy) for `ORIGIN` and `ADDRESS_HEADER`.
+
+For a walkthrough with screenshots, see the community guide by [mariushosting](https://mariushosting.com/how-to-install-airtrail-on-your-synology-nas/).

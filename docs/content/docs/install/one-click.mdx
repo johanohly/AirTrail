@@ -1,5 +1,6 @@
 ---
 title: One-Click Installation
+description: Deploy on Railway, or install locally with a script.
 ---
 
 ## Railway
@@ -12,38 +13,27 @@ title: One-Click Installation
   <img src="https://railway.com/button.svg" alt="Deploy on Railway" />
 </a>
 
-After deployment is complete, follow the [post-installation
-steps](/docs/install/post-installation).
+The template deploys AirTrail with a PostgreSQL database on [Railway](https://railway.com), a paid hosting platform. It keeps `ORIGIN` in sync with the service's public domain, including a custom domain you add in Railway, and attaches persistent storage for the database and uploads, so there is nothing to configure. When the deployment finishes, open the service's URL and follow the [post-installation](/docs/install/post-installation) steps.
 
-## Local Install Script
+## Install script
 
-<Callout title="EXPERIMENTAL" type="warn">
-  The local install script is experimental and may not work on all systems. For
-  a more reliable self-hosted installation, we recommend using the [Docker
-  Compose](/docs/install/docker-compose) method.
+<Callout title="Experimental" type="warn">
+  The script is a shortcut for the [Docker Compose](/docs/install/docker-compose)
+  installation. Use the manual Compose steps if it does not work on your
+  system.
 </Callout>
 
-### Requirements
-
-See the software [requirements](/docs/install/requirements).
-
-### Usage
-
-Run the following command in your terminal to install AirTrail:
+The script needs `curl`, Docker and Docker Compose v2 on Linux or macOS. Run it in the directory where you want AirTrail's files:
 
 ```bash
-bash <(curl -o- https://raw.githubusercontent.com/JohanOhly/AirTrail/main/scripts/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/JohanOhly/AirTrail/main/scripts/install.sh)
 ```
 
-This will
+It will:
 
-- create a new directory called `airtrail` in your current working directory
-- inside it, it will download
-  the [docker-compose.yml](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker/production/compose.yml)
-  and [.env](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example) files from the repository
-- start the AirTrail services using Docker Compose
+- create an `airtrail` directory and download `docker-compose.yml` and `.env` into it
+- generate a random database password and write it to both `DB_PASSWORD` and `DB_URL`
+- ask for the URL you will open AirTrail at and save it as `ORIGIN`
+- start AirTrail with `docker compose up -d`
 
-<Callout>
-  After the installation is complete, you should follow the [post-installation
-  steps](/docs/install/post-installation).
-</Callout>
+When it finishes, follow the [post-installation](/docs/install/post-installation) steps. The resulting installation is a normal Docker Compose setup, so [updating](/docs/install/updating) and [backups](/docs/administration/backup) work the same way.

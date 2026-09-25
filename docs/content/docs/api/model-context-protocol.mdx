@@ -33,7 +33,7 @@ The exact configuration format depends on the MCP client.
 
 OAuth is the recommended option. AirTrail supports dynamic client registration, the authorization code flow with PKCE, refresh tokens, and protected-resource discovery. The consent screen pre-selects exactly the scopes the client requested. The user can approve those, widen the grant to anything else their role allows, or narrow it further before approving.
 
-Clients without OAuth support can use a personal API key. Create one under **Settings > Security > API keys**, select only the scopes the client needs, and send it as a bearer token:
+Clients without OAuth support can use a personal API key. Create one under **Settings → Security → API Keys**, select only the scopes the client needs, and send it as a bearer token:
 
 ```json
 {

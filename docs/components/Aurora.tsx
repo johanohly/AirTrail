@@ -1,36 +1,46 @@
-import type React from 'react';
+import type React from "react";
 
-const widths = ['0.5rem', '1rem', '1.5rem', '2rem', '2.5rem', '3rem', '4rem'];
-const heights = ['80%', '85%', '90%', '95%', '100%'];
+const widths = ["0.5rem", "1rem", "1.5rem", "2rem", "2.5rem", "3rem", "4rem"];
+const heights = ["80%", "85%", "90%", "95%", "100%"];
 const anims = [
-  ['0s', '4s'],
-  ['-3s', '7s'],
-  ['-2s', '8s'],
-  ['-3s', '9s'],
-  ['-2s', '10s'],
-  ['-4s', '11s'],
-  ['-6s', '12s'],
+  ["0s", "4s"],
+  ["-3s", "7s"],
+  ["-2s", "8s"],
+  ["-3s", "9s"],
+  ["-2s", "10s"],
+  ["-4s", "11s"],
+  ["-6s", "12s"],
 ];
 const opacity = [
-  'opacity-10',
-  'opacity-20',
-  'opacity-30',
-  'opacity-40',
-  'opacity-50',
-  'opacity-60',
-  'opacity-70',
-  'opacity-80',
-  'opacity-90',
-  'opacity-100',
+  "opacity-10",
+  "opacity-20",
+  "opacity-30",
+  "opacity-40",
+  "opacity-50",
+  "opacity-60",
+  "opacity-70",
+  "opacity-80",
+  "opacity-90",
+  "opacity-100",
 ];
-const margins = ['0', '0.3rem', '1rem'];
+const margins = ["0", "0.3rem", "1rem"];
 
-type AuroraProps = {
-  className?: string;
+function bandOpacity(i: number, bands: number, levels: number) {
+  if (i < bands / 2) {
+    return Math.ceil(i / 2);
+  }
+  if (bands - i < levels) {
+    return bands - i;
+  }
+  return Math.floor((Math.random() * levels) / 2 + levels / 2);
+}
+
+interface AuroraProps {
   bands: number;
-};
+  className?: string;
+}
 
-const Aurora: React.FC<AuroraProps> = ({ className = '', bands }) => (
+const Aurora: React.FC<AuroraProps> = ({ className = "", bands }) => (
   <>
     <style>
       {`
@@ -102,25 +112,20 @@ const Aurora: React.FC<AuroraProps> = ({ className = '', bands }) => (
     </style>
     <div className={`aurora ${className}`}>
       {Array.from({ length: bands }).map((_, i) => {
-        const opacityI =
-          i < bands / 2
-            ? Math.ceil(i / 2)
-            : bands - i < opacity.length
-              ? bands - i
-              : Math.floor(
-                  (Math.random() * opacity.length) / 2 + opacity.length / 2,
-                );
+        const opacityI = bandOpacity(i, bands, opacity.length);
         const anim = Math.floor(Math.random() * anims.length);
         return (
           <div
             className="aurora-slice"
+            // The bands are a fixed decorative list that never reorders.
+            // biome-ignore lint/suspicious/noArrayIndexKey: see above
             key={i}
             style={{
               animationDelay: anims[anim][0],
               animationDuration: anims[anim][1],
-              opacity: (opacityI + 1) / 15,
-              marginRight: margins[Math.floor(Math.random() * margins.length)],
               height: heights[Math.floor(Math.random() * heights.length)],
+              marginRight: margins[Math.floor(Math.random() * margins.length)],
+              opacity: (opacityI + 1) / 15,
               width: widths[Math.floor(Math.random() * widths.length)],
             }}
           />

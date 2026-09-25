@@ -1,4 +1,0 @@
-{
-  "title": "Legacy flights",
-  "pages": ["list-flights", "get-flight", "save-flight", "delete-flight", "export-flights"]
-}
