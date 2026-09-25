@@ -18,11 +18,22 @@
   import { Card } from '$lib/components/ui/card';
   import type { DirectoryUser, PublicUser } from '$lib/db/types';
   import { api } from '$lib/trpc';
-  import { getPreferences, matchPreset, presets } from '$lib/utils/preferences';
+  import {
+    defaultPreferences,
+    getPreferences,
+    matchPreset,
+    presets,
+  } from '$lib/utils/preferences';
+  import type { Preferences } from '$lib/zod/user';
 
   const presetSummary = (user: PublicUser): string => {
-    const key = matchPreset(getPreferences(user));
-    return key ? presets[key].label : 'Custom';
+    const prefs = getPreferences(user);
+    const key = matchPreset(prefs);
+    if (key) return presets[key].label;
+    const untouched = (
+      Object.keys(defaultPreferences) as (keyof Preferences)[]
+    ).every((field) => prefs[field] === defaultPreferences[field]);
+    return untouched ? 'Default' : 'Custom';
   };
 
   const users = $derived(page.data.users);

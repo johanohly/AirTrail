@@ -416,14 +416,14 @@ function ImageLightbox({ onClose }: Readonly<{ onClose: () => void }>) {
       <img
         alt="AirTrail screenshot"
         className="lightbox-image hidden max-h-[90vh] max-w-full rounded-lg shadow-2xl dark:block"
-        height={1295}
+        height={1296}
         src="/dark.png"
         width={2560}
       />
       <img
         alt="AirTrail screenshot"
         className="lightbox-image max-h-[90vh] max-w-full rounded-lg shadow-2xl dark:hidden"
-        height={1295}
+        height={1296}
         src="/light.png"
         width={2560}
       />
@@ -450,14 +450,14 @@ export function PreviewImage(props: Readonly<ComponentProps<"button">>) {
         <img
           alt="AirTrail screenshot"
           className="hidden w-full dark:block"
-          height={1295}
+          height={1296}
           src="/dark.png"
           width={2560}
         />
         <img
           alt="AirTrail screenshot"
           className="w-full dark:hidden"
-          height={1295}
+          height={1296}
           src="/light.png"
           width={2560}
         />
@@ -484,14 +484,14 @@ export function HeroImage({ className }: Readonly<{ className?: string }>) {
         <img
           alt="AirTrail preview"
           className="hidden rounded-xl border shadow-2xl dark:block"
-          height={1295}
+          height={1296}
           src="/dark.png"
           width={2560}
         />
         <img
           alt="AirTrail preview"
           className="rounded-xl border shadow-2xl dark:hidden"
-          height={1295}
+          height={1296}
           src="/light.png"
           width={2560}
         />

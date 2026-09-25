@@ -105,3 +105,6 @@ prisma/temp.sql
 # and uncomment the following lines
 # .pnp.*
 .vscode/launch.json
+
+# Raw screenshot captures
+/tests/screenshots/.output

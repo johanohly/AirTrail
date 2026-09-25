@@ -16,6 +16,7 @@ import { notFound } from "next/navigation";
 import type { ComponentProps } from "react";
 
 import { OpenAPIPage } from "@/components/api-page";
+import { Screenshot } from "@/components/screenshot";
 import { getPageMarkdownUrl, gitConfig } from "@/lib/shared";
 import { source } from "@/lib/source";
 
@@ -89,6 +90,7 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
                 {...(imageProps as ComponentProps<typeof ImageZoom>)}
               />
             ),
+            Screenshot,
           }}
         />
       </DocsBody>
