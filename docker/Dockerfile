@@ -1,27 +1,26 @@
 FROM johly/airtrail-airport-overlay:2026.5.23@sha256:05f30d8d73dca311f10931367fcb43f0701f0f7b6977fd9ff65dd264f29fea62 AS airport_overlay
 
-FROM oven/bun:debian AS base
+# The build output is plain JavaScript, so it is built on the builder's own
+# platform. Emulated builds are slow, and Vite's native bundler crashes under
+# Rosetta. Only the production dependencies, which include native modules, are
+# installed for the target platform.
+FROM --platform=$BUILDPLATFORM oven/bun:debian AS build
 WORKDIR /app
-
-FROM base AS install
-RUN mkdir -p /temp/dev
-COPY package.json bun.lock /temp/dev/
-RUN cd /temp/dev && bun install --frozen-lockfile
-
-RUN mkdir -p /temp/prod
-COPY package.json bun.lock /temp/prod/
-RUN cd /temp/prod && bun install --frozen-lockfile --production
-
-FROM base AS build
-COPY --from=install /temp/dev/node_modules node_modules
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 COPY . .
 
 ENV NODE_ENV=production
 RUN bun run build
 
+FROM oven/bun:debian AS install
+WORKDIR /app
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
+
 FROM node:22-slim AS release
 WORKDIR /app
-COPY --from=install /temp/prod/node_modules node_modules
+COPY --from=install /app/node_modules node_modules
 COPY --from=build /app/build build
 COPY --from=airport_overlay /airport-overlay.pmtiles /app/build/client/airport-overlay.pmtiles
 COPY --from=build /app/package.json .
