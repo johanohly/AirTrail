@@ -15,6 +15,7 @@
     placeholder = 'Search aircraft by name or code',
     disabled = false,
     compact = false,
+    typesOnly = false,
     onchange,
     onCreateNew,
   }: {
@@ -22,6 +23,8 @@
     placeholder?: string;
     disabled?: boolean;
     compact?: boolean;
+    /** Only offer generic aircraft types, not specific aircraft. */
+    typesOnly?: boolean;
     onchange?: (aircraft: Aircraft | null) => void;
     onCreateNew?: () => void;
   } = $props();
@@ -70,9 +73,16 @@
   let results: Aircraft[] = $state([]);
   let loading = $state(false);
 
+  const cacheKey = (input: string) =>
+    `${typesOnly ? 'type:' : ''}${input.toLowerCase()}`;
+  const search = (query: string) =>
+    typesOnly
+      ? api.autocomplete.aircraftType.query(query)
+      : api.autocomplete.aircraft.query(query);
+
   $effect(() => {
     if ($touchedInput && $inputValue !== '' && !loading) {
-      const key = $inputValue.toLowerCase();
+      const key = cacheKey($inputValue);
       const cached = aircraftSearchCache.get(key);
       if (cached) {
         results = cached;
@@ -82,7 +92,7 @@
       debounce(async () => {
         loading = true;
         try {
-          results = await api.autocomplete.aircraft.query(query);
+          results = await search(query);
           aircraftSearchCache.set(key, results);
         } finally {
           loading = false;
@@ -96,7 +106,7 @@
   // Ensure results are repopulated when the input is focused/opened with a prefilled value
   $effect(() => {
     if ($open && !$touchedInput && $inputValue !== '' && !loading) {
-      const key = $inputValue.toLowerCase();
+      const key = cacheKey($inputValue);
       const cached = aircraftSearchCache.get(key);
       if (cached) {
         results = cached;
@@ -105,7 +115,7 @@
       loading = true;
       (async () => {
         try {
-          results = await api.autocomplete.aircraft.query($inputValue);
+          results = await search($inputValue);
           aircraftSearchCache.set(key, results);
         } finally {
           loading = false;
@@ -186,6 +196,10 @@
                   <b>{entry.icao}</b>
                 {:else}
                   No ICAO
+                {/if}
+                {#if entry.specific && entry.serialNumber}
+                  <span class="ml-1">MSN</span>
+                  <b>{entry.serialNumber}</b>
                 {/if}
               </p>
             </div>

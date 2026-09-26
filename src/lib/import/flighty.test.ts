@@ -122,6 +122,10 @@ describe('processFlightyFile', () => {
       name: 'Boeing 737-900',
       icao: 'B739',
       sourceId: 'boeing-737-900',
+      specific: false,
+      typeId: null,
+      serialNumber: null,
+      firstFlight: null,
     };
     const resolved = await processFlightyFile(content, {
       ...options,

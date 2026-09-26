@@ -257,7 +257,16 @@ describe('processFR24File', () => {
     expect(unresolved.flights[0]?.aircraft).toBeNull();
     expect(unresolved.unknowns.aircraft).toEqual({ AT72: [0] });
 
-    const atr = { id: 72, name: 'ATR 72-200', icao: 'AT72', sourceId: null };
+    const atr = {
+      id: 72,
+      name: 'ATR 72-200',
+      icao: 'AT72',
+      sourceId: null,
+      specific: false,
+      typeId: null,
+      serialNumber: null,
+      firstFlight: null,
+    };
     const resolved = await processFR24File(content, {
       filterOwner: false,
       airlineFromFlightNumber: true,

@@ -23,6 +23,22 @@ export type aircraft = {
     name: string;
     icao: string | null;
     sourceId: string | null;
+    /**
+     * A specific airframe rather than a generic aircraft type.
+     */
+    specific: Generated<boolean>;
+    /**
+     * Generic aircraft type of a specific airframe
+     */
+    typeId: number | null;
+    /**
+     * Manufacturer serial number (MSN)
+     */
+    serialNumber: string | null;
+    /**
+     * YYYY-MM-DD
+     */
+    firstFlight: string | null;
 };
 export type airline = {
     id: Generated<number>;

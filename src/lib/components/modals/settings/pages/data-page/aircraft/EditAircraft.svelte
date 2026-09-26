@@ -15,6 +15,10 @@
   import * as Form from '$lib/components/ui/form';
   import type { Aircraft } from '$lib/db/types';
   import { trpc } from '$lib/trpc';
+  import {
+    aircraftSearchCache,
+    clearAircraftLookupCaches,
+  } from '$lib/utils/data/aircraft';
   import { aircraftSchema } from '$lib/zod/aircraft';
 
   let {
@@ -35,6 +39,9 @@
         if (form.message) {
           if (form.message.type === 'success') {
             trpc.aircraft.list.utils.invalidate();
+            trpc.flight.list.utils.invalidate();
+            aircraftSearchCache.clear();
+            clearAircraftLookupCaches();
             open = false;
             return void toast.success(form.message.text);
           }

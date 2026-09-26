@@ -32,7 +32,9 @@ const airportRefSchema = z.union([
   z.object({ code: z.string().max(4) }),
 ]);
 const airlineRefSchema = airlineSchema.omit({ id: true }).nullable();
-const aircraftRefSchema = aircraftSchema.omit({ id: true }).nullable();
+const aircraftRefSchema = aircraftSchema
+  .pick({ name: true, icao: true })
+  .nullable();
 
 const normalizePassengerProperty = (value: unknown) => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return value;

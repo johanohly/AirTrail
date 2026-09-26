@@ -7,6 +7,7 @@
   import EditAircraft from './EditAircraft.svelte';
 
   import { Confirm } from '$lib/components/helpers';
+  import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import { Collapsible } from '$lib/components/ui/collapsible';
@@ -29,11 +30,16 @@
     }
   };
 
-  const filteredAircraft = $derived(
-    aircraft.filter((aircraft) =>
-      aircraft.name.toLowerCase().includes(search.toLowerCase()),
-    ),
-  );
+  const aircraftById = $derived(new Map(aircraft.map((a) => [a.id, a])));
+
+  const filteredAircraft = $derived.by(() => {
+    const query = search.toLowerCase();
+    return aircraft.filter(
+      (aircraft) =>
+        aircraft.name.toLowerCase().includes(query) ||
+        !!aircraft.serialNumber?.toLowerCase().includes(query),
+    );
+  });
   let search = $state('');
   const handleSearch = (e: Event) => {
     search = (e.target as HTMLInputElement).value;
@@ -65,7 +71,7 @@
 
 <Collapsible
   title="Aircraft"
-  subtitle="Manage aircraft types in your database."
+  subtitle="Manage aircraft types and specific aircraft in your database."
 >
   <div class="flex flex-col gap-4">
     <div class="flex gap-2 justify-between">
@@ -89,10 +95,32 @@
         {#snippet renderItem(aircraftItem)}
           <Card level="2" class="w-full flex items-center justify-between p-3">
             <div class="flex flex-col gap-1">
-              <h4 class="leading-4">{aircraftItem.name}</h4>
-              <p class="text-sm">
-                <span class="text-muted-foreground">ICAO</span>
-                <b>{aircraftItem.icao ?? 'N/A'}</b>
+              <h4 class="flex items-center gap-2 leading-4">
+                {aircraftItem.name}
+                {#if aircraftItem.specific}
+                  <Badge variant="secondary">Specific</Badge>
+                {/if}
+              </h4>
+              <p class="flex flex-wrap gap-x-3 text-sm">
+                <span>
+                  <span class="text-muted-foreground">ICAO</span>
+                  <b>{aircraftItem.icao ?? 'N/A'}</b>
+                </span>
+                {#if aircraftItem.specific}
+                  <span>
+                    <span class="text-muted-foreground">MSN</span>
+                    <b>{aircraftItem.serialNumber ?? 'N/A'}</b>
+                  </span>
+                  {@const type = aircraftItem.typeId
+                    ? aircraftById.get(aircraftItem.typeId)
+                    : null}
+                  {#if type}
+                    <span>
+                      <span class="text-muted-foreground">Type</span>
+                      <b>{type.name}</b>
+                    </span>
+                  {/if}
+                {/if}
               </p>
             </div>
             <div class="flex items-center gap-2">

@@ -185,7 +185,12 @@
           >
             <div class="flex flex-col">
               <span class="truncate">{entry.name}</span>
-              <span class="text-sm opacity-75">{entry.icao || 'No ICAO'}</span>
+              <span class="text-sm opacity-75">
+                {entry.icao || 'No ICAO'}
+                {#if entry.specific && entry.serialNumber}
+                  · MSN {entry.serialNumber}
+                {/if}
+              </span>
             </div>
           </li>
         {:else}
