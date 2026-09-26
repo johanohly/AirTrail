@@ -1,3 +1,12 @@
 {
-  "items": ["admin-cli", "basemaps", "outbound-proxy"]
+  "pages": [
+    "roles",
+    "environment-variables",
+    "backup",
+    "troubleshooting",
+    "admin-cli",
+    "sql-console",
+    "basemaps",
+    "outbound-proxy"
+  ]
 }

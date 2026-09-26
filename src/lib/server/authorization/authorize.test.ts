@@ -5,6 +5,7 @@ import {
   canDeduplicateOwnFlights,
   canRestoreAllFlights,
   canSetDefaultRole,
+  normalizePermissions,
   permissionsStrictlyInclude,
   type Permission,
 } from '$lib/authorization/permissions';
@@ -35,6 +36,16 @@ describe('RBAC authorization', () => {
     expect(hasPermission(context(['flight.read.own']), 'flight.read.any')).toBe(
       false,
     );
+  });
+
+  it('stores broad flight grants without their redundant own equivalents', () => {
+    expect(
+      normalizePermissions([
+        'flight.read.own',
+        'flight.read.any',
+        'flight.share.own',
+      ]),
+    ).toEqual(['flight.read.any', 'flight.share.own']);
   });
 
   it('prevents roles from granting permissions the actor lacks', () => {

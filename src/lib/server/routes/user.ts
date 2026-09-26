@@ -18,7 +18,9 @@ import {
 } from '$lib/server/authorization/users';
 import { lockRoles } from '$lib/server/authorization/roles';
 import { createApiKey } from '$lib/server/utils/auth';
+import { updateUserPreferences } from '$lib/server/utils/user';
 import { updatePreferencesSchema } from '$lib/zod/user';
+import { grantableSubset } from '$lib/api/v1/scopes';
 
 export const userRouter = router({
   me: authedProcedure.query(({ ctx: { user } }) => {
@@ -95,14 +97,23 @@ export const userRouter = router({
   listApiKeys: authedProcedure.query(async ({ ctx }) => {
     return db
       .selectFrom('apiKey')
-      .select(['id', 'name', 'createdAt', 'lastUsed'])
+      .select(['id', 'name', 'createdAt', 'lastUsed', 'scopes'])
       .where('userId', '=', ctx.user.id)
       .execute();
   }),
   createApiKey: authedProcedure
-    .input(z.string())
+    .input(
+      z.object({ name: z.string().trim().min(1), scopes: z.array(z.string()) }),
+    )
     .mutation(async ({ ctx, input }) => {
-      return await createApiKey(ctx.user.id, input);
+      const scopes = grantableSubset(ctx.authorization, input.scopes);
+      if (!scopes) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'One or more requested scopes are not available.',
+        });
+      }
+      return await createApiKey(ctx.user.id, input.name, scopes);
     }),
   deleteApiKey: authedProcedure
     .input(z.number())
@@ -114,15 +125,35 @@ export const userRouter = router({
         .executeTakeFirst();
       return result.numDeletedRows > 0;
     }),
+  listConnectedApps: authedProcedure.query(async ({ ctx }) =>
+    db
+      .selectFrom('oauthGrant')
+      .innerJoin('oauthClient', 'oauthClient.id', 'oauthGrant.clientId')
+      .select([
+        'oauthGrant.id',
+        'oauthGrant.resource',
+        'oauthGrant.scopes',
+        'oauthGrant.updatedAt',
+        'oauthClient.name',
+      ])
+      .where('oauthGrant.userId', '=', ctx.user.id)
+      .orderBy('oauthGrant.updatedAt', 'desc')
+      .execute(),
+  ),
+  revokeConnectedApp: authedProcedure
+    .input(z.string())
+    .mutation(async ({ ctx, input }) => {
+      const result = await db
+        .deleteFrom('oauthGrant')
+        .where('id', '=', input)
+        .where('userId', '=', ctx.user.id)
+        .executeTakeFirst();
+      return result.numDeletedRows > 0;
+    }),
   updatePreferences: authedProcedure
     .input(updatePreferencesSchema)
     .mutation(async ({ ctx, input }) => {
-      if (Object.keys(input).length === 0) return true;
-      const result = await db
-        .updateTable('user')
-        .set(input)
-        .where('id', '=', ctx.user.id)
-        .executeTakeFirst();
-      return Number(result.numUpdatedRows) > 0;
+      await updateUserPreferences(ctx.user.id, input);
+      return true;
     }),
 });

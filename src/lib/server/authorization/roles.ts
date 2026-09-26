@@ -1,7 +1,12 @@
+import type { DatabaseConnection } from '$lib/db/types';
 import { generateId } from 'lucia';
-import { sql, type Kysely, type Transaction } from 'kysely';
+import { sql, type Transaction } from 'kysely';
 
-import { isPermission, type Permission } from '$lib/authorization/permissions';
+import {
+  isPermission,
+  normalizePermissions,
+  type Permission,
+} from '$lib/authorization/permissions';
 import { db } from '$lib/db';
 import type { DB } from '$lib/db/schema';
 import type { AuthorizationContext } from './context';
@@ -12,8 +17,6 @@ import {
   requireLockedPermissions,
 } from './authorize';
 import type { RoleInput } from '$lib/zod/role';
-
-type DatabaseConnection = Kysely<DB> | Transaction<DB>;
 
 type RoleOperationErrorKind = 'conflict' | 'invalid' | 'not_found';
 
@@ -166,26 +169,30 @@ export const createRole = async (
   authorization: AuthorizationContext,
 ) => {
   const id = generateId(15);
+  const normalizedInput = {
+    ...input,
+    permissions: normalizePermissions(input.permissions),
+  };
   await db.transaction().execute(async (trx) => {
     const currentAuthorization = await requireLockedPermissions({
       userId: authorization.userId,
       permissions: ['roles.manage'],
       transaction: trx,
     });
-    await validateRoleInput(input, currentAuthorization, trx);
+    await validateRoleInput(normalizedInput, currentAuthorization, trx);
     await trx
       .insertInto('accessRole')
       .values({
         id,
-        name: input.name,
-        description: input.description ?? null,
+        name: normalizedInput.name,
+        description: normalizedInput.description ?? null,
       })
       .execute();
-    if (input.permissions.length) {
+    if (normalizedInput.permissions.length) {
       await trx
         .insertInto('accessRolePermission')
         .values(
-          [...new Set(input.permissions)].map((permission) => ({
+          normalizedInput.permissions.map((permission) => ({
             roleId: id,
             permission,
           })),
@@ -201,6 +208,10 @@ export const updateRole = async (
   input: RoleInput,
   authorization: AuthorizationContext,
 ) => {
+  const normalizedInput = {
+    ...input,
+    permissions: normalizePermissions(input.permissions),
+  };
   await db.transaction().execute(async (trx) => {
     const currentAuthorization = await requireLockedPermissions({
       userId: authorization.userId,
@@ -221,13 +232,13 @@ export const updateRole = async (
         'You cannot edit a role with permissions you do not have',
       );
     }
-    await validateRoleInput(input, currentAuthorization, trx, roleId);
+    await validateRoleInput(normalizedInput, currentAuthorization, trx, roleId);
 
     await trx
       .updateTable('accessRole')
       .set({
-        name: input.name,
-        description: input.description ?? null,
+        name: normalizedInput.name,
+        description: normalizedInput.description ?? null,
         updatedAt: new Date(),
       })
       .where('id', '=', roleId)
@@ -236,11 +247,11 @@ export const updateRole = async (
       .deleteFrom('accessRolePermission')
       .where('roleId', '=', roleId)
       .execute();
-    if (input.permissions.length) {
+    if (normalizedInput.permissions.length) {
       await trx
         .insertInto('accessRolePermission')
         .values(
-          [...new Set(input.permissions)].map((permission) => ({
+          normalizedInput.permissions.map((permission) => ({
             roleId,
             permission,
           })),

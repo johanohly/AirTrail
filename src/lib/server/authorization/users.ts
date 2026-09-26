@@ -1,19 +1,15 @@
-import type { Kysely, Transaction } from 'kysely';
-
 import {
   isPermission,
   permissionsStrictlyInclude,
   type Permission,
 } from '$lib/authorization/permissions';
 import { db } from '$lib/db';
-import type { DB } from '$lib/db/schema';
-import type { DirectoryUser } from '$lib/db/types';
+import type { DatabaseConnection, DirectoryUser } from '$lib/db/types';
 import { publicUserQuery } from '$lib/server/utils/user';
 import type { AuthorizationContext } from './context';
 import { getRolePermissions } from './roles';
 import { hasPermission } from './authorize';
 
-type DatabaseConnection = Kysely<DB> | Transaction<DB>;
 type ManageableUser = { isOwner: boolean; roleId: string | null };
 
 export const hasUserChangePermissions = (

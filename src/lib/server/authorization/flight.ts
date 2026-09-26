@@ -7,7 +7,8 @@ import { hasPermission } from './authorize';
 import type { AuthorizationContext } from './context';
 
 type FlightOwnershipScope = 'own' | 'any';
-type FlightAccessAction = 'read' | 'update' | 'delete' | 'passengers.manage';
+export type FlightAccessAction =
+  'read' | 'update' | 'delete' | 'passengers.manage';
 
 const FLIGHT_ACCESS_PERMISSIONS = {
   read: { own: 'flight.read.own', any: 'flight.read.any' },
@@ -90,6 +91,14 @@ export const isFlightParticipant = async (
       .executeTakeFirst(),
   );
 
+/** The ownership scope a caller holds for one flight, from participation. */
+export const flightOwnership = async (
+  userId: string,
+  flightId: number,
+  connection: Kysely<DB> = db,
+): Promise<FlightOwnershipScope> =>
+  (await isFlightParticipant(userId, flightId, connection)) ? 'own' : 'any';
+
 export const canAccessFlight = async (
   authorization: AuthorizationContext,
   action: FlightAccessAction,
@@ -98,11 +107,25 @@ export const canAccessFlight = async (
 ) => {
   const permissions = FLIGHT_ACCESS_PERMISSIONS[action];
   if (hasPermission(authorization, permissions.any)) return true;
+  if (!hasPermission(authorization, permissions.own)) return false;
 
-  return (
-    hasPermission(authorization, permissions.own) &&
-    (await isFlightParticipant(authorization.userId, flightId, connection))
-  );
+  return isFlightParticipant(authorization.userId, flightId, connection);
+};
+
+/*
+ * The same role check as `canAccessFlight`, for callers that already resolved
+ * participation. Lets a caller look up participation once and derive both the
+ * role decision and the ownership scope from it, instead of paying for a second
+ * `flight_participant` query.
+ */
+export const canAccessResolvedOwnership = (
+  authorization: AuthorizationContext,
+  action: FlightAccessAction,
+  ownership: FlightOwnershipScope,
+) => {
+  const permissions = FLIGHT_ACCESS_PERMISSIONS[action];
+  if (hasPermission(authorization, permissions.any)) return true;
+  return ownership === 'own' && hasPermission(authorization, permissions.own);
 };
 
 export const canAccessFlights = async (

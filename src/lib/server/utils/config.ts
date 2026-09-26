@@ -156,24 +156,25 @@ export class AppConfig {
     return paths;
   }
 
-  #parseEnvValue(value: string): string | number | boolean | null {
+  /*
+   * Only booleans and null are converted. Numeric settings use `z.coerce`, so
+   * everything else stays a string -- a digit-only OAuth client ID included.
+   */
+  #parseEnvValue(value: string): string | boolean | null {
     const lowerValue = value.trim().toLowerCase();
     if (lowerValue === 'true') return true;
     if (lowerValue === 'false') return false;
     if (lowerValue === 'null') return null;
-
-    const numberValue = Number(value);
-    if (!isNaN(numberValue)) return numberValue;
-
     return value;
   }
 
   async loadFromEnv() {
     const configPaths = this.#extractAllKeys(appConfigSchema);
+    // An empty variable (`KEY=` in .env) counts as unset.
     const envEntries = Object.entries(env).reduce<
-      Record<string, string | number | boolean | null>
+      Record<string, string | boolean | null>
     >((acc, [key, value]) => {
-      acc[key.toLowerCase()] = value ? this.#parseEnvValue(value) : true;
+      if (value?.trim()) acc[key.toLowerCase()] = this.#parseEnvValue(value);
       return acc;
     }, {});
 

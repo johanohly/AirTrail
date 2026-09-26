@@ -54,6 +54,7 @@
     type MapCameraController,
   } from '$lib/map/camera-controller';
   import { hasFallbackFlightArcs } from '$lib/map/flight-layer-data';
+  import { exposeRenderState } from '$lib/map/render-state';
   import {
     initMapPreferences,
     mapPreferences,
@@ -419,6 +420,10 @@
       controller.destroy();
       if (cameraController === controller) cameraController = undefined;
     };
+  });
+
+  $effect(() => {
+    if (map) return exposeRenderState(map);
   });
 
   onMount(() => {

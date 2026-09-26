@@ -15,14 +15,19 @@ The specific steps to take depend on the identity provider you are using, but in
    - Client type: `Confidential`
    - Application type: `Web application`
    - Grant type: `Authorization Code`
-3. Add the following redirect URI to the client configuration:
-   - `http://DOMAIN:PORT/login`
+3. Add AirTrail's login page as the redirect URI: your `ORIGIN` followed by `/login`, for example `https://airtrail.example.com/login`.
+
+<Callout>
+  The redirect URI must match `ORIGIN` exactly. Identity providers require
+  HTTPS for public addresses, so set up a [reverse
+  proxy](/docs/install/reverse-proxy) first. If your provider itself is only
+  reachable over plain HTTP on your local network, set
+  `OAUTH_ALLOW_INSECURE_HTTP=true`.
+</Callout>
 
 ## Configuration
 
-To configure OAuth authentication in AirTrail, either go to the `Settings` page and click on the `OAuth` tab (you need
-to be an
-admin to access this page), or configure OAuth through the `.env` file.
+To configure OAuth authentication in AirTrail, either open **Settings → OAuth** (available to the owner and administrators by default), or configure it through the `.env` file.
 
 The same settings are available in both the `.env` file and the settings page.
 On startup, AirTrail will check the `.env` file for OAuth settings and use them if they are present.
@@ -41,3 +46,8 @@ Settings that are configured in the `.env` file will not be editable in the sett
 | Auto Login         | `OAUTH_AUTO_LOGIN`                 | `false`              | Whether to automatically launch the OAuth login flow when a user visits the login page. To prevent redirection, add `?autoLogin=false` to the end of the url. |
 | Hide Password Form | `OAUTH_HIDE_PASSWORD_FORM`         | `false`              | Whether to hide the password authentication form when OAuth is enabled.                                                                                       |
 | Button Text        | `OAUTH_BUTTON_TEXT`                | `Log in with SSO`    | The text to display on the OAuth login button.                                                                                                                |
+| Allow insecure HTTP | `OAUTH_ALLOW_INSECURE_HTTP`       | `false`              | Allow an identity provider served over plain HTTP. Environment only; use it only on a trusted local network.                                                 |
+
+## Roles for OAuth users
+
+New OAuth users get the default role. To assign roles from claims your identity provider sends, such as group membership, set up [OAuth role mapping](/docs/administration/roles#oauth-role-mapping).

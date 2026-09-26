@@ -1,54 +1,124 @@
 ---
 title: Manual Installation
+description: Build and run AirTrail from source without Docker.
 ---
 
 <Callout>
-  This guide is for advanced users who want to install the app manually. If you
-  are not comfortable with the command line, we recommend using the [one-click
-  installer](/docs/install/one-click).
+  This guide is for people comfortable running a Node.js service and
+  PostgreSQL themselves. [Docker Compose](/docs/install/docker-compose) is
+  easier to install and update.
 </Callout>
 
 ## Requirements
 
 - [Git](https://git-scm.com/)
-- [Node.js](https://nodejs.org/)
-- [Bun](https://bun.sh/)
-- [PostgreSQL](https://www.postgresql.org/)
+- [Node.js](https://nodejs.org/) 22 (runs the server)
+- [Bun](https://bun.sh/) (installs dependencies and builds the app)
+- [PostgreSQL](https://www.postgresql.org/) 16, with an empty database and a user that owns it
 
-## Installation
+## Install
 
-1. Clone the repository:
+<div className="steps">
+  <div className="step">
+    **Get the source**
 
-```bash
-git clone https://github.com/JohanOhly/AirTrail.git
-cd AirTrail
+    Clone the repository and check out the latest release, so you run a tested version rather than the development branch:
+
+    ```bash
+    git clone https://github.com/JohanOhly/AirTrail.git
+    cd AirTrail
+    git checkout "$(git describe --tags --abbrev=0)"
+    ```
+
+  </div>
+  <div className="step">
+    **Install dependencies**
+
+    ```bash
+    bun install
+    ```
+
+  </div>
+  <div className="step">
+    **Configure**
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    In `.env`:
+
+    - Set `ORIGIN` to the exact URL you will open AirTrail at.
+    - Set `DB_URL` to your database, for example `postgres://airtrail:secret@localhost:5432/airtrail`.
+    - Set `UPLOAD_LOCATION` to an absolute path the service user can write to, such as `/var/lib/airtrail/uploads`.
+    - The `DB_PASSWORD`, `DB_DATABASE_NAME` and `DB_USERNAME` variables only configure the Docker database container and can be removed.
+
+    See [Environment variables](/docs/administration/environment-variables) for everything else.
+
+  </div>
+  <div className="step">
+    **Add the airport map layer (optional)**
+
+    The detailed airport layer on the map (runways, taxiways and terminals) comes from a 200 MB data file that is not in the repository. Without it, AirTrail works normally but shows no airport detail on the map. If Docker is available on any machine, copy the file out of its image and place it in `static/` before building:
+
+    ```bash
+    id=$(docker create johly/airtrail-airport-overlay:latest noop)
+    docker cp "$id":/airport-overlay.pmtiles static/airport-overlay.pmtiles
+    docker rm "$id"
+    ```
+
+  </div>
+  <div className="step">
+    **Build and migrate**
+
+    ```bash
+    bun run build
+    bun run db:migrate-deploy
+    ```
+
+  </div>
+  <div className="step">
+    **Start the server**
+
+    `node` does not read `.env` by itself, so pass it explicitly:
+
+    ```bash
+    node --env-file=.env build
+    ```
+
+    AirTrail listens on port 3000. Open the URL from `ORIGIN` and follow the [post-installation](/docs/install/post-installation) steps.
+
+  </div>
+</div>
+
+## Run it as a service
+
+To start AirTrail on boot and restart it if it stops, use a systemd unit. Adjust the user and paths:
+
+```ini title="/etc/systemd/system/airtrail.service"
+[Unit]
+Description=AirTrail
+After=network.target postgresql.service
+
+[Service]
+User=airtrail
+WorkingDirectory=/opt/airtrail
+ExecStart=/usr/bin/node --env-file=/opt/airtrail/.env build
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
 ```
 
-2. Install the dependencies:
-
 ```bash
-bun install
+sudo systemctl daemon-reload
+sudo systemctl enable --now airtrail
 ```
 
-3. Configure the environment variables:
+## Behind a reverse proxy
 
-```bash
-cp .env.example .env
-```
+Follow the [reverse proxy guide](/docs/install/reverse-proxy). With `ORIGIN` set you do not need `PROTOCOL_HEADER` or `HOST_HEADER`; set `ADDRESS_HEADER=X-Forwarded-For` so rate limits see the real client address.
 
-Fill in the required environment variables in the `.env` file.
+## Updating
 
-4. Build and set up the database:
-
-```bash
-bun run build
-bun run db:migrate-deploy
-```
-
-5. Start the server:
-
-```bash
-node ./build
-```
-
-The app should now be running on [localhost:3000](http://localhost:3000).
+See [Updating a manual installation](/docs/install/updating#manual-installation).

@@ -1,4 +1,20 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "extends": ["ultracite"]
+  "extends": [
+    "ultracite/biome/core",
+    "ultracite/biome/react",
+    "ultracite/biome/next"
+  ],
+  "linter": {
+    "rules": {
+      "performance": {
+        // The site is a static export with `images.unoptimized`, so next/image
+        // would only add a wrapper around the same <img>.
+        "noImgElement": "off",
+        // Inline event handlers are idiomatic React; memoizing them here would
+        // add code without a measurable effect.
+        "noJsxPropsBind": "off"
+      }
+    }
+  }
 }

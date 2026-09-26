@@ -1,0 +1,138 @@
+import type React from "react";
+
+const widths = ["0.5rem", "1rem", "1.5rem", "2rem", "2.5rem", "3rem", "4rem"];
+const heights = ["80%", "85%", "90%", "95%", "100%"];
+const anims = [
+  ["0s", "4s"],
+  ["-3s", "7s"],
+  ["-2s", "8s"],
+  ["-3s", "9s"],
+  ["-2s", "10s"],
+  ["-4s", "11s"],
+  ["-6s", "12s"],
+];
+const opacity = [
+  "opacity-10",
+  "opacity-20",
+  "opacity-30",
+  "opacity-40",
+  "opacity-50",
+  "opacity-60",
+  "opacity-70",
+  "opacity-80",
+  "opacity-90",
+  "opacity-100",
+];
+const margins = ["0", "0.3rem", "1rem"];
+
+function bandOpacity(i: number, bands: number, levels: number) {
+  if (i < bands / 2) {
+    return Math.ceil(i / 2);
+  }
+  if (bands - i < levels) {
+    return bands - i;
+  }
+  return Math.floor((Math.random() * levels) / 2 + levels / 2);
+}
+
+interface AuroraProps {
+  bands: number;
+  className?: string;
+}
+
+const Aurora: React.FC<AuroraProps> = ({ className = "", bands }) => (
+  <>
+    <style>
+      {`
+          .aurora {
+            transform: perspective(300px) rotateX(-10deg) rotateY(-9deg);
+            pointer-events: none;
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            display: flex;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            filter: blur(2rem);
+            overflow: hidden;
+          }
+
+          @media (max-width: 60rem) {
+            .aurora {
+              filter: blur(1rem);
+            }
+            .aurora-slice:nth-child(odd) {
+              display: none;
+            }
+          }
+
+          .aurora-slice {
+            will-change: transform;
+            animation-name: aurora;
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+            flex-grow: 1;
+            background-image: linear-gradient(
+              0deg,
+              rgba(30, 58, 138, 0) 0%,
+              rgba(29, 78, 216, 0.8) 4%,
+              rgba(37, 99, 235, 0.6) 5%,
+              rgba(96, 165, 250, 0.75) 8%,
+              rgba(59, 130, 246, 0.4) 12%,
+              rgba(191, 219, 254, 0.65) 22%,
+              rgba(30, 58, 138, 0.55) 40%,
+              rgba(30, 58, 138, 0) 100%
+            );
+          }
+
+          [data-theme="light"] .aurora-slice {
+            background-image: linear-gradient(
+              0deg,
+              rgba(30, 58, 138, 0) 0%,
+              rgba(29, 78, 216, 0.5) 4%,
+              rgba(37, 99, 235, 0.35) 8%,
+              rgba(59, 130, 246, 0.3) 18%,
+              rgba(191, 219, 254, 0.15) 20%,
+              rgba(30, 58, 138, 0.4) 40%,
+              rgba(30, 58, 138, 0) 100%
+            );
+          }
+
+          @keyframes aurora {
+            0%,
+            100% {
+              transform: translateY(0);
+            }
+            50% {
+              transform: translateY(10%);
+            }
+          }
+        `}
+    </style>
+    <div className={`aurora ${className}`}>
+      {Array.from({ length: bands }).map((_, i) => {
+        const opacityI = bandOpacity(i, bands, opacity.length);
+        const anim = Math.floor(Math.random() * anims.length);
+        return (
+          <div
+            className="aurora-slice"
+            // The bands are a fixed decorative list that never reorders.
+            // biome-ignore lint/suspicious/noArrayIndexKey: see above
+            key={i}
+            style={{
+              animationDelay: anims[anim][0],
+              animationDuration: anims[anim][1],
+              height: heights[Math.floor(Math.random() * heights.length)],
+              marginRight: margins[Math.floor(Math.random() * margins.length)],
+              opacity: (opacityI + 1) / 15,
+              width: widths[Math.floor(Math.random() * widths.length)],
+            }}
+          />
+        );
+      })}
+    </div>
+  </>
+);
+
+export default Aurora;

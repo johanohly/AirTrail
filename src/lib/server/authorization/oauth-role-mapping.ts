@@ -1,8 +1,7 @@
-import type { Kysely, Transaction } from 'kysely';
+import type { DatabaseConnection } from '$lib/db/types';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 
 import { db } from '$lib/db';
-import type { DB } from '$lib/db/schema';
 import type { AuthorizationContext } from './context';
 import { AuthorizationError, requireLockedPermissions } from './authorize';
 import { actorCanAssignRole, RoleOperationError } from './roles';
@@ -30,8 +29,6 @@ export type OAuthRoleRuleDiagnostic =
       actual: string;
     }
   | { kind: 'value_mismatch'; ruleIndex: number; actual: string };
-
-type DatabaseConnection = Kysely<DB> | Transaction<DB>;
 
 const decodePointerSegment = (segment: string) =>
   segment.replaceAll('~1', '/').replaceAll('~0', '~');
