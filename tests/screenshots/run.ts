@@ -13,7 +13,6 @@ import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { seedDemo } from './demo/seed';
 import { processScreenshots } from './postprocess';
 import { RAW_DIR } from './support/constants';
 
@@ -22,6 +21,7 @@ const DB_CONTAINER = 'airtrail-screenshots-db';
 const DB_PORT = 55432;
 const APP_PORT = 3999;
 const BASE_URL = `http://localhost:${APP_PORT}`;
+const UPLOADS_DIR = join(ROOT, 'tests', 'screenshots', '.output', 'uploads');
 const DB_URL = `postgres://airtrail:airtrail@localhost:${DB_PORT}/airtrail`;
 
 const args = process.argv.slice(2);
@@ -101,16 +101,24 @@ const main = async () => {
     run('bun', ['run', 'build']);
   }
 
-  step('Starting AirTrail (the first start downloads airport data)');
+  rmSync(UPLOADS_DIR, { recursive: true, force: true });
+  mkdirSync(UPLOADS_DIR, { recursive: true });
+
+  step('Starting AirTrail (it downloads airport data and seeds the demo)');
   app = spawn('node', ['build'], {
     cwd: ROOT,
     stdio: ['ignore', 'inherit', 'inherit'],
     env: {
       ...process.env,
       DB_URL,
+      // Seeds the demo world on start, with dates as written.
+      DEMO_MODE: 'screenshots',
       ORIGIN: BASE_URL,
       PORT: String(APP_PORT),
       BODY_SIZE_LIMIT: '20M',
+      // Its own folder, so airline logos come from a fresh icon sync rather
+      // than whatever a development .env points at.
+      UPLOAD_LOCATION: UPLOADS_DIR,
     },
   });
   await waitFor(
@@ -118,10 +126,6 @@ const main = async () => {
     'AirTrail',
     180_000,
   );
-
-  step('Seeding the demo world');
-  const seeded = await seedDemo({ baseUrl: BASE_URL, databaseUrl: DB_URL });
-  console.log(`  ${seeded.flights} flights`);
 
   step('Capturing');
   rmSync(RAW_DIR, { recursive: true, force: true });

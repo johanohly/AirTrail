@@ -10,6 +10,7 @@ import {
   canActOnUser,
   hasUserChangePermissions,
 } from '$lib/server/authorization/users';
+import { isPublicDemo } from '$lib/server/demo/mode';
 import { usernameExists } from '$lib/server/utils/auth';
 import { adminEditUserSchema } from '$lib/zod/user';
 
@@ -68,6 +69,8 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     ) {
       return { kind: 'forbidden' };
     }
+    // The demo's account switcher finds accounts by username.
+    if (usernameChanged && isPublicDemo()) return { kind: 'forbidden' };
     if (usernameChanged && (await usernameExists(username, userId, trx))) {
       return { kind: 'username_exists' };
     }

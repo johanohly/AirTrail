@@ -5,6 +5,7 @@ import { db } from '$lib/db';
 import type { DB } from '$lib/db/schema';
 import type { Permission } from '$lib/authorization/permissions';
 import { isPermission } from '$lib/authorization/permissions';
+import { DEMO_DENIED_PERMISSIONS, isPublicDemo } from '$lib/server/demo/mode';
 
 export type AuthorizationContext = {
   userId: string;
@@ -57,7 +58,13 @@ const loadContext = async (
     roleName,
     roleAssignmentSource: user.roleAssignmentSource,
     permissions: new Set(
-      grants.map(({ permission }) => permission).filter(isPermission),
+      grants
+        .map(({ permission }) => permission)
+        .filter(isPermission)
+        .filter(
+          (permission) =>
+            !isPublicDemo() || !DEMO_DENIED_PERMISSIONS.includes(permission),
+        ),
     ),
   };
 };

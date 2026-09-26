@@ -4,6 +4,7 @@ import { zod4 as zod } from 'sveltekit-superforms/adapters';
 import type { RequestHandler } from './$types';
 
 import { db } from '$lib/db';
+import { isPublicDemo } from '$lib/server/demo/mode';
 import { usernameExists } from '$lib/server/utils/auth';
 import { editUserSchema } from '$lib/zod/user';
 
@@ -30,6 +31,15 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   if (Object.keys(updatedFields).length === 0) {
     form.message = { type: 'error', text: 'No changes made' };
     return actionResult('success', { form });
+  }
+
+  // The demo's account switcher finds accounts by username.
+  if (updatedFields.username && isPublicDemo()) {
+    return actionResult(
+      'error',
+      'Usernames cannot be changed in the demo.',
+      403,
+    );
   }
 
   if (updatedFields.username) {

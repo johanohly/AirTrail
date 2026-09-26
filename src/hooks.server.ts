@@ -11,7 +11,10 @@ import {
 import { isCrossSiteFormPost } from '$lib/server/security/csrf';
 import { lucia } from '$lib/server/auth';
 import { loadAuthorizationContext } from '$lib/server/authorization/context';
+import { demoMode, isPublicDemo } from '$lib/server/demo/mode';
+import { seedDemo } from '$lib/server/demo/seed';
 import { validateAirlineIcons } from '$lib/server/utils/airline';
+import { isSetup } from '$lib/server/utils/auth';
 import { appConfig } from '$lib/server/utils/config';
 import {
   ensureInitialDataSync,
@@ -38,6 +41,19 @@ export const init: ServerInit = async () => {
   await ensureInitialDataSync();
   await validateAirlineIcons();
   await syncAirlineIcons({ onlyIfNoIcons: true });
+
+  if (demoMode() !== 'off' && !(await isSetup())) {
+    console.log('Seeding the demo...');
+    const { flights } = await seedDemo();
+    console.log(`Demo seeded with ${flights} flights.`);
+  }
+};
+
+// Demo instances are throwaway copies that search engines shouldn't index.
+const demoHandle: Handle = async ({ event, resolve }) => {
+  const response = await resolve(event);
+  if (isPublicDemo()) response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  return response;
 };
 
 const corsHandle: Handle = async ({ event, resolve }) => {
@@ -113,5 +129,6 @@ export const handle: Handle = sequence(
   corsHandle,
   csrfHandle,
   authHandle,
+  demoHandle,
   dropExcessiveLinkHeaderHandle,
 );

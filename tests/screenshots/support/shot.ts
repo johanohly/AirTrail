@@ -8,8 +8,8 @@ import {
   type Page,
 } from '@playwright/test';
 
-import { DEMO_NOW } from '../demo/itinerary';
-import type { DemoAccount } from '../demo/accounts';
+import { DEMO_NOW } from '../../../src/lib/server/demo/itinerary';
+import type { DemoAccount } from '../../../src/lib/server/demo/accounts';
 import { authStatePath, RAW_DIR } from './constants';
 
 type CaptureTarget =

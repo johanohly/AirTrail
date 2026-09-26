@@ -9,6 +9,7 @@
   import { page } from '$app/state';
   import { hasClientPermission } from '$lib/authorization/permissions';
   import { NavigationDock } from '$lib/components';
+  import DemoBanner from '$lib/components/demo/DemoBanner.svelte';
   import { TimeDisplayHost } from '$lib/components/display';
   import { ConfirmWrapper, ScreenSize } from '$lib/components/helpers';
   import {
@@ -64,6 +65,9 @@
 
       {#if data.user && !page.error && page.data.chrome !== false}
         <NavigationDock />
+        {#if data.demo}
+          <DemoBanner demo={data.demo} />
+        {/if}
       {/if}
     </TooltipProvider>
   </QueryClientProvider>

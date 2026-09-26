@@ -90,3 +90,12 @@ See [Basemaps](/docs/administration/basemaps) for how these combine.
 | `MAP_PROTOMAPS_LANGUAGE` | `en` |
 | `MAP_LIGHT_STYLE_URL` | |
 | `MAP_DARK_STYLE_URL` | |
+
+## Demo instances
+
+For running a public demo, like the one linked from the documentation. Leave these unset on a normal installation.
+
+| Variable | Description |
+| -------- | ----------- |
+| `DEMO_MODE` | Set to `true` to turn the instance into a demo. On an empty database it creates demo accounts and several years of flights. Visitors enter with one click at `/demo` and can switch between accounts. The SQL console, integrations and sign-in settings are unavailable, and passwords and usernames can't be changed. |
+| `DEMO_SESSION_ENDS_AT` | When the demo will be deleted, as a Unix time in milliseconds or an ISO date. The demo banner counts down to it. |

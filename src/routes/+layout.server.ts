@@ -6,6 +6,8 @@ import { resolve } from '$app/paths';
 import { trpcServer } from '$lib/server/server';
 import { appConfig } from '$lib/server/utils/config';
 import { hasPermission } from '$lib/server/authorization/authorize';
+import { ACCOUNTS, SWITCHABLE_ACCOUNTS } from '$lib/server/demo/accounts';
+import { demoSessionEndsAt, isPublicDemo } from '$lib/server/demo/mode';
 import { toClientAuthorization } from '$lib/server/authorization/context';
 import { listDirectoryUsers } from '$lib/server/authorization/users';
 import { toPageUser } from '$lib/server/utils/user';
@@ -42,5 +44,14 @@ export const load = async (event: Parameters<LayoutServerLoad>[0]) => {
       configured: appConfig.configured,
       envConfigured: appConfig.envConfigured,
     },
+    demo: isPublicDemo()
+      ? {
+          endsAt: demoSessionEndsAt()?.toISOString() ?? null,
+          accounts: SWITCHABLE_ACCOUNTS.map((key) => ({
+            key,
+            ...ACCOUNTS[key],
+          })),
+        }
+      : null,
   };
 };

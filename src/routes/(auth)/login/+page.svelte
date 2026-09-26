@@ -140,15 +140,29 @@
     <div class="flex items-center justify-center">
       <div class="mx-auto grid w-[350px] gap-6">
         <div class="grid gap-2 text-center">
-          <h1 class="text-3xl font-bold">Login</h1>
+          <h1 class="text-3xl font-bold">
+            {page.data.demo ? 'Welcome to AirTrail' : 'Login'}
+          </h1>
           <p class="text-muted-foreground text-balance">
-            {#if !appConfig?.oauth.enabled}
+            {#if page.data.demo}
+              This is a demo of AirTrail, filled with a frequent flyer's
+              history. Jump straight in, no account needed.
+            {:else if !appConfig?.oauth.enabled}
               Welcome back! Enter your username and password to login
             {:else}
               Welcome back! Login below
             {/if}
           </p>
         </div>
+        {#if page.data.demo}
+          <Button href="/demo" data-sveltekit-reload size="lg">
+            Explore the demo
+          </Button>
+          <p class="-mt-2 text-center text-sm text-muted-foreground">
+            Or log in below. Every demo account's password is
+            <code>airtrail-demo</code>.
+          </p>
+        {/if}
         {#if oauthLinkRequired || !(appConfig?.oauth.enabled && appConfig.oauth.hidePasswordForm)}
           {#if oauthLinkRequired}
             <Alert.Root variant="info">

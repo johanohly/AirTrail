@@ -4,6 +4,7 @@ import { zod4 as zod } from 'sveltekit-superforms/adapters';
 import type { RequestHandler } from './$types';
 
 import { db } from '$lib/db';
+import { isPublicDemo } from '$lib/server/demo/mode';
 import { getUserPasswordHash } from '$lib/server/utils/auth';
 import { hashArgon2, verifyArgon2 } from '$lib/server/utils/hash';
 import { editPasswordSchema } from '$lib/zod/user';
@@ -11,6 +12,10 @@ import { editPasswordSchema } from '$lib/zod/user';
 export const POST: RequestHandler = async ({ locals, request }) => {
   const form = await superValidate(request, zod(editPasswordSchema));
   if (!form.valid) return actionResult('failure', { form });
+  // The demo's account switcher finds accounts by password.
+  if (isPublicDemo()) {
+    return actionResult('error', 'Not available in the demo.', 403);
+  }
 
   const user = locals.user;
   if (!user) {

@@ -33,9 +33,15 @@
 <PageHeader title="Security" subtitle="Manage your account security settings.">
   <div class="flex items-center justify-between p-4 rounded-lg border">
     <h4 class="font-medium leading-4">Password</h4>
-    <div>
-      <EditPassword />
-    </div>
+    {#if page.data.demo}
+      <span class="text-sm text-muted-foreground">
+        Can't be changed in the demo
+      </span>
+    {:else}
+      <div>
+        <EditPassword />
+      </div>
+    {/if}
   </div>
   <OAuth {user} />
   <ApiKeys />

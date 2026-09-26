@@ -1,7 +1,9 @@
 /**
- * Maya's travel history, the flights every screenshot is built from. Home base
- * is Copenhagen. Everything happens before `DEMO_NOW`, which the browser clock
- * is pinned to, so relative dates and statistics never drift between runs.
+ * Maya's travel history, the flights the demo and every screenshot are built
+ * from. Home base is Copenhagen. The dates are written as if today were
+ * `DEMO_NOW`: screenshots pin the browser clock to it, and a public demo moves
+ * everything forward by whole weeks so the last trip was recent. The trips
+ * after `DEMO_NOW` are upcoming.
  */
 
 export const DEMO_NOW = new Date('2026-06-15T10:00:00Z');
@@ -829,6 +831,52 @@ export const TRIPS: Trip[] = [
         aircraft: 'B38M',
         seat: 'window',
         seatNumber: '16F',
+      },
+    ],
+  },
+  {
+    reason: 'business',
+    legs: [
+      {
+        departs: '2026-07-02 07:05',
+        from: 'CPH',
+        to: 'LHR',
+        flightNumber: 'BA811',
+        airline: 'BAW',
+        aircraft: 'A320',
+        seatClass: 'economy+',
+        seat: 'aisle',
+        seatNumber: '8C',
+        bookingReference: 'QK7M2P',
+      },
+      {
+        departs: '2026-07-03 18:30',
+        from: 'LHR',
+        to: 'CPH',
+        flightNumber: 'BA818',
+        airline: 'BAW',
+        aircraft: 'A320',
+        seatClass: 'economy+',
+        seat: 'aisle',
+        seatNumber: '9D',
+        bookingReference: 'QK7M2P',
+      },
+    ],
+  },
+  {
+    reason: 'leisure',
+    with: ['jonas'],
+    legs: [
+      {
+        departs: '2026-08-14 09:40',
+        from: 'CPH',
+        to: 'HEL',
+        flightNumber: 'AY952',
+        airline: 'FIN',
+        aircraft: 'A321',
+        seat: 'window',
+        seatNumber: '14A',
+        note: 'Summer cabin by the lake.',
       },
     ],
   },

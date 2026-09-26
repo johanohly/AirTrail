@@ -3,7 +3,11 @@ import { dirname } from 'node:path';
 
 import { chromium } from '@playwright/test';
 
-import { ACCOUNTS, DEMO_PASSWORD, type DemoAccount } from '../demo/accounts';
+import {
+  ACCOUNTS,
+  DEMO_PASSWORD,
+  type DemoAccount,
+} from '../../../src/lib/server/demo/accounts';
 import { authStatePath } from './constants';
 
 /*
