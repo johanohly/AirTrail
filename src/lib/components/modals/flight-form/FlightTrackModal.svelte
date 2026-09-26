@@ -88,6 +88,9 @@
     setTrack(trackInput);
   };
 
+  // The file input has no `accept` filter because iOS has no system type for
+  // GPX or KML and greys those files out in the picker. `parseTrackFile`
+  // rejects unsupported files instead.
   const handleFileChange = async (event: Event) => {
     const input = event.currentTarget as HTMLInputElement;
     const file = input.files?.[0];
@@ -157,7 +160,6 @@
         bind:this={fileInput}
         class="sr-only"
         type="file"
-        accept=".gpx,.kml,.csv,.json"
         onchange={handleFileChange}
       />
 
