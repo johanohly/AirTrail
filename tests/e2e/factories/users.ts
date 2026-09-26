@@ -8,7 +8,6 @@ export interface User {
   username: string;
   password: string;
   displayName: string;
-  role: string;
 }
 
 export const usersFactory = {
@@ -22,7 +21,6 @@ export const usersFactory = {
       username: `user_${generateId(8)}`,
       password: plainPassword,
       displayName: overrides.displayName || 'Test User',
-      role: overrides.role || 'owner',
       ...overrides,
     };
 
@@ -33,7 +31,8 @@ export const usersFactory = {
         username: user.username,
         password: await hashArgon2(plainPassword),
         displayName: user.displayName,
-        role: user.role as 'owner' | 'admin',
+        roleId: 'role-administrator',
+        isOwner: false,
       })
       .execute();
 

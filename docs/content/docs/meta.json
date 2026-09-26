@@ -5,7 +5,6 @@
     "features",
     "integrations",
     "administration",
-    "api",
-    "development"
+    "api"
   ]
 }

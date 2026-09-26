@@ -53,7 +53,16 @@
   });
 </script>
 
-<Modal bind:open preset="alert">
+<Modal
+  bind:open
+  preset="alert"
+  dismissal="form"
+  dirty={confirmationInput.length > 0}
+  busy={isDeleting}
+  onDiscard={() => {
+    confirmationInput = '';
+  }}
+>
   <div class="flex flex-col gap-4 min-w-0">
     <div class="flex flex-col gap-1">
       <h2 class="text-lg font-semibold">Delete flight</h2>
@@ -88,7 +97,11 @@
 
     <!-- Actions -->
     <div class="flex justify-end gap-2 pt-2">
-      <Button variant="outline" onclick={() => (open = false)}>Cancel</Button>
+      <Button
+        variant="outline"
+        disabled={isDeleting}
+        onclick={() => (open = false)}>Cancel</Button
+      >
       <Button
         variant="destructive"
         disabled={!isConfirmed || isDeleting}

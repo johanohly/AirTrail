@@ -6,7 +6,6 @@
   import { page } from '$app/stores';
   import { UserAvatar } from '$lib/components/display';
   import { Button } from '$lib/components/ui/form';
-  import { toTitleCase } from '$lib/utils';
 
   const user = $derived($page.data.user);
 </script>
@@ -22,7 +21,7 @@
         <div class="min-w-0">
           <h4 class="truncate font-medium leading-4">{user.displayName}</h4>
           <span class="text-sm text-muted-foreground">
-            {toTitleCase(user.role)}
+            {user.isOwner ? 'Owner' : (user.roleName ?? 'No role')}
           </span>
         </div>
       </div>

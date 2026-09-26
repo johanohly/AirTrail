@@ -13,6 +13,9 @@
   }: WithElementRef<HTMLInputAttributes> = $props();
 
   let showPassword = $state(false);
+  const hasValue = $derived(
+    typeof value === 'string' ? value.length > 0 : Boolean(value),
+  );
 </script>
 
 <div class="relative w-full">
@@ -26,13 +29,13 @@
     )}
     bind:value
   />
-  {#if value.length > 0}
+  {#if hasValue}
     <button
       onclick={() => (showPassword = !showPassword)}
       type="button"
-      tabindex="-1"
       class="absolute inset-y-0 end-0 px-4"
-      title="Toggle password visibility"
+      aria-label={showPassword ? 'Hide password' : 'Show password'}
+      title={showPassword ? 'Hide password' : 'Show password'}
     >
       {#if showPassword}
         <EyeOff size="20" />

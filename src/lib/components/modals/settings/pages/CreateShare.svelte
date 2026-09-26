@@ -36,7 +36,7 @@
       },
     },
   );
-  const { enhance } = form;
+  const { enhance, submitting, tainted } = form;
 </script>
 
 <Button onclick={() => (open = true)} variant="outline">
@@ -44,7 +44,13 @@
   Create
 </Button>
 
-<Modal bind:open>
+<Modal
+  bind:open
+  dismissal="form"
+  dirty={form.isTainted($tainted)}
+  busy={$submitting}
+  onDiscard={() => form.reset()}
+>
   <ModalBreadcrumbHeader section="Shares" title="Create share" icon={Plus} />
   <ModalBody>
     <form

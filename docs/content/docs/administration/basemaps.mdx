@@ -1,0 +1,115 @@
+---
+title: Basemaps
+description: Configure OpenFreeMap, CARTO, Protomaps, or a custom MapLibre style.
+---
+
+AirTrail uses OpenFreeMap by default. An owner or administrator can choose a
+different provider under **Settings → Appearance → Basemap Provider**, or lock
+the same settings with environment variables.
+
+| Provider              | Key required | Best for                                               |
+| --------------------- | ------------ | ------------------------------------------------------ |
+| OpenFreeMap           | No           | A zero-configuration hosted vector map                 |
+| CARTO                 | Yes          | Existing CARTO users who want Positron and Dark Matter |
+| Protomaps hosted      | Yes          | A managed Protomaps vector-tile service                |
+| Protomaps self-hosted | No           | Operator-owned map data and infrastructure             |
+
+AirTrail adds its detailed airport layers to every managed provider. Satellite
+imagery remains a separate in-map choice and is not affected by the provider
+setting.
+
+## OpenFreeMap
+
+Select **OpenFreeMap** and save. No account or API key is needed. AirTrail uses
+the hosted Positron and Dark styles.
+
+## CARTO
+
+Request a basemap key from [CARTO](https://carto.com/basemaps/apikey/) for the
+domain where AirTrail is hosted. Select **CARTO**, enter the key, and save.
+
+AirTrail sends the key to the browser when loading map resources. Restrict it to
+your AirTrail domain in CARTO.
+
+Environment configuration:
+
+```dotenv
+MAP_PROVIDER=carto
+MAP_CARTO_API_KEY=your-key
+```
+
+## Protomaps hosted API
+
+Create a key in the [Protomaps account portal](https://protomaps.com/api), then
+allow the exact AirTrail origin in that key's CORS settings. Select
+**Protomaps → Protomaps hosted API**, enter the key, and save.
+
+```dotenv
+MAP_PROVIDER=protomaps
+MAP_PROTOMAPS_SOURCE_KIND=hosted
+MAP_PROTOMAPS_API_KEY=your-key
+```
+
+## Self-hosted Protomaps
+
+AirTrail accepts three self-hosted source types:
+
+- **PMTiles archive** — an HTTPS URL to a `.pmtiles` file.
+- **TileJSON endpoint** — a URL describing compatible Protomaps vector tiles.
+- **ZXY vector tiles** — an MVT template containing `{z}`, `{x}`, and `{y}`.
+
+For a direct PMTiles archive:
+
+1. Download a current daily build or extract the required region with the
+   [PMTiles CLI](https://docs.protomaps.com/guide/getting-started).
+2. Upload the archive to object storage or a CDN that supports HTTP range
+   requests.
+3. Allow the AirTrail origin with CORS.
+4. Configure the archive URL:
+
+```dotenv
+MAP_PROVIDER=protomaps
+MAP_PROTOMAPS_SOURCE_KIND=pmtiles
+MAP_PROTOMAPS_SOURCE_URL=https://tiles.example.com/world.pmtiles
+```
+
+A public PMTiles URL permits downloading the complete archive. Use a Protomaps
+CDN deployment with TileJSON or ZXY output when the underlying archive must stay
+private. See the [Protomaps deployment guide](https://docs.protomaps.com/deploy/).
+
+AirTrail uses the official Protomaps font and sprite assets by default. To host
+these assets yourself, mirror the `basemaps-assets` directory and set its base
+URL. You can use an HTTP(S) URL or a root-relative path on the AirTrail origin:
+
+```dotenv
+MAP_PROTOMAPS_ASSETS_BASE_URL=https://tiles.example.com/basemaps-assets
+MAP_PROTOMAPS_LANGUAGE=en
+```
+
+The mirrored directory must contain `fonts/` and `sprites/v4/` with the same
+layout as [protomaps/basemaps-assets](https://github.com/protomaps/basemaps-assets).
+
+## Advanced style URLs
+
+The advanced light and dark style fields accept relative AirTrail URLs or an
+external MapLibre Style JSON URL. A custom URL replaces the managed style for
+that theme, so AirTrail does not add its airport layers. Leave the fields blank
+to use the selected provider.
+
+```dotenv
+MAP_LIGHT_STYLE_URL=https://maps.example.com/light/style.json
+MAP_DARK_STYLE_URL=https://maps.example.com/dark/style.json
+```
+
+## Troubleshooting
+
+- **The test reports a fallback:** verify the provider key, source URL, and
+  outbound connectivity from AirTrail.
+- **A PMTiles map stays blank:** confirm HTTPS, CORS, and `206 Partial Content`
+  range responses from the archive host.
+- **Labels or icons are missing:** verify the configured asset host contains the
+  Protomaps fonts and both normal and `@2x` sprite files.
+- **A hosted Protomaps map fails only in the browser:** add the exact scheme,
+  host, and port from `ORIGIN` to the key's CORS allowlist.
+- **Settings are locked:** update or remove the corresponding environment
+  variable and restart AirTrail.

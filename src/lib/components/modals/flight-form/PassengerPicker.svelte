@@ -6,6 +6,7 @@
   import { fly } from 'svelte/transition';
 
   import { page } from '$app/state';
+  import { canCreateUserAccount } from '$lib/authorization/permissions';
   import UserModal from '$lib/components/modals/settings/pages/users-page/UserModal.svelte';
   import type { PublicUser } from '$lib/db/types';
   import { canUseGuestName, guestNameIdentity } from '$lib/guest-names';
@@ -33,9 +34,7 @@
   let createUser = $state(false);
   let pendingDisplayName = $state('');
 
-  const canCreateUser = $derived(
-    page.data.user?.role === 'admin' || page.data.user?.role === 'owner',
-  );
+  const canCreateUser = $derived(canCreateUserAccount(page.data.authorization));
 
   const getUsers = () => page.data.users ?? [];
 

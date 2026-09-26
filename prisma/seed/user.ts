@@ -8,7 +8,8 @@ export const SEED_USER = {
   username: 'test',
   password: 'password',
   displayName: 'Test User',
-  role: 'owner',
+  roleId: null,
+  isOwner: true,
 } as const;
 
 export const seedUser = async (db: Kysely<DB>) => {

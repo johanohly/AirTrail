@@ -43,14 +43,21 @@
       },
     },
   );
-  const { enhance } = form;
+  const { enhance, submitting, tainted } = form;
 </script>
 
 <Button variant="outline" size="icon" onclick={() => (open = true)}>
   <SquarePen size={16} />
 </Button>
 
-<Modal bind:open closeOnOutsideClick={false} class="max-w-lg">
+<Modal
+  bind:open
+  dismissal="form"
+  dirty={form.isTainted($tainted)}
+  busy={$submitting}
+  onDiscard={() => form.reset()}
+  class="max-w-lg"
+>
   <ModalBreadcrumbHeader
     section="Aircraft"
     title="Edit aircraft"

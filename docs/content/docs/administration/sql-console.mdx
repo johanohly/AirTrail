@@ -1,0 +1,53 @@
+---
+title: SQL Console
+description: Run SQL queries directly against the AirTrail database.
+---
+
+The SQL console runs SQL statements against the AirTrail PostgreSQL database
+and shows the results in a table. It is meant for troubleshooting and one-off
+fixes that the interface does not cover.
+
+<Callout type="warn">
+  The SQL console runs arbitrary SQL with the same database access as AirTrail
+  itself. It bypasses every role and permission check. A single statement can
+  read any user's data, change any record, or delete every table. Changes take
+  effect immediately and there is no undo.
+</Callout>
+
+## Who can use it
+
+Using the console requires the `tools.sql.execute` permission, shown as
+**SQL console** under **Security and tools** in the role editor.
+
+Neither built-in role includes it, so on a new instance only the owner can use
+the console. The owner can add it to a role under **Settings → Roles**, but
+anyone with it effectively has full control of the instance. See
+[Roles and permissions](/docs/administration/roles).
+
+## Running a query
+
+<Callout type="warn">
+  Before running anything that changes data, [back up your
+  database](/docs/administration/backup).
+</Callout>
+
+1. Click **Tools** in the navigation dock. It is only shown to users who can
+   use at least one tool.
+2. Choose **SQL Console**.
+3. Type a statement into the text box.
+4. Click **Execute**.
+
+Rows returned by the statement are shown in a table with one column per result
+column. Statements that return no rows, such as `UPDATE` or `DELETE`, show
+**No data**. If the statement fails, the database error is shown instead.
+
+Run one statement at a time. Each statement is committed as soon as it runs.
+To try a change safely, check it first with a `SELECT` using the same `WHERE`
+clause:
+
+```sql
+SELECT id, username, display_name FROM "user";
+```
+
+Table names follow the database schema in `prisma/schema.prisma`. Some names,
+such as `"user"`, are reserved words in PostgreSQL and must be quoted.

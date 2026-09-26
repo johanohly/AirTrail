@@ -1,13 +1,15 @@
 import { json } from '@sveltejs/kit';
 import { z } from 'zod';
 
-import type { RequestHandler } from './$types';
-
 import { getAircraftByIcao } from '$lib/server/utils/aircraft';
 import { getAirlineByIcao } from '$lib/server/utils/airline';
 import { getAirportByIata, getAirportByIcao } from '$lib/server/utils/airport';
-import { apiError, unauthorized, validateApiKey } from '$lib/server/utils/api';
-import { validateAndSaveFlight } from '$lib/server/utils/flight';
+import { apiFlightWriter } from '$lib/server/api/v1/access';
+import { apiError, legacyApiRoute } from '$lib/server/utils/api';
+import {
+  flightValuesFromForm,
+  saveFlightAggregate,
+} from '$lib/server/utils/flight';
 import { aircraftSchema } from '$lib/zod/aircraft';
 import { airlineSchema } from '$lib/zod/airline';
 import { flightSchema, validateFlightDepartureDate } from '$lib/zod/flight';
@@ -71,8 +73,8 @@ const getAirportByCode = async (input: string) => {
   return (await getAirportByIcao(input)) ?? (await getAirportByIata(input));
 };
 
-export const POST: RequestHandler = async ({ request }) => {
-  const body = await request.json();
+export const POST = legacyApiRoute(async ({ principal, event }) => {
+  const body = await event.request.json();
   const filled = {
     ...defaultFlight,
     ...body,
@@ -115,11 +117,6 @@ export const POST: RequestHandler = async ({ request }) => {
     );
   }
 
-  const user = await validateApiKey(request);
-  if (!user) {
-    return unauthorized();
-  }
-
   const from = await getAirportByCode(parsed.data.from);
   if (!from) {
     return apiError('Invalid departure airport');
@@ -155,16 +152,18 @@ export const POST: RequestHandler = async ({ request }) => {
   };
 
   if (data.passengers[0]?.userId === '<USER_ID>') {
-    data.passengers[0].userId = user.id;
+    data.passengers[0].userId = principal.user.id;
   }
 
-  const result = await validateAndSaveFlight(user, data, {
-    bypassPassengerCheck: user.role !== 'user',
+  const prepared = flightValuesFromForm(data);
+  if (!('values' in prepared)) {
+    return apiError(prepared.message, 400);
+  }
+
+  const existingId = parsed.data.id ?? null;
+  const id = await saveFlightAggregate(apiFlightWriter(principal), {
+    id: existingId,
+    ...prepared,
   });
-  if (!result.success) {
-    // @ts-expect-error - this should be valid
-    return apiError(result.message, result.status || 500);
-  }
-
-  return json({ success: true, ...(result.id && { id: result.id }) });
-};
+  return json({ success: true, ...(existingId === null ? { id } : {}) });
+});

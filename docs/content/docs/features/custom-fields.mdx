@@ -27,9 +27,9 @@ Each field definition has the following properties:
 | Date         | Date picker                              | Date string (YYYY-MM-DD) |
 | Select       | Dropdown from a list of options          | String (selected option) |
 | Multi-select | Select one or more listed options        | Array of strings         |
-| Airport      | Airport picker (same as the flight form) | Airport object           |
-| Airline      | Airline picker                           | Airline object           |
-| Aircraft     | Aircraft picker                          | Aircraft object          |
+| Airport      | Airport picker (same as the flight form) | Airport ID               |
+| Airline      | Airline picker                           | Airline ID               |
+| Aircraft     | Aircraft picker                          | Aircraft ID              |
 
 ## Using custom fields
 
@@ -56,14 +56,15 @@ Text fields support optional validation rules (min/max length, regex pattern). N
 
 ## API usage
 
-Custom fields are part of the flight save endpoint (`POST /flight/save`).
-Pass flight fields in the root `customFields` object and passenger fields inside each passenger. Both objects are keyed by field key:
+Use `GET /api/v1/custom-fields` to list the active field definitions, including each field's `key`, `entityType` (`flight` or `flight_passenger`), `fieldType`, and `required` flag. This needs the `custom_fields.read` scope.
+
+Custom field values are part of the flight body in `POST /api/v1/flights` and `PUT /api/v1/flights/{id}`. Pass flight fields in the root `customFields` object and passenger fields inside each passenger. Both objects are keyed by field key:
 
 ```json
 {
-  "from": "KJFK",
-  "to": "EGLL",
-  "departure": "2026-02-20",
+  "date": "2026-02-20",
+  "fromId": 3682,
+  "toId": 5043,
   "passengers": [
     {
       "userId": "<USER_ID>",
@@ -80,7 +81,11 @@ Pass flight fields in the root `customFields` object and passenger fields inside
 }
 ```
 
-Required custom fields are enforced server-side for both create and update requests.
+`fromId` and `toId` are AirTrail airport IDs, which you can look up with `GET /api/v1/airports?query=`. Values for airport, airline, and aircraft fields are also sent as numeric IDs.
+
+Required custom fields are enforced server-side for both create and update requests. The flight endpoints do not return custom field values. Use the [JSON export](/docs/features/export#json) to read them.
+
+See the [API overview](/docs/api/getting-started) for authentication and scopes.
 
 ## Export and import
 

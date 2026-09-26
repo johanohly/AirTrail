@@ -3,10 +3,12 @@ import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 
 import { resolve } from '$app/paths';
-import { db } from '$lib/db';
 import { trpcServer } from '$lib/server/server';
 import { appConfig } from '$lib/server/utils/config';
-import { publicUserSelect, toPageUser } from '$lib/server/utils/user';
+import { hasPermission } from '$lib/server/authorization/authorize';
+import { toClientAuthorization } from '$lib/server/authorization/context';
+import { listDirectoryUsers } from '$lib/server/authorization/users';
+import { toPageUser } from '$lib/server/utils/user';
 
 export const load = async (event: Parameters<LayoutServerLoad>[0]) => {
   if (
@@ -19,11 +21,22 @@ export const load = async (event: Parameters<LayoutServerLoad>[0]) => {
   }
 
   const config = await appConfig.getClientConfig();
+  const authorization = event.locals.authorization;
+  const canReadDirectory = authorization
+    ? hasPermission(authorization, 'users.directory.read')
+    : false;
 
   return {
     trpc: await trpcServer.hydrateToClient(event),
-    user: event.locals.user ? toPageUser(event.locals.user) : null,
-    users: await db.selectFrom('user').select(publicUserSelect).execute(),
+    user:
+      event.locals.user && authorization
+        ? toPageUser(event.locals.user, authorization)
+        : null,
+    authorization: authorization ? toClientAuthorization(authorization) : null,
+    users:
+      canReadDirectory && authorization
+        ? await listDirectoryUsers(authorization)
+        : [],
     appConfig: {
       config,
       configured: appConfig.configured,

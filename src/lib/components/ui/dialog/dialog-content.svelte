@@ -14,12 +14,18 @@
     ref = $bindable(null),
     class: className,
     closeButton = true,
+    closeButtonDisabled = false,
+    onClose,
+    onOverlayClick,
     overlayClass,
     overlayStyle,
     children,
     ...restProps
   }: WithoutChildrenOrChild<DialogPrimitive.ContentProps> & {
     closeButton?: boolean;
+    closeButtonDisabled?: boolean;
+    onClose?: () => void;
+    onOverlayClick?: (event: MouseEvent) => void;
     overlayClass?: string;
     overlayStyle?: string;
     children: Snippet;
@@ -27,7 +33,11 @@
 </script>
 
 <Dialog.Portal>
-  <Dialog.Overlay class={overlayClass} style={overlayStyle} />
+  <Dialog.Overlay
+    class={overlayClass}
+    style={overlayStyle}
+    onclick={onOverlayClick}
+  />
   <DialogPrimitive.Content
     bind:ref
     class={cn(
@@ -38,12 +48,25 @@
   >
     {@render children?.()}
     {#if closeButton}
-      <DialogPrimitive.Close
-        class="absolute right-4 top-4 text-muted-foreground hover:bg-hover rounded-full p-2 transition-all duration-75 focus:outline-hidden"
-      >
-        <X size="20" />
-        <span class="sr-only">Close</span>
-      </DialogPrimitive.Close>
+      {#if onClose}
+        <button
+          type="button"
+          disabled={closeButtonDisabled}
+          onclick={onClose}
+          class="absolute right-4 top-4 text-muted-foreground hover:bg-hover rounded-full p-2 transition-all duration-75 focus:outline-hidden"
+        >
+          <X size="20" />
+          <span class="sr-only">Close</span>
+        </button>
+      {:else}
+        <DialogPrimitive.Close
+          disabled={closeButtonDisabled}
+          class="absolute right-4 top-4 text-muted-foreground hover:bg-hover rounded-full p-2 transition-all duration-75 focus:outline-hidden"
+        >
+          <X size="20" />
+          <span class="sr-only">Close</span>
+        </DialogPrimitive.Close>
+      {/if}
     {/if}
   </DialogPrimitive.Content>
 </Dialog.Portal>

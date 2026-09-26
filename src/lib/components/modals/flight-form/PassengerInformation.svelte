@@ -171,11 +171,10 @@
                         value={$formData.passengers[index]?.flightReason ??
                           undefined}
                         onValueChange={(value) => {
-                          const passenger = $formData.passengers[index];
-                          if (passenger) {
-                            passenger.flightReason = isFlightReason(value)
-                              ? value
-                              : null;
+                          // Assign through the store so superforms sees it.
+                          if ($formData.passengers[index]) {
+                            $formData.passengers[index].flightReason =
+                              isFlightReason(value) ? value : null;
                           }
                         }}
                         allowDeselect

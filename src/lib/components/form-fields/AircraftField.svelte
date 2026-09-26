@@ -7,6 +7,7 @@
   import { z } from 'zod';
 
   import { page } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
 
   import * as Form from '$lib/components/ui/form';
   import type { Aircraft } from '$lib/db/types';
@@ -122,7 +123,9 @@
     }
   });
 
-  const isAdmin = $derived(page.data.user?.role !== 'user');
+  const isAdmin = $derived(
+    hasClientPermission(page.data.authorization, 'data.aircraft.manage'),
+  );
 
   let createAircraft = $state(false);
 </script>

@@ -1,0 +1,202 @@
+---
+title: Getting Started
+description: Authenticate with and call the AirTrail v1 REST API.
+---
+
+AirTrail has a versioned REST API for integrations and custom clients. It covers flights, flight tracks, exports, statistics, reference data, custom-field definitions, preferences, visited countries, public shares, users, and roles.
+
+## Base URL and discovery
+
+All v1 endpoints live under `/api/v1` on your instance:
+
+```text
+https://your-instance.example/api/v1
+```
+
+Two public documents describe the API. Neither needs authentication.
+
+| URL                   | Contents                                                                           |
+| --------------------- | ---------------------------------------------------------------------------------- |
+| `/api/v1` (or `/api`) | API version, instance version, authentication methods, MCP endpoint, and every scope |
+| `/api/v1/openapi.yaml` | The OpenAPI 3.1 document for the v1 API                                           |
+
+The reference pages in this section are generated from the same OpenAPI document.
+
+## Authentication
+
+Every endpoint except discovery needs a bearer credential in the `Authorization` header:
+
+```http
+Authorization: Bearer <credential>
+```
+
+The credential is either a personal API key or an OAuth access token. Both work the same way once issued.
+
+### API keys
+
+API keys suit scripts, backups, and your own tools. Create one under **Settings > Security > API Keys** and select only the scopes it needs. The key is shown once. See [API keys](/docs/features/api-keys) for details.
+
+An API key keeps working until you delete it.
+
+### OAuth
+
+OAuth suits third-party applications that act on behalf of a user. AirTrail is its own authorization server and supports:
+
+- the authorization code flow with PKCE (`S256` only),
+- dynamic client registration,
+- refresh tokens,
+- resource indicators.
+
+A client usually needs no manual setup:
+
+1. Fetch the protected-resource metadata at `/.well-known/oauth-protected-resource/api/v1`. It names the authorization server and lists the supported scopes.
+2. Fetch the authorization-server metadata at `/.well-known/oauth-authorization-server`. It lists the authorization, token, registration, and revocation endpoints.
+3. Register with `POST /oauth/register`. Redirect URIs must use `https`, or `http` on `localhost`, `127.0.0.1`, or `[::1]`.
+4. Send the user to `/oauth/authorize` with `response_type=code`, the PKCE challenge, the requested `scope`, and `resource=https://your-instance.example/api/v1`.
+5. The user signs in if needed and approves the request on the consent screen, where they can narrow or widen the scopes within what their role allows.
+6. Exchange the code at `POST /oauth/token`, sending the same `resource` value.
+
+The `resource` parameter is required on both the authorization and the token request. A token is valid only for the resource it was issued for: a token for `/api/v1` does not work on the [MCP endpoint](/docs/api/model-context-protocol) (`/api/mcp`), and the other way round. An API key works on both.
+
+The REST API has no default scopes, so request the scopes you need explicitly.
+
+Access tokens expire after one hour. Refresh tokens last 30 days and rotate on every use. Reusing an old refresh token revokes the whole token family. Users can revoke an application under **Settings > Security > Connected apps**.
+
+## Scopes and permissions
+
+Every request passes two checks:
+
+1. The credential must include the required scope.
+2. The user's current role must permit the action.
+
+Scopes are a ceiling over the user's role. A credential can narrow what the user can do, but never extends it. Role changes take effect on the next request.
+
+Flight scopes come in `own` and `any` variants:
+
+- `own` covers flights on which the user is a passenger.
+- `any` covers every flight on the instance, and includes `own`.
+
+Endpoints that accept `scope=mine|user|all` need the `own` scope for `mine`, or for `user` with your own user ID, and the `any` scope for anything else.
+
+Each operation in the reference lists two sets of scopes:
+
+- `security` lists the scopes every call needs.
+- `x-conditional-scopes` lists scopes needed only for some targets or payloads, such as another user's flight, more than one passenger, or a `track` in a flight body.
+
+For example, updating a flight always needs `flight.update.own`. Updating a flight you are not on also needs `flight.update.any`, and changing its passengers needs `flight.passengers.manage.own` or `.any`.
+
+`GET /api/v1/me` returns the authenticated user, their role, their effective permissions, and the credential's scopes. It is a quick way to test a credential.
+
+## Example
+
+List your most recent flights:
+
+```bash
+curl -H "Authorization: Bearer $AIRTRAIL_API_KEY" \
+  "https://your-instance.example/api/v1/flights?limit=10"
+```
+
+The response has this shape, with each flight in `data`:
+
+```json
+{
+  "data": [{ "id": 42, "date": "2026-02-20", "from": {}, "to": {} }],
+  "page": { "nextCursor": "<cursor>" }
+}
+```
+
+Single resources are wrapped in `data`, and lists also include `page`.
+
+## Pagination
+
+`GET /api/v1/flights` uses cursor pagination. Flights are sorted by flight date, newest first, then by ID.
+
+- `limit` sets the page size, from 1 to 100. The default is 50.
+- Omit `cursor` for the first page.
+- Pass `page.nextCursor` unchanged as `cursor` to get the next page.
+- A `null` `page.nextCursor` means there are no more pages.
+
+Cursors are opaque. Do not decode or build them.
+
+The airport, airline, and aircraft search endpoints return a bounded list of best matches with `page.nextCursor` always `null`. Narrow the query to find other results.
+
+## Errors
+
+Errors use one JSON shape:
+
+```json
+{
+  "error": {
+    "code": "validation_failed",
+    "message": "Request validation failed",
+    "details": [
+      { "code": "too_small", "path": ["passengers"], "message": "..." }
+    ]
+  }
+}
+```
+
+`details` is present only on some errors, such as validation failures.
+
+| Code                 | Status | Meaning                                                           |
+| -------------------- | ------ | ----------------------------------------------------------------- |
+| `bad_request`        | 400    | Invalid query parameter, cursor, or request                       |
+| `invalid_json`       | 400    | The request body is not valid JSON                                |
+| `unauthorized`       | 401    | The bearer credential is missing, invalid, or expired             |
+| `forbidden`          | 403    | The user's role does not permit the action                        |
+| `insufficient_scope` | 403    | The credential lacks a required scope                             |
+| `not_found`          | 404    | The resource does not exist or is not visible to the user         |
+| `conflict`           | 409    | The request conflicts with existing data, such as a taken share slug |
+| `validation_failed`  | 422    | The request body failed validation                                |
+| `internal_error`     | 500    | An unexpected server error                                        |
+
+A `401` response includes a `WWW-Authenticate` header with the required scopes and the protected-resource metadata URL.
+
+A flight that exists but that the user's role cannot access returns `not_found`, not `forbidden`.
+
+## Rate limits
+
+The OAuth endpoints are rate limited per client IP address:
+
+| Endpoint                | Limit                  |
+| ----------------------- | ---------------------- |
+| `GET /oauth/authorize`  | 60 requests per minute |
+| `POST /oauth/token`     | 30 requests per minute |
+| `POST /oauth/revoke`    | 30 requests per minute |
+| `POST /oauth/register`  | 10 requests per minute |
+
+Over the limit, AirTrail returns `429` with the OAuth error `temporarily_unavailable` and a `Retry-After` header. Limits are kept in memory per AirTrail process. The `/api/v1` endpoints are not rate limited.
+
+<Callout>
+  Behind a reverse proxy, every request can appear to come from the proxy's
+  address. Set `ADDRESS_HEADER` so AirTrail reads the real client address. See
+  [Reverse proxy](/docs/install/reverse-proxy).
+</Callout>
+
+## CORS
+
+The `/api/v1` endpoints, the MCP endpoint, the OAuth token, registration, and revocation endpoints, and the `.well-known` metadata accept requests from any origin. They authenticate only from the request itself and never use cookies, so browser-based clients on other origins can call them.
+
+## Migrating from the legacy API
+
+The legacy API (`/api/flight/*` and `/api/stats`, listed under **Legacy API** in this section) is deprecated and will be removed in the next major release.
+
+| Legacy endpoint               | v1 endpoint                     |
+| ----------------------------- | ------------------------------- |
+| `GET /api/flight/list`        | `GET /api/v1/flights`           |
+| `GET /api/flight/get/{id}`    | `GET /api/v1/flights/{id}`      |
+| `POST /api/flight/save` (new) | `POST /api/v1/flights`          |
+| `POST /api/flight/save` (with `id`) | `PUT /api/v1/flights/{id}` |
+| `POST /api/flight/delete`     | `DELETE /api/v1/flights/{id}`   |
+| `GET /api/flight/export`      | `GET /api/v1/flights/export`    |
+| `GET /api/stats`              | `GET /api/v1/stats`             |
+
+Differences to plan for:
+
+- The legacy API accepts API keys only. v1 also accepts OAuth access tokens.
+- Flight lists are paginated. Follow `page.nextCursor` to read all flights.
+- Flight bodies reference airports, airlines, and aircraft by numeric ID (`fromId`, `toId`, `airlineId`, `aircraftId`) instead of codes. Look up IDs with `GET /api/v1/airports?query=`, `/api/v1/airlines?query=`, and `/api/v1/aircraft?query=`.
+- Flight bodies take a required `date` (`YYYY-MM-DD`) and ISO 8601 date-times with a UTC offset, instead of separate local date and time fields.
+- Responses use the `data` envelope and the error format above instead of `success` and `message` fields.
+
+The `scope` and `userId` query parameters on the list, export, and statistics endpoints work the same way.

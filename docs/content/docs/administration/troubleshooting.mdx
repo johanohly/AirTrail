@@ -1,0 +1,81 @@
+---
+title: Troubleshooting
+description: Fixes for the most common installation and setup problems.
+---
+
+Start with the logs. They usually name the problem:
+
+```bash
+docker compose logs --tail=100 airtrail
+```
+
+For a manual installation, check the output of the `node` process or `journalctl -u airtrail`.
+
+## Sign-in fails with "Cross-site POST form submissions are forbidden"
+
+`ORIGIN` does not match the address in the browser. It must be identical, including `http` or `https`, the host name, and any port: `http://192.168.1.20:3000` and `http://airtrail.local:3000` are different origins. Fix `ORIGIN` in `.env` and run `docker compose up -d`.
+
+If you reach AirTrail through several addresses, pick one and always use it.
+
+## "password authentication failed for user"
+
+The password in `DB_URL` does not match the database. Postgres sets its password only on the very first start, so changing `DB_PASSWORD` later has no effect on an existing database. Either put the original password back into both variables, or change it inside the database to match:
+
+```bash
+docker exec -it airtrail_db psql -U airtrail -c "ALTER USER airtrail PASSWORD 'new-password';"
+```
+
+Then make sure `DB_PASSWORD` and the password inside `DB_URL` are both `new-password`, and run `docker compose up -d`.
+
+## The server exits with "Invalid app config in .env"
+
+One of the [settings variables](/docs/administration/environment-variables#settings-you-can-also-change-in-the-app) has a value AirTrail cannot use, for example a misspelled `MAP_PROVIDER`. The log lists the offending field. Correct or remove the variable.
+
+## "Too many login attempts"
+
+Login and OAuth endpoints are rate limited per client address. Behind a reverse proxy without `ADDRESS_HEADER`, every visitor appears to come from the proxy and shares one limit. Set `ADDRESS_HEADER=X-Forwarded-For` as described in [Reverse proxy](/docs/install/reverse-proxy). Otherwise, wait a minute and try again.
+
+## Forgotten password
+
+Any account's password, including the owner's, can be reset with the [admin CLI](/docs/administration/admin-cli#reset-password).
+
+## Uploading an airline icon fails
+
+The app runs as UID 1000 and cannot write to the uploads directory. The log shows `EACCES` for a path under `/app/uploads`.
+
+Installations created before AirTrail v3.13 have a root-owned `uploads` volume. Give it to UID 1000 once:
+
+```bash
+docker run --rm -v airtrail_uploads:/uploads alpine chown -R 1000:1000 /uploads
+docker compose restart airtrail
+```
+
+Check the volume name with `docker volume ls | grep uploads`. For a bind mount, change the folder's owner instead:
+
+```bash
+sudo chown -R 1000:1000 ./data/uploads
+```
+
+The log line `UPLOAD_LOCATION not set` means uploads are disabled; set `UPLOAD_LOCATION` as in the example `.env`.
+
+## The map is blank or missing layers
+
+- **No basemap at all:** the browser cannot load tiles from the [basemap provider](/docs/administration/basemaps). Check the browser console, and for keyed providers check the key and its allowed domains.
+- **No runways or terminals at airports** on a manual installation: the optional airport layer is missing. See [Manual installation](/docs/install/manual).
+- **No aeronautical overlay:** it needs an [OpenAIP](/docs/integrations/openaip) key.
+
+## OAuth sign-in fails at the identity provider
+
+A "redirect URI mismatch" error means the URI registered with the provider is not exactly `ORIGIN` followed by `/login`. See [OAuth](/docs/features/oauth).
+
+## Airport or airline data is missing after the first start
+
+AirTrail downloads airport and airline data from the internet on first start. If the server has no outbound internet access, configure an [outbound proxy](/docs/administration/outbound-proxy) and restart.
+
+## `unknown shorthand flag: 'd' in -d`
+
+Your Docker is too old or lacks Compose v2. Install Docker from [Docker's official repository](https://docs.docker.com/engine/install/) and use `docker compose`, not `docker-compose`.
+
+## Still stuck?
+
+Search the [issues](https://github.com/JohanOhly/AirTrail/issues) or open a new one with your AirTrail version, installation method and the relevant log lines. See [Contributing](/docs/overview/contributing#reporting-issues).

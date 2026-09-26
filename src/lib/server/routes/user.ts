@@ -2,12 +2,25 @@ import { TRPCError } from '@trpc/server';
 import { sql } from 'kysely';
 import { z } from 'zod';
 
-import { authedProcedure, publicProcedure, router } from '../trpc';
+import {
+  authedProcedure,
+  permissionProcedure,
+  publicProcedure,
+  router,
+} from '../trpc';
 
 import { db } from '$lib/db';
+import { hasPermission } from '$lib/server/authorization/authorize';
+import { loadLockedAuthorizationContext } from '$lib/server/authorization/context';
+import {
+  canActOnUser,
+  listDirectoryUsers,
+} from '$lib/server/authorization/users';
+import { lockRoles } from '$lib/server/authorization/roles';
 import { createApiKey } from '$lib/server/utils/auth';
-import { publicUserSelect } from '$lib/server/utils/user';
+import { updateUserPreferences } from '$lib/server/utils/user';
 import { updatePreferencesSchema } from '$lib/zod/user';
+import { grantableSubset } from '$lib/api/v1/scopes';
 
 export const userRouter = router({
   me: authedProcedure.query(({ ctx: { user } }) => {
@@ -22,30 +35,31 @@ export const userRouter = router({
     return users.length > 0;
   }),
   delete: authedProcedure.input(z.string()).mutation(async ({ ctx, input }) => {
-    if (ctx.user.id !== input && ctx.user.role === 'user') {
-      throw new TRPCError({ code: 'FORBIDDEN' });
-    }
-
-    const user = await db
-      .selectFrom('user')
-      .selectAll()
-      .where('id', '=', input)
-      .executeTakeFirst();
-    if (!user) {
-      return false;
-    }
-
-    // Only allow deleting users if the user is an owner or the user is an admin and the user is not an admin or owner
-    if (
-      user.role === 'owner' ||
-      (ctx.user.role === 'admin' &&
-        user.role !== 'user' &&
-        ctx.user.id !== user.id)
-    ) {
-      return false;
-    }
-
     return await db.transaction().execute(async (trx) => {
+      const currentAuthorization = await loadLockedAuthorizationContext(
+        ctx.authorization.userId,
+        trx,
+      );
+      if (!currentAuthorization) {
+        throw new TRPCError({ code: 'FORBIDDEN' });
+      }
+      const user = await trx
+        .selectFrom('user')
+        .select(['id', 'isOwner', 'roleId'])
+        .where('id', '=', input)
+        .forUpdate()
+        .executeTakeFirst();
+      if (!user) return false;
+      if (user.isOwner) throw new TRPCError({ code: 'FORBIDDEN' });
+      await lockRoles(trx, [user.roleId]);
+      if (
+        ctx.user.id !== input &&
+        (!hasPermission(currentAuthorization, 'users.delete') ||
+          !(await canActOnUser(currentAuthorization, user, trx)))
+      ) {
+        throw new TRPCError({ code: 'FORBIDDEN' });
+      }
+
       const affectedFlights = await trx
         .selectFrom('flightPassenger')
         .select('flightId')
@@ -77,20 +91,29 @@ export const userRouter = router({
       return result.numDeletedRows > 0;
     });
   }),
-  list: authedProcedure.query(async () => {
-    return db.selectFrom('user').select(publicUserSelect).execute();
-  }),
+  list: permissionProcedure('users.directory.read').query(async ({ ctx }) =>
+    listDirectoryUsers(ctx.authorization),
+  ),
   listApiKeys: authedProcedure.query(async ({ ctx }) => {
     return db
       .selectFrom('apiKey')
-      .select(['id', 'name', 'createdAt', 'lastUsed'])
+      .select(['id', 'name', 'createdAt', 'lastUsed', 'scopes'])
       .where('userId', '=', ctx.user.id)
       .execute();
   }),
   createApiKey: authedProcedure
-    .input(z.string())
+    .input(
+      z.object({ name: z.string().trim().min(1), scopes: z.array(z.string()) }),
+    )
     .mutation(async ({ ctx, input }) => {
-      return await createApiKey(ctx.user.id, input);
+      const scopes = grantableSubset(ctx.authorization, input.scopes);
+      if (!scopes) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'One or more requested scopes are not available.',
+        });
+      }
+      return await createApiKey(ctx.user.id, input.name, scopes);
     }),
   deleteApiKey: authedProcedure
     .input(z.number())
@@ -102,15 +125,35 @@ export const userRouter = router({
         .executeTakeFirst();
       return result.numDeletedRows > 0;
     }),
+  listConnectedApps: authedProcedure.query(async ({ ctx }) =>
+    db
+      .selectFrom('oauthGrant')
+      .innerJoin('oauthClient', 'oauthClient.id', 'oauthGrant.clientId')
+      .select([
+        'oauthGrant.id',
+        'oauthGrant.resource',
+        'oauthGrant.scopes',
+        'oauthGrant.updatedAt',
+        'oauthClient.name',
+      ])
+      .where('oauthGrant.userId', '=', ctx.user.id)
+      .orderBy('oauthGrant.updatedAt', 'desc')
+      .execute(),
+  ),
+  revokeConnectedApp: authedProcedure
+    .input(z.string())
+    .mutation(async ({ ctx, input }) => {
+      const result = await db
+        .deleteFrom('oauthGrant')
+        .where('id', '=', input)
+        .where('userId', '=', ctx.user.id)
+        .executeTakeFirst();
+      return result.numDeletedRows > 0;
+    }),
   updatePreferences: authedProcedure
     .input(updatePreferencesSchema)
     .mutation(async ({ ctx, input }) => {
-      if (Object.keys(input).length === 0) return true;
-      const result = await db
-        .updateTable('user')
-        .set(input)
-        .where('id', '=', ctx.user.id)
-        .executeTakeFirst();
-      return Number(result.numUpdatedRows) > 0;
+      await updateUserPreferences(ctx.user.id, input);
+      return true;
     }),
 });

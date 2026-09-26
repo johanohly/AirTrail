@@ -7,28 +7,35 @@
   import * as Popover from '$lib/components/ui/popover';
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import * as Select from '$lib/components/ui/select';
-  import {
-    flightScopeState,
-    setFlightScope,
-    type FlightScope,
-  } from '$lib/state.svelte';
+  import type { FlightScope } from '$lib/flight-scope';
+  import { flightScopeState, setFlightScope } from '$lib/state.svelte';
 
   const users = $derived(page.data.users);
+  const selectedUserId = $derived(
+    flightScopeState.current.scope === 'user'
+      ? flightScopeState.current.userId
+      : undefined,
+  );
 
   const scopeLabel = $derived.by(() => {
-    if (flightScopeState.scope === 'all') return 'everyone';
-    if (flightScopeState.scope === 'user') {
-      const scopedUser = users.find((u) => u.id === flightScopeState.userId);
+    if (flightScopeState.current.scope === 'all') return 'everyone';
+    if (flightScopeState.current.scope === 'user') {
+      const scopedUser = users.find((u) => u.id === selectedUserId);
       return scopedUser?.displayName ?? 'selected user';
     }
     return 'you';
   });
 
-  const updateScope = (scope: FlightScope) => {
-    setFlightScope(
-      scope,
-      scope === 'user' ? (flightScopeState.userId ?? users[0]?.id) : undefined,
-    );
+  const updateScope = (scope: FlightScope['scope']) => {
+    const userId =
+      flightScopeState.current.scope === 'user'
+        ? flightScopeState.current.userId
+        : users[0]?.id;
+    if (scope === 'user') {
+      if (userId) setFlightScope({ scope, userId });
+      return;
+    }
+    setFlightScope({ scope });
   };
 </script>
 
@@ -52,9 +59,13 @@
         <p class="text-sm font-medium">Flight visibility</p>
       </div>
       <RadioGroup.Root
-        value={flightScopeState.scope}
-        onValueChange={(value) => updateScope(value as FlightScope)}
-        class="grid grid-cols-3 gap-2"
+        value={flightScopeState.current.scope}
+        onValueChange={(value) => {
+          if (value === 'mine' || value === 'user' || value === 'all') {
+            updateScope(value);
+          }
+        }}
+        class={`grid gap-2 ${users.length > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}
       >
         <Label
           class="cursor-pointer rounded-md border-2 bg-background px-3 py-2 text-center text-sm font-medium [&:has([data-state=checked])]:border-primary"
@@ -62,12 +73,14 @@
           <RadioGroup.Item value="mine" class="sr-only" />
           Mine
         </Label>
-        <Label
-          class="cursor-pointer rounded-md border-2 bg-background px-3 py-2 text-center text-sm font-medium [&:has([data-state=checked])]:border-primary"
-        >
-          <RadioGroup.Item value="user" class="sr-only" />
-          User
-        </Label>
+        {#if users.length > 0}
+          <Label
+            class="cursor-pointer rounded-md border-2 bg-background px-3 py-2 text-center text-sm font-medium [&:has([data-state=checked])]:border-primary"
+          >
+            <RadioGroup.Item value="user" class="sr-only" />
+            User
+          </Label>
+        {/if}
         <Label
           class="cursor-pointer rounded-md border-2 bg-background px-3 py-2 text-center text-sm font-medium [&:has([data-state=checked])]:border-primary"
         >
@@ -76,17 +89,19 @@
         </Label>
       </RadioGroup.Root>
 
-      {#if flightScopeState.scope === 'user'}
+      {#if flightScopeState.current.scope === 'user' && users.length > 0}
         <div class="space-y-2">
           <p class="text-xs font-medium text-muted-foreground">User</p>
           <Select.Root
             type="single"
-            value={flightScopeState.userId}
-            onValueChange={(value) => setFlightScope('user', value)}
+            value={flightScopeState.current.userId}
+            onValueChange={(value) => {
+              if (value) setFlightScope({ scope: 'user', userId: value });
+            }}
           >
             <Select.Trigger>
-              {users.find((u) => u.id === flightScopeState.userId)
-                ?.displayName ?? 'Select a user'}
+              {users.find((u) => u.id === selectedUserId)?.displayName ??
+                'Select a user'}
             </Select.Trigger>
             <Select.Content>
               {#each users as user (user.id)}

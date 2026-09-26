@@ -1,14 +1,37 @@
 ---
 title: Introduction
+description: What AirTrail is and where to start.
 ---
 
-![AirTrail](/dark.png)
+<Screenshot name="map-overview" alt="The AirTrail map with flights drawn as arcs from Copenhagen" />
 
-## Welcome
+AirTrail is a self-hosted, open-source flight tracker. You log the flights you take, and AirTrail draws them on a world map, keeps your flight history, and turns it into statistics. It runs on your own server, so your travel history stays with you.
 
-Welcome to the AirTrail documentation!
+You can try it without installing anything on the [demo instance](https://demo.airtrail.johan.ohly.dk).
 
-AirTrail is a self-hosted, open-source personal flight tracking system.
-The objective is to provide a simple and easy-to-use interface to track your flights, list them all and provide a way to analyze them.
+## What you can do
 
-To get started, you can follow the [Quick Start](/docs/overview/quick-start) guide.
+- **Log flights** by hand or look them up by [flight number](/docs/features/add-flight), including seats, times, notes and [custom fields](/docs/features/custom-fields).
+- **Import your history** from MyFlightradar24, Flighty, App in the Air, OpenFlights and [other sources](/docs/features/import), and [export](/docs/features/export) it again at any time.
+- **See it on a map**, with recorded [flight tracks](/docs/features/flight-tracks) and a choice of [basemaps](/docs/administration/basemaps).
+- **Explore [statistics](/docs/features/statistics)** and the [countries you have visited](/docs/features/visited-countries).
+- **Share** a read-only view of your flights through a [public link](/docs/features/sharing).
+- **Share an instance** with family or friends, with [roles](/docs/administration/roles) that decide who can see and edit what, and sign-in through your own [identity provider](/docs/features/oauth).
+- **Automate** with the [REST API](/docs/api/getting-started), or connect an AI assistant through the [Model Context Protocol](/docs/api/model-context-protocol).
+
+## Where to start
+
+<Cards>
+  <Card title="Quick start" href="/docs/overview/quick-start">
+    Pick an installation method and get AirTrail running.
+  </Card>
+  <Card title="Requirements" href="/docs/install/requirements">
+    What your server needs.
+  </Card>
+  <Card title="Post installation" href="/docs/install/post-installation">
+    Create the owner account and add your first flights.
+  </Card>
+  <Card title="Troubleshooting" href="/docs/administration/troubleshooting">
+    Fixes for the most common setup problems.
+  </Card>
+</Cards>

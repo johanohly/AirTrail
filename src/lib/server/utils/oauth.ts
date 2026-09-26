@@ -12,10 +12,56 @@ import {
 } from 'openid-client';
 
 import { env } from '$env/dynamic/private';
-import { appConfig } from '$lib/server/utils/config';
+import { appConfig, type FullAppConfig } from '$lib/server/utils/config';
 
 export const OAUTH_STATE_COOKIE = 'airtrail_oauth_state';
 export const OAUTH_CODE_VERIFIER_COOKIE = 'airtrail_oauth_code_verifier';
+
+type OAuthDiscoveryConfig = Pick<
+  FullAppConfig['oauth'],
+  'issuerUrl' | 'clientId' | 'clientSecret' | 'tokenEndpointAuthMethod'
+>;
+
+export class OAuthConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'OAuthConfigurationError';
+  }
+}
+
+export const discoverOAuthClient = async (config: OAuthDiscoveryConfig) => {
+  const { clientId, clientSecret, issuerUrl, tokenEndpointAuthMethod } = config;
+  if (!clientId || !clientSecret || !issuerUrl) {
+    throw new OAuthConfigurationError(
+      'Enter an issuer URL, client ID, and client secret first.',
+    );
+  }
+
+  let issuer: URL;
+  try {
+    issuer = new URL(issuerUrl);
+  } catch {
+    throw new OAuthConfigurationError('Enter a valid issuer URL.');
+  }
+
+  try {
+    return await discovery(
+      issuer,
+      clientId,
+      clientSecret,
+      tokenEndpointAuthMethod === 'client_secret_basic'
+        ? ClientSecretBasic(clientSecret)
+        : ClientSecretPost(clientSecret),
+      env.OAUTH_ALLOW_INSECURE_HTTP === 'true'
+        ? { execute: [allowInsecureRequests] }
+        : undefined,
+    );
+  } catch {
+    throw new OAuthConfigurationError(
+      'Could not load a valid OIDC discovery document from this issuer URL.',
+    );
+  }
+};
 
 export const getAuthorizeUrl = async (redirectUrl: string) => {
   const config = await appConfig.get();
@@ -71,7 +117,10 @@ export const getOAuthProfile = async (
     throw new Error('Failed to get user info');
   }
 
-  return await fetchUserInfo(client, tokens.access_token, claims.sub);
+  return {
+    profile: await fetchUserInfo(client, tokens.access_token, claims.sub),
+    idTokenClaims: { ...claims } as Record<string, unknown>,
+  };
 };
 
 export const getOAuthClient = async () => {
@@ -80,30 +129,8 @@ export const getOAuthClient = async () => {
     throw new Error('Failed to load config');
   }
 
-  const {
-    enabled,
-    clientId,
-    clientSecret,
-    issuerUrl,
-    tokenEndpointAuthMethod,
-  } = config.oauth;
-  if (!enabled || !clientId || !clientSecret || !issuerUrl) {
+  if (!config.oauth.enabled) {
     throw new Error('OAuth is not enabled or configured properly');
   }
-
-  try {
-    return await discovery(
-      new URL(issuerUrl),
-      clientId,
-      clientSecret,
-      tokenEndpointAuthMethod === 'client_secret_basic'
-        ? ClientSecretBasic(clientSecret)
-        : ClientSecretPost(clientSecret),
-      env.OAUTH_ALLOW_INSECURE_HTTP === 'true'
-        ? { execute: [allowInsecureRequests] }
-        : undefined,
-    );
-  } catch {
-    throw new Error('Failed to discover issuer');
-  }
+  return discoverOAuthClient(config.oauth);
 };

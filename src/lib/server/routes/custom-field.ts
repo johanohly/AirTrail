@@ -4,7 +4,9 @@ import { sql } from 'kysely';
 import { z } from 'zod';
 
 import { db } from '$lib/db';
-import { adminProcedure, authedProcedure, router } from '$lib/server/trpc';
+import { authedProcedure, permissionProcedure, router } from '$lib/server/trpc';
+import type { AuthorizationContext } from '$lib/server/authorization/context';
+import { canAccessFlight } from '$lib/server/authorization/flight';
 import {
   CustomFieldValidationError,
   persistEntityCustomFields,
@@ -70,7 +72,8 @@ const ensureDefinitionIsValid = (
 async function assertEntityAccess(
   entityType: EntityType,
   entityId: string,
-  user: { id: string; role: string },
+  authorization: AuthorizationContext,
+  action: 'read' | 'update',
 ) {
   if (entityType === 'flight') {
     const flightId = Number(entityId);
@@ -88,18 +91,9 @@ async function assertEntityAccess(
       throw new TRPCError({ code: 'NOT_FOUND' });
     }
 
-    if (user.role === 'admin' || user.role === 'owner') {
-      return;
+    if (!(await canAccessFlight(authorization, action, flightId))) {
+      throw new TRPCError({ code: 'NOT_FOUND' });
     }
-
-    const passenger = await db
-      .selectFrom('flightPassenger')
-      .select('id')
-      .where('flightId', '=', flightId)
-      .where('userId', '=', user.id)
-      .executeTakeFirst();
-
-    if (!passenger) throw new TRPCError({ code: 'FORBIDDEN' });
     return;
   }
 
@@ -116,14 +110,12 @@ async function assertEntityAccess(
       .executeTakeFirst();
 
     if (!passenger) throw new TRPCError({ code: 'NOT_FOUND' });
-    if (user.role === 'admin' || user.role === 'owner') return;
-    const sharedFlightPassenger = await db
-      .selectFrom('flightPassenger')
-      .select('id')
-      .where('flightId', '=', passenger.flightId)
-      .where('userId', '=', user.id)
-      .executeTakeFirst();
-    if (!sharedFlightPassenger) throw new TRPCError({ code: 'FORBIDDEN' });
+    const flightAction = action === 'update' ? 'passengers.manage' : 'read';
+    if (
+      !(await canAccessFlight(authorization, flightAction, passenger.flightId))
+    ) {
+      throw new TRPCError({ code: 'NOT_FOUND' });
+    }
     return;
   }
 
@@ -153,7 +145,7 @@ export const customFieldRouter = router({
       return await q.execute();
     }),
 
-  createDefinition: adminProcedure
+  createDefinition: permissionProcedure('custom_fields.manage')
     .input(definitionInputSchema)
     .mutation(async ({ input }) => {
       ensureDefinitionIsValid(input);
@@ -178,7 +170,7 @@ export const customFieldRouter = router({
         .executeTakeFirstOrThrow();
     }),
 
-  updateDefinition: adminProcedure
+  updateDefinition: permissionProcedure('custom_fields.manage')
     .input(definitionInputSchema.extend({ id: z.number().int() }))
     .mutation(async ({ input }) => {
       ensureDefinitionIsValid(input);
@@ -205,7 +197,7 @@ export const customFieldRouter = router({
         .executeTakeFirstOrThrow();
     }),
 
-  reorderDefinitions: adminProcedure
+  reorderDefinitions: permissionProcedure('custom_fields.manage')
     .input(
       z.object({
         entityType: entityTypeSchema,
@@ -226,7 +218,7 @@ export const customFieldRouter = router({
       return true;
     }),
 
-  deleteDefinition: adminProcedure
+  deleteDefinition: permissionProcedure('custom_fields.manage')
     .input(z.object({ id: z.number().int(), entityType: entityTypeSchema }))
     .mutation(async ({ input }) => {
       await db
@@ -239,8 +231,13 @@ export const customFieldRouter = router({
 
   getEntityValues: authedProcedure
     .input(z.object({ entityType: entityTypeSchema, entityId: z.string() }))
-    .query(async ({ ctx: { user }, input }) => {
-      await assertEntityAccess(input.entityType, input.entityId, user);
+    .query(async ({ ctx: { authorization }, input }) => {
+      await assertEntityAccess(
+        input.entityType,
+        input.entityId,
+        authorization,
+        'read',
+      );
 
       const rows = await db
         .selectFrom('customFieldValue as v')
@@ -273,8 +270,13 @@ export const customFieldRouter = router({
         values: z.array(valueInputSchema),
       }),
     )
-    .mutation(async ({ ctx: { user }, input }) => {
-      await assertEntityAccess(input.entityType, input.entityId, user);
+    .mutation(async ({ ctx: { authorization }, input }) => {
+      await assertEntityAccess(
+        input.entityType,
+        input.entityId,
+        authorization,
+        'update',
+      );
       try {
         await db.transaction().execute(async (trx) => {
           await persistEntityCustomFields(trx, {

@@ -1,17 +1,26 @@
 <script lang="ts">
-  import { Drawer as DrawerPrimitive } from '@johly/vaul-svelte';
+  import {
+    Dialog as DialogPrimitive,
+    type WithoutChildrenOrChild,
+  } from 'bits-ui';
+  import type { Snippet } from 'svelte';
 
   import { cn } from '$lib/utils';
 
   let {
     ref = $bindable(null),
     class: className,
+    children,
     ...restProps
-  }: DrawerPrimitive.TitleProps = $props();
+  }: WithoutChildrenOrChild<DialogPrimitive.TitleProps> & {
+    children?: Snippet;
+  } = $props();
 </script>
 
-<DrawerPrimitive.Title
+<DialogPrimitive.Title
   bind:ref
   class={cn('text-lg font-semibold leading-none tracking-tight', className)}
   {...restProps}
-/>
+>
+  {@render children?.()}
+</DialogPrimitive.Title>

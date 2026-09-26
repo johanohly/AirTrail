@@ -37,3 +37,8 @@ test.describe('Feature Name', () => {
 ```bash
 bun run test:e2e
 ```
+
+Every test signs in from the same address, so the login and OAuth rate limits
+would block the suite. `test:e2e` starts the server with
+`DISABLE_RATE_LIMITS=true`; set it too when running the tests against a server
+you started yourself.

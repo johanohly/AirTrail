@@ -20,8 +20,10 @@
 </script>
 
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
-    <div>
+  <div
+    class="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between"
+  >
+    <div class="min-w-0">
       <h3 class="text-lg font-medium">{title}</h3>
       {#if subtitleHtml}
         {@render subtitleHtml()}
@@ -32,7 +34,7 @@
       {/if}
     </div>
     {#if headerRight}
-      {@render headerRight()}
+      <div class="shrink-0">{@render headerRight()}</div>
     {/if}
   </div>
   <Separator />

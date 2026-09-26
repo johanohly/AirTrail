@@ -84,7 +84,7 @@
       },
     },
   );
-  const { enhance } = form;
+  const { enhance, submitting, tainted } = form;
 </script>
 
 <TextTooltip content="Edit share">
@@ -93,7 +93,13 @@
   </Button>
 </TextTooltip>
 
-<Modal bind:open>
+<Modal
+  bind:open
+  dismissal="form"
+  dirty={form.isTainted($tainted)}
+  busy={$submitting}
+  onDiscard={() => form.reset()}
+>
   <ModalBreadcrumbHeader section="Shares" title="Edit share" icon={SquarePen} />
   <ModalBody>
     <form

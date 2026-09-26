@@ -5,10 +5,12 @@
  *   docker exec -it <container> airtrail-admin <command>
  *
  * Commands:
- *   list-users         List all users
+ *   list-users         List all users and their roles
+ *   list-roles         List roles
  *   reset-password     Reset a user's password
- *   grant-admin        Grant admin role to a user
- *   revoke-admin       Revoke admin role from a user
+ *   set-role           Assign a role to a user
+ *   grant-admin        Assign the built-in Administrator role
+ *   revoke-admin       Assign the default role
  *   version            Print AirTrail version
  *   help               Show this help message
  */
@@ -122,17 +124,81 @@ function formatTable(rows, columns) {
 
 // --- Commands ---
 
+const ADMINISTRATOR_ROLE_ID = 'role-administrator';
+
+const USER_WITH_ROLE = `
+  SELECT u.id, u.username, u.display_name, u.is_owner, u.oauth_id,
+         u.role_id, u.role_assignment_source, r.name AS role_name
+  FROM "user" u
+  LEFT JOIN access_role r ON r.id = u.role_id`;
+
+const roleLabel = (user) =>
+  user.is_owner ? 'Owner' : (user.role_name ?? '(no role)');
+
+async function findUser(client, username) {
+  const { rows } = await client.query(
+    `${USER_WITH_ROLE} WHERE u.username = $1`,
+    [username],
+  );
+  if (rows.length === 0) {
+    console.error(`Error: User "${username}" not found.`);
+    process.exit(1);
+  }
+  return rows[0];
+}
+
+async function findRole(client, nameOrId) {
+  const { rows } = await client.query(
+    'SELECT id, name FROM access_role WHERE id = $1 OR LOWER(name) = LOWER($1)',
+    [nameOrId],
+  );
+  return rows[0] ?? null;
+}
+
+async function askUsername(message) {
+  const rl = createPrompt();
+  try {
+    const username = (await rl.question(message)).trim();
+    if (!username) {
+      console.error('Error: Username cannot be empty.');
+      process.exit(1);
+    }
+    return username;
+  } finally {
+    rl.close();
+  }
+}
+
+async function assignRole(client, user, role) {
+  if (user.is_owner) {
+    console.error(
+      'Error: The owner has every permission; their role cannot be changed.',
+    );
+    process.exit(1);
+  }
+  if (user.role_id === role.id) {
+    console.log(`User "${user.username}" already has the ${role.name} role.`);
+    return;
+  }
+  // A local assignment, so OAuth role mapping on login does not overwrite it.
+  await client.query(
+    `UPDATE "user" SET role_id = $1, role_assignment_source = 'local' WHERE id = $2`,
+    [role.id, user.id],
+  );
+  console.log(`\nAssigned the ${role.name} role to "${user.username}".`);
+}
+
 async function listUsers() {
   await withClient(async (client) => {
     const { rows } = await client.query(
-      'SELECT id, username, display_name, role, oauth_id FROM "user" ORDER BY role, username',
+      `${USER_WITH_ROLE} ORDER BY u.is_owner DESC, r.name, u.username`,
     );
 
     console.log(`\nUsers (${rows.length}):\n`);
     formatTable(rows, [
       { header: 'Username', value: (r) => r.username },
       { header: 'Display Name', value: (r) => r.display_name },
-      { header: 'Role', value: (r) => r.role },
+      { header: 'Role', value: roleLabel },
       { header: 'OAuth', value: (r) => (r.oauth_id ? 'yes' : 'no') },
       { header: 'ID', value: (r) => r.id },
     ]);
@@ -140,154 +206,102 @@ async function listUsers() {
   });
 }
 
-async function resetPassword() {
-  const rl = createPrompt();
+async function listRoles() {
+  await withClient(async (client) => {
+    const { rows } = await client.query(`
+      SELECT r.id, r.name, r.id = s.default_role_id AS is_default,
+             (SELECT COUNT(*) FROM "user" u WHERE u.role_id = r.id) AS users
+      FROM access_role r
+      CROSS JOIN authorization_settings s
+      ORDER BY r.name`);
 
-  try {
-    const username = await rl.question('Username: ');
-    if (!username.trim()) {
-      console.error('Error: Username cannot be empty.');
+    console.log(`\nRoles (${rows.length}):\n`);
+    formatTable(rows, [
+      { header: 'Name', value: (r) => r.name },
+      { header: 'Default', value: (r) => (r.is_default ? 'yes' : '') },
+      { header: 'Users', value: (r) => r.users },
+      { header: 'ID', value: (r) => r.id },
+    ]);
+    console.log();
+  });
+}
+
+async function resetPassword() {
+  const username = await askUsername('Username: ');
+
+  await withClient(async (client) => {
+    const user = await findUser(client, username);
+
+    const password = await promptPassword(
+      `New password for "${user.username}": `,
+    );
+    if (!password || password.length < 8) {
+      console.error('Error: Password must be at least 8 characters.');
       process.exit(1);
     }
 
-    await withClient(async (client) => {
-      const { rows } = await client.query(
-        'SELECT id, username, role FROM "user" WHERE username = $1',
-        [username.trim()],
-      );
+    const confirm = await promptPassword('Confirm password: ');
+    if (password !== confirm) {
+      console.error('Error: Passwords do not match.');
+      process.exit(1);
+    }
 
-      if (rows.length === 0) {
-        console.error(`Error: User "${username.trim()}" not found.`);
-        process.exit(1);
-      }
+    const hashed = await hashPassword(password);
+    await client.query('UPDATE "user" SET password = $1 WHERE id = $2', [
+      hashed,
+      user.id,
+    ]);
 
-      const user = rows[0];
-      rl.close();
+    console.log(
+      `\nPassword for "${user.username}" (${roleLabel(user)}) has been reset.`,
+    );
+  });
+}
 
-      const password = await promptPassword(
-        `New password for "${user.username}": `,
-      );
-      if (!password || password.length < 8) {
-        console.error('Error: Password must be at least 8 characters.');
-        process.exit(1);
-      }
-
-      const confirm = await promptPassword('Confirm password: ');
-      if (password !== confirm) {
-        console.error('Error: Passwords do not match.');
-        process.exit(1);
-      }
-
-      const hashed = await hashPassword(password);
-      await client.query('UPDATE "user" SET password = $1 WHERE id = $2', [
-        hashed,
-        user.id,
-      ]);
-
-      console.log(
-        `\nPassword for "${user.username}" (${user.role}) has been reset.`,
-      );
-    });
-  } catch (e) {
+async function setRole() {
+  const username = await askUsername('Username: ');
+  await withClient(async (client) => {
+    const user = await findUser(client, username);
+    const rl = createPrompt();
+    const answer = (
+      await rl.question(`Role for "${user.username}" (name or ID): `)
+    ).trim();
     rl.close();
-    throw e;
-  }
+    const role = await findRole(client, answer);
+    if (!role) {
+      console.error(
+        `Error: Role "${answer}" not found. Run "airtrail-admin list-roles".`,
+      );
+      process.exit(1);
+    }
+    await assignRole(client, user, role);
+  });
 }
 
 async function grantAdmin() {
-  const rl = createPrompt();
-
-  try {
-    const username = await rl.question('Username to grant admin: ');
-    rl.close();
-
-    if (!username.trim()) {
-      console.error('Error: Username cannot be empty.');
+  const username = await askUsername('Username to grant admin: ');
+  await withClient(async (client) => {
+    const user = await findUser(client, username);
+    const role = await findRole(client, ADMINISTRATOR_ROLE_ID);
+    if (!role) {
+      console.error(
+        'Error: The built-in Administrator role no longer exists. Use "set-role" instead.',
+      );
       process.exit(1);
     }
-
-    await withClient(async (client) => {
-      const { rows } = await client.query(
-        'SELECT id, username, role FROM "user" WHERE username = $1',
-        [username.trim()],
-      );
-
-      if (rows.length === 0) {
-        console.error(`Error: User "${username.trim()}" not found.`);
-        process.exit(1);
-      }
-
-      const user = rows[0];
-
-      if (user.role === 'owner') {
-        console.error('Error: Cannot change role of the owner.');
-        process.exit(1);
-      }
-
-      if (user.role === 'admin') {
-        console.log(`User "${user.username}" is already an admin.`);
-        return;
-      }
-
-      await client.query('UPDATE "user" SET role = $1 WHERE id = $2', [
-        'admin',
-        user.id,
-      ]);
-
-      console.log(`\nGranted admin role to "${user.username}".`);
-    });
-  } catch (e) {
-    rl.close();
-    throw e;
-  }
+    await assignRole(client, user, role);
+  });
 }
 
 async function revokeAdmin() {
-  const rl = createPrompt();
-
-  try {
-    const username = await rl.question('Username to revoke admin: ');
-    rl.close();
-
-    if (!username.trim()) {
-      console.error('Error: Username cannot be empty.');
-      process.exit(1);
-    }
-
-    await withClient(async (client) => {
-      const { rows } = await client.query(
-        'SELECT id, username, role FROM "user" WHERE username = $1',
-        [username.trim()],
-      );
-
-      if (rows.length === 0) {
-        console.error(`Error: User "${username.trim()}" not found.`);
-        process.exit(1);
-      }
-
-      const user = rows[0];
-
-      if (user.role === 'owner') {
-        console.error('Error: Cannot change role of the owner.');
-        process.exit(1);
-      }
-
-      if (user.role === 'user') {
-        console.log(`User "${user.username}" is already a regular user.`);
-        return;
-      }
-
-      await client.query('UPDATE "user" SET role = $1 WHERE id = $2', [
-        'user',
-        user.id,
-      ]);
-
-      console.log(`\nRevoked admin role from "${user.username}".`);
-    });
-  } catch (e) {
-    rl.close();
-    throw e;
-  }
+  const username = await askUsername('Username to revoke admin: ');
+  await withClient(async (client) => {
+    const user = await findUser(client, username);
+    const { rows } = await client.query(`
+      SELECT r.id, r.name FROM authorization_settings s
+      JOIN access_role r ON r.id = s.default_role_id`);
+    await assignRole(client, user, rows[0]);
+  });
 }
 
 function printVersion() {
@@ -309,17 +323,19 @@ AirTrail Admin CLI
 Usage: airtrail-admin <command>
 
 Commands:
-  list-users         List all users with their roles
+  list-users         List all users and their roles
+  list-roles         List roles, marking the default for new users
   reset-password     Reset a user's password
-  grant-admin        Grant admin role to a user
-  revoke-admin       Revoke admin role from a user
+  set-role           Assign a role to a user
+  grant-admin        Assign the built-in Administrator role to a user
+  revoke-admin       Assign the default role to a user
   version            Print AirTrail version
   help               Show this help message
 
 Examples:
   docker exec -it airtrail airtrail-admin list-users
   docker exec -it airtrail airtrail-admin reset-password
-  docker exec -it airtrail airtrail-admin grant-admin
+  docker exec -it airtrail airtrail-admin set-role
 `);
 }
 
@@ -327,7 +343,9 @@ Examples:
 
 const commands = {
   'list-users': listUsers,
+  'list-roles': listRoles,
   'reset-password': resetPassword,
+  'set-role': setRole,
   'grant-admin': grantAdmin,
   'revoke-admin': revokeAdmin,
   version: printVersion,

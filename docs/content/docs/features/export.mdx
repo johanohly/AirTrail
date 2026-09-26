@@ -2,24 +2,24 @@
 title: Export
 ---
 
-The export feature allows you to export your flight data from AirTrail.
+The export feature lets you download your flight data from AirTrail.
 
 ## Export flights
 
-To export your flights, follow these steps:
+1. Open **Settings > Export**.
+2. Click **.csv** or **.json**.
 
-1. Go to the AirTrail application.
-2. Go to the settings page.
-3. Click on the "Export" tab.
-4. Choose your desired export format (CSV or JSON).
+The file downloads as `airtrail.csv` or `airtrail.json`. It contains every flight on which you are a passenger.
+
+The **Export** page is available to users whose role includes the `flight.export.own` permission.
 
 ## Export with the API
 
-You can automate AirTrail backups with an API key:
+You can automate AirTrail backups with the [v1 REST API](/docs/api/getting-started). Create an [API key](/docs/features/api-keys) with the `flight.export.own` scope, then call:
 
 ```bash
 curl -H "Authorization: Bearer <api-key>" \
-  "https://your-instance.com/api/flight/export?format=json" \
+  "https://your-instance.com/api/v1/flights/export?format=json" \
   -o airtrail.json
 ```
 
@@ -27,49 +27,64 @@ Use `format=yaml` to export YAML instead:
 
 ```bash
 curl -H "Authorization: Bearer <api-key>" \
-  "https://your-instance.com/api/flight/export?format=yaml" \
+  "https://your-instance.com/api/v1/flights/export?format=yaml" \
   -o airtrail.yaml
 ```
 
-By default, the API exports flights belonging to the API key owner. Admin and owner API keys can use `scope=user&userId=<user-id>` or `scope=all`.
+The API export has the same structure as the [JSON format](#json) below.
+
+By default, the API exports your own flights. To export another user's flights with `scope=user&userId=<user-id>`, or every flight on the instance with `scope=all`, you need both:
+
+- the `flight.export.any` scope on the API key, and
+- a role that includes the `flight.export.any` permission.
+
+<Callout>
+  The in-app importer accepts `.json` files only. To restore a YAML export,
+  convert it to JSON first.
+</Callout>
+
+The deprecated `/api/flight/export` endpoint still works for now. See [migrating from the legacy API](/docs/api/getting-started#migrating-from-the-legacy-api).
 
 ## Export formats
 
 ### CSV
 
-The CSV export option allows you to export your flights as a CSV file, which can be opened in any spreadsheet
-application like Microsoft Excel or Google Sheets. It is a simple and easy-to-use format that can be used to
-analyze your flight data.
+The CSV export opens in any spreadsheet application, such as Microsoft Excel or Google Sheets. It has one row per flight.
 
 #### Format
 
-The CSV file contains the following columns:
+The CSV file contains these columns:
 
-- `date`: The date of the flight (YYYY-MM-DD format).
-- `from`: The IATA code of the departure airport.
-- `to`: The IATA code of the arrival airport.
-- `departure`: The departure time in ISO 8601 format (if available).
-- `arrival`: The arrival time in ISO 8601 format (if available).
-- `duration`: The duration of the flight in seconds.
-- `flightNumber`: The flight number (if available).
-- `flightReason`: The selected user's reason for taking the flight (if provided).
-- `airline`: The airline operating the flight (if available).
-- `aircraft`: The type of aircraft used (if available).
-- `aircraftReg`: The registration number of the aircraft (if available).
-- `note`: Any additional notes about the flight.
-- `seat`: The type of seat (e.g., window, aisle, etc.).
-- `seatNumber`: The seat number (if available).
-- `seatClass`: The class of the seat (e.g., economy, business).
+- `date`: The flight date (`YYYY-MM-DD`).
+- `datePrecision`: How precise the date is: `day`, `month`, or `year`.
+- `from`, `to`: The names of the departure and arrival airports.
+- `departure`, `arrival`: The actual departure and arrival times (ISO 8601, if available).
+- `departureScheduled`, `arrivalScheduled`: The scheduled departure and arrival times.
+- `takeoffScheduled`, `takeoffActual`, `landingScheduled`, `landingActual`: The takeoff and landing times.
+- `duration`: The flight duration in seconds.
+- `departureTerminal`, `departureGate`, `arrivalTerminal`, `arrivalGate`: Terminal and gate information.
+- `flightNumber`: The flight number.
+- `airline`: The airline name.
+- `aircraft`: The aircraft type name.
+- `aircraftReg`: The aircraft registration.
+- `note`: The flight notes.
+- `seat`: Your seat type (for example window or aisle).
+- `seatNumber`: Your seat number.
+- `seatClass`: Your seat class (for example economy or business).
+- `flightReason`: Your reason for the flight.
+- `fromId`, `toId`, `airlineId`, `aircraftId`: Internal AirTrail IDs.
+
+The seat and reason columns come from your own passenger entry. Other passengers, custom fields, and flight tracks are not included in the CSV export.
 
 ### JSON
 
 <Callout>
-  The JSON format can be reimported into AirTrail using the import feature. Use
-  the AirTrail importer for v3 exports and AirTrail (pre-v3) for legacy exports.
+  The JSON format can be reimported into AirTrail using the
+  [import feature](/docs/features/import). Use the **AirTrail** importer for
+  current exports and **AirTrail (pre-v3)** for legacy exports.
 </Callout>
 
-The JSON export option provides a more structured format that is ideal for developers or when integrating the data into
-other systems. It contains nested objects for each flight and detailed records for every passenger.
+The JSON export is the complete AirTrail backup format. It contains every passenger on each flight, custom field values, and flight tracks.
 
 #### Format
 
@@ -88,32 +103,6 @@ The JSON file follows this structure:
     {
       "date": "YYYY-MM-DD",
       "datePrecision": "day",
-      "from": {
-        "icao": "ICAO_CODE",
-        "iata": "IATA_CODE",
-        "name": "Airport Name",
-        "municipality": "City",
-        "type": "large_airport",
-        "lat": 55.0,
-        "lon": 12.0,
-        "continent": "EU",
-        "country": "DK",
-        "tz": "Europe/Copenhagen",
-        "custom": false
-      },
-      "to": {
-        "icao": "ICAO_CODE",
-        "iata": "IATA_CODE",
-        "name": "Airport Name",
-        "municipality": "City",
-        "type": "large_airport",
-        "lat": 53.0,
-        "lon": -6.0,
-        "continent": "EU",
-        "country": "IE",
-        "tz": "Europe/Dublin",
-        "custom": false
-      },
       "departure": "ISO_8601_DATETIME",
       "arrival": "ISO_8601_DATETIME",
       "departureScheduled": "ISO_8601_DATETIME",
@@ -122,8 +111,49 @@ The JSON file follows this structure:
       "takeoffActual": "ISO_8601_DATETIME",
       "landingScheduled": "ISO_8601_DATETIME",
       "landingActual": "ISO_8601_DATETIME",
-      "duration": flight_duration_in_seconds,
+      "duration": 25200,
+      "departureTerminal": "TERMINAL",
+      "departureGate": "GATE",
+      "arrivalTerminal": "TERMINAL",
+      "arrivalGate": "GATE",
       "flightNumber": "FLIGHT_NUMBER",
+      "aircraftReg": "AIRCRAFT_REGISTRATION",
+      "note": "FLIGHT_NOTE",
+      "fromId": 1,
+      "toId": 2,
+      "aircraftId": 3,
+      "airlineId": 4,
+      "from": {
+        "icao": "ICAO_CODE",
+        "iata": "IATA_CODE",
+        "lat": 55.0,
+        "lon": 12.0,
+        "tz": "Europe/Copenhagen",
+        "name": "Airport Name",
+        "municipality": "City",
+        "type": "large_airport",
+        "continent": "EU",
+        "country": "DK",
+        "custom": false
+      },
+      "to": {
+        "icao": "ICAO_CODE",
+        "iata": "IATA_CODE",
+        "lat": 53.0,
+        "lon": -6.0,
+        "tz": "Europe/Dublin",
+        "name": "Airport Name",
+        "municipality": "City",
+        "type": "large_airport",
+        "continent": "EU",
+        "country": "IE",
+        "custom": false
+      },
+      "aircraft": {
+        "name": "Aircraft Type",
+        "icao": "ICAO_AIRCRAFT_TYPE",
+        "sourceId": "aircraft-source-id"
+      },
       "airline": {
         "name": "Airline Name",
         "icao": "ICAO_AIRLINE_CODE",
@@ -131,30 +161,47 @@ The JSON file follows this structure:
         "iconPath": null,
         "sourceId": "airline-source-id"
       },
-      "aircraft": {
-        "name": "Aircraft Type",
-        "icao": "ICAO_AIRCRAFT_TYPE"
-      },
-      "aircraftReg": "AIRCRAFT_REGISTRATION",
-      "departureTerminal": "TERMINAL",
-      "departureGate": "GATE",
-      "arrivalTerminal": "TERMINAL",
-      "arrivalGate": "GATE",
-      "note": "FLIGHT_NOTE",
       "passengers": [
         {
           "userId": "USER_ID",
-          "guestName": "GUEST_NAME",
-          "seat": "SEAT_TYPE",
-          "seatNumber": "SEAT_NUMBER",
-          "seatClass": "SEAT_CLASS",
-          "flightReason": "FLIGHT_REASON",
+          "guestName": null,
+          "seat": "window",
+          "seatNumber": "12A",
+          "seatClass": "economy",
+          "flightReason": "leisure",
+          "user": {
+            "id": "USER_ID",
+            "displayName": "User Name",
+            "username": "username"
+          },
           "customFields": {
             "meal_preferences": ["Vegetarian", "Gluten-free"]
           }
         }
-      ]
+      ],
+      "track": {
+        "coordinates": [
+          [12.65, 55.62, 0],
+          [-6.27, 53.42, 0]
+        ],
+        "times": [1767261600, 1767269400],
+        "sourceFormat": "gpx",
+        "sourceName": "flight.gpx"
+      },
+      "customFields": {
+        "booking_reference": "ABC123"
+      }
     }
   ]
 }
 ```
+
+Notes on the structure:
+
+- `users` lists only the users who are passengers on the exported flights.
+- A passenger has either a `userId` or a `guestName`. `user` is `null` for guests.
+- `track` is present only for flights with a [flight track](/docs/features/flight-tracks). Track coordinates are `[longitude, latitude, altitude]` with altitude in meters. Depending on the source file, a track can also contain `groundSpeedKt`, `trackDeg`, `ground`, and `estimated` arrays.
+- `customFields` is present only when the flight or passenger has [custom field](/docs/features/custom-fields) values. Airport, airline, and aircraft fields are expanded to full objects.
+- The `fromId`, `toId`, `aircraftId`, and `airlineId` values are internal IDs of the source instance and are ignored on import.
+
+When you reimport the file, AirTrail restores tracks but not custom field values.

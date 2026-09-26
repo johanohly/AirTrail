@@ -1,0 +1,107 @@
+---
+title: Flight Tracks
+description: Attach the actual flown path of a flight from a GPX, KML, CSV, or readsb file.
+---
+
+By default, AirTrail draws each flight as an arc between the two airports. A flight track replaces that arc with the path the aircraft actually flew. Each flight can have one track.
+
+## Supported files
+
+| Format            | Extension | Notes                                                                                       |
+| ----------------- | --------- | ------------------------------------------------------------------------------------------- |
+| GPX               | `.gpx`    | Uses the longest track line in the file.                                                    |
+| KML               | `.kml`    | Uses timestamped placemarks when present, otherwise the longest line.                       |
+| CSV               | `.csv`    | Needs a header row with latitude and longitude columns, or a single position column.        |
+| readsb trace JSON | `.json`   | A readsb or tar1090 trace file with `timestamp` and `trace` fields. May contain several legs. |
+
+AirTrail detects the format from the file extension. Files are parsed in the browser.
+
+A track must contain at least 2 points and at most 100,000 points.
+
+### CSV columns
+
+Column names are matched case-insensitively, and spaces or punctuation count as underscores, so `Date UTC` matches `date_utc`. Only latitude and longitude are required.
+
+| Data         | Accepted column names                                                    |
+| ------------ | ------------------------------------------------------------------------ |
+| Latitude     | `latitude`, `lat`, `position_latitude`                                   |
+| Longitude    | `longitude`, `lon`, `lng`, `position_longitude`                          |
+| Position     | `position`, `coordinates` (latitude and longitude in one column)         |
+| Altitude     | `altitude`, `alt`, `altitude_ft`, `altitude_feet` (in feet)              |
+| Time         | `utc`, `date_utc`, `timestamp`, `time`, `date_time`, `datetime`          |
+| Ground speed | `speed`, `ground_speed`, `groundspeed`, `ground_speed_kt`, `speed_kt`    |
+| Heading      | `direction`, `heading`, `track`, `course`, `track_deg`, `heading_deg`    |
+
+### Multi-leg readsb traces
+
+A readsb trace can cover several flights by the same aircraft. AirTrail picks a leg automatically when exactly one leg starts and ends within 75 km of the flight's origin and destination. Otherwise it lists the legs with their times and point counts, and you choose one. Select the origin and destination before uploading to allow the automatic match.
+
+## Add a track
+
+1. Open the add or edit form for a flight.
+2. Click the **Flight Track** button at the bottom of the form (the route icon on larger screens).
+3. Click **Upload** and select the file.
+4. Check the summary, then click **Done**.
+5. Save the flight.
+
+The summary shows the file name, the format, the number of points, and which extra data the file contains: altitude, timestamps, speed, heading, ground flags, and uncertainty flags.
+
+The track is stored when the flight is saved. Closing the form without saving discards it.
+
+## Replace or remove a track
+
+Open the flight's edit form and click **Flight Track**.
+
+- To replace the track, click **Replace** and select a new file.
+- To remove the track, click the trash icon next to the summary.
+
+Save the flight to apply the change.
+
+## On the map
+
+Flights with a track are drawn along the track instead of an arc. A route whose flights all have tracks shows no arc at all.
+
+Track display is set in the map appearance menu, on the **Flights** tab under **Routes**. These options appear only when at least one visible flight has a track.
+
+- **Tracks** switches between **Flight tracks** and **Point to point** arcs.
+- **Track style** switches between **Standard**, which uses the route color, and **Altitude**, which colors the track by altitude and shows an altitude legend.
+
+Segments that were estimated or had gaps in the source data are drawn dashed. With the **Altitude** style, segments on the ground are drawn with an outline.
+
+The map draws at most 5,000 points per track. Longer tracks are simplified for display while keeping turns, altitude changes, and ground transitions. The full track stays stored.
+
+## Exports, imports, and shares
+
+- The AirTrail JSON and YAML [exports](/docs/features/export) include the full track of each flight. The CSV export does not.
+- Importing an AirTrail JSON export restores the tracks.
+- [Public shares](/docs/features/sharing) show tracks only when **Show Map** and **Show Exact Tracks** are both enabled. Track timestamps are included only when **Show Flight Times** is enabled.
+
+## API
+
+| Method   | Endpoint                       | Scopes                              |
+| -------- | ------------------------------ | ----------------------------------- |
+| `GET`    | `/api/v1/flights/{id}/track`   | `tracks.read` and `flight.read.own`   |
+| `PUT`    | `/api/v1/flights/{id}/track`   | `tracks.write` and `flight.update.own` |
+| `DELETE` | `/api/v1/flights/{id}/track`   | `tracks.write` and `flight.update.own` |
+
+Tracks on flights where you are not a passenger also need `flight.read.any` or `flight.update.any`. `GET` returns `{ "data": null }` when the flight has no track.
+
+The API does not parse files. `PUT` takes an already-parsed track:
+
+```json
+{
+  "sourceFormat": "gpx",
+  "sourceName": "BA178.gpx",
+  "coordinates": [
+    [-73.7781, 40.6413, 0],
+    [-0.4543, 51.47, 0]
+  ],
+  "times": [1767261600, 1767286800]
+}
+```
+
+Each coordinate is `[longitude, latitude]` or `[longitude, latitude, altitude]`, with altitude in meters. `sourceFormat` is one of `gpx`, `kml`, `csv`, or `readsb`. The optional arrays `times` (Unix seconds), `groundSpeedKt`, `trackDeg`, `ground`, and `estimated` must have one entry per coordinate.
+
+You can also send a `track` object when creating or updating a flight with `POST /api/v1/flights` or `PUT /api/v1/flights/{id}`. This needs the `tracks.write` scope. On update, omitting `track` keeps the current track and `"track": null` deletes it.
+
+The flight endpoints return only a track summary with the point count, format, file name, and last update time. See the [API overview](/docs/api/getting-started) for authentication.

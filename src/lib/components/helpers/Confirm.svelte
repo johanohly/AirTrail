@@ -21,27 +21,33 @@
   } = $props();
 
   let open = $state(false);
+  let busy = $state(false);
+
+  const confirm = async () => {
+    if (busy) return;
+    busy = true;
+    try {
+      await onConfirm();
+      open = false;
+    } finally {
+      busy = false;
+    }
+  };
 </script>
 
 {@render triggerContent({ props: { onclick: () => (open = true) } })}
 
-<Modal bind:open preset="alert">
+<Modal bind:open preset="alert" dismissal="dialog" {busy}>
   <div class="flex flex-col gap-4">
     <div class="flex flex-col gap-1.5">
       <h2 class="text-lg font-semibold">{title}</h2>
       <p class="text-sm text-muted-foreground">{description}</p>
     </div>
     <div class="flex justify-end gap-2">
-      <Button variant="outline" onclick={() => (open = false)}>
+      <Button variant="outline" disabled={busy} onclick={() => (open = false)}>
         {cancelText}
       </Button>
-      <Button
-        variant="destructive"
-        onclick={async () => {
-          await onConfirm();
-          open = false;
-        }}
-      >
+      <Button variant="destructive" loading={busy} onclick={confirm}>
         {confirmText}
       </Button>
     </div>

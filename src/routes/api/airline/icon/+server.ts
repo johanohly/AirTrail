@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 
 import type { RequestHandler } from './$types';
 import { db } from '$lib/db';
+import { hasPermission } from '$lib/server/authorization/authorize';
 import {
   ALLOWED_IMAGE_EXTENSIONS,
   ALLOWED_IMAGE_TYPES,
@@ -10,12 +11,11 @@ import {
 } from '$lib/server/utils/uploads';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
-  const user = locals.user;
-  if (!user) {
+  if (!locals.authorization) {
     return json({ error: 'Not logged in' }, { status: 401 });
   }
 
-  if (user.role === 'user') {
+  if (!hasPermission(locals.authorization, 'data.airlines.manage')) {
     return json({ error: 'Unauthorized' }, { status: 403 });
   }
 
@@ -81,12 +81,11 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 };
 
 export const DELETE: RequestHandler = async ({ locals, request }) => {
-  const user = locals.user;
-  if (!user) {
+  if (!locals.authorization) {
     return json({ error: 'Not logged in' }, { status: 401 });
   }
 
-  if (user.role === 'user') {
+  if (!hasPermission(locals.authorization, 'data.airlines.manage')) {
     return json({ error: 'Unauthorized' }, { status: 403 });
   }
 

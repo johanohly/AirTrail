@@ -7,6 +7,7 @@ export async function createContext(event: RequestEvent) {
     url: event.url,
     user: event.locals.user,
     session: event.locals.session,
+    authorization: event.locals.authorization,
   };
 }
 

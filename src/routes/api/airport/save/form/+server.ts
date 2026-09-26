@@ -3,6 +3,7 @@ import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
 import type { RequestHandler } from './$types';
 
+import { hasPermission } from '$lib/server/authorization/authorize';
 import { validateAndSaveAirport } from '$lib/server/utils/airport';
 import { handleErrorActionResult } from '$lib/utils/forms';
 import { airportFormDefaults, airportSchema } from '$lib/zod/airport';
@@ -17,13 +18,12 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     return actionResult('failure', { form });
   }
 
-  const user = locals.user;
-  if (!user) {
+  if (!locals.authorization) {
     form.message = { type: 'error', text: 'Not logged in' };
     return actionResult('failure', { form });
   }
 
-  if (user.role === 'user') {
+  if (!hasPermission(locals.authorization, 'data.airports.manage')) {
     form.message = { type: 'error', text: 'Unauthorized' };
     return actionResult('failure', { form });
   }

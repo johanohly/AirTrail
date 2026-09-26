@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { db } from '$lib/db';
-import { adminProcedure, authedProcedure, router } from '$lib/server/trpc';
+import { authedProcedure, permissionProcedure, router } from '$lib/server/trpc';
 import {
   getAircraft,
   getAircraftByIcao,
@@ -26,14 +26,16 @@ export const aircraftRouter = router({
       .orderBy('name')
       .execute();
   }),
-  delete: adminProcedure.input(z.number()).mutation(async ({ input }) => {
-    const result = await db
-      .deleteFrom('aircraft')
-      .where('id', '=', input)
-      .execute();
-    return result.length > 0;
-  }),
-  sync: adminProcedure
+  delete: permissionProcedure('data.aircraft.manage')
+    .input(z.number())
+    .mutation(async ({ input }) => {
+      const result = await db
+        .deleteFrom('aircraft')
+        .where('id', '=', input)
+        .execute();
+      return result.length > 0;
+    }),
+  sync: permissionProcedure('data.aircraft.manage')
     .input(z.object({ overwrite: z.boolean().optional() }))
     .mutation(async ({ input }) => {
       return await syncAircraft(input);

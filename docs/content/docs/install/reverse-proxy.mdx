@@ -1,0 +1,78 @@
+---
+title: Reverse Proxy
+description: Serve AirTrail over HTTPS behind nginx, Caddy or Traefik.
+---
+
+A reverse proxy lets you reach AirTrail at an address like `https://airtrail.example.com` with a TLS certificate. Use one whenever AirTrail is reachable from the internet.
+
+## What AirTrail needs
+
+- **`ORIGIN` must be the public URL**, exactly as typed in the browser, including `https://` and any non-standard port. AirTrail uses it to reject cross-site form submissions and to build OAuth URLs, so a mismatch breaks sign-in. With an `https://` origin, session cookies are marked secure.
+- **`ADDRESS_HEADER=X-Forwarded-For`** lets AirTrail see each client's address instead of the proxy's. Login and OAuth endpoints are rate limited per address; without this, everyone shares the proxy's limit. Only set it when every request passes through your proxy, because a client that reaches AirTrail directly could forge the header.
+- **Uploads up to `BODY_SIZE_LIMIT`** (20 MB by default). Flight forms with detailed tracks can be large, so raise the proxy's request size limit to match.
+- **No path prefix.** Serve AirTrail at the root of its own host name, not under a sub-path such as `/airtrail`.
+
+After changing `.env`, restart AirTrail with `docker compose up -d`.
+
+If the proxy runs on the same machine, you can also stop AirTrail's port from being reachable directly. See [Exposing the port](/docs/install/docker-compose#exposing-the-port).
+
+## Caddy
+
+Caddy obtains certificates automatically and sends `X-Forwarded-For` by default.
+
+```text title="Caddyfile"
+airtrail.example.com {
+  request_body {
+    max_size 20MB
+  }
+  reverse_proxy localhost:3000
+}
+```
+
+## nginx
+
+```nginx title="/etc/nginx/sites-available/airtrail"
+server {
+  listen 443 ssl;
+  http2 on;
+  server_name airtrail.example.com;
+
+  ssl_certificate     /etc/letsencrypt/live/airtrail.example.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/airtrail.example.com/privkey.pem;
+
+  client_max_body_size 20m;
+
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
+## Traefik
+
+Add labels to the `airtrail` service in `docker-compose.yml`, and put the service on the network Traefik uses:
+
+```yaml
+  airtrail:
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.airtrail.rule=Host(`airtrail.example.com`)
+      - traefik.http.routers.airtrail.entrypoints=websecure
+      - traefik.http.routers.airtrail.tls.certresolver=letsencrypt
+      - traefik.http.services.airtrail.loadbalancer.server.port=3000
+```
+
+Traefik sets `X-Forwarded-For` by default. Its request body size is unlimited unless you add a buffering middleware.
+
+## Other proxies
+
+Any proxy works if it forwards the `Host` header, appends the client address to `X-Forwarded-For`, and allows request bodies up to `BODY_SIZE_LIMIT`. This includes Nginx Proxy Manager, Cloudflare Tunnel, Tailscale Serve and the Synology reverse proxy.
+
+## Check the setup
+
+1. Open the public URL and sign in. If sign-in fails with a "Cross-site" error, `ORIGIN` does not match the address in the browser.
+2. If you use [OAuth sign-in](/docs/features/oauth), the redirect URI registered with your identity provider must be `ORIGIN` followed by `/login`.
+3. [MCP](/docs/api/model-context-protocol) and API clients should connect to the public URL, for example `https://airtrail.example.com/api/mcp`.

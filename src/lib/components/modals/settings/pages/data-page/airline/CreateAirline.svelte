@@ -72,7 +72,7 @@
       },
     },
   );
-  const { enhance } = form;
+  const { enhance, submitting, tainted } = form;
 </script>
 
 {#if !withoutTrigger}
@@ -82,7 +82,16 @@
   </Button>
 {/if}
 
-<Modal bind:open>
+<Modal
+  bind:open
+  dismissal="form"
+  dirty={form.isTainted($tainted) || pendingIconFile !== null}
+  busy={$submitting}
+  onDiscard={() => {
+    form.reset();
+    pendingIconFile = null;
+  }}
+>
   <ModalBreadcrumbHeader section="Airlines" title="Add airline" icon={Plus} />
   <ModalBody>
     <form

@@ -1,42 +1,36 @@
-import { json } from '@sveltejs/kit';
+import { json, type RequestEvent, type RequestHandler } from '@sveltejs/kit';
 
-import { db } from '$lib/db';
-import type { User } from '$lib/db/types';
-import { hashSha256 } from '$lib/server/utils/hash';
-
-export const validateApiKey = async (
-  request: Request,
-): Promise<User | null> => {
-  const apiKey = request.headers.get('Authorization')?.split('Bearer ')[1];
-  if (!apiKey) {
-    return null;
-  }
-  const hash = hashSha256(apiKey);
-  const user = await db
-    .selectFrom('user')
-    .where(
-      'id',
-      '=',
-      db.selectFrom('apiKey').where('key', '=', hash).select('userId'),
-    )
-    .selectAll()
-    .executeTakeFirst();
-
-  if (user) {
-    await db
-      .updateTable('apiKey')
-      .set({ lastUsed: new Date() })
-      .where('key', '=', hash)
-      .execute();
-  }
-
-  return user || null;
-};
+import {
+  authenticateApiPrincipal,
+  type ApiPrincipal,
+} from '$lib/server/api/v1/principal';
+import { asApiOperationError } from '$lib/server/api/v1/response';
 
 export const apiError = (message: string, status = 500) => {
   return json({ success: false, message }, { status });
 };
 
-export const unauthorized = () => {
-  return apiError('Unauthorized', 401);
-};
+/*
+ * The deprecated /api/flight/* and /api/stats routes. They accept API keys
+ * only, as they always have, and make the same authorization decisions as
+ * /api/v1 through its services; only the response shape is theirs.
+ */
+export const legacyApiRoute =
+  <Event extends RequestEvent>(
+    handler: (context: {
+      principal: ApiPrincipal;
+      event: Event;
+    }) => Promise<Response>,
+  ): RequestHandler =>
+  async (event) => {
+    const principal = await authenticateApiPrincipal(event.request, null);
+    if (!principal) return apiError('Unauthorized', 401);
+    try {
+      return await handler({ principal, event: event as Event });
+    } catch (error) {
+      const known = asApiOperationError(error);
+      if (known) return apiError(known.message, known.status);
+      console.error('[api] unhandled error', error);
+      return apiError('The request could not be completed');
+    }
+  };

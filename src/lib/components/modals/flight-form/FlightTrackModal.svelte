@@ -26,6 +26,7 @@
   let error: string | null = $state(null);
   let originalPointCount: number | null = $state(null);
   let trackCandidates: ParsedTrackCandidate[] = $state([]);
+  let formSnapshot = $state.raw<ReturnType<typeof form.capture> | null>(null);
 
   const prefs = $derived(getPreferences(page.data.user));
 
@@ -116,6 +117,7 @@
   variant="outline"
   class={hasTrack ? 'border-primary text-primary' : ''}
   onclick={() => {
+    formSnapshot = form.capture();
     open = true;
   }}
 >
@@ -125,7 +127,20 @@
   {/if}
 </Button>
 
-<Modal bind:open class="max-w-md" closeOnOutsideClick={false}>
+<Modal
+  bind:open
+  dismissal="form"
+  dirty={formSnapshot !== null &&
+    JSON.stringify(track) !== JSON.stringify(formSnapshot.data.track)}
+  busy={parsing}
+  onDiscard={() => {
+    if (formSnapshot) form.restore(formSnapshot);
+    error = null;
+    originalPointCount = null;
+    trackCandidates = [];
+  }}
+  class="max-w-md"
+>
   <ModalHeader class="pb-0">
     <h2 class="text-lg font-medium">Flight Track</h2>
   </ModalHeader>
@@ -266,6 +281,8 @@
       <FileUp size={14} />
       {hasTrack ? 'Replace' : 'Upload'}
     </Button>
-    <Button size="sm" onclick={() => (open = false)}>Done</Button>
+    <Button size="sm" disabled={parsing} onclick={() => (open = false)}
+      >Done</Button
+    >
   </div>
 </Modal>

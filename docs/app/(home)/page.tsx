@@ -1,30 +1,30 @@
-'use client';
+"use client";
 
-import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Card, Cards } from "fumadocs-ui/components/card";
 import {
   ChartPie,
   CloudDownload,
   Globe,
   History,
-  Map,
+  Map as MapIcon,
   Moon,
   Plane,
   Shield,
   TabletSmartphone,
   Users,
-} from 'lucide-react';
-import Link from 'next/link';
-import posthog from 'posthog-js';
-import type React from 'react';
-import Aurora from '@/components/Aurora';
+} from "lucide-react";
+import Link from "next/link";
+import posthog from "posthog-js";
+import type React from "react";
+import Aurora from "@/components/aurora";
 import {
-  FlightPath,
-  InstallCommand,
   CopyableUrl,
   FadeInOnScroll,
-  PreviewImage,
+  FlightPath,
   HeroImage,
-} from './page.client';
+  InstallCommand,
+  PreviewImage,
+} from "./page.client";
 
 export default function HomePage() {
   return (
@@ -53,12 +53,12 @@ export default function HomePage() {
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link
-                className="landing-btn-primary inline-flex h-11 items-center justify-center rounded-full bg-fd-primary px-6 font-medium text-sm text-white tracking-tight transition-all hover:brightness-110 hover:shadow-lg hover:shadow-fd-primary/25"
+                className="landing-btn-primary inline-flex h-11 items-center justify-center rounded-full bg-fd-primary px-6 font-medium text-sm text-white tracking-tight transition-all hover:shadow-fd-primary/25 hover:shadow-lg hover:brightness-110"
                 href="/docs/overview/introduction"
                 onClick={() =>
-                  posthog.capture('cta_clicked', {
-                    cta_type: 'get_started',
-                    location: 'homepage_hero',
+                  posthog.capture("cta_clicked", {
+                    cta_type: "get_started",
+                    location: "homepage_hero",
                   })
                 }
               >
@@ -67,13 +67,13 @@ export default function HomePage() {
               <Link
                 className="inline-flex h-11 items-center justify-center rounded-full border bg-fd-secondary px-6 font-medium text-fd-secondary-foreground text-sm tracking-tight transition-colors hover:bg-fd-accent"
                 href="https://demo.airtrail.johan.ohly.dk"
-                rel="noopener noreferrer"
-                target="_blank"
                 onClick={() =>
-                  posthog.capture('demo_link_clicked', {
-                    location: 'homepage_hero',
+                  posthog.capture("demo_link_clicked", {
+                    location: "homepage_hero",
                   })
                 }
+                rel="noopener noreferrer"
+                target="_blank"
               >
                 Live Demo
               </Link>
@@ -93,13 +93,13 @@ export default function HomePage() {
       {/* ── Intro Text ── */}
       <section className="mt-16 md:mt-24">
         <p className="mx-auto max-w-3xl text-center font-light text-xl leading-snug tracking-tight md:text-2xl xl:text-3xl">
-          AirTrail gives you a{' '}
+          AirTrail gives you a{" "}
           <span className="font-medium text-fd-primary">
             beautiful world map
-          </span>{' '}
-          of every flight you&apos;ve taken, detailed{' '}
+          </span>{" "}
+          of every flight you&apos;ve taken, detailed{" "}
           <span className="font-medium text-fd-primary">statistics</span>, and
-          full control over{' '}
+          full control over{" "}
           <span className="font-medium text-fd-primary">your data</span> &mdash;
           all self-hosted with Docker.
         </p>
@@ -108,7 +108,7 @@ export default function HomePage() {
       {/* ── Features Grid ── */}
       <section className="mt-16 md:mt-24">
         <FadeInOnScroll>
-          <h2 className="mb-2 text-center font-medium text-2xl tracking-tight text-fd-primary lg:text-3xl">
+          <h2 className="mb-2 text-center font-medium text-2xl text-fd-primary tracking-tight lg:text-3xl">
             Everything you need.
           </h2>
           <p className="mb-8 text-center text-fd-muted-foreground text-sm lg:mb-16">
@@ -121,25 +121,25 @@ export default function HomePage() {
           <div className="flex flex-col gap-5 lg:-translate-y-8">
             <FadeInOnScroll>
               <FeatureCard
-                icon={<Map className="size-5" />}
-                title="Interactive World Map"
                 description="Visualize every flight on an interactive globe. See your routes, airports, and travel patterns come alive."
+                icon={<MapIcon className="size-5" />}
+                title="Interactive World Map"
               />
             </FadeInOnScroll>
 
             <FadeInOnScroll delay={150}>
               <FeatureCard
+                description="Bring in flights from MyFlightRadar24, App in the Air, JetLog, TripIt, Flighty, byAir, JetLovers, OpenFlights, and more."
                 icon={<CloudDownload className="size-5" />}
                 title="Import From Anywhere"
-                description="Bring in flights from MyFlightRadar24, App in the Air, JetLog, TripIt, Flighty, byAir, JetLovers, OpenFlights, and more."
               />
             </FadeInOnScroll>
 
             <FadeInOnScroll delay={200}>
               <FeatureCard
+                description="Every departure, every arrival. Searchable, filterable, and always at your fingertips."
                 icon={<History className="size-5" />}
                 title="Complete Flight History"
-                description="Every departure, every arrival. Searchable, filterable, and always at your fingertips."
               />
             </FadeInOnScroll>
           </div>
@@ -148,25 +148,25 @@ export default function HomePage() {
           <div className="flex flex-col gap-5">
             <FadeInOnScroll delay={100}>
               <FeatureCard
+                description="Distance traveled, time in the air, airports visited, airline breakdowns -- deep insights into your flying history."
                 icon={<ChartPie className="size-5" />}
                 title="Rich Statistics"
-                description="Distance traveled, time in the air, airports visited, airline breakdowns -- deep insights into your flying history."
               />
             </FadeInOnScroll>
 
             <FadeInOnScroll delay={250}>
               <FeatureCard
+                description="Multiple users, shared flights, built-in authentication and OAuth support to secure your data."
                 icon={<Users className="size-5" />}
                 title="Multi-User & Auth"
-                description="Multiple users, shared flights, built-in authentication and OAuth support to secure your data."
               />
             </FadeInOnScroll>
 
             <FadeInOnScroll delay={300}>
               <FeatureCard
+                description="Easy on the eyes at any hour. Automatically adapts or lets you choose your preferred theme."
                 icon={<Moon className="size-5" />}
                 title="Light & Dark Modes"
-                description="Easy on the eyes at any hour. Automatically adapts or lets you choose your preferred theme."
               />
             </FadeInOnScroll>
           </div>
@@ -196,8 +196,8 @@ export default function HomePage() {
               <Link
                 className="inline-flex h-10 items-center justify-center rounded-full border bg-fd-secondary px-5 font-medium text-fd-secondary-foreground text-sm tracking-tight transition-colors hover:bg-fd-accent"
                 href="https://github.com/JohanOhly/AirTrail"
-                target="_blank"
                 rel="noopener noreferrer"
+                target="_blank"
               >
                 View on GitHub
               </Link>
@@ -210,7 +210,7 @@ export default function HomePage() {
       <section className="mt-16 grid grid-cols-1 gap-5 md:mt-24 lg:grid-cols-2">
         <div className="col-span-full">
           <FadeInOnScroll>
-            <h2 className="mb-2 text-center font-medium text-2xl tracking-tight text-fd-primary lg:text-3xl">
+            <h2 className="mb-2 text-center font-medium text-2xl text-fd-primary tracking-tight lg:text-3xl">
               Up and running in seconds.
             </h2>
             <p className="mb-6 text-center text-fd-muted-foreground text-sm">
@@ -235,7 +235,7 @@ export default function HomePage() {
               </p>
               <InstallCommand />
               <p className="mt-4 text-fd-muted-foreground text-xs">
-                After installation, AirTrail will be available at{' '}
+                After installation, AirTrail will be available at{" "}
                 <CopyableUrl url="http://localhost:3000" />
               </p>
             </div>
@@ -300,11 +300,11 @@ export default function HomePage() {
 
 // ── Feature Card Component ──
 
-type FeatureCardProps = {
+interface FeatureCardProps {
+  description: string;
   icon: React.ReactNode;
   title: string;
-  description: string;
-};
+}
 
 function FeatureCard({ icon, title, description }: Readonly<FeatureCardProps>) {
   return (

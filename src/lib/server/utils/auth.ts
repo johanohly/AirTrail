@@ -3,35 +3,57 @@ import { sql } from 'kysely';
 import type { Lucia } from 'lucia';
 
 import { db } from '$lib/db';
-import { publicUserFields, type User } from '$lib/db/types';
+import { publicUserFields, type DatabaseConnection } from '$lib/db/types';
 import { hashSha256 } from '$lib/server/utils/hash';
 import { generateString } from '$lib/server/utils/random';
 import type { Preferences } from '$lib/zod/user';
+import type { ApiScope } from '$lib/api/v1/scopes';
 
 const usernameEquals = (username: string) =>
   sql<boolean>`lower("username") = lower(${username})` as any;
 
-export const createUser = async (
-  id: string,
-  username: string,
-  password: string,
-  displayName: string,
-  role: User['role'],
-  preferences?: Partial<Preferences>,
-) => {
-  const result = await db
+export const createUser = async ({
+  id,
+  username,
+  password,
+  displayName,
+  roleId,
+  preferences,
+  isOwner = false,
+  connection = db,
+}: {
+  id: string;
+  username: string;
+  password: string;
+  displayName: string;
+  roleId: string | null;
+  preferences?: Partial<Preferences>;
+  isOwner?: boolean;
+  connection?: DatabaseConnection;
+}) => {
+  const result = await connection
     .insertInto('user')
     .values({
       id,
       username,
       password,
       displayName,
-      role,
+      roleId,
+      isOwner,
       ...(preferences ?? {}),
     })
     .executeTakeFirst();
   return result.numInsertedOrUpdatedRows && result.numInsertedOrUpdatedRows > 0;
 };
+
+export const getDefaultRoleId = async () =>
+  (
+    await db
+      .selectFrom('authorizationSettings')
+      .select('defaultRoleId')
+      .where('id', '=', 1)
+      .executeTakeFirstOrThrow()
+  ).defaultRoleId;
 
 export const getUser = async (username: string) => {
   return db
@@ -96,8 +118,9 @@ export const deleteSession = async (lucia: Lucia, cookies: Cookies) => {
 export const usernameExists = async (
   username: string,
   excludeUserId?: string,
+  connection: DatabaseConnection = db,
 ) => {
-  let query = db
+  let query = connection
     .selectFrom('user')
     .select(sql`1`.as('exists'))
     .where(usernameEquals(username));
@@ -110,16 +133,26 @@ export const usernameExists = async (
   return users.length > 0;
 };
 
-export const createApiKey = async (userId: string, name: string) => {
+export const createApiKey = async (
+  userId: string,
+  name: string,
+  scopes: readonly ApiScope[],
+) => {
   const key = generateString();
   const hash = hashSha256(key);
-  const result = await db
+  // Returns the row id too, so callers can render the new key optimistically
+  // with its real identity instead of inventing a placeholder.
+  const row = await db
     .insertInto('apiKey')
-    .values({ name, key: hash, userId })
+    .values({
+      name,
+      key: hash,
+      userId,
+      scopes: [...new Set(scopes)],
+    })
+    .returning(['id', 'createdAt'])
     .executeTakeFirst();
-  return result.numInsertedOrUpdatedRows && result.numInsertedOrUpdatedRows > 0
-    ? key
-    : null;
+  return row ? { key, id: row.id, createdAt: row.createdAt } : null;
 };
 
 export const isSetup = async () => {

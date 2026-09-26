@@ -2,10 +2,15 @@ import { z } from 'zod';
 
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/db';
-import { getDefaultAppMapStyleUrl } from '$lib/map/app-style';
+import { mapConfigsHaveSameSettings } from '$lib/map/map-settings';
 import { type DeepBoolean, deepSetAllValues } from '$lib/utils';
 import { deepMerge, removeUndefined, mapSetValues } from '$lib/utils/other';
-import { appConfigSchema, clientAppConfigSchema } from '$lib/zod/config';
+import {
+  appConfigSchema,
+  clientAppConfigSchema,
+  DEFAULT_MAP_CONFIG,
+  type MapConfig,
+} from '$lib/zod/config';
 
 export type FullAppConfig = z.infer<typeof appConfigSchema>;
 export type ClientAppConfig = z.infer<typeof clientAppConfigSchema>;
@@ -20,6 +25,15 @@ export class AppConfig {
   // Whether a field has a value set. Useful in the frontend to know if a value is set even if the value itself is server-only.
   configured: DeepBoolean<FullAppConfig, boolean> | null = null;
   envConfigured: DeepBoolean<FullAppConfig, boolean> | null = null;
+
+  #reviseMapConfig(current: MapConfig, next: MapConfig): MapConfig {
+    return {
+      ...next,
+      styleRevision: mapConfigsHaveSameSettings(current, next)
+        ? current.styleRevision
+        : current.styleRevision + 1,
+    };
+  }
 
   async get({ withCache = true } = {}) {
     if (this.#appConfig && withCache) {
@@ -47,7 +61,11 @@ export class AppConfig {
 
     // Remove undefined values from the new config, as only unchanged values are undefined
     const merged = deepMerge(currentConfig, removeUndefined(config));
-    const newConfig = appConfigSchema.parse(merged);
+    const parsedConfig = appConfigSchema.parse(merged);
+    const newConfig = {
+      ...parsedConfig,
+      map: this.#reviseMapConfig(currentConfig.map, parsedConfig.map),
+    };
 
     const result = await db
       .updateTable('appConfig')
@@ -94,10 +112,7 @@ export class AppConfig {
           aeroDataBoxKey: null,
           openAipKey: null,
         },
-        map: {
-          lightStyleUrl: getDefaultAppMapStyleUrl('light'),
-          darkStyleUrl: getDefaultAppMapStyleUrl('dark'),
-        },
+        map: { ...DEFAULT_MAP_CONFIG },
         data: {
           lastSynced: null,
         },
@@ -140,24 +155,25 @@ export class AppConfig {
     return paths;
   }
 
-  #parseEnvValue(value: string): string | number | boolean | null {
+  /*
+   * Only booleans and null are converted. Numeric settings use `z.coerce`, so
+   * everything else stays a string -- a digit-only OAuth client ID included.
+   */
+  #parseEnvValue(value: string): string | boolean | null {
     const lowerValue = value.trim().toLowerCase();
     if (lowerValue === 'true') return true;
     if (lowerValue === 'false') return false;
     if (lowerValue === 'null') return null;
-
-    const numberValue = Number(value);
-    if (!isNaN(numberValue)) return numberValue;
-
     return value;
   }
 
   async loadFromEnv() {
     const configPaths = this.#extractAllKeys(appConfigSchema);
+    // An empty variable (`KEY=` in .env) counts as unset.
     const envEntries = Object.entries(env).reduce<
-      Record<string, string | number | boolean | null>
+      Record<string, string | boolean | null>
     >((acc, [key, value]) => {
-      acc[key.toLowerCase()] = value ? this.#parseEnvValue(value) : true;
+      if (value?.trim()) acc[key.toLowerCase()] = this.#parseEnvValue(value);
       return acc;
     }, {});
 
@@ -197,8 +213,15 @@ export class AppConfig {
       process.exit(-1);
     }
 
-    await db.updateTable('appConfig').set('config', validConfig.data).execute();
-    this.#appConfig = validConfig.data;
+    const nextConfig = currentConfig
+      ? {
+          ...validConfig.data,
+          map: this.#reviseMapConfig(currentConfig.map, validConfig.data.map),
+        }
+      : validConfig.data;
+
+    await db.updateTable('appConfig').set('config', nextConfig).execute();
+    this.#appConfig = nextConfig;
 
     const allFields = deepSetAllValues(this.#appConfig, false);
     const envConfiguredFields = deepSetAllValues(envConfig, true);

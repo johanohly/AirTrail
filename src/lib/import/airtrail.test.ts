@@ -360,6 +360,7 @@ describe('processAirTrailFile', () => {
         seatNumber: '12B',
       },
     ]);
+    expect(userListQuery).not.toHaveBeenCalled();
   });
 
   it('restores mapped passengers without adding the importing admin', async () => {
@@ -406,6 +407,7 @@ describe('processAirTrailFile', () => {
     expect(result.flights[0]?.passengers).not.toContainEqual(
       expect.objectContaining({ userId: 'import-admin' }),
     );
+    expect(userListQuery).toHaveBeenCalledOnce();
   });
 
   it('treats an explicit empty restore mapping as guest passengers', async () => {

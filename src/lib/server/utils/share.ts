@@ -1,8 +1,12 @@
 import { TRPCError } from '@trpc/server';
+import type { Insertable } from 'kysely';
 import { z } from 'zod';
 
 import { db } from '$lib/db';
+import { canShareOwnFlights } from '$lib/server/authorization/flight';
+import { loadAuthorizationContext } from '$lib/server/authorization/context';
 import { listFlightBaseQuery } from '$lib/db/queries';
+import type { public_share } from '$lib/db/schema';
 import type {
   Airport,
   Aircraft,
@@ -105,49 +109,96 @@ export async function listUserShares(userId: string) {
     .execute();
 }
 
+type ShareValues = Omit<
+  Insertable<public_share>,
+  'id' | 'userId' | 'createdAt'
+>;
+
+export class ShareSlugTakenError extends Error {
+  constructor() {
+    super('Share URL already exists. Please choose a different one.');
+    this.name = 'ShareSlugTakenError';
+  }
+}
+
+const assertSlugAvailable = async (slug: string, exceptId?: number) => {
+  let query = db
+    .selectFrom('publicShare')
+    .select('id')
+    .where('slug', '=', slug);
+  if (exceptId !== undefined) query = query.where('id', '!=', exceptId);
+  if (await query.executeTakeFirst()) throw new ShareSlugTakenError();
+};
+
+/** Tracks are drawn on the map, so they cannot be shown without it. */
+const withTrackInvariant = <T extends Partial<ShareValues>>(
+  values: T,
+  showMap: boolean | undefined,
+): T => (showMap === false ? { ...values, showTracks: false } : values);
+
+/** Inserts a share, generating a slug when none is given. */
+export const insertShare = async (
+  userId: string,
+  values: Omit<ShareValues, 'slug'> & { slug?: string | null },
+) => {
+  const slug = values.slug || generateRandomString(12);
+  await assertSlugAvailable(slug);
+  return db
+    .insertInto('publicShare')
+    .values({
+      ...withTrackInvariant(values, values.showMap ?? true),
+      slug,
+      userId,
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow();
+};
+
+/** Applies `patch` to one of the user's shares; undefined when it is not theirs. */
+export const patchShare = async (
+  userId: string,
+  id: number,
+  patch: Partial<ShareValues>,
+) => {
+  const current = await db
+    .selectFrom('publicShare')
+    .select('showMap')
+    .where('id', '=', id)
+    .where('userId', '=', userId)
+    .executeTakeFirst();
+  if (!current) return undefined;
+  if (patch.slug) await assertSlugAvailable(patch.slug, id);
+  return db
+    .updateTable('publicShare')
+    .set(withTrackInvariant(patch, patch.showMap ?? current.showMap))
+    .where('id', '=', id)
+    .where('userId', '=', userId)
+    .returningAll()
+    .executeTakeFirst();
+};
+
+const conflictAsTrpc = async <T>(write: Promise<T>) => {
+  try {
+    return await write;
+  } catch (error) {
+    if (error instanceof ShareSlugTakenError)
+      throw new TRPCError({ code: 'CONFLICT', message: error.message });
+    throw error;
+  }
+};
+
 /**
  * Create a new share
  */
 export async function createShare(userId: string, input: ShareCreateInput) {
-  const slug = input.slug || generateRandomString(12);
-  const showTracks = input.showMap && input.showTracks;
-
-  // Check if slug already exists
-  const existing = await db
-    .selectFrom('publicShare')
-    .select('slug')
-    .where('slug', '=', slug)
-    .executeTakeFirst();
-
-  if (existing) {
-    throw new TRPCError({
-      code: 'CONFLICT',
-      message: 'Share URL already exists. Please choose a different one.',
-    });
-  }
-
-  return await db
-    .insertInto('publicShare')
-    .values({
-      userId,
-      slug,
-      expiresAt: input.expiresAt ? input.expiresAt.toISOString() : null,
+  return conflictAsTrpc(
+    insertShare(userId, {
+      ...input,
+      expiresAt: input.expiresAt ?? null,
       dateFrom: input.dateFrom || null,
       dateTo: input.dateTo || null,
-      showMap: input.showMap,
-      showStats: input.showStats,
-      showFlightList: input.showFlightList,
-      showFlightNumbers: input.showFlightNumbers,
-      showAirlines: input.showAirlines,
-      showAircraft: input.showAircraft,
-      showTimes: input.showTimes,
-      showTracks,
-      showDates: input.showDates,
-      showSeat: input.showSeat,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any)
-    .returningAll()
-    .executeTakeFirstOrThrow();
+    }),
+  );
 }
 
 /**
@@ -155,53 +206,18 @@ export async function createShare(userId: string, input: ShareCreateInput) {
  */
 export async function updateShare(userId: string, input: ShareUpdateInput) {
   const { id, ...updates } = input;
-
-  const currentShare = await db
-    .selectFrom('publicShare')
-    .select('showMap')
-    .where('id', '=', id)
-    .where('userId', '=', userId)
-    .executeTakeFirstOrThrow();
-
-  const effectiveShowMap = updates.showMap ?? currentShare.showMap;
-  const normalizedUpdates = {
-    ...updates,
-    ...(!effectiveShowMap ? { showTracks: false } : {}),
-  };
-
-  // Check if slug already exists (if being updated)
-  if (updates.slug) {
-    const existing = await db
-      .selectFrom('publicShare')
-      .select('id')
-      .where('slug', '=', updates.slug)
-      .where('id', '!=', id)
-      .executeTakeFirst();
-
-    if (existing) {
-      throw new TRPCError({
-        code: 'CONFLICT',
-        message: 'Share URL already exists. Please choose a different one.',
-      });
-    }
-  }
-
-  return await db
-    .updateTable('publicShare')
-    .set(normalizedUpdates)
-    .where('id', '=', id)
-    .where('userId', '=', userId)
-    .returningAll()
-    .executeTakeFirstOrThrow();
+  const updated = await conflictAsTrpc(patchShare(userId, id, updates));
+  if (!updated) throw new TRPCError({ code: 'NOT_FOUND' });
+  return updated;
 }
 
 /**
  * Delete a share
  */
-export async function deleteShare(userId: string, shareId: string) {
+export async function deleteShare(userId: string, shareId: number) {
   const result = await db
     .deleteFrom('publicShare')
-    .where('id', '=', parseInt(shareId))
+    .where('id', '=', shareId)
     .where('userId', '=', userId)
     .executeTakeFirst();
 
@@ -222,6 +238,14 @@ export async function getPublicShareData(slug: string) {
     .executeTakeFirst();
 
   if (!share) {
+    throw new TRPCError({
+      code: 'NOT_FOUND',
+      message: 'Share not found or expired',
+    });
+  }
+
+  const authorization = await loadAuthorizationContext(share.userId);
+  if (!authorization || !canShareOwnFlights(authorization)) {
     throw new TRPCError({
       code: 'NOT_FOUND',
       message: 'Share not found or expired',
@@ -390,118 +414,42 @@ export async function validateAndSaveShare(
     }
   }
 
-  // Generate slug if not provided
-  const slug = shareData.slug || generateRandomString(12);
+  const values = {
+    slug: shareData.slug,
+    expiresAt,
+    dateFrom: shareData.dateFrom || null,
+    dateTo: shareData.dateTo || null,
+    showMap: shareData.showMap,
+    showStats: shareData.showStats,
+    showFlightList: shareData.showFlightList,
+    showFlightNumbers: shareData.showFlightNumbers,
+    showAirlines: shareData.showAirlines,
+    showAircraft: shareData.showAircraft,
+    showTimes: shareData.showTimes,
+    showTracks: shareData.showTracks,
+    showDates: shareData.showDates,
+    showSeat: shareData.showSeat,
+  };
+  const updating = Boolean(shareData.id);
 
-  // Check if updating existing share
-  const isUpdating = !!shareData.id;
-
-  if (isUpdating && shareData.id) {
-    try {
-      // Check if slug already exists (excluding current share)
-      const existing = await db
-        .selectFrom('publicShare')
-        .select('id')
-        .where('slug', '=', slug)
-        .where('id', '!=', shareData.id)
-        .where('userId', '=', userId)
-        .executeTakeFirst();
-
-      if (existing) {
-        return {
-          success: false,
-          type: 'error',
-          message: 'Share URL already exists. Please choose a different one.',
-        };
-      }
-
-      // Update existing share
-      await db
-        .updateTable('publicShare')
-        .set({
-          slug,
-          expiresAt: expiresAt ? expiresAt.toISOString() : null,
-          dateFrom: shareData.dateFrom || null,
-          dateTo: shareData.dateTo || null,
-          showMap: shareData.showMap,
-          showStats: shareData.showStats,
-          showFlightList: shareData.showFlightList,
-          showFlightNumbers: shareData.showFlightNumbers,
-          showAirlines: shareData.showAirlines,
-          showAircraft: shareData.showAircraft,
-          showTimes: shareData.showTimes,
-          showTracks: shareData.showMap && shareData.showTracks,
-          showDates: shareData.showDates,
-          showSeat: shareData.showSeat,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any)
-        .where('id', '=', shareData.id)
-        .where('userId', '=', userId)
-        .execute();
-
-      return {
-        success: true,
-        message: 'Share updated successfully',
-      };
-    } catch (error) {
-      console.error('Error updating share:', error);
-      return {
-        success: false,
-        type: 'error',
-        message: 'Failed to update share',
-      };
-    }
-  } else {
-    try {
-      // Check if slug already exists
-      const existing = await db
-        .selectFrom('publicShare')
-        .select('slug')
-        .where('slug', '=', slug)
-        .executeTakeFirst();
-
-      if (existing) {
-        return {
-          success: false,
-          type: 'error',
-          message: 'Share URL already exists. Please choose a different one.',
-        };
-      }
-
-      // Create new share
-      await db
-        .insertInto('publicShare')
-        .values({
-          userId,
-          slug,
-          expiresAt: expiresAt ? expiresAt.toISOString() : null,
-          dateFrom: shareData.dateFrom || null,
-          dateTo: shareData.dateTo || null,
-          showMap: shareData.showMap,
-          showStats: shareData.showStats,
-          showFlightList: shareData.showFlightList,
-          showFlightNumbers: shareData.showFlightNumbers,
-          showAirlines: shareData.showAirlines,
-          showAircraft: shareData.showAircraft,
-          showTimes: shareData.showTimes,
-          showTracks: shareData.showMap && shareData.showTracks,
-          showDates: shareData.showDates,
-          showSeat: shareData.showSeat,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any)
-        .execute();
-
-      return {
-        success: true,
-        message: 'Share created successfully',
-      };
-    } catch (error) {
-      console.error('Error creating share:', error);
-      return {
-        success: false,
-        type: 'error',
-        message: 'Failed to create share',
-      };
-    }
+  try {
+    if (!shareData.id) await insertShare(userId, values);
+    else if (!(await patchShare(userId, shareData.id, values)))
+      return { success: false, type: 'error', message: 'Share not found' };
+  } catch (error) {
+    if (error instanceof ShareSlugTakenError)
+      return { success: false, type: 'error', message: error.message };
+    console.error('Error saving share:', error);
+    return {
+      success: false,
+      type: 'error',
+      message: updating ? 'Failed to update share' : 'Failed to create share',
+    };
   }
+  return {
+    success: true,
+    message: updating
+      ? 'Share updated successfully'
+      : 'Share created successfully',
+  };
 }

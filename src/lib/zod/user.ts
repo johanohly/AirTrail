@@ -47,10 +47,10 @@ export const userSchema = z.object({
   username: usernameSchema,
   password: z.string().nonempty().min(8),
   displayName: z.string().nonempty().min(3),
-  role: z.enum(['user', 'admin']).default('user'),
+  roleId: z.string().min(1),
 });
 
-export const editUserSchema = userSchema.omit({ password: true, role: true });
+export const editUserSchema = userSchema.omit({ password: true, roleId: true });
 export const adminEditUserSchema = userSchema
   .omit({ password: true })
   .extend({ id: z.string() });

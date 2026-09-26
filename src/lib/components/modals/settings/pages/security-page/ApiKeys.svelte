@@ -1,7 +1,7 @@
 <script lang="ts">
   import autoAnimate from '@formkit/auto-animate';
   import { X } from '@o7/icon/lucide';
-  import { formatRelative } from 'date-fns';
+  import { formatDistanceToNow } from 'date-fns';
   import { toast } from 'svelte-sonner';
 
   import { TimeDisplay } from '$lib/components/display';
@@ -12,6 +12,7 @@
   import { Collapsible } from '$lib/components/ui/collapsible';
   import type { ApiKey } from '$lib/db/types';
   import { api } from '$lib/trpc';
+  import { accessSummary } from '$lib/authorization/access-presentation';
 
   let loaded = $state(false);
   let keys: ApiKey[] = $state([]);
@@ -46,14 +47,22 @@
             {key.name}
           </h4>
           <p class="text-muted-foreground text-sm">
-            Created <TimeDisplay date={key.createdAt} mode="plain">
-              {formatRelative(key.createdAt, new Date())}
-            </TimeDisplay>
+            Created <TimeDisplay
+              date={key.createdAt}
+              mode="plain"
+              variant="date"
+            />
             {#if key.lastUsed}
               ∙ Last used <TimeDisplay date={key.lastUsed} mode="plain">
-                {formatRelative(key.lastUsed, new Date())}
+                {formatDistanceToNow(key.lastUsed, { addSuffix: true })}
               </TimeDisplay>
             {/if}
+          </p>
+          <p
+            class="mt-1 text-xs text-muted-foreground"
+            title={key.scopes.join(', ')}
+          >
+            {accessSummary(key.scopes)}
           </p>
         </div>
         <div class="flex items-center pr-1">

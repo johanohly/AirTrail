@@ -51,7 +51,7 @@
       },
     },
   );
-  const { enhance } = form;
+  const { enhance, submitting, tainted } = form;
 </script>
 
 {#if !withoutTrigger}
@@ -61,7 +61,13 @@
   </Button>
 {/if}
 
-<Modal bind:open>
+<Modal
+  bind:open
+  dismissal="form"
+  dirty={form.isTainted($tainted)}
+  busy={$submitting}
+  onDiscard={() => form.reset()}
+>
   <ModalBreadcrumbHeader section="Airports" title="Add airport" icon={Plus} />
   <form method="POST" action="/api/airport/save/form" use:enhance>
     <ModalBody>

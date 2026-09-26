@@ -1,31 +1,59 @@
 <script lang="ts">
-  import { Drawer as DrawerPrimitive } from '@johly/vaul-svelte';
+  import {
+    Dialog as DialogPrimitive,
+    type WithoutChildrenOrChild,
+  } from 'bits-ui';
+  import type { Snippet } from 'svelte';
 
   import DrawerOverlay from './drawer-overlay.svelte';
+  import { getDrawerState } from './drawer.svelte';
 
   import { cn } from '$lib/utils';
 
   let {
     ref = $bindable(null),
     class: className,
+    style,
     noPadding = false,
     raw = false,
+    onOverlayClick,
     overlayClass,
     overlayStyle,
     children,
     ...restProps
-  }: DrawerPrimitive.ContentProps & {
+  }: WithoutChildrenOrChild<DialogPrimitive.ContentProps> & {
     noPadding?: boolean;
     raw?: boolean;
+    onOverlayClick?: (event: MouseEvent) => void;
     overlayClass?: string;
     overlayStyle?: string;
+    children?: Snippet;
   } = $props();
+
+  const state = getDrawerState();
+
+  $effect(() => {
+    state.drawerNode = ref instanceof HTMLElement ? ref : null;
+    return () => {
+      state.drawerNode = null;
+    };
+  });
+
+  const modal = $derived(state.opts.modal());
 </script>
 
-<DrawerPrimitive.Portal>
-  <DrawerOverlay class={overlayClass} style={overlayStyle} />
-  <DrawerPrimitive.Content
+<DialogPrimitive.Portal>
+  {#if modal}
+    <DrawerOverlay
+      class={overlayClass}
+      style={overlayStyle}
+      onclick={onOverlayClick}
+    />
+  {/if}
+  <DialogPrimitive.Content
     bind:ref
+    data-drawer=""
+    data-dragging={state.isDraggingVisual ? '' : undefined}
     class={cn(
       raw
         ? 'z-50 fixed bottom-0 left-0 right-0 flex flex-col'
@@ -33,7 +61,17 @@
       className,
       'w-full max-w-none',
     )}
+    style="{state.contentStyleVars}{style ?? ''}"
+    preventScroll={modal}
+    trapFocus={modal}
+    onOpenAutoFocus={(e) => e.preventDefault()}
+    onFocusOutside={(e) => {
+      if (!modal) e.preventDefault();
+    }}
     {...restProps}
+    interactOutsideBehavior={modal
+      ? (restProps.interactOutsideBehavior ?? 'close')
+      : 'ignore'}
   >
     {#if raw}
       {@render children?.()}
@@ -51,5 +89,5 @@
         </div>
       </div>
     {/if}
-  </DrawerPrimitive.Content>
-</DrawerPrimitive.Portal>
+  </DialogPrimitive.Content>
+</DialogPrimitive.Portal>

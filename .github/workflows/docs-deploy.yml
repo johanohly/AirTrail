@@ -17,10 +17,6 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      NEXT_PUBLIC_ALGOLIA_APP_ID: ${{ vars.NEXT_PUBLIC_ALGOLIA_APP_ID }}
-      NEXT_PUBLIC_ALGOLIA_INDEX: ${{ vars.NEXT_PUBLIC_ALGOLIA_INDEX }}
-      NEXT_PUBLIC_ALGOLIA_API_KEY: ${{ vars.NEXT_PUBLIC_ALGOLIA_API_KEY }}
-      ALGOLIA_API_KEY: ${{ secrets.ALGOLIA_API_KEY }}
       NEXT_PUBLIC_POSTHOG_KEY: ${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}
       NEXT_PUBLIC_POSTHOG_HOST: ${{ vars.NEXT_PUBLIC_POSTHOG_HOST }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -53,6 +49,9 @@ jobs:
       - name: Checkout
         if: steps.latest-release.outputs.deploy == 'true'
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          # Page "last updated" dates come from each file's Git history.
+          fetch-depth: 0
 
       - name: Set up Bun
         if: steps.latest-release.outputs.deploy == 'true'
@@ -67,11 +66,6 @@ jobs:
         if: steps.latest-release.outputs.deploy == 'true'
         working-directory: docs
         run: bun run build
-
-      - name: Sync Algolia index
-        if: steps.latest-release.outputs.deploy == 'true'
-        working-directory: docs
-        run: bun run sync:algolia
 
       - name: Deploy Pages project
         if: steps.latest-release.outputs.deploy == 'true'
