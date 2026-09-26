@@ -30,7 +30,18 @@ export const preferencesSchema = z.object({
 });
 export type Preferences = z.infer<typeof preferencesSchema>;
 
-export const updatePreferencesSchema = preferencesSchema.partial();
+// Not `preferencesSchema.partial()`: Zod 4 still applies defaults inside
+// optional fields, so every omitted preference would be reset to its default.
+export const updatePreferencesSchema = z.object({
+  distanceUnit: distanceUnitSchema.optional(),
+  windSpeedUnit: windSpeedUnitSchema.optional(),
+  temperatureUnit: temperatureUnitSchema.optional(),
+  pressureUnit: pressureUnitSchema.optional(),
+  timeFormat: timeFormatSchema.optional(),
+  dateFormat: dateFormatSchema.optional(),
+  weekStartsOn: weekStartsOnSchema.optional(),
+  flightTimeDisplay: flightTimeDisplaySchema.optional(),
+});
 export type UpdatePreferences = z.infer<typeof updatePreferencesSchema>;
 
 export const usernameSchema = z
