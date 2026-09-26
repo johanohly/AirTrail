@@ -14,6 +14,8 @@
   import DeleteFlightModal from './DeleteFlightModal.svelte';
   import EditFlightAction from './EditFlightAction.svelte';
   import EmptyFlightsState from './EmptyFlightsState.svelte';
+  import { buildFlightIndicators } from './flight-indicators';
+  import FlightIndicators from './FlightIndicators.svelte';
   import {
     buildFlightListYears,
     paginateFlightListYears,
@@ -70,6 +72,7 @@
     readonly = false,
     seatUserId,
     showPassengerDetails = false,
+    trackedFlightIds,
     onNavigate,
   }: {
     open?: boolean;
@@ -82,6 +85,7 @@
     readonly?: boolean;
     seatUserId?: string;
     showPassengerDetails?: boolean;
+    trackedFlightIds?: Set<number>;
     onNavigate?: NavigateFlights;
   } = $props();
 
@@ -151,6 +155,11 @@
           passengerLabels: showPassengerDetails
             ? getFlightPassengerLabels(f)
             : [],
+          indicators: buildFlightIndicators(f, {
+            hasTrack: trackedFlightIds?.has(f.id) ?? false,
+            viewerId: seatUserId ?? null,
+            includePassengers: !showPassengerDetails,
+          }),
         };
       }),
     );
@@ -602,12 +611,15 @@
                           {@render airport(flight.to)}
                         </div>
                       </div>
-                      {#if !readonly}
-                        <div aria-hidden="true"></div>
-                        <div class="hidden md:flex">
+                      <div aria-hidden="true"></div>
+                      <div
+                        class="hidden items-center justify-end gap-3 md:flex"
+                      >
+                        <FlightIndicators indicators={flight.indicators} />
+                        {#if !readonly}
                           {@render actions(flight)}
-                        </div>
-                      {/if}
+                        {/if}
+                      </div>
                     </Card>
                   </div>
                 {/each}

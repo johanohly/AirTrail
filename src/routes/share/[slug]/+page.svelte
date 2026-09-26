@@ -85,6 +85,10 @@
     );
   });
 
+  const trackedFlightIds = $derived(
+    new Set(flightTracks.map((track) => track.flightId)),
+  );
+
   let showFlightList = $state(false);
   let showStatistics = $state(false);
   let filters: FlightFilters = $state(createDefaultFilters());
@@ -175,6 +179,7 @@
       bind:open={showFlightList}
       {flights}
       filteredFlights={flights}
+      {trackedFlightIds}
       readonly={true}
     />
   {/if}

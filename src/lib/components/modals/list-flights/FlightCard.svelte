@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { TZDate } from '@date-fns/tz';
+  import type { Snippet } from 'svelte';
 
   import { page } from '$app/state';
   import { AirlineIcon, RouteArrow } from '$lib/components/display';
@@ -20,10 +21,12 @@
     flight,
     passengerLabels = [],
     showMeta = true,
+    indicators,
   }: {
     flight: Flight;
     passengerLabels?: string[];
     showMeta?: boolean;
+    indicators?: Snippet;
   } = $props();
 
   const prefs = $derived(getPreferences(page.data.user));
@@ -87,6 +90,7 @@
             {getFlightNumber(flight)}
           </span>
         {/if}
+        {@render indicators?.()}
       </div>
     {/if}
   </div>

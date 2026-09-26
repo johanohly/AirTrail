@@ -103,6 +103,10 @@
     return data;
   });
 
+  const trackedFlightIds = $derived(
+    new Set(flightTracks.map((track) => track.flightId)),
+  );
+
   let filters: FlightFilters = $state(createDefaultFilters());
   let tempFilters: TempFilters = $state(createDefaultTempFilters());
 
@@ -219,6 +223,7 @@
     {deleteFlight}
     seatUserId={effectiveSeatUserId}
     {showPassengerDetails}
+    {trackedFlightIds}
     onNavigate={navigateFlights}
   />
   <StatisticsModal
