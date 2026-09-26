@@ -57,6 +57,31 @@ describe('airport style attribution', () => {
   });
 });
 
+describe('airport overlay placement', () => {
+  test('draws above basemap runways and roads that follow an early symbol layer', () => {
+    const style = buildStyle({
+      provider: 'openfreemap',
+      layers: [
+        { id: 'water_name', type: 'symbol', 'source-layer': 'water_name' },
+        { id: 'aeroway-runway', type: 'line', 'source-layer': 'aeroway' },
+        { id: 'highway_minor', type: 'line', 'source-layer': 'transportation' },
+        { id: 'road_oneway', type: 'symbol', 'source-layer': 'transportation' },
+        { id: 'railway', type: 'line', 'source-layer': 'transportation' },
+        {
+          id: 'highway_name_other',
+          type: 'symbol',
+          'source-layer': 'transportation_name',
+        },
+      ],
+    });
+    const ids = style.layers?.map((layer) => layer.id) ?? [];
+    const apronIndex = ids.indexOf('airport-overlay-apron');
+
+    expect(apronIndex).toBeGreaterThan(ids.indexOf('railway'));
+    expect(apronIndex).toBeLessThan(ids.indexOf('highway_name_other'));
+  });
+});
+
 describe('airport overlay provider adaptations', () => {
   test('removes OpenFreeMap airport labels without hiding other layers', () => {
     const style = buildStyle({

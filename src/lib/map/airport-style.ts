@@ -1079,12 +1079,23 @@ const insertOverlayLayers = (
   const fallbackInsertIndex = layers.findIndex(
     (layer) => layer.type === 'symbol',
   );
-  const insertIndex =
+  // OpenFreeMap dark draws water labels before its runways and roads, so the
+  // first symbol layer alone can land the overlay underneath them.
+  const groundLinesInsertIndex =
+    layers.findLastIndex(
+      (layer) =>
+        layer.type !== 'symbol' &&
+        (layer['source-layer'] === 'aeroway' ||
+          layer['source-layer'] === 'transportation'),
+    ) + 1;
+  const insertIndex = Math.max(
+    groundLinesInsertIndex,
     groundInsertIndex !== -1
       ? groundInsertIndex + 1
       : fallbackInsertIndex !== -1
         ? fallbackInsertIndex
-        : layers.length;
+        : layers.length,
+  );
 
   style.layers = [
     ...layers.slice(0, insertIndex),
