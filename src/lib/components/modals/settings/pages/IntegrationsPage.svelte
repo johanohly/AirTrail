@@ -13,7 +13,15 @@
   import { Input } from '$lib/components/ui/input';
   import * as Select from '$lib/components/ui/select';
   import { appConfig } from '$lib/state.svelte';
-  import { integrationsConfigSchema } from '$lib/zod/config';
+  import {
+    type AeroDataBoxEndpoint,
+    integrationsConfigSchema,
+  } from '$lib/zod/config';
+
+  const ENDPOINT_LABELS: Record<AeroDataBoxEndpoint, string> = {
+    rapidapi: 'RapidAPI',
+    direct: 'AeroDataBox (direct)',
+  };
 
   const form = superForm(
     defaults<Infer<typeof integrationsConfigSchema>>(
@@ -42,7 +50,7 @@
   const { form: formData, enhance } = form;
 
   let savedKey: string | null = $state(null);
-  let savedEndpoint: 'rapidapi' | 'direct' | null = $state(null);
+  let savedEndpoint: AeroDataBoxEndpoint = $state('rapidapi');
   let savedOpenAipKey: string | null = $state(null);
 
   onMount(async () => {
@@ -51,10 +59,10 @@
       if (res.ok) {
         const data = await res.json();
         savedKey = data.aeroDataBoxKey ?? null;
-        savedEndpoint = data.aeroDataBoxEndpoint ?? 'rapidapi';
+        savedEndpoint = data.aeroDataBoxEndpoint;
         savedOpenAipKey = data.openAipKey ?? null;
         $formData.aeroDataBoxKey = savedKey ?? '';
-        $formData.aeroDataBoxEndpoint = savedEndpoint ?? 'rapidapi';
+        $formData.aeroDataBoxEndpoint = savedEndpoint;
         $formData.openAipKey = savedOpenAipKey ?? '';
       }
     } catch (e) {
@@ -65,13 +73,11 @@
   const changes = $derived.by(() => {
     const current = $formData.aeroDataBoxKey ?? '';
     const base = savedKey ?? '';
-    const currentEndpoint = $formData.aeroDataBoxEndpoint ?? 'rapidapi';
-    const baseEndpoint = savedEndpoint ?? 'rapidapi';
     const currentOpenAip = $formData.openAipKey ?? '';
     const baseOpenAip = savedOpenAipKey ?? '';
     return (
       current !== base ||
-      currentEndpoint !== baseEndpoint ||
+      $formData.aeroDataBoxEndpoint !== savedEndpoint ||
       currentOpenAip !== baseOpenAip
     );
   });
@@ -106,10 +112,9 @@
               </a>
             </Form.Label>
             <Form.Description>
-              API key for AeroDataBox (via RapidAPI) used for advanced flight
-              lookup, allowing AirTrail to prefill airports, departure and
-              arrival times, airline & aircraft information from just a flight
-              number.
+              API key for AeroDataBox used for advanced flight lookup, allowing
+              AirTrail to prefill airports, departure and arrival times, airline
+              & aircraft information from just a flight number.
             </Form.Description>
             <Input
               bind:value={$formData.aeroDataBoxKey}
@@ -132,7 +137,8 @@
           {#snippet children({ props })}
             <Form.Label>AeroDataBox Endpoint</Form.Label>
             <Form.Description>
-              Choose the gateway matching where you got your API key above.
+              Where your AeroDataBox API key comes from: a RapidAPI subscription
+              or a direct subscription on aerodatabox.com.
             </Form.Description>
             <Select.Root
               type="single"
@@ -140,28 +146,17 @@
               bind:value={$formData.aeroDataBoxEndpoint}
             >
               <Select.Trigger {...props} class="w-full">
-                {$formData.aeroDataBoxEndpoint === 'direct'
-                  ? 'AeroDataBox Direct'
-                  : 'RapidAPI (default)'}
+                {ENDPOINT_LABELS[$formData.aeroDataBoxEndpoint]}
               </Select.Trigger>
               <Select.Content>
-                <Select.Item value="rapidapi" label="RapidAPI (default)" />
-                <Select.Item value="direct" label="AeroDataBox Direct" />
+                {#each Object.entries(ENDPOINT_LABELS) as [value, label] (value)}
+                  <Select.Item {value} {label} />
+                {/each}
               </Select.Content>
             </Select.Root>
           {/snippet}
         </Form.Control>
         <Form.FieldErrors />
-        {#if $formData.aeroDataBoxEndpoint === 'rapidapi'}
-          <p class="text-muted-foreground text-[0.8rem]">
-            Use an API key from your RapidAPI AeroDataBox subscription.
-          </p>
-        {:else}
-          <p class="text-muted-foreground text-[0.8rem]">
-            Use an API key from your AeroDataBox Direct subscription
-            (aerodatabox.com).
-          </p>
-        {/if}
       </Form.Field>
     </Locked>
 
