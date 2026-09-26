@@ -18,8 +18,8 @@ description: Build and run AirTrail from source without Docker.
 
 ## Install
 
-<div className="steps">
-  <div className="step">
+<Steps>
+  <Step>
     **Get the source**
 
     Clone the repository and check out the latest release, so you run a tested version rather than the development branch:
@@ -30,16 +30,16 @@ description: Build and run AirTrail from source without Docker.
     git checkout "$(git describe --tags --abbrev=0)"
     ```
 
-  </div>
-  <div className="step">
+  </Step>
+  <Step>
     **Install dependencies**
 
     ```bash
     bun install
     ```
 
-  </div>
-  <div className="step">
+  </Step>
+  <Step>
     **Configure**
 
     ```bash
@@ -55,8 +55,8 @@ description: Build and run AirTrail from source without Docker.
 
     See [Environment variables](/docs/administration/environment-variables) for everything else.
 
-  </div>
-  <div className="step">
+  </Step>
+  <Step>
     **Add the airport map layer (optional)**
 
     The detailed airport layer on the map (runways, taxiways and terminals) comes from a 200 MB data file that is not in the repository. Without it, AirTrail works normally but shows no airport detail on the map. If Docker is available on any machine, copy the file out of its image and place it in `static/` before building:
@@ -67,8 +67,8 @@ description: Build and run AirTrail from source without Docker.
     docker rm "$id"
     ```
 
-  </div>
-  <div className="step">
+  </Step>
+  <Step>
     **Build and migrate**
 
     ```bash
@@ -76,8 +76,8 @@ description: Build and run AirTrail from source without Docker.
     bun run db:migrate-deploy
     ```
 
-  </div>
-  <div className="step">
+  </Step>
+  <Step>
     **Start the server**
 
     `node` does not read `.env` by itself, so pass it explicitly:
@@ -88,8 +88,8 @@ description: Build and run AirTrail from source without Docker.
 
     AirTrail listens on port 3000. Open the URL from `ORIGIN` and follow the [post-installation](/docs/install/post-installation) steps.
 
-  </div>
-</div>
+  </Step>
+</Steps>
 
 ## Run it as a service
 

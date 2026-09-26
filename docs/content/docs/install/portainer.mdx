@@ -5,29 +5,29 @@ description: Deploy AirTrail as a Portainer stack.
 
 [Portainer](https://docs.portainer.io/start/install-ce/server/docker) is a web interface for managing Docker. AirTrail runs in Portainer as a stack built from the standard Compose file.
 
-<div className="steps">
-  <div className="step">
+<Steps>
+  <Step>
     In Portainer, open **Stacks** and click **Add stack**. Name it, for example, `airtrail`.
-  </div>
-  <div className="step">
+  </Step>
+  <Step>
     In the **Web editor**, paste the contents of [compose.yml](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker/production/compose.yml).
     Replace both `.env` references under `env_file` with `stack.env`, which is how Portainer passes stack variables to containers:
 
     ![Replace .env with stack.env](./img/portainer-stack-env.png)
 
-  </div>
-  <div className="step">
+  </Step>
+  <Step>
     Under **Environment variables**, switch to **Advanced mode** and paste the contents of [.env.example](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example). Then:
 
     - Set `ORIGIN` to the exact URL you will open AirTrail at.
     - Change `DB_PASSWORD` and the password inside `DB_URL` to the same random value (letters and digits only).
     - Behind a reverse proxy, add `ADDRESS_HEADER=X-Forwarded-For`.
 
-  </div>
-  <div className="step">
+  </Step>
+  <Step>
     Click **Deploy the stack**, then follow the [post-installation](/docs/install/post-installation) steps.
-  </div>
-</div>
+  </Step>
+</Steps>
 
 ## Uploads
 

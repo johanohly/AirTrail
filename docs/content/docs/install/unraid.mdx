@@ -1,0 +1,49 @@
+---
+title: Unraid
+description: Run AirTrail and its database as Unraid Docker containers.
+---
+
+AirTrail provides two Unraid templates: `airtrail` for the app and `airtrail-db` for its PostgreSQL database. Both containers join a private Docker network, so the database is never exposed on your LAN.
+
+## Prepare Unraid
+
+Open the **Terminal** from the top bar, then create the network and download the templates:
+
+```bash
+docker network create airtrail
+mkdir -p /boot/config/plugins/dockerMan/templates-user
+cd /boot/config/plugins/dockerMan/templates-user
+wget -O my-airtrail-db.xml https://raw.githubusercontent.com/johanohly/AirTrail/main/docker/unraid/airtrail-db.xml
+wget -O my-airtrail.xml https://raw.githubusercontent.com/johanohly/AirTrail/main/docker/unraid/airtrail.xml
+```
+
+## Create the containers
+
+<Steps>
+  <Step>
+    In the **Docker** tab, click **Add Container** and pick **airtrail-db** under **Template**. Enter a **POSTGRES_PASSWORD** using letters and digits only, and click **Apply**.
+  </Step>
+  <Step>
+    Click **Add Container** again and pick **airtrail**. Fill in:
+
+    - **ORIGIN**: the URL you will open AirTrail at, such as `http://192.168.1.10:3000`. It must match the browser's address bar exactly, or sign-in fails.
+    - **DB_URL**: replace `change-me` with the database password from the previous step.
+
+    Click **Apply**.
+  </Step>
+  <Step>
+    Unraid does not start new containers automatically. In the **Docker** tab, switch on **Autostart** for both, and drag **airtrail-db** above **airtrail** so the database starts first.
+  </Step>
+  <Step>
+    Click the AirTrail icon and choose **WebUI**, then follow the [post-installation](/docs/install/post-installation) steps.
+  </Step>
+</Steps>
+
+## Things to watch
+
+- **File permissions:** the container runs as `nobody:users` (`PUID` 99, `PGID` 100), like most Unraid apps, and gives the uploads folder to that user on every start. Change both under **Show more settings** if you use other IDs.
+- **Existing PostgreSQL:** to use a database server you already run instead of `airtrail-db`, point **DB_URL** at it. See [Using an existing PostgreSQL server](/docs/install/requirements#using-an-existing-postgresql-server).
+- **Updating:** use **Check for Updates** in the Docker tab. Database migrations run automatically when the new version starts. See [Updating](/docs/install/updating) before major versions.
+- **Backups:** the appdata folders hold everything, but copying the database folder while it runs can give an inconsistent copy. See [Backup](/docs/administration/backup) for taking a database dump.
+- **HTTPS:** to publish AirTrail through a reverse proxy such as Nginx Proxy Manager or SWAG, follow the [reverse proxy guide](/docs/install/reverse-proxy) and update **ORIGIN** to the public URL.
+- **Compose instead:** if you use the Docker Compose Manager plugin, you can follow the [Docker Compose guide](/docs/install/docker-compose) instead.

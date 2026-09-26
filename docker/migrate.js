@@ -25,6 +25,20 @@ const CREATE_TABLE = `
   );
 `;
 
+/*
+ * Before PostgreSQL 13, creating an extension needs a superuser, and later
+ * versions still need the CREATE privilege on the database. Both come up with
+ * an existing server rather than the bundled container, so say what to run.
+ */
+const extensionHint = (err, sql) => {
+  const extension = sql.match(/CREATE EXTENSION IF NOT EXISTS "([^"]+)"/)?.[1];
+  if (err.code !== '42501' || !extension) return '';
+  return (
+    `\nConnect to the AirTrail database as a superuser, run` +
+    ` CREATE EXTENSION IF NOT EXISTS "${extension}"; and restart AirTrail.`
+  );
+};
+
 async function migrate() {
   const client = new pg.Client({ connectionString: process.env.DB_URL });
   await client.connect();
@@ -68,7 +82,9 @@ async function migrate() {
         await client.query('COMMIT');
       } catch (err) {
         await client.query('ROLLBACK');
-        throw new Error(`Migration "${name}" failed: ${err.message}`);
+        throw new Error(
+          `Migration "${name}" failed: ${err.message}${extensionHint(err, sql)}`,
+        );
       }
     }
 

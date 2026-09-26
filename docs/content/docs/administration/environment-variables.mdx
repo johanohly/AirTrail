@@ -18,6 +18,8 @@ AirTrail reads its configuration from environment variables. With Docker Compose
 | `DB_URL`          | Yes      |         | PostgreSQL connection URL, for example `postgres://airtrail:password@db:5432/airtrail`. |
 | `UPLOAD_LOCATION` | No       |         | Directory for uploaded files such as airline icons. Uploads are disabled when unset. The Docker setup uses `/app/uploads`, backed by the `uploads` volume. |
 | `BODY_SIZE_LIMIT` | No       | `20M`   | Largest request body accepted. Flight forms with detailed tracks can be large. |
+| `PUID`            | No       | `1000`  | User ID the Docker container runs as. The uploads directory is given to this user on every start. |
+| `PGID`            | No       | `1000`  | Group ID the Docker container runs as. |
 
 ## Docker database
 

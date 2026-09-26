@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>airtrail-db</Name>
+  <Repository>postgres:16-alpine</Repository>
+  <Registry>https://hub.docker.com/_/postgres</Registry>
+  <Network>airtrail</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/johanohly/AirTrail/discussions</Support>
+  <Project>https://github.com/johanohly/AirTrail</Project>
+  <Overview>The PostgreSQL database for AirTrail. It is only reachable from containers on the airtrail network, so no port is published. Setup guide: https://airtrail.johan.ohly.dk/docs/install/unraid</Overview>
+  <Category>Tools:</Category>
+  <TemplateURL>https://raw.githubusercontent.com/johanohly/AirTrail/main/docker/unraid/airtrail-db.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/johanohly/AirTrail/main/static/favicon.png</Icon>
+  <Config Name="Data" Target="/var/lib/postgresql/data" Default="/mnt/user/appdata/airtrail/db" Mode="rw" Description="Database files. Keep this on a cache or pool drive." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/airtrail/db</Config>
+  <Config Name="POSTGRES_PASSWORD" Target="POSTGRES_PASSWORD" Default="" Mode="" Description="Database password. Use letters and digits only, and put the same password in AirTrail's DB_URL." Type="Variable" Display="always" Required="true" Mask="true"></Config>
+  <Config Name="POSTGRES_USER" Target="POSTGRES_USER" Default="airtrail" Mode="" Description="Database user." Type="Variable" Display="advanced" Required="true" Mask="false">airtrail</Config>
+  <Config Name="POSTGRES_DB" Target="POSTGRES_DB" Default="airtrail" Mode="" Description="Database name." Type="Variable" Display="advanced" Required="true" Mask="false">airtrail</Config>
+</Container>

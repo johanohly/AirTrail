@@ -12,13 +12,32 @@ For the recommended [Docker Compose](/docs/install/docker-compose) installation:
 
 For a [manual installation](/docs/install/manual) without Docker you need Node.js 22, Bun, Git and PostgreSQL 16 instead.
 
+## Using an existing PostgreSQL server
+
+The Docker Compose file runs its own PostgreSQL container, which is the easiest option. You can point `DB_URL` at a PostgreSQL server you already run instead. AirTrail is tested with PostgreSQL 16, and its migrations also apply on versions down to 11, though 11 and 12 no longer receive security updates.
+
+Create a role and a database it owns:
+
+```sql
+CREATE ROLE airtrail LOGIN PASSWORD 'change-me';
+CREATE DATABASE airtrail OWNER airtrail;
+```
+
+Then set `DB_URL=postgres://airtrail:change-me@<server>:5432/airtrail`. Migrations run when AirTrail starts and create the `unaccent` extension. On PostgreSQL 12 and earlier, or when the role does not own the database, that needs a superuser. Run this once, connected to the AirTrail database as a superuser, and restart AirTrail:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS "unaccent";
+```
+
+AirTrail also prints this command when the migration fails for that reason.
+
 ## Platforms
 
 AirTrail images are published for **linux/amd64** and **linux/arm64**, so they run on:
 
 - Linux servers and virtual machines (most tested; Ubuntu and Debian are common choices)
 - ARM single-board computers such as the Raspberry Pi 4 and 5 with a 64-bit OS
-- NAS devices that run containers, such as [Synology](/docs/install/synology)
+- NAS devices and home servers that run containers, such as [Synology](/docs/install/synology) and [Unraid](/docs/install/unraid)
 - macOS and Windows through Docker Desktop, which is fine for trying AirTrail out
 
 32-bit ARM (armv7) is not supported.

@@ -41,16 +41,15 @@ Any account's password, including the owner's, can be reset with the [admin CLI]
 
 ## Uploading an airline icon fails
 
-The app runs as UID 1000 and cannot write to the uploads directory. The log shows `EACCES` for a path under `/app/uploads`.
+The app cannot write to the uploads directory. The log shows `EACCES` for a path under `/app/uploads`.
 
-Installations created before AirTrail v3.13 have a root-owned `uploads` volume. Give it to UID 1000 once:
+Since AirTrail v3.13 the container fixes the directory's owner when it starts, so restart it first:
 
 ```bash
-docker run --rm -v airtrail_uploads:/uploads alpine chown -R 1000:1000 /uploads
 docker compose restart airtrail
 ```
 
-Check the volume name with `docker volume ls | grep uploads`. For a bind mount, change the folder's owner instead:
+If you run the container with `user:` in the Compose file, it cannot change owners, and the directory must belong to that user. Remove `user:` and set `PUID` and `PGID` instead, or change the owner yourself:
 
 ```bash
 sudo chown -R 1000:1000 ./data/uploads

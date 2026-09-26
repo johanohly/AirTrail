@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>airtrail</Name>
+  <Repository>johly/airtrail:latest</Repository>
+  <Registry>https://hub.docker.com/r/johly/airtrail</Registry>
+  <Network>airtrail</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/johanohly/AirTrail/discussions</Support>
+  <Project>https://github.com/johanohly/AirTrail</Project>
+  <Overview>AirTrail is a self-hosted flight tracker. Log your flights, see them on a world map, and explore statistics and the countries you have visited.&#13;
+&#13;
+Needs a PostgreSQL database: install the airtrail-db template first, or point DB_URL at a server you already run. Setup guide: https://airtrail.johan.ohly.dk/docs/install/unraid</Overview>
+  <Category>Productivity: Tools:</Category>
+  <WebUI>http://[IP]:[PORT:3000]</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/johanohly/AirTrail/main/docker/unraid/airtrail.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/johanohly/AirTrail/main/static/favicon.png</Icon>
+  <Requires>A PostgreSQL database, such as the airtrail-db template.</Requires>
+  <Config Name="Web UI port" Target="3000" Default="3000" Mode="tcp" Description="Port the AirTrail web interface is published on." Type="Port" Display="always" Required="true" Mask="false">3000</Config>
+  <Config Name="Uploads" Target="/app/uploads" Default="/mnt/user/appdata/airtrail/uploads" Mode="rw" Description="Airline icons and other uploaded files." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/airtrail/uploads</Config>
+  <Config Name="ORIGIN" Target="ORIGIN" Default="" Mode="" Description="The exact URL you open AirTrail at, such as http://192.168.1.10:3000 or https://airtrail.example.com. Sign-in fails when it does not match the browser's address bar." Type="Variable" Display="always" Required="true" Mask="false"></Config>
+  <Config Name="DB_URL" Target="DB_URL" Default="postgres://airtrail:change-me@airtrail-db:5432/airtrail" Mode="" Description="PostgreSQL connection URL. With the airtrail-db template, replace change-me with its POSTGRES_PASSWORD." Type="Variable" Display="always" Required="true" Mask="true">postgres://airtrail:change-me@airtrail-db:5432/airtrail</Config>
+  <Config Name="PUID" Target="PUID" Default="99" Mode="" Description="User the container runs as. Uploads are given to this user on every start. 99 is Unraid's nobody." Type="Variable" Display="advanced" Required="false" Mask="false">99</Config>
+  <Config Name="PGID" Target="PGID" Default="100" Mode="" Description="Group the container runs as. 100 is Unraid's users." Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
+  <Config Name="UPLOAD_LOCATION" Target="UPLOAD_LOCATION" Default="/app/uploads" Mode="" Description="Container path for uploads. Must match the Uploads path above." Type="Variable" Display="advanced" Required="false" Mask="false">/app/uploads</Config>
+</Container>

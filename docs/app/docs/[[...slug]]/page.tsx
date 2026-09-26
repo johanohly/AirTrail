@@ -1,6 +1,7 @@
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { ImageZoom } from "fumadocs-ui/components/image-zoom";
+import { Step, Steps } from "fumadocs-ui/components/steps";
 import {
   DocsBody,
   DocsDescription,
@@ -36,6 +37,7 @@ const customFooters: Record<string, typeof installFooter> = {
   "install/one-click.mdx": installFooter,
   "install/portainer.mdx": installFooter,
   "install/synology.mdx": installFooter,
+  "install/unraid.mdx": installFooter,
 };
 
 export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
@@ -91,6 +93,8 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
               />
             ),
             Screenshot,
+            Step,
+            Steps,
           }}
         />
       </DocsBody>

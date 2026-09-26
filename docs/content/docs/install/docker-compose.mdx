@@ -5,8 +5,8 @@ description: The recommended way to install AirTrail.
 
 Docker Compose runs AirTrail and its PostgreSQL database from two files. You need Docker with Compose v2; see the [requirements](/docs/install/requirements).
 
-<div className="steps">
-  <div className="step">
+<Steps>
+  <Step>
     **Download the files**
 
     Create a directory for AirTrail and download the Compose file and the example environment file into it:
@@ -20,8 +20,8 @@ Docker Compose runs AirTrail and its PostgreSQL database from two files. You nee
 
     If you download [compose.yml](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker/production/compose.yml) and [.env.example](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example) by hand, save them as `docker-compose.yml` and `.env`.
 
-  </div>
-  <div className="step">
+  </Step>
+  <Step>
     **Edit `.env`**
 
     - Set `ORIGIN` to the exact URL you will open AirTrail at, for example `https://airtrail.example.com` or `http://192.168.1.20:3000`. Sign-in fails if the browser's address does not match it.
@@ -34,8 +34,8 @@ Docker Compose runs AirTrail and its PostgreSQL database from two files. You nee
       Leave optional variables commented out rather than empty. Postgres keeps its password after the first start, so changing `DB_PASSWORD` later also requires changing it inside the database.
     </Callout>
 
-  </div>
-  <div className="step">
+  </Step>
+  <Step>
     **Start AirTrail**
 
     From the directory with both files, run:
@@ -50,14 +50,14 @@ Docker Compose runs AirTrail and its PostgreSQL database from two files. You nee
       You are running an old Docker, such as the `docker.io` package on some Ubuntu releases. Remove it and install Docker from [Docker's official repository](https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository). The command is `docker compose`, not `docker-compose`.
     </Callout>
 
-  </div>
-  <div className="step">
+  </Step>
+  <Step>
     **Finish setup**
 
     Open the URL from `ORIGIN` and follow the [post-installation](/docs/install/post-installation) steps.
 
-  </div>
-</div>
+  </Step>
+</Steps>
 
 ## What the Compose file sets up
 
@@ -72,19 +72,23 @@ Database migrations run automatically every time the `airtrail` container starts
 
 ### Uploads and file permissions
 
-The app runs as user and group `1000:1000` and must be able to write to the uploads directory (`UPLOAD_LOCATION`, `/app/uploads` by default). The named volume in the Compose file handles this for you. Installations created before v3.13 may need a one-time fix; see [Troubleshooting](/docs/administration/troubleshooting#uploading-an-airline-icon-fails).
+The app runs as user and group `1000:1000`. Each time the container starts, it gives the uploads directory (`UPLOAD_LOCATION`, `/app/uploads` by default) to that user and then drops its root privileges, so the named volume in the Compose file needs no setup.
 
-If you prefer a folder on the host, replace the volume with a bind mount and give the folder to UID 1000:
+If you prefer a folder on the host, replace the volume with a bind mount:
 
 ```yaml
     volumes:
       - ./data/uploads:/app/uploads
 ```
 
-```bash
-mkdir -p data/uploads
-sudo chown -R 1000:1000 data/uploads
+To have the files owned by your own host user instead, set `PUID` and `PGID` in `.env` to that user's IDs, which `id -u` and `id -g` print:
+
+```bash title=".env"
+PUID=1026
+PGID=100
 ```
+
+If you run the container as a fixed user with `user:` in the Compose file, it skips this step and runs as that user, so the uploads directory must already be writable by it.
 
 ### Exposing the port
 

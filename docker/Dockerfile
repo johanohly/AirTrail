@@ -38,11 +38,11 @@ RUN chmod +x /app/bin/entrypoint.sh /app/bin/airtrail-admin /app/bin/airtrail-he
 ENV PATH="${PATH}:/app/bin"
 ENV BODY_SIZE_LIMIT=20M
 
-# A named volume mounted here copies this directory's ownership when it is
-# first created; without it the volume is root-owned and uploads fail.
+ENV PUID=1000 PGID=1000
 RUN mkdir -p /app/uploads && chown node:node /app/uploads
 
-USER node
+# No `USER`: the entrypoint fixes upload permissions as root, then drops to
+# PUID:PGID before running anything else.
 EXPOSE 3000/tcp
 HEALTHCHECK --interval=5m --start-period=30s --start-interval=10s --retries=3 CMD ["airtrail-healthcheck"]
 ENTRYPOINT [ "/app/bin/entrypoint.sh" ]
