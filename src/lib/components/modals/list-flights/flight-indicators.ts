@@ -86,12 +86,17 @@ export const buildFlightIndicators = (
   {
     hasTrack = false,
     viewerId = null,
-  }: { hasTrack?: boolean; viewerId?: string | null } = {},
+    includePassengers = true,
+  }: {
+    hasTrack?: boolean;
+    viewerId?: string | null;
+    includePassengers?: boolean;
+  } = {},
 ): FlightIndicator[] => {
   return [
     hasTrack ? indicator('track', 'Flight track recorded') : null,
     buildActualTimesIndicator(flight),
-    buildPassengerIndicator(flight, viewerId),
+    includePassengers ? buildPassengerIndicator(flight, viewerId) : null,
     buildNoteIndicator(flight),
   ].filter(isIndicator);
 };

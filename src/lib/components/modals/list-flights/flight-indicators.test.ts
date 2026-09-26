@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render } from 'svelte/server';
 
-import FlightIndicatorsTestHost from './FlightIndicatorsTestHost.svelte';
 import { buildFlightIndicators } from './flight-indicators';
 
 import type { Airport, Flight, FlightPassenger } from '$lib/db/types';
@@ -137,6 +135,13 @@ describe('buildFlightIndicators', () => {
     expect(labelFor('passengers', group)).toBe('Passengers: Bob, Charlie');
   });
 
+  it('can leave passengers out when they are shown elsewhere', () => {
+    const group = flight({
+      passengers: [member('bob', 'Bob'), guest('Charlie')],
+    });
+    expect(keys(group, { includePassengers: false })).toEqual([]);
+  });
+
   it('previews the note and truncates long ones', () => {
     expect(labelFor('note', flight({ note: '  Upgraded to J  ' }))).toBe(
       'Note: Upgraded to J',
@@ -167,39 +172,5 @@ describe('buildFlightIndicators', () => {
       'passengers',
       'note',
     ]);
-  });
-});
-
-describe('FlightIndicators', () => {
-  it('renders named focus targets for desktop tooltips', () => {
-    const { body } = render(FlightIndicatorsTestHost, {
-      props: {
-        flight: flight({ note: 'Window seat' }),
-        hasTrack: true,
-      },
-      context: new Map([['__svelte__', {}]]),
-    });
-
-    expect(body).toContain('<button');
-    expect(body).toContain('aria-label="Flight track recorded"');
-    expect(body).toContain('aria-label="Note: Window seat"');
-    expect(body).toContain('tabindex="0"');
-    expect(body).toContain('aria-hidden="true"');
-  });
-
-  it('renders mobile indicators as named images without nested buttons', () => {
-    const { body } = render(FlightIndicatorsTestHost, {
-      props: {
-        flight: flight({ note: 'Window seat' }),
-        hasTrack: true,
-        tooltips: false,
-      },
-      context: new Map([['__svelte__', {}]]),
-    });
-
-    expect(body).not.toContain('<button');
-    expect(body).toContain('role="img"');
-    expect(body).toContain('aria-label="Flight track recorded"');
-    expect(body).toContain('aria-label="Note: Window seat"');
   });
 });

@@ -1,26 +1,21 @@
 <script lang="ts">
   import { Clock, Route, StickyNote, Users } from '@o7/icon/lucide';
 
-  import {
-    buildFlightIndicators,
-    type FlightIndicator,
-    type FlightIndicatorKey,
+  import type {
+    FlightIndicator,
+    FlightIndicatorKey,
   } from './flight-indicators';
 
   import * as Tooltip from '$lib/components/ui/tooltip';
-  import { cn, type FlightData } from '$lib/utils';
+  import { cn } from '$lib/utils';
 
   let {
-    flight,
-    hasTrack = false,
-    viewerId = null,
+    indicators,
     size = 16,
     tooltips = true,
     class: className,
   }: {
-    flight: FlightData;
-    hasTrack?: boolean;
-    viewerId?: string | null;
+    indicators: FlightIndicator[];
     size?: number;
     tooltips?: boolean;
     class?: string;
@@ -32,10 +27,6 @@
     passengers: Users,
     note: StickyNote,
   };
-
-  const indicators = $derived(
-    buildFlightIndicators(flight, { hasTrack, viewerId }),
-  );
 </script>
 
 {#snippet indicatorIcon(indicator: FlightIndicator)}

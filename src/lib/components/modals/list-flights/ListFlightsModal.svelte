@@ -14,6 +14,7 @@
   import DeleteFlightModal from './DeleteFlightModal.svelte';
   import EditFlightAction from './EditFlightAction.svelte';
   import EmptyFlightsState from './EmptyFlightsState.svelte';
+  import { buildFlightIndicators } from './flight-indicators';
   import FlightIndicators from './FlightIndicators.svelte';
   import {
     buildFlightListYears,
@@ -154,6 +155,11 @@
           passengerLabels: showPassengerDetails
             ? getFlightPassengerLabels(f)
             : [],
+          indicators: buildFlightIndicators(f, {
+            hasTrack: trackedFlightIds?.has(f.id) ?? false,
+            viewerId: seatUserId ?? null,
+            includePassengers: !showPassengerDetails,
+          }),
         };
       }),
     );
@@ -475,8 +481,6 @@
         {canUpdateFlight}
         {canDeleteFlight}
         onShowOnMap={readonly || !onNavigate ? undefined : showFlightOnMap}
-        {trackedFlightIds}
-        viewerId={seatUserId ?? null}
         {readonly}
       />
       <div class="h-[130px] sm:h-[90px]"></div>
@@ -611,11 +615,7 @@
                       <div
                         class="hidden items-center justify-end gap-3 md:flex"
                       >
-                        <FlightIndicators
-                          {flight}
-                          hasTrack={trackedFlightIds?.has(flight.id) ?? false}
-                          viewerId={seatUserId ?? null}
-                        />
+                        <FlightIndicators indicators={flight.indicators} />
                         {#if !readonly}
                           {@render actions(flight)}
                         {/if}

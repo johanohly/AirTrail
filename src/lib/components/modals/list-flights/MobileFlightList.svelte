@@ -2,6 +2,7 @@
   import autoAnimate from '@formkit/auto-animate';
   import { AirplanemodeInactive } from '@o7/icon/material';
 
+  import type { FlightIndicator } from './flight-indicators';
   import type { FlightListYear } from './flight-list-groups';
   import FlightCard from './FlightCard.svelte';
   import FlightIndicators from './FlightIndicators.svelte';
@@ -14,6 +15,7 @@
   type Flight = FlightData & {
     month?: string | null;
     passengerLabels?: string[];
+    indicators?: FlightIndicator[];
   };
 
   let {
@@ -25,8 +27,6 @@
     canUpdateFlight = () => true,
     canDeleteFlight = () => true,
     onShowOnMap,
-    trackedFlightIds,
-    viewerId = null,
     readonly = false,
   }: {
     flightsByYear: FlightListYear<Flight>[];
@@ -37,8 +37,6 @@
     canUpdateFlight?: (flight: FlightData) => boolean;
     canDeleteFlight?: (flight: FlightData) => boolean;
     onShowOnMap?: (flight: FlightData) => void;
-    trackedFlightIds?: Set<number>;
-    viewerId?: string | null;
     readonly?: boolean;
   } = $props();
 
@@ -120,9 +118,7 @@
                     >
                       {#snippet indicators()}
                         <FlightIndicators
-                          {flight}
-                          hasTrack={trackedFlightIds?.has(flight.id) ?? false}
-                          {viewerId}
+                          indicators={flight.indicators ?? []}
                           size={15}
                           tooltips={false}
                         />
