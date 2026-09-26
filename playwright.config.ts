@@ -13,15 +13,15 @@ export default defineConfig({
     : [['list'], ['html']],
   use: {
     baseURL: 'http://localhost:3000',
-    trace: 'retain-on-failure',
-    video: 'retain-on-failure',
+    trace: process.env.CI ? 'on-first-retry' : 'retain-on-failure',
+    video: process.env.CI ? 'on-first-retry' : 'retain-on-failure',
     screenshot: 'only-on-failure',
     locale: 'en-US',
     timezoneId: 'UTC',
   },
 
   expect: { timeout: 30000, toPass: { timeout: 30000 } },
-  timeout: 30000,
+  timeout: process.env.CI ? 60000 : 30000,
 
   webServer: {
     command: 'bun tests/e2e/oauth/fake-oidc-server.ts',
