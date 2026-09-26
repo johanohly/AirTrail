@@ -1,3 +1,4 @@
+import { format, subDays } from 'date-fns';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getAircraftFromReg, getFlightRoute } from './aerodatabox';
@@ -14,16 +15,12 @@ const {
   getAirportByIcao: vi.fn(),
   getAirlineByIcao: vi.fn(),
   getAirlineByIata: vi.fn(),
-  getConfig: vi.fn(
-    async (): Promise<{
-      integrations: {
-        aeroDataBoxKey: string;
-        aeroDataBoxEndpoint?: 'rapidapi' | 'direct';
-      };
-    }> => ({
-      integrations: { aeroDataBoxKey: 'test-api-key' },
-    }),
-  ),
+  getConfig: vi.fn(async () => ({
+    integrations: {
+      aeroDataBoxKey: 'test-api-key',
+      aeroDataBoxEndpoint: 'rapidapi' as 'rapidapi' | 'direct',
+    },
+  })),
   checkRequest: vi.fn(),
 }));
 
@@ -129,7 +126,10 @@ describe('endpoint selection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getConfig.mockResolvedValue({
-      integrations: { aeroDataBoxKey: 'test-api-key' },
+      integrations: {
+        aeroDataBoxKey: 'test-api-key',
+        aeroDataBoxEndpoint: 'rapidapi',
+      },
     });
     getAirportByIcao.mockResolvedValue({
       id: 1,
@@ -151,7 +151,7 @@ describe('endpoint selection', () => {
     vi.unstubAllGlobals();
   });
 
-  it('getAircraftFromReg defaults to the RapidAPI gateway when no endpoint is configured', async () => {
+  it('getAircraftFromReg uses the RapidAPI gateway by default', async () => {
     const fetchMock = vi.fn(async () => Response.json({}));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -181,7 +181,7 @@ describe('endpoint selection', () => {
     );
   });
 
-  it('getFlightRoute defaults to the RapidAPI gateway and date-range URL when no date is given', async () => {
+  it('getFlightRoute uses the RapidAPI gateway and date-range URL when no date is given', async () => {
     const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
       Response.json([]),
     );
@@ -210,13 +210,15 @@ describe('endpoint selection', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(
-      getFlightRoute('SK728', { date: new Date(2026, 0, 15, 12) }),
-    ).rejects.toThrow('No matching flights found');
+    const date = subDays(new Date(), 10);
+
+    await expect(getFlightRoute('SK728', { date })).rejects.toThrow(
+      'No matching flights found',
+    );
 
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(url).toBe(
-      'https://api.aerodatabox.com/flights/number/SK728/2026-01-15?dateLocalRole=Both&withAircraftImage=false&withLocation=false',
+      `https://api.aerodatabox.com/flights/number/SK728/${format(date, 'yyyy-MM-dd')}?dateLocalRole=Both&withAircraftImage=false&withLocation=false`,
     );
     expect(init).toEqual({ headers: { 'X-Api-Key': 'test-api-key' } });
   });

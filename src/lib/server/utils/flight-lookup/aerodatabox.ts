@@ -21,7 +21,7 @@ import { appConfig } from '$lib/server/utils/config';
 import { RequestRateLimiter } from '$lib/utils/ratelimiter';
 import type { AeroDataBoxEndpoint } from '$lib/zod/config';
 
-const AERODATABOX_PROVIDER_CONFIG: Record<
+const AERODATABOX_GATEWAYS: Record<
   AeroDataBoxEndpoint,
   { baseUrl: string; authHeader: string }
 > = {
@@ -42,6 +42,19 @@ function sanitizeFlightNumber(fn: string): string {
   return fn.replace(/\s|-/g, '').toUpperCase();
 }
 
+async function fetchAeroDataBox(path: string): Promise<Response> {
+  const integrations = (await appConfig.get())?.integrations;
+  if (!integrations?.aeroDataBoxKey) {
+    throw new Error('AeroDataBox API key not configured');
+  }
+  const { baseUrl, authHeader } =
+    AERODATABOX_GATEWAYS[integrations.aeroDataBoxEndpoint];
+
+  return fetch(`${baseUrl}${path}`, {
+    headers: { [authHeader]: integrations.aeroDataBoxKey },
+  });
+}
+
 function isValidDateWithin365(date: Date): boolean {
   if (!isValid(date)) return false;
   const diff = Math.abs(differenceInCalendarDays(date, new Date()));
@@ -54,14 +67,6 @@ export async function getFlightRoute(
 ): Promise<FlightLookupResult> {
   await rateLimiter.checkRequest();
 
-  const config = await appConfig.get();
-  const apiKey = config?.integrations?.aeroDataBoxKey ?? null;
-  if (!apiKey) {
-    throw new Error('AeroDataBox API key not configured');
-  }
-  const endpoint = config?.integrations?.aeroDataBoxEndpoint ?? 'rapidapi';
-  const { baseUrl, authHeader } = AERODATABOX_PROVIDER_CONFIG[endpoint];
-
   const cleaned = sanitizeFlightNumber(flightNumber);
 
   const date = opts?.date;
@@ -69,25 +74,21 @@ export async function getFlightRoute(
     throw new Error('Date must be within 365 days of today');
   }
 
-  let url: string;
+  let path: string;
   if (date) {
-    url = `${baseUrl}/flights/number/${encodeURIComponent(
+    path = `/flights/number/${encodeURIComponent(
       cleaned,
     )}/${format(date, 'yyyy-MM-dd')}?dateLocalRole=Both&withAircraftImage=false&withLocation=false`;
   } else {
     const now = new Date();
     const fromDate = format(subDays(now, 2), 'yyyy-MM-dd');
     const toDate = format(addDays(now, 2), 'yyyy-MM-dd');
-    url = `${baseUrl}/flights/number/${encodeURIComponent(
+    path = `/flights/number/${encodeURIComponent(
       cleaned,
     )}/${fromDate}/${toDate}?dateLocalRole=Both&withAircraftImage=false&withLocation=false`;
   }
 
-  const resp = await fetch(url, {
-    headers: {
-      [authHeader]: apiKey,
-    },
-  });
+  const resp = await fetchAeroDataBox(path);
 
   if (resp.status === 204) {
     throw new Error('No matching flights found');
@@ -204,20 +205,9 @@ export async function getAircraftFromReg(
 ): Promise<Aircraft | null> {
   await rateLimiter.checkRequest();
 
-  const config = await appConfig.get();
-  const apiKey = config?.integrations?.aeroDataBoxKey ?? null;
-  if (!apiKey) {
-    throw new Error('AeroDataBox API key not configured');
-  }
-  const endpoint = config?.integrations?.aeroDataBoxEndpoint ?? 'rapidapi';
-  const { baseUrl, authHeader } = AERODATABOX_PROVIDER_CONFIG[endpoint];
-
-  const url = `${baseUrl}/aircrafts/reg/${encodeURIComponent(reg)}`;
-  const resp = await fetch(url, {
-    headers: {
-      [authHeader]: apiKey,
-    },
-  });
+  const resp = await fetchAeroDataBox(
+    `/aircrafts/reg/${encodeURIComponent(reg)}`,
+  );
 
   if (!resp.ok) {
     console.error('Failed to fetch aircraft data:', resp.statusText);
