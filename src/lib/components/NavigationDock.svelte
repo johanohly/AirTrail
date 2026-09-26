@@ -10,6 +10,10 @@
 
   import { page } from '$app/state';
   import {
+    canDeduplicateOwnFlights,
+    hasClientPermission,
+  } from '$lib/authorization/permissions';
+  import {
     Dock,
     DockDropdownItem,
     DockFloatingItem,
@@ -53,16 +57,19 @@
     },
   };
 
-  const OTHER = [
-    {
-      label: 'Tools',
-      href: '/tools',
-    },
-    {
-      label: 'Visited countries',
-      href: '/visited-countries',
-    },
-  ];
+  const otherItems = $derived.by(() => {
+    const items = [];
+    if (
+      canDeduplicateOwnFlights(page.data.authorization) ||
+      hasClientPermission(page.data.authorization, 'tools.sql.execute')
+    ) {
+      items.push({ label: 'Tools', href: '/tools' });
+    }
+    if (hasClientPermission(page.data.authorization, 'flight.read.own')) {
+      items.push({ label: 'Visited countries', href: '/visited-countries' });
+    }
+    return items;
+  });
 </script>
 
 <nav
@@ -78,14 +85,18 @@
       </div>
     {/if}
     <Dock>
-      <DockTooltipItem item={addFlightItem} />
-      {#if page.url.pathname === '/'}
+      {#if hasClientPermission(page.data.authorization, 'flight.create.own')}
+        <DockTooltipItem item={addFlightItem} />
+      {/if}
+      {#if page.url.pathname === '/' && hasClientPermission(page.data.authorization, 'flight.read.own')}
         <DockTooltipItem item={listFlightsItem} />
         <DockTooltipItem item={flightsStatisticsItem} />
       {/if}
-      <DockDropdownItem items={OTHER} label="More">
-        <Grip />
-      </DockDropdownItem>
+      {#if otherItems.length > 0}
+        <DockDropdownItem items={otherItems} label="More">
+          <Grip />
+        </DockDropdownItem>
+      {/if}
       <Separator orientation="vertical" class="h-full w-px" />
       <DockTooltipItem item={settingsItem} />
     </Dock>

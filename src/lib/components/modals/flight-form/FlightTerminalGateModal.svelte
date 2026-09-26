@@ -18,6 +18,7 @@
   const { form: formData } = form;
 
   let open = $state(false);
+  let formSnapshot = $state.raw<ReturnType<typeof form.capture> | null>(null);
 
   const sections = [
     {
@@ -49,6 +50,7 @@
   variant="outline"
   class={hasData ? 'border-primary text-primary' : ''}
   onclick={() => {
+    formSnapshot = form.capture();
     open = true;
   }}
 >
@@ -58,7 +60,19 @@
   {/if}
 </Button>
 
-<Modal bind:open class="max-w-md" closeOnOutsideClick={false}>
+<Modal
+  bind:open
+  dismissal="form"
+  dirty={formSnapshot !== null &&
+    ($formData.departureTerminal !== formSnapshot.data.departureTerminal ||
+      $formData.departureGate !== formSnapshot.data.departureGate ||
+      $formData.arrivalTerminal !== formSnapshot.data.arrivalTerminal ||
+      $formData.arrivalGate !== formSnapshot.data.arrivalGate)}
+  onDiscard={() => {
+    if (formSnapshot) form.restore(formSnapshot);
+  }}
+  class="max-w-md"
+>
   <ModalHeader class="pb-0">
     <h2 class="text-lg font-medium">Terminal & Gate</h2>
   </ModalHeader>

@@ -1,0 +1,90 @@
+---
+title: Personal Settings
+description: Your profile, display preferences, and theme.
+---
+
+Open **Settings** from the navigation dock. The first tabs apply to your own
+account: **General**, **Preferences**, **Security**, **Appearance**, and
+**Share**, plus **Import** and **Export** if your role allows them. Tabs below
+those configure the whole instance and only appear for users with the matching
+permissions.
+
+This page covers **General**, **Preferences**, and **Appearance**. For the
+**Security** tab, see [API keys and connected apps](/docs/features/api-keys).
+
+## General
+
+**Settings → General** shows your display name and your role (**Owner** for the
+instance owner). Change your details here:
+
+- **Username**: 3 to 20 characters. Letters, numbers, periods, underscores, and
+  hyphens only. Usernames must be unique.
+- **Display Name**: at least 3 characters.
+
+Click **Save** to apply the changes. **Log out** ends your session in this
+browser.
+
+## Preferences
+
+**Settings → Preferences** controls how AirTrail shows units, dates, and times.
+Changes save as soon as you pick a value, and a preview below each section shows
+the result. Preferences are stored on your account, so they follow you across
+devices.
+
+### Units
+
+| Setting     | Options                                                                  | Default    |
+| ----------- | ------------------------------------------------------------------------ | ---------- |
+| Distance    | Kilometers (km), Miles (mi), Nautical miles (nm)                         | Kilometers |
+| Wind speed  | Knots (kt), Kilometers per hour (km/h), Miles per hour (mph), Meters per second (m/s) | Knots      |
+| Temperature | Celsius (°C), Fahrenheit (°F)                                            | Celsius    |
+| Pressure    | Hectopascals (hPa), Inches of mercury (inHg)                             | Hectopascals |
+
+Wind speed, temperature, and pressure are used for airport weather.
+
+### Date & time
+
+| Setting        | Options                                                                 | Default            |
+| -------------- | ----------------------------------------------------------------------- | ------------------ |
+| Time format    | Auto, 24-hour (`14:30`), 12-hour (`2:30 PM`)                            | Auto               |
+| Date format    | Auto, ISO (`2026-04-26`), European (`26/04/2026`), US (`04/26/2026`)    | Auto               |
+| Week starts on | Auto, Monday, Sunday                                                    | Auto               |
+| Flight times   | Airport local time, UTC, My system timezone                             | Airport local time |
+
+**Auto** follows your system settings.
+
+**Flight times** controls which timezone departure and arrival times are shown
+in:
+
+- **Airport local time**: each time in its airport's timezone.
+- **UTC**: all times in UTC.
+- **My system timezone**: all times converted to your device's timezone.
+
+### Presets
+
+Click **Apply preset** to set all preferences at once. You can still change
+individual settings afterwards.
+
+| Preset   | Distance       | Wind speed | Temperature | Pressure | Time    | Date     | Week starts |
+| -------- | -------------- | ---------- | ----------- | -------- | ------- | -------- | ----------- |
+| Metric   | Kilometers     | km/h       | °C          | hPa      | 24-hour | European | Monday      |
+| Imperial | Miles          | mph        | °F          | inHg     | 12-hour | US       | Sunday      |
+| Aviation | Nautical miles | Knots      | °C          | hPa      | 24-hour | ISO      | Monday      |
+
+All presets set **Flight times** to **Airport local time**.
+
+## Appearance
+
+**Settings → Appearance** sets the **Color Theme**:
+
+- **System** follows your operating system's light or dark mode. This is the
+  default.
+- **Light**
+- **Dark**
+
+The theme is saved in your browser, not on your account. Set it separately on
+each device.
+
+Users who can configure instance map styles also see **Basemap Provider** on
+this tab. That setting applies to everyone on the instance. See
+[Basemaps](/docs/administration/basemaps).

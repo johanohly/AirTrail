@@ -1,0 +1,140 @@
+/* AirTrail drawer (see internal.svelte.ts for the architecture notes).
+ *
+ * All motion derives from CSS custom properties set by the drawer state:
+ *   --drawer-rest   snap-point offset in px (0 = fully open)
+ *   --drawer-delta  live drag offset in px
+ *   --drawer-lift / --drawer-scale  stacked-card effect while a child drawer is open
+ *   --drawer-progress  overlay openness (0 closed .. 1 open)
+ *   --drawer-exit-duration  velocity-matched close duration
+ */
+
+[data-drawer] {
+  will-change: transform;
+  transform: translate3d(
+      0,
+      calc(
+        var(--drawer-rest, 0px) + var(--drawer-delta, 0px) -
+          var(--drawer-lift, 0px)
+      ),
+      0
+    )
+    scale(var(--drawer-scale, 1));
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+  touch-action: none;
+}
+
+[data-drawer][data-dragging] {
+  transition: none;
+}
+
+[data-drawer][data-state='open'] {
+  animation: drawer-slide-in 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+[data-drawer][data-state='closed'] {
+  animation: drawer-slide-out var(--drawer-exit-duration, 0.5s)
+    cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  pointer-events: none;
+}
+
+/* Background continuation below the sheet so overdrag bounce never shows a gap. */
+[data-drawer]::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 200%;
+  background: inherit;
+  background-color: inherit;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [data-drawer] {
+    user-select: none;
+  }
+}
+
+[data-drawer-overlay] {
+  opacity: var(--drawer-progress, 1);
+  transition: opacity 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+[data-drawer-overlay][data-dragging] {
+  transition: none;
+}
+
+[data-drawer-overlay][data-state='open'] {
+  animation: drawer-fade-in 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+[data-drawer-overlay][data-state='closed'] {
+  animation: drawer-fade-out var(--drawer-exit-duration, 0.5s)
+    cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+/* App background scaling, driven by the wrapper controller.
+ *   --drawer-bg-progress  0 (no drawer) .. 1 (drawer fully open)
+ *   --drawer-bg-scale     target scale, computed from the viewport width
+ */
+[data-drawer-wrapper] {
+  transform-origin: top;
+}
+
+[data-drawer-wrapper][data-drawer-bg-active] {
+  overflow: hidden;
+  border-radius: calc(8px * var(--drawer-bg-progress, 0));
+  transform: scale(
+      calc(
+        1 - (1 - var(--drawer-bg-scale, 0.95)) * var(--drawer-bg-progress, 0)
+      )
+    )
+    translate3d(
+      0,
+      calc((env(safe-area-inset-top) + 14px) * var(--drawer-bg-progress, 0)),
+      0
+    );
+  transition:
+    transform 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+    border-radius 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+[data-drawer-wrapper][data-drawer-bg-dragging] {
+  transition: none;
+}
+
+@keyframes drawer-slide-in {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    transform: translate3d(0, var(--drawer-rest, 0px), 0);
+  }
+}
+
+@keyframes drawer-slide-out {
+  to {
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
+@keyframes drawer-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes drawer-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-drawer],
+  [data-drawer-overlay],
+  [data-drawer-wrapper][data-drawer-bg-active] {
+    animation-duration: 0.01ms;
+    transition-duration: 0.01ms;
+  }
+}

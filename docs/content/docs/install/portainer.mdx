@@ -1,33 +1,38 @@
 ---
 title: Portainer
+description: Deploy AirTrail as a Portainer stack.
 ---
 
-Portainer is a lightweight management UI which allows you to easily manage your Docker instances.
-
-To install Portainer, you can follow the [Official documentation](https://docs.portainer.io/start/install-ce/server/docker).
-
-## Create a stack
+[Portainer](https://docs.portainer.io/start/install-ce/server/docker) is a web interface for managing Docker. AirTrail runs in Portainer as a stack built from the standard Compose file.
 
 <div className="steps">
   <div className="step">
-    Head over to the **Stacks** section in the Portainer UI and click on **Add stack**.
+    In Portainer, open **Stacks** and click **Add stack**. Name it, for example, `airtrail`.
   </div>
   <div className="step">
-    Fill in the following details:
+    In the **Web editor**, paste the contents of [compose.yml](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker/production/compose.yml).
+    Replace both `.env` references under `env_file` with `stack.env`, which is how Portainer passes stack variables to containers:
 
-    - **Name**: Give your stack a name, for example `AirTrail`.
-    - **Web editor**: Copy and paste the content from the [docker-compose.yml](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/docker/production/compose.yml) file.
-      - Replace all instances of `.env` with `stack.env`
-        ![Replace .env with stack.env](./img/portainer-stack-env.png)
-    - **Environment variables**: Go into "Advanced mode" and copy-paste the contents of [.env](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example) into the text area.
-      - Change `ORIGIN` to the single URL that you will use to access your AirTrail instance.
-      - Change the `DB_PASSWORD` to a secure password. Optionally, change other database settings.
+    ![Replace .env with stack.env](./img/portainer-stack-env.png)
 
   </div>
   <div className="step">
-    Click **Deploy the stack**.
-    <Callout>
-      After deploying the stack, you should follow the [Post Installation](/docs/install/post-installation) steps.
-    </Callout>
+    Under **Environment variables**, switch to **Advanced mode** and paste the contents of [.env.example](https://raw.githubusercontent.com/JohanOhly/AirTrail/main/.env.example). Then:
+
+    - Set `ORIGIN` to the exact URL you will open AirTrail at.
+    - Change `DB_PASSWORD` and the password inside `DB_URL` to the same random value (letters and digits only).
+    - Behind a reverse proxy, add `ADDRESS_HEADER=X-Forwarded-For`.
+
+  </div>
+  <div className="step">
+    Click **Deploy the stack**, then follow the [post-installation](/docs/install/post-installation) steps.
   </div>
 </div>
+
+## Uploads
+
+The stack creates a named `uploads` volume that is already writable by the app. If you switch it to a bind mount on the host, the folder must be owned by UID and GID `1000`. See [Uploads and file permissions](/docs/install/docker-compose#uploads-and-file-permissions).
+
+## Updating
+
+Open the stack, click **Editor**, then **Update the stack** with **Re-pull image and redeploy** enabled. Take a [backup](/docs/administration/backup) first.

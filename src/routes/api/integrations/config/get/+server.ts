@@ -2,11 +2,14 @@ import { json } from '@sveltejs/kit';
 
 import type { RequestHandler } from './$types';
 
+import { hasPermission } from '$lib/server/authorization/authorize';
 import { appConfig } from '$lib/server/utils/config';
 
 export const GET: RequestHandler = async ({ locals }) => {
-  const user = locals.user;
-  if (!user || user.role === 'user') {
+  if (
+    !locals.authorization ||
+    !hasPermission(locals.authorization, 'instance.integrations.manage')
+  ) {
     return new Response('Unauthorized', { status: 401 });
   }
 

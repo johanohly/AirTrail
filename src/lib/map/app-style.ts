@@ -2,7 +2,7 @@ import {
   AIRPORT_STYLE_ROUTE_PATH,
   getAirportGatePillImageId,
 } from '$lib/map/airport-style';
-import { normalizeCartoTheme } from '$lib/map/carto';
+import { normalizeMapTheme } from '$lib/map/basemap';
 import {
   getOpenAipPatternImages,
   getOpenAipSymbolImages,
@@ -13,18 +13,24 @@ import type { MapBasemap } from './basemap';
 type AppMapConfig = {
   lightStyleUrl?: string | null;
   darkStyleUrl?: string | null;
+  styleRevision?: number;
 };
 
 export const getDefaultAppMapStyleUrl = (
   theme?: string,
   basemap: MapBasemap = 'default',
+  configRevision = 0,
 ) => {
-  const normalizedTheme = normalizeCartoTheme(theme);
+  const normalizedTheme = normalizeMapTheme(theme);
+  const params = new URLSearchParams({ theme: normalizedTheme });
+  if (configRevision > 0) {
+    params.set('v', String(configRevision));
+  }
   if (basemap === 'satellite') {
-    return `${AIRPORT_STYLE_ROUTE_PATH}?theme=${normalizedTheme}&basemap=satellite`;
+    params.set('basemap', 'satellite');
   }
 
-  return `${AIRPORT_STYLE_ROUTE_PATH}?theme=${normalizedTheme}`;
+  return `${AIRPORT_STYLE_ROUTE_PATH}?${params}`;
 };
 
 export const getConfiguredAppMapStyleUrl = (
@@ -32,23 +38,33 @@ export const getConfiguredAppMapStyleUrl = (
   config?: AppMapConfig | null,
   basemap: MapBasemap = 'default',
 ) => {
-  const normalizedTheme = normalizeCartoTheme(theme);
+  const normalizedTheme = normalizeMapTheme(theme);
+  const configRevision = config?.styleRevision ?? 0;
   if (basemap === 'satellite') {
-    return getDefaultAppMapStyleUrl(normalizedTheme, basemap);
+    return getDefaultAppMapStyleUrl(normalizedTheme, basemap, configRevision);
   }
 
   if (normalizedTheme === 'dark') {
-    return config?.darkStyleUrl || getDefaultAppMapStyleUrl(normalizedTheme);
+    return (
+      config?.darkStyleUrl ||
+      getDefaultAppMapStyleUrl(normalizedTheme, basemap, configRevision)
+    );
   }
 
-  return config?.lightStyleUrl || getDefaultAppMapStyleUrl(normalizedTheme);
+  return (
+    config?.lightStyleUrl ||
+    getDefaultAppMapStyleUrl(normalizedTheme, basemap, configRevision)
+  );
 };
+
+export const isManagedAppMapStyleUrl = (styleUrl: string) =>
+  styleUrl.startsWith(`${AIRPORT_STYLE_ROUTE_PATH}?`);
 
 export const getAppMapImages = (
   base = '',
   theme: string | undefined = 'light',
 ): CustomImageSpec[] => {
-  const normalizedTheme = normalizeCartoTheme(theme);
+  const normalizedTheme = normalizeMapTheme(theme);
 
   return [
     {

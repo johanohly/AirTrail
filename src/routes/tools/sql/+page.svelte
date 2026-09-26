@@ -1,13 +1,14 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
   import { Button } from '$lib/components/ui/button';
   import { Textarea } from '$lib/components/ui/input';
   import * as Table from '$lib/components/ui/table';
   import { api } from '$lib/trpc';
 
   $effect(() => {
-    if (page.data.user?.role !== 'owner') {
+    if (!hasClientPermission(page.data.authorization, 'tools.sql.execute')) {
       goto('/');
     }
   });

@@ -77,13 +77,18 @@ test.describe('Delete Flight', () => {
         // The delete button is the last button in the actions area
         await allButtons.last().click();
 
-        // Confirm deletion in the confirmation dialog
-        await page
-          .locator('input[id="confirmation"]')
+        const confirmationDialog = page.getByRole('dialog').filter({
+          has: page.getByRole('heading', {
+            name: 'Delete flight',
+            exact: true,
+          }),
+        });
+        await confirmationDialog
+          .getByRole('textbox')
           .fill(`${fromAirport.iata}-${toAirport.iata}`);
-
-        // Click confirm button
-        await page.getByRole('button', { name: 'Delete flight' }).click();
+        await confirmationDialog
+          .getByRole('button', { name: 'Delete flight', exact: true })
+          .click();
 
         // Wait for success toast
         await expect(page.getByText(/flight deleted/i)).toBeVisible({

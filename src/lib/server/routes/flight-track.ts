@@ -2,6 +2,11 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 import { db } from '$lib/db';
+import {
+  DEFAULT_FLIGHT_SCOPE,
+  flightScopeSchema,
+  resolveFlightScope,
+} from '$lib/flight-scope';
 import { authedProcedure, router } from '$lib/server/trpc';
 import { reduceFlightTrackForMap } from '$lib/track/render';
 import {
@@ -9,13 +14,10 @@ import {
   type FlightTrackRow,
   type FlightTrackSourceFormat,
 } from '$lib/track/schema';
-
-const flightTrackListInput = z
-  .object({
-    scope: z.enum(['mine', 'user', 'all']).default('mine'),
-    userId: z.string().optional(),
-  })
-  .optional();
+import {
+  canAccessFlight,
+  canListFlights,
+} from '$lib/server/authorization/flight';
 
 const parseTrackRow = (
   row: {
@@ -39,20 +41,12 @@ const parseTrackRow = (
 
 export const flightTrackRouter = router({
   list: authedProcedure
-    .input(flightTrackListInput)
-    .query(async ({ ctx: { user }, input }) => {
-      const scope = input?.scope ?? 'mine';
-
-      if (user.role === 'user' && scope !== 'mine') {
+    .input(flightScopeSchema.optional().default(DEFAULT_FLIGHT_SCOPE))
+    .query(async ({ ctx: { user, authorization }, input }) => {
+      if (!canListFlights(authorization, input)) {
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
-
-      if (scope === 'user' && !input?.userId) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'A user is required for this scope',
-        });
-      }
+      const scope = resolveFlightScope(input, user.id);
 
       let query = db
         .selectFrom('flightTrack')
@@ -65,21 +59,14 @@ export const flightTrackRouter = router({
           'flightTrack.pointCount',
         ]);
 
-      let scopedUserId: string | null | undefined = null;
-      if (scope === 'mine') {
-        scopedUserId = user.id;
-      } else if (scope === 'user') {
-        scopedUserId = input?.userId;
-      }
-
-      if (scopedUserId) {
+      if (scope.scope === 'user') {
         query = query.where((eb) =>
           eb.exists(
             eb
               .selectFrom('flightPassenger')
               .select('flightPassenger.id')
               .whereRef('flightPassenger.flightId', '=', 'flight.id')
-              .where('flightPassenger.userId', '=', scopedUserId),
+              .where('flightPassenger.userId', '=', scope.userId),
           ),
         );
       }
@@ -89,25 +76,8 @@ export const flightTrackRouter = router({
     }),
   get: authedProcedure
     .input(z.number())
-    .query(async ({ ctx: { user }, input }) => {
-      const flight = await db
-        .selectFrom('flight')
-        .select('flight.id')
-        .where('flight.id', '=', input)
-        .where((eb) =>
-          user.role === 'user'
-            ? eb.exists(
-                eb
-                  .selectFrom('flightPassenger')
-                  .select('flightPassenger.id')
-                  .whereRef('flightPassenger.flightId', '=', 'flight.id')
-                  .where('flightPassenger.userId', '=', user.id),
-              )
-            : eb.val(true),
-        )
-        .executeTakeFirst();
-
-      if (!flight) {
+    .query(async ({ ctx: { authorization }, input }) => {
+      if (!(await canAccessFlight(authorization, 'read', input))) {
         throw new TRPCError({ code: 'NOT_FOUND' });
       }
 

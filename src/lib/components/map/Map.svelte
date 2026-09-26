@@ -44,9 +44,9 @@
   import { includeFocusedRouteOnMap } from '$lib/flight-visibility';
   import { AIRPORT_DETAIL_LAYER_IDS } from '$lib/map/airport-style';
   import {
-    getDefaultAppMapStyleUrl,
     getAppMapImages,
     getConfiguredAppMapStyleUrl,
+    isManagedAppMapStyleUrl,
   } from '$lib/map/app-style';
   import {
     createMapCameraController,
@@ -54,6 +54,7 @@
     type MapCameraController,
   } from '$lib/map/camera-controller';
   import { hasFallbackFlightArcs } from '$lib/map/flight-layer-data';
+  import { exposeRenderState } from '$lib/map/render-state';
   import {
     initMapPreferences,
     mapPreferences,
@@ -104,7 +105,7 @@
     onNavigate?: NavigateFlights;
   } = $props();
 
-  const showScopeBanner = $derived(flightScopeState.scope !== 'mine');
+  const showScopeBanner = $derived(flightScopeState.current.scope !== 'mine');
   const alignStatusWithDetails = $derived(!!mapDetailsState.selection);
 
   let map: MapLibreMap | undefined = $state.raw(undefined);
@@ -133,9 +134,7 @@
   const openAipLayers = $derived(
     getOpenAipOverlayLayers(mapPreferences.openAipGroups, openAipTheme),
   );
-  const usingDefaultAppStyle = $derived(
-    style === getDefaultAppMapStyleUrl(currentTheme, mapPreferences.basemap),
-  );
+  const usingDefaultAppStyle = $derived(isManagedAppMapStyleUrl(style));
   const openAipTileUrlTemplate = $derived(
     browser
       ? `${window.location.origin}${base}${OPENAIP_TILE_URL_TEMPLATE}`
@@ -421,6 +420,10 @@
       controller.destroy();
       if (cameraController === controller) cameraController = undefined;
     };
+  });
+
+  $effect(() => {
+    if (map) return exposeRenderState(map);
   });
 
   onMount(() => {

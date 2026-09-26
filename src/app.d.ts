@@ -5,11 +5,15 @@ declare global {
     interface Locals {
       user: import('lucia').User | null;
       session: import('lucia').Session | null;
+      authorization:
+        import('$lib/server/authorization/context').AuthorizationContext | null;
     }
 
     interface PageData {
       user: import('$lib/db/types').PageUser | null;
-      users: import('$lib/db/types').PublicUser[];
+      users: import('$lib/db/types').DirectoryUser[];
+      authorization:
+        import('$lib/server/authorization/context').ClientAuthorization | null;
     }
 
     namespace Superforms {

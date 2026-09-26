@@ -6,6 +6,7 @@
   import MapAppearanceTab from './map-appearance/MapAppearanceTab.svelte';
 
   import { page } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
   import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
   import * as Popover from '$lib/components/ui/popover';
   import * as Tabs from '$lib/components/ui/tabs';
@@ -24,7 +25,12 @@
 
   let popoverOpen = $state(false);
   let activeTab = $state('map');
-  const isAdmin = $derived(page.data.user?.role !== 'user');
+  const isAdmin = $derived(
+    hasClientPermission(
+      page.data.authorization,
+      'instance.integrations.manage',
+    ),
+  );
 
   const openIntegrationSettings = () => {
     popoverOpen = false;

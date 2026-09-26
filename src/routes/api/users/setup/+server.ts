@@ -22,7 +22,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 
   const owners = await db
     .selectFrom('user')
-    .where('role', '=', 'owner')
+    .where('isOwner', '=', true)
     .selectAll()
     .execute();
   if (owners.length > 0) {
@@ -41,14 +41,15 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
   const hashedPassword = await hashArgon2(password);
 
   // Always create the first user as the owner
-  const success = await createUser(
-    userId,
+  const success = await createUser({
+    id: userId,
     username,
-    hashedPassword,
+    password: hashedPassword,
     displayName,
-    'owner',
+    roleId: null,
     preferences,
-  );
+    isOwner: true,
+  });
 
   if (!success) {
     form.message = { type: 'error', text: 'Failed to create user' };

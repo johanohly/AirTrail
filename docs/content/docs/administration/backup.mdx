@@ -1,0 +1,66 @@
+---
+title: Backup and Restore
+description: Back up the database and uploads, and restore them.
+---
+
+An AirTrail installation holds its data in two places:
+
+- **The PostgreSQL database**: users, flights, tracks, roles, settings and API keys.
+- **The uploads directory**: airline icons you uploaded (`UPLOAD_LOCATION`).
+
+Back up both, regularly and before every [update](/docs/install/updating). A copy on the same disk is not a backup; keep one elsewhere.
+
+<Callout>
+  The [flight export](/docs/features/export) is a useful copy of your flight
+  data, but it does not contain accounts, roles, settings, shares or
+  custom-field definitions. Use a database backup to protect the whole instance.
+</Callout>
+
+## Docker Compose
+
+Run these commands in the directory with `docker-compose.yml`. They use the container names from the default Compose file and the `DB_USERNAME` and `DB_DATABASE_NAME` defaults; adjust them if you changed those.
+
+### Back up
+
+```bash title="Database"
+docker exec airtrail_db pg_dump -U airtrail -d airtrail --format=custom > airtrail-$(date +%F).dump
+```
+
+```bash title="Uploads"
+docker run --rm -v airtrail_uploads:/uploads -v "$PWD":/backup alpine \
+  tar czf /backup/airtrail-uploads-$(date +%F).tar.gz -C /uploads .
+```
+
+Compose prefixes volume names with the project name, which is the directory name by default. Check yours with `docker volume ls | grep uploads`.
+
+To back up automatically, run the two commands from a nightly cron job and copy the files off the machine.
+
+### Restore
+
+Restoring replaces the current data. Stop the app first so nothing writes during the restore:
+
+```bash
+docker compose stop airtrail
+docker exec -i airtrail_db pg_restore -U airtrail -d airtrail --clean --if-exists < airtrail-2026-01-31.dump
+docker run --rm -v airtrail_uploads:/uploads -v "$PWD":/backup alpine \
+  tar xzf /backup/airtrail-uploads-2026-01-31.tar.gz -C /uploads
+docker compose start airtrail
+```
+
+Restore a backup into the same or a newer AirTrail version. When AirTrail starts, it applies any migrations the backup is missing.
+
+### Moving to another server
+
+1. Take both backups on the old server.
+2. [Install AirTrail](/docs/install/docker-compose) on the new server with the same `.env`, then stop it with `docker compose stop airtrail`.
+3. Restore both backups as above and start AirTrail.
+4. Update `ORIGIN` if the address changed.
+
+## Manual installation
+
+Use the same `pg_dump` and `pg_restore` commands against your PostgreSQL server, and copy the `UPLOAD_LOCATION` directory:
+
+```bash
+pg_dump --format=custom "$DB_URL" > airtrail-$(date +%F).dump
+pg_restore --clean --if-exists -d "$DB_URL" airtrail-2026-01-31.dump
+```

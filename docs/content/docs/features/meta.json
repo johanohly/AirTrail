@@ -1,10 +1,15 @@
 {
-  "items": [
+  "pages": [
     "add-flight",
+    "flight-tracks",
     "custom-fields",
-    "statistics",
     "import",
     "export",
+    "statistics",
+    "visited-countries",
+    "sharing",
+    "settings",
+    "api-keys",
     "oauth"
   ]
 }

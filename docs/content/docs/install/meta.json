@@ -1,11 +1,12 @@
 {
   "pages": [
     "requirements",
-    "one-click",
     "docker-compose",
+    "one-click",
     "portainer",
     "synology",
     "manual",
+    "reverse-proxy",
     "post-installation",
     "updating"
   ]

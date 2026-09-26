@@ -3,7 +3,10 @@ import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
 import type { RequestHandler } from './$types';
 
-import { validateAndSaveFlight } from '$lib/server/utils/flight';
+import {
+  sessionFlightWriter,
+  validateAndSaveFlight,
+} from '$lib/server/utils/flight';
 import { handleErrorActionResult } from '$lib/utils/forms';
 import { flightFormSchema } from '$lib/zod/flight';
 
@@ -14,13 +17,14 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     return actionResult('failure', { form });
   }
 
-  const user = locals.user;
-  if (!user) {
+  const authorization = locals.authorization;
+  if (!locals.user || !authorization) {
     return actionResult('error', 'Not logged in', 401);
   }
 
-  const result = await validateAndSaveFlight(user, form.data, {
-    bypassPassengerCheck: user.role !== 'user',
-  });
+  const result = await validateAndSaveFlight(
+    sessionFlightWriter(authorization),
+    form.data,
+  );
   return handleErrorActionResult(form, result);
 };

@@ -10,6 +10,7 @@
 
   export type ModalContext = {
     closeModal: () => void;
+    isBusy: () => boolean;
     registerHeader: () => void;
     registerFooter: () => void;
     getState: () => ModalState;
@@ -22,7 +23,7 @@
 </script>
 
 <script lang="ts">
-  import { onDestroy, setContext, type Snippet } from 'svelte';
+  import { onDestroy, setContext, tick, type Snippet } from 'svelte';
   import { browser } from '$app/environment';
 
   import * as Dialog from '$lib/components/ui/dialog';
@@ -39,6 +40,13 @@
     unregisterModalHistory,
     type ModalHistoryHandle,
   } from './modal-history';
+  import {
+    confirmDiscardChanges,
+    decideModalDismissal,
+    type ModalCloseReason,
+    type ModalDismissalMode,
+    type ModalPresentation,
+  } from './modal-dismissal';
 
   type ModalPreset = 'default' | 'alert';
 
@@ -55,6 +63,11 @@
     dialogOnly = false,
     closeOnOutsideClick = true,
     closeOnEscape = true,
+    dismissal,
+    dirty = false,
+    busy = false,
+    confirmExplicitClose = false,
+    onDiscard,
     closeButton,
     dialogNoPadding = false,
     drawerNoPadding = false,
@@ -76,6 +89,11 @@
     dialogOnly?: boolean;
     closeOnOutsideClick?: boolean;
     closeOnEscape?: boolean;
+    dismissal?: ModalDismissalMode;
+    dirty?: boolean;
+    busy?: boolean;
+    confirmExplicitClose?: boolean;
+    onDiscard?: () => void | Promise<void>;
     closeButton?: boolean;
     dialogNoPadding?: boolean;
     drawerNoPadding?: boolean;
@@ -98,7 +116,8 @@
   });
 
   setContext(ModalContextKey, {
-    closeModal: () => (open = false),
+    closeModal: () => void requestClose('explicit'),
+    isBusy: () => busy,
     registerHeader: () => (modalState.hasHeader = true),
     registerFooter: () => (modalState.hasFooter = true),
     getState: () => modalState,
@@ -106,20 +125,124 @@
   });
 
   const presetConfig = $derived(presets[preset]);
+  const dismissalMode = $derived(
+    dismissal ?? (preset === 'alert' ? 'dialog' : 'view'),
+  );
   const resolvedCloseButton = $derived(
     modalState.hasHeader ? false : (closeButton ?? presetConfig.closeButton),
   );
 
   const useDialog = isMediumScreen;
+  const presentation = $derived<ModalPresentation>(
+    $useDialog || dialogOnly ? 'dialog' : 'sheet',
+  );
 
   const modalId = generateUUID();
   const localHistoryHandle: ModalHistoryHandle = {
     push: (state) => pushModalHistoryState(modalId, state),
     back: () => backModalHistory(modalId),
   };
+  let pendingHistoryReason: 'escape' | 'history' = 'history';
+  let closing = false;
+  let confirming = false;
+  let contentRef: HTMLElement | null = $state(null);
+  let refusalAnimation: Animation | undefined;
+
+  const pulseDismissRefusal = () => {
+    if (
+      !contentRef ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return;
+    }
+
+    refusalAnimation?.cancel();
+    refusalAnimation = contentRef.animate(
+      [{ scale: '1' }, { scale: '1.02' }, { scale: '1' }],
+      { duration: 300, easing: 'ease' },
+    );
+  };
+
+  const approveClose = async (
+    reason: ModalCloseReason,
+    beforeConfirm?: () => void,
+  ) => {
+    const decision = decideModalDismissal({
+      mode: dismissalMode,
+      presentation,
+      reason,
+      dirty,
+      busy,
+      closeOnOutsideClick,
+      closeOnEscape,
+    });
+
+    if (decision.kind === 'block') {
+      if (decision.pulse) pulseDismissRefusal();
+      return false;
+    }
+
+    if (decision.kind === 'confirm') {
+      if (confirming) return false;
+      beforeConfirm?.();
+      const focusTarget =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      confirming = true;
+      try {
+        if (!(await confirmDiscardChanges())) {
+          await tick();
+          focusTarget?.focus({ preventScroll: true });
+          return false;
+        }
+      } finally {
+        confirming = false;
+      }
+    }
+
+    if (dismissalMode === 'form' && dirty) await onDiscard?.();
+    return true;
+  };
+
+  const requestClose = async (reason: ModalCloseReason) => {
+    if (closing || !(await approveClose(reason))) return false;
+    closing = true;
+    open = false;
+    return true;
+  };
+
+  const registerHistory = () => {
+    openModalHistory(
+      modalId,
+      () => {
+        const reason = pendingHistoryReason;
+        pendingHistoryReason = 'history';
+        void (async () => {
+          const closed = await requestClose(reason);
+          if (!closed && reason === 'history' && open) registerHistory();
+        })();
+      },
+      { closeOnEscape, onStateChange: onHistoryStateChange },
+    );
+  };
+
   const handleDialogEscape = (event: KeyboardEvent) => {
     event.preventDefault();
-    escapeModalHistory(modalId);
+    if (handleBackButton) {
+      pendingHistoryReason = 'escape';
+      escapeModalHistory(modalId);
+      queueMicrotask(() => (pendingHistoryReason = 'history'));
+    } else {
+      void requestClose('escape');
+    }
+  };
+  const handleInteractOutside = (event: PointerEvent) => {
+    event.preventDefault();
+  };
+  const handleOverlayClick = (event: MouseEvent) => {
+    if (event.target !== event.currentTarget) return;
+    void requestClose('backdrop');
   };
   historyHandle = localHistoryHandle;
   let previousOpen = $state(open);
@@ -137,7 +260,7 @@
     if (open && !layerAssigned) {
       layer = ++modalLayerCounter;
       layerAssigned = true;
-    } else if (!open && layerAssigned) {
+    } else if (!open && !contentRef && layerAssigned) {
       layerAssigned = false;
     }
   });
@@ -145,6 +268,7 @@
   $effect(() => {
     if (open !== previousOpen) {
       previousOpen = open;
+      if (open) closing = false;
       onOpenChange?.(open);
     }
   });
@@ -153,19 +277,14 @@
     if (!browser || !handleBackButton) return;
 
     if (open) {
-      openModalHistory(
-        modalId,
-        () => {
-          open = false;
-        },
-        { closeOnEscape, onStateChange: onHistoryStateChange },
-      );
+      registerHistory();
     } else {
       closeModalHistory(modalId);
     }
   });
 
   onDestroy(() => {
+    refusalAnimation?.cancel();
     if (historyHandle === localHistoryHandle) historyHandle = undefined;
     unregisterModalHistory(modalId);
   });
@@ -174,6 +293,7 @@
 {#if $useDialog || dialogOnly}
   <Dialog.Root bind:open>
     <Dialog.Content
+      bind:ref={contentRef}
       class={cn(
         'max-h-full overflow-y-auto',
         presetConfig.class,
@@ -181,14 +301,15 @@
         className,
       )}
       closeButton={resolvedCloseButton}
+      closeButtonDisabled={busy}
+      onClose={() =>
+        void requestClose(confirmExplicitClose ? 'programmatic' : 'explicit')}
       preventScroll={false}
-      escapeKeydownBehavior={handleBackButton
-        ? 'close'
-        : closeOnEscape
-          ? 'close'
-          : 'ignore'}
-      onEscapeKeydown={handleBackButton ? handleDialogEscape : undefined}
-      interactOutsideBehavior={closeOnOutsideClick ? 'close' : 'ignore'}
+      escapeKeydownBehavior="close"
+      onEscapeKeydown={handleDialogEscape}
+      interactOutsideBehavior="ignore"
+      onInteractOutside={handleInteractOutside}
+      onOverlayClick={handleOverlayClick}
       {overlayClass}
       {overlayStyle}
       style={contentStyle}
@@ -203,14 +324,21 @@
     {shouldScaleBackground}
     modal={drawerModal}
     snapPoints={drawerSnapPoints}
+    beforeDismiss={({ settle }) => approveClose('gesture', settle)}
   >
     <Drawer.Content
+      bind:ref={contentRef}
       noPadding={drawerNoPadding || modalState.hasHeader}
       raw={drawerRawContent}
       class={className}
       {overlayClass}
       {overlayStyle}
       style={contentStyle}
+      escapeKeydownBehavior="close"
+      onEscapeKeydown={handleDialogEscape}
+      interactOutsideBehavior="ignore"
+      onInteractOutside={handleInteractOutside}
+      onOverlayClick={handleOverlayClick}
     >
       {@render children()}
     </Drawer.Content>

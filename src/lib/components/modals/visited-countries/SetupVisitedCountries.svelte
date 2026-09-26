@@ -31,6 +31,8 @@
 
 <Modal
   {open}
+  dismissal="dialog"
+  busy={loading}
   dialogOnly
   closeOnOutsideClick={false}
   closeOnEscape={false}

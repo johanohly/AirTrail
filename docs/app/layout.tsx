@@ -1,17 +1,17 @@
-import './global.css';
-import type { Metadata } from 'next';
-import { DM_Sans } from 'next/font/google';
-import type { ReactNode } from 'react';
-import { Provider } from '@/app/provider';
+import "./global.css";
+import type { Metadata } from "next";
+import { DM_Sans } from "next/font/google";
+import type { ReactNode } from "react";
+import { Provider } from "@/app/provider";
 
 const dmSans = DM_Sans({
-  subsets: ['latin'],
-  variable: '--font-dm-sans',
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
 });
 
-type Props = {
+interface Props {
   children: ReactNode;
-};
+}
 
 export default function Layout({ children }: Readonly<Props>) {
   return (
@@ -27,28 +27,28 @@ function createMetadata(override: Metadata): Metadata {
   return {
     ...override,
     openGraph: {
-      title: override.title ?? undefined,
       description: override.description ?? undefined,
-      url: 'https://airtrail.johan.ohly.dk',
-      images: '/dark.png',
-      siteName: 'AirTrail',
+      images: "/dark.png",
+      siteName: "AirTrail",
+      title: override.title ?? undefined,
+      url: "https://airtrail.johan.ohly.dk",
       ...override.openGraph,
     },
     twitter: {
-      card: 'summary_large_image',
-      title: override.title ?? undefined,
+      card: "summary_large_image",
       description: override.description ?? undefined,
-      images: '/dark.png',
+      images: "/dark.png",
+      title: override.title ?? undefined,
       ...override.twitter,
     },
   };
 }
 
 export const metadata = createMetadata({
+  description: "A modern, open-source personal flight tracking system.",
+  metadataBase: new URL("https://airtrail.johan.ohly.dk"),
   title: {
-    template: '%s | AirTrail',
-    default: 'AirTrail',
+    default: "AirTrail",
+    template: "%s | AirTrail",
   },
-  description: 'A modern, open-source personal flight tracking system.',
-  metadataBase: new URL('https://airtrail.johan.ohly.dk'),
 });

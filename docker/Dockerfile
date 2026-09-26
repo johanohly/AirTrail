@@ -38,6 +38,10 @@ RUN chmod +x /app/bin/entrypoint.sh /app/bin/airtrail-admin /app/bin/airtrail-he
 ENV PATH="${PATH}:/app/bin"
 ENV BODY_SIZE_LIMIT=20M
 
+# A named volume mounted here copies this directory's ownership when it is
+# first created; without it the volume is root-owned and uploads fail.
+RUN mkdir -p /app/uploads && chown node:node /app/uploads
+
 USER node
 EXPOSE 3000/tcp
 HEALTHCHECK --interval=5m --start-period=30s --start-interval=10s --retries=3 CMD ["airtrail-healthcheck"]

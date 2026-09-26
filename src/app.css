@@ -4,6 +4,7 @@ layer(base);
 @import 'tailwindcss';
 @import './typeset.css';
 @import 'tw-animate-css';
+@import './lib/components/ui/drawer/drawer.css';
 
 .typeset-docs {
   --typeset-font-body: var(--font-sans);

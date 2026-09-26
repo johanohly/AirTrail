@@ -5,7 +5,8 @@ import {
   type FlightTrackInput,
 } from '$lib/track/schema';
 import { omit } from '$lib/utils/other';
-import { listAllFlights, listFlights } from '$lib/server/utils/flight';
+import { listFlightsInScope } from '$lib/server/utils/flight';
+import type { ResolvedFlightScope } from '$lib/flight-scope';
 
 type CfValueRow = {
   entityId: string;
@@ -14,8 +15,21 @@ type CfValueRow = {
   value: unknown;
 };
 
-export type BackupScope = 'mine' | 'user' | 'all';
 export type BackupFormat = 'json' | 'yaml';
+
+export const referencedBackupUserIds = (
+  flights: readonly {
+    passengers: readonly { userId: string | null }[];
+  }[],
+) => [
+  ...new Set(
+    flights.flatMap((flight) =>
+      flight.passengers.flatMap((passenger) =>
+        passenger.userId ? [passenger.userId] : [],
+      ),
+    ),
+  ),
+];
 
 const collectEntityIds = (rows: CfValueRow[]) => {
   const ids = {
@@ -53,30 +67,17 @@ const buildCfByFlight = (
   return cfByFlight;
 };
 
-const getFlightsForBackup = async (scope: BackupScope, userId?: string) => {
-  if (scope === 'all') {
-    return await listAllFlights();
-  }
-
-  if (!userId) {
-    throw new Error('A userId is required for this backup scope');
-  }
-
-  return await listFlights(userId);
-};
-
-export const generateBackup = async ({
-  scope,
-  userId,
-}: {
-  scope: BackupScope;
-  userId?: string;
-}) => {
-  const users = await db
-    .selectFrom('user')
-    .select(['id', 'displayName', 'username'])
-    .execute();
-  const res = await getFlightsForBackup(scope, userId);
+export const generateBackup = async (scope: ResolvedFlightScope) => {
+  const res = await listFlightsInScope(scope);
+  const userIds = referencedBackupUserIds(res);
+  const users =
+    userIds.length === 0
+      ? []
+      : await db
+          .selectFrom('user')
+          .select(['id', 'displayName', 'username'])
+          .where('id', 'in', userIds)
+          .execute();
   const flightIds = res.map((f) => f.id);
   const passengerIds = res.flatMap((flight) =>
     flight.passengers.map((passenger) => passenger.id),
@@ -236,3 +237,30 @@ export const serializeBackup = (backup: unknown, format: BackupFormat) => {
   }
   return `${JSON.stringify(backup, null, 2)}\n`;
 };
+
+/** `json` when absent; null for a format that is not supported. */
+export const parseBackupFormat = (
+  value: string | null,
+): BackupFormat | null => {
+  if (value === null || value === 'json') return 'json';
+  if (value === 'yaml' || value === 'yml') return 'yaml';
+  return null;
+};
+
+const BACKUP_CONTENT_TYPES: Record<BackupFormat, string> = {
+  json: 'application/json; charset=utf-8',
+  yaml: 'application/yaml; charset=utf-8',
+};
+
+export const backupDownload = (
+  backup: unknown,
+  format: BackupFormat,
+  headers: Record<string, string> = {},
+) =>
+  new Response(serializeBackup(backup, format), {
+    headers: {
+      'Content-Disposition': `attachment; filename="airtrail.${format}"`,
+      'Content-Type': BACKUP_CONTENT_TYPES[format],
+      ...headers,
+    },
+  });

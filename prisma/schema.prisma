@@ -24,8 +24,10 @@ model user {
   display_name String
   password     String?
 
-  /// @kyselyType('user' | 'admin' | 'owner')
-  role String
+  role_id                String?
+  is_owner               Boolean @default(false)
+  /// @kyselyType('local' | 'oauth')
+  role_assignment_source String  @default("local")
 
   oauth_id String? @unique
 
@@ -52,6 +54,61 @@ model user {
   api_keys          api_key[]
   public_share      public_share[]
   oauth_link_token  oauth_link_token?
+  access_role       access_role?          @relation(fields: [role_id], references: [id], onDelete: Restrict)
+  oauth_authorization_requests oauth_authorization_request[]
+  oauth_grants                 oauth_grant[]
+  oauth_authorization_codes    oauth_authorization_code[]
+  oauth_access_tokens          oauth_access_token[]
+  oauth_refresh_tokens         oauth_refresh_token[]
+}
+
+model access_role {
+  id          String   @id
+  name        String
+  description String?
+  created_at  DateTime @default(now()) @db.Timestamptz
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  users                 user[]
+  permissions           access_role_permission[]
+  authorization_setting authorization_settings?
+  oauth_mappings        oauth_role_mapping[]
+}
+
+model access_role_permission {
+  role_id    String
+  permission String
+
+  role access_role @relation(fields: [role_id], references: [id], onDelete: Cascade)
+
+  @@id([role_id, permission])
+}
+
+model authorization_settings {
+  id                      Int    @id @default(1)
+  default_role_id         String @unique
+  /// @kyselyType('off' | 'on_create' | 'on_login')
+  oauth_role_mapping_mode String @default("off")
+
+  default_role access_role @relation(fields: [default_role_id], references: [id], onDelete: Restrict)
+}
+
+model oauth_role_mapping {
+  id          Int    @id @default(autoincrement())
+  priority    Int
+  name        String @default("")
+  enabled     Boolean @default(true)
+  /// @kyselyType('userinfo' | 'id_token')
+  claim_source String
+  claim_path   String
+  /// @kyselyType('equals' | 'contains')
+  operator      String
+  claim_value   String
+  role_id       String
+
+  role access_role @relation(fields: [role_id], references: [id], onDelete: Restrict)
+
+  @@index([priority])
 }
 
 model oauth_link_token {
@@ -227,8 +284,130 @@ model api_key {
   key        String
   created_at DateTime  @default(now()) @db.Timestamptz
   last_used  DateTime? @db.Timestamptz
+  scopes     String[]
 
   user user @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model oauth_client {
+  id                         String   @id
+  name                       String
+  client_secret_hash         String?
+  token_endpoint_auth_method String   @default("none")
+  created_at                 DateTime @default(now()) @db.Timestamptz
+
+  redirect_uris          oauth_client_redirect_uri[]
+  authorization_requests oauth_authorization_request[]
+  grants                 oauth_grant[]
+  authorization_codes    oauth_authorization_code[]
+  access_tokens          oauth_access_token[]
+  refresh_tokens         oauth_refresh_token[]
+}
+
+model oauth_client_redirect_uri {
+  client_id    String
+  redirect_uri String
+
+  client oauth_client @relation(fields: [client_id], references: [id], onDelete: Cascade)
+
+  @@id([client_id, redirect_uri])
+}
+
+model oauth_authorization_request {
+  id             String   @id
+  client_id      String
+  user_id        String?
+  redirect_uri   String
+  scopes         String[]
+  resource       String
+  state          String?
+  code_challenge String
+  expires_at     DateTime @db.Timestamptz
+  created_at     DateTime @default(now()) @db.Timestamptz
+
+  client oauth_client @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  user   user?        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([expires_at])
+}
+
+model oauth_grant {
+  id         String   @id
+  client_id  String
+  user_id    String
+  resource   String
+  scopes     String[]
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  client              oauth_client               @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  user                user                       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  authorization_codes oauth_authorization_code[]
+  access_tokens       oauth_access_token[]
+  refresh_tokens      oauth_refresh_token[]
+
+  @@unique([client_id, user_id, resource])
+}
+
+model oauth_authorization_code {
+  code_hash     String    @id
+  client_id     String
+  user_id       String
+  grant_id      String
+  redirect_uri  String
+  scopes        String[]
+  resource      String
+  code_challenge String
+  expires_at    DateTime  @db.Timestamptz
+  used_at       DateTime? @db.Timestamptz
+  created_at    DateTime  @default(now()) @db.Timestamptz
+
+  client oauth_client @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  user   user         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  grant  oauth_grant  @relation(fields: [grant_id], references: [id], onDelete: Cascade)
+
+  @@index([expires_at])
+}
+
+model oauth_access_token {
+  token_hash        String    @id
+  client_id         String
+  user_id           String
+  grant_id          String
+  refresh_family_id String?
+  scopes            String[]
+  resource          String
+  expires_at        DateTime  @db.Timestamptz
+  revoked_at        DateTime? @db.Timestamptz
+  created_at        DateTime  @default(now()) @db.Timestamptz
+
+  client oauth_client @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  user   user         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  grant  oauth_grant  @relation(fields: [grant_id], references: [id], onDelete: Cascade)
+
+  @@index([expires_at])
+  @@index([refresh_family_id])
+}
+
+model oauth_refresh_token {
+  token_hash String    @id
+  client_id  String
+  user_id    String
+  grant_id   String
+  family_id  String
+  scopes     String[]
+  resource   String
+  expires_at DateTime  @db.Timestamptz
+  used_at    DateTime? @db.Timestamptz
+  revoked_at DateTime? @db.Timestamptz
+  created_at DateTime  @default(now()) @db.Timestamptz
+
+  client oauth_client @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  user   user         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  grant  oauth_grant  @relation(fields: [grant_id], references: [id], onDelete: Cascade)
+
+  @@index([family_id])
+  @@index([expires_at])
 }
 
 model public_share {

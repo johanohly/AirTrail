@@ -41,7 +41,7 @@
       },
     },
   );
-  const { enhance } = form;
+  const { enhance, submitting, tainted } = form;
 </script>
 
 {#if !withoutTrigger}
@@ -51,7 +51,13 @@
   </Button>
 {/if}
 
-<Modal bind:open>
+<Modal
+  bind:open
+  dismissal="form"
+  dirty={form.isTainted($tainted)}
+  busy={$submitting}
+  onDiscard={() => form.reset()}
+>
   <ModalBreadcrumbHeader section="Aircraft" title="Add aircraft" icon={Plus} />
   <ModalBody>
     <form

@@ -6,6 +6,7 @@
   import type { ImportFailure } from './';
 
   import { page } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
   import AircraftPicker from '$lib/components/form-fields/AircraftPicker.svelte';
   import AirlinePicker from '$lib/components/form-fields/AirlinePicker.svelte';
   import AirportPicker from '$lib/components/form-fields/AirportPicker.svelte';
@@ -101,7 +102,15 @@
       .join(' • ');
   });
 
-  const isAdmin = $derived(page.data.user?.role !== 'user');
+  const canCreateAirport = $derived(
+    hasClientPermission(page.data.authorization, 'data.airports.manage'),
+  );
+  const canCreateAirline = $derived(
+    hasClientPermission(page.data.authorization, 'data.airlines.manage'),
+  );
+  const canCreateAircraft = $derived(
+    hasClientPermission(page.data.authorization, 'data.aircraft.manage'),
+  );
 
   let createAirport = $state(false);
   let createAirline = $state(false);
@@ -253,7 +262,9 @@
               <AirportPicker
                 placeholder="Search for airport..."
                 onchange={(airport) => setAirportMapping(code, airport)}
-                onCreateNew={isAdmin ? () => (createAirport = true) : undefined}
+                onCreateNew={canCreateAirport
+                  ? () => (createAirport = true)
+                  : undefined}
                 disabled={busy}
                 compact
               />
@@ -269,7 +280,9 @@
               <AirlinePicker
                 placeholder="Search for airline..."
                 onchange={(airline) => setAirlineMapping(code, airline)}
-                onCreateNew={isAdmin ? () => (createAirline = true) : undefined}
+                onCreateNew={canCreateAirline
+                  ? () => (createAirline = true)
+                  : undefined}
                 disabled={busy}
                 compact
               />
@@ -286,7 +299,7 @@
               <AircraftPicker
                 placeholder="Search for aircraft..."
                 onchange={(aircraft) => setAircraftMapping(code, aircraft)}
-                onCreateNew={isAdmin
+                onCreateNew={canCreateAircraft
                   ? () => (createAircraft = true)
                   : undefined}
                 disabled={busy}
@@ -334,8 +347,12 @@
   </Card>
 </div>
 
-{#if isAdmin}
+{#if canCreateAirport}
   <CreateAirport bind:open={createAirport} withoutTrigger />
+{/if}
+{#if canCreateAirline}
   <CreateAirline bind:open={createAirline} withoutTrigger />
+{/if}
+{#if canCreateAircraft}
   <CreateAircraft bind:open={createAircraft} withoutTrigger />
 {/if}

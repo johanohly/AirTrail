@@ -45,15 +45,23 @@
 
   let editing = $state<EditingState | null>(null);
   let autoKey = $state(false);
+  let initialEditingKey = $state('');
+  let saving = $state(false);
+
+  const dirty = $derived(
+    editing !== null && JSON.stringify(editing) !== initialEditingKey,
+  );
 
   export function openCreate() {
     editing = createBlankEditing(definitionCount);
+    initialEditingKey = JSON.stringify(editing);
     autoKey = true;
     open = true;
   }
 
   export function openEdit(item: DefinitionItem) {
     editing = itemToEditing(item);
+    initialEditingKey = JSON.stringify(editing);
     autoKey = false;
     open = true;
   }
@@ -96,7 +104,7 @@
   };
 
   const save = async () => {
-    if (!editing) return;
+    if (!editing || saving) return;
 
     let payload: ReturnType<typeof buildPayload>;
     try {
@@ -112,6 +120,7 @@
       return;
     }
 
+    saving = true;
     try {
       if (editing.id) {
         await api.customField.updateDefinition.mutate({
@@ -128,6 +137,8 @@
     } catch (e) {
       toast.error('Failed to save custom field');
       console.error(e);
+    } finally {
+      saving = false;
     }
   };
 
@@ -138,7 +149,17 @@
   });
 </script>
 
-<Modal bind:open class="max-w-lg" closeOnOutsideClick={false}>
+<Modal
+  bind:open
+  dismissal="form"
+  {dirty}
+  busy={saving}
+  onDiscard={() => {
+    editing = null;
+    autoKey = false;
+  }}
+  class="max-w-lg"
+>
   {#if editing}
     <ModalBreadcrumbHeader
       section="Custom fields"
@@ -342,8 +363,10 @@
         </div>
 
         <div class="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onclick={close}>Cancel</Button>
-          <Button onclick={save}>Save</Button>
+          <Button variant="outline" disabled={saving} onclick={close}
+            >Cancel</Button
+          >
+          <Button loading={saving} onclick={save}>Save</Button>
         </div>
       </div>
     </ModalBody>

@@ -69,6 +69,14 @@ const passengerIdentity = (passenger: {
     ? `user:${passenger.userId}`
     : `guest:${passenger.guestName}`;
 
+/** A submitted passenger list that cannot be matched to the stored one. */
+export class PassengerResolutionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'PassengerResolutionError';
+  }
+}
+
 export const resolveFlightPassengerChanges = (
   existingPassengers: ExistingPassengerIdentity[],
   incomingPassengers: CreateFlightPassenger[],
@@ -88,10 +96,14 @@ export const resolveFlightPassengerChanges = (
       ? byId.get(passenger.id)
       : byIdentity.get(passengerIdentity(passenger));
     if (passenger.id && !existing) {
-      throw new Error('Passenger does not belong to this flight');
+      throw new PassengerResolutionError(
+        'Passenger does not belong to this flight',
+      );
     }
     if (existing && retainedIds.has(existing.id)) {
-      throw new Error('Passenger record appears more than once');
+      throw new PassengerResolutionError(
+        'Passenger record appears more than once',
+      );
     }
     if (existing) retainedIds.add(existing.id);
     return { passenger, existing };

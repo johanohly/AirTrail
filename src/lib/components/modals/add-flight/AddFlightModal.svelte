@@ -5,6 +5,7 @@
   import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
   import { page } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
   import {
     FlightCustomFieldsModal,
     FlightForm,
@@ -31,6 +32,7 @@
       entityType: 'flight_passenger',
     });
   let customFieldValues = $state<Record<number, unknown>>({});
+  let customFieldsDirty = $state(false);
   let customFieldsModal = $state<ReturnType<typeof FlightCustomFieldsModal>>();
   let flightForm = $state<ReturnType<typeof FlightForm>>();
 
@@ -70,6 +72,7 @@
             trpc.flightTrack.list.utils.invalidate();
             open = false;
             customFieldValues = {};
+            customFieldsDirty = false;
             flightAddedState.added = true;
             return void toast.success(form.message.text);
           }
@@ -78,7 +81,7 @@
       },
     },
   );
-  const { form: formData, enhance, submitting } = form;
+  const { form: formData, enhance, submitting, tainted } = form;
 
   $effect(() => {
     const userId = page.data.user?.id;
@@ -87,12 +90,31 @@
       $formData.passengers[0] &&
       $formData.passengers[0].userId === '<USER_ID>'
     ) {
-      $formData.passengers[0].userId = userId;
+      formData.update(
+        (current) => ({
+          ...current,
+          passengers: current.passengers.map((passenger, index) =>
+            index === 0 ? { ...passenger, userId } : passenger,
+          ),
+        }),
+        { taint: 'untaint' },
+      );
     }
   });
 </script>
 
-<Modal bind:open closeOnOutsideClick={false} class="max-w-screen-lg">
+<Modal
+  bind:open
+  dismissal="form"
+  dirty={form.isTainted($tainted) || customFieldsDirty}
+  busy={$submitting}
+  onDiscard={() => {
+    form.reset();
+    customFieldValues = {};
+    customFieldsDirty = false;
+  }}
+  class="max-w-screen-lg"
+>
   <ModalBreadcrumbHeader section="Flights" title="New flight" icon={Globe} />
   <form method="POST" action="/api/flight/save/form" use:enhance>
     <FlightForm
@@ -110,7 +132,11 @@
             bind:this={customFieldsModal}
             definitions={$customFieldDefinitions.data ?? []}
             bind:values={customFieldValues}
-            onOpenSettings={page.data.user?.role !== 'user'
+            bind:dirty={customFieldsDirty}
+            onOpenSettings={hasClientPermission(
+              page.data.authorization,
+              'custom_fields.manage',
+            )
               ? () => {
                   open = false;
                   // Wait for both popstates (custom fields modal + this modal)

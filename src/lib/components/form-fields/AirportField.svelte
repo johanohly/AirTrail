@@ -3,6 +3,7 @@
   import { z } from 'zod';
 
   import { page } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
 
   import AirportPicker from './AirportPicker.svelte';
 
@@ -20,7 +21,9 @@
   } = $props();
   const { form: formData } = form;
 
-  const isAdmin = $derived(page.data.user?.role !== 'user');
+  const isAdmin = $derived(
+    hasClientPermission(page.data.authorization, 'data.airports.manage'),
+  );
 
   let createAirport = $state(false);
 </script>

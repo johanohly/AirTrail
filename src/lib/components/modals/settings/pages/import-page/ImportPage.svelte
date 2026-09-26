@@ -13,6 +13,7 @@
   import type { ImportFailure } from './';
 
   import { page } from '$app/state';
+  import { canRestoreAllFlights } from '$lib/authorization/permissions';
   import * as Alert from '$lib/components/ui/alert';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
@@ -68,9 +69,7 @@
   const importMode = $derived<'personal' | 'restore'>(
     platform.value === 'airtrail' && restoreMode ? 'restore' : 'personal',
   );
-  const canRestore = $derived(
-    !!page.data.user && page.data.user.role !== 'user',
-  );
+  const canRestore = $derived(canRestoreAllFlights(page.data.authorization));
 
   const steps = $derived(
     platform.value === 'airtrail'

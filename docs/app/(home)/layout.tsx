@@ -1,12 +1,12 @@
-import { HomeLayout } from 'fumadocs-ui/layouts/home';
-import type React from 'react';
-import type { ReactNode } from 'react';
+import { HomeLayout } from "fumadocs-ui/layouts/home";
+import type React from "react";
+import type { ReactNode } from "react";
 
-import { getBaseOptions } from '@/app/layout.config';
+import { getBaseOptions } from "@/app/layout.config";
 
-type Props = {
+interface Props {
   children: ReactNode;
-};
+}
 
 export default async function Layout({
   children,

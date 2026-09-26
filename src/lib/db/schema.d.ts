@@ -4,6 +4,17 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   : ColumnType<T, T | undefined, T>;
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export type access_role = {
+    id: string;
+    name: string;
+    description: string | null;
+    createdAt: Generated<Timestamp>;
+    updatedAt: Generated<Timestamp>;
+};
+export type access_role_permission = {
+    roleId: string;
+    permission: string;
+};
 export type aircraft = {
     id: Generated<number>;
     /**
@@ -48,10 +59,19 @@ export type api_key = {
     key: string;
     createdAt: Generated<Timestamp>;
     lastUsed: Timestamp | null;
+    scopes: string[];
 };
 export type app_config = {
     id: Generated<number>;
     config: Generated<unknown>;
+};
+export type authorization_settings = {
+    id: Generated<number>;
+    defaultRoleId: string;
+    /**
+     * @kyselyType('off' | 'on_create' | 'on_login')
+     */
+    oauthRoleMappingMode: Generated<'off' | 'on_create' | 'on_login'>;
 };
 export type custom_field_definition = {
     id: Generated<number>;
@@ -173,6 +193,63 @@ export type flight_track = {
     createdAt: Generated<Timestamp>;
     updatedAt: Generated<Timestamp>;
 };
+export type oauth_access_token = {
+    tokenHash: string;
+    clientId: string;
+    userId: string;
+    grantId: string;
+    refreshFamilyId: string | null;
+    scopes: string[];
+    resource: string;
+    expiresAt: Timestamp;
+    revokedAt: Timestamp | null;
+    createdAt: Generated<Timestamp>;
+};
+export type oauth_authorization_code = {
+    codeHash: string;
+    clientId: string;
+    userId: string;
+    grantId: string;
+    redirectUri: string;
+    scopes: string[];
+    resource: string;
+    codeChallenge: string;
+    expiresAt: Timestamp;
+    usedAt: Timestamp | null;
+    createdAt: Generated<Timestamp>;
+};
+export type oauth_authorization_request = {
+    id: string;
+    clientId: string;
+    userId: string | null;
+    redirectUri: string;
+    scopes: string[];
+    resource: string;
+    state: string | null;
+    codeChallenge: string;
+    expiresAt: Timestamp;
+    createdAt: Generated<Timestamp>;
+};
+export type oauth_client = {
+    id: string;
+    name: string;
+    clientSecretHash: string | null;
+    tokenEndpointAuthMethod: Generated<string>;
+    createdAt: Generated<Timestamp>;
+};
+export type oauth_client_redirect_uri = {
+    clientId: string;
+    redirectUri: string;
+};
+export type oauth_grant = {
+    id: string;
+    clientId: string;
+    userId: string;
+    resource: string;
+    scopes: string[];
+    createdAt: Generated<Timestamp>;
+    updatedAt: Generated<Timestamp>;
+};
 export type oauth_link_token = {
     id: string;
     token: string;
@@ -180,6 +257,36 @@ export type oauth_link_token = {
     oauthSub: string;
     expiresAt: Timestamp;
     createdAt: Generated<Timestamp>;
+};
+export type oauth_refresh_token = {
+    tokenHash: string;
+    clientId: string;
+    userId: string;
+    grantId: string;
+    familyId: string;
+    scopes: string[];
+    resource: string;
+    expiresAt: Timestamp;
+    usedAt: Timestamp | null;
+    revokedAt: Timestamp | null;
+    createdAt: Generated<Timestamp>;
+};
+export type oauth_role_mapping = {
+    id: Generated<number>;
+    priority: number;
+    name: Generated<string>;
+    enabled: Generated<boolean>;
+    /**
+     * @kyselyType('userinfo' | 'id_token')
+     */
+    claimSource: 'userinfo' | 'id_token';
+    claimPath: string;
+    /**
+     * @kyselyType('equals' | 'contains')
+     */
+    operator: 'equals' | 'contains';
+    claimValue: string;
+    roleId: string;
 };
 export type public_share = {
     id: Generated<number>;
@@ -210,10 +317,12 @@ export type user = {
     username: string;
     displayName: string;
     password: string | null;
+    roleId: string | null;
+    isOwner: Generated<boolean>;
     /**
-     * @kyselyType('user' | 'admin' | 'owner')
+     * @kyselyType('local' | 'oauth')
      */
-    role: 'user' | 'admin' | 'owner';
+    roleAssignmentSource: Generated<'local' | 'oauth'>;
     oauthId: string | null;
     /**
      * @kyselyType('km' | 'mi' | 'nm')
@@ -262,17 +371,28 @@ export type visited_country = {
     userId: string;
 };
 export type DB = {
+    accessRole: access_role;
+    accessRolePermission: access_role_permission;
     aircraft: aircraft;
     airline: airline;
     airport: airport;
     apiKey: api_key;
     appConfig: app_config;
+    authorizationSettings: authorization_settings;
     customFieldDefinition: custom_field_definition;
     customFieldValue: custom_field_value;
     flight: flight;
     flightPassenger: flight_passenger;
     flightTrack: flight_track;
+    oauthAccessToken: oauth_access_token;
+    oauthAuthorizationCode: oauth_authorization_code;
+    oauthAuthorizationRequest: oauth_authorization_request;
+    oauthClient: oauth_client;
+    oauthClientRedirectUri: oauth_client_redirect_uri;
+    oauthGrant: oauth_grant;
     oauthLinkToken: oauth_link_token;
+    oauthRefreshToken: oauth_refresh_token;
+    oauthRoleMapping: oauth_role_mapping;
     publicShare: public_share;
     session: session;
     user: user;

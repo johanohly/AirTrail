@@ -3,6 +3,7 @@ import {
   type Route,
 } from '$lib/components/flight-filters/types';
 import type { ClientAppConfig, FullAppConfig } from '$lib/server/utils/config';
+import { DEFAULT_FLIGHT_SCOPE, type FlightScope } from '$lib/flight-scope';
 import type { DeepBoolean } from '$lib/utils';
 
 export const flightAddedState = $state({
@@ -109,19 +110,14 @@ export const appConfig = $state<{
   envConfigured: null,
 });
 
-export type FlightScope = 'mine' | 'user' | 'all';
-
 export const flightScopeState = $state<{
-  scope: FlightScope;
-  userId: string | undefined;
+  current: FlightScope;
 }>({
-  scope: 'mine',
-  userId: undefined,
+  current: DEFAULT_FLIGHT_SCOPE,
 });
 
-export const setFlightScope = (scope: FlightScope, userId?: string) => {
-  flightScopeState.scope = scope;
-  flightScopeState.userId = userId;
+export const setFlightScope = (scope: FlightScope) => {
+  flightScopeState.current = scope;
 };
 
 export const versionState = $state<{

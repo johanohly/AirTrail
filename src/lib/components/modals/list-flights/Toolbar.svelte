@@ -11,6 +11,8 @@
   import { toast } from 'svelte-sonner';
 
   import { page as pageState } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
+  import type { FlightScope } from '$lib/flight-scope';
 
   import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
   import {
@@ -26,11 +28,7 @@
   import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import * as Select from '$lib/components/ui/select';
-  import {
-    flightScopeState,
-    setFlightScope,
-    type FlightScope,
-  } from '$lib/state.svelte';
+  import { flightScopeState, setFlightScope } from '$lib/state.svelte';
   import { api, trpc } from '$lib/trpc';
   import type { FlightData } from '$lib/utils';
 
@@ -47,6 +45,7 @@
     selectedFlights = $bindable(),
     hasTempFilters = false,
     onAddFlight,
+    canSelect = true,
     modalOpen = true,
   }: {
     flights: FlightData[];
@@ -61,11 +60,19 @@
     selectedFlights: number[];
     hasTempFilters?: boolean;
     onAddFlight?: () => void;
+    canSelect?: boolean;
     modalOpen?: boolean;
   } = $props();
 
   const users = $derived(pageState.data.users);
-  const isAdmin = $derived(pageState.data.user?.role !== 'user');
+  const selectedUserId = $derived(
+    flightScopeState.current.scope === 'user'
+      ? flightScopeState.current.userId
+      : undefined,
+  );
+  const isAdmin = $derived(
+    hasClientPermission(pageState.data.authorization, 'flight.read.any'),
+  );
 
   const modalCtx = getModalContext();
   const toolbarStyle = $derived.by(() => {
@@ -73,20 +80,26 @@
     return z !== undefined ? `z-index: ${z + 1};` : undefined;
   });
 
-  const updateScope = (scope: FlightScope) => {
-    setFlightScope(
-      scope,
-      scope === 'user' ? (flightScopeState.userId ?? users[0]?.id) : undefined,
-    );
+  const updateScope = (scope: FlightScope['scope']) => {
+    const userId =
+      flightScopeState.current.scope === 'user'
+        ? flightScopeState.current.userId
+        : users[0]?.id;
+    if (scope === 'user') {
+      if (!userId) return;
+      setFlightScope({ scope, userId });
+    } else {
+      setFlightScope({ scope });
+    }
     selecting = false;
     selectedFlights = [];
     page = 1;
   };
 
   const scopeLabel = $derived.by(() => {
-    if (flightScopeState.scope === 'all') return 'Everyone';
-    if (flightScopeState.scope === 'user') {
-      const scopedUser = users.find((u) => u.id === flightScopeState.userId);
+    if (flightScopeState.current.scope === 'all') return 'Everyone';
+    if (flightScopeState.current.scope === 'user') {
+      const scopedUser = users.find((u) => u.id === selectedUserId);
       return scopedUser ? scopedUser.displayName : 'One user';
     }
     return 'Mine';
@@ -145,7 +158,7 @@
   <div
     class={`flex flex-none items-center gap-2 justify-self-end ${selecting ? 'pointer-events-none opacity-0' : ''}`}
   >
-    {#if isAdmin && users.length > 0}
+    {#if isAdmin}
       <Popover.Root>
         <Popover.Trigger>
           {#snippet child({ props })}
@@ -159,9 +172,13 @@
             <p class="text-sm font-medium">Flight visibility</p>
           </div>
           <RadioGroup.Root
-            value={flightScopeState.scope}
-            onValueChange={(value) => updateScope(value as FlightScope)}
-            class="grid grid-cols-3 gap-2"
+            value={flightScopeState.current.scope}
+            onValueChange={(value) => {
+              if (value === 'mine' || value === 'user' || value === 'all') {
+                updateScope(value);
+              }
+            }}
+            class={`grid gap-2 ${users.length > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}
           >
             <Label
               class="cursor-pointer rounded-md border-2 bg-background px-3 py-2 text-center text-sm font-medium [&:has([data-state=checked])]:border-primary"
@@ -169,12 +186,14 @@
               <RadioGroup.Item value="mine" class="sr-only" />
               Mine
             </Label>
-            <Label
-              class="cursor-pointer rounded-md border-2 bg-background px-3 py-2 text-center text-sm font-medium [&:has([data-state=checked])]:border-primary"
-            >
-              <RadioGroup.Item value="user" class="sr-only" />
-              User
-            </Label>
+            {#if users.length > 0}
+              <Label
+                class="cursor-pointer rounded-md border-2 bg-background px-3 py-2 text-center text-sm font-medium [&:has([data-state=checked])]:border-primary"
+              >
+                <RadioGroup.Item value="user" class="sr-only" />
+                User
+              </Label>
+            {/if}
             <Label
               class="cursor-pointer rounded-md border-2 bg-background px-3 py-2 text-center text-sm font-medium [&:has([data-state=checked])]:border-primary"
             >
@@ -183,17 +202,19 @@
             </Label>
           </RadioGroup.Root>
 
-          {#if flightScopeState.scope === 'user'}
+          {#if flightScopeState.current.scope === 'user' && users.length > 0}
             <div class="space-y-2">
               <p class="text-xs font-medium text-muted-foreground">User</p>
               <Select.Root
                 type="single"
-                value={flightScopeState.userId}
-                onValueChange={(value) => setFlightScope('user', value)}
+                value={flightScopeState.current.userId}
+                onValueChange={(value) => {
+                  if (value) setFlightScope({ scope: 'user', userId: value });
+                }}
               >
                 <Select.Trigger>
-                  {users.find((u) => u.id === flightScopeState.userId)
-                    ?.displayName ?? 'Select a user'}
+                  {users.find((u) => u.id === selectedUserId)?.displayName ??
+                    'Select a user'}
                 </Select.Trigger>
                 <Select.Content>
                   {#each users as user (user.id)}
@@ -206,19 +227,21 @@
         </Popover.Content>
       </Popover.Root>
     {/if}
-    <Button
-      onclick={() => {
-        selecting = true;
-        selectedFlights = [];
-      }}
-      disabled={flights.length === 0}
-      class="hidden gap-2 sm:inline-flex"
-      variant="outline"
-      size="sm"
-    >
-      <SquareDashedMousePointer size={16} />
-      Select
-    </Button>
+    {#if canSelect}
+      <Button
+        onclick={() => {
+          selecting = true;
+          selectedFlights = [];
+        }}
+        disabled={flights.length === 0}
+        class="hidden gap-2 sm:inline-flex"
+        variant="outline"
+        size="sm"
+      >
+        <SquareDashedMousePointer size={16} />
+        Select
+      </Button>
+    {/if}
   </div>
 </div>
 
@@ -297,19 +320,21 @@
                       Add flight
                     </Button>
                   {/if}
-                  <Button
-                    onclick={() => {
-                      selecting = true;
-                      selectedFlights = [];
-                    }}
-                    disabled={flights.length === 0}
-                    class="gap-2 px-3.5"
-                    variant="outline"
-                    size="sm"
-                  >
-                    <SquareDashedMousePointer size={16} />
-                    Select
-                  </Button>
+                  {#if canSelect}
+                    <Button
+                      onclick={() => {
+                        selecting = true;
+                        selectedFlights = [];
+                      }}
+                      disabled={flights.length === 0}
+                      class="gap-2 px-3.5"
+                      variant="outline"
+                      size="sm"
+                    >
+                      <SquareDashedMousePointer size={16} />
+                      Select
+                    </Button>
+                  {/if}
                 </div>
               </div>
 

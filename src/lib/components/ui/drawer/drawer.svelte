@@ -1,48 +1,79 @@
 <script lang="ts" module>
   import { getContext, setContext } from 'svelte';
 
-  const DrawerContextKey = Symbol('DrawerContext');
+  import type {
+    DrawerDismissAttempt,
+    DrawerParentContext,
+  } from './internal.svelte';
 
-  export type DrawerContext = {
-    lockDismiss: () => void;
-    unlockDismiss: () => void;
-  };
+  const DrawerParentKey = Symbol('DrawerParent');
+  const DrawerStateKey = Symbol('DrawerState');
 
-  export const getDrawerContext = () =>
-    getContext<DrawerContext | undefined>(DrawerContextKey);
+  export const getDrawerState = () =>
+    getContext<DrawerRootState>(DrawerStateKey);
+
+  const getParentDrawer = () =>
+    getContext<DrawerParentContext | undefined>(DrawerParentKey);
 </script>
 
 <script lang="ts">
-  import {
-    Drawer as DrawerPrimitive,
-    type ParentDrawerState,
-  } from '@johly/vaul-svelte';
+  import { Dialog as DialogPrimitive } from 'bits-ui';
+  import type { Snippet } from 'svelte';
+
+  import { DrawerRootState, type SnapPoint } from './internal.svelte';
 
   let {
-    shouldScaleBackground = true,
     open = $bindable(false),
     activeSnapPoint = $bindable(null),
-    drawerState = $bindable<ParentDrawerState>(),
-    ...restProps
-  }: DrawerPrimitive.RootProps = $props();
+    snapPoints,
+    modal = true,
+    dismissible = true,
+    beforeDismiss = (_attempt: DrawerDismissAttempt) => true,
+    shouldScaleBackground = true,
+    children,
+  }: {
+    open?: boolean;
+    activeSnapPoint?: SnapPoint | null;
+    snapPoints?: SnapPoint[];
+    modal?: boolean;
+    dismissible?: boolean;
+    beforeDismiss?: (
+      attempt: DrawerDismissAttempt,
+    ) => boolean | Promise<boolean>;
+    shouldScaleBackground?: boolean;
+    children?: Snippet;
+  } = $props();
 
-  let dismissLocked = $state(false);
+  // Read the parent before registering ourselves so nesting chains correctly.
+  const parent = getParentDrawer() ?? null;
 
-  setContext(DrawerContextKey, {
-    lockDismiss: () => {
-      dismissLocked = true;
+  const state = new DrawerRootState(
+    {
+      open: () => open,
+      setOpen: (o) => (open = o),
+      beforeDismiss: (attempt) => beforeDismiss(attempt),
+      modal: () => modal,
+      dismissible: () => dismissible,
+      snapPoints: () => snapPoints,
+      activeSnapPoint: () => activeSnapPoint,
+      setActiveSnapPoint: (point) => (activeSnapPoint = point),
+      shouldScaleBackground: () => shouldScaleBackground,
     },
-    unlockDismiss: () => {
-      dismissLocked = false;
-    },
-  } satisfies DrawerContext);
+    parent,
+  );
+
+  setContext(DrawerStateKey, state);
+  setContext(DrawerParentKey, state.parentContext);
 </script>
 
-<DrawerPrimitive.Root
-  {shouldScaleBackground}
-  bind:open
-  bind:activeSnapPoint
-  {drawerState}
-  dismissible={!dismissLocked}
-  {...restProps}
-/>
+<DialogPrimitive.Root
+  bind:open={
+    () => open,
+    (o) => {
+      if (!o && !dismissible) return;
+      open = o;
+    }
+  }
+>
+  {@render children?.()}
+</DialogPrimitive.Root>

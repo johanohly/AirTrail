@@ -118,7 +118,12 @@
   </div>
 </Collapsible>
 
-<Modal bind:open={syncDialogOpen} class="max-w-md">
+<Modal
+  bind:open={syncDialogOpen}
+  dismissal="dialog"
+  busy={syncing}
+  class="max-w-md"
+>
   <div class="flex flex-col gap-1.5">
     <h2 class="text-lg font-semibold">Sync Aircraft</h2>
     <p class="text-sm text-muted-foreground">

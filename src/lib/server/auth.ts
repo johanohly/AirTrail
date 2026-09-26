@@ -22,7 +22,12 @@ export const lucia = new Lucia(adapter, {
       username: db.username,
       // @ts-expect-error - Lucia establishes its own connection so the camel case translation layer does not get applied here
       displayName: db.display_name,
-      role: db.role,
+      // @ts-expect-error - Lucia reads snake_case columns without Kysely's mapper
+      roleId: db.role_id,
+      // @ts-expect-error - Same as above
+      isOwner: db.is_owner,
+      // @ts-expect-error - Same as above
+      roleAssignmentSource: db.role_assignment_source,
       // @ts-expect-error - Same as above
       oauthId: db.oauth_id,
       // @ts-expect-error - Same as above

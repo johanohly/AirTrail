@@ -11,7 +11,11 @@ import type {
   visited_country,
 } from '$lib/db/schema';
 import type { FlightTrackInput } from '$lib/track/schema';
-import type { Insertable, Selectable } from 'kysely';
+import type { Insertable, Kysely, Selectable, Transaction } from 'kysely';
+import type { DB } from '$lib/db/schema';
+
+/** Either a pooled connection or an open transaction. */
+export type DatabaseConnection = Kysely<DB> | Transaction<DB>;
 
 export type FullUser = Selectable<user>;
 export type User = Omit<FullUser, 'password'>;
@@ -19,7 +23,9 @@ export const publicUserFields = [
   'id',
   'username',
   'displayName',
-  'role',
+  'roleId',
+  'isOwner',
+  'roleAssignmentSource',
   'distanceUnit',
   'windSpeedUnit',
   'temperatureUnit',
@@ -29,7 +35,10 @@ export const publicUserFields = [
   'weekStartsOn',
   'flightTimeDisplay',
 ] as const satisfies readonly (keyof User)[];
-export type PublicUser = Pick<User, (typeof publicUserFields)[number]>;
+export type PublicUser = Pick<User, (typeof publicUserFields)[number]> & {
+  roleName: string | null;
+};
+export type DirectoryUser = PublicUser & { canManage: boolean };
 export type PageUser = PublicUser & { hasOAuthLinked: boolean };
 export type ApiKey = Omit<Selectable<api_key>, 'key' | 'userId'>;
 export type Aircraft = Selectable<aircraft>;

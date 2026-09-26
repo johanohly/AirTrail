@@ -3,97 +3,103 @@ import type { RequestHandler } from './$types';
 import {
   getArcgisWorldImageryStyle,
   normalizeMapBasemap,
+  normalizeMapTheme,
 } from '$lib/map/basemap';
+import { buildAirportStyle } from '$lib/map/airport-style';
 import {
-  getCartoBasemapStyleUrl,
-  getCartoFallbackBasemapStyle,
-  normalizeCartoTheme,
-} from '$lib/map/carto';
-import { buildPmtilesAirportStyle } from '$lib/map/airport-style';
-
-const BASE_STYLE_TTL_MS = 60 * 60 * 1000;
-
-type CachedBaseStyle = {
-  value: Record<string, unknown>;
-  expiresAt: number;
-};
-
-const baseStyleCache = new Map<string, CachedBaseStyle>();
-const baseStyleRequests = new Map<string, Promise<Record<string, unknown>>>();
-
-const fetchBaseStyle = async (fetchFn: typeof fetch, url: string) => {
-  const now = Date.now();
-  const cached = baseStyleCache.get(url);
-  if (cached && cached.expiresAt > now) {
-    return cached.value;
-  }
-
-  const inFlight = baseStyleRequests.get(url);
-  if (inFlight) {
-    return inFlight;
-  }
-
-  const request = (async () => {
-    const response = await fetchFn(url);
-    if (!response.ok) {
-      throw new Response(null, {
-        status: response.status,
-        statusText: response.statusText,
-      });
-    }
-
-    const value = (await response.json()) as Record<string, unknown>;
-    baseStyleCache.set(url, {
-      value,
-      expiresAt: Date.now() + BASE_STYLE_TTL_MS,
-    });
-
-    return value;
-  })();
-
-  baseStyleRequests.set(url, request);
-
-  try {
-    return await request;
-  } finally {
-    baseStyleRequests.delete(url);
-  }
-};
+  getLocalFallbackStyle,
+  loadProviderStyle,
+} from '$lib/server/map/basemap-style';
+import { appConfig } from '$lib/server/utils/config';
 
 export const GET: RequestHandler = async ({ fetch, url }) => {
-  const theme = normalizeCartoTheme(url.searchParams.get('theme') ?? 'light');
+  const theme = normalizeMapTheme(url.searchParams.get('theme'));
   const basemap = normalizeMapBasemap(url.searchParams.get('basemap'));
 
-  try {
-    if (basemap === 'satellite') {
-      return Response.json(getArcgisWorldImageryStyle(), {
-        headers: {
-          'cache-control': 'public, max-age=300, stale-while-revalidate=3600',
-        },
-      });
-    }
-
-    const baseStyleUrl = getCartoBasemapStyleUrl(theme);
-    let baseStyle: Record<string, unknown>;
-
-    try {
-      baseStyle = await fetchBaseStyle(fetch, baseStyleUrl);
-    } catch {
-      baseStyle = getCartoFallbackBasemapStyle(theme);
-    }
-
-    const style = buildPmtilesAirportStyle(baseStyle, theme);
-
-    return Response.json(style, {
+  if (basemap === 'satellite') {
+    return Response.json(getArcgisWorldImageryStyle(), {
       headers: {
-        'cache-control': 'public, max-age=300, stale-while-revalidate=3600',
+        'cache-control': 'private, max-age=300, stale-while-revalidate=3600',
+        'x-airtrail-basemap-provider': 'arcgis',
       },
     });
-  } catch (error) {
-    if (error instanceof Response) {
-      return error;
-    }
-
-    throw error;
   }
+
+  const config = (await appConfig.get())?.map;
+  if (!config) {
+    return Response.json(
+      { message: 'Map configuration is unavailable.' },
+      { status: 503 },
+    );
+  }
+
+  let provider = config.provider;
+  let fallbackProvider: string | null = null;
+  let resolved: Awaited<ReturnType<typeof loadProviderStyle>>;
+
+  try {
+    resolved = await loadProviderStyle({
+      config,
+      fetchFn: fetch,
+      requestOrigin: url.origin,
+      theme,
+    });
+  } catch (error) {
+    console.warn('Configured basemap provider failed', {
+      provider,
+      reason: error instanceof Error ? error.name : 'UnknownError',
+    });
+
+    if (provider !== 'openfreemap') {
+      try {
+        fallbackProvider = 'openfreemap';
+        resolved = await loadProviderStyle({
+          config,
+          fetchFn: fetch,
+          provider: 'openfreemap',
+          requestOrigin: url.origin,
+          theme,
+        });
+        provider = 'openfreemap';
+      } catch {
+        resolved = {
+          style: getLocalFallbackStyle(theme),
+          fonts: {
+            regular: ['Noto Sans Regular'],
+            emphasis: ['Noto Sans Regular'],
+          },
+          creditsOpenStreetMap: false,
+          provider: 'local',
+        };
+        fallbackProvider = 'local';
+      }
+    } else {
+      resolved = {
+        style: getLocalFallbackStyle(theme),
+        fonts: {
+          regular: ['Noto Sans Regular'],
+          emphasis: ['Noto Sans Regular'],
+        },
+        creditsOpenStreetMap: false,
+        provider: 'local',
+      };
+      fallbackProvider = 'local';
+    }
+  }
+
+  const style = buildAirportStyle(resolved.style, {
+    theme,
+    fonts: resolved.fonts,
+    creditsOpenStreetMap: resolved.creditsOpenStreetMap,
+    provider: resolved.provider,
+  });
+  const headers: Record<string, string> = {
+    'cache-control': 'private, max-age=300, stale-while-revalidate=3600',
+    'x-airtrail-basemap-provider': provider,
+  };
+  if (fallbackProvider) {
+    headers['x-airtrail-basemap-fallback'] = fallbackProvider;
+  }
+
+  return Response.json(style, { headers });
 };

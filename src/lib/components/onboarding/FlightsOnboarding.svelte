@@ -48,6 +48,7 @@
 
 <Modal
   bind:open
+  dismissal="dialog"
   class="max-w-2xl"
   closeButton={false}
   closeOnOutsideClick={false}

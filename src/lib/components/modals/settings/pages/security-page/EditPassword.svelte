@@ -33,12 +33,18 @@
       },
     },
   );
-  const { form: formData, enhance } = form;
+  const { form: formData, enhance, submitting, tainted } = form;
 </script>
 
 <Button variant="outline" onclick={() => (open = true)}>Edit password</Button>
 
-<Modal bind:open>
+<Modal
+  bind:open
+  dismissal="form"
+  dirty={form.isTainted($tainted)}
+  busy={$submitting}
+  onDiscard={() => form.reset()}
+>
   <ModalBreadcrumbHeader
     section="Security"
     title="Edit password"

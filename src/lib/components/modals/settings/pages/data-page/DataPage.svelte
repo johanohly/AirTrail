@@ -14,6 +14,8 @@
   import StatCard from './StatCard.svelte';
   import UpdateFromSource from './UpdateFromSource.svelte';
 
+  import { page } from '$app/state';
+  import { hasClientPermission } from '$lib/authorization/permissions';
   import { Card } from '$lib/components/ui/card';
   import { CardContent } from '$lib/components/ui/card/index.js';
   import type { Airport } from '$lib/db/types';
@@ -71,9 +73,17 @@
       </CardContent>
     </Card>
 
-    <UpdateFromSource {fetchAirports} />
-    <CustomAirports bind:airports={customAirports} {fetchAirports} />
-    <Aircraft {aircraft} />
-    <Airline {airlines} />
+    {#if hasClientPermission(page.data.authorization, 'data.airports.manage')}
+      <UpdateFromSource {fetchAirports} />
+    {/if}
+    {#if hasClientPermission(page.data.authorization, 'data.airports.manage')}
+      <CustomAirports bind:airports={customAirports} {fetchAirports} />
+    {/if}
+    {#if hasClientPermission(page.data.authorization, 'data.aircraft.manage')}
+      <Aircraft {aircraft} />
+    {/if}
+    {#if hasClientPermission(page.data.authorization, 'data.airlines.manage')}
+      <Airline {airlines} />
+    {/if}
   </div>
 </PageHeader>
