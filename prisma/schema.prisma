@@ -151,9 +151,21 @@ model aircraft {
   icao      String?
   source_id String?
 
-  flights flight[]
+  /// A specific airframe rather than a generic aircraft type. 
+  specific      Boolean @default(false)
+  /// Generic aircraft type of a specific airframe
+  type_id       Int?
+  /// Manufacturer serial number (MSN)
+  serial_number String?
+  /// YYYY-MM-DD
+  first_flight  String?
+
+  type      aircraft?  @relation("aircraft_type", fields: [type_id], references: [id], onDelete: SetNull)
+  airframes aircraft[] @relation("aircraft_type")
+  flights   flight[]
 
   @@index([source_id], map: "aircraft_source_id_idx")
+  @@index([type_id], map: "aircraft_type_id_idx")
 }
 
 model airline {

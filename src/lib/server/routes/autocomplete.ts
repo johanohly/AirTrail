@@ -17,6 +17,11 @@ export const autocompleteRouter = router({
     .query(async ({ input }): Promise<Aircraft[]> => {
       return (await findAircraft(input)) ?? [];
     }),
+  aircraftType: authedProcedure
+    .input(z.string())
+    .query(async ({ input }): Promise<Aircraft[]> => {
+      return (await findAircraft(input, { specific: false })) ?? [];
+    }),
   airline: authedProcedure
     .input(z.string())
     .query(async ({ input }): Promise<Airline[]> => {

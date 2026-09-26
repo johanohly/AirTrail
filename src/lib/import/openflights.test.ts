@@ -133,6 +133,10 @@ describe('processOpenFlightsFile', () => {
       name: 'Boeing 737-300',
       icao: 'B733',
       sourceId: 'boeing-737-300',
+      specific: false,
+      typeId: null,
+      serialNumber: null,
+      firstFlight: null,
     };
     const resolved = await processOpenFlightsFile(openFlightsCsv, {
       ...options,

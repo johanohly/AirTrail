@@ -91,6 +91,10 @@
       r.push({ label: 'Airline', value: flight.airline.name });
     if (flight.aircraft || flight.aircraftReg)
       r.push({ label: 'Aircraft', value: formatAircraft(flight) });
+    if (flight.aircraft?.specific && flight.aircraft.serialNumber)
+      r.push({ label: 'MSN', value: flight.aircraft.serialNumber });
+    if (flight.aircraft?.specific && flight.aircraft.firstFlight)
+      r.push({ label: 'First flight', value: flight.aircraft.firstFlight });
     if (distanceLabel) r.push({ label: 'Distance', value: distanceLabel });
     if (durationLabel) r.push({ label: 'Duration', value: durationLabel });
     if (seatLabel) r.push({ label: 'Seat', value: seatLabel });
