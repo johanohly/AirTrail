@@ -6,7 +6,6 @@ import {
   SeatClasses,
   SeatTypes,
 } from '$lib/db/types';
-import { hasDuplicateGuestNames } from '$lib/guest-names';
 import { flightAirportSchema } from '$lib/zod/airport';
 import { aircraftSchema } from '$lib/zod/aircraft';
 import { airlineSchema } from '$lib/zod/airline';
@@ -119,11 +118,6 @@ export const flightPassengerInformationSchema = z.object({
     })
     .array()
     .min(1, 'Add at least one passenger')
-    .refine(
-      (data) =>
-        !hasDuplicateGuestNames(data.map((passenger) => passenger.guestName)),
-      { message: 'Guest names must be unique within a flight' },
-    )
     .refine((data) => data.some((passenger) => passenger.userId), {
       message: 'At least one passenger must be assigned to a user',
     })

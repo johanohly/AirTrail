@@ -4,7 +4,6 @@ import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import type { DB } from './schema';
 import type { CreateFlight, CreateFlightPassenger } from './types';
 
-import { rankGuestNames } from '$lib/guest-names';
 import {
   flightTrackInputSchema,
   toFlightTrackPayload,
@@ -175,10 +174,15 @@ export const listGuestNamesPrimitive = async (
   db: Kysely<DB>,
   userId: string,
 ) => {
+  const guestName = sql.ref<string>('guest.guestName');
+  // Case and whitespace variants count as one guest, shown with their most
+  // used spelling.
   const rows = await db
     .selectFrom('flightPassenger as guest')
-    .select(['guest.guestName as name'])
-    .select((eb) => eb.fn.countAll().as('count'))
+    .select([
+      sql<string>`mode() within group (order by trim(${guestName}))`.as('name'),
+      (eb) => eb.fn.count<string>('guest.flightId').distinct().as('count'),
+    ])
     .where('guest.guestName', 'is not', null)
     .where((eb) =>
       eb.exists(
@@ -189,14 +193,12 @@ export const listGuestNamesPrimitive = async (
           .where('owner.userId', '=', userId),
       ),
     )
-    .groupBy('guest.guestName')
+    .groupBy(sql`lower(trim(${guestName}))`)
+    .orderBy('count', 'desc')
+    .orderBy('name')
     .execute();
 
-  return rankGuestNames(
-    rows.flatMap(({ name, count }) =>
-      name === null ? [] : [{ name, count: Number(count) }],
-    ),
-  );
+  return rows.map(({ name, count }) => ({ name, count: Number(count) }));
 };
 
 export const getFlightPrimitive = async (db: Kysely<DB>, id: number) => {

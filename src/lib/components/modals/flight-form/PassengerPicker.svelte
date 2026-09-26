@@ -6,10 +6,12 @@
   import { fly } from 'svelte/transition';
 
   import { page } from '$app/state';
-  import { canCreateUserAccount } from '$lib/authorization/permissions';
+  import {
+    canCreateUserAccount,
+    hasClientPermission,
+  } from '$lib/authorization/permissions';
   import UserModal from '$lib/components/modals/settings/pages/users-page/UserModal.svelte';
   import type { PublicUser } from '$lib/db/types';
-  import { canUseGuestName, guestNameIdentity } from '$lib/guest-names';
   import { trpc } from '$lib/trpc';
   import { cn } from '$lib/utils';
 
@@ -28,6 +30,7 @@
   } = $props();
 
   const knownGuests = trpc.flight.guests.query(undefined, {
+    enabled: hasClientPermission(page.data.authorization, 'flight.read.own'),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -143,32 +146,34 @@
     );
   });
 
-  const availableGuests = $derived.by(() => {
-    const excluded = new Set(excludeGuestNames.map(guestNameIdentity));
-    const selectedIdentity = guestNameIdentity(guestName ?? '');
-    return ($knownGuests.data ?? []).filter(
-      (guest) =>
-        guestNameIdentity(guest.name) === selectedIdentity ||
-        !excluded.has(guestNameIdentity(guest.name)),
-    );
-  });
+  const guestKey = (name: string) => name.trim().toLowerCase();
+
+  const excludedGuests = $derived(
+    new Set(
+      excludeGuestNames
+        .map(guestKey)
+        .filter((key) => key !== guestKey(guestName ?? '')),
+    ),
+  );
+  const availableGuests = $derived(
+    ($knownGuests.data ?? []).filter(
+      (guest) => !excludedGuests.has(guestKey(guest.name)),
+    ),
+  );
 
   const trimmedInput = $derived($inputValue.trim());
-  const inputIdentity = $derived(guestNameIdentity(trimmedInput));
-  const filteredGuests = $derived.by(() => {
-    if (!inputIdentity) return availableGuests;
-    return availableGuests.filter((guest) =>
-      guestNameIdentity(guest.name).includes(inputIdentity),
-    );
-  });
+  const inputKey = $derived(guestKey(trimmedInput));
+  const hasInput = $derived(inputKey.length > 0);
+  const filteredGuests = $derived(
+    availableGuests.filter((guest) => guestKey(guest.name).includes(inputKey)),
+  );
 
-  const hasInput = $derived(trimmedInput.length > 0);
+  // A typed name matching a known guest is offered through that guest's
+  // suggestion instead, so the same person isn't stored under two spellings.
   const showNewGuestOption = $derived(
-    canUseGuestName({
-      name: trimmedInput,
-      knownGuests: $knownGuests.data ?? [],
-      excludedNames: excludeGuestNames,
-    }),
+    hasInput &&
+      !excludedGuests.has(inputKey) &&
+      !availableGuests.some((guest) => guestKey(guest.name) === inputKey),
   );
 
   const handleUserCreated = (username: string) => {
@@ -250,11 +255,7 @@
 
         {#if filteredGuests.length > 0}
           <div class={cn('p-1', filteredUsers.length > 0 && 'border-t')}>
-            <div
-              class="px-2.5 py-1 text-xs font-medium text-muted-foreground uppercase"
-            >
-              Guests
-            </div>
+            <div class="px-2.5 py-1 text-xs text-muted-foreground">Guests</div>
             {#each filteredGuests as guest (guest.name)}
               <li
                 use:melt={$option({
@@ -279,7 +280,7 @@
           </div>
         {/if}
 
-        {#if hasInput}
+        {#if showNewGuestOption || (hasInput && canCreateUser)}
           <div class="border-t bg-muted/50 p-1">
             {#if showNewGuestOption}
               <li
