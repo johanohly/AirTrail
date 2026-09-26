@@ -15,7 +15,9 @@ export const GET: RequestHandler = async ({ locals }) => {
 
   const config = await appConfig.get();
   const aeroDataBoxKey = config?.integrations?.aeroDataBoxKey ?? null;
+  const aeroDataBoxEndpoint =
+    config?.integrations?.aeroDataBoxEndpoint ?? 'rapidapi';
   const openAipKey = config?.integrations?.openAipKey ?? null;
 
-  return json({ aeroDataBoxKey, openAipKey });
+  return json({ aeroDataBoxKey, aeroDataBoxEndpoint, openAipKey });
 };

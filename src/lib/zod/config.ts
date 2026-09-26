@@ -5,6 +5,9 @@ import { MAP_PROVIDERS, PROTOMAPS_SOURCE_KINDS } from '$lib/map/basemap';
 export const DEFAULT_PROTOMAPS_ASSETS_BASE_URL =
   'https://protomaps.github.io/basemaps-assets';
 
+export const AERODATABOX_ENDPOINTS = ['rapidapi', 'direct'] as const;
+export type AeroDataBoxEndpoint = (typeof AERODATABOX_ENDPOINTS)[number];
+
 const nullableTrimmedString = z
   .string()
   .trim()
@@ -63,6 +66,7 @@ export const oauthConfigSchema = z.object({
 
 export const integrationsConfigSchema = z.object({
   aeroDataBoxKey: z.string().nullable(),
+  aeroDataBoxEndpoint: z.enum(AERODATABOX_ENDPOINTS).default('rapidapi'),
   openAipKey: z.string().nullable(),
 });
 
