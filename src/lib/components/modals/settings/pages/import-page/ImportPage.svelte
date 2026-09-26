@@ -31,6 +31,7 @@
   import { platforms, type Platform } from '$lib/import/platforms';
   import { flightAddedState } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
+  import { invalidateFlightData } from '$lib/trpc/invalidation';
   import { cn, pluralize } from '$lib/utils';
   import { getErrorText } from '$lib/utils/error';
 
@@ -109,10 +110,7 @@
   };
 
   const refreshImportedFlights = async () => {
-    await Promise.all([
-      trpc.flight.list.utils.invalidate(),
-      trpc.flightTrack.list.utils.invalidate(),
-    ]);
+    await invalidateFlightData();
     flightAddedState.added = true;
   };
 

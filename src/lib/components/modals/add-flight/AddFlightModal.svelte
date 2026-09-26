@@ -20,6 +20,7 @@
   } from '$lib/components/ui/modal';
   import { flightAddedState, openModalsState } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
+  import { invalidateFlightData } from '$lib/trpc/invalidation';
   import { flightFormSchema } from '$lib/zod/flight';
 
   let { open = $bindable() }: { open: boolean } = $props();
@@ -68,8 +69,7 @@
       onUpdated({ form }) {
         if (form.message) {
           if (form.message.type === 'success') {
-            trpc.flight.list.utils.invalidate();
-            trpc.flightTrack.list.utils.invalidate();
+            void invalidateFlightData();
             open = false;
             customFieldValues = {};
             customFieldsDirty = false;

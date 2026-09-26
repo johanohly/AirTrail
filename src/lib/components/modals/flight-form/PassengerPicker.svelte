@@ -1,27 +1,38 @@
 <script lang="ts">
   import autoAnimate from '@formkit/auto-animate';
   import { createCombobox, melt } from '@melt-ui/svelte';
-  import { User, UserPlus, UserRoundPlus } from '@o7/icon/lucide';
+  import { User, UserPlus, UserRound, UserRoundPlus } from '@o7/icon/lucide';
   import { writable } from 'svelte/store';
   import { fly } from 'svelte/transition';
 
   import { page } from '$app/state';
-  import { canCreateUserAccount } from '$lib/authorization/permissions';
+  import {
+    canCreateUserAccount,
+    hasClientPermission,
+  } from '$lib/authorization/permissions';
   import UserModal from '$lib/components/modals/settings/pages/users-page/UserModal.svelte';
   import type { PublicUser } from '$lib/db/types';
+  import { trpc } from '$lib/trpc';
   import { cn } from '$lib/utils';
 
   let {
     userId = $bindable<string | null>(null),
     guestName = $bindable<string | null>(null),
     excludeUserIds = [],
+    excludeGuestNames = [],
     placeholderError = false,
   }: {
     userId?: string | null;
     guestName?: string | null;
     excludeUserIds?: string[];
+    excludeGuestNames?: string[];
     placeholderError?: boolean;
   } = $props();
+
+  const knownGuests = trpc.flight.guests.query(undefined, {
+    enabled: hasClientPermission(page.data.authorization, 'flight.read.own'),
+    staleTime: 5 * 60 * 1000,
+  });
 
   let createUser = $state(false);
   let pendingDisplayName = $state('');
@@ -135,8 +146,35 @@
     );
   });
 
-  const showGuestOption = $derived($inputValue.trim().length > 0);
+  const guestKey = (name: string) => name.trim().toLowerCase();
+
+  const excludedGuests = $derived(
+    new Set(
+      excludeGuestNames
+        .map(guestKey)
+        .filter((key) => key !== guestKey(guestName ?? '')),
+    ),
+  );
+  const availableGuests = $derived(
+    ($knownGuests.data ?? []).filter(
+      (guest) => !excludedGuests.has(guestKey(guest.name)),
+    ),
+  );
+
   const trimmedInput = $derived($inputValue.trim());
+  const inputKey = $derived(guestKey(trimmedInput));
+  const hasInput = $derived(inputKey.length > 0);
+  const filteredGuests = $derived(
+    availableGuests.filter((guest) => guestKey(guest.name).includes(inputKey)),
+  );
+
+  // A typed name matching a known guest is offered through that guest's
+  // suggestion instead, so the same person isn't stored under two spellings.
+  const showNewGuestOption = $derived(
+    hasInput &&
+      !excludedGuests.has(inputKey) &&
+      !availableGuests.some((guest) => guestKey(guest.name) === inputKey),
+  );
 
   const handleUserCreated = (username: string) => {
     // Find the newly created user by username and auto-select them
@@ -157,6 +195,7 @@
   <div class="relative">
     <input
       use:melt={$input}
+      aria-label="Passenger name"
       placeholder="Passenger Name"
       class={cn(
         'w-full min-w-0 bg-transparent text-sm font-medium outline-none transition-all',
@@ -208,32 +247,61 @@
               </li>
             {/each}
           </div>
-        {:else if !showGuestOption}
+        {:else if !hasInput && filteredGuests.length === 0}
           <div class="px-3 py-3 text-sm text-muted-foreground">
             Start typing to search...
           </div>
         {/if}
 
-        {#if showGuestOption}
-          <div class="border-t bg-muted/50 p-1">
-            <li
-              use:melt={$option({
-                value: { type: 'guest', name: trimmedInput },
-                label: trimmedInput,
-              })}
-              class="cursor-pointer rounded-md px-2.5 py-2 flex items-center gap-2.5 data-highlighted:bg-background data-selected:ring-2 data-selected:ring-primary transition-colors"
-            >
-              <div
-                class="size-7 rounded-full bg-muted flex items-center justify-center shrink-0"
+        {#if filteredGuests.length > 0}
+          <div class={cn('p-1', filteredUsers.length > 0 && 'border-t')}>
+            <div class="px-2.5 py-1 text-xs text-muted-foreground">Guests</div>
+            {#each filteredGuests as guest (guest.name)}
+              <li
+                use:melt={$option({
+                  value: { type: 'guest', name: guest.name },
+                  label: guest.name,
+                })}
+                class="cursor-pointer rounded-md px-2.5 py-2 flex items-center gap-2.5 data-highlighted:bg-accent data-selected:ring-2 data-selected:ring-primary transition-colors"
               >
-                <UserPlus size={14} class="text-muted-foreground" />
-              </div>
-              <span class="text-sm text-muted-foreground">
-                Use "<span class="font-medium text-foreground"
-                  >{trimmedInput}</span
-                >" as guest
-              </span>
-            </li>
+                <div
+                  class="size-7 rounded-full bg-muted flex items-center justify-center shrink-0"
+                >
+                  <UserRound size={14} class="text-muted-foreground" />
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <span class="truncate text-sm font-medium">{guest.name}</span>
+                  <span class="truncate text-xs text-muted-foreground">
+                    {guest.count} flight{guest.count === 1 ? '' : 's'}
+                  </span>
+                </div>
+              </li>
+            {/each}
+          </div>
+        {/if}
+
+        {#if showNewGuestOption || (hasInput && canCreateUser)}
+          <div class="border-t bg-muted/50 p-1">
+            {#if showNewGuestOption}
+              <li
+                use:melt={$option({
+                  value: { type: 'guest', name: trimmedInput },
+                  label: trimmedInput,
+                })}
+                class="cursor-pointer rounded-md px-2.5 py-2 flex items-center gap-2.5 data-highlighted:bg-background data-selected:ring-2 data-selected:ring-primary transition-colors"
+              >
+                <div
+                  class="size-7 rounded-full bg-muted flex items-center justify-center shrink-0"
+                >
+                  <UserPlus size={14} class="text-muted-foreground" />
+                </div>
+                <span class="text-sm text-muted-foreground">
+                  Use "<span class="font-medium text-foreground"
+                    >{trimmedInput}</span
+                  >" as guest
+                </span>
+              </li>
+            {/if}
             {#if canCreateUser}
               <li
                 use:melt={$option({

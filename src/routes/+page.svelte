@@ -34,6 +34,7 @@
     setFlightScope,
   } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
+  import { invalidateFlightData } from '$lib/trpc/invalidation';
   import { Card } from '$lib/components/ui/card';
   import type { FlightScope } from '$lib/flight-scope';
   import { prepareFlightData } from '$lib/utils';
@@ -161,8 +162,7 @@
 
   const invalidator = {
     onSuccess: () => {
-      trpc.flight.list.utils.invalidate();
-      trpc.flightTrack.list.utils.invalidate();
+      void invalidateFlightData();
     },
   };
   const deleteFlightMutation = trpc.flight.delete.mutation(invalidator);

@@ -13,6 +13,7 @@ import {
   listAllFlightsPrimitive,
   listFlightBaseQuery,
   listFlightPrimitive,
+  listGuestNamesPrimitive,
   PassengerResolutionError,
   resolveFlightPassengerChanges,
   updateFlightPrimitive,
@@ -159,6 +160,10 @@ export const listFlights = async (userId: string) => {
 
 export const listAllFlights = async () => {
   return await listAllFlightsPrimitive(db);
+};
+
+export const listGuestNames = async (userId: string) => {
+  return await listGuestNamesPrimitive(db, userId);
 };
 
 export const listFlightsInScope = async (scope: ResolvedFlightScope) =>

@@ -2,7 +2,7 @@ import { parseISO } from 'date-fns';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-import { authedProcedure, router } from '../trpc';
+import { authedProcedure, permissionProcedure, router } from '../trpc';
 
 import { db } from '$lib/db';
 import type { CreateFlight } from '$lib/db/types';
@@ -17,6 +17,7 @@ import {
   deleteFlight,
   listFlights,
   listFlightsInScope,
+  listGuestNames,
   validateFlightDates,
 } from '$lib/server/utils/flight';
 import { getAircraftFromReg } from '$lib/server/utils/flight-lookup/aerodatabox';
@@ -87,6 +88,11 @@ export const flightRouter = router({
       }
       return await listFlightsInScope(resolveFlightScope(input, user.id));
     }),
+  guests: permissionProcedure('flight.read.own').query(
+    async ({ ctx: { user } }) => {
+      return await listGuestNames(user.id);
+    },
+  ),
   delete: authedProcedure
     .input(z.number())
     .mutation(async ({ ctx: { authorization }, input }) => {
