@@ -2,7 +2,8 @@ import { fileURLToPath } from 'node:url';
 
 import { includeIgnoreFile } from '@eslint/compat';
 import js from '@eslint/js';
-import importPlugin from 'eslint-plugin-import';
+import { createTypeScriptImportResolver } from 'eslint-import-resolver-typescript';
+import { importX } from 'eslint-plugin-import-x';
 import prettier from 'eslint-plugin-prettier/recommended';
 import svelte from 'eslint-plugin-svelte';
 import globals from 'globals';
@@ -17,8 +18,13 @@ export default ts.config(
   ...svelte.configs['flat/recommended'],
   ...svelte.configs['flat/prettier'],
   prettier,
-  importPlugin.flatConfigs.recommended,
-  importPlugin.flatConfigs.typescript,
+  importX.flatConfigs.recommended,
+  importX.flatConfigs.typescript,
+  {
+    settings: {
+      'import-x/resolver-next': [createTypeScriptImportResolver()],
+    },
+  },
   {
     languageOptions: {
       globals: {
@@ -64,7 +70,7 @@ export default ts.config(
   },
   {
     rules: {
-      'import/order': [
+      'import-x/order': [
         'warn',
         {
           alphabetize: {
@@ -74,7 +80,7 @@ export default ts.config(
           'newlines-between': 'always',
         },
       ],
-      'import/no-unresolved': 'off',
+      'import-x/no-unresolved': 'off',
     },
   },
   {

@@ -1,5 +1,5 @@
-import { httpBatchLink } from '@trpc/client';
-import { createTRPCProxyClient, createTRPCSvelte } from 'trpc-svelte-query';
+import { createTRPCClient, httpBatchLink } from '@trpc/client';
+import { createTRPCSvelte } from 'trpc-svelte-query';
 
 import { transformer } from './transformer';
 
@@ -9,16 +9,16 @@ export const trpc = createTRPCSvelte<AppRouter>({
   links: [
     httpBatchLink({
       url: '/api/trpc',
+      transformer,
     }),
   ],
-  transformer,
 });
 
-export const api = createTRPCProxyClient<AppRouter>({
+export const api = createTRPCClient<AppRouter>({
   links: [
     httpBatchLink({
       url: '/api/trpc',
+      transformer,
     }),
   ],
-  transformer,
 });

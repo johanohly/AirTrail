@@ -1,4 +1,4 @@
-import type maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 import type { CustomImageSpec } from 'svelte-maplibre';
 
 export const supportsMapWebGL = () => {

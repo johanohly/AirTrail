@@ -131,8 +131,7 @@
       id={fieldId}
       class="min-h-20 w-full rounded-md border bg-background p-2 text-sm"
       value={(value as string) ?? ''}
-      oninput={(e) => set(e.currentTarget.value || null)}
-    ></textarea>
+      oninput={(e) => set(e.currentTarget.value || null)}></textarea>
   {:else if fieldType === 'number'}
     <Input
       id={fieldId}

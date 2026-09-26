@@ -1,5 +1,4 @@
-import maplibregl from 'maplibre-gl';
-
+import { maplibregl } from '$lib/map/maplibre';
 import { registerPmtilesProtocol } from '$lib/map/pmtiles';
 
 const HEALTH_CHECK_TIMEOUT_MS = 15_000;

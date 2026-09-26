@@ -11,6 +11,9 @@
     "lint:fix": "biome check --write .",
     "start": "next start"
   },
+  "overrides": {
+    "undici": "7.30.0"
+  },
   "dependencies": {
     "@scalar/api-client-react": "2.0.51",
     "@tailwindcss/postcss": "^4.3.3",
@@ -39,8 +42,8 @@
     "@types/react-dom": "^19.2.2",
     "ajv": "^8.17.1",
     "tailwindcss": "^4.3.3",
-    "typescript": "^5.9.3",
+    "typescript": "~6.0.3",
     "ultracite": "7.12.0",
-    "wrangler": "4.105.0"
+    "wrangler": "4.141.0"
   }
 }

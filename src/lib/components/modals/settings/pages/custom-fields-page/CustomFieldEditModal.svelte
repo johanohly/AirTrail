@@ -299,8 +299,7 @@
               id="custom-field-options"
               class="min-h-24 w-full rounded-md border bg-background p-2 text-sm"
               bind:value={editing.optionsText}
-              placeholder={'Economy\nBusiness\nFirst'}
-            ></textarea>
+              placeholder={'Economy\nBusiness\nFirst'}></textarea>
           </div>
         {/if}
 

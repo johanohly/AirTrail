@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Color, Layer, PickingInfo, Position } from '@deck.gl/core';
   import { ArcLayer, ScatterplotLayer } from '@deck.gl/layers';
-  import { MapboxOverlay } from '@deck.gl/mapbox';
+  import { MapLibreOverlay } from '@deck.gl/maplibre';
   import { isTouchDevice } from '@melt-ui/svelte/internal/helpers';
   import { mode } from 'mode-watcher';
   import { onDestroy } from 'svelte';
@@ -299,7 +299,7 @@
     }
   };
 
-  let layer: MapboxOverlay | undefined = $state();
+  let layer: MapLibreOverlay | undefined = $state();
   let layerProjection: string | undefined = $state(undefined);
   let currentMapProjection = $state('unknown');
   const isGlobe = $derived(mapPreferences.projection === 'globe');
@@ -746,7 +746,7 @@
       map.removeControl(layer);
     }
 
-    const nextLayer = new MapboxOverlay({
+    const nextLayer = new MapLibreOverlay({
       id,
       interleaved: isGlobe,
       onClick: handleMapClick,
@@ -768,6 +768,36 @@
       onClick: handleMapClick,
       layers: buildLayers(),
     });
+  });
+
+  // After a basemap switch, `MapLibreOverlay` only re-adds its interleaved
+  // layer group if the new style has already finished loading when it sees
+  // `styledata`, which it usually hasn't. Without a re-sync the globe loses
+  // its arcs until something else updates the overlay, like a hover.
+  $effect(() => {
+    if (!map || !layer) return;
+    const currentMap = map;
+    const overlay = layer;
+    let pending = false;
+
+    const resync = () => {
+      if (!pending || !currentMap.isStyleLoaded()) return;
+      pending = false;
+      overlay.setProps({ layers: buildLayers() });
+    };
+    const markPending = () => {
+      pending = true;
+      resync();
+    };
+
+    currentMap.on('style.load', markPending);
+    currentMap.on('data', resync);
+    currentMap.on('idle', resync);
+    return () => {
+      currentMap.off('style.load', markPending);
+      currentMap.off('data', resync);
+      currentMap.off('idle', resync);
+    };
   });
 
   const isVisitedAirport = (data: unknown): data is VisitedAirport =>

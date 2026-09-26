@@ -1,6 +1,4 @@
-import maplibregl, { type LngLatLike } from 'maplibre-gl';
-
-const { LngLat } = maplibregl;
+import { LngLat, type LngLatLike } from 'maplibre-gl';
 
 export const distanceBetween = (a: LngLatLike, b: LngLatLike): number => {
   const from = LngLat.convert(a);

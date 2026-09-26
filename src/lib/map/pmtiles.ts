@@ -1,5 +1,6 @@
-import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
+
+import { maplibregl } from '$lib/map/maplibre';
 
 let registrations = 0;
 let protocol: Protocol | null = null;

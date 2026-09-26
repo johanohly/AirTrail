@@ -1,8 +1,12 @@
 <script lang="ts">
   import {
-    getCoreRowModel,
-    type RowSelectionState,
-  } from '@tanstack/table-core';
+    createTable,
+    FlexRender,
+    renderComponent,
+    renderSnippet,
+    rowSelectionFeature,
+    tableFeatures,
+  } from '@tanstack/svelte-table';
   import { createRawSnippet } from 'svelte';
   import { toast } from 'svelte-sonner';
 
@@ -12,12 +16,6 @@
   import { TimeDisplay } from '$lib/components/display';
   import { Button } from '$lib/components/ui/button';
   import { Checkbox } from '$lib/components/ui/checkbox';
-  import {
-    createSvelteTable,
-    FlexRender,
-    renderComponent,
-    renderSnippet,
-  } from '$lib/components/ui/data-table';
   import * as Table from '$lib/components/ui/table';
   import { api } from '$lib/trpc';
   import { invalidateFlightData } from '$lib/trpc/invalidation';
@@ -28,8 +26,8 @@
   const prefs = $derived(getPreferences(data.user));
   const flights = $derived.by(() => prepareFlightData(data.flights));
 
-  let rowSelection = $state<RowSelectionState>({});
-  const table = createSvelteTable({
+  const table = createTable({
+    features: tableFeatures({ rowSelectionFeature }),
     get data() {
       return flights;
     },
@@ -118,19 +116,6 @@
         },
       },
     ],
-    onRowSelectionChange: (updater) => {
-      if (typeof updater === 'function') {
-        rowSelection = updater(rowSelection);
-      } else {
-        rowSelection = updater;
-      }
-    },
-    state: {
-      get rowSelection() {
-        return rowSelection;
-      },
-    },
-    getCoreRowModel: getCoreRowModel(),
   });
 
   const deleteFlights = async () => {
@@ -158,10 +143,7 @@
             {#each headerGroup.headers as header (header.id)}
               <Table.Head>
                 {#if !header.isPlaceholder}
-                  <FlexRender
-                    content={header.column.columnDef.header}
-                    context={header.getContext()}
-                  />
+                  <FlexRender {header} />
                 {/if}
               </Table.Head>
             {/each}
@@ -171,12 +153,9 @@
       <Table.Body>
         {#each table.getRowModel().rows as row (row.id)}
           <Table.Row data-state={row.getIsSelected() && 'selected'}>
-            {#each row.getVisibleCells() as cell (cell.id)}
+            {#each row.getAllCells() as cell (cell.id)}
               <Table.Cell>
-                <FlexRender
-                  content={cell.column.columnDef.cell}
-                  context={cell.getContext()}
-                />
+                <FlexRender {cell} />
               </Table.Cell>
             {/each}
           </Table.Row>

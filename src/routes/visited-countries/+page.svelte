@@ -2,7 +2,7 @@
   import { browser } from '$app/environment';
   import { base } from '$app/paths';
   import { RefreshCw } from '@o7/icon/lucide';
-  import maplibregl from 'maplibre-gl';
+  import type * as maplibregl from 'maplibre-gl';
   import { mode } from 'mode-watcher';
   import { onDestroy } from 'svelte';
   import {

@@ -30,7 +30,9 @@
     }
   });
 
-  const queryClient = data.trpc ? trpc.hydrateFromServer(data.trpc) : undefined;
+  const queryClient = data.trpc
+    ? trpc.hydrateFromServer(() => data.trpc!)
+    : undefined;
 
   onMount(() => {
     // Register the service worker so its precache + runtime map caching take

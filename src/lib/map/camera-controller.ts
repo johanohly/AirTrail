@@ -1,4 +1,5 @@
-import maplibregl, {
+import {
+  LngLat,
   type EaseToOptions,
   type FlyToOptions,
   type Map as MapLibreMap,
@@ -189,7 +190,7 @@ export const createMapCameraController = (
       map.setPadding(padding);
       const target = map.cameraForBounds(bounds);
       if (!target?.center || target.zoom === undefined) return undefined;
-      const center = maplibregl.LngLat.convert(target.center);
+      const center = LngLat.convert(target.center);
       return {
         center: [center.lng, center.lat] as [number, number],
         zoom: target.zoom,

@@ -1,6 +1,5 @@
 datasource db {
   provider   = "postgresql"
-  url        = env("DB_URL")
   extensions = [unaccent]
 }
 
@@ -48,13 +47,13 @@ model user {
   /// @kyselyType('airport' | 'utc' | 'system')
   flight_time_display String @default("airport")
 
-  sessions          session[]
-  flight_passengers flight_passenger[]
-  visited_countries visited_country[]
-  api_keys          api_key[]
-  public_share      public_share[]
-  oauth_link_token  oauth_link_token?
-  access_role       access_role?          @relation(fields: [role_id], references: [id], onDelete: Restrict)
+  sessions                     session[]
+  flight_passengers            flight_passenger[]
+  visited_countries            visited_country[]
+  api_keys                     api_key[]
+  public_share                 public_share[]
+  oauth_link_token             oauth_link_token?
+  access_role                  access_role?                  @relation(fields: [role_id], references: [id], onDelete: Restrict)
   oauth_authorization_requests oauth_authorization_request[]
   oauth_grants                 oauth_grant[]
   oauth_authorization_codes    oauth_authorization_code[]
@@ -94,17 +93,17 @@ model authorization_settings {
 }
 
 model oauth_role_mapping {
-  id          Int    @id @default(autoincrement())
-  priority    Int
-  name        String @default("")
-  enabled     Boolean @default(true)
+  id           Int     @id @default(autoincrement())
+  priority     Int
+  name         String  @default("")
+  enabled      Boolean @default(true)
   /// @kyselyType('userinfo' | 'id_token')
   claim_source String
   claim_path   String
   /// @kyselyType('equals' | 'contains')
-  operator      String
-  claim_value   String
-  role_id       String
+  operator     String
+  claim_value  String
+  role_id      String
 
   role access_role @relation(fields: [role_id], references: [id], onDelete: Restrict)
 
@@ -308,7 +307,7 @@ model oauth_client_redirect_uri {
   client_id    String
   redirect_uri String
 
-  client oauth_client @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  client oauth_client @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@id([client_id, redirect_uri])
 }
@@ -325,8 +324,8 @@ model oauth_authorization_request {
   expires_at     DateTime @db.Timestamptz
   created_at     DateTime @default(now()) @db.Timestamptz
 
-  client oauth_client @relation(fields: [client_id], references: [id], onDelete: Cascade)
-  user   user?        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  client oauth_client @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user   user?        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([expires_at])
 }
@@ -340,8 +339,8 @@ model oauth_grant {
   created_at DateTime @default(now()) @db.Timestamptz
   updated_at DateTime @default(now()) @updatedAt @db.Timestamptz
 
-  client              oauth_client               @relation(fields: [client_id], references: [id], onDelete: Cascade)
-  user                user                       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  client              oauth_client               @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user                user                       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   authorization_codes oauth_authorization_code[]
   access_tokens       oauth_access_token[]
   refresh_tokens      oauth_refresh_token[]
@@ -350,21 +349,21 @@ model oauth_grant {
 }
 
 model oauth_authorization_code {
-  code_hash     String    @id
-  client_id     String
-  user_id       String
-  grant_id      String
-  redirect_uri  String
-  scopes        String[]
-  resource      String
+  code_hash      String    @id
+  client_id      String
+  user_id        String
+  grant_id       String
+  redirect_uri   String
+  scopes         String[]
+  resource       String
   code_challenge String
-  expires_at    DateTime  @db.Timestamptz
-  used_at       DateTime? @db.Timestamptz
-  created_at    DateTime  @default(now()) @db.Timestamptz
+  expires_at     DateTime  @db.Timestamptz
+  used_at        DateTime? @db.Timestamptz
+  created_at     DateTime  @default(now()) @db.Timestamptz
 
-  client oauth_client @relation(fields: [client_id], references: [id], onDelete: Cascade)
-  user   user         @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  grant  oauth_grant  @relation(fields: [grant_id], references: [id], onDelete: Cascade)
+  client oauth_client @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user   user         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  grant  oauth_grant  @relation(fields: [grant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([expires_at])
 }
@@ -381,9 +380,9 @@ model oauth_access_token {
   revoked_at        DateTime? @db.Timestamptz
   created_at        DateTime  @default(now()) @db.Timestamptz
 
-  client oauth_client @relation(fields: [client_id], references: [id], onDelete: Cascade)
-  user   user         @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  grant  oauth_grant  @relation(fields: [grant_id], references: [id], onDelete: Cascade)
+  client oauth_client @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user   user         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  grant  oauth_grant  @relation(fields: [grant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([expires_at])
   @@index([refresh_family_id])
@@ -402,9 +401,9 @@ model oauth_refresh_token {
   revoked_at DateTime? @db.Timestamptz
   created_at DateTime  @default(now()) @db.Timestamptz
 
-  client oauth_client @relation(fields: [client_id], references: [id], onDelete: Cascade)
-  user   user         @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  grant  oauth_grant  @relation(fields: [grant_id], references: [id], onDelete: Cascade)
+  client oauth_client @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user   user         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  grant  oauth_grant  @relation(fields: [grant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([family_id])
   @@index([expires_at])

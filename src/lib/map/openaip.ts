@@ -1,4 +1,4 @@
-import type maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 import type { CustomImageSpec } from 'svelte-maplibre';
 
 import diagonalLinesBlue2Svg from '$lib/assets/openaip/patterns/diagonal_lines_blue-2.svg?raw';
