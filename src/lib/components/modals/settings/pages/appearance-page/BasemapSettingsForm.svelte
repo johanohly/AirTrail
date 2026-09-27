@@ -9,11 +9,18 @@
   import { Button } from '$lib/components/ui/button';
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
+  import * as Select from '$lib/components/ui/select';
+
   import {
     getConfiguredAppMapStyleUrl,
     isManagedAppMapStyleUrl,
   } from '$lib/map/app-style';
-  import { MAP_THEMES, type MapTheme } from '$lib/map/basemap';
+  import {
+    MAP_THEMES,
+    type MapProvider,
+    type MapTheme,
+    type ProtomapsSourceKind,
+  } from '$lib/map/basemap';
   import {
     hasMapSettingsChanges,
     toMapSettingsFormData,
@@ -21,6 +28,19 @@
   import { loadMapStyleForHealthCheck } from '$lib/map/map-style-health';
   import { appConfig } from '$lib/state.svelte';
   import { mapSettingsFormSchema } from '$lib/zod/config';
+
+  const PROVIDER_LABELS: Record<MapProvider, string> = {
+    openfreemap: 'OpenFreeMap',
+    carto: 'CARTO',
+    protomaps: 'Protomaps',
+  };
+
+  const PROTOMAPS_SOURCE_LABELS: Record<ProtomapsSourceKind, string> = {
+    hosted: 'Protomaps hosted API',
+    pmtiles: 'PMTiles archive',
+    tilejson: 'TileJSON endpoint',
+    zxy: 'ZXY vector tiles',
+  };
 
   const form = superForm(
     defaults<Infer<typeof mapSettingsFormSchema>>(
@@ -127,15 +147,20 @@
       <Form.Control>
         {#snippet children({ props })}
           <Form.Label>Provider</Form.Label>
-          <select
+          <Select.Root
+            type="single"
+            name={props.name}
             bind:value={$formData.provider}
-            {...props}
-            class="border-input focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-md border bg-transparent px-3 text-base shadow-xs outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
           >
-            <option value="openfreemap">OpenFreeMap</option>
-            <option value="carto">CARTO</option>
-            <option value="protomaps">Protomaps</option>
-          </select>
+            <Select.Trigger {...props} class="w-full">
+              {PROVIDER_LABELS[$formData.provider]}
+            </Select.Trigger>
+            <Select.Content>
+              {#each Object.entries(PROVIDER_LABELS) as [value, label] (value)}
+                <Select.Item {value} {label} />
+              {/each}
+            </Select.Content>
+          </Select.Root>
         {/snippet}
       </Form.Control>
       <Form.FieldErrors />
@@ -222,16 +247,20 @@
           <Form.Control>
             {#snippet children({ props })}
               <Form.Label>Source Type</Form.Label>
-              <select
+              <Select.Root
+                type="single"
+                name={props.name}
                 bind:value={$formData.protomapsSourceKind}
-                {...props}
-                class="border-input focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-md border bg-transparent px-3 text-base shadow-xs outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
               >
-                <option value="hosted">Protomaps hosted API</option>
-                <option value="pmtiles">PMTiles archive</option>
-                <option value="tilejson">TileJSON endpoint</option>
-                <option value="zxy">ZXY vector tiles</option>
-              </select>
+                <Select.Trigger {...props} class="w-full">
+                  {PROTOMAPS_SOURCE_LABELS[$formData.protomapsSourceKind]}
+                </Select.Trigger>
+                <Select.Content>
+                  {#each Object.entries(PROTOMAPS_SOURCE_LABELS) as [value, label] (value)}
+                    <Select.Item {value} {label} />
+                  {/each}
+                </Select.Content>
+              </Select.Root>
             {/snippet}
           </Form.Control>
           <Form.FieldErrors />
