@@ -17,7 +17,9 @@ import { asApiOperationError } from '$lib/server/api/v1/response';
 
 export const toolResult = (value: unknown) => ({
   content: [{ type: 'text' as const, text: JSON.stringify(value) }],
-  structuredContent: (typeof value === 'object' && value !== null
+  structuredContent: (typeof value === 'object' &&
+  value !== null &&
+  !Array.isArray(value)
     ? value
     : { value }) as Record<string, unknown>,
 });
