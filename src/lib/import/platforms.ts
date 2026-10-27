@@ -90,6 +90,16 @@ export const platforms = [
     },
   },
   {
+    name: 'LogMyTrip',
+    value: 'logmytrip',
+    description: 'CSV export from LogMyTrip.',
+    extensions: ['.csv'],
+    options: {
+      filterOwner: false,
+      airlineFromFlightNumber: false,
+    },
+  },
+  {
     name: 'AirTrail',
     value: 'airtrail',
     description: 'JSON export from AirTrail (re-import your data).',

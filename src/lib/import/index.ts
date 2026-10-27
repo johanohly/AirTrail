@@ -9,6 +9,7 @@ import { processLegacyAirTrailFile } from '$lib/import/legacy-airtrail';
 import type { PlatformOptions, ProcessResult } from '$lib/import/model';
 import { processMilesAndMoreFile } from '$lib/import/milesandmore';
 import { processOpenFlightsFile } from '$lib/import/openflights';
+import { processLogMyTripFile } from '$lib/import/logmytrip';
 import { type PlatformValue } from '$lib/import/platforms';
 import { processTripItFile } from '$lib/import/tripit';
 import { readFile } from '$lib/utils';
@@ -30,6 +31,7 @@ const processors: Record<PlatformValue, Processor> = {
   jetlovers: processJetLoversFile,
   openflights: processOpenFlightsFile,
   milesandmore: processMilesAndMoreFile,
+  logmytrip: processLogMyTripFile,
 };
 
 export type { PlatformValue } from '$lib/import/platforms';
