@@ -12309,7 +12309,7 @@
     "id": "skyeurope",
     "name": "SkyEurope",
     "icao": "ESK",
-    "iata": "NE",
+    "iata": "NE*",
     "defunct": true
   },
   {
