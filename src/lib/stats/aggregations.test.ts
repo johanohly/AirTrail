@@ -1,3 +1,4 @@
+import { TZDate } from '@date-fns/tz';
 import { describe, expect, it } from 'vitest';
 
 import { COUNTRIES } from '$lib/data/countries';
@@ -6,6 +7,7 @@ import {
   countriesByContinentDistribution,
   flightMatchesChartBucket,
   reasonDistribution,
+  countFlightsPerYear,
 } from './aggregations';
 import type { FlightData } from '$lib/utils';
 
@@ -76,5 +78,52 @@ describe('passenger reason statistics', () => {
         userId: 'one',
       }),
     ).toBe(false);
+  });
+});
+
+describe('flights per year statistics', () => {
+  const flightOn = (date: TZDate | null) => ({ date }) as FlightData;
+  // Date parts are read in the given zone, so the host zone can't move a
+  // flight into another year
+  const at = (
+    year: number,
+    month: number,
+    day: number,
+    hour = 12,
+    zone = 'UTC',
+  ) => new TZDate(year, month - 1, day, hour, 0, zone);
+
+  it('counts flights per year and fills years without flights', () => {
+    const flights = [
+      flightOn(at(2021, 3, 1)),
+      flightOn(at(2024, 7, 15)),
+      flightOn(at(2021, 12, 31, 23)),
+      flightOn(at(2023, 1, 1, 0)),
+    ];
+
+    expect(countFlightsPerYear(flights)).toEqual([
+      { year: 2021, flights: 2 },
+      { year: 2022, flights: 0 },
+      { year: 2023, flights: 1 },
+      { year: 2024, flights: 1 },
+    ]);
+  });
+
+  it('uses the year in the flight date time zone', () => {
+    const newYearsEveInLosAngeles = at(2019, 12, 31, 22, 'America/Los_Angeles');
+
+    expect(countFlightsPerYear([flightOn(newYearsEveInLosAngeles)])).toEqual([
+      { year: 2019, flights: 1 },
+    ]);
+  });
+
+  it('skips flights without a date', () => {
+    expect(
+      countFlightsPerYear([flightOn(null), flightOn(at(2020, 5, 5))]),
+    ).toEqual([{ year: 2020, flights: 1 }]);
+  });
+
+  it('returns no years when no flight has a date', () => {
+    expect(countFlightsPerYear([flightOn(null)])).toEqual([]);
   });
 });

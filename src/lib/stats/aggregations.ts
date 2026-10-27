@@ -467,6 +467,27 @@ export function airportDistribution(
   return sortAndLimit(counts, options);
 }
 
+export function countFlightsPerYear(
+  flights: FlightData[],
+): { year: number; flights: number }[] {
+  const counts = new Map<number, number>();
+  for (const flight of flights) {
+    if (!flight.date) continue;
+
+    const year = flight.date.getFullYear();
+    counts.set(year, (counts.get(year) ?? 0) + 1);
+  }
+  if (counts.size === 0) return [];
+
+  // Include years without flights, so gaps show up as empty bars
+  const firstYear = Math.min(...counts.keys());
+  const lastYear = Math.max(...counts.keys());
+  return Array.from({ length: lastYear - firstYear + 1 }, (_, i) => ({
+    year: firstYear + i,
+    flights: counts.get(firstYear + i) ?? 0,
+  }));
+}
+
 export const FLIGHT_CHARTS: Record<
   FlightChartKey,
   {
