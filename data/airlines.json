@@ -12194,6 +12194,13 @@
     "defunct": false
   },
   {
+    "id": "sky-express-ru",
+    "name": "Sky Express",
+    "icao": "SXR",
+    "iata": "XW",
+    "defunct": true
+  },
+  {
     "id": "sky-fru",
     "name": "Sky Fru",
     "icao": "KGZ",
@@ -12297,6 +12304,13 @@
     "icao": "EMO",
     "iata": null,
     "defunct": false
+  },
+  {
+    "id": "skyeurope",
+    "name": "SkyEurope",
+    "icao": "ESK",
+    "iata": "NE",
+    "defunct": true
   },
   {
     "id": "skyfirst",
@@ -14642,6 +14656,13 @@
     "icao": "VIV",
     "iata": "VB",
     "defunct": false
+  },
+  {
+    "id": "vlm-airlines",
+    "name": "VLM Airlines",
+    "icao": "VLM",
+    "iata": "VG",
+    "defunct": true
   },
   {
     "id": "voepass",
