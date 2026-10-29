@@ -684,7 +684,9 @@ export const buildCalendarFeed = (
       }
     }
   }
-  for (const tzId of [...zoneSpans.keys()].sort()) {
+  for (const tzId of [...zoneSpans.keys()].sort((a, b) =>
+    a.localeCompare(b),
+  )) {
     const span = zoneSpans.get(tzId)!;
     lines.push(...vTimezoneLines(tzId, span.min, span.max));
   }
