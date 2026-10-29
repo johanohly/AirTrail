@@ -6,7 +6,12 @@ import {
   type Route,
 } from '$lib/components/flight-filters/types';
 import type { NavigateFlights } from '$lib/flight-navigation';
-import { mapDetailsState, openFlightDetails } from '$lib/state.svelte';
+import { mapPreferences } from '$lib/map/map-preferences.svelte';
+import {
+  getEffectiveRouteDisplay,
+  mapDetailsState,
+  openFlightDetails,
+} from '$lib/state.svelte';
 import { type FlightData } from '$lib/utils';
 import {
   convertDistance,
@@ -18,6 +23,7 @@ export function useRouteDetails(
   flights: () => FlightData[],
   filters: () => FlightFilters | undefined,
   onNavigate: NavigateFlights,
+  trackedFlightIds: () => Set<number>,
 ) {
   const prefs = $derived(getPreferences(page.data.user));
 
@@ -66,6 +72,16 @@ export function useRouteDetails(
     }
     return ids.size;
   });
+
+  const hasTrack = $derived.by(() => {
+    return routeFlights.some((flight) => trackedFlightIds().has(flight.id));
+  });
+
+  const showingTrack = $derived(getEffectiveRouteDisplay() === 'tracks');
+
+  const toggleRouteDisplay = () => {
+    mapPreferences.focusedRouteDisplay = showingTrack ? 'points' : 'tracks';
+  };
 
   const distance = $derived.by(() => {
     const km = routeFlights.find(
@@ -142,6 +158,12 @@ export function useRouteDetails(
     get airlineCount() {
       return airlineCount;
     },
+    get hasTrack() {
+      return hasTrack;
+    },
+    get showingTrack() {
+      return showingTrack;
+    },
     get distance() {
       return distance;
     },
@@ -152,6 +174,7 @@ export function useRouteDetails(
       return routeFilterActive;
     },
     toggleRouteFilter,
+    toggleRouteDisplay,
     showAllFlights,
     showFlight,
   };

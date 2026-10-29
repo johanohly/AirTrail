@@ -26,11 +26,13 @@
     flights,
     filters = $bindable(),
     seatUserId,
+    trackedFlightIds,
     onNavigate,
   }: {
     flights: FlightData[];
     filters?: FlightFilters;
     seatUserId?: string;
+    trackedFlightIds: Set<number>;
     onNavigate: NavigateFlights;
   } = $props();
 
@@ -46,9 +48,14 @@
     () => flights,
     () => filters,
     navigateFlights,
+    () => trackedFlightIds,
   );
 
-  const flight = useFlightDetails(() => flights, navigateFlights);
+  const flight = useFlightDetails(
+    () => flights,
+    navigateFlights,
+    () => trackedFlightIds,
+  );
 
   const mobileOpen = $derived.by(() => {
     const selection = mapDetailsState.selection;
@@ -93,10 +100,17 @@
       <RouteDetailsActions
         hasFilters={!!filters}
         filterActive={route.routeFilterActive}
+        hasTrack={route.hasTrack}
+        showingTrack={route.showingTrack}
         onToggleFilter={route.toggleRouteFilter}
+        onToggle={route.toggleRouteDisplay}
       />
     {:else if mapDetailsState.selection?.type === 'flight' && flight.flight}
-      <FlightDetailsActions />
+      <FlightDetailsActions
+        hasTrack={flight.hasTrack}
+        showingTrack={flight.showingTrack}
+        onToggle={flight.toggleRouteDisplay}
+      />
     {/if}
   {/snippet}
 

@@ -32,7 +32,10 @@
     <RouteDetailsActions
       {hasFilters}
       filterActive={details.routeFilterActive}
+      hasTrack={details.hasTrack}
+      showingTrack={details.showingTrack}
       onToggleFilter={details.toggleRouteFilter}
+      onToggle={details.toggleRouteDisplay}
     />
   {/if}
 {/snippet}

@@ -27,7 +27,11 @@
 
 {#snippet actions()}
   {#if details.flight}
-    <FlightDetailsActions />
+    <FlightDetailsActions
+      hasTrack={details.hasTrack}
+      showingTrack={details.showingTrack}
+      onToggle={details.toggleRouteDisplay}
+    />
   {/if}
 {/snippet}
 
