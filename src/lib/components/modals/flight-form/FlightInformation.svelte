@@ -33,6 +33,12 @@
 
   let photo = $state<PhotoDisplay | null>(null);
   let photoLoading = $state(false);
+  // Offline / air-gapped: hide the preview instead of a broken frame.
+  let imgFailed = $state(false);
+  $effect(() => {
+    photo;
+    imgFailed = false;
+  });
   // The registration the current preview belongs to, so blur only reacts to changes.
   let fetchedReg = $state('');
 
@@ -128,8 +134,11 @@
         <Form.FieldErrors />
       </Form.Field>
     </div>
-    {#if photosEnabled && (photoLoading || photo)}
-      <div class="max-w-60">
+    {#if photosEnabled && (photoLoading || (photo && !imgFailed))}
+      <!-- Mirrors the aircraft/reg grid so the photo matches the
+           registration input's column width exactly. -->
+      <div class="grid grid-cols-[2fr_1fr] gap-2">
+        <div></div>
         {#if photoLoading && !photo}
           <div class="h-20 w-full animate-pulse rounded-md bg-muted"></div>
         {:else if photo}
@@ -139,6 +148,7 @@
                 src={photo.thumbnailSrc}
                 alt={`${fetchedReg || 'Aircraft'} — photo by ${photo.photographer}`}
                 loading="lazy"
+                onerror={() => (imgFailed = true)}
                 class="h-20 w-full rounded-md border border-border/60 object-cover"
               />
             </a>

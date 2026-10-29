@@ -50,15 +50,25 @@
   });
 
   const alt = $derived(`${reg} — photo by ${photo?.photographer ?? ''}`);
+
+  // Offline / air-gapped instances can't reach the Planespotters CDN — hide
+  // the card entirely instead of showing a broken image frame. Resets when a
+  // different photo loads.
+  let imgFailed = $state(false);
+  $effect(() => {
+    photo;
+    imgFailed = false;
+  });
 </script>
 
-{#if photo && !isLoading}
+{#if photo && !isLoading && !imgFailed}
   <figure class="relative">
     <a href={photo.photoLink} target="_blank" rel="noopener noreferrer">
       <img
         src={photo.thumbnailUrl}
         {alt}
         loading="lazy"
+        onerror={() => (imgFailed = true)}
         class={compact
           ? 'h-20 w-full rounded-md border border-border/60 object-cover'
           : 'w-full rounded-lg border border-border/60 object-cover'}
