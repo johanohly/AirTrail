@@ -4,6 +4,10 @@ import {
 } from '$lib/components/flight-filters/types';
 import type { ClientAppConfig, FullAppConfig } from '$lib/server/utils/config';
 import { DEFAULT_FLIGHT_SCOPE, type FlightScope } from '$lib/flight-scope';
+import {
+  mapPreferences,
+  type RouteDisplayMode,
+} from '$lib/map/map-preferences.svelte';
 import type { DeepBoolean } from '$lib/utils';
 
 export const flightAddedState = $state({
@@ -98,6 +102,16 @@ export const focusMapDetails = () => {
 
 export const closeMapDetails = () => {
   mapDetailsState.selection = null;
+};
+
+// Flight and route details isolate what the map draws, so that view can carry
+// its own remembered route display without touching the overview.
+export const getEffectiveRouteDisplay = (): RouteDisplayMode => {
+  const selection = mapDetailsState.selection;
+  if (selection?.type === 'flight' || selection?.type === 'route') {
+    return mapPreferences.focusedRouteDisplay ?? mapPreferences.routeDisplay;
+  }
+  return mapPreferences.routeDisplay;
 };
 
 export const appConfig = $state<{
