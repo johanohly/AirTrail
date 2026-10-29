@@ -45,6 +45,41 @@ By default, the API exports your own flights. To export another user's flights w
 
 The deprecated `/api/flight/export` endpoint still works for now. See [migrating from the legacy API](/docs/api/getting-started#migrating-from-the-legacy-api).
 
+## Calendar feed
+
+The calendar feed publishes your flights as an iCal (`.ics`) calendar that other calendar apps can subscribe to. Subscribed apps pull the feed and show each flight as an event, including reminders, seat details, and notes.
+
+### Enabling the feed
+
+1. Open **Settings > Export**.
+2. Turn on **Calendar feed**.
+3. Copy the feed URL and add it as a subscribed calendar in your calendar app.
+
+The URL looks like `https://your-instance.com/api/calendar/<token>.ics`, where `<token>` is a secret generated when you enable the feed. The URL needs no login, so anyone who has it can read your flight data - treat it like a password.
+
+You can also click **Subscribe** on the same page. It opens a `webcal://` version of the URL, which lets your device offer the feed to its default calendar app.
+
+The feed is available to users whose role includes the `flight.export.own` permission.
+
+### Feed options
+
+- **Reminder** adds a reminder to every event: 30 minutes, 1 hour, 2 hours (the default), 3 hours, or 1 day before departure.
+- **Show emoji in titles** prefixes every event title with an airplane emoji.
+
+Turning the feed off deletes the URL, and subscriptions to it stop working immediately. Enabling it again creates a new URL.
+
+### Managing the URL
+
+Use **Regenerate token** if the URL has been shared further than you meant to. The old URL stops working, and calendar apps subscribed to it must be re-subscribed with the new URL.
+
+<Callout>
+  Google Calendar refreshes subscribed calendars roughly once a day, so new
+  flights can take up to a day to appear there. Apple Calendar and Outlook
+  have similar, app-controlled refresh intervals.
+</Callout>
+
+Times inside the calendar are UTC. Your local departure and arrival times are included in each event's description.
+
 ## Export formats
 
 ### CSV
