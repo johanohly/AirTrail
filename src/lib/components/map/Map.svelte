@@ -74,6 +74,7 @@
     appConfig,
     flightScopeState,
     flightAddedState,
+    getEffectiveRouteDisplay,
     mapDetailsState,
   } from '$lib/state.svelte';
   import type { FlightTrackRow } from '$lib/track/schema';
@@ -562,7 +563,7 @@
       }}
     />
 
-    {#if flightTracks.length > 0 && mapPreferences.routeDisplay === 'tracks' && mapPreferences.flightTrackStyle === 'altitude' && !showPreviousView}
+    {#if flightTracks.length > 0 && getEffectiveRouteDisplay() === 'tracks' && mapPreferences.flightTrackStyle === 'altitude' && !showPreviousView}
       <FlightTrackLegend />
     {/if}
 

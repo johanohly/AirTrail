@@ -55,6 +55,7 @@
   import { PreciseArcEndpointsExtension } from '$lib/map/precise-arc-endpoints';
   import {
     closeMapDetails,
+    getEffectiveRouteDisplay,
     mapDetailsState,
     openAirportDetails,
     openFlightDetails,
@@ -146,7 +147,7 @@
   };
 
   const activeFlightTracks = $derived.by(() => {
-    if (mapPreferences.routeDisplay !== 'tracks') return [];
+    if (getEffectiveRouteDisplay() !== 'tracks') return [];
     return flightTracks;
   });
 
