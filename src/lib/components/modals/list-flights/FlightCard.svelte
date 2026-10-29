@@ -58,12 +58,30 @@
     <!-- Route Info (Left Side) -->
     <div class="flex flex-col gap-1 min-w-0">
       <div class="flex items-center gap-2.5">
-        <span class="text-xl font-extrabold tracking-wide">
-          {flight.from?.iata || flight.from?.icao || 'N/A'}
+        <span class="flex items-center gap-1.5">
+          {#if flight.from}
+            <img
+              src="https://flagcdn.com/{flight.from.country.toLowerCase()}.svg"
+              alt={flight.from.country}
+              class="h-4 w-6 shrink-0 rounded object-cover shadow-sm"
+            />
+          {/if}
+          <span class="text-xl font-extrabold tracking-wide">
+            {flight.from?.iata || flight.from?.icao || 'N/A'}
+          </span>
         </span>
         <RouteArrow class="size-[22px] fill-foreground" />
-        <span class="text-xl font-extrabold tracking-wide">
-          {flight.to?.iata || flight.to?.icao || 'N/A'}
+        <span class="flex items-center gap-1.5">
+          {#if flight.to}
+            <img
+              src="https://flagcdn.com/{flight.to.country.toLowerCase()}.svg"
+              alt={flight.to.country}
+              class="h-4 w-6 shrink-0 rounded object-cover shadow-sm"
+            />
+          {/if}
+          <span class="text-xl font-extrabold tracking-wide">
+            {flight.to?.iata || flight.to?.icao || 'N/A'}
+          </span>
         </span>
       </div>
       <span class="text-[15px] text-muted-foreground truncate">
