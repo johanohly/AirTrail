@@ -59,6 +59,22 @@ model user {
   oauth_authorization_codes    oauth_authorization_code[]
   oauth_access_tokens          oauth_access_token[]
   oauth_refresh_tokens         oauth_refresh_token[]
+  calendar_feed                calendar_feed?
+}
+
+model calendar_feed {
+  id                      Int       @id @default(autoincrement())
+  user_id                 String    @unique
+  token                   String    @unique
+  reminder_offset_minutes Int?
+  show_emoji              Boolean   @default(true)
+  created_at              DateTime  @default(now()) @db.Timestamptz
+  updated_at              DateTime  @default(now()) @updatedAt @db.Timestamptz
+  last_fetched            DateTime? @db.Timestamptz
+
+  user user @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([token])
 }
 
 model access_role {

@@ -3,6 +3,7 @@ import type {
   airline,
   airport,
   api_key,
+  calendar_feed,
   flight,
   flight_track,
   public_share,
@@ -85,6 +86,7 @@ export type CreateFlight = FlightRecord & {
   track?: FlightTrackInput | null;
 };
 export type PublicShare = Selectable<public_share>;
+export type CalendarFeed = Selectable<calendar_feed>;
 export type VisitedCountry = Selectable<visited_country>;
 
 export function wasVisited(country: Pick<VisitedCountry, 'status'>): boolean {
