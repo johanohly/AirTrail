@@ -109,6 +109,20 @@ const choicePreference = <T extends string>(
   };
 };
 
+const nullableChoicePreference = <T extends string>(
+  options: readonly AppearanceOption<T>[],
+  defaultValue: T | null,
+): PreferenceDefinition<T | null> => {
+  const values = new Set(options.map((option) => option.value));
+  return {
+    defaultValue,
+    sanitize: (raw) =>
+      typeof raw === 'string' && values.has(raw as T)
+        ? (raw as T)
+        : defaultValue,
+  };
+};
+
 const booleanPreference = (
   defaultValue: boolean,
 ): PreferenceDefinition<boolean> => ({
@@ -148,6 +162,7 @@ export const MAP_PREFERENCE_DEFINITIONS = {
   arcThickness: choicePreference(arcThicknessOptions, 'uniform'),
   arcThicknessScale: choicePreference(arcThicknessScaleOptions, 'normal'),
   routeDisplay: choicePreference(routeDisplayOptions, 'tracks'),
+  focusedRouteDisplay: nullableChoicePreference(routeDisplayOptions, null),
   flightTrackStyle: choicePreference(flightTrackStyleOptions, 'standard'),
   airportOverlayDetail: choicePreference(
     airportOverlayDetailOptions,
