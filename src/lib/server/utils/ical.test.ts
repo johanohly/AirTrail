@@ -75,7 +75,7 @@ const flight = (overrides: Partial<Flight> = {}): Flight => ({
   takeoffActual: null,
   landingScheduled: null,
   landingActual: null,
-  duration: 110,
+  duration: 6600, // stored in seconds (110 minutes)
   departureTerminal: null,
   departureGate: null,
   arrivalTerminal: null,
@@ -287,6 +287,15 @@ describe('buildCalendarFeed', () => {
     expect(property(ics, 'DTSTART')).toBe('20250701T093500Z');
     expect(property(ics, 'DTEND')).toBe('20250701T112500Z');
     expect(description(ics)).toContain('Duration: 1h 50m');
+  });
+
+  it('treats the stored duration as seconds', () => {
+    const ics = buildCalendarFeed(
+      [flight({ duration: 6000 })], // 6000s = 1h 40m, not 100h
+      options(),
+    );
+
+    expect(description(ics)).toContain('Duration: 1h 40m');
   });
 
   it('falls back to takeoff/landing times when departure/arrival are gone', () => {

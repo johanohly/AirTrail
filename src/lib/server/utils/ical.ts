@@ -294,14 +294,16 @@ const description = (
     .join('\n');
   if (arrivalBlock) blocks.push(arrivalBlock);
 
+  // flight.duration is stored in seconds; the computed fallback is minutes.
   const durationMinutes =
-    flight.duration ??
-    (startIso && endIso
-      ? Math.round(
-          (parseUtcIso(endIso)!.getTime() - parseUtcIso(startIso)!.getTime()) /
-            60000,
-        )
-      : null);
+    flight.duration != null
+      ? Math.round(flight.duration / 60)
+      : startIso && endIso
+        ? Math.round(
+            (parseUtcIso(endIso)!.getTime() - parseUtcIso(startIso)!.getTime()) /
+              60000,
+          )
+        : null;
   if (durationMinutes !== null && !allDay) {
     blocks.push(`Duration: ${formatDuration(durationMinutes)}`);
   }
