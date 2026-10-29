@@ -730,4 +730,20 @@ describe('client compatibility', () => {
     // Newlines still need escaping.
     expect(ics).toContain('\\n');
   });
+
+  it('folds at word boundaries when spaces are available', () => {
+    const line = `DESCRIPTION:${'departure lounge '.repeat(12)}`;
+    const folded = foldLine(line);
+    const parts = folded.split('\r\n');
+
+    for (const part of parts) {
+      expect(Buffer.byteLength(part, 'utf8')).toBeLessThanOrEqual(75);
+    }
+    // Every continuation starts with the fold space followed by a word
+    // character, never in the middle of a word.
+    for (const part of parts.slice(1)) {
+      expect(/^ \w/.test(part)).toBe(true);
+    }
+    expect(folded.replaceAll('\r\n ', '')).toBe(line);
+  });
 });

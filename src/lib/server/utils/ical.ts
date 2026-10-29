@@ -55,6 +55,10 @@ export const foldLine = (line: string): string => {
     if (end < bytes.length) {
       // Step back over UTF-8 continuation bytes to the start of a character.
       while (end > start && (bytes[end]! & 0xc0) === 0x80) end -= 1;
+      // Prefer breaking just after a space so words stay whole in the raw
+      // file; unfolding restores the original either way.
+      const space = bytes.lastIndexOf(0x20, end - 1);
+      if (space > start) end = space + 1;
     }
     chunks.push(bytes.subarray(start, end).toString('utf8'));
     start = end;
