@@ -8,7 +8,6 @@
     PlaneLanding,
     X,
   } from '@o7/icon/lucide';
-  import { isBefore, isAfter } from 'date-fns';
   import { tick } from 'svelte';
 
   import DeleteFlightModal from './DeleteFlightModal.svelte';
@@ -16,6 +15,7 @@
   import EmptyFlightsState from './EmptyFlightsState.svelte';
   import { buildFlightIndicators } from './flight-indicators';
   import FlightIndicators from './FlightIndicators.svelte';
+  import { resolveTimingStatus } from './flight-timing';
   import {
     buildFlightListYears,
     paginateFlightListYears,
@@ -123,17 +123,24 @@
             ? parseLocalizeISO(f.raw.arrivalScheduled, f.to.tz)
             : null;
 
-        let depStatus: 'early' | 'late' | null = null;
-        if (depDate && depScheduled) {
-          if (isBefore(depDate, depScheduled)) depStatus = 'early';
-          else if (isAfter(depDate, depScheduled)) depStatus = 'late';
-        }
-
-        let arrStatus: 'early' | 'late' | null = null;
-        if (arrDate && arrScheduled) {
-          if (isBefore(arrDate, arrScheduled)) arrStatus = 'early';
-          else if (isAfter(arrDate, arrScheduled)) arrStatus = 'late';
-        }
+        const parseRunwayTime = (
+          value: string | null,
+          airport: Airport | null,
+        ) => (value && airport ? parseLocalizeISO(value, airport.tz) : null);
+        const depStatus = resolveTimingStatus({
+          gateActual: depDate,
+          gateScheduled: depScheduled,
+          runwayActual: parseRunwayTime(f.raw.takeoffActual, f.from),
+          runwayScheduled: parseRunwayTime(f.raw.takeoffScheduled, f.from),
+          side: 'departure',
+        });
+        const arrStatus = resolveTimingStatus({
+          gateActual: arrDate,
+          gateScheduled: arrScheduled,
+          runwayActual: parseRunwayTime(f.raw.landingActual, f.to),
+          runwayScheduled: parseRunwayTime(f.raw.landingScheduled, f.to),
+          side: 'arrival',
+        });
 
         return {
           ...f,
