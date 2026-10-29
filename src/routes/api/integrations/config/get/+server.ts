@@ -18,6 +18,13 @@ export const GET: RequestHandler = async ({ locals }) => {
   const aeroDataBoxEndpoint =
     config?.integrations?.aeroDataBoxEndpoint ?? 'rapidapi';
   const openAipKey = config?.integrations?.openAipKey ?? null;
+  const aircraftPhotosEnabled =
+    config?.integrations?.aircraftPhotosEnabled ?? false;
 
-  return json({ aeroDataBoxKey, aeroDataBoxEndpoint, openAipKey });
+  return json({
+    aeroDataBoxKey,
+    aeroDataBoxEndpoint,
+    openAipKey,
+    aircraftPhotosEnabled,
+  });
 };
