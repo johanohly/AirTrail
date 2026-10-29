@@ -810,6 +810,7 @@
 {#if layer}
   <Popup
     openOn="hover"
+    popupClass="map-hover-popup"
     anchor="top-left"
     offset={20}
     onopen={popupPosition.setPopup}
