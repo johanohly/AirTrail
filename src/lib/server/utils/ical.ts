@@ -432,76 +432,50 @@ const extraTimesLine = (
   return parts.length > 0 ? `  ${parts.join(' · ')}` : null;
 };
 
-const description = (
-  flight: CalendarFlight,
-  options: CalendarFeedOptions,
-  allDay: boolean,
-  startIso: string | null,
-  endIso: string | null,
-): string | null => {
-  const blocks: string[] = [];
-
-  const headerParts: string[] = [];
-  if (flight.airline?.name) headerParts.push(flight.airline.name);
+/** `Airline · Aircraft (reg)`, or null when neither is known. */
+const headerLine = (flight: CalendarFlight): string | null => {
+  const parts: string[] = [];
+  if (flight.airline?.name) parts.push(flight.airline.name);
   if (flight.aircraft?.name) {
-    headerParts.push(
+    parts.push(
       flight.aircraftReg
         ? `${flight.aircraft.name} (${flight.aircraftReg})`
         : flight.aircraft.name,
     );
   }
-  if (headerParts.length > 0) blocks.push(headerParts.join(' · '));
+  return parts.length > 0 ? parts.join(' · ') : null;
+};
 
-  const departureShown = firstPresent(
-    flight.departureScheduled,
-    flight.departure,
-  );
-  const arrivalShown = firstPresent(flight.arrivalScheduled, flight.arrival);
-
-  const departureExtras = extraTimesLine(
-    flight.departure,
-    departureShown,
-    firstPresent(flight.takeoffActual, flight.takeoffScheduled),
-    'Takeoff',
-    flight.from,
-  );
-  const departureBlock = [
-    segmentLine(
-      'Departs',
-      flight.from,
-      allDay ? null : departureShown,
-      flight.departureTerminal,
-      flight.departureGate,
-    ),
-    allDay ? null : departureExtras,
+/**
+ * The `Departs:`/`Arrives:` block — the scheduled (or actual) main line plus
+ * the indented extra-times line beneath it.
+ */
+const scheduleBlock = (
+  kind: 'Departs' | 'Arrives',
+  airport: CalendarFlight['from'],
+  shownIso: string | null,
+  extras: string | null,
+  terminal: string | null,
+  gate: string | null,
+  allDay: boolean,
+): string =>
+  [
+    segmentLine(kind, airport, allDay ? null : shownIso, terminal, gate),
+    allDay ? null : extras,
   ]
     .filter((line): line is string => Boolean(line))
     .join('\n');
-  if (departureBlock) blocks.push(departureBlock);
 
-  const arrivalExtras = extraTimesLine(
-    flight.arrival,
-    arrivalShown,
-    firstPresent(flight.landingActual, flight.landingScheduled),
-    'Landing',
-    flight.to,
-  );
-  const arrivalBlock = [
-    segmentLine(
-      'Arrives',
-      flight.to,
-      allDay ? null : arrivalShown,
-      flight.arrivalTerminal,
-      flight.arrivalGate,
-    ),
-    allDay ? null : arrivalExtras,
-  ]
-    .filter((line): line is string => Boolean(line))
-    .join('\n');
-  if (arrivalBlock) blocks.push(arrivalBlock);
-
+/** `Duration: 1h 40m`, from the stored seconds or the event times. */
+const durationLine = (
+  flight: CalendarFlight,
+  startIso: string | null,
+  endIso: string | null,
+  allDay: boolean,
+): string | null => {
+  if (allDay) return null;
   // flight.duration is stored in seconds; the computed fallback is minutes.
-  const durationMinutes =
+  const minutes =
     flight.duration != null
       ? Math.round(flight.duration / 60)
       : startIso && endIso
@@ -511,20 +485,82 @@ const description = (
               60000,
           )
         : null;
-  if (durationMinutes !== null && !allDay) {
-    blocks.push(`Duration: ${formatDuration(durationMinutes)}`);
-  }
+  return minutes !== null ? `Duration: ${formatDuration(minutes)}` : null;
+};
 
+/** `Seat: 12A · window · economy` from the owner's own passenger entry. */
+const seatLine = (flight: CalendarFlight, userId: string): string | null => {
   const passenger = flight.passengers.find(
-    (candidate) => candidate.userId === options.userId,
+    (candidate) => candidate.userId === userId,
   );
-  const seatParts = [
+  const parts = [
     passenger?.seatNumber,
     passenger?.seat,
     passenger?.seatClass,
   ].filter((part): part is string => Boolean(part));
-  if (seatParts.length > 0) blocks.push(`Seat: ${seatParts.join(' · ')}`);
+  return parts.length > 0 ? `Seat: ${parts.join(' · ')}` : null;
+};
 
+const pushDefined = (
+  blocks: string[],
+  line: string | null | undefined,
+): void => {
+  if (line) blocks.push(line);
+};
+
+const description = (
+  flight: CalendarFlight,
+  options: CalendarFeedOptions,
+  allDay: boolean,
+  startIso: string | null,
+  endIso: string | null,
+): string | null => {
+  const blocks: string[] = [];
+  const departureShown = firstPresent(
+    flight.departureScheduled,
+    flight.departure,
+  );
+  const arrivalShown = firstPresent(flight.arrivalScheduled, flight.arrival);
+
+  pushDefined(blocks, headerLine(flight));
+  pushDefined(
+    blocks,
+    scheduleBlock(
+      'Departs',
+      flight.from,
+      departureShown,
+      extraTimesLine(
+        flight.departure,
+        departureShown,
+        firstPresent(flight.takeoffActual, flight.takeoffScheduled),
+        'Takeoff',
+        flight.from,
+      ),
+      flight.departureTerminal,
+      flight.departureGate,
+      allDay,
+    ),
+  );
+  pushDefined(
+    blocks,
+    scheduleBlock(
+      'Arrives',
+      flight.to,
+      arrivalShown,
+      extraTimesLine(
+        flight.arrival,
+        arrivalShown,
+        firstPresent(flight.landingActual, flight.landingScheduled),
+        'Landing',
+        flight.to,
+      ),
+      flight.arrivalTerminal,
+      flight.arrivalGate,
+      allDay,
+    ),
+  );
+  pushDefined(blocks, durationLine(flight, startIso, endIso, allDay));
+  pushDefined(blocks, seatLine(flight, options.userId));
   if (flight.note) blocks.push(`Note: ${flight.note}`);
 
   return blocks.length > 0 ? blocks.join('\n\n') : null;
