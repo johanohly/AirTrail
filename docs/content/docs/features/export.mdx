@@ -74,11 +74,11 @@ Use **Regenerate token** if the URL has been shared further than you meant to. T
 
 <Callout>
   Google Calendar refreshes subscribed calendars roughly once a day, so new
-  flights can take up to a day to appear there. Apple Calendar and Outlook
-  have similar, app-controlled refresh intervals.
+  flights can take up to a day to appear there. Apple Calendar and Outlook have
+  similar, app-controlled refresh intervals.
 </Callout>
 
-Times inside the calendar are UTC. Your local departure and arrival times are included in each event's description.
+Events use the departure and arrival airports' local timezones, so flights show the wall time you expect no matter which timezone your calendar app uses. Each event's description repeats the local times along with airport, seat and flight details.
 
 ## Export formats
 
@@ -114,9 +114,9 @@ The seat and reason columns come from your own passenger entry. Other passengers
 ### JSON
 
 <Callout>
-  The JSON format can be reimported into AirTrail using the
-  [import feature](/docs/features/import). Use the **AirTrail** importer for
-  current exports and **AirTrail (pre-v3)** for legacy exports.
+  The JSON format can be reimported into AirTrail using the [import
+  feature](/docs/features/import). Use the **AirTrail** importer for current
+  exports and **AirTrail (pre-v3)** for legacy exports.
 </Callout>
 
 The JSON export is the complete AirTrail backup format. It contains every passenger on each flight, custom field values, and flight tracks.

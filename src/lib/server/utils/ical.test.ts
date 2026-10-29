@@ -266,8 +266,10 @@ describe('buildCalendarFeed', () => {
     );
 
     expect(property(ics, 'DTSTAMP')).toBe('20250601T123456Z');
-    expect(property(ics, 'DTSTART')).toBe('20250701T093000Z');
-    expect(property(ics, 'DTEND')).toBe('20250701T112000Z');
+    expect(property(ics, 'DTSTART;TZID=Europe/Copenhagen')).toBe(
+      '20250701T113000',
+    );
+    expect(property(ics, 'DTEND;TZID=Europe/London')).toBe('20250701T122000');
   });
 
   it('falls back through the departure chain', () => {
@@ -284,8 +286,10 @@ describe('buildCalendarFeed', () => {
       options(),
     );
 
-    expect(property(ics, 'DTSTART')).toBe('20250701T093500Z');
-    expect(property(ics, 'DTEND')).toBe('20250701T112500Z');
+    expect(property(ics, 'DTSTART;TZID=Europe/Copenhagen')).toBe(
+      '20250701T113500',
+    );
+    expect(property(ics, 'DTEND;TZID=Europe/London')).toBe('20250701T122500');
     expect(description(ics)).toContain('Duration: 1h 50m');
   });
 
@@ -316,8 +320,10 @@ describe('buildCalendarFeed', () => {
       options(),
     );
 
-    expect(property(ics, 'DTSTART')).toBe('20250701T094000Z');
-    expect(property(ics, 'DTEND')).toBe('20250701T111500Z');
+    expect(property(ics, 'DTSTART;TZID=Europe/Copenhagen')).toBe(
+      '20250701T114000',
+    );
+    expect(property(ics, 'DTEND;TZID=Europe/London')).toBe('20250701T121500');
   });
 
   it('emits an all-day event when no times exist', () => {
@@ -716,7 +722,86 @@ describe('buildCalendarFeed', () => {
 
   it('keeps DTSTART/DTEND lines unfolded so parsers see them whole', () => {
     const ics = buildCalendarFeed([flight()], options());
-    expect(physicalLines(ics)).toContain('DTSTART:20250701T093000Z');
+    expect(physicalLines(ics)).toContain(
+      'DTSTART;TZID=Europe/Copenhagen:20250701T113000',
+    );
+  });
+});
+
+describe('airport-local timezones', () => {
+  it('renders wall time in the departure airport zone in winter and summer', () => {
+    const winter = buildCalendarFeed(
+      [
+        flight({
+          date: '2025-01-15',
+          departureScheduled: '2025-01-15T09:30:00.000Z',
+          arrivalScheduled: '2025-01-15T11:20:00.000Z',
+        }),
+      ],
+      options(),
+    );
+    // CET is UTC+1 in January, CEST UTC+2 in July.
+    expect(property(winter, 'DTSTART;TZID=Europe/Copenhagen')).toBe(
+      '20250115T103000',
+    );
+    expect(property(winter, 'DTEND;TZID=Europe/London')).toBe(
+      '20250115T112000',
+    );
+  });
+
+  it('emits a VTIMEZONE with STANDARD and DAYLIGHT observances across a DST span', () => {
+    const ics = buildCalendarFeed(
+      [
+        flight({
+          date: '2025-01-15',
+          departureScheduled: '2025-01-15T09:30:00.000Z',
+          arrivalScheduled: '2025-01-15T11:20:00.000Z',
+        }),
+        flight(),
+      ],
+      options(),
+    );
+
+    expect(physicalLines(ics)).toContain('BEGIN:VTIMEZONE');
+    expect(physicalLines(ics)).toContain('TZID:Europe/Copenhagen');
+    expect(physicalLines(ics)).toContain('TZOFFSETTO:+0100');
+    expect(physicalLines(ics)).toContain('TZOFFSETTO:+0200');
+    const allLines = physicalLines(ics);
+    const cphZone = allLines.slice(
+      allLines.indexOf('TZID:Europe/Copenhagen'),
+      allLines.indexOf(
+        'END:VTIMEZONE',
+        allLines.indexOf('TZID:Europe/Copenhagen'),
+      ),
+    );
+    const daylight = cphZone.filter((line) => line === 'BEGIN:DAYLIGHT');
+    expect(daylight).toHaveLength(1);
+    // The 2025 CET -> CEST transition falls on March 30 at 02:00 local.
+    const onset = physicalLines(ics).find((line) =>
+      /^DTSTART:20250330T030000$/.test(line),
+    );
+    expect(onset).toBeDefined();
+  });
+
+  it('emits a single STANDARD observance for a zone without DST', () => {
+    const dubai: Airport = {
+      ...copenhagen,
+      id: 3,
+      icao: 'OMDB',
+      iata: 'DXB',
+      tz: 'Asia/Dubai',
+      name: 'Dubai International Airport',
+      municipality: 'Dubai',
+      country: 'AE',
+    };
+    const ics = buildCalendarFeed(
+      [flight({ from: dubai, to: dubai })],
+      options(),
+    );
+
+    expect(physicalLines(ics)).toContain('TZID:Asia/Dubai');
+    expect(physicalLines(ics)).toContain('TZOFFSETTO:+0400');
+    expect(physicalLines(ics)).not.toContain('BEGIN:DAYLIGHT');
   });
 });
 

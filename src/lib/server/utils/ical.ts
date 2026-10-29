@@ -105,6 +105,210 @@ const localTime = (iso: string, tzId: string | null): string | null => {
   return `${pad2(local.getHours())}:${pad2(local.getMinutes())}`;
 };
 
+/*
+ * Airport-local event times. Events carry a `TZID` parameter plus a generated
+ * `VTIMEZONE` whose observances have explicit onsets derived by probing the
+ * IANA database through `Intl`, so calendars render the wall time of the
+ * departure/arrival airports regardless of the viewer's own timezone.
+ */
+const partsFormatters = new Map<string, Intl.DateTimeFormat>();
+const abbrevFormatters = new Map<string, Intl.DateTimeFormat>();
+
+const partsFormatter = (tzId: string): Intl.DateTimeFormat => {
+  let formatter = partsFormatters.get(tzId);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: tzId,
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    partsFormatters.set(tzId, formatter);
+  }
+  return formatter;
+};
+
+const abbrevFormatter = (tzId: string): Intl.DateTimeFormat => {
+  let formatter = abbrevFormatters.get(tzId);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: tzId,
+      timeZoneName: 'short',
+    });
+    abbrevFormatters.set(tzId, formatter);
+  }
+  return formatter;
+};
+
+/** Wall-clock parts of an instant inside `tzId`. */
+const wallParts = (tzId: string, epochMs: number) => {
+  const parts = partsFormatter(tzId).formatToParts(new Date(epochMs));
+  const get = (type: string): number =>
+    Number(parts.find((part) => part.type === type)?.value ?? '0');
+  return {
+    year: get('year'),
+    month: get('month'),
+    day: get('day'),
+    hour: get('hour'),
+    minute: get('minute'),
+    second: get('second'),
+  };
+};
+
+/** `YYYYMMDDTHHMMSS` wall time inside `tzId`, without a UTC designator. */
+const wallStamp = (tzId: string, epochMs: number): string => {
+  const parts = wallParts(tzId, epochMs);
+  return `${parts.year}${pad2(parts.month)}${pad2(parts.day)}T${pad2(
+    parts.hour,
+  )}${pad2(parts.minute)}${pad2(parts.second)}`;
+};
+
+/**
+ * Offset of `tzId` east of UTC in minutes at the given instant, derived from
+ * the difference between wall time and UTC so it works without relying on
+ * `timeZoneName` offset formats.
+ */
+const offsetMinutes = (tzId: string, epochMs: number): number => {
+  const parts = wallParts(tzId, epochMs);
+  const asUtc = Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second,
+  );
+  return Math.round((asUtc - epochMs) / 60000);
+};
+
+/** `+HHMM` / `-HHMM` for an offset given in minutes. */
+const formatOffset = (minutes: number): string =>
+  `${minutes < 0 ? '-' : '+'}${pad2(Math.floor(Math.abs(minutes) / 60))}${pad2(
+    Math.abs(minutes) % 60,
+  )}`;
+
+/** Short zone abbreviation such as `CEST`, falling back to the offset. */
+const zoneAbbrev = (tzId: string, epochMs: number): string => {
+  const part = abbrevFormatter(tzId)
+    .formatToParts(new Date(epochMs))
+    .find((candidate) => candidate.type === 'timeZoneName');
+  return part?.value ?? formatOffset(offsetMinutes(tzId, epochMs));
+};
+
+interface ZoneTransition {
+  at: number;
+  before: number;
+  after: number;
+}
+
+/**
+ * UTC-offset transitions of `tzId` inside `[startMs, endMs]`, found by
+ * sampling every five days and binary-searching each change to the minute.
+ */
+const findZoneTransitions = (
+  tzId: string,
+  startMs: number,
+  endMs: number,
+): ZoneTransition[] => {
+  const transitions: ZoneTransition[] = [];
+  const stepMs = 5 * 86400_000;
+  let previousAt = startMs;
+  let previousOffset = offsetMinutes(tzId, startMs);
+
+  for (let at = startMs + stepMs; at < endMs + stepMs; at += stepMs) {
+    const sample = Math.min(at, endMs);
+    const offset = offsetMinutes(tzId, sample);
+    if (offset !== previousOffset) {
+      let low = previousAt;
+      let high = sample;
+      while (high - low > 60_000) {
+        const mid = low + Math.floor((high - low) / 2);
+        if (offsetMinutes(tzId, mid) === previousOffset) low = mid;
+        else high = mid;
+      }
+      // Transitions fall on whole minutes; snap the bisected instant so the
+      // emitted onset matches the tz database value exactly.
+      transitions.push({
+        at: Math.floor(high / 60_000) * 60_000,
+        before: previousOffset,
+        after: offset,
+      });
+      previousOffset = offset;
+    }
+    previousAt = sample;
+  }
+
+  return transitions;
+};
+
+const vTimezoneCache = new Map<string, string[]>();
+
+/**
+ * `VTIMEZONE` lines covering exactly the span of instants used. Observances
+ * carry explicit onsets (no `RRULE`), which RFC 5545 permits and which lets
+ * strict clients resolve offsets without their own tz database.
+ */
+const vTimezoneLines = (
+  tzId: string,
+  startMs: number,
+  endMs: number,
+): string[] => {
+  const cacheKey = `${tzId}:${startMs}:${endMs}`;
+  const cached = vTimezoneCache.get(cacheKey);
+  if (cached) return cached;
+
+  const transitions = findZoneTransitions(tzId, startMs, endMs);
+  const offsets = [
+    offsetMinutes(tzId, startMs),
+    ...transitions.map((transition) => transition.after),
+  ];
+  // The larger offset in a changing zone is the daylight one.
+  const isDaylight = (offset: number) =>
+    transitions.length > 0 && offset === Math.max(...offsets);
+
+  const observance = (
+    kind: 'STANDARD' | 'DAYLIGHT',
+    atMs: number,
+    from: number,
+    to: number,
+  ): string[] => [
+    `BEGIN:${kind}`,
+    `DTSTART:${wallStamp(tzId, atMs)}`,
+    `TZOFFSETFROM:${formatOffset(from)}`,
+    `TZOFFSETTO:${formatOffset(to)}`,
+    `TZNAME:${zoneAbbrev(tzId, atMs)}`,
+    `END:${kind}`,
+  ];
+
+  const baseOffset = offsetMinutes(tzId, startMs);
+  const lines = [
+    'BEGIN:VTIMEZONE',
+    `TZID:${tzId}`,
+    ...observance(
+      isDaylight(baseOffset) ? 'DAYLIGHT' : 'STANDARD',
+      startMs,
+      baseOffset,
+      baseOffset,
+    ),
+    ...transitions.flatMap((transition) =>
+      observance(
+        isDaylight(transition.after) ? 'DAYLIGHT' : 'STANDARD',
+        transition.at,
+        transition.before,
+        transition.after,
+      ),
+    ),
+    'END:VTIMEZONE',
+  ];
+
+  vTimezoneCache.set(cacheKey, lines);
+  return lines;
+};
+
 /** The code shown for an airport: IATA when present, otherwise ICAO. */
 const airportCode = (airport: { iata: string | null; icao: string }) =>
   airport.iata ?? airport.icao;
@@ -302,7 +506,8 @@ const description = (
       ? Math.round(flight.duration / 60)
       : startIso && endIso
         ? Math.round(
-            (parseUtcIso(endIso)!.getTime() - parseUtcIso(startIso)!.getTime()) /
+            (parseUtcIso(endIso)!.getTime() -
+              parseUtcIso(startIso)!.getTime()) /
               60000,
           )
         : null;
@@ -331,23 +536,28 @@ export const isFeedEligible = (flight: CalendarFlight): boolean =>
   flight.datePrecision !== 'month' &&
   flight.datePrecision !== 'year';
 
+/** Scheduled-first event time chains shared by events and zone spans. */
+const eventTimes = (flight: CalendarFlight) => ({
+  start: firstPresent(
+    flight.departureScheduled,
+    flight.departure,
+    flight.takeoffScheduled,
+    flight.takeoffActual,
+  ),
+  end: firstPresent(
+    flight.arrivalScheduled,
+    flight.arrival,
+    flight.landingScheduled,
+    flight.landingActual,
+  ),
+});
+
 const eventLines = (
   flight: CalendarFlight,
   options: CalendarFeedOptions,
   now: Date,
 ): string[] => {
-  const start = firstPresent(
-    flight.departureScheduled,
-    flight.departure,
-    flight.takeoffScheduled,
-    flight.takeoffActual,
-  );
-  const end = firstPresent(
-    flight.arrivalScheduled,
-    flight.arrival,
-    flight.landingScheduled,
-    flight.landingActual,
-  );
+  const { start, end } = eventTimes(flight);
   const allDay = !start && !end;
 
   const lines = [
@@ -360,8 +570,16 @@ const eventLines = (
     lines.push(`DTSTART;VALUE=DATE:${dateStamp(flight.date)}`);
     lines.push(`DTEND;VALUE=DATE:${dateStamp(nextDay(flight.date))}`);
   } else {
-    if (start) lines.push(`DTSTART:${utcStamp(parseUtcIso(start)!)}`);
-    if (end) lines.push(`DTEND:${utcStamp(parseUtcIso(end)!)}`);
+    if (start) {
+      const epochMs = parseUtcIso(start)!.getTime();
+      const tzId = flight.from?.tz ?? 'UTC';
+      lines.push(`DTSTART;TZID=${tzId}:${wallStamp(tzId, epochMs)}`);
+    }
+    if (end) {
+      const epochMs = parseUtcIso(end)!.getTime();
+      const tzId = flight.to?.tz ?? 'UTC';
+      lines.push(`DTEND;TZID=${tzId}:${wallStamp(tzId, epochMs)}`);
+    }
   }
 
   lines.push(`SUMMARY:${escapeText(summary(flight, options))}`);
@@ -407,8 +625,35 @@ export const buildCalendarFeed = (
     'X-PUBLISHED-TTL:P1D',
   ];
 
-  for (const flight of flights) {
-    if (!isFeedEligible(flight)) continue;
+  const eligible = flights.filter(isFeedEligible);
+
+  // One VTIMEZONE per used zone, spanning exactly the events' instants.
+  const zoneSpans = new Map<string, { min: number; max: number }>();
+  for (const flight of eligible) {
+    const { start, end } = eventTimes(flight);
+    const stamps: Array<[string | null, string | undefined]> = [
+      [start, flight.from?.tz],
+      [end, flight.to?.tz],
+    ];
+    for (const [iso, tzId] of stamps) {
+      if (!iso || !tzId) continue;
+      const epochMs = parseUtcIso(iso)?.getTime();
+      if (epochMs == null || Number.isNaN(epochMs)) continue;
+      const span = zoneSpans.get(tzId);
+      if (span) {
+        span.min = Math.min(span.min, epochMs);
+        span.max = Math.max(span.max, epochMs);
+      } else {
+        zoneSpans.set(tzId, { min: epochMs, max: epochMs });
+      }
+    }
+  }
+  for (const tzId of [...zoneSpans.keys()].sort()) {
+    const span = zoneSpans.get(tzId)!;
+    lines.push(...vTimezoneLines(tzId, span.min, span.max));
+  }
+
+  for (const flight of eligible) {
     lines.push(...eventLines(flight, options, now));
   }
 
