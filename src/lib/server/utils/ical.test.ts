@@ -139,8 +139,8 @@ const event = (ics: string): string[] => {
 };
 
 describe('escapeText', () => {
-  it('escapes backslash, comma, semicolon and colon', () => {
-    expect(escapeText('a\\b,c;d:e')).toBe('a\\\\b\\,c\\;d\\:e');
+  it('escapes backslash but leaves commas, semicolons and colons alone', () => {
+    expect(escapeText('a\\b,c;d:e')).toBe('a\\\\b,c;d:e');
   });
 
   it('converts newlines to literal \\n and drops carriage returns', () => {
@@ -616,7 +616,7 @@ describe('buildCalendarFeed', () => {
     );
 
     expect(property(ics, 'DESCRIPTION')).toContain(
-      'Note\\: Window\\, exit row\\; quiet\\nflight',
+      'Note: Window, exit row; quiet\\nflight',
     );
   });
 
@@ -627,7 +627,7 @@ describe('buildCalendarFeed', () => {
     );
 
     expect(property(ics, 'LOCATION')).toBe(
-      'Kastrup\\, Reg\\: København (CPH)\\, Copenhagen\\, DK',
+      'Kastrup, Reg: København (CPH), Copenhagen, DK',
     );
   });
 
@@ -717,5 +717,17 @@ describe('buildCalendarFeed', () => {
   it('keeps DTSTART/DTEND lines unfolded so parsers see them whole', () => {
     const ics = buildCalendarFeed([flight()], options());
     expect(physicalLines(ics)).toContain('DTSTART:20250701T093000Z');
+  });
+});
+
+describe('client compatibility', () => {
+  it('never escapes colons or commas, which Proton Calendar renders literally', () => {
+    const ics = buildCalendarFeed([flight({ note: 'a,b;c:d' })], options());
+
+    expect(ics).not.toContain('\\:');
+    expect(ics).not.toContain('\\,');
+    expect(ics).not.toContain('\\;');
+    // Newlines still need escaping.
+    expect(ics).toContain('\\n');
   });
 });

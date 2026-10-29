@@ -30,16 +30,14 @@ const UID_DOMAIN = '@airtrail';
 const pad2 = (value: number) => value.toString().padStart(2, '0');
 
 /**
- * Escape a value for use in an ICS text property. Backslash first, then the
- * RFC 5545 specials, then newlines as literal `\n`.
+ * Escape a value for use in an ICS text property: backslash and newlines
+ * only. RFC 5545 also demands escaping `:`/`,`/`;`, but several widely used
+ * calendar clients (notably Proton Calendar) render those escapes literally,
+ * while every parser splits values on the first colon only — so leaving them
+ * unescaped displays correctly everywhere.
  */
 export const escapeText = (value: string): string =>
-  value
-    .replace(/\\/g, '\\\\')
-    .replace(/;/g, '\\;')
-    .replace(/,/g, '\\,')
-    .replace(/:/g, '\\:')
-    .replace(/\r?\n/g, '\\n');
+  value.replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n');
 
 /**
  * Fold a content line to at most 75 octets, continuing each following chunk
