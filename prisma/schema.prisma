@@ -212,6 +212,7 @@ model flight {
   airline    airline?           @relation(fields: [airline_id], references: [id])
   passengers flight_passenger[]
   track      flight_track?
+  photo      flight_photo?
 
   @@index([from_id], map: "flight_from_id_idx")
   @@index([to_id], map: "flight_to_id_idx")
@@ -227,6 +228,20 @@ model flight_track {
   point_count   Int
 
   created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  flight flight @relation(fields: [flight_id], references: [id], onDelete: Cascade)
+}
+
+model flight_photo {
+  flight_id     Int    @id
+  /// Registration used when the photo was fetched (may differ from the flight's current reg)
+  reg           String
+  photo_link    String
+  thumbnail_url String
+  photographer  String
+
+  fetched_at DateTime @default(now()) @db.Timestamptz
   updated_at DateTime @default(now()) @updatedAt @db.Timestamptz
 
   flight flight @relation(fields: [flight_id], references: [id], onDelete: Cascade)
