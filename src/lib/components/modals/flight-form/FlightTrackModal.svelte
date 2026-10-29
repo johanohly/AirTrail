@@ -6,6 +6,7 @@
   import { Button } from '$lib/components/ui/button';
   import { Modal, ModalBody, ModalHeader } from '$lib/components/ui/modal';
   import { findAutomaticTrackCandidate } from '$lib/track/candidates';
+  import { prepareTrackEventTimes } from '$lib/track/event-times';
   import { parseTrackFile, type ParsedTrackCandidate } from '$lib/track/parser';
   import type { FlightTrackInput } from '$lib/track/schema';
   import { formatDateTime, getPreferences } from '$lib/utils/preferences';
@@ -32,6 +33,9 @@
 
   const track = $derived($formData.track);
   const hasTrack = $derived(!!track);
+  const timingWarnings = $derived(
+    track ? prepareTrackEventTimes(track, $formData).warnings : [],
+  );
   const trackSummary = $derived.by(() => {
     if (!track) return null;
     const altitudePoints = track.coordinates.filter(
@@ -86,6 +90,8 @@
     originalPointCount = count;
     trackCandidates = [];
     setTrack(trackInput);
+    const { values } = prepareTrackEventTimes(trackInput, $formData);
+    formData.update((current) => ({ ...current, ...values }));
   };
 
   // The file input has no `accept` filter because iOS has no system type for
@@ -201,6 +207,11 @@
       {/if}
 
       {#if trackSummary}
+        {#each timingWarnings as warning}
+          <p role="alert" class="text-sm text-amber-600 dark:text-amber-400">
+            {warning}
+          </p>
+        {/each}
         <div
           class="min-w-0 overflow-hidden rounded-md border bg-muted/30 px-3 py-2 text-sm shadow-xs"
           data-testid="flight-track-summary"
