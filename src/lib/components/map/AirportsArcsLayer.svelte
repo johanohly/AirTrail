@@ -176,6 +176,7 @@
     prepareFlightTrackLayerData(
       flightTrackPaths,
       mapPreferences.flightTrackStyle,
+      { repeatAcrossAntimeridian: mapPreferences.projection !== 'globe' },
     ),
   );
 

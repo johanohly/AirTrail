@@ -7,7 +7,10 @@ import type {
   FlightTrackIdentity,
   FlightTrackPath,
 } from './flight-layer-data';
-import { buildFlightTrackDisplayPaths } from './flight-track-display-geometry';
+import {
+  buildFlightTrackDisplayPaths,
+  getAntimeridianDisplayCopies,
+} from './flight-track-display-geometry';
 import {
   buildFlightTrackRuns,
   type FlightTrackRun,
@@ -68,9 +71,23 @@ const estimatedPathStyle = new PathStyleExtension({
 });
 const ESTIMATED_UNDERLAY_WIDTH_SCALE = 0.56;
 
+const withAntimeridianCopies = <T extends { displayPath: [number, number][] }>(
+  items: T[],
+) =>
+  items.flatMap((item) => [
+    item,
+    ...getAntimeridianDisplayCopies(item.displayPath).map((displayPath) => ({
+      ...item,
+      displayPath,
+    })),
+  ]);
+
 export const prepareFlightTrackLayerData = (
   paths: FlightTrackPath[],
   style: FlightTrackStyle,
+  {
+    repeatAcrossAntimeridian = false,
+  }: { repeatAcrossAntimeridian?: boolean } = {},
 ): FlightTrackLayerData => {
   const preparedPaths: RenderableFlightTrackPath[] = [];
   const preparedRuns: RenderableFlightTrackRun[] = [];
@@ -104,11 +121,20 @@ export const prepareFlightTrackLayerData = (
     );
   }
 
+  // Mercator needs world copies of tracks that cross the antimeridian; the
+  // globe wraps on its own, where a copy would draw the same line twice.
+  const displayPaths = repeatAcrossAntimeridian
+    ? withAntimeridianCopies(preparedPaths)
+    : preparedPaths;
+  const displayRuns = repeatAcrossAntimeridian
+    ? withAntimeridianCopies(preparedRuns)
+    : preparedRuns;
+
   return {
-    paths: preparedPaths,
-    solidRuns: preparedRuns.filter((run) => !run.estimated),
-    estimatedRuns: preparedRuns.filter((run) => run.estimated),
-    groundRuns: preparedRuns.filter((run) => run.ground),
+    paths: displayPaths,
+    solidRuns: displayRuns.filter((run) => !run.estimated),
+    estimatedRuns: displayRuns.filter((run) => run.estimated),
+    groundRuns: displayRuns.filter((run) => run.ground),
   };
 };
 
