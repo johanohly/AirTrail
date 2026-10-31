@@ -246,6 +246,28 @@ describe('processLogMyTripFile', () => {
     expect(flight.duration).toBe(5100);
   });
 
+  it('derives the arrival from the duration when it is before the departure', async () => {
+    const content = toCsv([
+      {
+        'Operated as': 'OS1',
+        'Departure airport': VIE,
+        'Arrival airport': BUD,
+        'Departure time': '2019-07-28 23:30:00',
+        'Arrival time': '2019-07-28 00:30:00',
+        Duration: '60',
+        Cancelled: 'FALSE',
+      },
+    ]);
+
+    const flight = (await processLogMyTripFile(content, options)).flights[0]!;
+
+    expect(flight.departure).toBe('2019-07-28T21:30:00.000+00:00');
+    expect(new Date(flight.arrival!).toISOString()).toBe(
+      '2019-07-28T22:30:00.000Z',
+    );
+    expect(flight.duration).toBe(3600);
+  });
+
   it('imports actual and scheduled arrivals when departures are unknown', async () => {
     const content = toCsv([
       {

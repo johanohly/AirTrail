@@ -355,19 +355,16 @@ export const processLogMyTripFile = async (
       row.arrival_time && !isMidnight(row.arrival_time)
         ? parseLocalDateTime(row.arrival_time, to?.tz ?? 'UTC')
         : null;
-    if (departure) {
-      if (!arrival && row.duration) {
-        arrival = new Date(departure.getTime() + row.duration * 60_000);
-      }
+    // The server rejects an arrival before the departure, which happens when
+    // an overnight flight's arrival date wasn't rolled over.
+    if (departure && arrival && arrival <= departure) arrival = null;
+    if (departure && !arrival && row.duration) {
+      arrival = new Date(departure.getTime() + row.duration * 60_000);
     }
 
-    const timedDuration =
+    const duration =
       departure && arrival
         ? Math.round((arrival.getTime() - departure.getTime()) / 1000)
-        : 0;
-    const duration =
-      timedDuration > 0
-        ? timedDuration
         : row.duration
           ? row.duration * 60
           : null;
