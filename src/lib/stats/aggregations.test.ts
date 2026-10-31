@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest';
 
 import { COUNTRIES } from '$lib/data/countries';
 import {
+  countFlightsPerYear,
   countriesByContinentDetails,
   countriesByContinentDistribution,
   flightMatchesChartBucket,
   reasonDistribution,
-  countFlightsPerYear,
 } from './aggregations';
 import type { FlightData } from '$lib/utils';
 
