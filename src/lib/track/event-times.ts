@@ -33,6 +33,7 @@ export const detectTrackEventTimes = (track: FlightTrackInput) => {
 export const prepareTrackEventTimes = (
   track: FlightTrackInput,
   form: FlightFormData,
+  locale = Intl.DateTimeFormat().resolvedOptions().locale,
 ) => {
   const events = detectTrackEventTimes(track);
   const warnings: string[] = [];
@@ -64,7 +65,7 @@ export const prepareTrackEventTimes = (
       const local = decomposeToLocal(
         new Date(event * 1000).toISOString(),
         timezone,
-        'en-GB',
+        locale,
       );
       values[dateField] = local.date;
       values[timeField] = local.time;

@@ -73,6 +73,7 @@ describe('track event times', () => {
     const result = prepareTrackEventTimes(
       track([0, 10, 0], [86397, 86400, 86403]),
       form,
+      'en-GB',
     );
     expect(result.warnings).toEqual([]);
     expect(result.values.takeoffActualTime).toBe('00:00');
@@ -83,5 +84,13 @@ describe('track event times', () => {
     expect(
       prepareTrackEventTimes(track([10, 20], [90000, 90010]), form).warnings,
     ).toHaveLength(1);
+  });
+  it('uses the supplied locale for filled times', () => {
+    const result = prepareTrackEventTimes(
+      track([0, 10], [0, 3]),
+      form,
+      'en-US',
+    );
+    expect(result.values.takeoffActualTime).toBe('12:00 AM');
   });
 });
