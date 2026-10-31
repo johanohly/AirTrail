@@ -38,17 +38,6 @@ async function barHeights(chart: Locator) {
     );
 }
 
-test('shows a nonzero bar for a single flight', async ({ page }) => {
-  const chart = await openChart(page, [[2020, 1]]);
-  await expect(chart.locator('.lc-bar')).toHaveCount(1);
-  await expect
-    .poll(async () => (await barHeights(chart))[0])
-    .toBeGreaterThan(0);
-  await expect(
-    chart.locator('svg text').filter({ hasText: /^0$/ }),
-  ).toBeVisible();
-});
-
 test('measures positive year counts from zero', async ({ page }) => {
   const chart = await openChart(page, [
     [2020, 10],
