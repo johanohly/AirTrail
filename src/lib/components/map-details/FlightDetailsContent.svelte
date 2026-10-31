@@ -10,9 +10,11 @@
   let {
     details,
     seatUserId,
+    hasTrack,
   }: {
     details: ReturnType<typeof useFlightDetails>;
     seatUserId?: string;
+    hasTrack: boolean;
   } = $props();
 </script>
 
@@ -27,11 +29,7 @@
 
 {#snippet actions()}
   {#if details.flight}
-    <FlightDetailsActions
-      hasTrack={details.hasTrack}
-      showingTrack={details.showingTrack}
-      onToggle={details.toggleRouteDisplay}
-    />
+    <FlightDetailsActions {hasTrack} />
   {/if}
 {/snippet}
 

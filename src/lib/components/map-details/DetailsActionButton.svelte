@@ -8,7 +8,7 @@
     label,
     icon: Icon,
     onclick,
-    pressed = false,
+    pressed,
     shortLabel = label,
   }: {
     label: string;
@@ -29,7 +29,7 @@
         class="h-9 min-w-0 flex-1 gap-1.5 px-1.5 sm:px-2 md:size-8 md:flex-none md:px-0"
         {onclick}
         aria-label={label}
-        aria-pressed={pressed || undefined}
+        aria-pressed={pressed}
       >
         <Icon size={16} />
         <span class="min-w-0 truncate text-[11px] sm:text-xs md:sr-only">

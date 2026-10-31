@@ -20,16 +20,4 @@ describe('map preferences', () => {
       Object.keys(MAP_PREFERENCE_DEFAULTS),
     );
   });
-
-  it('sanitizes the focused route display override', () => {
-    const override = sanitizeMapPreferences({ focusedRouteDisplay: 'points' });
-    expect(override.focusedRouteDisplay).toBe('points');
-
-    const invalid = sanitizeMapPreferences({ focusedRouteDisplay: 'invalid' });
-    expect(invalid.focusedRouteDisplay).toBeNull();
-
-    const missing = sanitizeMapPreferences({});
-    expect(missing.focusedRouteDisplay).toBeNull();
-    expect(MAP_PREFERENCE_DEFAULTS.focusedRouteDisplay).toBeNull();
-  });
 });

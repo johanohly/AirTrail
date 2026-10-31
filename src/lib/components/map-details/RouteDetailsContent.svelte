@@ -10,9 +10,11 @@
   let {
     details,
     hasFilters,
+    hasTrack,
   }: {
     details: ReturnType<typeof useRouteDetails>;
     hasFilters: boolean;
+    hasTrack: boolean;
   } = $props();
 </script>
 
@@ -32,10 +34,8 @@
     <RouteDetailsActions
       {hasFilters}
       filterActive={details.routeFilterActive}
-      hasTrack={details.hasTrack}
-      showingTrack={details.showingTrack}
+      {hasTrack}
       onToggleFilter={details.toggleRouteFilter}
-      onToggle={details.toggleRouteDisplay}
     />
   {/if}
 {/snippet}

@@ -1,18 +1,12 @@
 import { page } from '$app/state';
 import type { NavigateFlights } from '$lib/flight-navigation';
-import { mapPreferences } from '$lib/map/map-preferences.svelte';
-import {
-  getEffectiveRouteDisplay,
-  mapDetailsState,
-  openRouteDetails,
-} from '$lib/state.svelte';
+import { mapDetailsState, openRouteDetails } from '$lib/state.svelte';
 import { type FlightData } from '$lib/utils';
 import { getPreferences } from '$lib/utils/preferences';
 
 export function useFlightDetails(
   flights: () => FlightData[],
   onNavigate: NavigateFlights,
-  trackedFlightIds: () => Set<number>,
 ) {
   const prefs = $derived(getPreferences(page.data.user));
 
@@ -26,17 +20,6 @@ export function useFlightDetails(
     if (id === null) return null;
     return flights().find((f) => f.id === id) ?? null;
   });
-
-  const hasTrack = $derived.by(() => {
-    if (!flight) return false;
-    return trackedFlightIds().has(flight.id);
-  });
-
-  const showingTrack = $derived(getEffectiveRouteDisplay() === 'tracks');
-
-  const toggleRouteDisplay = () => {
-    mapPreferences.focusedRouteDisplay = showingTrack ? 'points' : 'tracks';
-  };
 
   const showRoute = () => {
     if (!flight?.from || !flight.to) return;
@@ -63,14 +46,7 @@ export function useFlightDetails(
     get flight() {
       return flight;
     },
-    get hasTrack() {
-      return hasTrack;
-    },
-    get showingTrack() {
-      return showingTrack;
-    },
     showRoute,
     showInList,
-    toggleRouteDisplay,
   };
 }

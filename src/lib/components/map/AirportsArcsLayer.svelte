@@ -56,7 +56,7 @@
   import { PreciseArcEndpointsExtension } from '$lib/map/precise-arc-endpoints';
   import {
     closeMapDetails,
-    getEffectiveRouteDisplay,
+    getFlightRouteDisplay,
     mapDetailsState,
     openAirportDetails,
     openFlightDetails,
@@ -147,9 +147,15 @@
     return arcFrequencyPercentileByRoute[routeKey] ?? 0;
   };
 
+  const flightById = $derived.by(() => {
+    return new Map(flights.map((flight) => [flight.id, flight]));
+  });
+
   const activeFlightTracks = $derived.by(() => {
-    if (getEffectiveRouteDisplay() !== 'tracks') return [];
-    return flightTracks;
+    return flightTracks.filter((track) => {
+      const flight = flightById.get(track.flightId);
+      return flight && getFlightRouteDisplay(flight) === 'tracks';
+    });
   });
 
   const trackFlightIds = $derived.by(() => {
@@ -168,10 +174,6 @@
 
   const flightTrackPaths = $derived.by(() => {
     return buildFlightTrackPaths(flights, flightArcs, activeFlightTracks);
-  });
-
-  const flightById = $derived.by(() => {
-    return new Map(flights.map((flight) => [flight.id, flight]));
   });
 
   const flightTrackLayerData = $derived.by(() =>

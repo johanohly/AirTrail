@@ -18,7 +18,11 @@
 
   import type { FlightFilters } from '$lib/components/flight-filters/types';
   import type { NavigateFlights } from '$lib/flight-navigation';
-  import { closeMapDetails, mapDetailsState } from '$lib/state.svelte';
+  import {
+    closeMapDetails,
+    isFocusedFlight,
+    mapDetailsState,
+  } from '$lib/state.svelte';
   import type { FlightData } from '$lib/utils';
   import { isMediumScreen } from '$lib/utils/size';
 
@@ -48,13 +52,15 @@
     () => flights,
     () => filters,
     navigateFlights,
-    () => trackedFlightIds,
   );
 
-  const flight = useFlightDetails(
-    () => flights,
-    navigateFlights,
-    () => trackedFlightIds,
+  const flight = useFlightDetails(() => flights, navigateFlights);
+
+  const hasTrack = $derived(
+    flights.some(
+      (candidate) =>
+        trackedFlightIds.has(candidate.id) && isFocusedFlight(candidate),
+    ),
   );
 
   const mobileOpen = $derived.by(() => {
@@ -68,8 +74,8 @@
 
 {#if $isMediumScreen}
   <AirportDetailsContent details={airport} hasFilters={!!filters} />
-  <RouteDetailsContent details={route} hasFilters={!!filters} />
-  <FlightDetailsContent details={flight} {seatUserId} />
+  <RouteDetailsContent details={route} hasFilters={!!filters} {hasTrack} />
+  <FlightDetailsContent details={flight} {seatUserId} {hasTrack} />
 {:else}
   {#snippet mobileHeader()}
     {#if mapDetailsState.selection?.type === 'airport' && airport.airport}
@@ -100,17 +106,11 @@
       <RouteDetailsActions
         hasFilters={!!filters}
         filterActive={route.routeFilterActive}
-        hasTrack={route.hasTrack}
-        showingTrack={route.showingTrack}
+        {hasTrack}
         onToggleFilter={route.toggleRouteFilter}
-        onToggle={route.toggleRouteDisplay}
       />
     {:else if mapDetailsState.selection?.type === 'flight' && flight.flight}
-      <FlightDetailsActions
-        hasTrack={flight.hasTrack}
-        showingTrack={flight.showingTrack}
-        onToggle={flight.toggleRouteDisplay}
-      />
+      <FlightDetailsActions {hasTrack} />
     {/if}
   {/snippet}
 

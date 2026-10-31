@@ -17,6 +17,7 @@
     FLIGHT_TRACK_MAX_ALTITUDE_FEET,
   } from '$lib/map/flight-track-style';
   import { mapPreferences } from '$lib/map/map-preferences.svelte';
+  import { setRouteDisplayPreference } from '$lib/state.svelte';
 
   let {
     showTracksSection = false,
@@ -142,7 +143,7 @@
           {#each ROUTE_DISPLAY_OPTIONS as option (option.value)}
             <AppearanceTile
               selected={mapPreferences.routeDisplay === option.value}
-              onclick={() => (mapPreferences.routeDisplay = option.value)}
+              onclick={() => setRouteDisplayPreference(option.value)}
               label={option.label}
             >
               {#snippet illustration()}

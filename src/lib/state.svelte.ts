@@ -1,5 +1,6 @@
 import {
   normalizeRoute,
+  routeMatchesEndpoints,
   type Route,
 } from '$lib/components/flight-filters/types';
 import type { ClientAppConfig, FullAppConfig } from '$lib/server/utils/config';
@@ -71,14 +72,18 @@ export const mapDetailsState = $state<{
   selection: MapDetailsSelection | null;
   focusRequest: number;
   hoveredFlightTrackId: number | null;
+  /** Temporary override for the focused flight or route, null when following the map setting. */
+  focusedRouteDisplay: RouteDisplayMode | null;
 }>({
   selection: null,
   focusRequest: 0,
   hoveredFlightTrackId: null,
+  focusedRouteDisplay: null,
 });
 
 export const openAirportDetails = (airportId: number) => {
   mapDetailsState.selection = { type: 'airport', airportId };
+  mapDetailsState.focusedRouteDisplay = null;
   mapDetailsState.focusRequest += 1;
 };
 
@@ -87,11 +92,13 @@ export const openRouteDetails = (route: Route) => {
     type: 'route',
     route: normalizeRoute(route.a, route.b),
   };
+  mapDetailsState.focusedRouteDisplay = null;
   mapDetailsState.focusRequest += 1;
 };
 
 export const openFlightDetails = (flightId: number) => {
   mapDetailsState.selection = { type: 'flight', flightId };
+  mapDetailsState.focusedRouteDisplay = null;
   mapDetailsState.focusRequest += 1;
 };
 
@@ -102,16 +109,51 @@ export const focusMapDetails = () => {
 
 export const closeMapDetails = () => {
   mapDetailsState.selection = null;
+  mapDetailsState.focusedRouteDisplay = null;
 };
 
-// Flight and route details isolate what the map draws, so that view can carry
-// its own remembered route display without touching the overview.
-export const getEffectiveRouteDisplay = (): RouteDisplayMode => {
+type FocusableFlight = {
+  id: number;
+  from?: { id: number } | null;
+  to?: { id: number } | null;
+};
+
+export const isFocusedFlight = (flight: FocusableFlight) => {
   const selection = mapDetailsState.selection;
-  if (selection?.type === 'flight' || selection?.type === 'route') {
-    return mapPreferences.focusedRouteDisplay ?? mapPreferences.routeDisplay;
+  if (selection?.type === 'flight') return flight.id === selection.flightId;
+  if (selection?.type === 'route') {
+    return routeMatchesEndpoints(
+      flight.from?.id,
+      flight.to?.id,
+      selection.route,
+    );
   }
-  return mapPreferences.routeDisplay;
+  return false;
+};
+
+export const getFocusedRouteDisplay = (): RouteDisplayMode =>
+  mapDetailsState.focusedRouteDisplay ?? mapPreferences.routeDisplay;
+
+export const getFlightRouteDisplay = (
+  flight: FocusableFlight,
+): RouteDisplayMode =>
+  isFocusedFlight(flight)
+    ? getFocusedRouteDisplay()
+    : mapPreferences.routeDisplay;
+
+export const toggleFocusedRouteDisplay = () => {
+  const selection = mapDetailsState.selection;
+  if (selection?.type !== 'flight' && selection?.type !== 'route') return;
+  const next = getFocusedRouteDisplay() === 'tracks' ? 'points' : 'tracks';
+  mapDetailsState.focusedRouteDisplay =
+    next === mapPreferences.routeDisplay ? null : next;
+};
+
+// Choosing a display in the map settings is explicit, so it also takes over
+// from a toggle on the open pane. Otherwise the focused flight would ignore it.
+export const setRouteDisplayPreference = (display: RouteDisplayMode) => {
+  mapPreferences.routeDisplay = display;
+  mapDetailsState.focusedRouteDisplay = null;
 };
 
 export const appConfig = $state<{
