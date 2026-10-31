@@ -52,6 +52,7 @@
     type DeckPointerEvent,
   } from '$lib/map/map-popup-position';
   import { mapPreferences } from '$lib/map/map-preferences.svelte';
+  import { getOverlayPixelRatio } from '$lib/map/overlay-pixel-ratio';
   import { PreciseArcEndpointsExtension } from '$lib/map/precise-arc-endpoints';
   import {
     closeMapDetails,
@@ -465,7 +466,7 @@
   };
 
   const AIRPORT_CIRCLE_SIZE = {
-    small: { scale: 0.4, maxPixels: 45 },
+    small: { scale: 0.2, maxPixels: 20 },
     medium: { scale: 0.7, maxPixels: 70 },
     large: { scale: 1, maxPixels: 100 },
   } as const;
@@ -693,6 +694,9 @@
               ? GLOBE_ARC_PARAMETERS
               : MERCATOR_ROUTE_PARAMETERS,
             extensions: [globeOcclusion],
+            // Display paths are unwrapped past ±180 to stay continuous, but
+            // mercator only repeats geometry that lies inside one world.
+            wrapLongitude: !isGlobe,
           },
           appearance: {
             getWidth: getVisibleArcWidth,
@@ -751,6 +755,14 @@
       interleaved: isGlobe,
       onClick: handleMapClick,
       layers: buildLayers(),
+      ...(isGlobe
+        ? {}
+        : {
+            useDevicePixels: getOverlayPixelRatio(
+              map.getCanvas(),
+              map.getContainer(),
+            ),
+          }),
     });
     map.addControl(nextLayer);
     layer = nextLayer;
@@ -768,6 +780,26 @@
       onClick: handleMapClick,
       layers: buildLayers(),
     });
+  });
+
+  $effect(() => {
+    if (!layer || !map || layerProjection !== 'mercator') return;
+
+    const currentLayer = layer;
+    const currentMap = map;
+    const syncPixelRatio = () => {
+      currentLayer.setProps({
+        useDevicePixels: getOverlayPixelRatio(
+          currentMap.getCanvas(),
+          currentMap.getContainer(),
+        ),
+      });
+    };
+
+    currentMap.on('resize', syncPixelRatio);
+    return () => {
+      currentMap.off('resize', syncPixelRatio);
+    };
   });
 
   // After a basemap switch, `MapLibreOverlay` only re-adds its interleaved

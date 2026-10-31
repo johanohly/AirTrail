@@ -10,7 +10,7 @@ export const githubAlertTypes = [
 
 export type GitHubAlertType = (typeof githubAlertTypes)[number];
 
-const ALERT_MARKER = /^\[!(\w+)\](?:\r?\n)?/;
+const ALERT_MARKER = /^\[!(\w+)\](?:\r?\n)?/u;
 
 const githubAlertTypeSet = new Set<string>(githubAlertTypes);
 
@@ -22,25 +22,25 @@ export function processReleaseBody(body: string): string {
 
   // Markdown compare links whose label repeats the full URL -> [`v1...v2`](url)
   result = result.replaceAll(
-    /\[(https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/compare\/([^\]\s]+))\]\(\1\)/g,
+    /\[(https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/compare\/([^\]\s]+))\]\(\1\)/gu,
     (_match, url: string, range: string) => `[\`${range}\`](${url})`
   );
 
   // Bare PR / issue URLs -> [#number](url)
   result = result.replaceAll(
-    /(?<!\]\()https:\/\/github\.com\/[^/]+\/[^/]+\/(?:pull|issues)\/(\d+)/g,
+    /(?<!\]\()https:\/\/github\.com\/[^/]+\/[^/]+\/(?:pull|issues)\/(\d+)/gu,
     (url, num) => `[#${num}](${url})`
   );
 
   // Bare compare URLs -> [`v1...v2`](url)
   result = result.replaceAll(
-    /(?<!\]\()https:\/\/github\.com\/[^/]+\/[^/]+\/compare\/([^\s)]+)/g,
+    /(?<!\]\()https:\/\/github\.com\/[^/]+\/[^/]+\/compare\/([^\s)]+)/gu,
     (url, range) => `[\`${range}\`](${url})`
   );
 
   // Bare user profile URLs -> [@username](url)
   result = result.replaceAll(
-    /(?<!\]\()https:\/\/github\.com\/([a-zA-Z0-9-]+)(?=[)\s,]|$)/g,
+    /(?<!\]\()https:\/\/github\.com\/([a-zA-Z0-9-]+)(?=[)\s,]|$)/gu,
     (url, username) => `[@${username}](${url})`
   );
 
