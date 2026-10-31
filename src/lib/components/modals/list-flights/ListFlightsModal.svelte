@@ -785,12 +785,14 @@
 {/snippet}
 
 {#snippet airport(airport: Airport | null)}
-  <div class="w-16 flex flex-col items-center justify-center">
+  <div class="w-20 flex flex-col items-center justify-center">
     <div class="flex items-center gap-1.5">
       {#if airport}
         <img
           src="https://flagcdn.com/{airport.country.toLowerCase()}.svg"
           alt={airport.country}
+          loading="lazy"
+          decoding="async"
           class="h-4 w-6 shrink-0 rounded object-cover shadow-sm"
         />
       {/if}
