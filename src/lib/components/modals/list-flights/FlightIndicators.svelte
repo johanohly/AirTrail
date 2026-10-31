@@ -11,13 +11,9 @@
 
   let {
     indicators,
-    size = 16,
-    tooltips = true,
     class: className,
   }: {
     indicators: FlightIndicator[];
-    size?: number;
-    tooltips?: boolean;
     class?: string;
   } = $props();
 
@@ -31,7 +27,7 @@
 
 {#snippet indicatorIcon(indicator: FlightIndicator)}
   {@const Icon = icons[indicator.key]}
-  <Icon {size} aria-hidden="true" data-indicator={indicator.key} />
+  <Icon size={16} aria-hidden="true" data-indicator={indicator.key} />
 {/snippet}
 
 {#if indicators.length}
@@ -40,27 +36,21 @@
     data-testid="flight-indicators"
   >
     {#each indicators as indicator (indicator.key)}
-      {#if tooltips}
-        <Tooltip.Root disableHoverableContent>
-          <Tooltip.Trigger
-            aria-label={indicator.label}
-            class="inline-flex rounded-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
-          >
-            {@render indicatorIcon(indicator)}
-          </Tooltip.Trigger>
-          <Tooltip.Portal>
-            <Tooltip.Content
-              class="max-w-[min(20rem,var(--bits-tooltip-content-available-width))] whitespace-normal break-words"
-            >
-              {indicator.label}
-            </Tooltip.Content>
-          </Tooltip.Portal>
-        </Tooltip.Root>
-      {:else}
-        <span class="inline-flex" role="img" aria-label={indicator.label}>
+      <Tooltip.Root disableHoverableContent>
+        <Tooltip.Trigger
+          aria-label={indicator.label}
+          class="inline-flex rounded-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+        >
           {@render indicatorIcon(indicator)}
-        </span>
-      {/if}
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content
+            class="max-w-[min(20rem,var(--bits-tooltip-content-available-width))] whitespace-normal break-words"
+          >
+            {indicator.label}
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
     {/each}
   </div>
 {/if}
