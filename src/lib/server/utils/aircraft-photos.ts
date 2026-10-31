@@ -4,19 +4,23 @@ import { createLookupCache } from '$lib/server/utils/lookup-cache';
 import {
   type AircraftPhoto,
   type AircraftPhotoResult,
+  PHOTO_BROWSER_CACHE_MS,
   planespottersResponseSchema,
 } from '$lib/zod/aircraft-photo';
 
 /*
  * Planespotters' terms (https://www.planespotters.net/photo/api) allow fetching
  * from a backend if responses are kept for at most 24 hours, URLs reach the
- * viewer unchanged and images load directly from their CDN. That is why nothing
- * here touches the database or the image files.
+ * viewer unchanged, images load directly from their CDN in the viewer's browser
+ * and the data isn't offered to anyone else. That is why nothing here touches
+ * the database or the image files, and why this stays out of the REST API, MCP,
+ * shares and exports.
  */
 const PHOTOS_API = 'https://api.planespotters.net/pub/photos/reg';
 const USER_AGENT = 'AirTrail (+https://github.com/johanohly/AirTrail)';
 const FETCH_TIMEOUT_MS = 8000;
-const PHOTO_TTL_MS = 24 * 60 * 60 * 1000;
+// The browser can hold a response through `staleTime` and `gcTime` after this.
+const PHOTO_TTL_MS = 24 * 60 * 60 * 1000 - 2 * PHOTO_BROWSER_CACHE_MS;
 const NO_PHOTO_TTL_MS = 60 * 60 * 1000;
 const MIN_REQUEST_INTERVAL_MS = 1000;
 /** Longer than this in line and the caller is better off retrying later. */
@@ -104,6 +108,8 @@ const lookUpPhoto = async (reg: string): Promise<AircraftPhotoResult> => {
 export const getAircraftPhoto = async (
   reg: string,
 ): Promise<AircraftPhotoResult> => {
+  cache.deleteExpired();
+
   // Demo visitors are anonymous, so they don't get to drive outbound requests.
   if (isPublicDemo()) return { status: 'disabled' };
 

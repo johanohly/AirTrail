@@ -15,6 +15,24 @@ describe('createLookupCache', () => {
     expect(cache.get('c')?.value).toBe(4);
   });
 
+  it('keeps expired entries until told to delete them', () => {
+    vi.useFakeTimers();
+    try {
+      const cache = createLookupCache<number>(2);
+      cache.set('a', 1, 1000);
+      cache.set('b', 2, 2000);
+      vi.advanceTimersByTime(1000);
+
+      expect(cache.get('a')?.value).toBe(1);
+
+      cache.deleteExpired();
+      expect(cache.get('a')).toBeUndefined();
+      expect(cache.get('b')?.value).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('shares one request between concurrent callers and forgets it after', async () => {
     const cache = createLookupCache<number>(2);
     const load = vi.fn(async () => 1);

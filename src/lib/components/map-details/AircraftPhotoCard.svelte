@@ -4,6 +4,7 @@
   import { Button } from '$lib/components/ui/button';
   import { trpc } from '$lib/trpc';
   import { cn } from '$lib/utils';
+  import { PHOTO_BROWSER_CACHE_MS } from '$lib/zod/aircraft-photo';
 
   let {
     reg,
@@ -18,10 +19,9 @@
     regStore.set(reg);
   });
 
-  // The server may already hold a response for up to the 24 hours Planespotters
-  // allows, so the browser can't add much on top of that.
   const photoQuery = trpc.aircraft.getPhoto.query(regStore, {
-    staleTime: 5 * 60 * 1000,
+    staleTime: PHOTO_BROWSER_CACHE_MS,
+    gcTime: PHOTO_BROWSER_CACHE_MS,
     refetchOnWindowFocus: false,
   });
 
@@ -46,7 +46,7 @@
 {:else if photo}
   {#if failedSrc !== photo.thumbnailSrc}
     <figure>
-      <a href={photo.link} target="_blank" rel="noopener noreferrer">
+      <a href={photo.link} target="_blank" rel="noopener">
         <img
           src={photo.thumbnailSrc}
           alt="{reg}, photo by {photo.photographer}"
@@ -63,7 +63,7 @@
         <a
           href={photo.link}
           target="_blank"
-          rel="noopener noreferrer"
+          rel="noopener"
           class="underline decoration-dotted underline-offset-2 hover:text-foreground"
         >
           Planespotters.net

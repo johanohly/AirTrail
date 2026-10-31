@@ -12,6 +12,7 @@ vi.mock('$lib/server/utils/config', () => ({
 vi.mock('$lib/server/demo/mode', () => ({ isPublicDemo }));
 
 const HOUR_MS = 60 * 60 * 1000;
+const PHOTO_TTL_MS = 24 * HOUR_MS - 10 * 60 * 1000;
 
 const photoResponse = () =>
   Response.json({
@@ -155,16 +156,29 @@ describe('getAircraftPhoto', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('serves a photo from memory until 24 hours have passed', async () => {
+  it('stops serving a photo early enough for the browser to stay within 24 hours', async () => {
     await getAircraftPhoto('HB-JNA');
 
-    await vi.advanceTimersByTimeAsync(24 * HOUR_MS - 1000);
+    await vi.advanceTimersByTimeAsync(PHOTO_TTL_MS - 1000);
     await getAircraftPhoto('hb-jna');
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     await vi.advanceTimersByTimeAsync(1000);
     await getAircraftPhoto('HB-JNA');
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('drops an expired photo on the next call, even with the integration off', async () => {
+    await getAircraftPhoto('HB-JNA');
+    getConfig.mockResolvedValue({
+      integrations: { aircraftPhotosEnabled: false },
+    });
+    await vi.advanceTimersByTimeAsync(PHOTO_TTL_MS);
+    const deleted = vi.spyOn(Map.prototype, 'delete');
+
+    await getAircraftPhoto('D-AIMA');
+
+    expect(deleted).toHaveBeenCalledWith('HB-JNA');
   });
 
   it('shares one request between parallel lookups of a registration', async () => {

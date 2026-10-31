@@ -16,6 +16,9 @@ export const planespottersResponseSchema = z.object({
   ),
 });
 
+/** Each of the browser's `staleTime` and `gcTime` for a photo response. */
+export const PHOTO_BROWSER_CACHE_MS = 5 * 60 * 1000;
+
 export type AircraftPhoto = {
   thumbnailSrc: string;
   link: string;

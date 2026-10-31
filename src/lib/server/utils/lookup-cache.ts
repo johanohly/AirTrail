@@ -2,7 +2,8 @@
  * In-process cache for lookups against third-party APIs. Concurrent callers for
  * a key share one request, and the entry cap bounds memory when an authenticated
  * user enumerates keys. Expired entries stay readable so a caller can fall back
- * to them; checking `expiresAt` is up to the caller.
+ * to them; checking `expiresAt` is up to the caller, as is calling
+ * `deleteExpired` if it may not keep them.
  */
 export type LookupCacheEntry<V> = {
   value: V;
@@ -25,6 +26,12 @@ export const createLookupCache = <V>(maxEntries: number) => {
         const oldest = entries.keys().next().value;
         if (oldest === undefined) break;
         entries.delete(oldest);
+      }
+    },
+    deleteExpired: () => {
+      const now = Date.now();
+      for (const [key, entry] of entries) {
+        if (entry.expiresAt <= now) entries.delete(key);
       }
     },
     dedupe: <R>(key: string, load: () => Promise<R>): Promise<R> => {
