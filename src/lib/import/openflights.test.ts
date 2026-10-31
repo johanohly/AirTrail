@@ -6,7 +6,7 @@ const {
   getAirportByIata,
   getAirportByIcao,
   getAirlineByIata,
-  getAirlineByIcao,
+  getAirlineByCodes,
   getAirlineByName,
   getAircraftByIcao,
   getAircraftByName,
@@ -18,7 +18,7 @@ const {
   })),
   getAirportByIcao: vi.fn(),
   getAirlineByIata: vi.fn(),
-  getAirlineByIcao: vi.fn(),
+  getAirlineByCodes: vi.fn(),
   getAirlineByName: vi.fn(),
   getAircraftByIcao: vi.fn(async () => null),
   getAircraftByName: vi.fn(async () => null),
@@ -41,7 +41,7 @@ vi.mock('$lib/utils/data/airports/cache', () => ({
 
 vi.mock('$lib/utils/data/airlines', () => ({
   getAirlineByIata,
-  getAirlineByIcao,
+  getAirlineByCodes,
   getAirlineByName,
 }));
 
