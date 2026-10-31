@@ -20,20 +20,29 @@ export const detectTrackEventTimes = (track: FlightTrackInput) => {
       const wasGround = track.ground[i - 1];
       const isGround = track.ground[i];
       if (wasGround === true && isGround === false) takeoffs.push(times[i]!);
-      if (wasGround === false && isGround === true) landings.push(times[i]!);
+      if (wasGround === false && isGround === true) landings.push(i);
       continue;
     }
     if (before === 0 && after !== undefined && after > 0)
       takeoffs.push(times[i]!);
-    if (before !== undefined && before > 0 && after === 0)
-      landings.push(times[i]!);
+    if (before !== undefined && before > 0 && after === 0) landings.push(i);
   }
-  // Multiple transitions are ambiguous (for example, a go-around).
-  const takeoff = takeoffs.length === 1 ? takeoffs[0]! : null;
-  const landing = landings.length === 1 ? landings[0]! : null;
-  if (takeoff !== null && landing !== null && landing <= takeoff) {
-    return { takeoff: null, landing: null };
-  }
+  // A selected track represents one flight leg, possibly with touch-and-goes.
+  const takeoff = takeoffs[0] ?? null;
+  const landingIndex = landings.at(-1);
+  const lastAirborneIndex = track.coordinates.findLastIndex((coordinate, i) =>
+    track.ground !== undefined
+      ? track.ground[i] === false
+      : coordinate[2] !== undefined && coordinate[2] > 0,
+  );
+  // Do not mistake a touch-and-go for the final landing, even if its later
+  // liftoff or touchdown falls outside the permitted transition gap.
+  const landing =
+    landingIndex !== undefined &&
+    landingIndex > lastAirborneIndex &&
+    (takeoff === null || times[landingIndex]! > takeoff)
+      ? times[landingIndex]!
+      : null;
   return { takeoff, landing };
 };
 

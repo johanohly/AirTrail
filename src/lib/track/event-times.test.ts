@@ -98,10 +98,56 @@ describe('track event times', () => {
       }),
     ).toEqual({ takeoff: null, landing: null });
   });
-  it('does not select ambiguous transitions', () => {
+  it('keeps the first takeoff but omits landing when a circuit is unfinished', () => {
+    expect(detectTrackEventTimes(track([0, 10, 0, 10], [0, 1, 2, 3]))).toEqual({
+      takeoff: 1,
+      landing: null,
+    });
+  });
+  it('selects the first takeoff and final landing after multiple touch-and-goes', () => {
     expect(
-      detectTrackEventTimes(track([0, 10, 0, 10], [0, 1, 2, 3])).takeoff,
-    ).toBeNull();
+      detectTrackEventTimes(
+        track([0, 10, 0, 10, 0, 10, 0, 0], [0, 10, 20, 30, 40, 50, 60, 70]),
+      ),
+    ).toEqual({ takeoff: 10, landing: 60 });
+  });
+  it('handles touch-and-goes using ground flags rather than altitude', () => {
+    expect(
+      detectTrackEventTimes({
+        ...track([100, 100, 100, 100, 100], [0, 10, 20, 30, 40]),
+        ground: [true, false, true, false, true],
+      }),
+    ).toEqual({ takeoff: 10, landing: 40 });
+  });
+  it('does not reuse an earlier touchdown when later transitions exceed sixty seconds', () => {
+    expect(
+      detectTrackEventTimes(track([0, 10, 0, 10, 0], [0, 10, 20, 90, 160])),
+    ).toEqual({ takeoff: 10, landing: null });
+  });
+  it('leaves landing empty when ground flags show flight continuing', () => {
+    expect(
+      detectTrackEventTimes({
+        ...track([0, 0, 0, 0], [0, 10, 20, 90]),
+        ground: [true, false, true, false],
+      }),
+    ).toEqual({ takeoff: 10, landing: null });
+  });
+  it('allows a go-around without ground contact before the final landing', () => {
+    expect(
+      detectTrackEventTimes(track([0, 100, 10, 100, 0], [0, 10, 20, 30, 40])),
+    ).toEqual({ takeoff: 10, landing: 40 });
+  });
+  it('can detect landing when the initial takeoff is outside track coverage', () => {
+    expect(detectTrackEventTimes(track([100, 0], [0, 10]))).toEqual({
+      takeoff: null,
+      landing: 10,
+    });
+  });
+  it('does not pair a touchdown with a later takeoff', () => {
+    expect(detectTrackEventTimes(track([100, 0, 100], [0, 10, 20]))).toEqual({
+      takeoff: 20,
+      landing: null,
+    });
   });
   it('preserves even partially populated fields and validates anyway', () => {
     const result = prepareTrackEventTimes(track([0, 10], [90000, 90001]), {
