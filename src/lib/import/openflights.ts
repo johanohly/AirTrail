@@ -9,8 +9,8 @@ import { parseCsv } from '$lib/utils';
 import { parseCsvLine } from '$lib/utils/csv';
 import { getAircraftByIcao, getAircraftByName } from '$lib/utils/data/aircraft';
 import {
+  getAirlineByCodes,
   getAirlineByIata,
-  getAirlineByIcao,
   getAirlineByName,
 } from '$lib/utils/data/airlines';
 import {
@@ -350,8 +350,11 @@ const lookupAirline = async (
     return { airline: options.airlineMapping[mappingKey], mappingKey };
   }
 
-  let airline = icao ? await getAirlineByIcao(icao) : null;
-  airline ??= iata ? await getAirlineByIata(iata) : null;
+  let airline = icao
+    ? await getAirlineByCodes(icao, iata, name)
+    : iata
+      ? await getAirlineByIata(iata)
+      : null;
   airline ??= name ? await getAirlineByName(name) : null;
   airline ??= alias ? await getAirlineByName(alias) : null;
 

@@ -49,6 +49,36 @@ export async function getAirlineByName(name: string): Promise<Airline | null> {
   return result;
 }
 
+const sameCode = (a: string | null, b: string) =>
+  a?.replace(/\*$/, '').toUpperCase() === b.replace(/\*$/, '').toUpperCase();
+
+/*
+ * ICAO codes of defunct airlines get reassigned (Air Berlin's BER now belongs
+ * to Fly Air41), so an ICAO match alone can silently file old flights under
+ * the wrong airline. When the source also gives an IATA code, only accept an
+ * airline whose IATA code agrees, or whose name matches since many airlines
+ * have no IATA code in our data. Otherwise return null so the import asks the
+ * user to map the airline.
+ */
+export async function getAirlineByCodes(
+  icao: string,
+  iata: string | null,
+  name?: string | null,
+): Promise<Airline | null> {
+  if (!iata) return await getAirlineByIcao(icao);
+
+  const byIata = await getAirlineByIata(iata);
+  if (byIata && sameCode(byIata.icao, icao)) return byIata;
+
+  const byIcao = await getAirlineByIcao(icao);
+  if (!byIcao) return null;
+  if (sameCode(byIcao.iata, iata)) return byIcao;
+  if (name && byIcao.name.toLowerCase() === name.trim().toLowerCase()) {
+    return byIcao;
+  }
+  return null;
+}
+
 export function clearAirlineLookupCaches() {
   airlineByIcaoCache.clear();
   airlineByIataCache.clear();
