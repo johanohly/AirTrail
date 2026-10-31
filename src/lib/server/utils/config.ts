@@ -112,6 +112,7 @@ export class AppConfig {
           aeroDataBoxKey: null,
           aeroDataBoxEndpoint: 'rapidapi',
           openAipKey: null,
+          aircraftPhotosEnabled: false,
         },
         map: { ...DEFAULT_MAP_CONFIG },
         data: {

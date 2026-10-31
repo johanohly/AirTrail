@@ -20,7 +20,12 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   }
 
   const currentConfig = (await appConfig.get())?.integrations;
-  let { aeroDataBoxKey, aeroDataBoxEndpoint, openAipKey } = form.data;
+  let {
+    aeroDataBoxKey,
+    aeroDataBoxEndpoint,
+    openAipKey,
+    aircraftPhotosEnabled,
+  } = form.data;
   if (typeof aeroDataBoxKey === 'string' && aeroDataBoxKey.trim() === '') {
     aeroDataBoxKey = null;
   }
@@ -61,8 +66,24 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     });
   }
 
+  if (
+    currentConfig &&
+    aircraftPhotosEnabled !== currentConfig.aircraftPhotosEnabled &&
+    appConfig.envConfigured?.integrations?.aircraftPhotosEnabled
+  ) {
+    return error(500, {
+      message:
+        'This config field is controlled by the .env file and cannot be changed here.',
+    });
+  }
+
   const success = await appConfig.set({
-    integrations: { aeroDataBoxKey, aeroDataBoxEndpoint, openAipKey },
+    integrations: {
+      aeroDataBoxKey,
+      aeroDataBoxEndpoint,
+      openAipKey,
+      aircraftPhotosEnabled,
+    },
   });
 
   if (!success) {

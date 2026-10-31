@@ -68,6 +68,7 @@ export const integrationsConfigSchema = z.object({
   aeroDataBoxKey: z.string().nullable(),
   aeroDataBoxEndpoint: z.enum(AERODATABOX_ENDPOINTS).default('rapidapi'),
   openAipKey: z.string().nullable(),
+  aircraftPhotosEnabled: z.boolean().default(false),
 });
 
 export const mapConfigSchema = z.object({

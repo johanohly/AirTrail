@@ -15,11 +15,12 @@ import { requireOperation } from '$lib/server/api/v1/access';
 import type { ApiPrincipal } from '$lib/server/api/v1/principal';
 import { asApiOperationError } from '$lib/server/api/v1/response';
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
 export const toolResult = (value: unknown) => ({
   content: [{ type: 'text' as const, text: JSON.stringify(value) }],
-  structuredContent: (typeof value === 'object' && value !== null
-    ? value
-    : { value }) as Record<string, unknown>,
+  structuredContent: isRecord(value) ? value : { value },
 });
 
 export const toolError = (message: string) => ({
