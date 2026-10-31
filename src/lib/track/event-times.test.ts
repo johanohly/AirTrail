@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { detectTrackEventTimes, prepareTrackEventTimes } from './event-times';
+import {
+  clearTrackEventTimes,
+  detectTrackEventTimes,
+  prepareTrackEventTimes,
+} from './event-times';
 import type { FlightTrackInput } from './schema';
 import type { FlightFormData } from '$lib/zod/flight';
 
@@ -25,10 +29,12 @@ const form = {
 } as FlightFormData;
 
 describe('track event times', () => {
-  it('uses the confirming report at the three-second boundary', () => {
-    expect(detectTrackEventTimes(track([0, 10, 20, 0], [0, 3, 6, 9]))).toEqual({
-      takeoff: 3,
-      landing: 9,
+  it('uses the confirming report at the sixty-second boundary', () => {
+    expect(
+      detectTrackEventTimes(track([0, 10, 20, 0], [0, 60, 90, 150])),
+    ).toEqual({
+      takeoff: 60,
+      landing: 150,
     });
   });
   it('rejects missing altitude, negative altitude, long gaps and duplicate timestamps', () => {
@@ -43,7 +49,7 @@ describe('track event times', () => {
       ],
       [
         [0, 10],
-        [0, 4],
+        [0, 61],
       ],
       [
         [0, 10],
@@ -55,6 +61,42 @@ describe('track event times', () => {
         landing: null,
       });
     }
+  });
+  it('accepts a seven-second takeoff gap without ground flags', () => {
+    expect(detectTrackEventTimes(track([0, 10], [0, 7]))).toEqual({
+      takeoff: 7,
+      landing: null,
+    });
+  });
+  it('prefers ground flags even when altitude is missing or contradicts them', () => {
+    expect(
+      detectTrackEventTimes({
+        ...track([undefined, 0, 100], [0, 30, 60]),
+        ground: [true, false, true],
+      }),
+    ).toEqual({ takeoff: 30, landing: 60 });
+  });
+  it('does not fall back to altitude when ground flags are present', () => {
+    expect(
+      detectTrackEventTimes({
+        ...track([0, 10, 0], [0, 7, 14]),
+        ground: [false, false, false],
+      }),
+    ).toEqual({ takeoff: null, landing: null });
+  });
+  it('applies the sixty-second limit to ground-flag transitions too', () => {
+    expect(
+      detectTrackEventTimes({
+        ...track([undefined, undefined], [0, 60]),
+        ground: [true, false],
+      }),
+    ).toEqual({ takeoff: 60, landing: null });
+    expect(
+      detectTrackEventTimes({
+        ...track([undefined, undefined], [0, 61]),
+        ground: [false, true],
+      }),
+    ).toEqual({ takeoff: null, landing: null });
   });
   it('does not select ambiguous transitions', () => {
     expect(
@@ -92,5 +134,58 @@ describe('track event times', () => {
       'en-US',
     );
     expect(result.values.takeoffActualTime).toBe('12:00 AM');
+  });
+  it('skips only the side whose airport is missing', () => {
+    const input = track([0, 10, 0], [0, 1, 2]);
+    const withoutDeparture = prepareTrackEventTimes(
+      input,
+      { ...form, from: null },
+      'en-GB',
+    );
+    expect(withoutDeparture.values.takeoffActual).toBeUndefined();
+    expect(withoutDeparture.values.landingActualTime).toBe('08:00');
+    const withoutArrival = prepareTrackEventTimes(
+      input,
+      { ...form, to: null },
+      'en-GB',
+    );
+    expect(withoutArrival.values.takeoffActualTime).toBe('00:00');
+    expect(withoutArrival.values.landingActual).toBeUndefined();
+  });
+  it('clears old autofill so a replacement can populate new times', () => {
+    const { values } = prepareTrackEventTimes(
+      track([0, 10, 0], [0, 1, 2]),
+      form,
+      'en-GB',
+    );
+    const populated = { ...form, ...values };
+    const cleared = {
+      ...populated,
+      ...clearTrackEventTimes(populated, values),
+    };
+    expect(cleared.takeoffActual).toBeNull();
+    expect(cleared.takeoffActualTime).toBeNull();
+    expect(cleared.landingActual).toBeNull();
+    expect(cleared.landingActualTime).toBeNull();
+    const replacement = prepareTrackEventTimes(
+      track([0, 10, 0], [120, 121, 122]),
+      cleared,
+      'en-GB',
+    );
+    expect(replacement.values.takeoffActualTime).toBe('00:02');
+    expect(replacement.values.landingActualTime).toBe('08:02');
+  });
+  it('preserves manual entries and edits when clearing track times', () => {
+    const filled = {
+      takeoffActual: '1970-01-01T00:00:00.000Z',
+      takeoffActualTime: '00:00',
+    };
+    expect(clearTrackEventTimes({ ...form, ...filled }, {})).toEqual({});
+    expect(
+      clearTrackEventTimes(
+        { ...form, ...filled, takeoffActualTime: '00:05' },
+        filled,
+      ),
+    ).toEqual({});
   });
 });

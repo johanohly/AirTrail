@@ -6,7 +6,10 @@
   import { Button } from '$lib/components/ui/button';
   import { Modal, ModalBody, ModalHeader } from '$lib/components/ui/modal';
   import { findAutomaticTrackCandidate } from '$lib/track/candidates';
-  import { prepareTrackEventTimes } from '$lib/track/event-times';
+  import {
+    clearTrackEventTimes,
+    prepareTrackEventTimes,
+  } from '$lib/track/event-times';
   import { parseTrackFile, type ParsedTrackCandidate } from '$lib/track/parser';
   import type { FlightTrackInput } from '$lib/track/schema';
   import {
@@ -48,7 +51,8 @@
       filledTimes.landingActual === $formData.landingActual &&
       filledTimes.landingActualTime === $formData.landingActualTime,
     );
-    if (takeoff && landing) return 'Takeoff and landing times filled from track.';
+    if (takeoff && landing)
+      return 'Takeoff and landing times filled from track.';
     if (takeoff) return 'Takeoff time filled from track.';
     if (landing) return 'Landing time filled from track.';
     return null;
@@ -78,11 +82,12 @@
   });
 
   const setTrack = (nextTrack: FlightTrackInput | null) => {
-    filledTimes = {};
     formData.update((current) => ({
       ...current,
+      ...clearTrackEventTimes(current, filledTimes),
       track: nextTrack,
     }));
+    filledTimes = {};
   };
 
   const automaticCandidate = (candidates: ParsedTrackCandidate[]) => {
@@ -114,7 +119,11 @@
     originalPointCount = count;
     trackCandidates = [];
     setTrack(trackInput);
-    const { values } = prepareTrackEventTimes(trackInput, $formData, timeLocale);
+    const { values } = prepareTrackEventTimes(
+      trackInput,
+      $formData,
+      timeLocale,
+    );
     formData.update((current) => ({ ...current, ...values }));
     filledTimes = values;
   };

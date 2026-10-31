@@ -3,7 +3,7 @@ import type { FlightTrackInput } from './schema';
 import { decomposeToLocal, mergeTimeWithDate } from '$lib/utils/datetime';
 import type { FlightFormData } from '$lib/zod/flight';
 
-/** Exact zero is required: missing altitude is never a ground observation. */
+/** Prefer explicit ground state; otherwise require an exact-zero altitude. */
 export const detectTrackEventTimes = (track: FlightTrackInput) => {
   const takeoffs: number[] = [];
   const landings: number[] = [];
@@ -15,7 +15,14 @@ export const detectTrackEventTimes = (track: FlightTrackInput) => {
     const before = track.coordinates[i - 1]![2];
     const after = track.coordinates[i]![2];
     const gap = times[i]! - times[i - 1]!;
-    if (gap <= 0 || gap > 3) continue;
+    if (gap <= 0 || gap > 60) continue;
+    if (track.ground !== undefined) {
+      const wasGround = track.ground[i - 1];
+      const isGround = track.ground[i];
+      if (wasGround === true && isGround === false) takeoffs.push(times[i]!);
+      if (wasGround === false && isGround === true) landings.push(times[i]!);
+      continue;
+    }
     if (before === 0 && after !== undefined && after > 0)
       takeoffs.push(times[i]!);
     if (before !== undefined && before > 0 && after === 0)
@@ -46,7 +53,9 @@ export const prepareTrackEventTimes = (
     const scheduledTime = departure
       ? form.departureScheduledTime
       : form.arrivalScheduledTime;
-    const timezone = (departure ? form.from?.tz : form.to?.tz) ?? 'UTC';
+    const airport = departure ? form.from : form.to;
+    if (!airport?.tz) continue;
+    const timezone = airport.tz;
     if (time !== undefined && time !== null && date && scheduledTime) {
       try {
         const scheduled = mergeTimeWithDate(date, scheduledTime, timezone);
@@ -72,4 +81,27 @@ export const prepareTrackEventTimes = (
     }
   }
   return { values: warnings.length ? {} : values, warnings };
+};
+
+/** Clear only complete pairs that still match this upload's autofilled values. */
+export const clearTrackEventTimes = (
+  form: FlightFormData,
+  filledTimes: Partial<FlightFormData>,
+): Partial<FlightFormData> => {
+  const values: Partial<FlightFormData> = {};
+  for (const [dateField, timeField] of [
+    ['takeoffActual', 'takeoffActualTime'],
+    ['landingActual', 'landingActualTime'],
+  ] as const) {
+    if (
+      filledTimes[dateField] &&
+      filledTimes[timeField] &&
+      form[dateField] === filledTimes[dateField] &&
+      form[timeField] === filledTimes[timeField]
+    ) {
+      values[dateField] = null;
+      values[timeField] = null;
+    }
+  }
+  return values;
 };
