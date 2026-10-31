@@ -7,6 +7,8 @@ import type { DatabaseConnection } from '$lib/db/types';
 const ACCESS_TOKEN_TTL_MS = 3_600_000;
 const REFRESH_TOKEN_TTL_MS = 30 * 24 * 3_600_000;
 const AUTHORIZATION_CODE_TTL_MS = 60_000;
+/** Reuse of a rotated refresh token within this is a retry, not theft. */
+const REFRESH_REUSE_GRACE_MS = 30_000;
 export const AUTHORIZATION_REQUEST_TTL_MS = 10 * 60_000;
 /** A registered client that never obtained a grant is removed after this. */
 const UNUSED_CLIENT_TTL_MS = 24 * 3_600_000;
@@ -323,15 +325,30 @@ export const rotateRefreshToken = async (
       token.revokedAt
     )
       return null;
+    /*
+     * The row lock serializes refreshes of one token, so rotation is atomic,
+     * but a client that refreshes from parallel requests or retries a slow
+     * one presents the rotated token again. Revoking the family then also
+     * revokes the pair the first request just returned. Rejecting only the
+     * duplicate isn't enough either: MCP clients drop their tokens on
+     * `invalid_grant`. So within a short grace window (Auth0's leeway, Okta's
+     * grace period) the duplicate gets its own pair in the same family; the
+     * first pair can't be returned again because only hashes are stored.
+     * Later reuse still revokes the whole family, every branch included, and
+     * `usedAt` keeps the first use so the window can't be extended.
+     */
     if (token.usedAt) {
-      await revokeTokenPair(trx, { familyId: token.familyId });
-      return null;
+      if (Date.now() - token.usedAt.getTime() > REFRESH_REUSE_GRACE_MS) {
+        await revokeTokenPair(trx, { familyId: token.familyId });
+        return null;
+      }
+    } else {
+      await trx
+        .updateTable('oauthRefreshToken')
+        .set({ usedAt: new Date() })
+        .where('tokenHash', '=', hash)
+        .execute();
     }
-    await trx
-      .updateTable('oauthRefreshToken')
-      .set({ usedAt: new Date() })
-      .where('tokenHash', '=', hash)
-      .execute();
     return insertTokenPair(
       trx,
       {
