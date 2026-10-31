@@ -12,11 +12,7 @@
   } from '$lib/track/event-times';
   import { parseTrackFile, type ParsedTrackCandidate } from '$lib/track/parser';
   import type { FlightTrackInput } from '$lib/track/schema';
-  import {
-    formatDateTime,
-    getPreferences,
-    resolveTimeLocale,
-  } from '$lib/utils/preferences';
+  import { formatDateTime, getPreferences } from '$lib/utils/preferences';
   import { isSmallScreen } from '$lib/utils/size';
   import type { FlightFormData } from '$lib/zod/flight';
 
@@ -39,7 +35,6 @@
   let filledTimesSnapshot = $state<Partial<FlightFormData>>({});
 
   const prefs = $derived(getPreferences(page.data.user));
-  const timeLocale = $derived(resolveTimeLocale(prefs));
   const filledTimesNote = $derived.by(() => {
     const takeoff = Boolean(
       filledTimes.takeoffActual &&
@@ -61,7 +56,7 @@
   const track = $derived($formData.track);
   const hasTrack = $derived(!!track);
   const timingWarnings = $derived(
-    track ? prepareTrackEventTimes(track, $formData, timeLocale).warnings : [],
+    track ? prepareTrackEventTimes(track, $formData).warnings : [],
   );
   const trackSummary = $derived.by(() => {
     if (!track) return null;
@@ -119,11 +114,7 @@
     originalPointCount = count;
     trackCandidates = [];
     setTrack(trackInput);
-    const { values } = prepareTrackEventTimes(
-      trackInput,
-      $formData,
-      timeLocale,
-    );
+    const { values } = prepareTrackEventTimes(trackInput, $formData);
     formData.update((current) => ({ ...current, ...values }));
     filledTimes = values;
   };

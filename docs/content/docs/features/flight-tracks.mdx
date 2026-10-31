@@ -48,6 +48,14 @@ The summary shows the file name, the format, the number of points, and which ext
 
 The track is stored when the flight is saved. Closing the form without saving discards it.
 
+### Takeoff and landing times
+
+If a track has timestamps and shows exactly one takeoff or landing, AirTrail fills in that actual time when the field is empty, using the airport's time zone. A takeoff or landing is a change to or from the ground between two points at most 60 seconds apart. AirTrail uses the file's ground flags if it has them, otherwise an altitude of exactly 0.
+
+Select the airports first, because a side without an airport is skipped. Nothing is filled if the track is more than 24 hours from the scheduled time, or if the flight has a partial date.
+
+Removing or replacing the track clears times it filled, unless you edited them. This only applies until the flight is saved. After that, the times are kept like any others.
+
 ## Replace or remove a track
 
 Open the flight's edit form and click **Flight Track**.
