@@ -10,7 +10,6 @@
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
   import * as Select from '$lib/components/ui/select';
-
   import {
     getConfiguredAppMapStyleUrl,
     isManagedAppMapStyleUrl,
