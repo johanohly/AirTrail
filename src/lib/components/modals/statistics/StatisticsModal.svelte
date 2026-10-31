@@ -1,7 +1,6 @@
 <script lang="ts">
   import NumberFlow from '@number-flow/svelte';
   import { Plus } from '@o7/icon/lucide';
-  import { isBefore } from 'date-fns';
 
   import BarChart from './charts/BarChart.svelte';
   import BarChartDrillDown from './charts/BarChartDrillDown.svelte';
@@ -16,6 +15,7 @@
   import { page } from '$app/state';
   import AdminScopeBanner from '$lib/components/admin/AdminScopeBanner.svelte';
   import { Button } from '$lib/components/ui/button';
+  import { Switch } from '$lib/components/ui/switch';
   import { flightScopeState } from '$lib/state.svelte';
   import { Modal } from '$lib/components/ui/modal';
   import type { ModalHistoryHandle } from '$lib/components/ui/modal/modal-history';
@@ -29,8 +29,13 @@
     FLIGHT_CHARTS,
     type ChartKey,
   } from '$lib/stats/aggregations';
-  import { type FlightData } from '$lib/utils';
-  import { Duration, nowIn } from '$lib/utils/datetime';
+  import {
+    readIncludeUpcoming,
+    writeIncludeUpcoming,
+  } from '$lib/stats/upcoming-storage';
+  import { pluralize, type FlightData } from '$lib/utils';
+  import { isCompletedFlight } from '$lib/utils/data/flight-timeline';
+  import { Duration } from '$lib/utils/datetime';
   import { round } from '$lib/utils/number';
   import {
     convertDistance,
@@ -62,31 +67,27 @@
 
   const showScopeBanner = $derived(flightScopeState.current.scope !== 'mine');
 
-  // Only show completed flights
-  const completedFlights = $derived.by(() =>
-    filteredFlights.filter((f) => {
-      if (!f.date) return true;
-
-      return isBefore(
-        f.arrival
-          ? f.arrival
-          : f.datePrecision === 'day'
-            ? f.date
-            : (f.dateEnd ?? f.date),
-        nowIn(f.to?.tz || 'UTC'),
-      );
-    }),
+  let includeUpcoming = $state(readIncludeUpcoming());
+  // Same rule as the flight list, so both agree on what is upcoming
+  const completedFlights = $derived(
+    filteredFlights.filter((f) => isCompletedFlight(f.raw)),
+  );
+  const upcomingCount = $derived(
+    filteredFlights.length - completedFlights.length,
+  );
+  const countedFlights = $derived(
+    includeUpcoming ? filteredFlights : completedFlights,
   );
 
   const prefs = $derived(getPreferences(page.data.user));
   let totalDuration = $derived.by(() =>
     Duration.fromSeconds(
-      completedFlights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
+      countedFlights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
     ),
   );
-  let flightCount = $derived(completedFlights.length);
+  let flightCount = $derived(countedFlights.length);
   let totalDistance = $derived(
-    completedFlights.reduce((acc, curr) => (acc += curr.distance ?? 0), 0),
+    countedFlights.reduce((acc, curr) => (acc += curr.distance ?? 0), 0),
   );
   let totalDurationParts = $derived({
     days: totalDuration.days,
@@ -95,7 +96,7 @@
   });
   let airports = $derived(
     new Set(
-      completedFlights
+      countedFlights
         .filter((f) => f.from && f.to)
         .flatMap((f) => [f.from!.name, f.to!.name]),
     ).size,
@@ -121,7 +122,7 @@
     }
     if (activeChart in FLIGHT_CHARTS) {
       const flightChartKey = activeChart as keyof typeof FLIGHT_CHARTS;
-      return FLIGHT_CHARTS[flightChartKey].aggregate(completedFlights, ctx);
+      return FLIGHT_CHARTS[flightChartKey].aggregate(countedFlights, ctx);
     }
     return {} as Record<string, number>;
   });
@@ -170,17 +171,14 @@
 
     if (open) {
       setTimeout(() => {
-        flightCount = completedFlights.length;
-        totalDistance = completedFlights.reduce(
+        flightCount = countedFlights.length;
+        totalDistance = countedFlights.reduce(
           (acc, curr) => (acc += curr.distance ?? 0),
           0,
         );
         earthCircumnavigations = totalDistance / 40075;
         const duration = Duration.fromSeconds(
-          completedFlights.reduce(
-            (acc, curr) => (acc += curr.duration ?? 0),
-            0,
-          ),
+          countedFlights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
         );
         totalDurationParts = {
           days: duration.days,
@@ -188,7 +186,7 @@
           minutes: duration.minutes,
         };
         airports = new Set(
-          completedFlights
+          countedFlights
             .filter((f) => f.from && f.to)
             .flatMap((f) => [f.from!.name, f.to!.name]),
         ).size;
@@ -204,6 +202,27 @@
     }
   });
 </script>
+
+{#snippet upcomingSwitch()}
+  <!-- Switch after the text, so a right thumb tapping it doesn't cover the
+       label that says what it does -->
+  <label class="flex items-center gap-2 text-sm text-muted-foreground">
+    <!-- Trimmed to the capital letters, so centering lines the switch up
+         with the letters in whatever font the device falls back to. Browsers
+         without text-box center on the line box instead -->
+    <span class="[text-box:trim-both_cap_alphabetic]">
+      {includeUpcoming ? 'Including' : 'Excluding'}
+      {upcomingCount} upcoming {pluralize(upcomingCount, 'flight')}
+    </span>
+    <Switch
+      checked={includeUpcoming}
+      onCheckedChange={(value) => {
+        includeUpcoming = value;
+        writeIncludeUpcoming(value);
+      }}
+    />
+  </label>
+{/snippet}
 
 <Modal
   bind:open
@@ -225,7 +244,7 @@
     <ChartDrillDown
       chartKey={activeChart}
       data={activeChartData}
-      flights={completedFlights}
+      flights={countedFlights}
       onBack={() => modalHistory?.back()}
       {onOpenFlight}
       {seatUserId}
@@ -240,8 +259,21 @@
       {#if showScopeBanner}
         <AdminScopeBanner />
       {/if}
-      {#if showFilters}
-        <ResponsiveFilters {flights} bind:filters />
+      {#if showFilters || upcomingCount > 0}
+        <div class="flex items-start gap-3">
+          {#if showFilters}
+            <div class="flex-1">
+              <ResponsiveFilters {flights} bind:filters />
+            </div>
+          {/if}
+          {#if upcomingCount > 0}
+            <!-- As tall as the Filter button, so the switch stays level with
+                 it when added filters wrap onto more lines -->
+            <div class="ml-auto flex h-8 min-w-0 items-center">
+              {@render upcomingSwitch()}
+            </div>
+          {/if}
+        </div>
       {/if}
       <div class="grid gap-4 pb-2 md:grid-cols-2 lg:grid-cols-5">
         <StatsCard class="py-4 px-8">
@@ -310,7 +342,7 @@
       </div>
       <h3 class="text-2xl font-bold tracking-tight pt-4">Flight Statistics</h3>
       <PieCharts
-        flights={completedFlights}
+        flights={countedFlights}
         onOpenChart={(key) => {
           activeChart = key;
           pushDrilldownHistory();
@@ -318,8 +350,8 @@
         {seatUserId}
       />
       <div class="flex flex-col md:flex-row gap-4">
-        <FlightsPerMonth flights={completedFlights} />
-        <FlightsPerWeekday flights={completedFlights} />
+        <FlightsPerMonth flights={countedFlights} />
+        <FlightsPerWeekday flights={countedFlights} />
       </div>
       {#if showCountryStats}
         <h3 class="text-2xl font-bold tracking-tight pt-4">

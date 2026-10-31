@@ -22,6 +22,10 @@ describe('country registry', () => {
     });
   });
 
+  it('places Cyprus in Europe', () => {
+    expect(countryFromAlpha2('CY')?.continent).toBe('Europe');
+  });
+
   it('has unique country identifiers', () => {
     expect(new Set(COUNTRIES.map((country) => country.alpha2)).size).toBe(
       COUNTRIES.length,

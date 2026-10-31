@@ -19,7 +19,10 @@ if [ "$(id -u)" = "0" ] && [ "${PUID:-1000}" != "0" ]; then
 fi
 
 echo "Applying migrations..."
-node ./docker/migrate.js
+if ! node ./docker/migrate.js; then
+  echo "Migrations failed, not starting the server."
+  exit 1
+fi
 
 echo "Starting server..."
 export PROTOCOL_HEADER=x-forwarded-proto

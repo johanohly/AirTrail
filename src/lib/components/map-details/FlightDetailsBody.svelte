@@ -1,7 +1,10 @@
 <script lang="ts">
   import { List } from '@o7/icon/lucide';
 
+  import AircraftPhotoCard from './AircraftPhotoCard.svelte';
+
   import { Button } from '$lib/components/ui/button';
+  import { appConfig } from '$lib/state.svelte';
   import { formatAircraft } from '$lib/utils/data/aircraft';
   import {
     formatSeatForUser,
@@ -101,6 +104,9 @@
 </script>
 
 <section class="flex flex-col gap-3 px-4 py-4">
+  {#if flight.aircraftReg && appConfig.config?.integrations?.aircraftPhotosEnabled}
+    <AircraftPhotoCard reg={flight.aircraftReg} />
+  {/if}
   {#if rows.length}
     <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
       {#each rows as row (row.label)}

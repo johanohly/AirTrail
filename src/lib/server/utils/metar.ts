@@ -1,3 +1,4 @@
+import { createLookupCache } from '$lib/server/utils/lookup-cache';
 import type { CloudLayer, FlightCategory, ParsedMetar } from '$lib/zod/metar';
 
 const TTL_MS = 10 * 60 * 1000;
@@ -5,25 +6,8 @@ const STALE_FALLBACK_MS = 6 * 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 8000;
 const METAR_API = 'https://aviationweather.gov/api/data/metar';
 
-type CacheEntry = {
-  value: ParsedMetar | null;
-  fetchedAt: number;
-  expiresAt: number;
-};
 // Cap bounds process memory under abusive ICAO enumeration (~1.2M valid 4-char permutations).
-const CACHE_MAX_ENTRIES = 2000;
-const cache = new Map<string, CacheEntry>();
-const inflight = new Map<string, Promise<ParsedMetar | null>>();
-
-function setCacheEntry(key: string, entry: CacheEntry) {
-  if (cache.has(key)) cache.delete(key); // move-to-end on update
-  cache.set(key, entry);
-  while (cache.size > CACHE_MAX_ENTRIES) {
-    const oldest = cache.keys().next().value;
-    if (oldest === undefined) break;
-    cache.delete(oldest);
-  }
-}
+const cache = createLookupCache<ParsedMetar | null>(2000);
 
 type AwcMetar = {
   rawOb?: string;
@@ -35,43 +19,26 @@ export async function getParsedMetar(
   icao: string,
 ): Promise<ParsedMetar | null> {
   const key = icao.toUpperCase();
-  const now = Date.now();
   const cached = cache.get(key);
-  if (cached && cached.expiresAt > now) return cached.value;
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
 
-  const existing = inflight.get(key);
-  if (existing) return existing;
-
-  const promise = (async () => {
+  return cache.dedupe(key, async () => {
     try {
       const fetched = await fetchMetar(key);
       const parsed = fetched
         ? parseMetar(fetched.raw, fetched.observedAtIso)
         : null;
-      setCacheEntry(key, {
-        value: parsed,
-        fetchedAt: now,
-        expiresAt: now + TTL_MS,
-      });
+      cache.set(key, parsed, TTL_MS);
       return parsed;
     } catch (err) {
       console.error(`[metar] fetch/parse failed for ${key}:`, err);
-      if (cached && now - cached.fetchedAt < STALE_FALLBACK_MS) {
+      if (cached && Date.now() - cached.fetchedAt < STALE_FALLBACK_MS) {
         return cached.value;
       }
-      setCacheEntry(key, {
-        value: null,
-        fetchedAt: now,
-        expiresAt: now + 60_000,
-      });
+      cache.set(key, null, 60_000);
       return null;
-    } finally {
-      inflight.delete(key);
     }
-  })();
-
-  inflight.set(key, promise);
-  return promise;
+  });
 }
 
 async function fetchMetar(
