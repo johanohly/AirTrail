@@ -15,14 +15,11 @@
 
   let {
     form,
-    flightId,
     passengerCustomFieldDefinitions = [],
     passengerSavedFieldIds = {},
     passengerCustomFieldsLoading = false,
   }: {
     form: SuperForm<FlightFormData>;
-    /** Present when editing an existing flight. */
-    flightId?: number;
     passengerCustomFieldDefinitions?: CustomFieldDefinition[];
     passengerSavedFieldIds?: Record<number, Set<number>>;
     passengerCustomFieldsLoading?: boolean;
@@ -317,7 +314,7 @@
     </div>
     <div class="order-3 px-6 md:order-none md:px-0">
       <div class="flex flex-col gap-4 py-4 md:py-0">
-        <FlightInformation {form} {flightId} />
+        <FlightInformation {form} />
       </div>
     </div>
   </div>

@@ -1,168 +1,304 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getAircraftPhoto } from './aircraft-photos';
-
-const { getConfig, checkRequest } = vi.hoisted(() => ({
-  getConfig: vi.fn(async () => ({
-    integrations: { aircraftPhotosEnabled: true },
-  })),
-  checkRequest: vi.fn(),
+const { getConfig, isPublicDemo } = vi.hoisted(() => ({
+  getConfig: vi.fn(),
+  isPublicDemo: vi.fn(() => false),
 }));
 
 vi.mock('$lib/server/utils/config', () => ({
   appConfig: { get: getConfig },
 }));
 
-vi.mock('$lib/utils/ratelimiter', () => ({
-  RequestRateLimiter: class {
-    checkRequest = checkRequest;
-  },
-}));
+vi.mock('$lib/server/demo/mode', () => ({ isPublicDemo }));
 
-const photoPayload = (overrides: Record<string, unknown> = {}) => ({
-  photos: [
-    {
-      thumbnail: { src: 'https://t.plnspttrs.net/thumb.jpg', size: '400x267' },
-      thumbnail_large: {
-        src: 'https://t.plnspttrs.net/large.jpg',
-        size: '1200x800',
+const HOUR_MS = 60 * 60 * 1000;
+
+const photoResponse = () =>
+  Response.json({
+    photos: [
+      {
+        thumbnail: { src: 'https://t.plnspttrs.net/thumb.jpg' },
+        thumbnail_large: { src: 'https://t.plnspttrs.net/large.jpg' },
+        link: 'https://www.planespotters.net/photo/1/a?utm_source=api',
+        photographer: 'Jane Doe',
       },
-      link: 'https://www.planespotters.net/photo/123/aircraft?utm_source=api',
-      photographer: 'Jane Doe',
-      ...overrides,
-    },
-  ],
-});
+    ],
+  });
 
-// Module-level cache persists across tests — use a unique registration per test.
+const FOUND = {
+  status: 'found',
+  photo: {
+    thumbnailSrc: 'https://t.plnspttrs.net/large.jpg',
+    link: 'https://www.planespotters.net/photo/1/a?utm_source=api',
+    photographer: 'Jane Doe',
+  },
+};
+
 describe('getAircraftPhoto', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  let fetchMock: ReturnType<typeof vi.fn>;
+  let getAircraftPhoto: typeof import('./aircraft-photos').getAircraftPhoto;
+
+  // A settled lookup claims a request slot, so step past it between calls.
+  const nextSlot = () => vi.advanceTimersByTimeAsync(1000);
+
+  beforeEach(async () => {
+    vi.useFakeTimers();
+    vi.resetModules();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    isPublicDemo.mockReturnValue(false);
     getConfig.mockResolvedValue({
       integrations: { aircraftPhotosEnabled: true },
     });
+    fetchMock = vi.fn(async () => photoResponse());
+    vi.stubGlobal('fetch', fetchMock);
+    ({ getAircraftPhoto } = await import('./aircraft-photos'));
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
-  it('returns null without fetching when the integration is disabled', async () => {
+  it('reports disabled without fetching when the integration is off', async () => {
     getConfig.mockResolvedValue({
       integrations: { aircraftPhotosEnabled: false },
     });
-    const fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
 
-    const result = await getAircraftPhoto('DISABLED1');
-
-    expect(result).toBeNull();
+    expect(await getAircraftPhoto('HB-JNA')).toEqual({ status: 'disabled' });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('prefers thumbnail_large over thumbnail', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => Response.json(photoPayload())),
-    );
+  it('reports disabled without fetching in a public demo', async () => {
+    isPublicDemo.mockReturnValue(true);
 
-    const result = await getAircraftPhoto('PREFLARGE');
-
-    expect(result?.thumbnailSrc).toBe('https://t.plnspttrs.net/large.jpg');
-    expect(result?.link).toBe(
-      'https://www.planespotters.net/photo/123/aircraft?utm_source=api',
-    );
-    expect(result?.photographer).toBe('Jane Doe');
+    expect(await getAircraftPhoto('HB-JNA')).toEqual({ status: 'disabled' });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('falls back to thumbnail when thumbnail_large is missing', async () => {
-    const payload = photoPayload();
-    delete (payload.photos[0] as Record<string, unknown>).thumbnail_large;
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => Response.json(payload)),
-    );
+  it('returns the photo and identifies itself to Planespotters', async () => {
+    expect(await getAircraftPhoto(' hb-jna ')).toEqual(FOUND);
 
-    const result = await getAircraftPhoto('FALLBACK1');
-
-    expect(result?.thumbnailSrc).toBe('https://t.plnspttrs.net/thumb.jpg');
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('https://api.planespotters.net/pub/photos/reg/HB-JNA');
+    expect(init.headers['User-Agent']).toContain('AirTrail');
   });
 
-  it('treats an empty photos array as no photo', async () => {
-    const errorSpy = vi.spyOn(console, 'error');
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => Response.json({ photos: [] })),
+  it('falls back to the small thumbnail', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({
+        photos: [
+          {
+            thumbnail: { src: 'https://t.plnspttrs.net/thumb.jpg' },
+            link: 'https://www.planespotters.net/photo/1/a',
+            photographer: 'Jane Doe',
+          },
+        ],
+      }),
     );
 
-    const result = await getAircraftPhoto('NOPHOTO1');
-
-    expect(result).toBeNull();
-    expect(errorSpy).not.toHaveBeenCalled();
+    expect(await getAircraftPhoto('HB-JNA')).toMatchObject({
+      photo: { thumbnailSrc: 'https://t.plnspttrs.net/thumb.jpg' },
+    });
   });
 
-  it('returns null and logs when the fetch fails', async () => {
-    const errorSpy = vi.spyOn(console, 'error');
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => new Response('', { status: 403 })),
-    );
+  it('reports no photo for an empty response and caches it for an hour', async () => {
+    fetchMock.mockImplementation(async () => Response.json({ photos: [] }));
 
-    const result = await getAircraftPhoto('ERRORREG');
+    expect(await getAircraftPhoto('HB-JNA')).toEqual({ status: 'none' });
 
-    expect(result).toBeNull();
-    expect(errorSpy).toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(HOUR_MS - 1000);
+    expect(await getAircraftPhoto('HB-JNA')).toEqual({ status: 'none' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(1000);
+    await getAircraftPhoto('HB-JNA');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('sends a descriptive user agent with a contact url', async () => {
-    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
-      Response.json({ photos: [] }),
-    );
-    vi.stubGlobal('fetch', fetchMock);
-
-    await getAircraftPhoto('UACHECK1');
-
-    const [url, init] = fetchMock.mock.calls[0] ?? [];
-    expect(url).toBe('https://api.planespotters.net/pub/photos/reg/UACHECK1');
-    const headers = init?.headers as Record<string, string>;
-    expect(headers['User-Agent']).toBe(
-      'AirTrail (+https://github.com/johanohly/AirTrail)',
-    );
-    expect(headers.Accept).toBe('application/json');
+  it('does not send something that cannot be a registration upstream', async () => {
+    expect(await getAircraftPhoto('../admin')).toEqual({ status: 'none' });
+    expect(await getAircraftPhoto('')).toEqual({ status: 'none' });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('looks up registrations case-insensitively', async () => {
-    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
-      Response.json({ photos: [] }),
-    );
-    vi.stubGlobal('fetch', fetchMock);
+  it.each([
+    ['an error status', async () => new Response('', { status: 500 })],
+    [
+      'a network failure',
+      async () => {
+        throw new TypeError('fetch failed');
+      },
+    ],
+    ['an unexpected body', async () => Response.json({ nope: true })],
+    [
+      'a non-HTTPS link',
+      async () =>
+        Response.json({
+          photos: [
+            {
+              thumbnail: { src: 'https://t.plnspttrs.net/thumb.jpg' },
+              link: 'javascript:alert(1)',
+              photographer: 'Jane Doe',
+            },
+          ],
+        }),
+    ],
+  ])('does not cache %s as no photo', async (_, failure) => {
+    fetchMock.mockImplementationOnce(failure);
 
-    await getAircraftPhoto('  da40xl  ');
+    expect(await getAircraftPhoto('HB-JNA')).toEqual({ status: 'unavailable' });
 
-    expect(fetchMock.mock.calls[0]?.[0]).toBe(
-      'https://api.planespotters.net/pub/photos/reg/DA40XL',
-    );
+    await nextSlot();
+    expect(await getAircraftPhoto('HB-JNA')).toEqual(FOUND);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('caches a successful lookup', async () => {
-    const fetchMock = vi.fn(async () => Response.json(photoPayload()));
-    vi.stubGlobal('fetch', fetchMock);
+  it('serves a photo from memory until 24 hours have passed', async () => {
+    await getAircraftPhoto('HB-JNA');
 
-    await getAircraftPhoto('CACHED01');
-    const second = await getAircraftPhoto('CACHED01');
+    await vi.advanceTimersByTimeAsync(24 * HOUR_MS - 1000);
+    await getAircraftPhoto('hb-jna');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
 
-    expect(second?.photographer).toBe('Jane Doe');
+    await vi.advanceTimersByTimeAsync(1000);
+    await getAircraftPhoto('HB-JNA');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('shares one request between parallel lookups of a registration', async () => {
+    const results = await Promise.all([
+      getAircraftPhoto('HB-JNA'),
+      getAircraftPhoto('HB-JNA'),
+    ]);
+
+    expect(results).toEqual([FOUND, FOUND]);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('refetches when bypassCache is set', async () => {
-    const fetchMock = vi.fn(async () => Response.json(photoPayload()));
-    vi.stubGlobal('fetch', fetchMock);
+  it('spaces parallel lookups of different registrations a second apart', async () => {
+    const lookups = Promise.all([
+      getAircraftPhoto('HB-JNA'),
+      getAircraftPhoto('HB-JNB'),
+      getAircraftPhoto('HB-JNC'),
+    ]);
 
-    await getAircraftPhoto('BYPASS01');
-    await getAircraftPhoto('BYPASS01', { bypassCache: true });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
 
+    await vi.advanceTimersByTimeAsync(999);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(1);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    await lookups;
+  });
+
+  it('turns callers away instead of queueing without limit', async () => {
+    const lookups = Promise.all(
+      Array.from({ length: 12 }, (_, i) => getAircraftPhoto(`HB-J${i}0`)),
+    );
+
+    await vi.advanceTimersByTimeAsync(20_000);
+
+    const results = await lookups;
+    expect(fetchMock.mock.calls.length).toBeLessThan(12);
+    expect(results.at(-1)).toEqual({ status: 'unavailable' });
+  });
+
+  describe('when rate limited', () => {
+    const rateLimited = (retryAfter?: string) =>
+      new Response('', {
+        status: 429,
+        headers: retryAfter ? { 'Retry-After': retryAfter } : {},
+      });
+
+    it('pauses other lookups for as long as Retry-After says', async () => {
+      fetchMock.mockResolvedValueOnce(rateLimited('120'));
+
+      expect(await getAircraftPhoto('HB-JNA')).toEqual({
+        status: 'unavailable',
+      });
+
+      await vi.advanceTimersByTimeAsync(119_000);
+      expect(await getAircraftPhoto('HB-JNB')).toEqual({
+        status: 'unavailable',
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(await getAircraftPhoto('HB-JNA')).toEqual(FOUND);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('understands a Retry-After date', async () => {
+      fetchMock.mockResolvedValueOnce(
+        rateLimited(new Date(Date.now() + 120_000).toUTCString()),
+      );
+      await getAircraftPhoto('HB-JNA');
+
+      await vi.advanceTimersByTimeAsync(110_000);
+      await getAircraftPhoto('HB-JNB');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(10_000);
+      await getAircraftPhoto('HB-JNB');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it.each([
+      ['is missing', undefined],
+      ['is garbage', 'soon'],
+    ])('pauses for a minute when Retry-After %s', async (_, retryAfter) => {
+      fetchMock.mockResolvedValueOnce(rateLimited(retryAfter));
+      await getAircraftPhoto('HB-JNA');
+
+      await vi.advanceTimersByTimeAsync(59_000);
+      await getAircraftPhoto('HB-JNB');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(1000);
+      await getAircraftPhoto('HB-JNB');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('caps a very long Retry-After at an hour', async () => {
+      fetchMock.mockResolvedValueOnce(rateLimited('999999'));
+      await getAircraftPhoto('HB-JNA');
+
+      await vi.advanceTimersByTimeAsync(HOUR_MS);
+      await getAircraftPhoto('HB-JNB');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('stops callers already waiting in line', async () => {
+      fetchMock.mockResolvedValueOnce(rateLimited('60'));
+
+      const results = Promise.all([
+        getAircraftPhoto('HB-JNA'),
+        getAircraftPhoto('HB-JNB'),
+        getAircraftPhoto('HB-JNC'),
+      ]);
+      await vi.advanceTimersByTimeAsync(5000);
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(await results).toEqual([
+        { status: 'unavailable' },
+        { status: 'unavailable' },
+        { status: 'unavailable' },
+      ]);
+    });
+
+    it('does not cache a 429 as no photo', async () => {
+      fetchMock.mockResolvedValueOnce(rateLimited('1'));
+      await getAircraftPhoto('HB-JNA');
+
+      await nextSlot();
+      expect(await getAircraftPhoto('HB-JNA')).toEqual(FOUND);
+    });
   });
 });

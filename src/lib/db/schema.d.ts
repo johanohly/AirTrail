@@ -193,18 +193,6 @@ export type flight_track = {
     createdAt: Generated<Timestamp>;
     updatedAt: Generated<Timestamp>;
 };
-export type flight_photo = {
-    flightId: number;
-    /**
-     * Registration used when the photo was fetched (may differ from the flight's current reg)
-     */
-    reg: string;
-    photoLink: string;
-    thumbnailUrl: string;
-    photographer: string;
-    fetchedAt: Generated<Timestamp>;
-    updatedAt: Generated<Timestamp>;
-};
 export type oauth_access_token = {
     tokenHash: string;
     clientId: string;
@@ -395,7 +383,6 @@ export type DB = {
     customFieldValue: custom_field_value;
     flight: flight;
     flightPassenger: flight_passenger;
-    flightPhoto: flight_photo;
     flightTrack: flight_track;
     oauthAccessToken: oauth_access_token;
     oauthAuthorizationCode: oauth_authorization_code;

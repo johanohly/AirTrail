@@ -212,7 +212,7 @@
           {#snippet children({ props })}
             <div class="grid gap-1">
               <Form.Label>
-                Aircraft Photos
+                Aircraft photos
                 <a
                   href="https://airtrail.johan.ohly.dk/docs/integrations/aircraft-photos"
                   target="_blank"
@@ -222,9 +222,9 @@
                 </a>
               </Form.Label>
               <Form.Description>
-                Show aircraft photos from Planespotters.net in flight details.
-                AirTrail sends the aircraft registration to Planespotters to
-                look up photos. Photos are credited to their photographers.
+                Show photos from Planespotters.net in flight details and the
+                flight form. AirTrail sends aircraft registrations to
+                Planespotters to look them up.
               </Form.Description>
             </div>
             <Switch

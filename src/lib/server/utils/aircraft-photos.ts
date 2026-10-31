@@ -1,109 +1,122 @@
+import { isPublicDemo } from '$lib/server/demo/mode';
 import { appConfig } from '$lib/server/utils/config';
-import { RequestRateLimiter } from '$lib/utils/ratelimiter';
-import type { AircraftPhoto } from '$lib/zod/aircraft-photo';
-import { planespottersResponseSchema } from '$lib/zod/aircraft-photo';
+import { createLookupCache } from '$lib/server/utils/lookup-cache';
+import {
+  type AircraftPhoto,
+  type AircraftPhotoResult,
+  planespottersResponseSchema,
+} from '$lib/zod/aircraft-photo';
 
-// Planespotters photo API (https://www.planespotters.net/photo/api):
-// keyless, returns the airframe's latest photo. ToS allows backend fetching
-// only with the URLs passed through to the viewer unchanged and the images
-// fetched directly from their CDN — we therefore cache/store JSON metadata
-// only and never download, proxy or rewrite the image binaries.
+/*
+ * Planespotters' terms (https://www.planespotters.net/photo/api) allow fetching
+ * from a backend if responses are kept for at most 24 hours, URLs reach the
+ * viewer unchanged and images load directly from their CDN. That is why nothing
+ * here touches the database or the image files.
+ */
 const PHOTOS_API = 'https://api.planespotters.net/pub/photos/reg';
-// ToS access identification: a unique, descriptive UA with a contact URL.
 const USER_AGENT = 'AirTrail (+https://github.com/johanohly/AirTrail)';
-// Caching the API response beyond 24h is not allowed by the ToS.
-const TTL_MS = 24 * 60 * 60 * 1000;
-const NEGATIVE_TTL_MS = 60 * 60 * 1000;
-const ERROR_TTL_MS = 60_000;
 const FETCH_TIMEOUT_MS = 8000;
-// Cap bounds process memory under abusive registration enumeration.
-const CACHE_MAX_ENTRIES = 5000;
-const rateLimiter = new RequestRateLimiter(1, 1, 2, 1, 1000);
+const PHOTO_TTL_MS = 24 * 60 * 60 * 1000;
+const NO_PHOTO_TTL_MS = 60 * 60 * 1000;
+const MIN_REQUEST_INTERVAL_MS = 1000;
+/** Longer than this in line and the caller is better off retrying later. */
+const MAX_QUEUE_WAIT_MS = 8000;
+const DEFAULT_RATE_LIMIT_PAUSE_MS = 60 * 1000;
+const MAX_RATE_LIMIT_PAUSE_MS = 60 * 60 * 1000;
+const REGISTRATION_RE = /^[A-Z0-9][A-Z0-9-]{1,9}$/;
 
-type CacheEntry = {
-  value: AircraftPhoto | null;
-  fetchedAt: number;
-  expiresAt: number;
-};
-const cache = new Map<string, CacheEntry>();
-const inflight = new Map<string, Promise<AircraftPhoto | null>>();
+const cache = createLookupCache<AircraftPhoto | null>(5000);
 
-function setCacheEntry(key: string, entry: CacheEntry) {
-  if (cache.has(key)) cache.delete(key); // move-to-end on update
-  cache.set(key, entry);
-  while (cache.size > CACHE_MAX_ENTRIES) {
-    const oldest = cache.keys().next().value;
-    if (oldest === undefined) break;
-    cache.delete(oldest);
+let nextRequestAt = 0;
+let pausedUntil = 0;
+
+const toResult = (photo: AircraftPhoto | null): AircraftPhotoResult =>
+  photo ? { status: 'found', photo } : { status: 'none' };
+
+/*
+ * The slot is claimed before the first `await`, so parallel callers line up
+ * instead of all firing when a shared wait ends. The pause is checked again
+ * after waiting because a 429 may have arrived in the meantime.
+ */
+const waitForRequestSlot = async () => {
+  const now = Date.now();
+  if (pausedUntil > now) return false;
+
+  const slot = Math.max(now, nextRequestAt);
+  if (slot - now > MAX_QUEUE_WAIT_MS) return false;
+  nextRequestAt = slot + MIN_REQUEST_INTERVAL_MS;
+
+  if (slot > now) {
+    await new Promise((resolve) => setTimeout(resolve, slot - now));
   }
-}
+  return pausedUntil <= Date.now();
+};
 
-export async function getAircraftPhoto(
+const rateLimitPauseMs = (retryAfter: string | null) => {
+  if (!retryAfter) return DEFAULT_RATE_LIMIT_PAUSE_MS;
+
+  const seconds = Number(retryAfter);
+  const pause = Number.isNaN(seconds)
+    ? Date.parse(retryAfter) - Date.now()
+    : seconds * 1000;
+  return pause > 0
+    ? Math.min(pause, MAX_RATE_LIMIT_PAUSE_MS)
+    : DEFAULT_RATE_LIMIT_PAUSE_MS;
+};
+
+const lookUpPhoto = async (reg: string): Promise<AircraftPhotoResult> => {
+  if (!(await waitForRequestSlot())) return { status: 'unavailable' };
+
+  try {
+    const response = await fetch(`${PHOTOS_API}/${encodeURIComponent(reg)}`, {
+      headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+    if (response.status === 429) {
+      const pause = rateLimitPauseMs(response.headers.get('Retry-After'));
+      pausedUntil = Date.now() + pause;
+      console.warn(
+        `[aircraft-photos] rate limited, pausing lookups for ${Math.ceil(pause / 1000)}s`,
+      );
+      return { status: 'unavailable' };
+    }
+    if (!response.ok) {
+      throw new Error(`Planespotters responded with ${response.status}`);
+    }
+
+    const { photos } = planespottersResponseSchema.parse(await response.json());
+    const first = photos[0];
+    const photo = first
+      ? {
+          thumbnailSrc: first.thumbnail_large?.src ?? first.thumbnail.src,
+          link: first.link,
+          photographer: first.photographer,
+        }
+      : null;
+    cache.set(reg, photo, photo ? PHOTO_TTL_MS : NO_PHOTO_TTL_MS);
+    return toResult(photo);
+  } catch (err) {
+    console.error(`[aircraft-photos] lookup failed for ${reg}:`, err);
+    return { status: 'unavailable' };
+  }
+};
+
+export const getAircraftPhoto = async (
   reg: string,
-  opts?: { bypassCache?: boolean },
-): Promise<AircraftPhoto | null> {
-  const cfg = await appConfig.get();
-  if (!cfg?.integrations?.aircraftPhotosEnabled) return null;
+): Promise<AircraftPhotoResult> => {
+  // Demo visitors are anonymous, so they don't get to drive outbound requests.
+  if (isPublicDemo()) return { status: 'disabled' };
+
+  const config = await appConfig.get();
+  if (!config?.integrations?.aircraftPhotosEnabled) {
+    return { status: 'disabled' };
+  }
 
   const key = reg.trim().toUpperCase();
-  if (!key) return null;
-  const now = Date.now();
+  if (!REGISTRATION_RE.test(key)) return { status: 'none' };
+
   const cached = cache.get(key);
-  if (cached && cached.expiresAt > now && !opts?.bypassCache) {
-    return cached.value;
-  }
+  if (cached && cached.expiresAt > Date.now()) return toResult(cached.value);
 
-  const existing = inflight.get(key);
-  if (existing && !opts?.bypassCache) return existing;
-
-  const promise = (async () => {
-    try {
-      await rateLimiter.checkRequest();
-
-      const photo = await fetchAircraftPhoto(key);
-      setCacheEntry(key, {
-        value: photo,
-        fetchedAt: now,
-        expiresAt: now + (photo ? TTL_MS : NEGATIVE_TTL_MS),
-      });
-      return photo;
-    } catch (err) {
-      console.error(`[aircraft-photos] fetch failed for ${key}:`, err);
-      setCacheEntry(key, {
-        value: null,
-        fetchedAt: now,
-        expiresAt: now + ERROR_TTL_MS,
-      });
-      return null;
-    } finally {
-      inflight.delete(key);
-    }
-  })();
-
-  inflight.set(key, promise);
-  return promise;
-}
-
-async function fetchAircraftPhoto(key: string): Promise<AircraftPhoto | null> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  try {
-    const resp = await fetch(`${PHOTOS_API}/${encodeURIComponent(key)}`, {
-      headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
-      signal: controller.signal,
-    });
-    if (!resp.ok) {
-      throw new Error(`Planespotters fetch ${resp.status} ${resp.statusText}`);
-    }
-    const parsed = planespottersResponseSchema.parse(await resp.json());
-    const photo = parsed.photos[0];
-    if (!photo) return null;
-    return {
-      thumbnailSrc: photo.thumbnail_large?.src ?? photo.thumbnail.src,
-      link: photo.link,
-      photographer: photo.photographer,
-    };
-  } finally {
-    clearTimeout(timer);
-  }
-}
+  return cache.dedupe(key, () => lookUpPhoto(key));
+};

@@ -1,110 +1,89 @@
 <script lang="ts">
-  import { RefreshCw } from '@o7/icon/lucide';
   import { writable } from 'svelte/store';
 
-  import { TextTooltip } from '$lib/components/ui/tooltip';
-  import { api, trpc } from '$lib/trpc';
+  import { Button } from '$lib/components/ui/button';
+  import { trpc } from '$lib/trpc';
+  import { cn } from '$lib/utils';
 
   let {
-    flightId,
     reg,
     compact = false,
   }: {
-    flightId: number;
     reg: string;
     compact?: boolean;
   } = $props();
 
-  const flightIdStore = writable(flightId);
+  const regStore = writable(reg);
   $effect(() => {
-    flightIdStore.set(flightId);
+    regStore.set(reg);
   });
 
-  const photoQuery = trpc.aircraft.getOrFetchPhoto.query(flightIdStore, {
-    staleTime: 24 * 60 * 60 * 1000,
+  // The server may already hold a response for up to the 24 hours Planespotters
+  // allows, so the browser can't add much on top of that.
+  const photoQuery = trpc.aircraft.getPhoto.query(regStore, {
+    staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
-  const photo = $derived($photoQuery.data ?? null);
-  const isLoading = $derived($photoQuery.isLoading);
+  const result = $derived($photoQuery.data);
+  const photo = $derived(result?.status === 'found' ? result.photo : null);
+  const unavailable = $derived(
+    $photoQuery.isError || result?.status === 'unavailable',
+  );
 
-  let refetching = $state(false);
-  const refetch = async () => {
-    refetching = true;
-    try {
-      await api.aircraft.refetchPhoto.mutate({ flightId });
-      await trpc.aircraft.getOrFetchPhoto.utils.invalidate(flightId);
-    } finally {
-      refetching = false;
-    }
-  };
-
-  const fetchedLabel = $derived.by(() => {
-    if (!photo) return '';
-    const fetched = new Date(photo.fetchedAt);
-    if (Number.isNaN(fetched.getTime())) return `Registration ${photo.reg}`;
-    return `Fetched ${new Intl.DateTimeFormat(undefined, {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    }).format(fetched)} · ${photo.reg}`;
-  });
-
-  const alt = $derived(`${reg} — photo by ${photo?.photographer ?? ''}`);
-
-  // Offline / air-gapped instances can't reach the Planespotters CDN — hide
-  // the card entirely instead of showing a broken image frame. Resets when a
-  // different photo loads.
-  let imgFailed = $state(false);
-  $effect(() => {
-    photo;
-    imgFailed = false;
-  });
+  // The API may be reachable when the CDN isn't, as on restricted networks. Show
+  // nothing then instead of a broken image.
+  let failedSrc = $state<string | null>(null);
 </script>
 
-{#if photo && !isLoading && !imgFailed}
-  <figure class="relative">
-    <a href={photo.photoLink} target="_blank" rel="noopener noreferrer">
-      <img
-        src={photo.thumbnailUrl}
-        {alt}
-        loading="lazy"
-        onerror={() => (imgFailed = true)}
-        class={compact
-          ? 'h-20 w-full rounded-md border border-border/60 object-cover'
-          : 'w-full rounded-lg border border-border/60 object-cover'}
-      />
-    </a>
-    {#if !compact}
-      <button
-        type="button"
-        class="absolute top-1.5 right-1.5 cursor-pointer rounded-md bg-background/70 p-1 text-muted-foreground backdrop-blur-sm transition-colors hover:text-foreground"
-        aria-label="Refetch aircraft photo"
-        onclick={refetch}
-        disabled={refetching}
-      >
-        <TextTooltip content={fetchedLabel}>
-          <RefreshCw size={13} class={refetching ? 'animate-spin' : ''} />
-        </TextTooltip>
-      </button>
-    {/if}
-    <figcaption
-      class={compact
-        ? 'mt-1 text-[10px] leading-tight text-muted-foreground'
-        : 'mt-1.5 text-xs text-muted-foreground'}
-    >
-      © {photo.photographer} /
-      <a
-        href={photo.photoLink}
-        target="_blank"
-        rel="noopener noreferrer"
-        class="underline decoration-dotted underline-offset-2 transition-colors hover:text-foreground"
-      >
-        Planespotters.net
+{#if $photoQuery.isLoading}
+  <div
+    class={cn(
+      'w-full animate-pulse rounded-md bg-muted',
+      compact ? 'h-20' : 'aspect-[3/2]',
+    )}
+  ></div>
+{:else if photo}
+  {#if failedSrc !== photo.thumbnailSrc}
+    <figure>
+      <a href={photo.link} target="_blank" rel="noopener noreferrer">
+        <img
+          src={photo.thumbnailSrc}
+          alt="{reg}, photo by {photo.photographer}"
+          loading="lazy"
+          onerror={() => (failedSrc = photo.thumbnailSrc)}
+          class={cn(
+            'w-full rounded-md border border-border/60 object-cover',
+            compact && 'h-20',
+          )}
+        />
       </a>
-    </figcaption>
-  </figure>
-{:else if isLoading}
-  <div class={compact ? 'h-20 w-full' : 'aspect-[3/2] w-full'}>
-    <div class="animate-pulse rounded-lg bg-muted"></div>
+      <figcaption class="mt-1 text-xs text-muted-foreground">
+        © {photo.photographer} /
+        <a
+          href={photo.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="underline decoration-dotted underline-offset-2 hover:text-foreground"
+        >
+          Planespotters.net
+        </a>
+      </figcaption>
+    </figure>
+  {/if}
+{:else if unavailable}
+  <div class="flex items-center justify-between gap-2">
+    <p class="text-xs text-muted-foreground">Couldn't load photo</p>
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      loading={$photoQuery.isFetching}
+      onclick={() => $photoQuery.refetch()}
+    >
+      Retry
+    </Button>
   </div>
+{:else if compact && result?.status === 'none'}
+  <p class="text-xs text-muted-foreground">No photo found</p>
 {/if}

@@ -105,7 +105,7 @@
 
 <section class="flex flex-col gap-3 px-4 py-4">
   {#if flight.aircraftReg && appConfig.config?.integrations?.aircraftPhotosEnabled}
-    <AircraftPhotoCard flightId={flight.id} reg={flight.aircraftReg} />
+    <AircraftPhotoCard reg={flight.aircraftReg} />
   {/if}
   {#if rows.length}
     <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">

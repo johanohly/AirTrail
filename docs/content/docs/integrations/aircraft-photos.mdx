@@ -1,25 +1,28 @@
 ---
 title: Aircraft Photos
+description: Show a photo of the aircraft from Planespotters.net next to a flight.
 ---
 
-Aircraft photos are shown next to a flight's details when it has a registration and the integration is enabled.
+Aircraft photos appear in the flight details and the flight form when a flight has a registration and the integration is enabled. It is off by default.
 
-## How It Works
+## How it works
 
-AirTrail looks up the aircraft's photo by its registration on [Planespotters.net](https://www.planespotters.net/photo/api):
+AirTrail looks up the registration on [Planespotters.net](https://www.planespotters.net/photo/api):
 
 - **No API key needed**: the Planespotters photo API is free and keyless.
-- **One photo per airframe**: the public API returns the airframe's latest photo. AirTrail pins the photo to a flight when it is first fetched, so the photo stays stable even if the aircraft is repainted or the photo is later removed on Planespotters.
-- **Refreshed on demand**: changing a flight's registration in the flight form fetches a new photo, and the photo card in the flight details has a refetch button.
-- **Attribution**: photos are always credited to their photographer, with a link to the photo page on Planespotters.net. Keep this attribution intact.
+- **Latest photo of the airframe**: the photo can change over time, for example after a repaint, and disappears if it is removed from Planespotters.
+- **Nothing is stored**: AirTrail keeps lookup results in memory for at most 24 hours, as Planespotters requires, and never in the database. Restarting the server clears them.
+- **Attribution**: photos are always credited to their photographer, with a link to the photo page on Planespotters.net.
+
+If Planespotters can't be reached or rate limits your instance, the photo shows a retry button. AirTrail holds back further lookups for as long as Planespotters asks.
 
 ## Setup
 
-- In the app (admins only): Settings → Integrations → "Aircraft Photos".
-- Or via environment variable: set `INTEGRATIONS_AIRCRAFT_PHOTOS_ENABLED=true` and restart the server.
+- In the app (admins only): **Settings → Integrations → Aircraft photos**.
+- Or with an environment variable: set `INTEGRATIONS_AIRCRAFT_PHOTOS_ENABLED=true` and restart the server. This locks the setting in the app.
 
-## Privacy Notes
+## Privacy
 
-- When the feature is enabled, AirTrail sends the aircraft registration of flights you view to Planespotters to look up photos.
-- Photos are fetched by your browser directly from Planespotters' image servers — AirTrail never proxies or stores the images themselves, only the metadata needed to display and credit them.
-- Photo lookups are only performed for signed-in users of your instance; nothing is exposed publicly.
+- AirTrail sends the registration of flights you view, and of any registration you type in the flight form, to Planespotters.
+- Your browser loads photos directly from Planespotters' image servers, so Planespotters also sees your IP address. AirTrail never proxies or stores the images.
+- Lookups are only available to signed-in users. They are turned off in public demo instances.

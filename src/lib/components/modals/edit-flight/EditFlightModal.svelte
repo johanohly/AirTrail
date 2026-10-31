@@ -299,7 +299,6 @@
     <FlightForm
       bind:this={flightForm}
       {form}
-      flightId={flight.id}
       passengerCustomFieldDefinitions={$passengerCustomFieldDefinitions.data ??
         []}
       {passengerSavedFieldIds}
