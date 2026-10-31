@@ -219,32 +219,6 @@ const buildDisplayPath = (
   return displayPath;
 };
 
-// Display paths are unwrapped so they stay continuous across the antimeridian,
-// which pushes longitudes past ±180. Mercator draws deck.gl layers for one world
-// only, so that part would be cut off. Return the path shifted by whole worlds
-// for every world copy it reaches, so the full track shows on each side.
-export const getAntimeridianDisplayCopies = (path: [number, number][]) => {
-  let minLongitude = Infinity;
-  let maxLongitude = -Infinity;
-  for (const [longitude] of path) {
-    minLongitude = Math.min(minLongitude, longitude);
-    maxLongitude = Math.max(maxLongitude, longitude);
-  }
-  if (minLongitude >= -180 && maxLongitude <= 180) return [];
-
-  const copies: [number, number][][] = [];
-  const firstWorld = Math.ceil((minLongitude - 180) / 360);
-  const lastWorld = Math.floor((maxLongitude + 180) / 360);
-  for (let world = firstWorld; world <= lastWorld; world++) {
-    if (world === 0) continue;
-    const shift = world * 360;
-    copies.push(
-      path.map(([longitude, latitude]) => [longitude - shift, latitude]),
-    );
-  }
-  return copies;
-};
-
 export const buildFlightTrackDisplayPaths = (
   sources: FlightTrackDisplaySource[],
 ) => {

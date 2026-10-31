@@ -9,7 +9,6 @@ import {
 } from './flight-layer-data';
 import {
   buildFlightTrackDisplayPath,
-  getAntimeridianDisplayCopies,
   MAX_FLIGHT_TRACK_DISPLAY_POINTS,
 } from './flight-track-display-geometry';
 import {
@@ -45,11 +44,13 @@ const paths = [
 const renderContext = ({
   standardColor = [0, 0, 0],
   estimatedUnderlayColor = [24, 24, 27, 190],
+  wrapLongitude = false,
 }: {
   standardColor?: Color;
   estimatedUnderlayColor?: Color;
+  wrapLongitude?: boolean;
 } = {}): FlightTrackRenderContext => ({
-  geometry: { parameters: {}, extensions: [] },
+  geometry: { parameters: {}, extensions: [], wrapLongitude },
   appearance: {
     getWidth: () => 2,
     getStandardColor: () => standardColor,
@@ -193,77 +194,6 @@ describe('flight track layers', () => {
     }
   });
 
-  it('repeats antimeridian crossings into the neighbouring world for mercator', () => {
-    const coordinates = [
-      [114, 22, 1_000],
-      [170, 40, 10_000],
-      [-123, 37, 1_000],
-    ] as FlightTrackRow['coordinates'];
-    const trackPaths = buildFlightTrackPaths(
-      [{ id: 7, from: { id: 1 }, to: { id: 2 } }] as FlightData[],
-      [{ from: { id: 1 }, to: { id: 2 } }] as FlightArc[],
-      [{ flightId: 7, coordinates }] as FlightTrackRow[],
-    );
-
-    const globe = prepareFlightTrackLayerData(trackPaths, 'altitude');
-    const mercator = prepareFlightTrackLayerData(trackPaths, 'altitude', {
-      repeatAcrossAntimeridian: true,
-    });
-
-    expect(globe.paths).toHaveLength(1);
-    expect(mercator.paths).toHaveLength(2);
-    // Altitude runs that already sit inside one world need no copy.
-    expect(mercator.solidRuns.length).toBeGreaterThan(globe.solidRuns.length);
-    expect(
-      mercator.solidRuns.every((run) =>
-        run.displayPath.some(([longitude]) => Math.abs(longitude) <= 180),
-      ),
-    ).toBe(true);
-
-    const [original, copy] = mercator.paths;
-    expect(original!.displayPath.at(-1)![0]).toBeCloseTo(237);
-    expect(copy!.flightId).toBe(7);
-    expect(copy!.displayPath[0]![0]).toBeCloseTo(114 - 360);
-    expect(copy!.displayPath.at(-1)![0]).toBeCloseTo(-123);
-    // Each half of the track lands inside the main world on one of the copies.
-    expect(
-      mercator.paths.every((path) =>
-        path.displayPath.some(([longitude]) => Math.abs(longitude) <= 180),
-      ),
-    ).toBe(true);
-  });
-
-  it('leaves tracks that stay within one world uncopied', () => {
-    expect(
-      getAntimeridianDisplayCopies([
-        [-10, 50],
-        [10, 52],
-      ]),
-    ).toEqual([]);
-    expect(
-      getAntimeridianDisplayCopies([
-        [170, 10],
-        [-170 + 360, 10],
-      ]),
-    ).toEqual([
-      [
-        [-190, 10],
-        [-170, 10],
-      ],
-    ]);
-    expect(
-      getAntimeridianDisplayCopies([
-        [-170, 10],
-        [170 - 360, 10],
-      ]),
-    ).toEqual([
-      [
-        [190, 10],
-        [170, 10],
-      ],
-    ]);
-  });
-
   it('uses tar1090 distance thresholds and power-of-two subdivision', () => {
     expect(
       buildFlightTrackDisplayPath([
@@ -395,6 +325,17 @@ describe('flight track layers', () => {
     expect(layers[2]!.props.data).toBe(data.solidRuns);
     expect(layers[3]!.props.data).toBe(data.estimatedRuns);
     expect(layers[5]!.props.data).toBe(data.paths);
+  });
+
+  it('wraps every track layer at the antimeridian when asked', () => {
+    const data = prepareFlightTrackLayerData(paths, 'altitude');
+    const layers = buildFlightTrackLayers({
+      data,
+      style: 'altitude',
+      context: renderContext({ wrapLongitude: true }),
+    });
+
+    expect(layers.every((layer) => layer.props.wrapLongitude)).toBe(true);
   });
 
   it('renders tracks on the map surface while retaining stored altitude', () => {
