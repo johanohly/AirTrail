@@ -43,7 +43,7 @@
     "@types/react-dom": "^19.3.0",
     "ajv": "^8.20.0",
     "tailwindcss": "^4.3.3",
-    "typescript": "~6.0.3",
+    "typescript": "~7.0.2",
     "ultracite": "8.1.0",
     "wrangler": "4.156.0"
   }
