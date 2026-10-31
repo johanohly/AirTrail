@@ -350,8 +350,11 @@ const lookupAirline = async (
     return { airline: options.airlineMapping[mappingKey], mappingKey };
   }
 
-  let airline = icao ? await getAirlineByCodes(icao, iata, name) : null;
-  airline ??= iata ? await getAirlineByIata(iata) : null;
+  let airline = icao
+    ? await getAirlineByCodes(icao, iata, name)
+    : iata
+      ? await getAirlineByIata(iata)
+      : null;
   airline ??= name ? await getAirlineByName(name) : null;
   airline ??= alias ? await getAirlineByName(alias) : null;
 
