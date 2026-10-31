@@ -465,7 +465,7 @@
   };
 
   const AIRPORT_CIRCLE_SIZE = {
-    small: { scale: 0.4, maxPixels: 45 },
+    small: { scale: 0.2, maxPixels: 20 },
     medium: { scale: 0.7, maxPixels: 70 },
     large: { scale: 1, maxPixels: 100 },
   } as const;
