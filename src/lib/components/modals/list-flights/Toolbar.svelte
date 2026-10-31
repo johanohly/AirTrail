@@ -50,7 +50,7 @@
     modalOpen = true,
   }: {
     flights: FlightData[];
-    filters: FlightFilters;
+    filters?: FlightFilters;
     tempFilters?: TempFilters;
     page: number;
     pageCount: number;
@@ -129,121 +129,123 @@
 </script>
 
 <!-- Top bar: filters + Select (desktop only) -->
-<div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-  <div class="flex min-w-0 flex-wrap items-center gap-2">
-    {#if hasTempFilters}
-      <Button
-        size="sm"
-        variant="outline"
-        class="flex-none"
-        onclick={() => {
-          if (tempFilters) {
-            clearTempFilters(tempFilters);
-          }
-        }}
-      >
-        Show All Flights
-      </Button>
-    {/if}
-    <div class="min-w-0 flex-1">
-      <ResponsiveFilters
-        {flights}
-        bind:filters
-        bind:tempFilters
-        {hasTempFilters}
-      />
+{#if filters}
+  <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+    <div class="flex min-w-0 flex-wrap items-center gap-2">
+      {#if hasTempFilters}
+        <Button
+          size="sm"
+          variant="outline"
+          class="flex-none"
+          onclick={() => {
+            if (tempFilters) {
+              clearTempFilters(tempFilters);
+            }
+          }}
+        >
+          Show All Flights
+        </Button>
+      {/if}
+      <div class="min-w-0 flex-1">
+        <ResponsiveFilters
+          {flights}
+          bind:filters
+          bind:tempFilters
+          {hasTempFilters}
+        />
+      </div>
     </div>
-  </div>
 
-  <div
-    class={`flex flex-none items-center gap-2 justify-self-end ${selecting ? 'pointer-events-none opacity-0' : ''}`}
-  >
-    {#if isAdmin}
-      <Popover.Root>
-        <Popover.Trigger>
-          {#snippet child({ props })}
-            <Button {...props} variant="outline" size="sm">
-              View: {scopeLabel}
-            </Button>
-          {/snippet}
-        </Popover.Trigger>
-        <Popover.Content align="end" class="w-[320px] space-y-3 p-3">
-          <div>
-            <p class="text-sm font-medium">Flight visibility</p>
-          </div>
-          <RadioGroup.Root
-            value={flightScopeState.current.scope}
-            onValueChange={(value) => {
-              if (value === 'mine' || value === 'user' || value === 'all') {
-                updateScope(value);
-              }
-            }}
-            class={`grid gap-2 ${users.length > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}
-          >
-            <Label
-              class="cursor-pointer rounded-md border-2 bg-background px-3 py-2 text-center text-sm font-medium [&:has([data-state=checked])]:border-primary"
+    <div
+      class={`flex flex-none items-center gap-2 justify-self-end ${selecting ? 'pointer-events-none opacity-0' : ''}`}
+    >
+      {#if isAdmin}
+        <Popover.Root>
+          <Popover.Trigger>
+            {#snippet child({ props })}
+              <Button {...props} variant="outline" size="sm">
+                View: {scopeLabel}
+              </Button>
+            {/snippet}
+          </Popover.Trigger>
+          <Popover.Content align="end" class="w-[320px] space-y-3 p-3">
+            <div>
+              <p class="text-sm font-medium">Flight visibility</p>
+            </div>
+            <RadioGroup.Root
+              value={flightScopeState.current.scope}
+              onValueChange={(value) => {
+                if (value === 'mine' || value === 'user' || value === 'all') {
+                  updateScope(value);
+                }
+              }}
+              class={`grid gap-2 ${users.length > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}
             >
-              <RadioGroup.Item value="mine" class="sr-only" />
-              Mine
-            </Label>
-            {#if users.length > 0}
               <Label
                 class="cursor-pointer rounded-md border-2 bg-background px-3 py-2 text-center text-sm font-medium [&:has([data-state=checked])]:border-primary"
               >
-                <RadioGroup.Item value="user" class="sr-only" />
-                User
+                <RadioGroup.Item value="mine" class="sr-only" />
+                Mine
               </Label>
-            {/if}
-            <Label
-              class="cursor-pointer rounded-md border-2 bg-background px-3 py-2 text-center text-sm font-medium [&:has([data-state=checked])]:border-primary"
-            >
-              <RadioGroup.Item value="all" class="sr-only" />
-              All
-            </Label>
-          </RadioGroup.Root>
-
-          {#if flightScopeState.current.scope === 'user' && users.length > 0}
-            <div class="space-y-2">
-              <p class="text-xs font-medium text-muted-foreground">User</p>
-              <Select.Root
-                type="single"
-                value={flightScopeState.current.userId}
-                onValueChange={(value) => {
-                  if (value) setFlightScope({ scope: 'user', userId: value });
-                }}
+              {#if users.length > 0}
+                <Label
+                  class="cursor-pointer rounded-md border-2 bg-background px-3 py-2 text-center text-sm font-medium [&:has([data-state=checked])]:border-primary"
+                >
+                  <RadioGroup.Item value="user" class="sr-only" />
+                  User
+                </Label>
+              {/if}
+              <Label
+                class="cursor-pointer rounded-md border-2 bg-background px-3 py-2 text-center text-sm font-medium [&:has([data-state=checked])]:border-primary"
               >
-                <Select.Trigger>
-                  {users.find((u) => u.id === selectedUserId)?.displayName ??
-                    'Select a user'}
-                </Select.Trigger>
-                <Select.Content>
-                  {#each users as user (user.id)}
-                    <Select.Item value={user.id} label={user.displayName} />
-                  {/each}
-                </Select.Content>
-              </Select.Root>
-            </div>
-          {/if}
-        </Popover.Content>
-      </Popover.Root>
-    {/if}
-    {#if canSelect}
-      <Button
-        onclick={() => {
-          selecting = true;
-          selectedFlights = [];
-        }}
-        disabled={flights.length === 0}
-        class="hidden gap-2 sm:inline-flex"
-        variant="outline"
-        size="sm"
-      >
-        <SquareDashedMousePointer size={16} />
-        Select
-      </Button>
-    {/if}
+                <RadioGroup.Item value="all" class="sr-only" />
+                All
+              </Label>
+            </RadioGroup.Root>
+
+            {#if flightScopeState.current.scope === 'user' && users.length > 0}
+              <div class="space-y-2">
+                <p class="text-xs font-medium text-muted-foreground">User</p>
+                <Select.Root
+                  type="single"
+                  value={flightScopeState.current.userId}
+                  onValueChange={(value) => {
+                    if (value) setFlightScope({ scope: 'user', userId: value });
+                  }}
+                >
+                  <Select.Trigger>
+                    {users.find((u) => u.id === selectedUserId)?.displayName ??
+                      'Select a user'}
+                  </Select.Trigger>
+                  <Select.Content>
+                    {#each users as user (user.id)}
+                      <Select.Item value={user.id} label={user.displayName} />
+                    {/each}
+                  </Select.Content>
+                </Select.Root>
+              </div>
+            {/if}
+          </Popover.Content>
+        </Popover.Root>
+      {/if}
+      {#if canSelect}
+        <Button
+          onclick={() => {
+            selecting = true;
+            selectedFlights = [];
+          }}
+          disabled={flights.length === 0}
+          class="hidden gap-2 sm:inline-flex"
+          variant="outline"
+          size="sm"
+        >
+          <SquareDashedMousePointer size={16} />
+          Select
+        </Button>
+      {/if}
+    </div>
   </div>
-</div>
+{/if}
 
 <!-- Fixed bottom toolbar (always present when flights exist) -->
 {#if numOfFlights > 0}
