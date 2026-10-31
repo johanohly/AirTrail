@@ -47,7 +47,7 @@
   };
 </script>
 
-<div class="flex w-full text-left">
+<div class="@container flex w-full text-left">
   <!-- Logo Column -->
   <div class="w-[50px] mr-4 shrink-0 flex items-center justify-center">
     <AirlineIcon airline={flight.airline} size={42} fallback="plane" />
@@ -58,31 +58,9 @@
     <!-- Route Info (Left Side) -->
     <div class="flex flex-col gap-1 min-w-0">
       <div class="flex items-center gap-2.5">
-        <span class="flex items-center gap-1.5">
-          {#if flight.from}
-            <img
-              src="https://flagcdn.com/{flight.from.country.toLowerCase()}.svg"
-              alt={flight.from.country}
-              class="h-4 w-6 shrink-0 rounded object-cover shadow-sm"
-            />
-          {/if}
-          <span class="text-xl font-extrabold tracking-wide">
-            {flight.from?.iata || flight.from?.icao || 'N/A'}
-          </span>
-        </span>
+        {@render airportCode(flight.from)}
         <RouteArrow class="size-[22px] fill-foreground" />
-        <span class="flex items-center gap-1.5">
-          {#if flight.to}
-            <img
-              src="https://flagcdn.com/{flight.to.country.toLowerCase()}.svg"
-              alt={flight.to.country}
-              class="h-4 w-6 shrink-0 rounded object-cover shadow-sm"
-            />
-          {/if}
-          <span class="text-xl font-extrabold tracking-wide">
-            {flight.to?.iata || flight.to?.icao || 'N/A'}
-          </span>
-        </span>
+        {@render airportCode(flight.to)}
       </div>
       <span class="text-[15px] text-muted-foreground truncate">
         {getCityName(flight.from)} to {getCityName(flight.to)}
@@ -113,3 +91,18 @@
     {/if}
   </div>
 </div>
+
+{#snippet airportCode(airport: Airport | null)}
+  <span class="flex items-center gap-1.5">
+    {#if airport}
+      <img
+        src="https://flagcdn.com/{airport.country.toLowerCase()}.svg"
+        alt={airport.country}
+        class="hidden h-4 w-6 shrink-0 rounded object-cover shadow-sm @min-[416px]:block"
+      />
+    {/if}
+    <span class="text-xl font-extrabold tracking-wide">
+      {airport?.iata || airport?.icao || 'N/A'}
+    </span>
+  </span>
+{/snippet}
