@@ -51,8 +51,7 @@ export const GET: RequestHandler = async ({ params }) => {
   return new Response(body, {
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
-      'Cache-Control': 'public, max-age=3600',
-      'X-Published-TTL': 'P1D',
+      'Cache-Control': 'private, no-cache',
     },
   });
 };
