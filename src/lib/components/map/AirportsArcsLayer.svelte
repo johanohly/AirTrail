@@ -52,6 +52,7 @@
     type DeckPointerEvent,
   } from '$lib/map/map-popup-position';
   import { mapPreferences } from '$lib/map/map-preferences.svelte';
+  import { getOverlayPixelRatio } from '$lib/map/overlay-pixel-ratio';
   import { PreciseArcEndpointsExtension } from '$lib/map/precise-arc-endpoints';
   import {
     closeMapDetails,
@@ -751,6 +752,14 @@
       interleaved: isGlobe,
       onClick: handleMapClick,
       layers: buildLayers(),
+      ...(isGlobe
+        ? {}
+        : {
+            useDevicePixels: getOverlayPixelRatio(
+              map.getCanvas(),
+              map.getContainer(),
+            ),
+          }),
     });
     map.addControl(nextLayer);
     layer = nextLayer;
@@ -768,6 +777,26 @@
       onClick: handleMapClick,
       layers: buildLayers(),
     });
+  });
+
+  $effect(() => {
+    if (!layer || !map || layerProjection !== 'mercator') return;
+
+    const currentLayer = layer;
+    const currentMap = map;
+    const syncPixelRatio = () => {
+      currentLayer.setProps({
+        useDevicePixels: getOverlayPixelRatio(
+          currentMap.getCanvas(),
+          currentMap.getContainer(),
+        ),
+      });
+    };
+
+    currentMap.on('resize', syncPixelRatio);
+    return () => {
+      currentMap.off('resize', syncPixelRatio);
+    };
   });
 
   // After a basemap switch, `MapLibreOverlay` only re-adds its interleaved
