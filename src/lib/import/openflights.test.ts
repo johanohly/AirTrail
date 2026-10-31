@@ -6,7 +6,7 @@ const {
   getAirportByIata,
   getAirportByIcao,
   getAirlineByIata,
-  getAirlineByIcao,
+  getAirlineByCodes,
   getAirlineByName,
   getAircraftByIcao,
   getAircraftByName,
@@ -18,7 +18,7 @@ const {
   })),
   getAirportByIcao: vi.fn(),
   getAirlineByIata: vi.fn(),
-  getAirlineByIcao: vi.fn(),
+  getAirlineByCodes: vi.fn(),
   getAirlineByName: vi.fn(),
   getAircraftByIcao: vi.fn(async () => null),
   getAircraftByName: vi.fn(async () => null),
@@ -41,7 +41,7 @@ vi.mock('$lib/utils/data/airports/cache', () => ({
 
 vi.mock('$lib/utils/data/airlines', () => ({
   getAirlineByIata,
-  getAirlineByIcao,
+  getAirlineByCodes,
   getAirlineByName,
 }));
 
@@ -95,6 +95,26 @@ const openFlightsCsv = [
   ].join(','),
 ].join('\n');
 
+const OPENFLIGHTS_AIRLINES = [
+  '3532,"Monarch Airlines",\\N,"ZB","MON"',
+  '9001,"Iata Only Air",\\N,"ZB",""',
+].join('\n');
+
+const AIR_ALBANIA = { id: 1, name: 'Air Albania', icao: 'ABN', iata: 'ZB' };
+
+const airlineRow = (airlineOid: string, flightNumber = '') =>
+  [
+    '2017-01-01',
+    'CPH',
+    'LHR',
+    flightNumber,
+    ...Array<string>(2).fill(''),
+    '02:00',
+    ...Array<string>(10).fill(''),
+    airlineOid,
+    '',
+  ].join(',');
+
 describe('processOpenFlightsFile', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -106,7 +126,7 @@ describe('processOpenFlightsFile', () => {
         text: async () =>
           url.endsWith('/planes.dat')
             ? 'Boeing 737-300 (winglets),73C,B733'
-            : '',
+            : OPENFLIGHTS_AIRLINES,
       })),
     );
   });
@@ -141,5 +161,70 @@ describe('processOpenFlightsFile', () => {
 
     expect(resolved.flights[0]?.aircraft).toEqual(mappedAircraft);
     expect(resolved.unknowns.aircraft).toEqual({});
+  });
+
+  describe('airline lookup', () => {
+    const options = {
+      filterOwner: false,
+      airlineFromFlightNumber: false,
+      importMode: 'personal' as const,
+    };
+    const header = openFlightsCsv.split('\n')[0];
+
+    beforeEach(() => {
+      getAirlineByCodes.mockResolvedValue(null);
+      getAirlineByName.mockResolvedValue(null);
+      getAirlineByIata.mockResolvedValue(AIR_ALBANIA);
+    });
+
+    it('asks to map an airline whose IATA code was reused by another', async () => {
+      const result = await processOpenFlightsFile(
+        `${header}\n${airlineRow('3532')}`,
+        options,
+      );
+
+      expect(getAirlineByCodes).toHaveBeenCalledWith(
+        'MON',
+        'ZB',
+        'Monarch Airlines',
+      );
+      expect(result.flights[0]?.airline).toBeNull();
+      expect(result.unknowns.airlines).toEqual({ MON: [0] });
+    });
+
+    it('still matches by IATA code when the source has no ICAO code', async () => {
+      const result = await processOpenFlightsFile(
+        `${header}\n${airlineRow('9001')}`,
+        options,
+      );
+
+      expect(result.flights[0]?.airline).toEqual(AIR_ALBANIA);
+      expect(result.unknowns.airlines).toEqual({});
+    });
+
+    it('still matches a flight number IATA code when the source has no airline', async () => {
+      const result = await processOpenFlightsFile(
+        `${header}\n${airlineRow('', 'ZB123')}`,
+        { ...options, airlineFromFlightNumber: true },
+      );
+
+      expect(result.flights[0]?.airline).toEqual(AIR_ALBANIA);
+    });
+
+    it('still matches by name when the codes are rejected', async () => {
+      getAirlineByName.mockResolvedValue({
+        id: 2,
+        name: 'Monarch Airlines',
+        icao: null,
+        iata: null,
+      });
+
+      const result = await processOpenFlightsFile(
+        `${header}\n${airlineRow('3532')}`,
+        options,
+      );
+
+      expect(result.flights[0]?.airline?.name).toBe('Monarch Airlines');
+    });
   });
 });

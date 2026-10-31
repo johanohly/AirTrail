@@ -45,7 +45,7 @@ export function GithubStars({
 
   return (
     <a
-      className="inline-flex h-[34px] items-center gap-2 rounded-full border border-fd-primary/20 bg-fd-primary/5 px-3.5 text-fd-primary text-sm transition-colors hover:border-fd-primary/40 hover:bg-fd-primary/10"
+      className="border-fd-primary/20 bg-fd-primary/5 text-fd-primary hover:border-fd-primary/40 hover:bg-fd-primary/10 inline-flex h-[34px] items-center gap-2 rounded-full border px-3.5 text-sm transition-colors"
       href={GITHUB_URL}
       rel="noopener noreferrer"
       target="_blank"
@@ -54,7 +54,7 @@ export function GithubStars({
       {stars ? (
         <>
           <span className="font-medium tabular-nums">{stars}</span>
-          <Star className="size-3.5 fill-fd-primary" />
+          <Star className="fill-fd-primary size-3.5" />
         </>
       ) : null}
     </a>

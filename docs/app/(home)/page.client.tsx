@@ -224,7 +224,7 @@ function CopyButton({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center rounded-md border bg-fd-secondary px-2 py-1 text-fd-muted-foreground text-xs transition-colors hover:bg-fd-accent hover:text-fd-foreground",
+        "bg-fd-secondary text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-foreground inline-flex items-center justify-center rounded-md border px-2 py-1 text-xs transition-colors",
         className ?? ""
       )}
       onClick={handleCopy}
@@ -299,8 +299,8 @@ export function InstallCommand() {
 
   return (
     <div className="relative mt-6 w-full" ref={ref}>
-      <pre className="overflow-x-auto rounded-xl border bg-fd-card text-sm shadow-lg">
-        <div className="flex flex-row items-center gap-2 border-b px-4 py-2.5 text-fd-muted-foreground">
+      <pre className="bg-fd-card overflow-x-auto rounded-xl border text-sm shadow-lg">
+        <div className="text-fd-muted-foreground flex flex-row items-center gap-2 border-b px-4 py-2.5">
           <svg
             aria-hidden="true"
             className="size-4"
@@ -312,17 +312,17 @@ export function InstallCommand() {
             <polyline points="4 17 10 11 4 5" />
             <line x1="12" x2="20" y1="19" y2="19" />
           </svg>
-          <span className="font-medium text-xs uppercase tracking-wide">
+          <span className="text-xs font-medium tracking-wide uppercase">
             Terminal
           </span>
           <div className="grow" />
           <CopyButton text={INSTALL_CMD} />
         </div>
-        <code className="block p-4 text-fd-foreground">
-          <span className="select-none text-fd-primary">$ </span>
+        <code className="text-fd-foreground block p-4">
+          <span className="text-fd-primary select-none">$ </span>
           {started ? INSTALL_CMD.slice(0, tick) : ""}
           {started && !finished && (
-            <span className="inline-block h-4 w-[2px] animate-pulse bg-fd-primary align-middle" />
+            <span className="bg-fd-primary inline-block h-4 w-[2px] animate-pulse align-middle" />
           )}
         </code>
       </pre>
@@ -334,7 +334,7 @@ export function InstallCommand() {
 export function CopyableUrl({ url }: Readonly<{ url: string }>) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <code className="rounded bg-fd-muted px-1.5 py-0.5 text-fd-foreground">
+      <code className="bg-fd-muted text-fd-foreground rounded px-1.5 py-0.5">
         {url}
       </code>
       <CopyButton text={url} />

@@ -6,6 +6,7 @@ import { processFR24File } from '$lib/import/fr24';
 import { processJetLogFile } from '$lib/import/jetlog';
 import { processJetLoversFile } from '$lib/import/jetlovers';
 import { processLegacyAirTrailFile } from '$lib/import/legacy-airtrail';
+import { processLogMyTripFile } from '$lib/import/logmytrip';
 import type { PlatformOptions, ProcessResult } from '$lib/import/model';
 import { processMilesAndMoreFile } from '$lib/import/milesandmore';
 import { processOpenFlightsFile } from '$lib/import/openflights';
@@ -30,6 +31,7 @@ const processors: Record<PlatformValue, Processor> = {
   jetlovers: processJetLoversFile,
   openflights: processOpenFlightsFile,
   milesandmore: processMilesAndMoreFile,
+  logmytrip: processLogMyTripFile,
 };
 
 export type { PlatformValue } from '$lib/import/platforms';

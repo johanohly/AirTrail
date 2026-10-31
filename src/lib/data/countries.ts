@@ -429,7 +429,7 @@ export const COUNTRIES: Country[] = [
     alpha2: 'CY',
     alpha3: 'CYP',
     numeric: 196,
-    continent: 'Asia',
+    continent: 'Europe',
   },
   {
     name: 'Czechia',

@@ -5,7 +5,7 @@ title: Import
 The import feature lets you bring flight data from other sources into AirTrail.
 AirTrail can import flights from [MyFlightradar24](https://my.flightradar24.com),
 [App in the Air](https://appintheair.com), [JetLog](https://github.com/pbogre/jetlog), [TripIt (ICS)](https://www.tripit.com),
-[Flighty](https://flightyapp.com), [byAir](https://byair.app), [JetLovers](https://www.jetlovers.com), [OpenFlights](https://openflights.org), [Miles & More](https://www.miles-and-more.com), and [AirTrail JSON files](/docs/features/export).
+[Flighty](https://flightyapp.com), [byAir](https://byair.app), [JetLovers](https://www.jetlovers.com), [OpenFlights](https://openflights.org), [Miles & More](https://www.miles-and-more.com), [LogMyTrip](https://www.logmytrip.net), and [AirTrail JSON files](/docs/features/export).
 
 First export your data from the source, as described in its section below. Then import the file into AirTrail.
 
@@ -118,6 +118,19 @@ Import the file with the **JetLovers** source.
 3. Click "Backup to CSV" to download the CSV file.
 
 Import the file with the **OpenFlights** source.
+
+## LogMyTrip
+
+Export your flights from [LogMyTrip](https://www.logmytrip.net) as a CSV file and import it with the **LogMyTrip** source.
+
+Notes and limitations:
+
+- Departure and arrival times are read as local airport times.
+- Cancelled flights are skipped.
+- Flights whose departure and arrival times are both exported as `00:00:00` are imported with a date only.
+- Airports and airlines are matched by their ICAO code, then by IATA code (and airline name). Defunct airports and airlines (for example Berlin-Tegel or Air Berlin) may need to be mapped in the import status step.
+- Fields with no equivalent in AirTrail are appended to the flight's note, which is limited to 1000 characters: booking number, codeshare flight number, companions, aircraft nickname and livery, and your reviews. If the note is too long, the reviews at the end are cut off.
+- Price, carbon offset, baggage claim, runways, pictures, and boarding passes are not imported.
 
 ## Miles & More
 

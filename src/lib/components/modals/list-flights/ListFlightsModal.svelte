@@ -440,31 +440,29 @@
         </p>
       {/if}
 
-      {#if filters}
-        <Toolbar
-          bind:filters
-          bind:tempFilters
-          bind:flights
-          bind:selecting
-          bind:selectedFlights
-          bind:page
-          pageCount={flightListPages.length}
-          {showingFrom}
-          {showingTo}
-          {hasTempFilters}
-          numOfFlights={filteredFlights.length}
-          canSelect={canBulkDelete}
-          modalOpen={open &&
-            !addFlightOpen &&
-            !mobileEditOpen &&
-            !deleteModalOpen}
-          onAddFlight={!canCreateFlight
-            ? undefined
-            : () => {
-                addFlightOpen = true;
-              }}
-        />
-      {/if}
+      <Toolbar
+        bind:filters
+        bind:tempFilters
+        bind:flights
+        bind:selecting
+        bind:selectedFlights
+        bind:page
+        pageCount={flightListPages.length}
+        {showingFrom}
+        {showingTo}
+        {hasTempFilters}
+        numOfFlights={filteredFlights.length}
+        canSelect={canBulkDelete}
+        modalOpen={open &&
+          !addFlightOpen &&
+          !mobileEditOpen &&
+          !deleteModalOpen}
+        onAddFlight={!canCreateFlight
+          ? undefined
+          : () => {
+              addFlightOpen = true;
+            }}
+      />
     </div>
     {#if flightsByYear.length === 0}
       <EmptyFlightsState
