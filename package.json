@@ -41,7 +41,6 @@
     "data:validate-icons": "bun scripts/data/validate-icons.js"
   },
   "dependencies": {
-    "@date-fns/tz": "^1.4.1",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@node-rs/argon2": "^2.0.2",
     "@protomaps/basemaps": "^5.7.2",
@@ -51,6 +50,7 @@
     "pmtiles": "^4.5.0"
   },
   "devDependencies": {
+    "@date-fns/tz": "^1.4.1",
     "@deck.gl/core": "~9.4.0",
     "@deck.gl/extensions": "~9.4.0",
     "@deck.gl/layers": "~9.4.0",
