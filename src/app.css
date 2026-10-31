@@ -286,10 +286,12 @@ layer(base);
   @apply border-none!;
 }
 
-/* Hover popups are read-only. MapLibre makes popup content catch the pointer,
-   and svelte-maplibre keeps a hover popup open while the pointer is over it, so
-   the popup would stick and cover controls (like the filter popover) the user
-   is reaching for. Let the pointer pass through instead. */
+/*
+ * Hover popups are read-only. svelte-maplibre disables pointer events on the
+ * popup, but MapLibre re-enables them on the content, and svelte-maplibre then
+ * keeps the popup open while the pointer is over it. The popup would stick and
+ * cover controls, like the filter popover, that the user is reaching for.
+ */
 .map-hover-popup .maplibregl-popup-content {
   pointer-events: none;
 }
