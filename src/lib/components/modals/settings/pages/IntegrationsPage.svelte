@@ -12,6 +12,7 @@
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
   import * as Select from '$lib/components/ui/select';
+  import { Switch } from '$lib/components/ui/switch';
   import { appConfig } from '$lib/state.svelte';
   import {
     type AeroDataBoxEndpoint,
@@ -29,6 +30,7 @@
         aeroDataBoxKey: null,
         aeroDataBoxEndpoint: 'rapidapi',
         openAipKey: null,
+        aircraftPhotosEnabled: false,
       },
       zod(integrationsConfigSchema),
     ),
@@ -52,6 +54,7 @@
   let savedKey: string | null = $state(null);
   let savedEndpoint: AeroDataBoxEndpoint = $state('rapidapi');
   let savedOpenAipKey: string | null = $state(null);
+  let savedAircraftPhotosEnabled: boolean = $state(false);
 
   onMount(async () => {
     try {
@@ -61,9 +64,11 @@
         savedKey = data.aeroDataBoxKey ?? null;
         savedEndpoint = data.aeroDataBoxEndpoint;
         savedOpenAipKey = data.openAipKey ?? null;
+        savedAircraftPhotosEnabled = data.aircraftPhotosEnabled ?? false;
         $formData.aeroDataBoxKey = savedKey ?? '';
         $formData.aeroDataBoxEndpoint = savedEndpoint;
         $formData.openAipKey = savedOpenAipKey ?? '';
+        $formData.aircraftPhotosEnabled = savedAircraftPhotosEnabled;
       }
     } catch (e) {
       // ignore
@@ -78,7 +83,8 @@
     return (
       current !== base ||
       $formData.aeroDataBoxEndpoint !== savedEndpoint ||
-      currentOpenAip !== baseOpenAip
+      currentOpenAip !== baseOpenAip ||
+      $formData.aircraftPhotosEnabled !== savedAircraftPhotosEnabled
     );
   });
 </script>
@@ -189,6 +195,47 @@
           {/snippet}
         </Form.Control>
         <Form.FieldErrors />
+      </Form.Field>
+    </Locked>
+
+    <Locked
+      locked={appConfig.envConfigured?.integrations?.aircraftPhotosEnabled ??
+        false}
+      tooltip={lockedTooltip}
+    >
+      <Form.Field
+        {form}
+        name="aircraftPhotosEnabled"
+        class="flex flex-row items-center justify-between"
+      >
+        <Form.Control>
+          {#snippet children({ props })}
+            <div class="grid gap-1">
+              <Form.Label>
+                Aircraft photos
+                <a
+                  href="https://airtrail.johan.ohly.dk/docs/integrations/aircraft-photos"
+                  target="_blank"
+                  title="More info"
+                >
+                  <Info class="text-primary inline-block" size={15} />
+                </a>
+              </Form.Label>
+              <Form.Description>
+                Show photos from Planespotters.net in flight details and the
+                flight form. AirTrail sends aircraft registrations to
+                Planespotters to look them up.
+              </Form.Description>
+            </div>
+            <Switch
+              bind:checked={
+                () => $formData.aircraftPhotosEnabled ?? false,
+                (value) => ($formData.aircraftPhotosEnabled = value)
+              }
+              {...props}
+            />
+          {/snippet}
+        </Form.Control>
       </Form.Field>
     </Locked>
 
