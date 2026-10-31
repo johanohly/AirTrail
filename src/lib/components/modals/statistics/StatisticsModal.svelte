@@ -354,7 +354,7 @@
         <FlightsPerMonth flights={countedFlights} />
         <FlightsPerWeekday flights={countedFlights} />
       </div>
-      <FlightsPerYear flights={completedFlights} />
+      <FlightsPerYear flights={countedFlights} />
       {#if showCountryStats}
         <h3 class="text-2xl font-bold tracking-tight pt-4">
           Country Statistics
