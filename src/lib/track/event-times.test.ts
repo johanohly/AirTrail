@@ -144,11 +144,16 @@ describe('track event times', () => {
       landing: 10,
     });
   });
-  it('does not pair a touchdown with a later takeoff', () => {
+  it('ignores a touchdown and liftoff when the track starts and ends airborne', () => {
     expect(detectTrackEventTimes(track([100, 0, 100], [0, 10, 20]))).toEqual({
-      takeoff: 20,
+      takeoff: null,
       landing: null,
     });
+  });
+  it('does not take a touch-and-go liftoff for the takeoff when the first one has a gap', () => {
+    expect(
+      detectTrackEventTimes(track([0, 10, 0, 10, 0], [0, 90, 100, 110, 120])),
+    ).toEqual({ takeoff: null, landing: 120 });
   });
   it('does not fill a side with a partially populated field', () => {
     const input = track([0, 10, 0], [0, 1, 2]);

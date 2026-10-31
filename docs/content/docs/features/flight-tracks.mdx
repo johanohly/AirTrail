@@ -50,7 +50,7 @@ The track is stored when the flight is saved. Closing the form without saving di
 
 ### Takeoff and landing times
 
-If a track has timestamps and shows exactly one takeoff or landing, AirTrail fills in that actual time when the field is empty, using the airport's time zone. A takeoff or landing is a change to or from the ground between two points at most 60 seconds apart. AirTrail uses the file's ground flags if it has them, otherwise an altitude of exactly 0.
+If a track has timestamps, AirTrail fills in the actual takeoff and landing times when the fields are empty, using the airport's time zone. The takeoff is the first change from ground to airborne and the landing is the last change back, each between two points at most 60 seconds apart. AirTrail uses the file's ground flags if it has them, otherwise an altitude of exactly 0.
 
 Select the airports first, because a side without an airport is skipped. Nothing is filled if the track is more than 24 hours from the scheduled time, or if the flight has a partial date.
 

@@ -3,47 +3,37 @@ import type { FlightTrackInput } from './schema';
 import { decomposeToLocal, mergeTimeWithDate } from '$lib/utils/datetime';
 import type { FlightFormData } from '$lib/zod/flight';
 
+const MAX_TRANSITION_GAP_SECONDS = 60;
+
 /** Prefer explicit ground state; otherwise require an exact-zero altitude. */
 export const detectTrackEventTimes = (track: FlightTrackInput) => {
-  const takeoffs: number[] = [];
-  const landings: number[] = [];
   const times = track.times;
-  if (!times || times.length !== track.coordinates.length) {
+  const points = track.coordinates;
+  if (!times || times.length !== points.length) {
     return { takeoff: null, landing: null };
   }
-  for (let i = 1; i < times.length; i++) {
-    const before = track.coordinates[i - 1]![2];
-    const after = track.coordinates[i]![2];
-    const gap = times[i]! - times[i - 1]!;
-    if (gap <= 0 || gap > 60) continue;
-    if (track.ground !== undefined) {
-      const wasGround = track.ground[i - 1];
-      const isGround = track.ground[i];
-      if (wasGround === true && isGround === false) takeoffs.push(times[i]!);
-      if (wasGround === false && isGround === true) landings.push(i);
-      continue;
-    }
-    if (before === 0 && after !== undefined && after > 0)
-      takeoffs.push(times[i]!);
-    if (before !== undefined && before > 0 && after === 0) landings.push(i);
-  }
-  // A selected track represents one flight leg, possibly with touch-and-goes.
-  const takeoff = takeoffs[0] ?? null;
-  const landingIndex = landings.at(-1);
-  const lastAirborneIndex = track.coordinates.findLastIndex((coordinate, i) =>
-    track.ground !== undefined
-      ? track.ground[i] === false
-      : coordinate[2] !== undefined && coordinate[2] > 0,
-  );
-  // Do not mistake a touch-and-go for the final landing, even if its later
-  // liftoff or touchdown falls outside the permitted transition gap.
-  const landing =
-    landingIndex !== undefined &&
-    landingIndex > lastAirborneIndex &&
-    (takeoff === null || times[landingIndex]! > takeoff)
-      ? times[landingIndex]!
-      : null;
-  return { takeoff, landing };
+  const isAirborne = (i: number) =>
+    track.ground ? track.ground[i] === false : (points[i]![2] ?? 0) > 0;
+  const isGrounded = (i: number) =>
+    track.ground ? track.ground[i] === true : points[i]![2] === 0;
+  const isTransition = (airborne: number, grounded: number) => {
+    if (!isGrounded(grounded)) return false;
+    const gap = Math.abs(times[airborne]! - times[grounded]!);
+    return gap > 0 && gap <= MAX_TRANSITION_GAP_SECONDS;
+  };
+
+  // A track is one flight leg, so only the outermost airborne points count.
+  // Touch-and-goes in between are neither the takeoff nor the landing.
+  const first = points.findIndex((_, i) => isAirborne(i));
+  const last = points.findLastIndex((_, i) => isAirborne(i));
+  if (first === -1) return { takeoff: null, landing: null };
+  return {
+    takeoff: first > 0 && isTransition(first, first - 1) ? times[first]! : null,
+    landing:
+      last < points.length - 1 && isTransition(last, last + 1)
+        ? times[last + 1]!
+        : null,
+  };
 };
 
 export const prepareTrackEventTimes = (
