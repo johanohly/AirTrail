@@ -31,7 +31,7 @@ export default function CustomSearchDialog(props: SharedProps) {
       if (value.length >= 3 && value !== lastSearchRef.current) {
         lastSearchRef.current = value;
         posthog.capture("search_performed", {
-          result_count: query.data === "empty" ? 0 : (query.data?.length ?? 0),
+          result_count: query.data === "empty" ? 0 : query.data.length,
           search_query: value,
         });
       }

@@ -5,8 +5,19 @@
     "ultracite/biome/react",
     "ultracite/biome/next"
   ],
+  "yaml": {
+    "formatter": {
+      "quoteStyle": "single",
+      "bracketSpacing": false
+    }
+  },
   "linter": {
     "rules": {
+      "style": {
+        // Positional groups are used only by the adjacent replacer callbacks;
+        // naming them would not make those short regexes clearer.
+        "useNamedCaptureGroup": "off"
+      },
       "performance": {
         // The site is a static export with `images.unoptimized`, so next/image
         // would only add a wrapper around the same <img>.

@@ -124,14 +124,14 @@ export default async function Changelog() {
       {/* Header */}
       <header className="mb-12">
         <div className="mb-4 flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-fd-primary/10 text-fd-primary">
+          <div className="bg-fd-primary/10 text-fd-primary flex size-10 items-center justify-center rounded-xl">
             <Tag className="size-5" />
           </div>
-          <h1 className="font-semibold text-3xl tracking-tight md:text-4xl">
+          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
             Changelog
           </h1>
         </div>
-        <p className="max-w-lg text-fd-muted-foreground text-sm leading-relaxed md:text-base">
+        <p className="text-fd-muted-foreground max-w-lg text-sm leading-relaxed md:text-base">
           New features, improvements, and fixes for every AirTrail release.
         </p>
       </header>
@@ -139,7 +139,7 @@ export default async function Changelog() {
       {/* Timeline */}
       <div className="changelog-timeline relative">
         {/* Vertical line */}
-        <div className="absolute top-2 bottom-0 left-[7px] w-px bg-fd-border" />
+        <div className="bg-fd-border absolute top-2 bottom-0 left-[7px] w-px" />
 
         {releases.map((release, i) => (
           <article
@@ -156,18 +156,18 @@ export default async function Changelog() {
             />
 
             {/* Date */}
-            <time className="mb-2 block font-medium text-fd-muted-foreground text-xs tracking-wide">
+            <time className="text-fd-muted-foreground mb-2 block text-xs font-medium tracking-wide">
               {formatter.format(release.published_at)}
             </time>
 
             {/* Release card */}
-            <div className="rounded-xl border bg-fd-card p-5 shadow-sm transition-shadow hover:shadow-md md:p-6">
+            <div className="bg-fd-card rounded-xl border p-5 shadow-sm transition-shadow hover:shadow-md md:p-6">
               <div className="mb-4 flex items-start justify-between gap-4">
-                <h2 className="font-semibold text-lg tracking-tight md:text-xl">
+                <h2 className="text-lg font-semibold tracking-tight md:text-xl">
                   {release.name}
                 </h2>
                 <a
-                  className="flex shrink-0 items-center gap-1.5 rounded-full border bg-fd-secondary px-3 py-1 font-medium text-fd-muted-foreground text-xs transition-colors hover:bg-fd-accent hover:text-fd-foreground"
+                  className="bg-fd-secondary text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-foreground flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors"
                   href={release.html_url}
                   rel="noopener noreferrer"
                   target="_blank"
@@ -176,7 +176,7 @@ export default async function Changelog() {
                   <ExternalLink className="size-3" />
                 </a>
               </div>
-              <div className="prose prose-sm max-w-none text-fd-foreground [&_a:hover]:underline [&_a]:text-fd-primary [&_a]:no-underline [&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:font-semibold [&_h2]:text-base [&_h3]:mt-3 [&_h3]:mb-1.5 [&_h3]:font-medium [&_h3]:text-sm [&_li]:text-fd-muted-foreground [&_li]:text-sm [&_p]:text-fd-muted-foreground [&_p]:text-sm [&_ul]:my-2">
+              <div className="prose prose-sm text-fd-foreground [&_a]:text-fd-primary [&_li]:text-fd-muted-foreground [&_p]:text-fd-muted-foreground max-w-none [&_a]:no-underline [&_a:hover]:underline [&_h2]:mt-4 [&_h2]:mb-2 [&_h2]:text-base [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1.5 [&_h3]:text-sm [&_h3]:font-medium [&_li]:text-sm [&_p]:text-sm [&_ul]:my-2">
                 {release.bodyElement}
               </div>
             </div>

@@ -34,8 +34,9 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.14",
+    "@biomejs/biome": "2.6.4",
     "@types/bun": "^1.4.4",
+    "@types/mdast": "^4.0.4",
     "@types/mdx": "^2.0.14",
     "@types/node": "26.6.6",
     "@types/react": "^19.3.0",
@@ -43,7 +44,7 @@
     "ajv": "^8.20.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3",
-    "ultracite": "7.12.0",
+    "ultracite": "8.1.0",
     "wrangler": "4.156.0"
   }
 }
