@@ -345,8 +345,14 @@ const lookupAirline = async (
   const icao = fromOid?.icao ?? null;
   const name = fromOid?.name ?? row.airline;
   const alias = fromOid?.alias ?? null;
+  // Flight numbers can carry a codeshare partner's code, which would split one
+  // source airline into several mapping entries.
   const mappingKey =
-    getAirlineMappingKey({ name, iata, icao }) ?? row.airline_oid;
+    getAirlineMappingKey({
+      name,
+      iata: fromOid ? fromOid.iata : flightNumberIata,
+      icao,
+    }) ?? row.airline_oid;
 
   if (mappingKey && options.airlineMapping?.[mappingKey]) {
     return { airline: options.airlineMapping[mappingKey], mappingKey };
