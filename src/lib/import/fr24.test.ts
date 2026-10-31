@@ -208,7 +208,9 @@ describe('processFR24File', () => {
     });
 
     expect(unresolved.flights[0]?.airline).toBeNull();
-    expect(unresolved.unknowns.airlines).toEqual({ NWA: [0] });
+    expect(unresolved.unknowns.airlines).toEqual({
+      'Northwest Airlines (NW/NWA)': [0],
+    });
 
     const northwest = {
       id: 687,
@@ -222,7 +224,7 @@ describe('processFR24File', () => {
       filterOwner: false,
       airlineFromFlightNumber: true,
       importMode: 'personal',
-      airlineMapping: { NWA: northwest },
+      airlineMapping: { 'Northwest Airlines (NW/NWA)': northwest },
     });
 
     expect(resolved.flights[0]?.airline).toEqual(northwest);
@@ -240,7 +242,7 @@ describe('processFR24File', () => {
     });
 
     expect(getAirlineByCodes).toHaveBeenCalledWith('BER', 'AB', 'Air Berlin');
-    expect(result.unknowns.airlines).toEqual({ BER: [0] });
+    expect(result.unknowns.airlines).toEqual({ 'Air Berlin (AB/BER)': [0] });
   });
 
   it('counts rows with unparseable airport cells as skipped', async () => {

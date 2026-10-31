@@ -8,6 +8,7 @@ import type {
   FlightDatePrecision,
   FlightPassenger,
 } from '$lib/db/types';
+import { getAirlineMappingKey } from '$lib/import/airline-mapping';
 import type { PlatformOptions } from '$lib/import/model';
 import { parseCsv } from '$lib/utils';
 import { getAircraftByIcao } from '$lib/utils/data/aircraft';
@@ -228,9 +229,9 @@ export const processFR24File = async (
       FR24_FLIGHT_REASON_MAP?.[row.flight_reason ?? 'noop'] ?? null;
 
     const airlineCodes = row.airline ? extractAirline(row.airline) : null;
-    const rawAirline = airlineCodes?.icao ?? null;
-    const mappedAirline = rawAirline
-      ? options.airlineMapping?.[rawAirline]
+    const airlineKey = airlineCodes ? getAirlineMappingKey(airlineCodes) : null;
+    const mappedAirline = airlineKey
+      ? options.airlineMapping?.[airlineKey]
       : undefined;
     const airline =
       mappedAirline ||
@@ -260,9 +261,9 @@ export const processFR24File = async (
       if (!unknownAirports[toCode]) unknownAirports[toCode] = [];
       unknownAirports[toCode].push(flightIndex);
     }
-    if (!airline && rawAirline) {
-      if (!unknownAirlines[rawAirline]) unknownAirlines[rawAirline] = [];
-      unknownAirlines[rawAirline].push(flightIndex);
+    if (!airline && airlineKey) {
+      if (!unknownAirlines[airlineKey]) unknownAirlines[airlineKey] = [];
+      unknownAirlines[airlineKey].push(flightIndex);
     }
     if (!aircraft && rawAircraft) {
       if (!unknownAircraft[rawAircraft]) unknownAircraft[rawAircraft] = [];

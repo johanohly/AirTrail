@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { page } from '$app/state';
 import type { CreateFlight, FlightPassenger } from '$lib/db/types';
+import { getAirlineMappingKey } from '$lib/import/airline-mapping';
 import type { PlatformOptions } from '$lib/import/model';
 import { parseCsv } from '$lib/utils';
 import { parseCsvLine } from '$lib/utils/csv';
@@ -344,7 +345,8 @@ const lookupAirline = async (
   const icao = fromOid?.icao ?? null;
   const name = fromOid?.name ?? row.airline;
   const alias = fromOid?.alias ?? null;
-  const mappingKey = icao ?? iata ?? name ?? row.airline_oid ?? null;
+  const mappingKey =
+    getAirlineMappingKey({ name, iata, icao }) ?? row.airline_oid;
 
   if (mappingKey && options.airlineMapping?.[mappingKey]) {
     return { airline: options.airlineMapping[mappingKey], mappingKey };

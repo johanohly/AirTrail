@@ -189,7 +189,9 @@ describe('processOpenFlightsFile', () => {
         'Monarch Airlines',
       );
       expect(result.flights[0]?.airline).toBeNull();
-      expect(result.unknowns.airlines).toEqual({ MON: [0] });
+      expect(result.unknowns.airlines).toEqual({
+        'Monarch Airlines (ZB/MON)': [0],
+      });
     });
 
     it('still matches by IATA code when the source has no ICAO code', async () => {
