@@ -475,6 +475,8 @@ export function countFlightsPerYear(
     if (!flight.date) continue;
 
     const year = flight.date.getFullYear();
+    if (Number.isNaN(year)) continue;
+
     counts.set(year, (counts.get(year) ?? 0) + 1);
   }
   if (counts.size === 0) return [];

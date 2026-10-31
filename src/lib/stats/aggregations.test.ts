@@ -123,6 +123,14 @@ describe('flights per year statistics', () => {
     ).toEqual([{ year: 2020, flights: 1 }]);
   });
 
+  it('skips flights whose date does not parse', () => {
+    const unparsed = new TZDate(Number.NaN, 'UTC');
+
+    expect(
+      countFlightsPerYear([flightOn(unparsed), flightOn(at(2020, 5, 5))]),
+    ).toEqual([{ year: 2020, flights: 1 }]);
+  });
+
   it('returns no years when no flight has a date', () => {
     expect(countFlightsPerYear([flightOn(null)])).toEqual([]);
   });
