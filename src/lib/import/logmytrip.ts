@@ -6,8 +6,8 @@ import type { PlatformOptions, ProcessResult } from '$lib/import/model';
 import { parseCsv } from '$lib/utils';
 import { getAircraftByName } from '$lib/utils/data/aircraft';
 import {
+  getAirlineByCodes,
   getAirlineByIata,
-  getAirlineByIcao,
   getAirlineByName,
 } from '$lib/utils/data/airlines';
 import {
@@ -166,40 +166,12 @@ const resolveAirline = async (raw: string | null, options: PlatformOptions) => {
   const mapped = options.airlineMapping?.[key];
   if (mapped) return { airline: mapped, key };
 
-  if (icao && iata) {
-    const [icaoAirline, iataAirline] = await Promise.all([
-      getAirlineByIcao(icao),
-      getAirlineByIata(iata),
-    ]);
-    const normalizedIata = iata.replace(/\*$/, '').toUpperCase();
-    const normalizedIcao = icao.toUpperCase();
-    const matchesIata = (value: string | null) =>
-      value?.replace(/\*$/, '').toUpperCase() === normalizedIata;
-    const matchesIcao = (value: string | null) =>
-      value?.toUpperCase() === normalizedIcao;
-    const icaoIataMatch =
-      icaoAirline && matchesIata(icaoAirline.iata) ? icaoAirline : null;
-    const iataIcaoMatch =
-      iataAirline && matchesIcao(iataAirline.icao) ? iataAirline : null;
-    const jointMatch =
-      icaoIataMatch ??
-      iataIcaoMatch ??
-      (icaoAirline && iataAirline && icaoAirline.id === iataAirline.id
-        ? icaoAirline
-        : null);
-
-    const airline =
-      jointMatch ??
-      (name ? await getAirlineByName(name) : null) ??
-      icaoAirline ??
-      iataAirline;
-    return { airline, key };
-  }
-
   const airline =
-    (icao ? await getAirlineByIcao(icao) : null) ??
-    (name ? await getAirlineByName(name) : null) ??
-    (iata ? await getAirlineByIata(iata) : null);
+    (icao
+      ? await getAirlineByCodes(icao, iata, name)
+      : iata
+        ? await getAirlineByIata(iata)
+        : null) ?? (name ? await getAirlineByName(name) : null);
   return { airline, key };
 };
 

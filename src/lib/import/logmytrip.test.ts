@@ -5,7 +5,7 @@ import { processLogMyTripFile } from './logmytrip';
 const {
   getAirportByIcao,
   getAirportByIata,
-  getAirlineByIcao,
+  getAirlineByCodes,
   getAirlineByIata,
   getAirlineByName,
   getAircraftByName,
@@ -31,7 +31,7 @@ const {
         Object.values(airports).find((a) => a.iata === iata.toUpperCase()) ??
         null,
     ),
-    getAirlineByIcao: vi.fn(async (icao: string) => ({ id: 1, icao })),
+    getAirlineByCodes: vi.fn(async (icao: string) => ({ id: 1, icao })),
     getAirlineByIata: vi.fn(async () => null),
     getAirlineByName: vi.fn(async () => null),
     getAircraftByName: vi.fn(async (name: string) => ({ id: 1, name })),
@@ -48,7 +48,7 @@ vi.mock('$lib/utils/data/airports/cache', () => ({
 }));
 
 vi.mock('$lib/utils/data/airlines', () => ({
-  getAirlineByIcao,
+  getAirlineByCodes,
   getAirlineByIata,
   getAirlineByName,
 }));
@@ -110,7 +110,7 @@ describe('processLogMyTripFile', () => {
     expect(result.skippedRows).toBe(0);
     expect(result.flights).toHaveLength(1);
     expect(getAirportByIcao).toHaveBeenCalledWith('LHBP');
-    expect(getAirlineByIcao).toHaveBeenCalledWith('WZZ');
+    expect(getAirlineByCodes).toHaveBeenCalledWith('WZZ', 'W6', 'Wizz Air');
     expect(getAircraftByName).toHaveBeenCalledWith('Airbus A320');
 
     const flight = result.flights[0]!;
@@ -133,21 +133,8 @@ describe('processLogMyTripFile', () => {
     });
   });
 
-  it('matches an airline by both IATA and ICAO when an ICAO code is reused', async () => {
-    const flyAir41 = {
-      id: 41,
-      name: 'Fly Air41',
-      icao: 'BER',
-      iata: null,
-    };
-    const airBerlin = {
-      id: 42,
-      name: 'Air Berlin',
-      icao: 'BER',
-      iata: 'AB',
-    };
-    getAirlineByIcao.mockResolvedValueOnce(flyAir41 as never);
-    getAirlineByIata.mockResolvedValueOnce(airBerlin as never);
+  it('asks to map an airline whose ICAO code was reused', async () => {
+    getAirlineByCodes.mockResolvedValueOnce(null as never);
 
     const content = toCsv([
       {
@@ -163,9 +150,9 @@ describe('processLogMyTripFile', () => {
 
     const result = await processLogMyTripFile(content, options);
 
-    expect(getAirlineByIcao).toHaveBeenCalledWith('BER');
-    expect(getAirlineByIata).toHaveBeenCalledWith('AB');
-    expect(result.flights[0]?.airline).toEqual(airBerlin);
+    expect(getAirlineByCodes).toHaveBeenCalledWith('BER', 'AB', 'Air Berlin');
+    expect(result.flights[0]?.airline).toBeNull();
+    expect(result.unknowns.airlines).toEqual({ BER: [0] });
   });
 
   it('skips cancelled flights', async () => {
