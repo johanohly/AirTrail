@@ -20,6 +20,7 @@ const track = (
   times,
 });
 const form = {
+  datePrecision: 'day',
   from: { tz: 'UTC' },
   to: { tz: 'Asia/Hong_Kong' },
   departureScheduled: '1970-01-01T00:00:00.000Z',
@@ -103,19 +104,35 @@ describe('track event times', () => {
       detectTrackEventTimes(track([0, 10, 0, 10], [0, 1, 2, 3])).takeoff,
     ).toBeNull();
   });
-  it('preserves even partially populated fields and validates anyway', () => {
-    const result = prepareTrackEventTimes(track([0, 10], [90000, 90001]), {
-      ...form,
-      takeoffActualTime: '12:00',
-    });
+  it('does not fill a side with a partially populated field', () => {
+    const input = track([0, 10, 0], [0, 1, 2]);
+    for (const field of ['takeoffActual', 'takeoffActualTime']) {
+      const { values } = prepareTrackEventTimes(input, {
+        ...form,
+        [field]:
+          field === 'takeoffActual' ? '1970-01-01T00:00:00.000Z' : '12:00',
+      });
+      expect(values.takeoffActual).toBeUndefined();
+      expect(values.takeoffActualTime).toBeUndefined();
+      expect(values.landingActualTime).toBe('08:00');
+    }
+  });
+  it('fills nothing when either side is over 24 hours from the schedule', () => {
+    const result = prepareTrackEventTimes(track([0, 10], [90000, 90001]), form);
     expect(result.values).toEqual({});
     expect(result.warnings).toHaveLength(1);
+  });
+  it('does not fill times on partial-date flights', () => {
+    const { values } = prepareTrackEventTimes(track([0, 10, 0], [0, 1, 2]), {
+      ...form,
+      datePrecision: 'month',
+    });
+    expect(values).toEqual({});
   });
   it('allows exactly 24 hours and converts arrival to the airport day', () => {
     const result = prepareTrackEventTimes(
       track([0, 10, 0], [86397, 86400, 86403]),
       form,
-      'en-GB',
     );
     expect(result.warnings).toEqual([]);
     expect(result.values.takeoffActualTime).toBe('00:00');
@@ -127,28 +144,26 @@ describe('track event times', () => {
       prepareTrackEventTimes(track([10, 20], [90000, 90010]), form).warnings,
     ).toHaveLength(1);
   });
-  it('uses the supplied locale for filled times', () => {
-    const result = prepareTrackEventTimes(
-      track([0, 10], [0, 3]),
-      form,
-      'en-US',
-    );
-    expect(result.values.takeoffActualTime).toBe('12:00 AM');
+  it('fills canonical 24-hour times the form validator accepts', () => {
+    const { values } = prepareTrackEventTimes(track([0, 10], [46800, 46803]), {
+      ...form,
+      departureScheduled: null,
+      departureScheduledTime: null,
+    });
+    expect(values.takeoffActualTime).toBe('13:00');
   });
   it('skips only the side whose airport is missing', () => {
     const input = track([0, 10, 0], [0, 1, 2]);
-    const withoutDeparture = prepareTrackEventTimes(
-      input,
-      { ...form, from: null },
-      'en-GB',
-    );
+    const withoutDeparture = prepareTrackEventTimes(input, {
+      ...form,
+      from: null,
+    } as unknown as FlightFormData);
     expect(withoutDeparture.values.takeoffActual).toBeUndefined();
     expect(withoutDeparture.values.landingActualTime).toBe('08:00');
-    const withoutArrival = prepareTrackEventTimes(
-      input,
-      { ...form, to: null },
-      'en-GB',
-    );
+    const withoutArrival = prepareTrackEventTimes(input, {
+      ...form,
+      to: null,
+    } as unknown as FlightFormData);
     expect(withoutArrival.values.takeoffActualTime).toBe('00:00');
     expect(withoutArrival.values.landingActual).toBeUndefined();
   });
@@ -156,7 +171,6 @@ describe('track event times', () => {
     const { values } = prepareTrackEventTimes(
       track([0, 10, 0], [0, 1, 2]),
       form,
-      'en-GB',
     );
     const populated = { ...form, ...values };
     const cleared = {
@@ -170,7 +184,6 @@ describe('track event times', () => {
     const replacement = prepareTrackEventTimes(
       track([0, 10, 0], [120, 121, 122]),
       cleared,
-      'en-GB',
     );
     expect(replacement.values.takeoffActualTime).toBe('00:02');
     expect(replacement.values.landingActualTime).toBe('08:02');

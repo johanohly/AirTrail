@@ -40,7 +40,6 @@ export const detectTrackEventTimes = (track: FlightTrackInput) => {
 export const prepareTrackEventTimes = (
   track: FlightTrackInput,
   form: FlightFormData,
-  locale = Intl.DateTimeFormat().resolvedOptions().locale,
 ) => {
   const events = detectTrackEventTimes(track);
   const warnings: string[] = [];
@@ -70,11 +69,18 @@ export const prepareTrackEventTimes = (
     }
     const dateField = departure ? 'takeoffActual' : 'landingActual';
     const timeField = departure ? 'takeoffActualTime' : 'landingActualTime';
-    if (event !== null && !form[dateField] && !form[timeField]) {
+    if (
+      form.datePrecision === 'day' &&
+      event !== null &&
+      !form[dateField] &&
+      !form[timeField]
+    ) {
+      // The form stores canonical 24-hour times and formats them for display.
+      // Browser locales can produce strings the time validator rejects.
       const local = decomposeToLocal(
         new Date(event * 1000).toISOString(),
         timezone,
-        locale,
+        'fr-FR',
       );
       values[dateField] = local.date;
       values[timeField] = local.time;
