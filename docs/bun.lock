@@ -12,7 +12,7 @@
         "fumadocs-openapi": "12.5.7",
         "fumadocs-ui": "16.17.9",
         "hast-util-to-jsx-runtime": "^2.3.7",
-        "json-schema-typed": "^8.0.2",
+        "json-schema-typed": "^9.0.0",
         "lucide-react": "^1.66.0",
         "next": "16.4.3",
         "posthog-js": "^1.444.0",
@@ -862,7 +862,7 @@
 
     "json-schema-traverse": ["json-schema-traverse@1.0.0", "", {}, "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug=="],
 
-    "json-schema-typed": ["json-schema-typed@8.0.2", "", {}, "sha512-fQhoXdcvc3V28x7C7BMs4P5+kNlgUURe2jmUT1T//oBRMDrqy1QPelJimwZGo7Hg9VPV3EQV5Bnq4hbFy2vetA=="],
+    "json-schema-typed": ["json-schema-typed@9.0.0", "", {}, "sha512-t+dkn3pLaz7ku3ELaBKBSQNjd0Sir5zR7Y4CpAR5a+UEH60NefBEAhAgJuWqDH5o4HDfH+EQjmXeQMLc+Xnbdg=="],
 
     "jsonc-parser": ["jsonc-parser@3.3.1", "", {}, "sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ=="],
 
