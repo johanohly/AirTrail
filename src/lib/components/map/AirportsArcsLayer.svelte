@@ -694,6 +694,9 @@
               ? GLOBE_ARC_PARAMETERS
               : MERCATOR_ROUTE_PARAMETERS,
             extensions: [globeOcclusion],
+            // Display paths are unwrapped past ±180 to stay continuous, but
+            // mercator only repeats geometry that lies inside one world.
+            wrapLongitude: !isGlobe,
           },
           appearance: {
             getWidth: getVisibleArcWidth,

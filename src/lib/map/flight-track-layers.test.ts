@@ -44,11 +44,13 @@ const paths = [
 const renderContext = ({
   standardColor = [0, 0, 0],
   estimatedUnderlayColor = [24, 24, 27, 190],
+  wrapLongitude = false,
 }: {
   standardColor?: Color;
   estimatedUnderlayColor?: Color;
+  wrapLongitude?: boolean;
 } = {}): FlightTrackRenderContext => ({
-  geometry: { parameters: {}, extensions: [] },
+  geometry: { parameters: {}, extensions: [], wrapLongitude },
   appearance: {
     getWidth: () => 2,
     getStandardColor: () => standardColor,
@@ -323,6 +325,17 @@ describe('flight track layers', () => {
     expect(layers[2]!.props.data).toBe(data.solidRuns);
     expect(layers[3]!.props.data).toBe(data.estimatedRuns);
     expect(layers[5]!.props.data).toBe(data.paths);
+  });
+
+  it('wraps every track layer at the antimeridian when asked', () => {
+    const data = prepareFlightTrackLayerData(paths, 'altitude');
+    const layers = buildFlightTrackLayers({
+      data,
+      style: 'altitude',
+      context: renderContext({ wrapLongitude: true }),
+    });
+
+    expect(layers.every((layer) => layer.props.wrapLongitude)).toBe(true);
   });
 
   it('renders tracks on the map surface while retaining stored altitude', () => {
