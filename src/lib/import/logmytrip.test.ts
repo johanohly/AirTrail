@@ -152,7 +152,7 @@ describe('processLogMyTripFile', () => {
 
     expect(getAirlineByCodes).toHaveBeenCalledWith('BER', 'AB', 'Air Berlin');
     expect(result.flights[0]?.airline).toBeNull();
-    expect(result.unknowns.airlines).toEqual({ BER: [0] });
+    expect(result.unknowns.airlines).toEqual({ 'Air Berlin (AB/BER)': [0] });
   });
 
   it('skips cancelled flights', async () => {

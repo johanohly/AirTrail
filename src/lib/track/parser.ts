@@ -349,7 +349,12 @@ const normalizeCoordinate = (input: unknown): FlightTrackCoordinate | null => {
   if (!Array.isArray(input) || input.length < 2) return null;
   const lon = Number(input[0]);
   const lat = Number(input[1]);
-  const alt = input[2] === undefined ? undefined : Number(input[2]);
+  const alt =
+    input[2] === undefined ||
+    input[2] === null ||
+    (typeof input[2] === 'string' && input[2].trim() === '')
+      ? undefined
+      : Number(input[2]);
 
   if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
   if (alt !== undefined && !Number.isFinite(alt)) return [lon, lat];

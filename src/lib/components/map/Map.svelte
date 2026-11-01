@@ -74,6 +74,7 @@
     appConfig,
     flightScopeState,
     flightAddedState,
+    getFlightRouteDisplay,
     mapDetailsState,
   } from '$lib/state.svelte';
   import type { FlightTrackRow } from '$lib/track/schema';
@@ -172,6 +173,13 @@
   });
   const trackFlightIds = $derived(
     new Set(flightTracks.map((track) => track.flightId)),
+  );
+  const drawsFlightTrack = $derived(
+    drawnFlights.some(
+      (flight) =>
+        trackFlightIds.has(flight.id) &&
+        getFlightRouteDisplay(flight) === 'tracks',
+    ),
   );
   const hasFallbackArcs = $derived(
     hasFallbackFlightArcs(flightArcs, trackFlightIds),
@@ -562,7 +570,7 @@
       }}
     />
 
-    {#if flightTracks.length > 0 && mapPreferences.routeDisplay === 'tracks' && mapPreferences.flightTrackStyle === 'altitude' && !showPreviousView}
+    {#if drawsFlightTrack && mapPreferences.flightTrackStyle === 'altitude' && !showPreviousView}
       <FlightTrackLegend />
     {/if}
 
