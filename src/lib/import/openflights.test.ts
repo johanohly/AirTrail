@@ -189,7 +189,20 @@ describe('processOpenFlightsFile', () => {
         'Monarch Airlines',
       );
       expect(result.flights[0]?.airline).toBeNull();
-      expect(result.unknowns.airlines).toEqual({ MON: [0] });
+      expect(result.unknowns.airlines).toEqual({
+        'Monarch Airlines (ZB/MON)': [0],
+      });
+    });
+
+    it('keeps one mapping entry for an airline across codeshare flight numbers', async () => {
+      const result = await processOpenFlightsFile(
+        `${header}\n${airlineRow('3532', 'ZB123')}\n${airlineRow('3532', 'BA456')}`,
+        { ...options, airlineFromFlightNumber: true },
+      );
+
+      expect(result.unknowns.airlines).toEqual({
+        'Monarch Airlines (ZB/MON)': [0, 1],
+      });
     });
 
     it('still matches by IATA code when the source has no ICAO code', async () => {
