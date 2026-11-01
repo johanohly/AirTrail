@@ -1,9 +1,5 @@
-import { TRPCError } from '@trpc/server';
+import { authedProcedure, permissionProcedure, router } from '../trpc';
 
-import { authedProcedure, router } from '../trpc';
-
-import { DEFAULT_FLIGHT_SCOPE } from '$lib/flight-scope';
-import { canExportFlights } from '$lib/server/authorization/flight';
 import {
   disableFeed,
   enableFeed,
@@ -12,14 +8,6 @@ import {
   updateFeed,
 } from '$lib/server/utils/calendar-feed';
 import { calendarUpdateSchema } from '$lib/zod/calendar';
-
-const requireExportPermission = (
-  authorization: Parameters<typeof canExportFlights>[0],
-) => {
-  if (!canExportFlights(authorization, DEFAULT_FLIGHT_SCOPE)) {
-    throw new TRPCError({ code: 'FORBIDDEN' });
-  }
-};
 
 export const calendarRouter = router({
   get: authedProcedure.query(async ({ ctx: { user } }) => {
@@ -37,20 +25,20 @@ export const calendarRouter = router({
     };
   }),
 
-  enable: authedProcedure.mutation(async ({ ctx: { user, authorization } }) => {
-    requireExportPermission(authorization);
-    return await enableFeed(user.id);
-  }),
+  enable: permissionProcedure('flight.export.own').mutation(
+    async ({ ctx: { user } }) => {
+      return await enableFeed(user.id);
+    },
+  ),
 
-  update: authedProcedure
+  update: permissionProcedure('flight.export.own')
     .input(calendarUpdateSchema)
     .mutation(async ({ ctx: { user }, input }) => {
       return await updateFeed(user.id, input);
     }),
 
-  regenerate: authedProcedure.mutation(
-    async ({ ctx: { user, authorization } }) => {
-      requireExportPermission(authorization);
+  regenerate: permissionProcedure('flight.export.own').mutation(
+    async ({ ctx: { user } }) => {
       return await regenerateFeedToken(user.id);
     },
   ),
