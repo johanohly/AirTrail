@@ -82,6 +82,7 @@
     TempFilters,
   } from '$lib/components/flight-filters/types';
   import UserAvatar from '$lib/components/display/UserAvatar.svelte';
+  import FilterMenu from './FilterMenu.svelte';
   import {
     cn,
     getFlightPassengerLabel,
@@ -541,14 +542,19 @@
 </Filter.Provider>
 
 {#snippet filterMenu()}
-  <Filter.Menu>
+  <FilterMenu
+    columns={providerColumns as never}
+    filters={filterState.filters}
+    actions={filterState.actions}
+    strategy={filterState.strategy}
+  >
     <Funnel size={16} aria-hidden="true" />
     {#if filterState.filters.length === 0 || layout === 'stacked'}
       <span>Filter</span>
     {:else}
       <span class="sr-only">Filter</span>
     {/if}
-  </Filter.Menu>
+  </FilterMenu>
 {/snippet}
 
 {#snippet filterList()}
