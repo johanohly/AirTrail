@@ -15,7 +15,7 @@
   import EmptyFlightsState from './EmptyFlightsState.svelte';
   import { buildFlightIndicators } from './flight-indicators';
   import FlightIndicators from './FlightIndicators.svelte';
-  import { resolveTimingStatus } from './flight-timing';
+  import { resolveTimingStatus, type TimingStatus } from './flight-timing';
   import {
     buildFlightListYears,
     paginateFlightListYears,
@@ -89,6 +89,14 @@
     onNavigate?: NavigateFlights;
   } = $props();
 
+  const parseRunwayTime = (value: string | null, airport: Airport | null) =>
+    value && airport ? parseLocalizeISO(value, airport.tz) : null;
+
+  const timingClass = (status: TimingStatus) => ({
+    'text-green-600 dark:text-green-400': status === 'early',
+    'text-red-600 dark:text-red-400': status === 'late',
+  });
+
   const prefs = $derived(getPreferences(appPage.data.user));
   const access = $derived(
     createFlightListAccess({
@@ -123,21 +131,19 @@
             ? parseLocalizeISO(f.raw.arrivalScheduled, f.to.tz)
             : null;
 
-        const parseRunwayTime = (
-          value: string | null,
-          airport: Airport | null,
-        ) => (value && airport ? parseLocalizeISO(value, airport.tz) : null);
+        const takeoffActual = parseRunwayTime(f.raw.takeoffActual, f.from);
+        const landingActual = parseRunwayTime(f.raw.landingActual, f.to);
         const depStatus = resolveTimingStatus({
           gateActual: depDate,
           gateScheduled: depScheduled,
-          runwayActual: parseRunwayTime(f.raw.takeoffActual, f.from),
+          runwayActual: takeoffActual,
           runwayScheduled: parseRunwayTime(f.raw.takeoffScheduled, f.from),
           side: 'departure',
         });
         const arrStatus = resolveTimingStatus({
           gateActual: arrDate,
           gateScheduled: arrScheduled,
-          runwayActual: parseRunwayTime(f.raw.landingActual, f.to),
+          runwayActual: landingActual,
           runwayScheduled: parseRunwayTime(f.raw.landingScheduled, f.to),
           side: 'arrival',
         });
@@ -158,6 +164,10 @@
           arrAt: (arrDate ?? arrScheduled) as Date | null,
           depStatus,
           arrStatus,
+          // Without a gate actual, a status can only come from the runway time.
+          // Show that time so the colour has a visible cause.
+          depRunwayAt: !depDate && depStatus ? takeoffActual : null,
+          arrRunwayAt: !arrDate && arrStatus ? landingActual : null,
           seat: formatSeatForUser(f, seatUserId),
           passengerLabels: showPassengerDetails
             ? getFlightPassengerLabels(f)
@@ -669,13 +679,22 @@
         airportTz={flight.from?.tz}
         airportLabel={flight.from?.iata}
         side="right"
-        class={cn('text-sm', {
-          'text-green-600 dark:text-green-400': flight.depStatus === 'early',
-          'text-red-600 dark:text-red-400': flight.depStatus === 'late',
-        })}
+        class={cn(
+          'text-sm',
+          !flight.depRunwayAt && timingClass(flight.depStatus),
+        )}
       />
     {:else if flight.depFallback}
       <p class="text-sm">{flight.depFallback}</p>
+    {/if}
+    {#if flight.depRunwayAt}
+      {@render runwayTime(
+        flight.depRunwayAt,
+        flight.depStatus,
+        flight.from,
+        PlaneTakeoff,
+        'Takeoff',
+      )}
     {/if}
   </div>
   <div class="flex items-center" data-testid="flight-time-arrival">
@@ -687,14 +706,47 @@
         airportTz={flight.to?.tz}
         airportLabel={flight.to?.iata}
         side="right"
-        class={cn('text-sm overflow-hidden text-ellipsis whitespace-nowrap', {
-          'text-green-600 dark:text-green-400': flight.arrStatus === 'early',
-          'text-red-600 dark:text-red-400': flight.arrStatus === 'late',
-        })}
+        class={cn(
+          'text-sm overflow-hidden text-ellipsis whitespace-nowrap',
+          !flight.arrRunwayAt && timingClass(flight.arrStatus),
+        )}
       />
+    {/if}
+    {#if flight.arrRunwayAt}
+      {@render runwayTime(
+        flight.arrRunwayAt,
+        flight.arrStatus,
+        flight.to,
+        PlaneLanding,
+        'Landing',
+      )}
     {/if}
     <p class="text-sm text-transparent">.</p>
   </div>
+{/snippet}
+
+{#snippet runwayTime(
+  date: Date,
+  status: TimingStatus,
+  airport: Airport | null,
+  Icon: typeof PlaneTakeoff,
+  label: string,
+)}
+  <span
+    class={cn('ml-2 flex items-center gap-0.5', timingClass(status))}
+    data-testid="flight-time-runway"
+  >
+    <Icon size="12" aria-hidden="true" />
+    <span class="sr-only">{label}</span>
+    <TimeDisplay
+      {date}
+      variant="time"
+      airportTz={airport?.tz}
+      airportLabel={airport?.iata}
+      side="right"
+      class="text-xs"
+    />
+  </span>
 {/snippet}
 
 {#snippet seatAndAirline(flight: (typeof formattedFlights)[number])}
