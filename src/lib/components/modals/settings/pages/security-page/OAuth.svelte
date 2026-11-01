@@ -48,7 +48,11 @@
       <h4 class="font-medium leading-4">OAuth</h4>
       <p class="text-sm text-muted-foreground">
         {#if user.hasOAuthLinked}
-          You can currently sign in via OAuth.
+          {#if user.hasPassword}
+            You can currently sign in via OAuth.
+          {:else}
+            Set a password before unlinking, or you won't be able to sign in.
+          {/if}
         {:else}
           Link your account to an OAuth provider.
         {/if}
@@ -59,11 +63,15 @@
         <Confirm
           onConfirm={unlink}
           title="Unlink OAuth"
-          description="Are you sure you want to unlink your OAuth account? If you do not have a password set, you will not be able to sign in."
+          description="Are you sure you want to unlink your OAuth account?"
           confirmText="Unlink"
         >
           {#snippet triggerContent({ props })}
-            <Button variant="outline" {...props} disabled={loading}>
+            <Button
+              variant="outline"
+              {...props}
+              disabled={loading || !user.hasPassword}
+            >
               {#if loading}
                 <LoaderCircle class="animate-spin mr-1" size={16} />
               {/if}

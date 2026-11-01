@@ -89,6 +89,7 @@ export const toPageUser = (
   weekStartsOn: user.weekStartsOn,
   flightTimeDisplay: user.flightTimeDisplay,
   hasOAuthLinked: Boolean(user.oauthId),
+  hasPassword: user.hasPassword,
 });
 
 /** An empty patch is a no-op rather than an `update "user" set` Postgres rejects. */

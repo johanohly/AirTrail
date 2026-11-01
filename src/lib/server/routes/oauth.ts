@@ -72,11 +72,19 @@ export const oauthRouter = router({
       return { url };
     }),
   unlink: authedProcedure.mutation(async ({ ctx }) => {
+    // Checked in the update so a concurrent change can't leave no way to log in.
     const result = await db
       .updateTable('user')
       .set({ oauthId: null })
       .where('id', '=', ctx.user.id)
+      .where('password', 'is not', null)
       .executeTakeFirst();
-    return result.numUpdatedRows > 0;
+    if (!result.numUpdatedRows) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Set a password before unlinking',
+      });
+    }
+    return true;
   }),
 });
