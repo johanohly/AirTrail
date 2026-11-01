@@ -97,11 +97,16 @@ const nextDay = (date: string): string => {
   return shifted.toISOString().slice(0, 10);
 };
 
-/** `HH:mm` wall time of an instant inside `tzId`. */
+// Custom airports can hold any string as their timezone, and `TZDate` turns an
+// unknown one into `NaN` fields rather than throwing.
+const isKnownZone = (tzId: string | null): tzId is string =>
+  tzId != null && !Number.isNaN(new TZDate(0, tzId).getTime());
+
+/** `HH:mm` wall time of an instant inside `tzId`, or in UTC if it's unknown. */
 const localTime = (iso: string, tzId: string | null): string | null => {
   const date = parseUtcIso(iso);
   if (!date) return null;
-  const local = new TZDate(date, tzId ?? 'UTC');
+  const local = new TZDate(date, isKnownZone(tzId) ? tzId : 'UTC');
   return `${pad2(local.getHours())}:${pad2(local.getMinutes())}`;
 };
 
@@ -183,7 +188,8 @@ const segmentLine = (
   gate: string | null,
 ): string => {
   const time = shownIso && airport ? localTime(shownIso, airport.tz) : null;
-  const timePart = time ? ` ${time} local` : '';
+  const zoneLabel = airport && isKnownZone(airport.tz) ? 'local' : 'UTC';
+  const timePart = time ? ` ${time} ${zoneLabel}` : '';
   const label = airport ? airportLabel(airport) : null;
   const labelPart = label ? ` — ${label}` : '';
   const extrasPart = segmentExtras(terminal, gate)

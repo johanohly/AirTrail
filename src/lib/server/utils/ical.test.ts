@@ -764,6 +764,26 @@ describe('event times', () => {
   });
 });
 
+describe('invalid airport timezones', () => {
+  it('shows that airport in UTC and keeps the rest of the flight local', () => {
+    const ics = buildCalendarFeed(
+      [
+        flight({
+          from: { ...copenhagen, tz: 'Not/AZone' },
+          departure: '2025-07-01T09:35:00.000Z',
+        }),
+      ],
+      options(),
+    );
+
+    expect(property(ics, 'DTSTART')).toBe('20250701T093000Z');
+    expect(description(ics)).toContain('Departs: 09:30 UTC');
+    expect(description(ics)).toContain('  Actual 09:35');
+    expect(description(ics)).toContain('Arrives: 12:20 local');
+    expect(ics).not.toContain('NaN');
+  });
+});
+
 describe('client compatibility', () => {
   it('never escapes colons or commas, which Proton Calendar renders literally', () => {
     const ics = buildCalendarFeed([flight({ note: 'a,b;c:d' })], options());
