@@ -101,6 +101,14 @@ describe('date presets', () => {
       fromDate: new CalendarDate(2025, 6, 16),
       toDate: today,
     });
+    expect(datePresetRange('this-month', today)).toEqual({
+      fromDate: new CalendarDate(2026, 6, 1),
+      toDate: new CalendarDate(2026, 6, 30),
+    });
+    expect(datePresetRange('last-month', today)).toEqual({
+      fromDate: new CalendarDate(2026, 5, 1),
+      toDate: new CalendarDate(2026, 5, 31),
+    });
     expect(datePresetRange('this-year', today)).toEqual({
       fromDate: new CalendarDate(2026, 1, 1),
       toDate: new CalendarDate(2026, 12, 31),
@@ -117,6 +125,27 @@ describe('date presets', () => {
     ).toEqual({
       fromDate: new CalendarDate(2023, 3, 2),
       toDate: new CalendarDate(2024, 3, 1),
+    });
+  });
+
+  it('handles month boundaries for month presets', () => {
+    expect(
+      datePresetRange('this-month', new CalendarDate(2026, 1, 15)),
+    ).toEqual({
+      fromDate: new CalendarDate(2026, 1, 1),
+      toDate: new CalendarDate(2026, 1, 31),
+    });
+    expect(
+      datePresetRange('last-month', new CalendarDate(2026, 1, 15)),
+    ).toEqual({
+      fromDate: new CalendarDate(2025, 12, 1),
+      toDate: new CalendarDate(2025, 12, 31),
+    });
+    expect(
+      datePresetRange('this-month', new CalendarDate(2024, 2, 10)),
+    ).toEqual({
+      fromDate: new CalendarDate(2024, 2, 1),
+      toDate: new CalendarDate(2024, 2, 29),
     });
   });
 

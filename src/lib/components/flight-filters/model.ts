@@ -406,6 +406,8 @@ export type DatePresetId =
   | 'past-30-days'
   | 'past-90-days'
   | 'past-12-months'
+  | 'this-month'
+  | 'last-month'
   | 'this-year'
   | 'last-year';
 
@@ -413,6 +415,8 @@ export const datePresets: ReadonlyArray<{ id: DatePresetId; label: string }> = [
   { id: 'past-30-days', label: 'Past 30 days' },
   { id: 'past-90-days', label: 'Past 90 days' },
   { id: 'past-12-months', label: 'Past 12 months' },
+  { id: 'this-month', label: 'This month' },
+  { id: 'last-month', label: 'Last month' },
   { id: 'this-year', label: 'This year' },
   { id: 'last-year', label: 'Last year' },
 ];
@@ -421,6 +425,10 @@ export const datePresets: ReadonlyArray<{ id: DatePresetId; label: string }> = [
 export function todayCalendarDate(): CalendarDate {
   const now = new Date();
   return new CalendarDate(now.getFullYear(), now.getMonth() + 1, now.getDate());
+}
+
+function endOfMonth(firstOfMonth: CalendarDate) {
+  return firstOfMonth.add({ months: 1 }).subtract({ days: 1 });
 }
 
 /*
@@ -441,6 +449,16 @@ export function datePresetRange(
         fromDate: today.subtract({ years: 1 }).add({ days: 1 }),
         toDate: today,
       };
+    case 'this-month': {
+      const first = new CalendarDate(today.year, today.month, 1);
+      return { fromDate: first, toDate: endOfMonth(first) };
+    }
+    case 'last-month': {
+      const first = new CalendarDate(today.year, today.month, 1).subtract({
+        months: 1,
+      });
+      return { fromDate: first, toDate: endOfMonth(first) };
+    }
     case 'this-year':
       return {
         fromDate: new CalendarDate(today.year, 1, 1),
