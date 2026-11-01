@@ -37,7 +37,12 @@ const pad2 = (value: number) => value.toString().padStart(2, '0');
  * unescaped displays correctly everywhere.
  */
 export const escapeText = (value: string): string =>
-  value.replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n');
+  value
+    .replace(/\r\n?/g, '\n')
+    // RFC 5545 TEXT allows no control characters except HTAB.
+    .replace(/[\x00-\x08\x0b-\x1f\x7f]/g, '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\n/g, '\\n');
 
 /**
  * Fold a content line to at most 75 octets, continuing each following chunk

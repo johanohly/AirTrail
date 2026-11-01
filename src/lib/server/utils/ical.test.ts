@@ -147,6 +147,14 @@ describe('escapeText', () => {
     expect(escapeText('one\ntwo\r\nthree')).toBe('one\\ntwo\\nthree');
   });
 
+  it('treats a bare carriage return as a newline', () => {
+    expect(escapeText('one\rtwo\r\n\rthree')).toBe('one\\ntwo\\n\\nthree');
+  });
+
+  it('strips control characters but keeps tabs', () => {
+    expect(escapeText('a\x00b\x0bc\x1bd\x7fe\tf')).toBe('abcde\tf');
+  });
+
   it('leaves plain text alone', () => {
     expect(escapeText("Diego's flights")).toBe("Diego's flights");
   });
@@ -618,6 +626,21 @@ describe('buildCalendarFeed', () => {
     expect(property(ics, 'DESCRIPTION')).toContain(
       'Note: Window, exit row; quiet\\nflight',
     );
+  });
+
+  it('never lets a control character in a note break the content line', () => {
+    const ics = buildCalendarFeed(
+      [flight({ note: 'first\rBEGIN:VEVENT\x07' })],
+      options(),
+    );
+
+    expect(
+      unfolded(ics).filter((line) => line === 'BEGIN:VEVENT'),
+    ).toHaveLength(1);
+    expect(property(ics, 'DESCRIPTION')).toContain(
+      'Note: first\\nBEGIN:VEVENT',
+    );
+    expect(ics).not.toContain('\x07');
   });
 
   it('escapes special characters in airport names', () => {
