@@ -15,7 +15,6 @@
   import EmptyFlightsState from './EmptyFlightsState.svelte';
   import { buildFlightIndicators } from './flight-indicators';
   import FlightIndicators from './FlightIndicators.svelte';
-  import { resolveTimingStatus, type TimingStatus } from './flight-timing';
   import {
     buildFlightListYears,
     paginateFlightListYears,
@@ -57,6 +56,10 @@
     type FlightData,
   } from '$lib/utils';
   import { formatAircraft } from '$lib/utils/data/aircraft';
+  import {
+    resolveTimingStatus,
+    type TimingStatus,
+  } from '$lib/utils/flight-timing';
   import { Duration, parseLocalizeISO } from '$lib/utils/datetime';
   import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
   import { isMediumScreen } from '$lib/utils/size';

@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { TZDate } from '@date-fns/tz';
-  import { differenceInSeconds } from 'date-fns';
   import { type DateValue, parseDate, Time } from '@internationalized/date';
   import { CalendarDays } from '@o7/icon/lucide';
   import { DateField } from 'bits-ui';
@@ -15,6 +14,7 @@
   import { cn } from '$lib/utils';
   import { dateValueFromISO, mergeTimeWithDate } from '$lib/utils/datetime';
   import { formatTimeValue, parseTimeValue } from '$lib/utils/datetime/time';
+  import { compareTiming } from '$lib/utils/flight-timing';
   import {
     formatTime as formatTimeWithPrefs,
     getPreferences,
@@ -275,12 +275,11 @@
     return `${dayOffset > 0 ? '+' : ''}${dayOffset}`;
   });
 
-  const timingStatus = $derived.by(() => {
-    if (!compareDateTime || !currentDateTime) return null;
-    const diff = differenceInSeconds(currentDateTime, compareDateTime);
-    if (diff === 0) return 'on-time';
-    return diff < 0 ? 'early' : 'late';
-  });
+  const timingStatus = $derived(
+    compareDateTime && currentDateTime
+      ? compareTiming(currentDateTime, compareDateTime)
+      : null,
+  );
 
   const timingClass = $derived.by(() => {
     if (timingStatus === 'early')

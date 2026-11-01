@@ -1,6 +1,11 @@
 export type TimingStatus = 'early' | 'late' | null;
 
-/** Gate times take precedence; runway times are only used when the gate actual is missing. */
+export const compareTiming = (actual: Date, scheduled: Date): TimingStatus => {
+  if (actual < scheduled) return 'early';
+  if (actual > scheduled) return 'late';
+  return null;
+};
+
 export const resolveTimingStatus = ({
   gateActual,
   gateScheduled,
@@ -14,21 +19,15 @@ export const resolveTimingStatus = ({
   runwayScheduled: Date | null;
   side: 'departure' | 'arrival';
 }): TimingStatus => {
-  const compare = (actual: Date, scheduled: Date): TimingStatus => {
-    if (actual < scheduled) return 'early';
-    if (actual > scheduled) return 'late';
-    return null;
-  };
-
   if (gateActual) {
-    return gateScheduled ? compare(gateActual, gateScheduled) : null;
+    return gateScheduled ? compareTiming(gateActual, gateScheduled) : null;
   }
   if (!runwayActual) return null;
-  if (runwayScheduled) return compare(runwayActual, runwayScheduled);
+  if (runwayScheduled) return compareTiming(runwayActual, runwayScheduled);
   if (!gateScheduled) return null;
 
   // Taxi time is unknown, so only infer the direction that is certain.
-  const status = compare(runwayActual, gateScheduled);
+  const status = compareTiming(runwayActual, gateScheduled);
   if (side === 'departure' && status === 'early') return 'early';
   if (side === 'arrival' && status === 'late') return 'late';
   return null;
