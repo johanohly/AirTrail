@@ -1,7 +1,8 @@
 import { CalendarDate } from '@internationalized/date';
-import { isAfter, isBefore } from 'date-fns';
 import type { FilterModel, FiltersState } from 'bits-ui';
+import { isAfter, isBefore } from 'date-fns';
 
+import { durationBucketFor } from './options';
 import {
   normalizeRoute,
   routeFromKey,
@@ -13,8 +14,6 @@ import {
   type OptionFilterOperator,
   type Route,
 } from './types';
-
-import { durationBucketFor } from './options';
 
 import { type FlightPassenger } from '$lib/db/types';
 import { getFlightPassengerToken, type FlightData } from '$lib/utils';
@@ -860,10 +859,18 @@ export function flightFiltersToBits(source: FlightFilters): FiltersState {
       source.aircraftRegsOperator,
     ),
     optionFilter('flightType', source.flightType, source.flightTypeOperator),
-    optionFilter('flightNumber', source.flightNumber, source.flightNumberOperator),
+    optionFilter(
+      'flightNumber',
+      source.flightNumber,
+      source.flightNumberOperator,
+    ),
     optionFilter('duration', source.duration, source.durationOperator),
     optionFilter('seatClass', source.seatClass, source.seatClassOperator),
-    optionFilter('flightReason', source.flightReason, source.flightReasonOperator),
+    optionFilter(
+      'flightReason',
+      source.flightReason,
+      source.flightReasonOperator,
+    ),
     optionFilter('seatType', source.seatType, source.seatTypeOperator),
     optionFilter('seatNumber', source.seatNumber, source.seatNumberOperator),
     optionFilter('months', source.months, source.monthsOperator),
@@ -1298,9 +1305,7 @@ function passengerFieldMatches(
   return operator === 'is' || operator === 'is any of' ? found : !found;
 }
 
-export function flightTypeForFlight(
-  flight: FlightData,
-): string | undefined {
+export function flightTypeForFlight(flight: FlightData): string | undefined {
   if (!flight.from || !flight.to) return undefined;
   return flight.from.country === flight.to.country
     ? 'domestic'

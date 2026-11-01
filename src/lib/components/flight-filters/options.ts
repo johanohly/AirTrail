@@ -1,8 +1,7 @@
-import { FlightReasons, SeatClasses, SeatTypes } from '$lib/db/types';
-
 import { MONTHS, SHORT_MONTHS } from '$lib/data/datetime';
-import { estimateFlightDuration } from '$lib/utils/datetime/duration';
+import { FlightReasons, SeatClasses, SeatTypes } from '$lib/db/types';
 import { toTitleCase } from '$lib/utils';
+import { estimateFlightDuration } from '$lib/utils/datetime/duration';
 
 export type FilterOptionSource = {
   value: string;
@@ -91,7 +90,10 @@ export const FILTER_GROUPS = [
     label: 'Location',
     columns: ['departureAirports', 'arrivalAirports', 'routes'],
   },
-  { label: 'Date & time', columns: ['quickDate', 'date', 'year', 'months', 'days'] },
+  {
+    label: 'Date & time',
+    columns: ['quickDate', 'date', 'year', 'months', 'days'],
+  },
   {
     label: 'Airline & aircraft',
     columns: ['airline', 'aircraft', 'aircraftRegs', 'flightNumber'],

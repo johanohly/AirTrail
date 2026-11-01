@@ -71,13 +71,16 @@
   } from '@o7/icon';
   import { Airlines } from '@o7/icon/material';
   import { Filter, useDataTableFilters } from 'bits-ui';
+  import type { ColumnConfig, FilterIcon, FiltersState } from 'bits-ui';
   import { createRawSnippet } from 'svelte';
   import type { Component } from 'svelte';
-  import type { ColumnConfig, FilterIcon, FiltersState } from 'bits-ui';
 
   import './filter.css';
   import './filter-date.css';
 
+  import FilterMenu from './FilterMenu.svelte';
+
+  import UserAvatar from '$lib/components/display/UserAvatar.svelte';
   import {
     bitsFiltersToFlightFilters,
     bitsSignature,
@@ -104,16 +107,15 @@
     type FlightFilters,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
-  import UserAvatar from '$lib/components/display/UserAvatar.svelte';
+  import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
+  import type { Aircraft, Airline, Airport } from '$lib/db/types';
+  import { routeLabelForFlight } from '$lib/stats/aggregations';
   import {
     cn,
     getFlightPassengerLabel,
     getFlightPassengerToken,
     type FlightData,
   } from '$lib/utils';
-  import type { Aircraft, Airline, Airport } from '$lib/db/types';
-  import { routeLabelForFlight } from '$lib/stats/aggregations';
-  import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
 
   type FlightFilterColumnConfig =
     | ColumnConfig<FlightData, 'option', string, 'departureAirports'>
@@ -617,9 +619,8 @@
         displayName: 'Class',
         type: 'option',
         accessor: (flight) =>
-          flight.passengers.find(
-            (passenger) => passenger.seatClass != null,
-          )?.seatClass ?? '',
+          flight.passengers.find((passenger) => passenger.seatClass != null)
+            ?.seatClass ?? '',
         icon: Armchair,
         options: seatClassOptions,
       },
@@ -628,9 +629,8 @@
         displayName: 'Reason',
         type: 'option',
         accessor: (flight) =>
-          flight.passengers.find(
-            (passenger) => passenger.flightReason != null,
-          )?.flightReason ?? '',
+          flight.passengers.find((passenger) => passenger.flightReason != null)
+            ?.flightReason ?? '',
         icon: Briefcase,
         options: flightReasonOptions,
       },
@@ -639,8 +639,8 @@
         displayName: 'Seat Type',
         type: 'option',
         accessor: (flight) =>
-          flight.passengers.find((passenger) => passenger.seat != null)
-            ?.seat ?? '',
+          flight.passengers.find((passenger) => passenger.seat != null)?.seat ??
+          '',
         icon: PersonStanding,
         options: seatTypeOptions,
       },
@@ -649,9 +649,8 @@
         displayName: 'Seat Number',
         type: 'option',
         accessor: (flight) =>
-          flight.passengers.find(
-            (passenger) => passenger.seatNumber != null,
-          )?.seatNumber ?? '',
+          flight.passengers.find((passenger) => passenger.seatNumber != null)
+            ?.seatNumber ?? '',
         icon: LocateFixed,
         options: columnOptions(seatNumberOptions),
       },
@@ -742,14 +741,19 @@
 </Filter.Provider>
 
 {#snippet filterMenu()}
-  <Filter.Menu>
+  <FilterMenu
+    columns={providerColumns}
+    filters={filterState.filters}
+    actions={filterState.actions}
+    strategy={filterState.strategy}
+  >
     <Funnel size={16} aria-hidden="true" />
     {#if filterState.filters.length === 0 || layout === 'stacked'}
       <span>Filter</span>
     {:else}
       <span class="sr-only">Filter</span>
     {/if}
-  </Filter.Menu>
+  </FilterMenu>
 {/snippet}
 
 {#snippet filterList()}

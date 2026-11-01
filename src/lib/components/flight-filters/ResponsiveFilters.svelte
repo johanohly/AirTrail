@@ -4,14 +4,14 @@
   import Filters from './Filters.svelte';
   import MobileFiltersModal from './MobileFiltersModal.svelte';
 
+  import { hasFlightFilters } from '$lib/components/flight-filters/model';
   import type {
     FlightFilters,
     TempFilters,
   } from '$lib/components/flight-filters/types';
-  import { hasFlightFilters } from '$lib/components/flight-filters/model';
   import { Button } from '$lib/components/ui/button';
-  import { isMediumScreen } from '$lib/utils/size';
   import type { FlightData } from '$lib/utils';
+  import { isMediumScreen } from '$lib/utils/size';
 
   let {
     flights,
