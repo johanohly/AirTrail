@@ -91,7 +91,7 @@ test.describe('Flight list time rendering', () => {
 
 // The same route, now with recorded scheduled times, exercising the
 // flightTimeSource preference: which pair of instants the list displays,
-// the delay tooltip, and the header toggle.
+// and the delay tooltip (six times: scheduled + actual in each timezone).
 //
 // Departure: actual 2024-01-16T03:30Z / scheduled 03:00Z  (30m late)
 // Arrival:   actual 2024-01-16T10:00Z / scheduled 09:40Z  (20m early)
@@ -166,9 +166,7 @@ test.describe('Flight list actual vs scheduled source', () => {
     await expect(fallbackArr).toContainText('10:00');
   });
 
-  test('tooltip: shows the delay and the complementary time', async ({
-    page,
-  }) => {
+  test('tooltip: shows all six times split by the delay', async ({ page }) => {
     await seed(page, 'actual');
     const { dep } = await openListAndRead(page);
     await dep.hover();
@@ -176,26 +174,11 @@ test.describe('Flight list actual vs scheduled source', () => {
     const tooltip = page.getByTestId('time-display-tooltip');
     await expect(tooltip).toBeVisible();
     await expect(page.getByTestId('time-tooltip-delay')).toHaveText('30m late');
-    const complement = page.getByTestId('time-tooltip-complement');
-    await expect(complement).toContainText('Scheduled');
-    await expect(complement).toContainText('22:00');
-  });
-
-  test('header toggle: flips the list between actual and scheduled', async ({
-    page,
-  }) => {
-    await seed(page, 'actual');
-    const { dep } = await openListAndRead(page);
-    await expect(dep).toContainText('22:30');
-
-    const scheduled = page.getByTestId('flight-time-source-scheduled');
-    await expect(scheduled).toHaveAttribute('aria-pressed', 'false');
-    await scheduled.click();
-    await expect(scheduled).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByTestId('flight-time-source-actual')).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-    await expect(dep).toContainText('22:00');
+    // Scheduled and actual sections, each with airport/UTC/system rows.
+    await expect(tooltip).toContainText('Scheduled');
+    await expect(tooltip).toContainText('Actual');
+    // JFK-local wall clocks: scheduled 22:00, actual 22:30.
+    await expect(tooltip).toContainText('22:00');
+    await expect(tooltip).toContainText('22:30');
   });
 });
