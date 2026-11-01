@@ -73,6 +73,16 @@ export type authorization_settings = {
      */
     oauthRoleMappingMode: Generated<'off' | 'on_create' | 'on_login'>;
 };
+export type calendar_feed = {
+    id: Generated<number>;
+    userId: string;
+    token: string;
+    reminderOffsetMinutes: number | null;
+    showEmoji: Generated<boolean>;
+    createdAt: Generated<Timestamp>;
+    updatedAt: Generated<Timestamp>;
+    lastFetched: Timestamp | null;
+};
 export type custom_field_definition = {
     id: Generated<number>;
     /**
@@ -379,6 +389,7 @@ export type DB = {
     apiKey: api_key;
     appConfig: app_config;
     authorizationSettings: authorization_settings;
+    calendarFeed: calendar_feed;
     customFieldDefinition: custom_field_definition;
     customFieldValue: custom_field_value;
     flight: flight;
