@@ -33,7 +33,9 @@
   );
   const visible = $derived(breakdown.entries.slice(0, VISIBLE_ROWS));
   const largest = $derived(breakdown.entries[0]?.value ?? 0);
-  const detailsFor = $derived(createDetailsLookup(chartKey, flights));
+  const detailsFor = $derived(
+    createDetailsLookup(chartKey, flights, { userId: seatUserId }),
+  );
 </script>
 
 <div class="min-w-0">

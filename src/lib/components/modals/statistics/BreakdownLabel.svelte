@@ -18,7 +18,8 @@
     chartKey === 'airports' ||
       chartKey === 'countries' ||
       chartKey === 'routes' ||
-      chartKey === 'aircraft-regs',
+      chartKey === 'aircraft-regs' ||
+      chartKey === 'seat-numbers',
   );
 </script>
 

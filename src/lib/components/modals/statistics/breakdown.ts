@@ -2,10 +2,12 @@ import type { Airline, Airport } from '$lib/db/types';
 import { COUNTRIES } from '$lib/data/countries';
 import {
   codeForAirport,
+  normalizeSeatNumber,
   routeLabelForFlight,
   type FlightChartKey,
+  type StatsContext,
 } from '$lib/stats/aggregations';
-import type { FlightData } from '$lib/utils';
+import { toTitleCase, type FlightData } from '$lib/utils';
 
 export type BreakdownDetails = {
   airline?: Airline;
@@ -22,6 +24,7 @@ export type BreakdownDetails = {
 export const CHART_NOUNS: Record<FlightChartKey, [string, string]> = {
   'seat-class': ['seat class', 'seat classes'],
   seat: ['seat position', 'seat positions'],
+  'seat-numbers': ['seat', 'seats'],
   reason: ['reason', 'reasons'],
   continents: ['continent', 'continents'],
   airlines: ['airline', 'airlines'],
@@ -42,6 +45,7 @@ const countryNameOf = (code: string) =>
 export const createDetailsLookup = (
   chartKey: FlightChartKey,
   flights: FlightData[],
+  ctx: StatsContext = {},
 ) => {
   const details = new Map<string, BreakdownDetails>();
   const add = (
@@ -71,6 +75,20 @@ export const createDetailsLookup = (
           description: flight.aircraft?.name,
         }));
         break;
+      case 'seat-numbers': {
+        // Only the passenger the stats are scoped to, not whoever else flew
+        const passengers = ctx.userId
+          ? flight.passengers.filter((p) => p.userId === ctx.userId)
+          : flight.passengers;
+        for (const passenger of passengers) {
+          add(normalizeSeatNumber(passenger.seatNumber), () => ({
+            description: passenger.seat
+              ? toTitleCase(passenger.seat)
+              : undefined,
+          }));
+        }
+        break;
+      }
       case 'airports':
         for (const airport of [flight.from, flight.to]) {
           add(codeForAirport(airport), () => ({

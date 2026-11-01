@@ -45,7 +45,9 @@
       FLIGHT_CHARTS[chartKey].aggregate(flights, { userId: seatUserId }),
     ),
   );
-  const detailsFor = $derived(createDetailsLookup(chartKey, flights));
+  const detailsFor = $derived(
+    createDetailsLookup(chartKey, flights, { userId: seatUserId }),
+  );
   const subtitle = $derived.by(() => {
     const count = breakdown.entries.length;
     const [one, many] = CHART_NOUNS[chartKey];

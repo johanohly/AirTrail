@@ -2,40 +2,30 @@
   import { pluralize, type FlightData } from '$lib/utils';
 
   import { Switch } from '$lib/components/ui/switch';
+  import { seatNumberDistribution } from '$lib/stats/aggregations';
 
   let {
     flights,
     seatUserId,
+    onOpen,
   }: {
     flights: FlightData[];
     seatUserId?: string;
+    onOpen?: (seat: string) => void;
   } = $props();
 
   /* Off compacts the map to the rows and columns actually sat in; on fills
      the gaps so the cabin's shape shows. Deliberately not persisted. */
   let includeEmpty = $state(false);
 
-  const seatCounts = $derived.by(() => {
-    const counts = new Map<string, number>();
-    for (const flight of flights) {
-      const passengers = seatUserId
-        ? flight.passengers.filter((p) => p.userId === seatUserId)
-        : flight.passengers;
-      for (const { seatNumber } of passengers) {
-        const match = seatNumber?.trim().match(/^(\d{1,3})\s*([A-Z])$/i);
-        if (!match) continue;
-
-        const seat = `${match[1]}${match[2]!.toUpperCase()}`;
-        counts.set(seat, (counts.get(seat) ?? 0) + 1);
-      }
-    }
-    return counts;
-  });
+  const seatCounts = $derived(
+    seatNumberDistribution(flights, { userId: seatUserId }),
+  );
 
   const occupied = $derived.by(() => {
     const numbers = new Set<number>();
     const letters = new Set<string>();
-    for (const seat of seatCounts.keys()) {
+    for (const seat of Object.keys(seatCounts)) {
       numbers.add(Number(seat.slice(0, -1)));
       letters.add(seat.at(-1)!);
     }
@@ -74,7 +64,8 @@
     };
   });
 
-  const maxCount = $derived(Math.max(0, ...seatCounts.values()));
+  const occupiedSeatCount = $derived(Object.keys(seatCounts).length);
+  const maxCount = $derived(Math.max(0, ...Object.values(seatCounts)));
 
   /* Brightness follows how often the seat was taken, so repeats stand out */
   const seatStyle = (count: number) => {
@@ -83,13 +74,13 @@
   };
 </script>
 
-{#if seatCounts.size === 0}
+{#if occupiedSeatCount === 0}
   <p class="py-3 text-sm text-muted-foreground">No seat numbers recorded yet</p>
 {:else}
   <div class="mb-2 flex items-center justify-between gap-3">
     <p class="text-[13px] text-muted-foreground">
-      {seatCounts.size}
-      {pluralize(seatCounts.size, 'seat')} across
+      {occupiedSeatCount}
+      {pluralize(occupiedSeatCount, 'seat')} across
       {occupied.numbers.length}
       {pluralize(occupied.numbers.length, 'row')}
     </p>
@@ -120,16 +111,20 @@
           </div>
           {#each rows.letters as letter (letter)}
             {@const seat = `${rowNumber}${letter}`}
-            {@const count = seatCounts.get(seat) ?? 0}
-            <div
-              class="flex h-7 w-9 items-center justify-center rounded-sm text-[13px] font-semibold"
-              class:bg-muted={count === 0}
-              class:text-primary-foreground={count > 0}
-              style={count > 0 ? seatStyle(count) : ''}
-              title={count > 0 ? `${seat} · ${count}×` : seat}
-            >
-              {#if count > 0}{letter}{/if}
-            </div>
+            {@const count = seatCounts[seat] ?? 0}
+            {#if count > 0}
+              <button
+                type="button"
+                class="flex h-7 w-9 cursor-pointer items-center justify-center rounded-sm text-[13px] font-semibold text-primary-foreground outline-none transition-[filter] hover:brightness-110 focus-visible:ring-1 focus-visible:ring-ring"
+                style={seatStyle(count)}
+                title="{seat} · {count}×"
+                onclick={() => onOpen?.(seat)}
+              >
+                {letter}
+              </button>
+            {:else}
+              <div class="h-7 w-9 rounded-sm bg-muted" title={seat}></div>
+            {/if}
           {/each}
         </div>
       {/each}

@@ -689,7 +689,7 @@
           <div
             class="grid gap-x-7 gap-y-6 sm:grid-cols-2 lg:grid-cols-1 lg:self-start lg:content-start"
           >
-            {#each ['seat-class', 'seat', 'reason'] as chartKey (chartKey)}
+            {#each ['seat-class', 'seat', 'reason'] as const as chartKey (chartKey)}
               <RankedList
                 {chartKey}
                 flights={countedFlights}
@@ -699,7 +699,11 @@
             {/each}
           </div>
           <div class="min-w-0">
-            <SeatMap flights={countedFlights} {seatUserId} />
+            <SeatMap
+              flights={countedFlights}
+              {seatUserId}
+              onOpen={(seat) => openChart('seat-numbers', seat)}
+            />
           </div>
         </div>
       {/snippet}

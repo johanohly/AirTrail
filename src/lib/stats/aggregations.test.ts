@@ -13,10 +13,12 @@ import {
   domesticInternationalSplit,
   flightMatchesChartBucket,
   flightTotals,
+  normalizeSeatNumber,
   punctualityReport,
   reasonDistribution,
   routeDistribution,
   routeLabelForFlight,
+  seatNumberDistribution,
   toBreakdown,
   travelDayCount,
 } from './aggregations';
@@ -271,6 +273,73 @@ describe('autopilot ratio', () => {
     expect(autopilotRatio(flights, { userId: 'two' })).toBe(1);
     expect(autopilotRatio(flights, { userId: 'one' })).toBe(0);
     expect(autopilotRatio(flights, {})).toBe(0.5);
+  });
+});
+
+describe('seat numbers', () => {
+  it('normalizes case and surrounding space', () => {
+    expect(normalizeSeatNumber(' 12f ')).toBe('12F');
+    expect(normalizeSeatNumber('2A')).toBe('2A');
+    expect(normalizeSeatNumber('row 12')).toBeNull();
+    expect(normalizeSeatNumber('')).toBeNull();
+    expect(normalizeSeatNumber(null)).toBeNull();
+  });
+
+  const flights = [
+    {
+      passengers: [
+        { userId: 'one', seatNumber: '12f', seat: 'window' },
+        { userId: 'two', seatNumber: '3C', seat: 'aisle' },
+      ],
+    },
+    {
+      passengers: [{ userId: 'one', seatNumber: '3c' }],
+    },
+  ] as FlightData[];
+
+  it('counts only the scoped passenger, not every passenger', () => {
+    expect(seatNumberDistribution(flights, { userId: 'one' })).toEqual({
+      '3C': 1,
+      '12F': 1,
+    });
+    expect(seatNumberDistribution(flights, { userId: 'two' })).toEqual({
+      '3C': 1,
+    });
+  });
+
+  it('counts every passenger when unscoped', () => {
+    expect(seatNumberDistribution(flights, {})).toEqual({
+      '3C': 2,
+      '12F': 1,
+    });
+  });
+
+  it('orders equal counts by row, then column', () => {
+    const seats = ['12F', '2C', '10A', '2A', '3C'].map((seatNumber) => ({
+      passengers: [{ userId: 'one', seatNumber }],
+    })) as FlightData[];
+
+    expect(
+      Object.keys(seatNumberDistribution(seats, { userId: 'one' })),
+    ).toEqual(['2A', '2C', '3C', '10A', '12F']);
+  });
+
+  it('matches a flight through the scoped passenger only', () => {
+    expect(
+      flightMatchesChartBucket(flights[0]!, 'seat-numbers', '12F', {
+        userId: 'one',
+      }),
+    ).toBe(true);
+    expect(
+      flightMatchesChartBucket(flights[0]!, 'seat-numbers', '12F', {
+        userId: 'two',
+      }),
+    ).toBe(false);
+    expect(
+      flightMatchesChartBucket(flights[1]!, 'seat-numbers', '3C', {
+        userId: 'two',
+      }),
+    ).toBe(false);
   });
 });
 

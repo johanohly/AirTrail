@@ -12,6 +12,7 @@ import { type FlightData, toTitleCase } from '$lib/utils';
 export type FlightChartKey =
   | 'seat-class'
   | 'seat'
+  | 'seat-numbers'
   | 'reason'
   | 'continents'
   | 'airlines'
@@ -152,6 +153,14 @@ export const codeForAirport = (
   airport: FlightData['from'] | null | undefined,
 ) => airport?.iata || airport?.icao || null;
 
+/** A seat number in canonical form, like "12F", or null if unusable. */
+export const normalizeSeatNumber = (
+  seatNumber: string | null | undefined,
+): string | null => {
+  const match = seatNumber?.trim().match(/^(\d{1,3})\s*([A-Z])$/i);
+  return match ? `${match[1]}${match[2]!.toUpperCase()}` : null;
+};
+
 export const routeLabelForFlight = (flight: FlightData): string | null => {
   const fromCode = codeForAirport(flight.from);
   const toCode = codeForAirport(flight.to);
@@ -166,7 +175,7 @@ export const flightChartBucketForFlight = (
   flight: FlightData,
   key: Exclude<
     FlightChartKey,
-    'seat' | 'seat-class' | 'airports' | 'countries'
+    'seat' | 'seat-class' | 'seat-numbers' | 'airports' | 'countries'
   >,
 ): string | null => {
   switch (key) {
@@ -198,6 +207,7 @@ export const flightMatchesChartBucket = (
   if (
     chartKey === 'seat' ||
     chartKey === 'seat-class' ||
+    chartKey === 'seat-numbers' ||
     chartKey === 'reason'
   ) {
     const field =
@@ -205,7 +215,9 @@ export const flightMatchesChartBucket = (
         ? 'seat'
         : chartKey === 'seat-class'
           ? 'seatClass'
-          : 'flightReason';
+          : chartKey === 'seat-numbers'
+            ? 'seatNumber'
+            : 'flightReason';
     const passengers = ctx.userId
       ? flight.passengers.filter((passenger) => passenger.userId === ctx.userId)
       : flight.passengers;
@@ -218,6 +230,12 @@ export const flightMatchesChartBucket = (
         );
       }
       return passengers.some((passenger) => !passenger[field]);
+    }
+
+    if (chartKey === 'seat-numbers') {
+      return passengers.some(
+        (passenger) => normalizeSeatNumber(passenger.seatNumber) === bucket,
+      );
     }
 
     return passengers.some(
@@ -291,6 +309,39 @@ export function seatDistribution(
   }
 
   return sortAndLimit(counts, options);
+}
+
+export function seatNumberDistribution(
+  flights: FlightData[],
+  ctx: StatsContext,
+  options?: AggregationOptions,
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const flight of flights) {
+    const passengers = ctx.userId
+      ? flight.passengers.filter((p) => p.userId === ctx.userId)
+      : flight.passengers;
+    for (const { seatNumber } of passengers) {
+      const seat = normalizeSeatNumber(seatNumber);
+      if (!seat) continue;
+
+      counts[seat] = (counts[seat] ?? 0) + 1;
+    }
+  }
+
+  // Seats with the same count sit together ordered by row, then column,
+  // so the list reads the way the cabin does. The sorts downstream are
+  // stable, so count and distance rankings keep this order within ties.
+  const ordered = Object.fromEntries(
+    Object.entries(counts).sort(([seatA, countA], [seatB, countB]) => {
+      if (countA !== countB) return countB - countA;
+      const rowA = Number(seatA.slice(0, -1));
+      const rowB = Number(seatB.slice(0, -1));
+      if (rowA !== rowB) return rowA - rowB;
+      return seatA.at(-1)!.localeCompare(seatB.at(-1)!);
+    }),
+  );
+  return sortAndLimit(ordered, options);
 }
 
 export function seatClassDistribution(
@@ -740,6 +791,7 @@ export const FLIGHT_CHARTS: Record<
 > = {
   'seat-class': { title: 'Seat class', aggregate: seatClassDistribution },
   seat: { title: 'Seat position', aggregate: seatDistribution },
+  'seat-numbers': { title: 'Seats', aggregate: seatNumberDistribution },
   reason: { title: 'Reason', aggregate: reasonDistribution },
   continents: { title: 'Destinations', aggregate: continentDistribution },
   airlines: { title: 'Airlines', aggregate: airlineDistribution },
