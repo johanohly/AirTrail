@@ -119,6 +119,8 @@
     const data = filteredFlights;
     if (!data) return [];
 
+    const preferScheduled = prefs.flightTimeSource === 'scheduled';
+
     return sortByDepartureDesc(
       data.map((f) => {
         const depDate = f.departure;
@@ -156,6 +158,20 @@
           side: 'arrival',
         });
 
+        // Which instant the list displays; the other one stays available for
+        // the time tooltip. Reference equality with depDate/arrDate is what
+        // marks the displayed time as actual — don't clone dates in between.
+        const depAt = (
+          preferScheduled
+            ? (depScheduled ?? depDate)
+            : (depDate ?? depScheduled)
+        ) as Date | null;
+        const arrAt = (
+          preferScheduled
+            ? (arrScheduled ?? arrDate)
+            : (arrDate ?? arrScheduled)
+        ) as Date | null;
+
         return {
           ...f,
           from: f.from,
@@ -164,12 +180,16 @@
             ? Duration.fromSeconds(f.duration).toString()
             : '',
           hasDateDisplay: !!f.date,
-          depAt: (depDate ?? depScheduled) as Date | null,
+          depAt,
           depFallback:
             !(depDate ?? depScheduled) && f.date
               ? formatFlightDate(f.date, f.datePrecision, prefs)
               : null,
-          arrAt: (arrDate ?? arrScheduled) as Date | null,
+          arrAt,
+          depIsActual: depAt === depDate,
+          arrIsActual: arrAt === arrDate,
+          depScheduled,
+          arrScheduled,
           depTiming,
           arrTiming,
           seat: formatSeatForUser(f, seatUserId),
@@ -684,7 +704,12 @@
         airportLabel={flight.from?.iata}
         side="right"
         timing={flight.depTiming}
-        class={cn('text-sm', timingClass(flight.depTiming.status))}
+        actualDate={flight.departure}
+        scheduledDate={flight.depScheduled}
+        class={cn(
+          'text-sm',
+          flight.depIsActual ? timingClass(flight.depTiming.status) : {},
+        )}
       />
     {:else if flight.depFallback}
       <p class="text-sm">{flight.depFallback}</p>
@@ -700,9 +725,11 @@
         airportLabel={flight.to?.iata}
         side="right"
         timing={flight.arrTiming}
+        actualDate={flight.arrival}
+        scheduledDate={flight.arrScheduled}
         class={cn(
           'text-sm overflow-hidden text-ellipsis whitespace-nowrap',
-          timingClass(flight.arrTiming.status),
+          flight.arrIsActual ? timingClass(flight.arrTiming.status) : {},
         )}
       />
     {/if}
