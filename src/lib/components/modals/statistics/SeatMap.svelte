@@ -50,9 +50,9 @@
       return { numbers: occupied.numbers, letters: occupied.letters };
     }
 
-    // Every row between the first and last sat in, and every letter up to
-    // the last one used — minus I, which seat maps skip so it can't be
-    // misread as a 1, unless an I seat was actually recorded
+    // Every row from the front of the cabin (1) to the last sat in, and
+    // every letter up to the last one used — minus I, which seat maps skip
+    // so it can't be misread as a 1, unless an I seat was actually recorded
     const skipI = !occupied.letters.includes('I');
     const filledLetters: string[] = [];
     for (
@@ -64,12 +64,11 @@
       if (!(skipI && letter === 'I')) filledLetters.push(letter);
     }
 
+    const firstRow = Math.min(1, occupied.numbers[0]!);
     return {
       numbers: Array.from(
-        {
-          length: occupied.numbers.at(-1)! - occupied.numbers[0]! + 1,
-        },
-        (_, i) => occupied.numbers[0]! + i,
+        { length: occupied.numbers.at(-1)! - firstRow + 1 },
+        (_, i) => firstRow + i,
       ),
       letters: filledLetters,
     };

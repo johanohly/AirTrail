@@ -681,17 +681,32 @@
       {#snippet aircraftLists()}
         {@render lists(['airlines', 'aircraft-models', 'aircraft-regs'])}
       {/snippet}
-      {#snippet boardLists()}
-        {@render lists(['seat-class', 'seat', 'reason'])}
-      {/snippet}
-      {#snippet seatMapBody()}
-        <SeatMap flights={countedFlights} {seatUserId} />
+      {#snippet boardSection()}
+        <!-- Wide screens get the seat map beside the lists, narrow ones stack -->
+        <div
+          class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:gap-10"
+        >
+          <div
+            class="grid gap-x-7 gap-y-6 sm:grid-cols-2 lg:grid-cols-1 lg:self-start lg:content-start"
+          >
+            {#each ['seat-class', 'seat', 'reason'] as chartKey (chartKey)}
+              <RankedList
+                {chartKey}
+                flights={countedFlights}
+                {seatUserId}
+                onOpen={openChart}
+              />
+            {/each}
+          </div>
+          <div class="min-w-0">
+            <SeatMap flights={countedFlights} {seatUserId} />
+          </div>
+        </div>
       {/snippet}
       {@render section('When', whenCharts)}
       {@render section('Where', whereLists)}
       {@render section('Airlines and aircraft', aircraftLists)}
-      {@render section('On board', boardLists)}
-      {@render section('Seat map', seatMapBody)}
+      {@render section('On board', boardSection)}
       {#snippet punctuality()}
         <PunctualitySection flights={completedFlights} onOpen={openChart} />
       {/snippet}
