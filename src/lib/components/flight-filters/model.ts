@@ -402,6 +402,109 @@ export function toggleFilterYear(
   });
 }
 
+export type DatePresetId =
+  | 'past-30-days'
+  | 'past-90-days'
+  | 'past-12-months'
+  | 'this-year'
+  | 'last-year';
+
+export const datePresets: ReadonlyArray<{ id: DatePresetId; label: string }> = [
+  { id: 'past-30-days', label: 'Past 30 days' },
+  { id: 'past-90-days', label: 'Past 90 days' },
+  { id: 'past-12-months', label: 'Past 12 months' },
+  { id: 'this-year', label: 'This year' },
+  { id: 'last-year', label: 'Last year' },
+];
+
+/* Today in the user's local timezone. */
+export function todayCalendarDate(): CalendarDate {
+  const now = new Date();
+  return new CalendarDate(now.getFullYear(), now.getMonth() + 1, now.getDate());
+}
+
+/*
+ * The date range a preset stands for, resolved against `today`. Rolling
+ * windows are fixed at apply time; they do not advance on later days.
+ */
+export function datePresetRange(
+  id: DatePresetId,
+  today: CalendarDate,
+): { fromDate: CalendarDate; toDate: CalendarDate } {
+  switch (id) {
+    case 'past-30-days':
+      return { fromDate: today.subtract({ days: 29 }), toDate: today };
+    case 'past-90-days':
+      return { fromDate: today.subtract({ days: 89 }), toDate: today };
+    case 'past-12-months':
+      return {
+        fromDate: today.subtract({ years: 1 }).add({ days: 1 }),
+        toDate: today,
+      };
+    case 'this-year':
+      return {
+        fromDate: new CalendarDate(today.year, 1, 1),
+        toDate: new CalendarDate(today.year, 12, 31),
+      };
+    case 'last-year':
+      return {
+        fromDate: new CalendarDate(today.year - 1, 1, 1),
+        toDate: new CalendarDate(today.year - 1, 12, 31),
+      };
+  }
+}
+
+/* Applies a preset as a date range, replacing any existing date filter. */
+export function applyDatePreset(
+  filters: FlightFilters,
+  id: DatePresetId,
+  today: CalendarDate,
+): FlightFilters {
+  const range = datePresetRange(id, today);
+  return cloneFlightFilters(filters, {
+    years: [],
+    fromDate: range.fromDate,
+    toDate: range.toDate,
+  });
+}
+
+/*
+ * The preset whose exact range matches, if any. Rolling windows only match
+ * on the day they were applied; custom ranges match none.
+ */
+export function activeDatePresetForRange(
+  fromDate: CalendarDate | undefined,
+  toDate: CalendarDate | undefined,
+  today: CalendarDate,
+): DatePresetId | undefined {
+  for (const preset of datePresets) {
+    const range = datePresetRange(preset.id, today);
+    if (
+      fromDate?.compare(range.fromDate) === 0 &&
+      toDate?.compare(range.toDate) === 0
+    ) {
+      return preset.id;
+    }
+  }
+}
+
+/*
+ * The preset currently in effect, if any. Rolling windows only match on the
+ * day they were applied; custom ranges and other year selections match none.
+ */
+export function activeDatePreset(
+  filters: FlightFilters,
+  today: CalendarDate,
+): DatePresetId | undefined {
+  const years = selectedFilterYears(filters);
+  if (years.length === 1) {
+    if (years[0] === String(today.year)) return 'this-year';
+    if (years[0] === String(today.year - 1)) return 'last-year';
+  }
+
+  return activeDatePresetForRange(filters.fromDate, filters.toDate, today);
+}
+
 export function formatDateLabel(
   value: CalendarDate | undefined,
   prefs: Pick<Preferences, 'dateFormat'>,
@@ -420,6 +523,9 @@ export function dateFilterSummary(
   }
 
   if (filters.fromDate && filters.toDate) {
+    if (isFullYearRange(filters.fromDate, filters.toDate)) {
+      return filters.fromDate.year.toString();
+    }
     if (filters.fromDate.compare(filters.toDate) === 0) {
       return formatDateLabel(filters.fromDate, prefs);
     }
@@ -516,19 +622,6 @@ function dateFilterFromFlightFilters(
       type: 'option',
       operator: source.yearsOperator,
       values: source.years,
-    };
-  }
-
-  if (
-    source.fromDate &&
-    source.toDate &&
-    isFullYearRange(source.fromDate, source.toDate)
-  ) {
-    return {
-      columnId: 'year',
-      type: 'option',
-      operator: 'is',
-      values: [source.fromDate.year.toString()],
     };
   }
 
