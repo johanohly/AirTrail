@@ -6,6 +6,7 @@ import type {
   DateFormat,
   DistanceUnit,
   FlightTimeDisplay,
+  FlightTimeSource,
   PressureUnit,
   TemperatureUnit,
   TimeFormat,
@@ -79,5 +80,18 @@ export const flightTimeDisplayOptions: Option<FlightTimeDisplay>[] = [
     value: 'system',
     label: 'My system timezone',
     description: "Convert all times to your device's timezone",
+  },
+];
+
+export const flightTimeSourceOptions: Option<FlightTimeSource>[] = [
+  {
+    value: 'actual',
+    label: 'Actual times',
+    description: 'Show recorded times, falling back to scheduled',
+  },
+  {
+    value: 'scheduled',
+    label: 'Scheduled times',
+    description: 'Show scheduled times, falling back to actual',
   },
 ];

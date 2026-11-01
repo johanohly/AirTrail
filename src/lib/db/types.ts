@@ -35,6 +35,7 @@ export const publicUserFields = [
   'dateFormat',
   'weekStartsOn',
   'flightTimeDisplay',
+  'flightTimeSource',
 ] as const satisfies readonly (keyof User)[];
 export type PublicUser = Pick<User, (typeof publicUserFields)[number]> & {
   roleName: string | null;
