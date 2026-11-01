@@ -19,7 +19,6 @@ export type CalendarFeedOptions = {
   /** Minutes before departure for a reminder alarm, or null for none. */
   reminderOffsetMinutes: number | null;
   /** Backslash-escape `,` and `;` in text values, as RFC 5545 requires. */
-  escapeSeparators?: boolean;
   /** Generation time, defaults to the current time. */
   now?: Date;
 };
@@ -31,21 +30,14 @@ const UID_DOMAIN = '@airtrail';
 
 const pad2 = (value: number) => value.toString().padStart(2, '0');
 
-/*
- * Escape a value for use in an ICS text property. Colons never need escaping,
- * but RFC 5545 (3.3.11) requires a backslash before `,` and `;`. Those are left
- * bare by default because Proton Calendar reportedly renders the escapes
- * literally; `escapeSeparators` produces the RFC form.
- */
-export const escapeText = (value: string, escapeSeparators = false): string => {
-  const escaped = value
+export const escapeText = (value: string): string =>
+  value
     .replace(/\r\n?/g, '\n')
     // RFC 5545 TEXT allows no control characters except HTAB.
     .replace(/[\x00-\x08\x0b-\x1f\x7f]/g, '')
     .replace(/\\/g, '\\\\')
-    .replace(/\n/g, '\\n');
-  return escapeSeparators ? escaped.replace(/[,;]/g, '\\$&') : escaped;
-};
+    .replace(/\n/g, '\\n')
+    .replace(/[,;]/g, '\\$&');
 
 /**
  * Fold a content line to at most 75 octets, continuing each following chunk
@@ -116,6 +108,14 @@ const localTime = (iso: string, tzId: string | null): string | null => {
   if (!date) return null;
   const local = new TZDate(date, isKnownZone(tzId) ? tzId : 'UTC');
   return `${pad2(local.getHours())}:${pad2(local.getMinutes())}`;
+};
+
+const localDateTime = (iso: string, tzId: string | null): string | null => {
+  const date = parseUtcIso(iso);
+  if (!date) return null;
+  const local = new TZDate(date, isKnownZone(tzId) ? tzId : 'UTC');
+  const day = `${local.getFullYear()}-${pad2(local.getMonth() + 1)}-${pad2(local.getDate())}`;
+  return `${day} ${pad2(local.getHours())}:${pad2(local.getMinutes())}`;
 };
 
 /** The code shown for an airport: IATA when present, otherwise ICAO. */
@@ -195,7 +195,7 @@ const segmentLine = (
   terminal: string | null,
   gate: string | null,
 ): string => {
-  const time = shownIso && airport ? localTime(shownIso, airport.tz) : null;
+  const time = shownIso && airport ? localDateTime(shownIso, airport.tz) : null;
   const zoneLabel = airport && isKnownZone(airport.tz) ? 'local' : 'UTC';
   const timePart = time ? ` ${time} ${zoneLabel}` : '';
   const label = airport ? airportLabel(airport) : null;
@@ -295,7 +295,9 @@ const durationLine = (
               60000,
           )
         : null;
-  return minutes !== null ? `Duration: ${formatDuration(minutes)}` : null;
+  return minutes !== null && minutes > 0
+    ? `Duration: ${formatDuration(minutes)}`
+    : null;
 };
 
 /** `Seat: 12A · window · economy` from the owner's own passenger entry. */
@@ -401,8 +403,6 @@ const eventLines = (
   );
   const allDay = !start && !end;
 
-  const toText = (value: string) => escapeText(value, options.escapeSeparators);
-
   const lines = [
     'BEGIN:VEVENT',
     `UID:${flightUid(flight.id, options.userId)}`,
@@ -418,20 +418,25 @@ const eventLines = (
     // RFC 5545 requires DTSTART, so an arrival-only flight starts at its
     // arrival instead of carrying a lone DTEND.
     lines.push(`DTSTART:${utcStamp(parseUtcIso((start ?? end)!)!)}`);
-    if (start && end) lines.push(`DTEND:${utcStamp(parseUtcIso(end)!)}`);
+    // RFC 5545 requires DTEND to be after DTSTART.
+    const startAt = start && parseUtcIso(start);
+    const endAt = end && parseUtcIso(end);
+    if (startAt && endAt && endAt > startAt) {
+      lines.push(`DTEND:${utcStamp(endAt)}`);
+    }
   }
 
-  lines.push(`SUMMARY:${toText(summary(flight, options))}`);
+  lines.push(`SUMMARY:${escapeText(summary(flight, options))}`);
 
   if (flight.from) {
-    lines.push(`LOCATION:${toText(airportLabel(flight.from))}`);
+    lines.push(`LOCATION:${escapeText(airportLabel(flight.from))}`);
     lines.push(
       `GEO:${formatGeo(flight.from.lat)};${formatGeo(flight.from.lon)}`,
     );
   }
 
   const text = description(flight, options, allDay, start, end);
-  if (text) lines.push(`DESCRIPTION:${toText(text)}`);
+  if (text) lines.push(`DESCRIPTION:${escapeText(text)}`);
 
   lines.push('TRANSP:OPAQUE', 'CATEGORIES:TRAVEL', 'STATUS:CONFIRMED');
 
@@ -460,7 +465,7 @@ export const buildCalendarFeed = (
     'VERSION:2.0',
     'PRODID:-//AirTrail//Flight Calendar//EN',
     'CALSCALE:GREGORIAN',
-    `X-WR-CALNAME:${escapeText(`${options.displayName}'s flights`, options.escapeSeparators)}`,
+    `X-WR-CALNAME:${escapeText(`${options.displayName}'s flights`)}`,
     'X-PUBLISHED-TTL:P1D',
   ];
 

@@ -139,8 +139,8 @@ const event = (ics: string): string[] => {
 };
 
 describe('escapeText', () => {
-  it('escapes backslash but leaves commas, semicolons and colons alone', () => {
-    expect(escapeText('a\\b,c;d:e')).toBe('a\\\\b,c;d:e');
+  it('escapes backslash, commas and semicolons but not colons', () => {
+    expect(escapeText('a\\b,c;d:e')).toBe('a\\\\b\\,c\\;d:e');
   });
 
   it('converts newlines to literal \\n and drops carriage returns', () => {
@@ -438,10 +438,10 @@ describe('buildCalendarFeed', () => {
 
     // 09:30Z is 18:30 in Tokyo in July.
     expect(description(ics)).toContain(
-      'Departs: 18:30 local — Copenhagen Airport (CPH), Copenhagen, DK',
+      'Departs: 2025-07-01 18:30 local — Copenhagen Airport (CPH), Copenhagen, DK',
     );
     expect(description(ics)).toContain(
-      'Arrives: 12:20 local — London Stansted Airport (STN), London, GB',
+      'Arrives: 2025-07-01 12:20 local — London Stansted Airport (STN), London, GB',
     );
   });
 
@@ -459,10 +459,10 @@ describe('buildCalendarFeed', () => {
     );
 
     expect(description(ics)).toContain(
-      'Departs: 11:30 local — Copenhagen Airport (CPH), Copenhagen, DK · Terminal 2 · Gate A12',
+      'Departs: 2025-07-01 11:30 local — Copenhagen Airport (CPH), Copenhagen, DK · Terminal 2 · Gate A12',
     );
     expect(description(ics)).toContain(
-      'Arrives: 12:20 local — London Stansted Airport (STN), London, GB · Terminal S · Gate B3',
+      'Arrives: 2025-07-01 12:20 local — London Stansted Airport (STN), London, GB · Terminal S · Gate B3',
     );
   });
 
@@ -500,7 +500,7 @@ describe('buildCalendarFeed', () => {
     );
 
     expect(description(ics)).not.toContain('Actual');
-    expect(description(ics)).toContain('Departs: 11:35 local');
+    expect(description(ics)).toContain('Departs: 2025-07-01 11:35 local');
   });
 
   it('prefers takeoff scheduled when no actual takeoff exists', () => {
@@ -624,7 +624,7 @@ describe('buildCalendarFeed', () => {
     );
 
     expect(property(ics, 'DESCRIPTION')).toContain(
-      'Note: Window, exit row; quiet\\nflight',
+      'Note: Window\\, exit row\\; quiet\\nflight',
     );
   });
 
@@ -650,7 +650,7 @@ describe('buildCalendarFeed', () => {
     );
 
     expect(property(ics, 'LOCATION')).toBe(
-      'Kastrup, Reg: København (CPH), Copenhagen, DK',
+      'Kastrup\\, Reg: København (CPH)\\, Copenhagen\\, DK',
     );
   });
 
@@ -774,7 +774,7 @@ describe('event times', () => {
 
     expect(property(ics, 'DTSTART')).toBe('20250701T112000Z');
     expect(property(ics, 'DTEND')).toBeUndefined();
-    expect(description(ics)).toContain('Arrives: 12:20 local');
+    expect(description(ics)).toContain('Arrives: 2025-07-01 12:20 local');
   });
 
   it('leaves DTEND out of a departure-only flight', () => {
@@ -800,10 +800,10 @@ describe('event times', () => {
     );
 
     // CET is UTC+1 in January, CEST UTC+2 in July.
-    expect(description(winter)).toContain('Departs: 10:30 local');
-    expect(description(winter)).toContain('Arrives: 11:20 local');
+    expect(description(winter)).toContain('Departs: 2025-01-15 10:30 local');
+    expect(description(winter)).toContain('Arrives: 2025-01-15 11:20 local');
     expect(description(buildCalendarFeed([flight()], options()))).toContain(
-      'Departs: 11:30 local',
+      'Departs: 2025-07-01 11:30 local',
     );
   });
 });
@@ -821,25 +821,31 @@ describe('invalid airport timezones', () => {
     );
 
     expect(property(ics, 'DTSTART')).toBe('20250701T093000Z');
-    expect(description(ics)).toContain('Departs: 09:30 UTC');
+    expect(description(ics)).toContain('Departs: 2025-07-01 09:30 UTC');
     expect(description(ics)).toContain('  Actual 09:35');
-    expect(description(ics)).toContain('Arrives: 12:20 local');
+    expect(description(ics)).toContain('Arrives: 2025-07-01 12:20 local');
     expect(ics).not.toContain('NaN');
   });
 });
 
 describe('client compatibility', () => {
-  it('leaves separators bare by default for Proton Calendar', () => {
-    const ics = buildCalendarFeed([flight({ note: 'a,b;c:d' })], options());
+  it('omits DTEND when the arrival is not after the departure', () => {
+    const ics = buildCalendarFeed(
+      [
+        flight({
+          departureScheduled: '2025-07-01T11:20:00.000Z',
+          arrivalScheduled: '2025-07-01T09:30:00.000Z',
+        }),
+      ],
+      options(),
+    );
 
-    expect(ics).not.toContain('\\:');
-    expect(ics).not.toContain('\\,');
-    expect(ics).not.toContain('\\;');
-    // Newlines still need escaping.
-    expect(ics).toContain('\\n');
+    expect(ics).toContain('DTSTART:20250701T112000Z');
+    expect(ics).not.toContain('DTEND');
+    expect(description(ics)).not.toContain('Duration');
   });
 
-  it('escapes commas and semicolons in every text property on request', () => {
+  it('escapes commas and semicolons in every text property', () => {
     const ics = buildCalendarFeed(
       [
         flight({
@@ -848,7 +854,7 @@ describe('client compatibility', () => {
           note: 'a,b;c:d\\e',
         }),
       ],
-      options({ displayName: 'Doe, Jo', escapeSeparators: true }),
+      options({ displayName: 'Doe, Jo' }),
     );
 
     expect(property(ics, 'X-WR-CALNAME')).toBe("Doe\\, Jo's flights");
