@@ -20,10 +20,12 @@
     flight,
     passengerLabels = [],
     showMeta = true,
+    compact = false,
   }: {
     flight: Flight;
     passengerLabels?: string[];
     showMeta?: boolean;
+    compact?: boolean;
   } = $props();
 
   const prefs = $derived(getPreferences(page.data.user));
@@ -47,23 +49,37 @@
 <div class="@container flex w-full text-left">
   <!-- Logo Column -->
   <div
-    class="w-[50px] mr-4 @max-[360px]:mr-2 @max-[300px]:hidden shrink-0 flex items-center justify-center"
+    class={[
+      '@max-[360px]:mr-2 @max-[300px]:hidden shrink-0 flex items-center justify-center',
+      compact ? 'mr-3 w-8' : 'mr-4 w-[50px]',
+    ]}
   >
-    <AirlineIcon airline={flight.airline} size={42} fallback="plane" />
+    <AirlineIcon
+      airline={flight.airline}
+      size={compact ? 28 : 42}
+      fallback="plane"
+    />
   </div>
 
   <!-- Content Column -->
   <div class="flex-1 flex justify-between items-start min-w-0">
     <!-- Route Info (Left Side) -->
-    <div class="flex flex-col gap-1 min-w-0">
+    <div class={['flex flex-col min-w-0', compact ? 'gap-0.5' : 'gap-1']}>
       <div class="flex items-center gap-2.5 @max-[360px]:gap-1.5">
         {@render airportCode(flight.from)}
         <RouteArrow
-          class="size-[22px] shrink-0 fill-foreground @max-[360px]:size-[18px]"
+          class={compact
+            ? 'size-4 shrink-0 fill-foreground'
+            : 'size-[22px] shrink-0 fill-foreground @max-[360px]:size-[18px]'}
         />
         {@render airportCode(flight.to)}
       </div>
-      <span class="text-[15px] text-muted-foreground truncate">
+      <span
+        class={[
+          'text-muted-foreground truncate',
+          compact ? 'text-[13px]' : 'text-[15px]',
+        ]}
+      >
         {getCityName(flight.from)} to {getCityName(flight.to)}
       </span>
     </div>
@@ -71,11 +87,17 @@
     <!-- Meta Info (Right Side) -->
     {#if showMeta}
       <div
-        class="flex flex-col items-end gap-2 text-right shrink-0 ml-3 @max-[360px]:ml-2"
+        class={[
+          'flex flex-col items-end text-right shrink-0 ml-3 @max-[360px]:ml-2',
+          compact ? 'gap-0.5' : 'gap-2',
+        ]}
       >
         {#if formatDate(flight)}
           <span
-            class="font-semibold text-foreground/90 @max-[360px]:text-sm @max-[360px]:leading-6"
+            class={[
+              'font-semibold text-foreground/90 @max-[360px]:text-sm @max-[360px]:leading-6',
+              compact && 'text-[13px]',
+            ]}
           >
             {formatDate(flight)}
           </span>
@@ -87,7 +109,12 @@
               : ''}
           </Badge>
         {:else if getFlightNumber(flight)}
-          <span class="text-[15px] text-muted-foreground">
+          <span
+            class={[
+              'text-muted-foreground',
+              compact ? 'text-[13px]' : 'text-[15px]',
+            ]}
+          >
             {getFlightNumber(flight)}
           </span>
         {/if}
@@ -106,7 +133,10 @@
       />
     {/if}
     <span
-      class="text-xl font-extrabold tracking-wide @max-[360px]:text-lg @max-[360px]:tracking-normal"
+      class={[
+        'font-extrabold tracking-wide @max-[360px]:tracking-normal',
+        compact ? 'text-[15px]' : 'text-xl @max-[360px]:text-lg',
+      ]}
     >
       {airport?.iata || airport?.icao || 'N/A'}
     </span>
