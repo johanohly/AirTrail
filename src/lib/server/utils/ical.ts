@@ -405,8 +405,10 @@ const eventLines = (
   } else {
     // Instants in UTC: calendars convert them to the viewer's zone, and no
     // VTIMEZONE is needed. Airport-local times are in the description.
-    if (start) lines.push(`DTSTART:${utcStamp(parseUtcIso(start)!)}`);
-    if (end) lines.push(`DTEND:${utcStamp(parseUtcIso(end)!)}`);
+    // RFC 5545 requires DTSTART, so an arrival-only flight starts at its
+    // arrival instead of carrying a lone DTEND.
+    lines.push(`DTSTART:${utcStamp(parseUtcIso((start ?? end)!)!)}`);
+    if (start && end) lines.push(`DTEND:${utcStamp(parseUtcIso(end)!)}`);
   }
 
   lines.push(`SUMMARY:${escapeText(summary(flight, options))}`);

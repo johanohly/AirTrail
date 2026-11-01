@@ -743,6 +743,27 @@ describe('event times', () => {
     expect(ics).not.toContain('VTIMEZONE');
   });
 
+  it('starts an arrival-only flight at its arrival, without a DTEND', () => {
+    const ics = buildCalendarFeed(
+      [flight({ departureScheduled: null, duration: null })],
+      options(),
+    );
+
+    expect(property(ics, 'DTSTART')).toBe('20250701T112000Z');
+    expect(property(ics, 'DTEND')).toBeUndefined();
+    expect(description(ics)).toContain('Arrives: 12:20 local');
+  });
+
+  it('leaves DTEND out of a departure-only flight', () => {
+    const ics = buildCalendarFeed(
+      [flight({ arrivalScheduled: null, duration: null })],
+      options(),
+    );
+
+    expect(property(ics, 'DTSTART')).toBe('20250701T093000Z');
+    expect(property(ics, 'DTEND')).toBeUndefined();
+  });
+
   it('keeps airport-local times in the description across DST', () => {
     const winter = buildCalendarFeed(
       [
