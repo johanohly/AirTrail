@@ -3,6 +3,7 @@
     dateFormatOptions,
     distanceUnitOptions,
     flightTimeDisplayOptions,
+    flightTimeSourceOptions,
     pressureUnitOptions,
     temperatureUnitOptions,
     timeFormatOptions,
@@ -26,6 +27,7 @@
     dateFormat: dateFormatOptions as AnyOption[],
     weekStartsOn: weekStartsOnOptions as AnyOption[],
     flightTimeDisplay: flightTimeDisplayOptions as AnyOption[],
+    flightTimeSource: flightTimeSourceOptions as AnyOption[],
   };
 
   export const FIELD_LABELS: Record<PreferenceField, string> = {
@@ -37,6 +39,7 @@
     dateFormat: 'Date format',
     weekStartsOn: 'Week starts on',
     flightTimeDisplay: 'Flight times',
+    flightTimeSource: 'Flight list times',
   };
 </script>
 

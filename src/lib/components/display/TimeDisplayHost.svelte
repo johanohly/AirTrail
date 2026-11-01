@@ -15,6 +15,7 @@
     type ModalContext,
   } from '$lib/components/ui/modal/Modal.svelte';
   import * as Popover from '$lib/components/ui/popover';
+  import { describeDelay } from '$lib/utils/datetime';
   import {
     formatDate,
     formatTime,
@@ -54,6 +55,22 @@
     const timeLabel = formatTime(date, prefs, tz);
     return { badge, dateLabel, timeLabel };
   };
+
+  // The copyable rows for a single instant: airport-local (for flight times
+  // with a known airport), UTC, and the viewer's system timezone.
+  const buildRows = (payload: TimeDisplayPayload, date: Date): Row[] => [
+    ...(payload.mode === 'flight' && payload.airportTz
+      ? [
+          buildRow(
+            payload.airportTz,
+            payload.airportLabel ?? offsetLabel(payload.airportTz, date),
+            date,
+          ),
+        ]
+      : []),
+    buildRow('UTC', 'UTC', date),
+    buildRow(systemTz, offsetLabel(systemTz, date), date),
+  ];
 
   let now = $state(Date.now());
   let transitionEnabled = $state(false);
@@ -176,19 +193,20 @@
   {#snippet children({ payload })}
     {#if payload}
       {@const date = payload.date}
-      {@const rows = [
-        ...(payload.mode === 'flight' && payload.airportTz
-          ? [
-              buildRow(
-                payload.airportTz,
-                payload.airportLabel ?? offsetLabel(payload.airportTz, date),
-                date,
-              ),
-            ]
-          : []),
-        buildRow('UTC', 'UTC', date),
-        buildRow(systemTz, offsetLabel(systemTz, date), date),
-      ]}
+      {@const scheduledRows = payload.scheduledDate
+        ? buildRows(payload, payload.scheduledDate)
+        : null}
+      {@const actualRows = payload.actualDate
+        ? buildRows(payload, payload.actualDate)
+        : null}
+      {@const delay =
+        payload.actualDate && payload.scheduledDate
+          ? describeDelay(payload.actualDate, payload.scheduledDate, 60)
+          : null}
+      <!-- With both gate instants the delay divider between the scheduled and
+           actual sections says everything the headline would, so the header
+           falls back to the relative time. -->
+      {@const showFullComparison = !!(scheduledRows && actualRows && delay)}
       <TooltipPrimitive.Portal>
         <TooltipPrimitive.Content sideOffset={8} side={payload.side ?? 'top'}>
           {#snippet child({ props, wrapperProps })}
@@ -200,13 +218,14 @@
             >
               <div
                 {...props}
+                data-testid="time-display-tooltip"
                 style:z-index={payload.zIndex}
                 class="bg-popover text-popover-foreground rounded-md border shadow-md p-3 min-w-[260px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
               >
                 <div class="flex flex-col gap-3">
                   <div class="flex flex-col gap-1">
                     <div class="flex items-center justify-between gap-2">
-                      {#if payload.headline}
+                      {#if payload.headline && !showFullComparison}
                         <span
                           class={cn('text-[13px] font-semibold leading-tight', {
                             'text-green-600 dark:text-green-400':
@@ -246,6 +265,7 @@
                           <div class="flex flex-col gap-3">
                             {#if payload.mode === 'flight'}
                               <PreferenceField field="flightTimeDisplay" />
+                              <PreferenceField field="flightTimeSource" />
                             {/if}
                             <PreferenceField field="timeFormat" />
                             <PreferenceField field="dateFormat" />
@@ -253,39 +273,39 @@
                         </Popover.Content>
                       </Popover.Root>
                     </div>
-                    {#if payload.note}
+                    {#if payload.note && !showFullComparison}
                       <p class="text-[11px] text-muted-foreground">
                         {payload.note}
                       </p>
                     {/if}
                   </div>
                   <div class="flex flex-col -mx-1.5">
-                    {#each rows as row, i (i)}
-                      <button
-                        type="button"
-                        onclick={(e) => {
-                          copyRow(row.badge, row.dateLabel, row.timeLabel);
-                          (e.currentTarget as HTMLButtonElement).blur();
-                        }}
-                        class="flex items-center justify-between gap-3 px-1.5 py-1 rounded-sm cursor-copy text-left transition-colors hover:bg-foreground/5 focus-visible:bg-foreground/5 active:bg-foreground/10 focus:outline-none"
+                    {#if showFullComparison}
+                      {@render instantRows('Scheduled', scheduledRows)}
+                      <div
+                        class="my-1 flex items-center gap-2 px-1.5"
+                        data-testid="time-tooltip-delay"
                       >
-                        <div class="flex items-center gap-1.5 min-w-0">
-                          <span
-                            class="inline-flex items-center justify-center h-4 px-1.5 bg-foreground/10 text-foreground/75 rounded-xs text-[10px] font-mono font-semibold leading-none tabular-nums"
-                          >
-                            {row.badge}
-                          </span>
-                          <span class="text-xs text-foreground/90 truncate">
-                            {row.dateLabel}
-                          </span>
-                        </div>
+                        <div class="h-px flex-1 bg-border"></div>
                         <span
-                          class="tabular-nums text-[11px] font-mono text-foreground/90 leading-none"
+                          class={cn(
+                            'text-[10px] font-mono font-semibold leading-none tabular-nums',
+                            delay.status === 'late' &&
+                              'text-red-600 dark:text-red-400',
+                            delay.status === 'early' &&
+                              'text-green-600 dark:text-green-400',
+                            delay.status === 'on-time' &&
+                              'text-muted-foreground',
+                          )}
                         >
-                          {row.timeLabel}
+                          {delay.label}
                         </span>
-                      </button>
-                    {/each}
+                        <div class="h-px flex-1 bg-border"></div>
+                      </div>
+                      {@render instantRows('Actual', actualRows)}
+                    {:else}
+                      {@render instantRows(null, buildRows(payload, date))}
+                    {/if}
                   </div>
                 </div>
                 <TooltipPrimitive.Arrow width={12} height={6}>
@@ -319,3 +339,39 @@
     {/if}
   {/snippet}
 </TooltipPrimitive.Root>
+
+{#snippet instantRows(label: string | null, rows: Row[])}
+  {#if label}
+    <span
+      class="px-1.5 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80"
+    >
+      {label}
+    </span>
+  {/if}
+  {#each rows as row, i (i)}
+    <button
+      type="button"
+      onclick={(e) => {
+        copyRow(row.badge, row.dateLabel, row.timeLabel);
+        (e.currentTarget as HTMLButtonElement).blur();
+      }}
+      class="flex items-center justify-between gap-3 px-1.5 py-1 rounded-sm cursor-copy text-left transition-colors hover:bg-foreground/5 focus-visible:bg-foreground/5 active:bg-foreground/10 focus:outline-none"
+    >
+      <div class="flex items-center gap-1.5 min-w-0">
+        <span
+          class="inline-flex items-center justify-center h-4 px-1.5 bg-foreground/10 text-foreground/75 rounded-xs text-[10px] font-mono font-semibold leading-none tabular-nums"
+        >
+          {row.badge}
+        </span>
+        <span class="text-xs text-foreground/90 truncate">
+          {row.dateLabel}
+        </span>
+      </div>
+      <span
+        class="tabular-nums text-[11px] font-mono text-foreground/90 leading-none"
+      >
+        {row.timeLabel}
+      </span>
+    </button>
+  {/each}
+{/snippet}

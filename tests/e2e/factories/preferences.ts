@@ -9,6 +9,7 @@ export type UserPreferences = {
   dateFormat?: 'iso' | 'us' | 'eu' | 'auto';
   weekStartsOn?: 'mon' | 'sun' | 'auto';
   flightTimeDisplay?: 'airport' | 'utc' | 'system';
+  flightTimeSource?: 'actual' | 'scheduled';
 };
 
 export const preferencesFactory = {
