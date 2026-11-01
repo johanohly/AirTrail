@@ -316,9 +316,10 @@
   });
 
   // Hover state is otherwise cleared only when deck.gl picks nothing under the
-  // pointer. In Firefox that never happens once the pointer leaves the map, and
-  // a tap on a control never moves the pointer off a route, so the hover card
-  // stayed open over the filter popover. Clear it on both.
+  // pointer, which takes a move across empty map. Going straight from a route
+  // onto a map control or off the map never does that, and neither does a tap
+  // on a control, so the hover card stayed open over the filter popover. Clear
+  // it when the pointer leaves the canvas and on any press outside it.
   $effect(() => {
     if (!map) return;
     const canvas = map.getCanvas();
