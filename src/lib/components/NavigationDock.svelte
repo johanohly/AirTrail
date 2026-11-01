@@ -22,6 +22,9 @@
   import { Separator } from '$lib/components/ui/separator';
   import { openModalsState } from '$lib/state.svelte';
   import { flyAndScale } from '$lib/utils';
+  import { currentPathname } from '$lib/utils/location-path.svelte';
+
+  const pathname = $derived(currentPathname());
 
   const addFlightItem = {
     label: 'Add flight',
@@ -77,7 +80,7 @@
   class="z-10 absolute bottom-6 left-1/2 translate-x-[-50%]"
 >
   <div class="flex gap-4">
-    {#if page.url.pathname !== '/'}
+    {#if pathname !== '/'}
       <div transition:flyAndScale>
         <DockFloatingItem href="/" label="Home">
           <Map />
@@ -88,7 +91,7 @@
       {#if hasClientPermission(page.data.authorization, 'flight.create.own')}
         <DockTooltipItem item={addFlightItem} />
       {/if}
-      {#if page.url.pathname === '/' && hasClientPermission(page.data.authorization, 'flight.read.own')}
+      {#if pathname === '/' && hasClientPermission(page.data.authorization, 'flight.read.own')}
         <DockTooltipItem item={listFlightsItem} />
         <DockTooltipItem item={flightsStatisticsItem} />
       {/if}
