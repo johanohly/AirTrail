@@ -2,8 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { buildFlightIndicators } from './flight-indicators';
 
-import type { Airport, Flight, FlightPassenger } from '$lib/db/types';
+import type {
+  Airport,
+  Flight,
+  FlightCustomFieldValue,
+  FlightPassenger,
+} from '$lib/db/types';
 import { prepareFlightData } from '$lib/utils';
+import type { CustomFieldDefinition } from '$lib/utils/custom-fields';
 
 const airport = (id: number): Airport =>
   ({ id, tz: 'UTC', lon: 0, lat: 0 }) as Airport;
@@ -50,6 +56,34 @@ const labelFor = (
   key: string,
   ...args: Parameters<typeof buildFlightIndicators>
 ) => buildFlightIndicators(...args).find((i) => i.key === key)?.label;
+
+const definition = (
+  id: number,
+  label: string,
+  fieldType: CustomFieldDefinition['fieldType'] = 'text',
+): CustomFieldDefinition => ({
+  id,
+  entityType: 'flight',
+  key: `field_${id}`,
+  label,
+  description: null,
+  fieldType,
+  required: false,
+  active: true,
+  order: id,
+  options: null,
+  defaultValue: null,
+  validationJson: null,
+});
+
+const customEntry = (
+  fieldId: number,
+  value: unknown,
+  valueLabel: string | null = null,
+): FlightCustomFieldValue => ({ fieldId, value, valueLabel });
+
+const linesFor = (...args: Parameters<typeof buildFlightIndicators>) =>
+  buildFlightIndicators(...args).find((i) => i.key === 'customFields')?.lines;
 
 describe('buildFlightIndicators', () => {
   it('returns nothing for a flight with only a date', () => {
@@ -172,5 +206,163 @@ describe('buildFlightIndicators', () => {
       'passengers',
       'note',
     ]);
+  });
+
+  it('adds no custom-fields indicator without values or definitions', () => {
+    const definitions = [definition(1, 'Reason')];
+    expect(
+      keys(flight({ note: 'Window seat' }), {
+        customFieldDefinitions: definitions,
+      }),
+    ).toEqual(['note']);
+    expect(
+      keys(flight({ customFields: [customEntry(1, 'Business')] })),
+    ).toEqual([]);
+    expect(
+      keys(flight({ customFields: [] }), {
+        customFieldDefinitions: definitions,
+      }),
+    ).toEqual([]);
+  });
+
+  it('lists custom fields in definition order', () => {
+    const withValues = flight({
+      customFields: [customEntry(2, 'ABC123'), customEntry(1, 'Business')],
+    });
+    expect(
+      linesFor(withValues, {
+        customFieldDefinitions: [
+          definition(1, 'Reason'),
+          definition(2, 'Booking'),
+        ],
+      }),
+    ).toEqual(['Reason: Business', 'Booking: ABC123']);
+    expect(
+      labelFor('customFields', withValues, {
+        customFieldDefinitions: [
+          definition(1, 'Reason'),
+          definition(2, 'Booking'),
+        ],
+      }),
+    ).toBe('Custom fields: Reason: Business; Booking: ABC123');
+  });
+
+  it('skips unknown fields and empty custom field values', () => {
+    const withValues = flight({
+      customFields: [
+        customEntry(9, 'Orphan'),
+        customEntry(1, ''),
+        customEntry(2, []),
+        customEntry(3, 'Kept'),
+      ],
+    });
+    expect(
+      linesFor(withValues, {
+        customFieldDefinitions: [
+          definition(1, 'Text'),
+          definition(2, 'Multi', 'multi-select'),
+          definition(3, 'Also text'),
+        ],
+      }),
+    ).toEqual(['Also text: Kept']);
+  });
+
+  it('formats every custom field type for the tooltip', () => {
+    const withValues = flight({
+      customFields: [
+        customEntry(1, '  12A '),
+        customEntry(2, 31),
+        customEntry(3, true),
+        customEntry(4, false),
+        customEntry(5, '2026-03-12'),
+        customEntry(6, 'Veggie'),
+        customEntry(7, ['Wifi', 'Meal']),
+        customEntry(8, 1421, 'London Heathrow'),
+      ],
+    });
+    expect(
+      linesFor(withValues, {
+        customFieldDefinitions: [
+          definition(1, 'Seat', 'text'),
+          definition(2, 'Legroom', 'number'),
+          definition(3, 'Window', 'boolean'),
+          definition(4, 'Aisle', 'boolean'),
+          definition(5, 'Flown on', 'date'),
+          definition(6, 'Meal', 'select'),
+          definition(7, 'Extras', 'multi-select'),
+          definition(8, 'Home base', 'airport'),
+        ],
+      }),
+    ).toEqual([
+      'Seat: 12A',
+      'Legroom: 31',
+      'Window: Yes',
+      'Aisle: No',
+      'Flown on: 2026-03-12',
+      'Meal: Veggie',
+      'Extras: Wifi, Meal',
+      'Home base: London Heathrow',
+    ]);
+  });
+
+  it('truncates long custom values without splitting code points', () => {
+    const withValues = flight({
+      customFields: [
+        customEntry(1, 'a'.repeat(120)),
+        customEntry(2, `${'a'.repeat(99)}😀x`),
+      ],
+    });
+    expect(
+      linesFor(withValues, {
+        customFieldDefinitions: [
+          definition(1, 'Long', 'textarea'),
+          definition(2, 'Emoji', 'text'),
+        ],
+      }),
+    ).toEqual([`Long: ${'a'.repeat(100)}…`, `Emoji: ${'a'.repeat(99)}😀…`]);
+  });
+
+  it('hides entity values whose referenced object is gone', () => {
+    const withValues = flight({
+      customFields: [customEntry(1, 1421, null), customEntry(2, 'ABC123')],
+    });
+    expect(
+      linesFor(withValues, {
+        customFieldDefinitions: [
+          definition(1, 'Home base', 'airport'),
+          definition(2, 'Booking'),
+        ],
+      }),
+    ).toEqual(['Booking: ABC123']);
+  });
+
+  it('caps the custom-fields summary label like a note', () => {
+    const withValues = flight({
+      customFields: [
+        customEntry(1, 'a'.repeat(100)),
+        customEntry(2, 'b'.repeat(100)),
+      ],
+    });
+    expect(
+      labelFor('customFields', withValues, {
+        customFieldDefinitions: [definition(1, 'One'), definition(2, 'Two')],
+      }),
+    ).toBe(`Custom fields: One: ${'a'.repeat(100)}; Two: ${'b'.repeat(33)}…`);
+  });
+
+  it('places custom fields after the note', () => {
+    const full = flight({
+      departure: '2026-03-12T10:04:00.000Z',
+      passengers: [me(), member('bob', 'Bob')],
+      note: 'Window seat',
+      customFields: [customEntry(1, 'Business')],
+    });
+    expect(
+      keys(full, {
+        hasTrack: true,
+        viewerId: 'me',
+        customFieldDefinitions: [definition(1, 'Reason')],
+      }),
+    ).toEqual(['track', 'actualTimes', 'passengers', 'note', 'customFields']);
   });
 });

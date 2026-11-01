@@ -11,6 +11,7 @@ import {
   flightScopeSchema,
   resolveFlightScope,
 } from '$lib/flight-scope';
+import { attachFlightCustomFields } from '$lib/server/utils/custom-fields';
 import {
   createFlight,
   createManyFlights,
@@ -86,7 +87,10 @@ export const flightRouter = router({
       if (!canListFlights(authorization, input)) {
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
-      return await listFlightsInScope(resolveFlightScope(input, user.id));
+      const flights = await listFlightsInScope(
+        resolveFlightScope(input, user.id),
+      );
+      return await attachFlightCustomFields(db, flights);
     }),
   guests: permissionProcedure('flight.read.own').query(
     async ({ ctx: { user } }) => {
