@@ -51,6 +51,7 @@
     y="flights"
     yNice={2}
     padding={{ left: 16, bottom: 16 }}
+    tooltipContext={{ mode: 'band' }}
   >
     <Svg>
       <Axis
@@ -75,7 +76,7 @@
         {/snippet}
       </LinearGradient>
     </Svg>
-    <Tooltip.Root x="data" y="data">
+    <Tooltip.Root x="data" y="data" portal={false}>
       {#snippet children({ data })}
         <Tooltip.Header>{WEEKDAYS[data.weekday]}</Tooltip.Header>
         <Tooltip.Item label="Flights" value={data.flights} />
