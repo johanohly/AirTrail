@@ -8,7 +8,6 @@
     PlaneLanding,
     X,
   } from '@o7/icon/lucide';
-  import { isBefore, isAfter } from 'date-fns';
   import { tick } from 'svelte';
 
   import DeleteFlightModal from './DeleteFlightModal.svelte';
@@ -57,6 +56,10 @@
     type FlightData,
   } from '$lib/utils';
   import { formatAircraft } from '$lib/utils/data/aircraft';
+  import {
+    buildTimingSummary,
+    type TimingStatus,
+  } from '$lib/utils/flight-timing';
   import { Duration, parseLocalizeISO } from '$lib/utils/datetime';
   import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
   import { isMediumScreen } from '$lib/utils/size';
@@ -88,6 +91,14 @@
     trackedFlightIds?: Set<number>;
     onNavigate?: NavigateFlights;
   } = $props();
+
+  const parseRunwayTime = (value: string | null, airport: Airport | null) =>
+    value && airport ? parseLocalizeISO(value, airport.tz) : null;
+
+  const timingClass = (status: TimingStatus) => ({
+    'text-green-600 dark:text-green-400': status === 'early',
+    'text-red-600 dark:text-red-400': status === 'late',
+  });
 
   const prefs = $derived(getPreferences(appPage.data.user));
   const access = $derived(
@@ -123,17 +134,27 @@
             ? parseLocalizeISO(f.raw.arrivalScheduled, f.to.tz)
             : null;
 
-        let depStatus: 'early' | 'late' | null = null;
-        if (depDate && depScheduled) {
-          if (isBefore(depDate, depScheduled)) depStatus = 'early';
-          else if (isAfter(depDate, depScheduled)) depStatus = 'late';
-        }
-
-        let arrStatus: 'early' | 'late' | null = null;
-        if (arrDate && arrScheduled) {
-          if (isBefore(arrDate, arrScheduled)) arrStatus = 'early';
-          else if (isAfter(arrDate, arrScheduled)) arrStatus = 'late';
-        }
+        const takeoffActual = parseRunwayTime(f.raw.takeoffActual, f.from);
+        const landingActual = parseRunwayTime(f.raw.landingActual, f.to);
+        const takeoffScheduled = parseRunwayTime(
+          f.raw.takeoffScheduled,
+          f.from,
+        );
+        const landingScheduled = parseRunwayTime(f.raw.landingScheduled, f.to);
+        const depTiming = buildTimingSummary({
+          gateActual: depDate,
+          gateScheduled: depScheduled,
+          runwayActual: takeoffActual,
+          runwayScheduled: takeoffScheduled,
+          side: 'departure',
+        });
+        const arrTiming = buildTimingSummary({
+          gateActual: arrDate,
+          gateScheduled: arrScheduled,
+          runwayActual: landingActual,
+          runwayScheduled: landingScheduled,
+          side: 'arrival',
+        });
 
         return {
           ...f,
@@ -149,8 +170,8 @@
               ? formatFlightDate(f.date, f.datePrecision, prefs)
               : null,
           arrAt: (arrDate ?? arrScheduled) as Date | null,
-          depStatus,
-          arrStatus,
+          depTiming,
+          arrTiming,
           seat: formatSeatForUser(f, seatUserId),
           passengerLabels: showPassengerDetails
             ? getFlightPassengerLabels(f)
@@ -662,10 +683,8 @@
         airportTz={flight.from?.tz}
         airportLabel={flight.from?.iata}
         side="right"
-        class={cn('text-sm', {
-          'text-green-600 dark:text-green-400': flight.depStatus === 'early',
-          'text-red-600 dark:text-red-400': flight.depStatus === 'late',
-        })}
+        timing={flight.depTiming}
+        class={cn('text-sm', timingClass(flight.depTiming.status))}
       />
     {:else if flight.depFallback}
       <p class="text-sm">{flight.depFallback}</p>
@@ -680,10 +699,11 @@
         airportTz={flight.to?.tz}
         airportLabel={flight.to?.iata}
         side="right"
-        class={cn('text-sm overflow-hidden text-ellipsis whitespace-nowrap', {
-          'text-green-600 dark:text-green-400': flight.arrStatus === 'early',
-          'text-red-600 dark:text-red-400': flight.arrStatus === 'late',
-        })}
+        timing={flight.arrTiming}
+        class={cn(
+          'text-sm overflow-hidden text-ellipsis whitespace-nowrap',
+          timingClass(flight.arrTiming.status),
+        )}
       />
     {/if}
     <p class="text-sm text-transparent">.</p>

@@ -11,6 +11,7 @@
   import { page } from '$app/state';
   import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
   import { cn } from '$lib/utils';
+  import type { TimingSummary } from '$lib/utils/flight-timing';
   import {
     formatCompactDate,
     formatDate,
@@ -29,6 +30,7 @@
     variant = 'datetime',
     dateStyle = 'preference',
     side = 'top',
+    timing,
     class: className,
     children,
   }: {
@@ -39,6 +41,7 @@
     variant?: Variant;
     dateStyle?: DateStyle;
     side?: TimeDisplaySide;
+    timing?: TimingSummary;
     class?: string;
     children?: Snippet;
   } = $props();
@@ -81,6 +84,13 @@
       airportLabel,
       mode,
       side,
+      headline: timing?.headline ?? null,
+      headlineStatus: timing?.status ?? null,
+      note: timing?.evidence.length
+        ? timing.evidence
+            .map((n) => `${n.label} ${formatTime(n.date, prefs, primaryTz)}`)
+            .join(', ')
+        : null,
       zIndex: modalZ !== undefined ? modalZ + 5 : undefined,
     };
   });

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { cn } from '$lib/utils';
   import { Tooltip as TooltipPrimitive } from 'bits-ui';
   import { Settings2 } from '@o7/icon/lucide';
   import { setContext } from 'svelte';
@@ -203,39 +204,60 @@
                 class="bg-popover text-popover-foreground rounded-md border shadow-md p-3 min-w-[260px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
               >
                 <div class="flex flex-col gap-3">
-                  <div class="flex items-center justify-between gap-2">
-                    <span
-                      class="tabular-nums text-xs font-medium text-muted-foreground leading-none"
-                    >
-                      {formatRelative(date.getTime(), now)}
-                    </span>
-                    <Popover.Root bind:open={prefsOpen}>
-                      <Popover.Trigger>
-                        {#snippet child({ props })}
-                          <button
-                            {...props}
-                            type="button"
-                            aria-label="Time display preferences"
-                            class="-m-1 inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring data-[state=open]:bg-foreground/10 data-[state=open]:text-foreground"
-                          >
-                            <Settings2 size={12} />
-                          </button>
-                        {/snippet}
-                      </Popover.Trigger>
-                      <Popover.Content
-                        align="end"
-                        sideOffset={10}
-                        class="w-64 p-3"
-                      >
-                        <div class="flex flex-col gap-3">
-                          {#if payload.mode === 'flight'}
-                            <PreferenceField field="flightTimeDisplay" />
-                          {/if}
-                          <PreferenceField field="timeFormat" />
-                          <PreferenceField field="dateFormat" />
-                        </div>
-                      </Popover.Content>
-                    </Popover.Root>
+                  <div class="flex flex-col gap-1">
+                    <div class="flex items-center justify-between gap-2">
+                      {#if payload.headline}
+                        <span
+                          class={cn('text-[13px] font-semibold leading-tight', {
+                            'text-green-600 dark:text-green-400':
+                              payload.headlineStatus === 'early',
+                            'text-red-600 dark:text-red-400':
+                              payload.headlineStatus === 'late',
+                            'text-muted-foreground': !payload.headlineStatus,
+                          })}
+                        >
+                          {payload.headline}
+                        </span>
+                      {:else}
+                        <span
+                          class="tabular-nums text-xs font-medium text-muted-foreground leading-none"
+                        >
+                          {formatRelative(date.getTime(), now)}
+                        </span>
+                      {/if}
+                      <Popover.Root bind:open={prefsOpen}>
+                        <Popover.Trigger>
+                          {#snippet child({ props })}
+                            <button
+                              {...props}
+                              type="button"
+                              aria-label="Time display preferences"
+                              class="-m-1 inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring data-[state=open]:bg-foreground/10 data-[state=open]:text-foreground"
+                            >
+                              <Settings2 size={12} />
+                            </button>
+                          {/snippet}
+                        </Popover.Trigger>
+                        <Popover.Content
+                          align="end"
+                          sideOffset={10}
+                          class="w-64 p-3"
+                        >
+                          <div class="flex flex-col gap-3">
+                            {#if payload.mode === 'flight'}
+                              <PreferenceField field="flightTimeDisplay" />
+                            {/if}
+                            <PreferenceField field="timeFormat" />
+                            <PreferenceField field="dateFormat" />
+                          </div>
+                        </Popover.Content>
+                      </Popover.Root>
+                    </div>
+                    {#if payload.note}
+                      <p class="text-[11px] text-muted-foreground">
+                        {payload.note}
+                      </p>
+                    {/if}
                   </div>
                   <div class="flex flex-col -mx-1.5">
                     {#each rows as row, i (i)}
