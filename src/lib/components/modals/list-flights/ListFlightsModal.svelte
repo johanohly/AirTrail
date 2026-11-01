@@ -22,6 +22,7 @@
   } from './flight-list-groups';
   import { createFlightListAccess } from './flight-list-access';
   import MobileFlightList from './MobileFlightList.svelte';
+  import { readFlightsPerPage } from './page-size-storage';
   import PastFlightsDivider from './PastFlightsDivider.svelte';
   import Toolbar from './Toolbar.svelte';
 
@@ -186,7 +187,7 @@
     );
   });
 
-  const flightsPerPage = 20;
+  let pageSize = $state(readFlightsPerPage());
   let page = $state(1);
   let flightListReferenceTime = $state(new Date());
 
@@ -199,7 +200,7 @@
       formattedFlights,
       flightListReferenceTime,
     );
-    return paginateFlightListYears(years, flightsPerPage);
+    return paginateFlightListYears(years, pageSize);
   });
   const currentFlightListPage = $derived(flightListPages[page - 1]);
   const flightsByYear = $derived(currentFlightListPage?.years ?? []);
@@ -461,6 +462,7 @@
         bind:selecting
         bind:selectedFlights
         bind:page
+        bind:pageSize
         pageCount={flightListPages.length}
         {showingFrom}
         {showingTo}
