@@ -79,6 +79,10 @@
   });
 
   const modalCtx = getModalContext();
+  // Outside modals the tooltip gets no z-index from the context, which leaves
+  // it under raised surfaces like the map details pane (z-20); fall back to
+  // the shared tooltip layer (popover/tooltip contents use z-50).
+  const STANDALONE_Z_INDEX = 50;
   const payload = $derived.by(() => {
     if (!date) return undefined;
     const modalZ = modalCtx?.getContentZIndex();
@@ -97,7 +101,7 @@
             .map((n) => `${n.label} ${formatTime(n.date, prefs, primaryTz)}`)
             .join(', ')
         : null,
-      zIndex: modalZ !== undefined ? modalZ + 5 : undefined,
+      zIndex: modalZ !== undefined ? modalZ + 5 : STANDALONE_Z_INDEX,
     };
   });
 </script>

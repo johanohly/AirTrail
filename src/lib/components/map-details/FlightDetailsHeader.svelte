@@ -7,7 +7,12 @@
     RouteArrow,
     TimeDisplay,
   } from '$lib/components/display';
-  import type { FlightData } from '$lib/utils';
+  import { cn, type FlightData } from '$lib/utils';
+  import {
+    buildFlightSideTimes,
+    timingStatusClass,
+    type FlightSideTimes,
+  } from '$lib/utils/data/flight-times';
   import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
 
   let {
@@ -19,6 +24,23 @@
   } = $props();
 
   const prefs = $derived(getPreferences(page.data.user));
+
+  const preferScheduled = $derived(prefs.flightTimeSource === 'scheduled');
+  const depTimes = $derived(
+    buildFlightSideTimes(flight, 'departure', preferScheduled),
+  );
+  const arrTimes = $derived(
+    buildFlightSideTimes(flight, 'arrival', preferScheduled),
+  );
+
+  const timeClass = (t: FlightSideTimes) =>
+    cn(
+      'text-xs tabular-nums',
+      t.isActual ? timingStatusClass(t.timing.status) : {},
+      {
+        'text-muted-foreground': !t.isActual || !t.timing.status,
+      },
+    );
 
   const flightNumber = $derived(
     flight.flightNumber?.trim()
@@ -57,7 +79,7 @@
 
   {#snippet endpoint(
     airport: FlightData['from'],
-    time: FlightData['departure'],
+    times: FlightSideTimes,
     align: 'left' | 'right',
   )}
     <div
@@ -78,13 +100,16 @@
             {airportCode(airport)}
           </span>
         </div>
-        {#if time}
+        {#if times.at}
           <TimeDisplay
-            date={time}
+            date={times.at}
+            timing={times.timing}
+            actualDate={times.actual}
+            scheduledDate={times.scheduled}
             airportTz={airport.tz}
             airportLabel={airport.iata}
             side="bottom"
-            class="text-xs text-muted-foreground tabular-nums"
+            class={timeClass(times)}
           />
         {/if}
       {:else}
@@ -100,10 +125,10 @@
     onclick={() => onShowRoute?.()}
     aria-label="Open route details"
   >
-    {@render endpoint(flight.from, flight.departure, 'left')}
+    {@render endpoint(flight.from, depTimes, 'left')}
     <div class="flex flex-col items-center gap-0.5 text-muted-foreground/70">
       <RouteArrow class="size-5 fill-muted-foreground/70" />
     </div>
-    {@render endpoint(flight.to, flight.arrival, 'right')}
+    {@render endpoint(flight.to, arrTimes, 'right')}
   </button>
 </div>
