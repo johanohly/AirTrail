@@ -10,6 +10,7 @@ export type TimeDisplayPayload = {
   airportLabel: string | null;
   mode: TimeDisplayMode;
   side: TimeDisplaySide;
+  note: string | null;
   zIndex: number | undefined;
 };
 

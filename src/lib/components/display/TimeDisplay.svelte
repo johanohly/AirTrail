@@ -20,6 +20,7 @@
 
   type Variant = 'time' | 'date' | 'datetime';
   type DateStyle = 'preference' | 'compact';
+  type NoteTime = { label: string; date: Date };
 
   let {
     date,
@@ -29,6 +30,7 @@
     variant = 'datetime',
     dateStyle = 'preference',
     side = 'top',
+    noteTimes = [],
     class: className,
     children,
   }: {
@@ -39,6 +41,7 @@
     variant?: Variant;
     dateStyle?: DateStyle;
     side?: TimeDisplaySide;
+    noteTimes?: NoteTime[];
     class?: string;
     children?: Snippet;
   } = $props();
@@ -81,6 +84,11 @@
       airportLabel,
       mode,
       side,
+      note: noteTimes.length
+        ? noteTimes
+            .map((n) => `${n.label} ${formatTime(n.date, prefs, primaryTz)}`)
+            .join(', ')
+        : null,
       zIndex: modalZ !== undefined ? modalZ + 5 : undefined,
     };
   });

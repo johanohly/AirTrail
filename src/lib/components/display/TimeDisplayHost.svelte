@@ -237,6 +237,9 @@
                       </Popover.Content>
                     </Popover.Root>
                   </div>
+                  {#if payload.note}
+                    <p class="text-xs text-foreground/90">{payload.note}</p>
+                  {/if}
                   <div class="flex flex-col -mx-1.5">
                     {#each rows as row, i (i)}
                       <button
