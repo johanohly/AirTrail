@@ -251,8 +251,8 @@
               <Button variant="outline" href={subscribeUrl}>Subscribe</Button>
             </div>
             <p class="text-muted-foreground text-xs">
-              Anyone with this URL can read your flight dates. Treat it like a
-              password.
+              Anyone with this URL can read your flights, including dates, notes
+              and seats. Treat it like a password.
             </p>
           </div>
 
