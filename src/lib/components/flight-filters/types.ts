@@ -27,6 +27,7 @@ export type LocationFilterValues = {
 export type LocationFilterOperators = {
   departureAirportsOperator: OptionFilterOperator;
   arrivalAirportsOperator: OptionFilterOperator;
+  routesOperator: OptionFilterOperator;
 };
 
 export type FlightFilters = LocationFilterValues &
@@ -43,6 +44,24 @@ export type FlightFilters = LocationFilterValues &
     aircraftOperator: OptionFilterOperator;
     aircraftRegs: string[];
     aircraftRegsOperator: OptionFilterOperator;
+    flightType: string[];
+    flightTypeOperator: OptionFilterOperator;
+    flightNumber: string[];
+    flightNumberOperator: OptionFilterOperator;
+    duration: string[];
+    durationOperator: OptionFilterOperator;
+    seatClass: string[];
+    seatClassOperator: OptionFilterOperator;
+    flightReason: string[];
+    flightReasonOperator: OptionFilterOperator;
+    seatType: string[];
+    seatTypeOperator: OptionFilterOperator;
+    seatNumber: string[];
+    seatNumberOperator: OptionFilterOperator;
+    months: string[];
+    monthsOperator: OptionFilterOperator;
+    days: string[];
+    daysOperator: OptionFilterOperator;
   };
 
 export type TempFilters = LocationFilterValues;
@@ -61,6 +80,13 @@ export const defaultTempFilters: TempFilters = createDefaultTempFilters();
 
 export function normalizeRoute(idA: string, idB: string): Route {
   return idA <= idB ? { a: idA, b: idB } : { a: idB, b: idA };
+}
+
+export const routeKey = (route: Route): string => `${route.a}|${route.b}`;
+
+export function routeFromKey(key: string): Route {
+  const sep = key.indexOf('|');
+  return normalizeRoute(key.slice(0, sep), key.slice(sep + 1));
 }
 
 export function routeMatchesEndpoints(
