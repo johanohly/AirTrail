@@ -57,7 +57,7 @@
   } from '$lib/utils';
   import { formatAircraft } from '$lib/utils/data/aircraft';
   import {
-    resolveTimingStatus,
+    buildTimingSummary,
     type TimingStatus,
   } from '$lib/utils/flight-timing';
   import { Duration, parseLocalizeISO } from '$lib/utils/datetime';
@@ -100,27 +100,6 @@
     'text-red-600 dark:text-red-400': status === 'late',
   });
 
-  // The times behind a coloured status, since the row shows only one of them.
-  const timingNoteTimes = (
-    status: TimingStatus,
-    gateActual: Date | null,
-    gateScheduled: Date | null,
-    runwayActual: Date | null,
-    runwayScheduled: Date | null,
-    runwayLabel: string,
-  ) => {
-    if (!status) return [];
-    if (gateActual) {
-      return gateScheduled ? [{ label: 'Scheduled', date: gateScheduled }] : [];
-    }
-    return [
-      ...(runwayActual ? [{ label: runwayLabel, date: runwayActual }] : []),
-      ...(runwayScheduled
-        ? [{ label: 'scheduled', date: runwayScheduled }]
-        : []),
-    ];
-  };
-
   const prefs = $derived(getPreferences(appPage.data.user));
   const access = $derived(
     createFlightListAccess({
@@ -162,14 +141,14 @@
           f.from,
         );
         const landingScheduled = parseRunwayTime(f.raw.landingScheduled, f.to);
-        const depStatus = resolveTimingStatus({
+        const depTiming = buildTimingSummary({
           gateActual: depDate,
           gateScheduled: depScheduled,
           runwayActual: takeoffActual,
           runwayScheduled: takeoffScheduled,
           side: 'departure',
         });
-        const arrStatus = resolveTimingStatus({
+        const arrTiming = buildTimingSummary({
           gateActual: arrDate,
           gateScheduled: arrScheduled,
           runwayActual: landingActual,
@@ -191,24 +170,8 @@
               ? formatFlightDate(f.date, f.datePrecision, prefs)
               : null,
           arrAt: (arrDate ?? arrScheduled) as Date | null,
-          depStatus,
-          arrStatus,
-          depNoteTimes: timingNoteTimes(
-            depStatus,
-            depDate,
-            depScheduled,
-            takeoffActual,
-            takeoffScheduled,
-            'Took off',
-          ),
-          arrNoteTimes: timingNoteTimes(
-            arrStatus,
-            arrDate,
-            arrScheduled,
-            landingActual,
-            landingScheduled,
-            'Landed',
-          ),
+          depTiming,
+          arrTiming,
           seat: formatSeatForUser(f, seatUserId),
           passengerLabels: showPassengerDetails
             ? getFlightPassengerLabels(f)
@@ -720,8 +683,8 @@
         airportTz={flight.from?.tz}
         airportLabel={flight.from?.iata}
         side="right"
-        noteTimes={flight.depNoteTimes}
-        class={cn('text-sm', timingClass(flight.depStatus))}
+        timing={flight.depTiming}
+        class={cn('text-sm', timingClass(flight.depTiming.status))}
       />
     {:else if flight.depFallback}
       <p class="text-sm">{flight.depFallback}</p>
@@ -736,10 +699,10 @@
         airportTz={flight.to?.tz}
         airportLabel={flight.to?.iata}
         side="right"
-        noteTimes={flight.arrNoteTimes}
+        timing={flight.arrTiming}
         class={cn(
           'text-sm overflow-hidden text-ellipsis whitespace-nowrap',
-          timingClass(flight.arrStatus),
+          timingClass(flight.arrTiming.status),
         )}
       />
     {/if}

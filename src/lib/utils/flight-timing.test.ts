@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveTimingStatus } from './flight-timing';
+import { buildTimingSummary, resolveTimingStatus } from './flight-timing';
 
 const time = (value: string) => new Date(`2026-10-29T${value}:00Z`);
 const defaults = {
@@ -103,3 +103,60 @@ describe.each(['departure', 'arrival'] as const)(
     });
   },
 );
+
+describe('buildTimingSummary', () => {
+  const base = {
+    gateActual: null,
+    gateScheduled: time('12:00'),
+    runwayActual: null,
+    runwayScheduled: null,
+    side: 'departure',
+  } as const;
+
+  it('says nothing without an actual time', () => {
+    expect(buildTimingSummary(base)).toEqual({
+      headline: null,
+      status: null,
+      evidence: [],
+    });
+  });
+
+  it('compares gate times', () => {
+    const summary = buildTimingSummary({ ...base, gateActual: time('12:20') });
+    expect(summary.headline).toBe('20 min late');
+    expect(summary.evidence).toEqual([
+      { label: 'Scheduled', date: time('12:00') },
+    ]);
+  });
+
+  it('calls a matching actual on time', () => {
+    expect(
+      buildTimingSummary({ ...base, gateActual: time('12:00') }).headline,
+    ).toBe('On time');
+  });
+
+  it('gives the runway time and schedule behind a fallback', () => {
+    const summary = buildTimingSummary({
+      ...base,
+      side: 'arrival',
+      runwayActual: time('13:35'),
+      runwayScheduled: time('12:20'),
+    });
+    expect(summary.headline).toBe('1 h 15 min late');
+    expect(summary.evidence.map((n) => n.label)).toEqual([
+      'Landed',
+      'scheduled',
+    ]);
+  });
+
+  it('shows a runway time without a verdict when taxi time could explain it', () => {
+    const summary = buildTimingSummary({
+      ...base,
+      runwayActual: time('12:20'),
+    });
+    expect(summary.headline).toBeNull();
+    expect(summary.evidence).toEqual([
+      { label: 'Took off', date: time('12:20') },
+    ]);
+  });
+});
