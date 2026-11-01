@@ -6,6 +6,10 @@
   import { Button } from '$lib/components/ui/button';
   import { Modal, ModalBody, ModalHeader } from '$lib/components/ui/modal';
   import { findAutomaticTrackCandidate } from '$lib/track/candidates';
+  import {
+    clearTrackEventTimes,
+    prepareTrackEventTimes,
+  } from '$lib/track/event-times';
   import { parseTrackFile, type ParsedTrackCandidate } from '$lib/track/parser';
   import type { FlightTrackInput } from '$lib/track/schema';
   import { formatDateTime, getPreferences } from '$lib/utils/preferences';
@@ -27,11 +31,33 @@
   let originalPointCount: number | null = $state(null);
   let trackCandidates: ParsedTrackCandidate[] = $state([]);
   let formSnapshot = $state.raw<ReturnType<typeof form.capture> | null>(null);
+  let filledTimes = $state<Partial<FlightFormData>>({});
+  let filledTimesSnapshot = $state<Partial<FlightFormData>>({});
 
   const prefs = $derived(getPreferences(page.data.user));
+  const filledTimesNote = $derived.by(() => {
+    const takeoff = Boolean(
+      filledTimes.takeoffActual &&
+      filledTimes.takeoffActual === $formData.takeoffActual &&
+      filledTimes.takeoffActualTime === $formData.takeoffActualTime,
+    );
+    const landing = Boolean(
+      filledTimes.landingActual &&
+      filledTimes.landingActual === $formData.landingActual &&
+      filledTimes.landingActualTime === $formData.landingActualTime,
+    );
+    if (takeoff && landing)
+      return 'Takeoff and landing times filled from track.';
+    if (takeoff) return 'Takeoff time filled from track.';
+    if (landing) return 'Landing time filled from track.';
+    return null;
+  });
 
   const track = $derived($formData.track);
   const hasTrack = $derived(!!track);
+  const timingWarnings = $derived(
+    track ? prepareTrackEventTimes(track, $formData).warnings : [],
+  );
   const trackSummary = $derived.by(() => {
     if (!track) return null;
     const altitudePoints = track.coordinates.filter(
@@ -53,8 +79,10 @@
   const setTrack = (nextTrack: FlightTrackInput | null) => {
     formData.update((current) => ({
       ...current,
+      ...clearTrackEventTimes(current, filledTimes),
       track: nextTrack,
     }));
+    filledTimes = {};
   };
 
   const automaticCandidate = (candidates: ParsedTrackCandidate[]) => {
@@ -86,6 +114,9 @@
     originalPointCount = count;
     trackCandidates = [];
     setTrack(trackInput);
+    const { values } = prepareTrackEventTimes(trackInput, $formData);
+    formData.update((current) => ({ ...current, ...values }));
+    filledTimes = values;
   };
 
   // The file input has no `accept` filter because iOS has no system type for
@@ -121,6 +152,7 @@
   class={hasTrack ? 'border-primary text-primary' : ''}
   onclick={() => {
     formSnapshot = form.capture();
+    filledTimesSnapshot = { ...filledTimes };
     open = true;
   }}
 >
@@ -138,6 +170,7 @@
   busy={parsing}
   onDiscard={() => {
     if (formSnapshot) form.restore(formSnapshot);
+    filledTimes = { ...filledTimesSnapshot };
     error = null;
     originalPointCount = null;
     trackCandidates = [];
@@ -201,6 +234,16 @@
       {/if}
 
       {#if trackSummary}
+        {#if filledTimesNote}
+          <p role="status" class="text-sm text-muted-foreground">
+            {filledTimesNote}
+          </p>
+        {/if}
+        {#each timingWarnings as warning}
+          <p role="alert" class="text-sm text-amber-600 dark:text-amber-400">
+            {warning}
+          </p>
+        {/each}
         <div
           class="min-w-0 overflow-hidden rounded-md border bg-muted/30 px-3 py-2 text-sm shadow-xs"
           data-testid="flight-track-summary"

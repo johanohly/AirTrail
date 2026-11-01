@@ -301,6 +301,30 @@ describe('track parser', () => {
     expect(result.estimated).toEqual([false, true]);
   });
 
+  it('treats a blank KML altitude as missing, not zero', () => {
+    const result = parseTrackContent(
+      `<?xml version="1.0" encoding="UTF-8"?>
+      <kml xmlns="http://www.opengis.net/kml/2.2">
+        <Document>
+          <Placemark>
+            <TimeStamp><when>2026-06-13T05:15:10+00:00</when></TimeStamp>
+            <Point><coordinates>12.5,55.5,</coordinates></Point>
+          </Placemark>
+          <Placemark>
+            <TimeStamp><when>2026-06-13T05:15:17+00:00</when></TimeStamp>
+            <Point><coordinates>12.6,55.6,0</coordinates></Point>
+          </Placemark>
+        </Document>
+      </kml>`,
+      'kml',
+    );
+
+    expect(result.coordinates).toEqual([
+      [12.5, 55.5],
+      [12.6, 55.6, 0],
+    ]);
+  });
+
   it('parses helper KML ground descriptions as aligned point flags', () => {
     const result = parseTrackContent(
       `<?xml version="1.0" encoding="UTF-8"?>
