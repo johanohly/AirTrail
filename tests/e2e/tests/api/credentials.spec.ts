@@ -1,5 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 
+import type { APIRequestContext } from '@playwright/test';
+
 import { airportsFactory } from '@test/factories/airports';
 import { usersFactory } from '@test/factories/users';
 import { db, expect, test } from '@test/index';
@@ -207,10 +209,9 @@ test.describe('OAuth tokens', () => {
     ).toBe(200);
   });
 
-  test('reusing a refresh token revokes its family', async ({ request }) => {
-    const { user } = await usersFactory.create();
+  const refreshTokens = async (request: APIRequestContext, userId: string) => {
     const { exchange, clientId } = await createAuthorizationCode(
-      user.id,
+      userId,
       ['profile.read'],
       API_V1,
     );
@@ -226,17 +227,44 @@ test.describe('OAuth tokens', () => {
           resource: API_V1,
         },
       });
+    return { issued, refresh };
+  };
+  const meStatus = async (request: APIRequestContext, accessToken: string) =>
+    (
+      await request.get('/api/v1/me', { headers: bearer(accessToken) })
+    ).status();
+
+  test('reusing a refresh token revokes its family', async ({ request }) => {
+    const { user } = await usersFactory.create();
+    const { issued, refresh } = await refreshTokens(request, user.id);
 
     const rotated = await refresh(issued.refresh_token);
     expect(rotated.status()).toBe(200);
     const { access_token } = await rotated.json();
 
+    await db
+      .updateTable('oauthRefreshToken')
+      .set({ usedAt: new Date(Date.now() - 60_000) })
+      .where('tokenHash', '=', hashSha256(issued.refresh_token))
+      .execute();
     expect((await refresh(issued.refresh_token)).status()).toBe(400);
-    expect(
-      (
-        await request.get('/api/v1/me', { headers: bearer(access_token) })
-      ).status(),
-    ).toBe(401);
+    expect(await meStatus(request, access_token)).toBe(401);
+  });
+
+  test('a concurrent refresh keeps the family', async ({ request }) => {
+    const { user } = await usersFactory.create();
+    const { issued, refresh } = await refreshTokens(request, user.id);
+
+    const responses = await Promise.all([
+      refresh(issued.refresh_token),
+      refresh(issued.refresh_token),
+    ]);
+    for (const response of responses) {
+      expect(response.status()).toBe(200);
+      const { access_token, refresh_token } = await response.json();
+      expect(await meStatus(request, access_token)).toBe(200);
+      expect((await refresh(refresh_token)).status()).toBe(200);
+    }
   });
 
   test('a narrowed grant narrows refreshed tokens', async ({ request }) => {

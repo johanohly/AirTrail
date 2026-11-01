@@ -43,6 +43,7 @@ export type FlightTrackRenderContext = {
   geometry: {
     parameters: PathParameters;
     extensions: LayerExtension[];
+    wrapLongitude: boolean;
   };
   appearance: {
     getWidth: (track: FlightArc) => number;
@@ -116,7 +117,7 @@ export const buildFlightTrackLayers = ({
   data,
   style,
   context: {
-    geometry: { parameters, extensions },
+    geometry: { parameters, extensions, wrapLongitude },
     appearance: {
       getWidth,
       getStandardColor,
@@ -134,6 +135,7 @@ export const buildFlightTrackLayers = ({
 }: FlightTrackLayerOptions) => {
   const sharedPathOptions = {
     parameters,
+    wrapLongitude,
     getWidth,
     widthUnits: 'pixels' as const,
     jointRounded: true,
@@ -227,6 +229,7 @@ export const buildFlightTrackLayers = ({
     new PathLayer<RenderableFlightTrackPath>({
       id: 'ghost-track-path',
       parameters,
+      wrapLongitude,
       extensions,
       data: data.paths,
       getPath: (track) => track.displayPath,

@@ -7,6 +7,7 @@ import {
   getAircraftByIcao,
   getAircraftByName,
 } from '$lib/server/utils/aircraft';
+import { getAircraftPhoto } from '$lib/server/utils/aircraft-photos';
 import { syncAircraft } from '$lib/server/utils/sync';
 
 export const aircraftRouter = router({
@@ -19,6 +20,11 @@ export const aircraftRouter = router({
   getByName: authedProcedure.input(z.string()).query(async ({ input }) => {
     return await getAircraftByName(input);
   }),
+  getPhoto: authedProcedure
+    .input(z.string().max(64))
+    .query(async ({ input }) => {
+      return await getAircraftPhoto(input);
+    }),
   list: authedProcedure.query(async () => {
     return await db
       .selectFrom('aircraft')

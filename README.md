@@ -36,7 +36,7 @@
   integrate with your OAuth provider.
 - **Responsive Design**: Use the application on any device with a responsive design.
 - **Dark Mode**: Switch between light and dark mode.
-- **Import Flights**: Import flights from various sources including MyFlightRadar24, App in the Air, JetLog, TripIt, Flighty, byAir, JetLovers and OpenFlights.
+- **Import Flights**: Import flights from various sources including MyFlightRadar24, App in the Air, JetLog, TripIt, Flighty, byAir, JetLovers, OpenFlights and LogMyTrip.
 
 ## 🚀 Getting Started
 

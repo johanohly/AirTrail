@@ -15,6 +15,12 @@ const AIRPORT_SOURCE_URL =
 const ICAO_RE = /^[A-Z]{4}$/;
 const IATA_RE = /^[A-Z]{3}$/;
 
+// OurAirports places Cyprus in Asia, but as an EU member it's commonly grouped
+// with Europe. Keep this in sync with `scripts/other/iso-countries.ts`.
+const CONTINENT_OVERRIDES: Record<string, InsertAirport['continent']> = {
+  CY: 'EU',
+};
+
 export const ensureAirports = async () => {
   const airports = await db
     .selectFrom('airport')
@@ -267,7 +273,7 @@ const toInsertAirport = (
     municipality: airport.municipality || null,
     lat: airport.latitude_deg,
     lon: airport.longitude_deg,
-    continent: airport.continent,
+    continent: CONTINENT_OVERRIDES[airport.iso_country] ?? airport.continent,
     country: airport.iso_country,
     tz,
     custom: false,

@@ -68,7 +68,15 @@ const NAME_OVERRIDES: Record<string, string> = {
   PS: 'Palestine',
 };
 
+// UN M49 places Cyprus in Western Asia, but as an EU member it's commonly
+// grouped with Europe, which is what users expect.
+const CONTINENT_OVERRIDES: Record<string, string> = {
+  CY: 'Europe',
+};
+
 function mapContinentFromRawCountry(country: RawCountry): string {
+  const override = CONTINENT_OVERRIDES[country['alpha-2']];
+  if (override) return override;
   if (country.region !== 'Americas') return country.region;
   return country['intermediate-region'] === 'South America'
     ? 'South America'
@@ -125,7 +133,7 @@ export interface Country {
     alpha2: string;
     alpha3: string;
     numeric?: number;
-    continent: string;
+    continent: string | null;
 }
 
 export const COUNTRIES: Country[] = ${JSON.stringify(countries, null, 2)};
