@@ -9,12 +9,15 @@ import {
 import type { Airport, Flight } from '$lib/db/types';
 import { prepareFlightData } from '$lib/utils';
 
-const airport = (id: number, tz: string): Airport =>
-  ({ id, tz, lon: 0, lat: 0 }) as Airport;
+const airport = (id: number, tz: string, icao?: string): Airport =>
+  ({ id, tz, icao, lon: 0, lat: 0 }) as Airport;
 
-const LHR = airport(1, 'Europe/London');
-const DXB = airport(2, 'Asia/Dubai');
-const SYD = airport(3, 'Australia/Sydney');
+const LHR = airport(1, 'Europe/London', 'EGLL');
+const DXB = airport(2, 'Asia/Dubai', 'OMDB');
+const SYD = airport(3, 'Australia/Sydney', 'YSSY');
+const LGW = airport(4, 'Europe/London', 'EGKK');
+const CDG = airport(5, 'Europe/Paris', 'LFPG');
+const JFK = airport(6, 'America/New_York', 'KJFK');
 
 type FlightInput = {
   id: number;
@@ -84,6 +87,26 @@ const dubaiConnection = [
   }),
 ];
 
+// SYD -> LGW, then LHR -> DXB: a 3h self-transfer across London.
+const londonConnection = [
+  flight({
+    id: 2,
+    from: LHR,
+    to: DXB,
+    date: '2024-03-02',
+    departure: '2024-03-02T01:00:00.000Z',
+    arrival: '2024-03-02T12:00:00.000Z',
+  }),
+  flight({
+    id: 1,
+    from: SYD,
+    to: LGW,
+    date: '2024-03-01',
+    departure: '2024-03-01T06:00:00.000Z',
+    arrival: '2024-03-01T22:00:00.000Z',
+  }),
+];
+
 describe('sortByDepartureDesc', () => {
   const order = (flights: Flight[]) =>
     sortByDepartureDesc(prepareFlightData(flights)).map((f) => f.id);
@@ -131,6 +154,61 @@ describe('buildFlightListYears', () => {
     expect(groupedIds(build(dubaiConnection, '2024-06-01T00:00:00Z'))).toEqual([
       [2, 1],
     ]);
+  });
+
+  it('groups legs connected by a transfer between airports in the same metro area', () => {
+    expect(groupedIds(build(londonConnection, '2024-06-01T00:00:00Z'))).toEqual(
+      [[2, 1]],
+    );
+  });
+
+  it('groups an overnight metro transfer under 24 hours', () => {
+    const [onward, inbound] = londonConnection;
+    const nextMorning = {
+      ...onward!,
+      departure: '2024-03-02T13:00:00.000Z',
+    } as Flight;
+
+    expect(
+      groupedIds(build([nextMorning, inbound!], '2024-06-01T00:00:00Z')),
+    ).toEqual([[2, 1]]);
+  });
+
+  it('keeps legs apart when the metro transfer is longer than 24 hours', () => {
+    const [onward, inbound] = londonConnection;
+    const aDayLater = {
+      ...onward!,
+      departure: '2024-03-02T23:00:00.000Z',
+    } as Flight;
+
+    expect(
+      groupedIds(build([aDayLater, inbound!], '2024-06-01T00:00:00Z')),
+    ).toEqual([[2], [1]]);
+  });
+
+  it('keeps legs apart when the airports are in different metro areas', () => {
+    const [onward, inbound] = londonConnection;
+    const fromParis = { ...onward!, from: CDG } as Flight;
+    const fromNewYork = { ...onward!, from: JFK } as Flight;
+
+    expect(
+      groupedIds(build([fromParis, inbound!], '2024-06-01T00:00:00Z')),
+    ).toEqual([[2], [1]]);
+    expect(
+      groupedIds(build([fromNewYork, inbound!], '2024-06-01T00:00:00Z')),
+    ).toEqual([[2], [1]]);
+  });
+
+  it('keeps legs apart when only one endpoint is in a metro area', () => {
+    const [onward, inbound] = londonConnection;
+    const untagged = {
+      ...onward!,
+      from: airport(7, 'Europe/London'),
+    } as Flight;
+
+    expect(
+      groupedIds(build([untagged, inbound!], '2024-06-01T00:00:00Z')),
+    ).toEqual([[2], [1]]);
   });
 
   it('keeps legs apart when the stop is longer than 12 hours', () => {
