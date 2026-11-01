@@ -25,6 +25,7 @@
   } from '$lib/components/flight-filters/model';
   import { Button } from '$lib/components/ui/button';
   import { Switch } from '$lib/components/ui/switch';
+  import * as Tooltip from '$lib/components/ui/tooltip';
   import { hasClientPermission } from '$lib/authorization/permissions';
   import { flightScopeState, openModalsState } from '$lib/state.svelte';
   import { Modal } from '$lib/components/ui/modal';
@@ -192,9 +193,6 @@
     }
     return firstYear && !selectedYears.length ? `since ${firstYear}` : null;
   });
-  const distanceSub = $derived(
-    `${round(earthCircumnavigations, 2)}× Earth · ${round(moonTraversals, 2)}× Moon · ${round(sunTraversals, 4)}× Sun`,
-  );
   const durationSub = $derived.by(() => {
     const parts: string[] = [];
     if (durationWeeks >= 1) parts.push(`≈ ${round(durationWeeks, 1)} weeks`);
@@ -305,7 +303,7 @@
 
 {#snippet total(
   label: string,
-  sub: string | null,
+  sub: string | import('svelte').Snippet | null,
   cell: string,
   value: import('svelte').Snippet,
 )}
@@ -317,7 +315,9 @@
       {@render value()}
     </div>
     {#if sub}
-      <div class="truncate text-[13px] text-muted-foreground">{sub}</div>
+      <div class="truncate text-[13px] text-muted-foreground">
+        {#if typeof sub === 'string'}{sub}{:else}{@render sub()}{/if}
+      </div>
     {/if}
   </div>
 {/snippet}
@@ -489,6 +489,22 @@
 {/snippet}
 
 {#snippet flightsValue()}<NumberFlow value={flightCount} />{/snippet}
+{#snippet distanceSubLine()}
+  <!-- The Moon and Sun ratios live behind the Earth one, where there is room -->
+  <Tooltip.Root>
+    <Tooltip.Trigger
+      class="cursor-default text-[13px] text-muted-foreground underline decoration-dotted decoration-transparent underline-offset-2 transition-colors hover:decoration-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+    >
+      {round(earthCircumnavigations, 2)}× around Earth
+    </Tooltip.Trigger>
+    <Tooltip.Content>
+      <div class="space-y-0.5">
+        <p>{round(moonTraversals, 2)}× to the Moon</p>
+        <p>{round(sunTraversals, 4)}× to the Sun</p>
+      </div>
+    </Tooltip.Content>
+  </Tooltip.Root>
+{/snippet}
 {#snippet travelDaysValue()}<NumberFlow value={travelDays} />{/snippet}
 {#snippet autopilotValue()}
   {#if autopilot === null}
@@ -594,7 +610,7 @@
         )}
         {@render total(
           'Distance',
-          distanceSub,
+          distanceSubLine,
           'order-4 col-span-3 lg:order-none lg:col-span-1 lg:border-l lg:pl-6',
           distanceValue,
         )}
