@@ -1,4 +1,5 @@
 import type { Airline, Airport } from '$lib/db/types';
+import { COUNTRIES } from '$lib/data/countries';
 import {
   codeForAirport,
   routeLabelForFlight,
@@ -10,6 +11,8 @@ export type BreakdownDetails = {
   airline?: Airline;
   airport?: Airport;
   route?: { first: Airport | null; second: Airport | null };
+  /** ISO 3166 alpha-2 code, for the country behind a row. */
+  countryCode?: string;
   /** What the row's code means, such as the aircraft behind a registration. */
   description?: string;
   /** Where a drill-down row says more than the list row has room for. */
@@ -25,11 +28,15 @@ export const CHART_NOUNS: Record<FlightChartKey, [string, string]> = {
   'aircraft-models': ['aircraft type', 'aircraft types'],
   'aircraft-regs': ['aircraft', 'aircraft'],
   airports: ['airport', 'airports'],
+  countries: ['country', 'countries'],
   routes: ['route', 'routes'],
 };
 
 const cityOf = (airport: Airport | null | undefined) =>
   airport?.municipality || airport?.name || 'Unknown';
+
+const countryNameOf = (code: string) =>
+  COUNTRIES.find((country) => country.alpha2 === code.toUpperCase())?.name;
 
 /* Everything a breakdown row can say about its key, looked up once per render. */
 export const createDetailsLookup = (
@@ -70,6 +77,14 @@ export const createDetailsLookup = (
             airport: airport ?? undefined,
             description: cityOf(airport),
             subtitle: airport?.name,
+          }));
+        }
+        break;
+      case 'countries':
+        for (const country of [flight.from?.country, flight.to?.country]) {
+          add(country?.toUpperCase(), () => ({
+            countryCode: country!.toUpperCase(),
+            description: countryNameOf(country!),
           }));
         }
         break;

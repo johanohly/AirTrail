@@ -18,6 +18,7 @@ export type FlightChartKey =
   | 'aircraft-models'
   | 'aircraft-regs'
   | 'airports'
+  | 'countries'
   | 'routes';
 
 export type CountryChartKey = 'visited-country-status';
@@ -163,7 +164,10 @@ export const routeLabelForFlight = (flight: FlightData): string | null => {
 
 export const flightChartBucketForFlight = (
   flight: FlightData,
-  key: Exclude<FlightChartKey, 'seat' | 'seat-class' | 'airports'>,
+  key: Exclude<
+    FlightChartKey,
+    'seat' | 'seat-class' | 'airports' | 'countries'
+  >,
 ): string | null => {
   switch (key) {
     case 'airlines':
@@ -225,6 +229,12 @@ export const flightMatchesChartBucket = (
     return (
       codeForAirport(flight.from) === bucket ||
       codeForAirport(flight.to) === bucket
+    );
+  }
+
+  if (chartKey === 'countries') {
+    return [flight.from?.country, flight.to?.country].some(
+      (country) => country?.toUpperCase() === bucket,
     );
   }
 
@@ -470,6 +480,117 @@ export function airportDistribution(
   return sortAndLimit(counts, options);
 }
 
+export function countryDistribution(
+  flights: FlightData[],
+  _ctx: StatsContext,
+  options?: AggregationOptions,
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const { from, to } of flights) {
+    for (const country of [from?.country, to?.country]) {
+      if (!country) continue;
+
+      const code = country.toUpperCase();
+      counts[code] = (counts[code] ?? 0) + 1;
+    }
+  }
+  return sortAndLimit(counts, options);
+}
+
+export type DomesticInternationalSplit = {
+  domestic: number;
+  international: number;
+};
+
+export function domesticInternationalSplit(
+  flights: FlightData[],
+): DomesticInternationalSplit {
+  let domestic = 0;
+  let international = 0;
+  for (const { from, to } of flights) {
+    if (!from?.country || !to?.country) continue;
+
+    if (from.country.toUpperCase() === to.country.toUpperCase()) {
+      domestic++;
+    } else {
+      international++;
+    }
+  }
+  return { domestic, international };
+}
+
+/** Distinct calendar days a flight departed on, ignoring the time of day. */
+export function travelDayCount(flights: FlightData[]): number {
+  const days = new Set<string>();
+  for (const flight of flights) {
+    const date = flight.date ?? flight.dateStart;
+    if (!date) continue;
+
+    days.add(`${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`);
+  }
+  return days.size;
+}
+
+/**
+ * Share (0-1) of flights where the passenger flew the aircraft themselves,
+ * i.e. held the pilot or copilot seat. Flights without a matching passenger
+ * are excluded from the denominator.
+ */
+export function autopilotRatio(
+  flights: FlightData[],
+  ctx: StatsContext,
+): number | null {
+  let flown = 0;
+  let crewed = 0;
+  for (const flight of flights) {
+    const passengers = ctx.userId
+      ? flight.passengers.filter((p) => p.userId === ctx.userId)
+      : flight.passengers;
+    if (passengers.length === 0) continue;
+
+    flown++;
+    if (passengers.some((p) => p.seat === 'pilot' || p.seat === 'copilot')) {
+      crewed++;
+    }
+  }
+  if (flown === 0) return null;
+  return crewed / flown;
+}
+
+export type FlightTotals = {
+  airlines: number;
+  aircraftModels: number;
+  routes: number;
+  countries: number;
+};
+
+/** How many distinct airlines, aircraft types, routes and countries appear. */
+export function flightTotals(flights: FlightData[]): FlightTotals {
+  const airlines = new Set<string>();
+  const aircraftModels = new Set<string>();
+  const routes = new Set<string>();
+  const countries = new Set<string>();
+
+  for (const flight of flights) {
+    if (flight.airline?.name) airlines.add(flight.airline.name);
+    if (flight.aircraft?.name) aircraftModels.add(flight.aircraft.name);
+
+    const route = routeLabelForFlight(flight);
+    if (route) routes.add(route);
+
+    for (const country of [flight.from?.country, flight.to?.country]) {
+      if (country) countries.add(country.toUpperCase());
+    }
+  }
+
+  return {
+    airlines: airlines.size,
+    aircraftModels: aircraftModels.size,
+    routes: routes.size,
+    countries: countries.size,
+  };
+}
+
 export function countFlightsPerYear(
   flights: FlightData[],
 ): { year: number; flights: number }[] {
@@ -631,6 +752,7 @@ export const FLIGHT_CHARTS: Record<
     aggregate: aircraftRegDistribution,
   },
   airports: { title: 'Airports', aggregate: airportDistribution },
+  countries: { title: 'Countries', aggregate: countryDistribution },
   routes: { title: 'Routes', aggregate: routeDistribution },
 };
 

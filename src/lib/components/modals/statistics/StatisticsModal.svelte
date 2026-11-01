@@ -10,6 +10,7 @@
   import BreakdownRow from './BreakdownRow.svelte';
   import PunctualitySection from './PunctualitySection.svelte';
   import RankedList from './RankedList.svelte';
+  import SeatMap from './SeatMap.svelte';
 
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
@@ -32,11 +33,15 @@
   import type { FlightFilters } from '$lib/components/flight-filters/types';
   import { type VisitedCountry, wasVisited } from '$lib/db/types';
   import {
+    autopilotRatio,
     COUNTRY_BAR_CHARTS,
     COUNTRY_CHARTS,
     countriesByContinentDetails,
+    domesticInternationalSplit,
     FLIGHT_CHARTS,
+    flightTotals,
     type FlightChartKey,
+    travelDayCount,
   } from '$lib/stats/aggregations';
   import {
     readIncludeUpcoming,
@@ -104,6 +109,11 @@
   });
 
   const prefs = $derived(getPreferences(page.data.user));
+
+  const EARTH_CIRCUMFERENCE_KM = 40075;
+  const MOON_DISTANCE_KM = 384400;
+  const SUN_DISTANCE_KM = 149597870;
+
   let totalDuration = $derived.by(() =>
     Duration.fromSeconds(
       countedFlights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
@@ -130,7 +140,16 @@
       (c) => c.status === 'visited' || c.status === 'lived',
     ).length,
   );
-  let earthCircumnavigations = $derived(totalDistance / 40075);
+  let earthCircumnavigations = $derived(totalDistance / EARTH_CIRCUMFERENCE_KM);
+  let moonTraversals = $derived(totalDistance / MOON_DISTANCE_KM);
+  let sunTraversals = $derived(totalDistance / SUN_DISTANCE_KM);
+  let travelDays = $derived(travelDayCount(countedFlights));
+  let totals = $derived(flightTotals(countedFlights));
+  let domesticSplit = $derived(domesticInternationalSplit(countedFlights));
+  let durationWeeks = $derived(totalDuration.days / 7);
+  let autopilot = $derived(
+    autopilotRatio(countedFlights, { userId: seatUserId }),
+  );
 
   let activeChart: FlightChartKey | null = $state(null);
   let activeEntry: string | null = $state(null);
@@ -163,6 +182,26 @@
     if (!timed.length) return null;
     const total = timed.reduce((sum, f) => sum + (f.duration ?? 0), 0);
     return Duration.fromSeconds(Math.round(total / timed.length));
+  });
+
+  /* The totals strip says one sub-line per cell, so compose the extras in */
+  const flightsSub = $derived.by(() => {
+    const { domestic, international } = domesticSplit;
+    if (domestic + international > 0) {
+      return `${domestic} domestic · ${international} international`;
+    }
+    return firstYear && !selectedYears.length ? `since ${firstYear}` : null;
+  });
+  const distanceSub = $derived(
+    `${round(earthCircumnavigations, 2)}× Earth · ${round(moonTraversals, 2)}× Moon · ${round(sunTraversals, 4)}× Sun`,
+  );
+  const durationSub = $derived.by(() => {
+    const parts: string[] = [];
+    if (durationWeeks >= 1) parts.push(`≈ ${round(durationWeeks, 1)} weeks`);
+    if (averageDuration) {
+      parts.push(`${averageDuration.toString(true)} per flight`);
+    }
+    return parts.join(' · ') || null;
   });
   const airportCountries = $derived(
     new Set(
@@ -231,7 +270,7 @@
           (acc, curr) => (acc += curr.distance ?? 0),
           0,
         );
-        earthCircumnavigations = totalDistance / 40075;
+        earthCircumnavigations = totalDistance / EARTH_CIRCUMFERENCE_KM;
         const duration = Duration.fromSeconds(
           countedFlights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
         );
@@ -246,6 +285,9 @@
             .flatMap((f) => [f.from!.name, f.to!.name]),
         ).size;
         countriesCount = visitedCountries.filter(wasVisited).length;
+        travelDays = travelDayCount(countedFlights);
+        totals = flightTotals(countedFlights);
+        autopilot = autopilotRatio(countedFlights, { userId: seatUserId });
       }, 200);
     } else {
       flightCount = 0;
@@ -254,6 +296,9 @@
       airports = 0;
       countriesCount = 0;
       earthCircumnavigations = 0;
+      travelDays = 0;
+      totals = { airlines: 0, aircraftModels: 0, routes: 0, countries: 0 };
+      autopilot = 0;
     }
   });
 </script>
@@ -444,6 +489,15 @@
 {/snippet}
 
 {#snippet flightsValue()}<NumberFlow value={flightCount} />{/snippet}
+{#snippet travelDaysValue()}<NumberFlow value={travelDays} />{/snippet}
+{#snippet autopilotValue()}
+  {#if autopilot === null}
+    <span class="text-muted-foreground">—</span>
+  {:else}<NumberFlow value={Math.round(autopilot * 100)} />%{/if}
+{/snippet}
+{#snippet airlinesValue()}<NumberFlow value={totals.airlines} />{/snippet}
+{#snippet aircraftValue()}<NumberFlow value={totals.aircraftModels} />{/snippet}
+{#snippet routesValue()}<NumberFlow value={totals.routes} />{/snippet}
 {#snippet distanceValue()}
   <NumberFlow
     value={convertDistance(totalDistance, prefs)}
@@ -532,7 +586,7 @@
       >
         {@render total(
           'Flights',
-          firstYear && !selectedYears.length ? `since ${firstYear}` : null,
+          flightsSub,
           showCountryStats
             ? 'order-1 col-span-2 lg:order-none lg:col-span-1'
             : 'order-1 col-span-3 lg:order-none lg:col-span-1',
@@ -540,15 +594,13 @@
         )}
         {@render total(
           'Distance',
-          `${round(earthCircumnavigations, 2)}× around Earth`,
+          distanceSub,
           'order-4 col-span-3 lg:order-none lg:col-span-1 lg:border-l lg:pl-6',
           distanceValue,
         )}
         {@render total(
           'Duration',
-          averageDuration
-            ? `${averageDuration.toString(true)} per flight`
-            : null,
+          durationSub,
           'order-5 col-span-3 border-l pl-3 lg:order-none lg:col-span-1 lg:pl-6',
           durationValue,
         )}
@@ -572,8 +624,43 @@
         {/if}
       </div>
 
+      <div
+        class="grid grid-cols-6 lg:grid-cols-[0.8fr_1.25fr_1.1fr_0.8fr_0.95fr] lg:border-b"
+      >
+        {@render total(
+          'Travel days',
+          null,
+          'order-1 col-span-2 lg:order-none lg:col-span-1',
+          travelDaysValue,
+        )}
+        {@render total(
+          'Autopilot ratio',
+          'flown as pilot or copilot',
+          'order-2 col-span-2 border-l pl-3 lg:order-none lg:col-span-1 lg:border-l lg:pl-6',
+          autopilotValue,
+        )}
+        {@render total(
+          'Airlines',
+          null,
+          'order-3 col-span-2 border-l pl-3 lg:order-none lg:col-span-1 lg:border-l lg:pl-6',
+          airlinesValue,
+        )}
+        {@render total(
+          'Aircraft',
+          null,
+          'order-4 col-span-3 lg:order-none lg:col-span-1 lg:border-l lg:pl-6',
+          aircraftValue,
+        )}
+        {@render total(
+          'Routes',
+          null,
+          'order-5 col-span-3 border-l pl-3 lg:order-none lg:col-span-1 lg:border-l lg:pl-6',
+          routesValue,
+        )}
+      </div>
+
       {#snippet whereLists()}
-        {@render lists(['airports', 'routes', 'continents'])}
+        {@render lists(['airports', 'countries', 'routes', 'continents'])}
       {/snippet}
       {#snippet aircraftLists()}
         {@render lists(['airlines', 'aircraft-models', 'aircraft-regs'])}
@@ -581,10 +668,14 @@
       {#snippet boardLists()}
         {@render lists(['seat-class', 'seat', 'reason'])}
       {/snippet}
+      {#snippet seatMapBody()}
+        <SeatMap flights={countedFlights} {seatUserId} />
+      {/snippet}
       {@render section('When', whenCharts)}
       {@render section('Where', whereLists)}
       {@render section('Airlines and aircraft', aircraftLists)}
       {@render section('On board', boardLists)}
+      {@render section('Seat map', seatMapBody)}
       {#snippet punctuality()}
         <PunctualitySection flights={completedFlights} onOpen={openChart} />
       {/snippet}
