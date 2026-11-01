@@ -20,6 +20,7 @@
     matchesFlight,
     perYearFilters,
     selectedFilterYears,
+    seatFilterContext,
     toggleFilterYear,
   } from '$lib/components/flight-filters/model';
   import { Button } from '$lib/components/ui/button';
@@ -93,12 +94,16 @@
   const selectedYears = $derived(
     canPickYear ? selectedFilterYears(filters).map(Number) : [],
   );
+  // Seat filters consult the scope's passenger row, or the rows picked by an
+  // inclusive passengers filter when one is set.
+  const seatCtx = $derived(seatFilterContext(filters, seatUserId));
+
   const flightsPerYearSource = $derived.by(() => {
     if (!canPickYear) return countedFlights;
     const yearFilters = perYearFilters(filters);
     return flights.filter(
       (flight) =>
-        matchesFlight(flight, yearFilters) &&
+        matchesFlight(flight, yearFilters, seatCtx) &&
         (includeUpcoming || isCompletedFlight(flight.raw)),
     );
   });

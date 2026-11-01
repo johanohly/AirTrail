@@ -10,6 +10,7 @@
     matchesFlight,
     matchesLocationFilters,
     matchesNonLocationFilters,
+    seatFilterContext,
   } from '$lib/components/flight-filters/model';
   import {
     createDefaultTempFilters,
@@ -119,6 +120,10 @@
     return user?.id;
   });
 
+  // Seat filters consult the scope's passenger row, or the rows picked by an
+  // inclusive passengers filter when one is set.
+  const seatCtx = $derived(seatFilterContext(filters, effectiveSeatUserId));
+
   const showPassengerDetails = $derived(
     flightScopeState.current.scope !== 'mine',
   );
@@ -133,7 +138,7 @@
   });
 
   const filteredFlights = $derived.by(() => {
-    return flights.filter((flight) => matchesFlight(flight, filters));
+    return flights.filter((flight) => matchesFlight(flight, filters, seatCtx));
   });
 
   const filteredDrilldownFlights = $derived.by(() => {
@@ -144,7 +149,7 @@
     return flights.filter(
       (flight) =>
         matchesLocationFilters(flight, locationFilters) &&
-        matchesNonLocationFilters(flight, filters),
+        matchesNonLocationFilters(flight, filters, seatCtx),
     );
   });
 
