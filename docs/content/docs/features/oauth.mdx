@@ -48,6 +48,10 @@ Settings that are configured in the `.env` file will not be editable in the sett
 | Button Text        | `OAUTH_BUTTON_TEXT`                | `Log in with SSO`    | The text to display on the OAuth login button.                                                                                                                |
 | Allow insecure HTTP | `OAUTH_ALLOW_INSECURE_HTTP`       | `false`              | Allow an identity provider served over plain HTTP. Environment only; use it only on a trusted local network.                                                 |
 
+## Usernames for new OAuth users
+
+Auto Register takes the username from the `preferred_username` claim. If your provider doesn't send it, as with Google, AirTrail uses the part of the user's verified email before the `@`. Add `email` to the scope for this, for example `openid profile email`. If that username is taken, log in to the existing account and link it under **Settings → Security** instead.
+
 ## Roles for OAuth users
 
 New OAuth users get the default role. To assign roles from claims your identity provider sends, such as group membership, set up [OAuth role mapping](/docs/administration/roles#oauth-role-mapping).

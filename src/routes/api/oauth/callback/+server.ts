@@ -9,6 +9,7 @@ import { db } from '$lib/db';
 import type { User } from '$lib/db/types';
 import { lucia } from '$lib/server/auth';
 import { postLoginTarget } from '$lib/server/oauth/resume';
+import { usernameFromProfile } from '$lib/server/oauth/username';
 import {
   resolveOAuthRole,
   updateOAuthManagedUserRole,
@@ -149,16 +150,27 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
       return error(500, 'You do not have an AirTrail account');
     }
 
-    if (!profile.preferred_username) {
-      return error(500, 'Username not provided');
+    const providedUsername = usernameFromProfile(profile);
+    if (!providedUsername) {
+      return error(
+        400,
+        'Your identity provider sent no username or verified email',
+      );
     }
 
-    const username = usernameSchema.safeParse(profile.preferred_username);
+    const username = usernameSchema.safeParse(providedUsername);
     if (!username.success) {
       return error(
         400,
         username.error.issues[0]?.message ??
           'Username provided by OAuth provider is invalid',
+      );
+    }
+
+    if (await getUserWithOAuthId(username.data)) {
+      return error(
+        409,
+        `Username ${username.data} is taken, log in and link your account from Settings`,
       );
     }
 
