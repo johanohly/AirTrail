@@ -358,6 +358,50 @@ export function isFilterColumnActive(
   return optionColumnValues(filters, columnId).length > 0;
 }
 
+/*
+ * The years a date filter selects, or an empty list when it selects something
+ * else: no date, a custom range, or "every year but".
+ */
+export function selectedFilterYears(filters: FlightFilters): string[] {
+  if (filters.years.length) {
+    return filters.yearsOperator === 'is' ||
+      filters.yearsOperator === 'is any of'
+      ? filters.years
+      : [];
+  }
+  return filters.fromDate && isFullYearRange(filters.fromDate, filters.toDate)
+    ? [filters.fromDate.year.toString()]
+    : [];
+}
+
+/*
+ * The filters to count flights per year with. A year filter is ignored, so the
+ * other years stay visible and can be picked. Any other date filter stays, as
+ * those are not a choice between years.
+ */
+export function perYearFilters(filters: FlightFilters): FlightFilters {
+  return selectedFilterYears(filters).length
+    ? clearFilterColumn(filters, 'date')
+    : filters;
+}
+
+/* Filters to one year, or back to all years if that is the only one selected. */
+export function toggleFilterYear(
+  filters: FlightFilters,
+  year: string,
+): FlightFilters {
+  const selected = selectedFilterYears(filters);
+  if (selected.length === 1 && selected[0] === year) {
+    return clearFilterColumn(filters, 'date');
+  }
+  return cloneFlightFilters(filters, {
+    years: [year],
+    yearsOperator: 'is',
+    fromDate: undefined,
+    toDate: undefined,
+  });
+}
+
 export function formatDateLabel(
   value: CalendarDate | undefined,
   prefs: Pick<Preferences, 'dateFormat'>,

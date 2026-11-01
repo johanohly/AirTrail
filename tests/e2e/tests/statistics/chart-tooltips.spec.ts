@@ -23,13 +23,6 @@ async function openStatistics(page: Page) {
   await page.getByTestId('statistics-button').click();
 }
 
-function chartWithLabel(page: Page, label: string) {
-  return page
-    .locator('svg text')
-    .filter({ hasText: new RegExp(`^${label}$`) })
-    .locator('xpath=ancestor::div[contains(@class,"border rounded")][1]');
-}
-
 // Visibility assertions alone do not detect a tooltip behind the modal.
 async function expectPainted(tooltip: Locator) {
   expect(
@@ -48,12 +41,14 @@ async function expectPainted(tooltip: Locator) {
 
 const CHARTS = [
   {
-    axisLabel: 'Jan',
+    name: 'month',
+    testId: 'flights-per-month',
     first: { index: 0, text: /January.*2/s },
     last: { index: 11, text: /December.*1/s },
   },
   {
-    axisLabel: 'Mon',
+    name: 'weekday',
+    testId: 'flights-per-weekday',
     first: { index: 0, text: /Sun.*0/s },
     last: { index: 6, text: /Sat.*1/s },
   },
@@ -66,21 +61,16 @@ for (const viewport of [
   test.describe(`Chart tooltips at ${viewport.width}px`, () => {
     test.use({ viewport });
 
-    for (const { axisLabel, first, last } of CHARTS) {
-      test(`shows the ${axisLabel} chart's category and count above the modal`, async ({
+    for (const { name, testId, first, last } of CHARTS) {
+      test(`shows the ${name} chart's category and count above the modal`, async ({
         page,
       }) => {
         await openStatistics(page);
-        const chart = chartWithLabel(page, axisLabel);
+        const chart = page.getByTestId(testId);
         await chart.scrollIntoViewIfNeeded();
 
         for (const { index, text } of [first, last]) {
-          const point = await chart.locator('circle').nth(index).boundingBox();
-          if (!point) throw new Error('Missing chart point');
-          await page.mouse.move(
-            point.x + point.width / 2,
-            point.y + point.height / 2,
-          );
+          await chart.locator('.lc-tooltip-rect').nth(index).hover();
           const tooltip = page.locator('.lc-tooltip-root');
           await expect(tooltip).toHaveText(text);
           await expectPainted(tooltip);

@@ -3,11 +3,17 @@ import { describe, expect, it } from 'vitest';
 
 import { COUNTRIES } from '$lib/data/countries';
 import {
+  arrivalDelayMinutes,
   countFlightsPerYear,
   countriesByContinentDetails,
   countriesByContinentDistribution,
+  DELAY_THRESHOLD_MINUTES,
   flightMatchesChartBucket,
+  punctualityReport,
   reasonDistribution,
+  routeDistribution,
+  routeLabelForFlight,
+  toBreakdown,
 } from './aggregations';
 import type { FlightData } from '$lib/utils';
 
@@ -133,5 +139,161 @@ describe('flights per year statistics', () => {
 
   it('returns no years when no flight has a date', () => {
     expect(countFlightsPerYear([flightOn(null)])).toEqual([]);
+  });
+});
+
+describe('routes', () => {
+  const flight = (from: string, to: string) =>
+    ({ from: { iata: from }, to: { iata: to } }) as unknown as FlightData;
+
+  it('counts an outbound flight and its return as one route', () => {
+    expect(
+      routeDistribution([flight('LHR', 'CPH'), flight('CPH', 'LHR')], {}),
+    ).toEqual({ 'CPH – LHR': 2 });
+  });
+
+  it('matches both directions to the same bucket', () => {
+    const inbound = flight('LHR', 'CPH');
+    expect(routeLabelForFlight(inbound)).toBe('CPH – LHR');
+    expect(flightMatchesChartBucket(inbound, 'routes', 'CPH – LHR')).toBe(true);
+  });
+});
+
+describe('toBreakdown', () => {
+  it('ranks entries and keeps "No Data" apart', () => {
+    expect(
+      toBreakdown({ Aisle: 2, 'No Data': 3, Window: 5, Middle: 0 }),
+    ).toEqual({
+      entries: [
+        { key: 'Window', value: 5 },
+        { key: 'Aisle', value: 2 },
+      ],
+      missing: 3,
+    });
+  });
+});
+
+const makeFlight = ({
+  arrivalScheduled = null,
+  arrival = null,
+  airline = null,
+}: {
+  arrivalScheduled?: string | null;
+  arrival?: string | null;
+  airline?: { name: string } | null;
+} = {}) =>
+  ({ airline, raw: { arrivalScheduled, arrival } }) as unknown as FlightData;
+
+describe('arrivalDelayMinutes', () => {
+  it('returns null when scheduled or actual arrival is missing', () => {
+    expect(arrivalDelayMinutes(makeFlight())).toBeNull();
+    expect(
+      arrivalDelayMinutes(
+        makeFlight({ arrivalScheduled: '2024-01-01T10:00:00Z' }),
+      ),
+    ).toBeNull();
+  });
+
+  it('returns null for unparseable timestamps', () => {
+    expect(
+      arrivalDelayMinutes(
+        makeFlight({ arrivalScheduled: 'not-a-date', arrival: 'nope' }),
+      ),
+    ).toBeNull();
+  });
+
+  it('computes signed minutes between actual and scheduled', () => {
+    expect(
+      arrivalDelayMinutes(
+        makeFlight({
+          arrivalScheduled: '2024-01-01T10:00:00Z',
+          arrival: '2024-01-01T10:25:00Z',
+        }),
+      ),
+    ).toBe(25);
+    expect(
+      arrivalDelayMinutes(
+        makeFlight({
+          arrivalScheduled: '2024-01-01T10:00:00Z',
+          arrival: '2024-01-01T09:50:00Z',
+        }),
+      ),
+    ).toBe(-10);
+  });
+});
+
+describe('punctualityReport', () => {
+  it('counts a delay just over the threshold as delayed', () => {
+    const report = punctualityReport([
+      makeFlight({
+        arrivalScheduled: '2024-01-01T10:00:00Z',
+        arrival: '2024-01-01T10:15:30Z',
+      }),
+    ]);
+    expect(report.delayedFlights).toBe(1);
+  });
+
+  it('reports nothing when no flight has scheduled/actual times', () => {
+    const report = punctualityReport([makeFlight(), makeFlight()]);
+    expect(report.assessedFlights).toBe(0);
+    expect(report.delayedFlights).toBe(0);
+    expect(report.delayRate).toBe(0);
+    expect(report.worstAirlines).toEqual([]);
+  });
+
+  it('only counts delays beyond the threshold and ignores early/on-time', () => {
+    const onTime = makeFlight({
+      arrivalScheduled: '2024-01-01T10:00:00Z',
+      arrival: `2024-01-01T10:${String(DELAY_THRESHOLD_MINUTES).padStart(2, '0')}:00Z`, // exactly at threshold → not delayed
+    });
+    const early = makeFlight({
+      arrivalScheduled: '2024-01-01T10:00:00Z',
+      arrival: '2024-01-01T09:45:00Z',
+    });
+    const delayed = makeFlight({
+      arrivalScheduled: '2024-01-01T10:00:00Z',
+      arrival: '2024-01-01T10:40:00Z', // 40 min late
+    });
+
+    const report = punctualityReport([onTime, early, delayed]);
+    expect(report.assessedFlights).toBe(3);
+    expect(report.delayedFlights).toBe(1);
+    expect(report.totalDelayMinutes).toBe(40);
+    expect(report.worstDelayMinutes).toBe(40);
+    expect(report.delayRate).toBeCloseTo((1 / 3) * 100);
+  });
+
+  it('ranks worst airlines by accumulated delay and respects the limit', () => {
+    const flights = [
+      makeFlight({
+        airline: { name: 'Alpha' },
+        arrivalScheduled: '2024-01-01T10:00:00Z',
+        arrival: '2024-01-01T10:30:00Z', // +30
+      }),
+      makeFlight({
+        airline: { name: 'Alpha' },
+        arrivalScheduled: '2024-01-01T10:00:00Z',
+        arrival: '2024-01-01T10:05:00Z', // on time
+      }),
+      makeFlight({
+        airline: { name: 'Beta' },
+        arrivalScheduled: '2024-01-01T10:00:00Z',
+        arrival: '2024-01-01T12:00:00Z', // +120
+      }),
+    ];
+
+    const report = punctualityReport(flights, { worstAirlineLimit: 1 });
+    expect(report.worstAirlines).toHaveLength(1);
+    expect(report.worstAirlines[0]).toMatchObject({
+      airline: 'Beta',
+      totalDelayMinutes: 120,
+      delayedFlights: 1,
+      assessedFlights: 1,
+    });
+
+    const full = punctualityReport(flights);
+    expect(full.worstAirlines.map((a) => a.airline)).toEqual(['Beta', 'Alpha']);
+    const alpha = full.worstAirlines.find((a) => a.airline === 'Alpha')!;
+    expect(alpha.delayRate).toBeCloseTo(50); // 1 of 2 Alpha flights delayed
   });
 });
