@@ -18,8 +18,5 @@ CREATE UNIQUE INDEX "calendar_feed_user_id_key" ON "calendar_feed"("user_id");
 -- CreateIndex
 CREATE UNIQUE INDEX "calendar_feed_token_key" ON "calendar_feed"("token");
 
--- CreateIndex
-CREATE INDEX "calendar_feed_token_idx" ON "calendar_feed"("token");
-
 -- AddForeignKey
 ALTER TABLE "calendar_feed" ADD CONSTRAINT "calendar_feed_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

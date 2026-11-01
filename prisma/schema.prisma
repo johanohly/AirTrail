@@ -73,8 +73,6 @@ model calendar_feed {
   last_fetched            DateTime? @db.Timestamptz
 
   user user @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@index([token])
 }
 
 model access_role {
@@ -135,8 +133,6 @@ model oauth_link_token {
   created_at DateTime @default(now()) @db.Timestamptz
 
   user user @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@index([token])
 }
 
 model airport {
