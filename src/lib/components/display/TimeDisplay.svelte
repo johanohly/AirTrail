@@ -24,6 +24,8 @@
 
   let {
     date,
+    actualDate = null,
+    scheduledDate = null,
     airportTz = null,
     airportLabel = null,
     mode = 'flight',
@@ -35,6 +37,8 @@
     children,
   }: {
     date: Date | null | undefined;
+    actualDate?: Date | null;
+    scheduledDate?: Date | null;
     airportTz?: string | null;
     airportLabel?: string | null;
     mode?: TimeDisplayMode;
@@ -80,6 +84,8 @@
     const modalZ = modalCtx?.getContentZIndex();
     return {
       date,
+      actualDate,
+      scheduledDate,
       airportTz,
       airportLabel,
       mode,
