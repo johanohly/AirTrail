@@ -12,12 +12,14 @@ import { type FlightData, toTitleCase } from '$lib/utils';
 export type FlightChartKey =
   | 'seat-class'
   | 'seat'
+  | 'seat-numbers'
   | 'reason'
   | 'continents'
   | 'airlines'
   | 'aircraft-models'
   | 'aircraft-regs'
   | 'airports'
+  | 'countries'
   | 'routes';
 
 export type CountryChartKey = 'visited-country-status';
@@ -151,6 +153,14 @@ export const codeForAirport = (
   airport: FlightData['from'] | null | undefined,
 ) => airport?.iata || airport?.icao || null;
 
+/** A seat number in canonical form, like "12F", or null if unusable. */
+export const normalizeSeatNumber = (
+  seatNumber: string | null | undefined,
+): string | null => {
+  const match = seatNumber?.trim().match(/^(\d{1,3})\s*([A-Z])$/i);
+  return match ? `${match[1]}${match[2]!.toUpperCase()}` : null;
+};
+
 export const routeLabelForFlight = (flight: FlightData): string | null => {
   const fromCode = codeForAirport(flight.from);
   const toCode = codeForAirport(flight.to);
@@ -163,7 +173,10 @@ export const routeLabelForFlight = (flight: FlightData): string | null => {
 
 export const flightChartBucketForFlight = (
   flight: FlightData,
-  key: Exclude<FlightChartKey, 'seat' | 'seat-class' | 'airports'>,
+  key: Exclude<
+    FlightChartKey,
+    'seat' | 'seat-class' | 'seat-numbers' | 'airports' | 'countries'
+  >,
 ): string | null => {
   switch (key) {
     case 'airlines':
@@ -194,6 +207,7 @@ export const flightMatchesChartBucket = (
   if (
     chartKey === 'seat' ||
     chartKey === 'seat-class' ||
+    chartKey === 'seat-numbers' ||
     chartKey === 'reason'
   ) {
     const field =
@@ -201,7 +215,9 @@ export const flightMatchesChartBucket = (
         ? 'seat'
         : chartKey === 'seat-class'
           ? 'seatClass'
-          : 'flightReason';
+          : chartKey === 'seat-numbers'
+            ? 'seatNumber'
+            : 'flightReason';
     const passengers = ctx.userId
       ? flight.passengers.filter((passenger) => passenger.userId === ctx.userId)
       : flight.passengers;
@@ -216,6 +232,12 @@ export const flightMatchesChartBucket = (
       return passengers.some((passenger) => !passenger[field]);
     }
 
+    if (chartKey === 'seat-numbers') {
+      return passengers.some(
+        (passenger) => normalizeSeatNumber(passenger.seatNumber) === bucket,
+      );
+    }
+
     return passengers.some(
       (seat) => seat[field] && toTitleCase(seat[field]) === bucket,
     );
@@ -225,6 +247,12 @@ export const flightMatchesChartBucket = (
     return (
       codeForAirport(flight.from) === bucket ||
       codeForAirport(flight.to) === bucket
+    );
+  }
+
+  if (chartKey === 'countries') {
+    return [flight.from?.country, flight.to?.country].some(
+      (country) => country?.toUpperCase() === bucket,
     );
   }
 
@@ -281,6 +309,39 @@ export function seatDistribution(
   }
 
   return sortAndLimit(counts, options);
+}
+
+export function seatNumberDistribution(
+  flights: FlightData[],
+  ctx: StatsContext,
+  options?: AggregationOptions,
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const flight of flights) {
+    const passengers = ctx.userId
+      ? flight.passengers.filter((p) => p.userId === ctx.userId)
+      : flight.passengers;
+    for (const { seatNumber } of passengers) {
+      const seat = normalizeSeatNumber(seatNumber);
+      if (!seat) continue;
+
+      counts[seat] = (counts[seat] ?? 0) + 1;
+    }
+  }
+
+  // Seats with the same count sit together ordered by row, then column,
+  // so the list reads the way the cabin does. The sorts downstream are
+  // stable, so count and distance rankings keep this order within ties.
+  const ordered = Object.fromEntries(
+    Object.entries(counts).sort(([seatA, countA], [seatB, countB]) => {
+      if (countA !== countB) return countB - countA;
+      const rowA = Number(seatA.slice(0, -1));
+      const rowB = Number(seatB.slice(0, -1));
+      if (rowA !== rowB) return rowA - rowB;
+      return seatA.at(-1)!.localeCompare(seatB.at(-1)!);
+    }),
+  );
+  return sortAndLimit(ordered, options);
 }
 
 export function seatClassDistribution(
@@ -470,6 +531,117 @@ export function airportDistribution(
   return sortAndLimit(counts, options);
 }
 
+export function countryDistribution(
+  flights: FlightData[],
+  _ctx: StatsContext,
+  options?: AggregationOptions,
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const { from, to } of flights) {
+    for (const country of [from?.country, to?.country]) {
+      if (!country) continue;
+
+      const code = country.toUpperCase();
+      counts[code] = (counts[code] ?? 0) + 1;
+    }
+  }
+  return sortAndLimit(counts, options);
+}
+
+export type DomesticInternationalSplit = {
+  domestic: number;
+  international: number;
+};
+
+export function domesticInternationalSplit(
+  flights: FlightData[],
+): DomesticInternationalSplit {
+  let domestic = 0;
+  let international = 0;
+  for (const { from, to } of flights) {
+    if (!from?.country || !to?.country) continue;
+
+    if (from.country.toUpperCase() === to.country.toUpperCase()) {
+      domestic++;
+    } else {
+      international++;
+    }
+  }
+  return { domestic, international };
+}
+
+/** Distinct calendar days a flight departed on, ignoring the time of day. */
+export function travelDayCount(flights: FlightData[]): number {
+  const days = new Set<string>();
+  for (const flight of flights) {
+    const date = flight.date ?? flight.dateStart;
+    if (!date) continue;
+
+    days.add(`${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`);
+  }
+  return days.size;
+}
+
+/**
+ * Share (0-1) of flights where the passenger flew the aircraft themselves,
+ * i.e. held the pilot or copilot seat. Flights without a matching passenger
+ * are excluded from the denominator.
+ */
+export function autopilotRatio(
+  flights: FlightData[],
+  ctx: StatsContext,
+): number | null {
+  let flown = 0;
+  let crewed = 0;
+  for (const flight of flights) {
+    const passengers = ctx.userId
+      ? flight.passengers.filter((p) => p.userId === ctx.userId)
+      : flight.passengers;
+    if (passengers.length === 0) continue;
+
+    flown++;
+    if (passengers.some((p) => p.seat === 'pilot' || p.seat === 'copilot')) {
+      crewed++;
+    }
+  }
+  if (flown === 0) return null;
+  return crewed / flown;
+}
+
+export type FlightTotals = {
+  airlines: number;
+  aircraftModels: number;
+  routes: number;
+  countries: number;
+};
+
+/** How many distinct airlines, aircraft types, routes and countries appear. */
+export function flightTotals(flights: FlightData[]): FlightTotals {
+  const airlines = new Set<string>();
+  const aircraftModels = new Set<string>();
+  const routes = new Set<string>();
+  const countries = new Set<string>();
+
+  for (const flight of flights) {
+    if (flight.airline?.name) airlines.add(flight.airline.name);
+    if (flight.aircraft?.name) aircraftModels.add(flight.aircraft.name);
+
+    const route = routeLabelForFlight(flight);
+    if (route) routes.add(route);
+
+    for (const country of [flight.from?.country, flight.to?.country]) {
+      if (country) countries.add(country.toUpperCase());
+    }
+  }
+
+  return {
+    airlines: airlines.size,
+    aircraftModels: aircraftModels.size,
+    routes: routes.size,
+    countries: countries.size,
+  };
+}
+
 export function countFlightsPerYear(
   flights: FlightData[],
 ): { year: number; flights: number }[] {
@@ -619,6 +791,7 @@ export const FLIGHT_CHARTS: Record<
 > = {
   'seat-class': { title: 'Seat class', aggregate: seatClassDistribution },
   seat: { title: 'Seat position', aggregate: seatDistribution },
+  'seat-numbers': { title: 'Seats', aggregate: seatNumberDistribution },
   reason: { title: 'Reason', aggregate: reasonDistribution },
   continents: { title: 'Destinations', aggregate: continentDistribution },
   airlines: { title: 'Airlines', aggregate: airlineDistribution },
@@ -631,6 +804,7 @@ export const FLIGHT_CHARTS: Record<
     aggregate: aircraftRegDistribution,
   },
   airports: { title: 'Airports', aggregate: airportDistribution },
+  countries: { title: 'Countries', aggregate: countryDistribution },
   routes: { title: 'Routes', aggregate: routeDistribution },
 };
 

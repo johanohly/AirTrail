@@ -1,15 +1,20 @@
 import type { Airline, Airport } from '$lib/db/types';
+import { COUNTRIES } from '$lib/data/countries';
 import {
   codeForAirport,
+  normalizeSeatNumber,
   routeLabelForFlight,
   type FlightChartKey,
+  type StatsContext,
 } from '$lib/stats/aggregations';
-import type { FlightData } from '$lib/utils';
+import { toTitleCase, type FlightData } from '$lib/utils';
 
 export type BreakdownDetails = {
   airline?: Airline;
   airport?: Airport;
   route?: { first: Airport | null; second: Airport | null };
+  /** ISO 3166 alpha-2 code, for the country behind a row. */
+  countryCode?: string;
   /** What the row's code means, such as the aircraft behind a registration. */
   description?: string;
   /** Where a drill-down row says more than the list row has room for. */
@@ -19,22 +24,28 @@ export type BreakdownDetails = {
 export const CHART_NOUNS: Record<FlightChartKey, [string, string]> = {
   'seat-class': ['seat class', 'seat classes'],
   seat: ['seat position', 'seat positions'],
+  'seat-numbers': ['seat', 'seats'],
   reason: ['reason', 'reasons'],
   continents: ['continent', 'continents'],
   airlines: ['airline', 'airlines'],
   'aircraft-models': ['aircraft type', 'aircraft types'],
   'aircraft-regs': ['aircraft', 'aircraft'],
   airports: ['airport', 'airports'],
+  countries: ['country', 'countries'],
   routes: ['route', 'routes'],
 };
 
 const cityOf = (airport: Airport | null | undefined) =>
   airport?.municipality || airport?.name || 'Unknown';
 
+const countryNameOf = (code: string) =>
+  COUNTRIES.find((country) => country.alpha2 === code.toUpperCase())?.name;
+
 /* Everything a breakdown row can say about its key, looked up once per render. */
 export const createDetailsLookup = (
   chartKey: FlightChartKey,
   flights: FlightData[],
+  ctx: StatsContext = {},
 ) => {
   const details = new Map<string, BreakdownDetails>();
   const add = (
@@ -64,12 +75,34 @@ export const createDetailsLookup = (
           description: flight.aircraft?.name,
         }));
         break;
+      case 'seat-numbers': {
+        // Only the passenger the stats are scoped to, not whoever else flew
+        const passengers = ctx.userId
+          ? flight.passengers.filter((p) => p.userId === ctx.userId)
+          : flight.passengers;
+        for (const passenger of passengers) {
+          add(normalizeSeatNumber(passenger.seatNumber), () => ({
+            description: passenger.seat
+              ? toTitleCase(passenger.seat)
+              : undefined,
+          }));
+        }
+        break;
+      }
       case 'airports':
         for (const airport of [flight.from, flight.to]) {
           add(codeForAirport(airport), () => ({
             airport: airport ?? undefined,
             description: cityOf(airport),
             subtitle: airport?.name,
+          }));
+        }
+        break;
+      case 'countries':
+        for (const country of [flight.from?.country, flight.to?.country]) {
+          add(country?.toUpperCase(), () => ({
+            countryCode: country!.toUpperCase(),
+            description: countryNameOf(country!),
           }));
         }
         break;

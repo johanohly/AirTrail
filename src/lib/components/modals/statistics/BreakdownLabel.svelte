@@ -16,8 +16,10 @@
 
   const isCode = $derived(
     chartKey === 'airports' ||
+      chartKey === 'countries' ||
       chartKey === 'routes' ||
-      chartKey === 'aircraft-regs',
+      chartKey === 'aircraft-regs' ||
+      chartKey === 'seat-numbers',
   );
 </script>
 
@@ -38,6 +40,8 @@
   <AirlineIcon airline={details.airline} size={20} fallback="plane" />
 {:else if details.airport}
   {@render flag(details.airport.country)}
+{:else if details.countryCode}
+  {@render flag(details.countryCode)}
 {:else if details.route}
   {@render flag(details.route.first?.country)}
   {@render flag(details.route.second?.country)}
