@@ -835,6 +835,7 @@ describe('client compatibility', () => {
         flight({
           departureScheduled: '2025-07-01T11:20:00.000Z',
           arrivalScheduled: '2025-07-01T09:30:00.000Z',
+          duration: null,
         }),
       ],
       options(),
