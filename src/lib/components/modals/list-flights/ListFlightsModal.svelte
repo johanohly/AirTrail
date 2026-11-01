@@ -22,6 +22,7 @@
   } from './flight-list-groups';
   import { createFlightListAccess } from './flight-list-access';
   import MobileFlightList from './MobileFlightList.svelte';
+  import { readFlightsPerPage } from './page-size-storage';
   import PastFlightsDivider from './PastFlightsDivider.svelte';
   import Toolbar from './Toolbar.svelte';
 
@@ -63,6 +64,7 @@
   import { Duration, parseLocalizeISO } from '$lib/utils/datetime';
   import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
   import { isMediumScreen } from '$lib/utils/size';
+  import { urlForView } from '$lib/view-paths';
 
   let {
     open = $bindable<boolean>(),
@@ -186,7 +188,7 @@
     );
   });
 
-  const flightsPerPage = 20;
+  let pageSize = $state(readFlightsPerPage());
   let page = $state(1);
   let flightListReferenceTime = $state(new Date());
 
@@ -199,7 +201,7 @@
       formattedFlights,
       flightListReferenceTime,
     );
-    return paginateFlightListYears(years, flightsPerPage);
+    return paginateFlightListYears(years, pageSize);
   });
   const currentFlightListPage = $derived(flightListPages[page - 1]);
   const flightsByYear = $derived(currentFlightListPage?.years ?? []);
@@ -401,6 +403,7 @@
   bind:open
   class="md:max-w-full flex flex-col md:h-full md:rounded-none!"
   drawerNoPadding
+  historyUrl={() => urlForView('flights')}
 >
   <div class="max-md:max-h-[calc(100dvh-200px)] max-md:overflow-auto">
     <div class="flex flex-col gap-2 max-md:px-4 max-md:py-4">
@@ -461,6 +464,7 @@
         bind:selecting
         bind:selectedFlights
         bind:page
+        bind:pageSize
         pageCount={flightListPages.length}
         {showingFrom}
         {showingTo}

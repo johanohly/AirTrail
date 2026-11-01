@@ -7,7 +7,7 @@ type KeydownLike = {
 };
 
 type HistoryAdapter = {
-  pushState: (data: unknown, unused: string) => void;
+  pushState: (data: unknown, unused: string, url?: string) => void;
   back: () => void;
   listen: (callback: (event: PopStateLike) => void) => () => void;
   listenKeydown?: (callback: (event: KeydownLike) => void) => () => void;
@@ -17,6 +17,7 @@ type ModalHistoryEntryBase = {
   id: string;
   closeFromHistory: () => void;
   closeOnEscape: boolean;
+  url?: () => string | undefined;
   onStateChange?: (state: unknown) => void;
 };
 
@@ -41,6 +42,7 @@ type ModalHistoryEntry =
 
 type ModalHistoryOptions = {
   closeOnEscape?: boolean;
+  url?: () => string | undefined;
   onStateChange?: (state: unknown) => void;
 };
 
@@ -103,10 +105,17 @@ export const createModalHistoryController = (adapter: HistoryAdapter) => {
   };
 
   const activateEntry = (entry: QueuedModalHistoryEntry) => {
-    adapter.pushState(
-      { modal: entry.id, modalState: undefined, modalDepth: 0 },
-      '',
-    );
+    const depthZeroState = {
+      modal: entry.id,
+      modalState: undefined,
+      modalDepth: 0,
+    };
+    // The URL is resolved at activation time so queued entries — e.g. one
+    // modal opening while another is still closing — read fresh state once
+    // the previous entry's URL has been reverted.
+    const url = entry.url?.();
+    if (url === undefined) adapter.pushState(depthZeroState, '');
+    else adapter.pushState(depthZeroState, '', url);
     let internalDepth = 0;
     for (const state of entry.queuedStates) {
       internalDepth += 1;
@@ -216,6 +225,7 @@ export const createModalHistoryController = (adapter: HistoryAdapter) => {
     if (queued) {
       queued.closeFromHistory = closeFromHistory;
       queued.closeOnEscape = options.closeOnEscape ?? true;
+      queued.url = options.url;
       queued.onStateChange = options.onStateChange;
       return;
     }
@@ -230,6 +240,7 @@ export const createModalHistoryController = (adapter: HistoryAdapter) => {
           status: 'queued',
           closeFromHistory,
           closeOnEscape: options.closeOnEscape ?? true,
+          url: options.url,
           onStateChange: options.onStateChange,
           queuedStates: [],
         });
@@ -237,6 +248,7 @@ export const createModalHistoryController = (adapter: HistoryAdapter) => {
       }
       existing.closeFromHistory = closeFromHistory;
       existing.closeOnEscape = options.closeOnEscape ?? true;
+      existing.url = options.url;
       existing.onStateChange = options.onStateChange;
       return;
     }
@@ -246,6 +258,7 @@ export const createModalHistoryController = (adapter: HistoryAdapter) => {
       status: 'queued',
       closeFromHistory,
       closeOnEscape: options.closeOnEscape ?? true,
+      url: options.url,
       onStateChange: options.onStateChange,
       queuedStates: [],
     };
@@ -339,14 +352,14 @@ let browserController:
 const getBrowserController = () => {
   if (typeof window === 'undefined') return undefined;
   browserController ??= createModalHistoryController({
-    pushState: (data, unused) =>
-      history.pushState(
-        {
-          ...(history.state as Record<string, unknown> | null),
-          ...(data as Record<string, unknown>),
-        },
-        unused,
-      ),
+    pushState: (data, unused, url) => {
+      const state = {
+        ...(history.state as Record<string, unknown> | null),
+        ...(data as Record<string, unknown>),
+      };
+      if (url === undefined) history.pushState(state, unused);
+      else history.pushState(state, unused, url);
+    },
     back: () => history.back(),
     listen: (callback) => {
       window.addEventListener('popstate', callback);

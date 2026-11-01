@@ -321,4 +321,57 @@ describe('modal history controller', () => {
     expect(event.stopPropagation).not.toHaveBeenCalled();
     expect(close).not.toHaveBeenCalled();
   });
+
+  it('pushes the entry URL at depth zero', () => {
+    const fake = createAdapter();
+    const controller = createModalHistoryController(fake.adapter);
+    controller.open('list', vi.fn(), { url: () => '/flights' });
+
+    expect(fake.pushState).toHaveBeenCalledOnce();
+    expect(fake.pushState).toHaveBeenCalledWith(
+      { modal: 'list', modalState: undefined, modalDepth: 0 },
+      '',
+      '/flights',
+    );
+  });
+
+  it('evaluates the URL lazily for a queued entry', () => {
+    const fake = createAdapter();
+    const controller = createModalHistoryController(fake.adapter);
+    controller.open('list', vi.fn());
+
+    controller.close('list');
+    const url = vi.fn(() => '/statistics');
+    controller.open('statistics', vi.fn(), { url });
+
+    expect(url).not.toHaveBeenCalled();
+
+    fake.pop();
+
+    expect(url).toHaveBeenCalledOnce();
+    expect(fake.pushState).toHaveBeenLastCalledWith(
+      { modal: 'statistics', modalState: undefined, modalDepth: 0 },
+      '',
+      '/statistics',
+    );
+  });
+
+  it('keeps the URL untouched when no url option is given', () => {
+    const fake = createAdapter();
+    const controller = createModalHistoryController(fake.adapter);
+    controller.open('list', vi.fn());
+
+    expect(fake.pushState.mock.lastCall).toHaveLength(2);
+  });
+
+  it('does not attach a URL to drilldown pushes', () => {
+    const fake = createAdapter();
+    const controller = createModalHistoryController(fake.adapter);
+    controller.open('statistics', vi.fn(), { url: () => '/statistics' });
+
+    controller.pushState('statistics', { activeChart: 'routes' });
+
+    expect(fake.pushState).toHaveBeenCalledTimes(2);
+    expect(fake.pushState.mock.lastCall).toHaveLength(2);
+  });
 });
