@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { TZDate } from '@date-fns/tz';
-  import type { Snippet } from 'svelte';
 
   import { page } from '$app/state';
   import { AirlineIcon, RouteArrow } from '$lib/components/display';
@@ -21,12 +20,10 @@
     flight,
     passengerLabels = [],
     showMeta = true,
-    indicators,
   }: {
     flight: Flight;
     passengerLabels?: string[];
     showMeta?: boolean;
-    indicators?: Snippet;
   } = $props();
 
   const prefs = $derived(getPreferences(page.data.user));
@@ -47,9 +44,11 @@
   };
 </script>
 
-<div class="flex w-full text-left">
+<div class="@container flex w-full text-left">
   <!-- Logo Column -->
-  <div class="w-[50px] mr-4 shrink-0 flex items-center justify-center">
+  <div
+    class="w-[50px] mr-4 @max-[360px]:mr-2 @max-[300px]:hidden shrink-0 flex items-center justify-center"
+  >
     <AirlineIcon airline={flight.airline} size={42} fallback="plane" />
   </div>
 
@@ -57,14 +56,12 @@
   <div class="flex-1 flex justify-between items-start min-w-0">
     <!-- Route Info (Left Side) -->
     <div class="flex flex-col gap-1 min-w-0">
-      <div class="flex items-center gap-2.5">
-        <span class="text-xl font-extrabold tracking-wide">
-          {flight.from?.iata || flight.from?.icao || 'N/A'}
-        </span>
-        <RouteArrow class="size-[22px] fill-foreground" />
-        <span class="text-xl font-extrabold tracking-wide">
-          {flight.to?.iata || flight.to?.icao || 'N/A'}
-        </span>
+      <div class="flex items-center gap-2.5 @max-[360px]:gap-1.5">
+        {@render airportCode(flight.from)}
+        <RouteArrow
+          class="size-[22px] shrink-0 fill-foreground @max-[360px]:size-[18px]"
+        />
+        {@render airportCode(flight.to)}
       </div>
       <span class="text-[15px] text-muted-foreground truncate">
         {getCityName(flight.from)} to {getCityName(flight.to)}
@@ -73,9 +70,13 @@
 
     <!-- Meta Info (Right Side) -->
     {#if showMeta}
-      <div class="flex flex-col items-end gap-2 text-right shrink-0 ml-3">
+      <div
+        class="flex flex-col items-end gap-2 text-right shrink-0 ml-3 @max-[360px]:ml-2"
+      >
         {#if formatDate(flight)}
-          <span class="font-semibold text-foreground/90">
+          <span
+            class="font-semibold text-foreground/90 @max-[360px]:text-sm @max-[360px]:leading-6"
+          >
             {formatDate(flight)}
           </span>
         {/if}
@@ -90,8 +91,24 @@
             {getFlightNumber(flight)}
           </span>
         {/if}
-        {@render indicators?.()}
       </div>
     {/if}
   </div>
 </div>
+
+{#snippet airportCode(airport: Airport | null)}
+  <span class="flex items-center gap-1.5">
+    {#if airport}
+      <img
+        src="https://flagcdn.com/{airport.country.toLowerCase()}.svg"
+        alt={airport.country}
+        class="hidden h-4 w-6 shrink-0 rounded object-cover shadow-sm @min-[416px]:block"
+      />
+    {/if}
+    <span
+      class="text-xl font-extrabold tracking-wide @max-[360px]:text-lg @max-[360px]:tracking-normal"
+    >
+      {airport?.iata || airport?.icao || 'N/A'}
+    </span>
+  </span>
+{/snippet}

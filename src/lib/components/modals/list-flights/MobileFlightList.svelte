@@ -2,10 +2,8 @@
   import autoAnimate from '@formkit/auto-animate';
   import { AirplanemodeInactive } from '@o7/icon/material';
 
-  import type { FlightIndicator } from './flight-indicators';
   import type { FlightListYear } from './flight-list-groups';
   import FlightCard from './FlightCard.svelte';
-  import FlightIndicators from './FlightIndicators.svelte';
   import PastFlightsDivider from './PastFlightsDivider.svelte';
   import SwipeableFlightRow from './SwipeableFlightRow.svelte';
 
@@ -15,7 +13,6 @@
   type Flight = FlightData & {
     month?: string | null;
     passengerLabels?: string[];
-    indicators?: FlightIndicator[];
   };
 
   let {
@@ -115,15 +112,7 @@
                     <FlightCard
                       {flight}
                       passengerLabels={flight.passengerLabels}
-                    >
-                      {#snippet indicators()}
-                        <FlightIndicators
-                          indicators={flight.indicators ?? []}
-                          size={15}
-                          tooltips={false}
-                        />
-                      {/snippet}
-                    </FlightCard>
+                    />
                   </button>
                 {/snippet}
               </SwipeableFlightRow>
