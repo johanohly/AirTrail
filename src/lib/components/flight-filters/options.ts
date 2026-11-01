@@ -67,14 +67,15 @@ export const seatTypeOptions: FilterOptionSource[] = SeatTypes.map((value) => ({
   label: seatTypeLabels[value] ?? toTitleCase(value),
 }));
 
-export const monthOptions: FilterOptionSource[] = MONTHS.map(
-  (name, index) => ({
+export const monthOptions: FilterOptionSource[] = MONTHS.map((name, index) => {
+  const shortLabel = SHORT_MONTHS[index] ?? name;
+  return {
     value: String(index),
     label: name,
-    shortLabel: SHORT_MONTHS[index],
-    keywords: [name, SHORT_MONTHS[index]],
-  }),
-);
+    shortLabel,
+    keywords: [name, shortLabel],
+  };
+});
 
 export const dayOptions: FilterOptionSource[] = Array.from(
   { length: 31 },

@@ -3,6 +3,9 @@ import { isAfter, isBefore } from 'date-fns';
 import type { FilterModel, FiltersState } from 'bits-ui';
 
 import {
+  normalizeRoute,
+  routeFromKey,
+  routeKey,
   routeMatchesEndpoints,
   type FlightFilters,
   type LocationFilters,
@@ -11,6 +14,9 @@ import {
   type Route,
 } from './types';
 
+import { durationBucketFor } from './options';
+
+import { type FlightPassenger } from '$lib/db/types';
 import { getFlightPassengerToken, type FlightData } from '$lib/utils';
 import { parseLocalISO } from '$lib/utils/datetime';
 import { formatDate } from '$lib/utils/preferences';
@@ -19,11 +25,21 @@ import type { Preferences } from '$lib/zod/user';
 export type FilterColumnId =
   | 'departureAirports'
   | 'arrivalAirports'
+  | 'routes'
   | 'date'
   | 'passengers'
   | 'airline'
   | 'aircraft'
-  | 'aircraftRegs';
+  | 'aircraftRegs'
+  | 'flightType'
+  | 'flightNumber'
+  | 'duration'
+  | 'seatClass'
+  | 'flightReason'
+  | 'seatType'
+  | 'seatNumber'
+  | 'months'
+  | 'days';
 
 export type OptionColumnId = Exclude<FilterColumnId, 'date'>;
 export type NonPassengerOptionColumnId = Exclude<OptionColumnId, 'passengers'>;
@@ -84,6 +100,7 @@ export function createDefaultFilters(): FlightFilters {
     arrivalAirportsOperator: 'is any of',
     airportsEither: [],
     routes: [],
+    routesOperator: 'is any of',
     years: [],
     yearsOperator: 'is any of',
     fromDate: undefined,
@@ -96,6 +113,24 @@ export function createDefaultFilters(): FlightFilters {
     aircraftOperator: 'is any of',
     aircraftRegs: [],
     aircraftRegsOperator: 'is any of',
+    flightType: [],
+    flightTypeOperator: 'is any of',
+    flightNumber: [],
+    flightNumberOperator: 'is any of',
+    duration: [],
+    durationOperator: 'is any of',
+    seatClass: [],
+    seatClassOperator: 'is any of',
+    flightReason: [],
+    flightReasonOperator: 'is any of',
+    seatType: [],
+    seatTypeOperator: 'is any of',
+    seatNumber: [],
+    seatNumberOperator: 'is any of',
+    months: [],
+    monthsOperator: 'is any of',
+    days: [],
+    daysOperator: 'is any of',
   };
 }
 
@@ -114,6 +149,15 @@ export function cloneFlightFilters(
     airline: [...source.airline],
     aircraft: [...source.aircraft],
     aircraftRegs: [...source.aircraftRegs],
+    flightType: [...source.flightType],
+    flightNumber: [...source.flightNumber],
+    duration: [...source.duration],
+    seatClass: [...source.seatClass],
+    flightReason: [...source.flightReason],
+    seatType: [...source.seatType],
+    seatNumber: [...source.seatNumber],
+    months: [...source.months],
+    days: [...source.days],
     ...next,
   };
 }
@@ -131,7 +175,16 @@ export function hasFlightFilters(filters: FlightFilters | undefined): boolean {
       filters.passengers.length > 0 ||
       filters.airline.length > 0 ||
       filters.aircraft.length > 0 ||
-      filters.aircraftRegs.length > 0)
+      filters.aircraftRegs.length > 0 ||
+      filters.flightType.length > 0 ||
+      filters.flightNumber.length > 0 ||
+      filters.duration.length > 0 ||
+      filters.seatClass.length > 0 ||
+      filters.flightReason.length > 0 ||
+      filters.seatType.length > 0 ||
+      filters.seatNumber.length > 0 ||
+      filters.months.length > 0 ||
+      filters.days.length > 0)
   );
 }
 
@@ -181,6 +234,7 @@ export function optionColumnValues(
   filters: FlightFilters,
   columnId: OptionColumnId,
 ): string[] {
+  if (columnId === 'routes') return filters.routes.map(routeKey);
   return filters[columnId];
 }
 
@@ -203,12 +257,32 @@ export function rawOptionColumnOperator(
       return filters.departureAirportsOperator;
     case 'arrivalAirports':
       return filters.arrivalAirportsOperator;
+    case 'routes':
+      return filters.routesOperator;
     case 'airline':
       return filters.airlineOperator;
     case 'aircraft':
       return filters.aircraftOperator;
     case 'aircraftRegs':
       return filters.aircraftRegsOperator;
+    case 'flightType':
+      return filters.flightTypeOperator;
+    case 'flightNumber':
+      return filters.flightNumberOperator;
+    case 'duration':
+      return filters.durationOperator;
+    case 'seatClass':
+      return filters.seatClassOperator;
+    case 'flightReason':
+      return filters.flightReasonOperator;
+    case 'seatType':
+      return filters.seatTypeOperator;
+    case 'seatNumber':
+      return filters.seatNumberOperator;
+    case 'months':
+      return filters.monthsOperator;
+    case 'days':
+      return filters.daysOperator;
   }
 }
 
@@ -261,6 +335,10 @@ export function setOptionColumnOperator(
       return cloneFlightFilters(filters, {
         arrivalAirportsOperator: operator as OptionFilterOperator,
       });
+    case 'routes':
+      return cloneFlightFilters(filters, {
+        routesOperator: operator as OptionFilterOperator,
+      });
     case 'airline':
       return cloneFlightFilters(filters, {
         airlineOperator: operator as OptionFilterOperator,
@@ -272,6 +350,42 @@ export function setOptionColumnOperator(
     case 'aircraftRegs':
       return cloneFlightFilters(filters, {
         aircraftRegsOperator: operator as OptionFilterOperator,
+      });
+    case 'flightType':
+      return cloneFlightFilters(filters, {
+        flightTypeOperator: operator as OptionFilterOperator,
+      });
+    case 'flightNumber':
+      return cloneFlightFilters(filters, {
+        flightNumberOperator: operator as OptionFilterOperator,
+      });
+    case 'duration':
+      return cloneFlightFilters(filters, {
+        durationOperator: operator as OptionFilterOperator,
+      });
+    case 'seatClass':
+      return cloneFlightFilters(filters, {
+        seatClassOperator: operator as OptionFilterOperator,
+      });
+    case 'flightReason':
+      return cloneFlightFilters(filters, {
+        flightReasonOperator: operator as OptionFilterOperator,
+      });
+    case 'seatType':
+      return cloneFlightFilters(filters, {
+        seatTypeOperator: operator as OptionFilterOperator,
+      });
+    case 'seatNumber':
+      return cloneFlightFilters(filters, {
+        seatNumberOperator: operator as OptionFilterOperator,
+      });
+    case 'months':
+      return cloneFlightFilters(filters, {
+        monthsOperator: operator as OptionFilterOperator,
+      });
+    case 'days':
+      return cloneFlightFilters(filters, {
+        daysOperator: operator as OptionFilterOperator,
       });
   }
 }
@@ -314,6 +428,11 @@ export function setOptionColumnValues(
         arrivalAirports: values,
         arrivalAirportsOperator: operator as OptionFilterOperator,
       });
+    case 'routes':
+      return cloneFlightFilters(filters, {
+        routes: values.map(routeFromKey),
+        routesOperator: operator as OptionFilterOperator,
+      });
     case 'airline':
       return cloneFlightFilters(filters, {
         airline: values,
@@ -328,6 +447,51 @@ export function setOptionColumnValues(
       return cloneFlightFilters(filters, {
         aircraftRegs: values,
         aircraftRegsOperator: operator as OptionFilterOperator,
+      });
+    case 'flightType':
+      return cloneFlightFilters(filters, {
+        flightType: values,
+        flightTypeOperator: operator as OptionFilterOperator,
+      });
+    case 'flightNumber':
+      return cloneFlightFilters(filters, {
+        flightNumber: values,
+        flightNumberOperator: operator as OptionFilterOperator,
+      });
+    case 'duration':
+      return cloneFlightFilters(filters, {
+        duration: values,
+        durationOperator: operator as OptionFilterOperator,
+      });
+    case 'seatClass':
+      return cloneFlightFilters(filters, {
+        seatClass: values,
+        seatClassOperator: operator as OptionFilterOperator,
+      });
+    case 'flightReason':
+      return cloneFlightFilters(filters, {
+        flightReason: values,
+        flightReasonOperator: operator as OptionFilterOperator,
+      });
+    case 'seatType':
+      return cloneFlightFilters(filters, {
+        seatType: values,
+        seatTypeOperator: operator as OptionFilterOperator,
+      });
+    case 'seatNumber':
+      return cloneFlightFilters(filters, {
+        seatNumber: values,
+        seatNumberOperator: operator as OptionFilterOperator,
+      });
+    case 'months':
+      return cloneFlightFilters(filters, {
+        months: values,
+        monthsOperator: operator as OptionFilterOperator,
+      });
+    case 'days':
+      return cloneFlightFilters(filters, {
+        days: values,
+        daysOperator: operator as OptionFilterOperator,
       });
   }
 }
@@ -681,6 +845,7 @@ export function flightFiltersToBits(source: FlightFilters): FiltersState {
       source.arrivalAirports,
       source.arrivalAirportsOperator,
     ),
+    optionFilter('routes', source.routes.map(routeKey), source.routesOperator),
     dateFilterFromFlightFilters(source),
     multiOptionFilter(
       'passengers',
@@ -694,6 +859,15 @@ export function flightFiltersToBits(source: FlightFilters): FiltersState {
       source.aircraftRegs,
       source.aircraftRegsOperator,
     ),
+    optionFilter('flightType', source.flightType, source.flightTypeOperator),
+    optionFilter('flightNumber', source.flightNumber, source.flightNumberOperator),
+    optionFilter('duration', source.duration, source.durationOperator),
+    optionFilter('seatClass', source.seatClass, source.seatClassOperator),
+    optionFilter('flightReason', source.flightReason, source.flightReasonOperator),
+    optionFilter('seatType', source.seatType, source.seatTypeOperator),
+    optionFilter('seatNumber', source.seatNumber, source.seatNumberOperator),
+    optionFilter('months', source.months, source.monthsOperator),
+    optionFilter('days', source.days, source.daysOperator),
   ]) {
     if (filter) nextFilters.push(filter);
   }
@@ -744,6 +918,8 @@ function resetBitsManagedFilters(base?: FlightFilters): FlightFilters {
     departureAirportsOperator: 'is any of',
     arrivalAirports: [],
     arrivalAirportsOperator: 'is any of',
+    routes: [],
+    routesOperator: 'is any of',
     years: [],
     yearsOperator: 'is any of',
     fromDate: undefined,
@@ -756,6 +932,24 @@ function resetBitsManagedFilters(base?: FlightFilters): FlightFilters {
     aircraftOperator: 'is any of',
     aircraftRegs: [],
     aircraftRegsOperator: 'is any of',
+    flightType: [],
+    flightTypeOperator: 'is any of',
+    flightNumber: [],
+    flightNumberOperator: 'is any of',
+    duration: [],
+    durationOperator: 'is any of',
+    seatClass: [],
+    seatClassOperator: 'is any of',
+    flightReason: [],
+    flightReasonOperator: 'is any of',
+    seatType: [],
+    seatTypeOperator: 'is any of',
+    seatNumber: [],
+    seatNumberOperator: 'is any of',
+    months: [],
+    monthsOperator: 'is any of',
+    days: [],
+    daysOperator: 'is any of',
   });
 }
 
@@ -778,6 +972,10 @@ export function bitsFiltersToFlightFilters(
         nextFilters.arrivalAirportsOperator =
           filter.operator as OptionFilterOperator;
         break;
+      case 'routes':
+        nextFilters.routes = stringValues(filter).map(routeFromKey);
+        nextFilters.routesOperator = filter.operator as OptionFilterOperator;
+        break;
       case 'passengers':
         nextFilters.passengers = stringValues(filter);
         nextFilters.passengersOperator =
@@ -795,6 +993,46 @@ export function bitsFiltersToFlightFilters(
         nextFilters.aircraftRegs = stringValues(filter);
         nextFilters.aircraftRegsOperator =
           filter.operator as OptionFilterOperator;
+        break;
+      case 'flightType':
+        nextFilters.flightType = stringValues(filter);
+        nextFilters.flightTypeOperator =
+          filter.operator as OptionFilterOperator;
+        break;
+      case 'flightNumber':
+        nextFilters.flightNumber = stringValues(filter);
+        nextFilters.flightNumberOperator =
+          filter.operator as OptionFilterOperator;
+        break;
+      case 'duration':
+        nextFilters.duration = stringValues(filter);
+        nextFilters.durationOperator = filter.operator as OptionFilterOperator;
+        break;
+      case 'seatClass':
+        nextFilters.seatClass = stringValues(filter);
+        nextFilters.seatClassOperator = filter.operator as OptionFilterOperator;
+        break;
+      case 'flightReason':
+        nextFilters.flightReason = stringValues(filter);
+        nextFilters.flightReasonOperator =
+          filter.operator as OptionFilterOperator;
+        break;
+      case 'seatType':
+        nextFilters.seatType = stringValues(filter);
+        nextFilters.seatTypeOperator = filter.operator as OptionFilterOperator;
+        break;
+      case 'seatNumber':
+        nextFilters.seatNumber = stringValues(filter);
+        nextFilters.seatNumberOperator =
+          filter.operator as OptionFilterOperator;
+        break;
+      case 'months':
+        nextFilters.months = stringValues(filter);
+        nextFilters.monthsOperator = filter.operator as OptionFilterOperator;
+        break;
+      case 'days':
+        nextFilters.days = stringValues(filter);
+        nextFilters.daysOperator = filter.operator as OptionFilterOperator;
         break;
       case 'year':
         nextFilters.years = stringValues(filter);
@@ -841,6 +1079,7 @@ export function flightSignature(source: FlightFilters) {
     arrivalAirportsOperator: source.arrivalAirportsOperator,
     airportsEither: source.airportsEither,
     routes: source.routes,
+    routesOperator: source.routesOperator,
     years: source.years,
     yearsOperator: source.yearsOperator,
     fromDate: source.fromDate?.toString(),
@@ -853,6 +1092,24 @@ export function flightSignature(source: FlightFilters) {
     aircraftOperator: source.aircraftOperator,
     aircraftRegs: source.aircraftRegs,
     aircraftRegsOperator: source.aircraftRegsOperator,
+    flightType: source.flightType,
+    flightTypeOperator: source.flightTypeOperator,
+    flightNumber: source.flightNumber,
+    flightNumberOperator: source.flightNumberOperator,
+    duration: source.duration,
+    durationOperator: source.durationOperator,
+    seatClass: source.seatClass,
+    seatClassOperator: source.seatClassOperator,
+    flightReason: source.flightReason,
+    flightReasonOperator: source.flightReasonOperator,
+    seatType: source.seatType,
+    seatTypeOperator: source.seatTypeOperator,
+    seatNumber: source.seatNumber,
+    seatNumberOperator: source.seatNumberOperator,
+    months: source.months,
+    monthsOperator: source.monthsOperator,
+    days: source.days,
+    daysOperator: source.daysOperator,
   });
 }
 
@@ -946,11 +1203,18 @@ export function matchesLocationFilters(
     return false;
   }
 
-  if (
-    locationFilters.routes.length &&
-    !locationFilters.routes.some((route) => routeMatches(flight, route))
-  ) {
-    return false;
+  if (locationFilters.routes.length) {
+    const flightRoute =
+      fromId && toId ? routeKey(normalizeRoute(fromId, toId)) : undefined;
+    if (
+      !optionMatches(
+        flightRoute,
+        locationFilters.routes.map(routeKey),
+        locationFilters.routesOperator ?? 'is any of',
+      )
+    ) {
+      return false;
+    }
   }
 
   return true;
@@ -967,9 +1231,86 @@ function getFilterBoundary(
   );
 }
 
+export type SeatFilterContext = {
+  /* Passenger tokens from an inclusive passengers filter. */
+  passengerTokens?: string[];
+  /* The user whose passenger row seat filters consult (mine/user scope). */
+  seatUserId?: string;
+};
+
+const INCLUSIVE_PASSENGER_OPERATORS: readonly MultiOptionFilterOperator[] = [
+  'include',
+  'include any of',
+  'include all of',
+  'include exactly',
+];
+
+/*
+ * Seat-related filters apply to relevant passenger rows only: the rows picked
+ * by an inclusive passengers filter when set, otherwise the current scope's
+ * row, otherwise any passenger row. Exclusive passengers operators fall
+ * through on purpose — the flight matched because those people are not on it,
+ * so scoping seat filters to them would always come up empty.
+ */
+export function seatFilterContext(
+  filters: FlightFilters,
+  seatUserId?: string,
+): SeatFilterContext {
+  if (
+    filters.passengers.length &&
+    INCLUSIVE_PASSENGER_OPERATORS.includes(filters.passengersOperator)
+  ) {
+    return { passengerTokens: filters.passengers };
+  }
+  return seatUserId ? { seatUserId } : {};
+}
+
+function seatContextPassengers(
+  flight: FlightData,
+  ctx?: SeatFilterContext,
+): FlightPassenger[] {
+  if (ctx?.passengerTokens?.length) {
+    const tokens = new Set(ctx.passengerTokens);
+    return flight.passengers.filter((passenger) => {
+      const token = getFlightPassengerToken(passenger);
+      return token != null && tokens.has(token);
+    });
+  }
+  if (ctx?.seatUserId) {
+    return flight.passengers.filter(
+      (passenger) => passenger.userId === ctx.seatUserId,
+    );
+  }
+  return flight.passengers;
+}
+
+function passengerFieldMatches(
+  passengers: FlightPassenger[],
+  field: 'seat' | 'seatClass' | 'flightReason' | 'seatNumber',
+  selectedValues: string[],
+  operator: OptionFilterOperator = 'is any of',
+) {
+  if (!selectedValues.length) return true;
+  const found = passengers.some(
+    (passenger) =>
+      passenger[field] != null && selectedValues.includes(passenger[field]!),
+  );
+  return operator === 'is' || operator === 'is any of' ? found : !found;
+}
+
+export function flightTypeForFlight(
+  flight: FlightData,
+): string | undefined {
+  if (!flight.from || !flight.to) return undefined;
+  return flight.from.country === flight.to.country
+    ? 'domestic'
+    : 'international';
+}
+
 export function matchesNonLocationFilters(
   flight: FlightData,
   filters: FlightFilters,
+  seatCtx?: SeatFilterContext,
 ) {
   if (
     !optionMatches(
@@ -1049,12 +1390,111 @@ export function matchesNonLocationFilters(
     return false;
   }
 
+  if (
+    !optionMatches(
+      flightTypeForFlight(flight),
+      filters.flightType,
+      filters.flightTypeOperator,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !optionMatches(
+      flight.flightNumber,
+      filters.flightNumber,
+      filters.flightNumberOperator,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !optionMatches(
+      flight.date ? String(flight.date.getMonth()) : undefined,
+      filters.months,
+      filters.monthsOperator,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !optionMatches(
+      flight.date ? String(flight.date.getDate()) : undefined,
+      filters.days,
+      filters.daysOperator,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !optionMatches(
+      durationBucketFor(flight.distance),
+      filters.duration,
+      filters.durationOperator,
+    )
+  ) {
+    return false;
+  }
+
+  const seatPassengers = seatContextPassengers(flight, seatCtx);
+  if (
+    !passengerFieldMatches(
+      seatPassengers,
+      'seatClass',
+      filters.seatClass,
+      filters.seatClassOperator,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !passengerFieldMatches(
+      seatPassengers,
+      'flightReason',
+      filters.flightReason,
+      filters.flightReasonOperator,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !passengerFieldMatches(
+      seatPassengers,
+      'seat',
+      filters.seatType,
+      filters.seatTypeOperator,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !passengerFieldMatches(
+      seatPassengers,
+      'seatNumber',
+      filters.seatNumber,
+      filters.seatNumberOperator,
+    )
+  ) {
+    return false;
+  }
+
   return true;
 }
 
-export function matchesFlight(flight: FlightData, filters: FlightFilters) {
+export function matchesFlight(
+  flight: FlightData,
+  filters: FlightFilters,
+  seatCtx?: SeatFilterContext,
+) {
   return (
     matchesLocationFilters(flight, filters) &&
-    matchesNonLocationFilters(flight, filters)
+    matchesNonLocationFilters(flight, filters, seatCtx)
   );
 }
