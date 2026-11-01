@@ -4,6 +4,9 @@
   import { closeMapDetails, focusMapDetails } from '$lib/state.svelte';
 
   import DetailsActionButton from './DetailsActionButton.svelte';
+  import RouteDisplayToggle from './RouteDisplayToggle.svelte';
+
+  let { hasTrack }: { hasTrack: boolean } = $props();
 </script>
 
 <DetailsActionButton
@@ -12,6 +15,7 @@
   icon={Locate}
   onclick={focusMapDetails}
 />
+<RouteDisplayToggle {hasTrack} />
 <DetailsActionButton
   label="Close details"
   shortLabel="Close"

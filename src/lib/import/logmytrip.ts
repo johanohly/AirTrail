@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { page } from '$app/state';
 import type { CreateFlight, FlightPassenger } from '$lib/db/types';
+import { getAirlineMappingKey } from '$lib/import/airline-mapping';
 import type { PlatformOptions, ProcessResult } from '$lib/import/model';
 import { parseCsv } from '$lib/utils';
 import { getAircraftByName } from '$lib/utils/data/aircraft';
@@ -160,7 +161,7 @@ const resolveAirport = async (raw: string, options: PlatformOptions) => {
 const resolveAirline = async (raw: string | null, options: PlatformOptions) => {
   if (!raw) return { airline: null, key: null };
   const { name, iata, icao } = parseCodedName(raw);
-  const key = icao ?? iata ?? (name || null);
+  const key = getAirlineMappingKey({ name, iata, icao });
   if (!key) return { airline: null, key: null };
 
   const mapped = options.airlineMapping?.[key];

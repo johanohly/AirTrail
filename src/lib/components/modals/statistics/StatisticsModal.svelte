@@ -7,6 +7,7 @@
   import ChartDrillDown from './charts/ChartDrillDown.svelte';
   import FlightsPerMonth from './charts/FlightsPerMonth.svelte';
   import FlightsPerWeekday from './charts/FlightsPerWeekday.svelte';
+  import FlightsPerYear from './charts/FlightsPerYear.svelte';
   import PieChart from './charts/PieChart.svelte';
   import PieCharts from './charts/PieCharts.svelte';
   import StatsCard from './StatsCard.svelte';
@@ -353,6 +354,7 @@
         <FlightsPerMonth flights={countedFlights} />
         <FlightsPerWeekday flights={countedFlights} />
       </div>
+      <FlightsPerYear flights={countedFlights} />
       {#if showCountryStats}
         <h3 class="text-2xl font-bold tracking-tight pt-4">
           Country Statistics

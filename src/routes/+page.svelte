@@ -249,6 +249,7 @@
     {flights}
     bind:filters
     seatUserId={effectiveSeatUserId}
+    {trackedFlightIds}
     onNavigate={navigateFlights}
   />
 {:else}

@@ -803,10 +803,21 @@
 {/snippet}
 
 {#snippet airport(airport: Airport | null)}
-  <div class="w-11 flex flex-col items-center justify-center">
-    <span class="text-lg font-bold">
-      {airport?.iata || airport?.icao || 'N/A'}
-    </span>
+  <div class="w-20 flex flex-col items-center justify-center">
+    <div class="flex items-center gap-1.5">
+      {#if airport}
+        <img
+          src="https://flagcdn.com/{airport.country.toLowerCase()}.svg"
+          alt={airport.country}
+          loading="lazy"
+          decoding="async"
+          class="h-4 w-6 shrink-0 rounded object-cover shadow-sm"
+        />
+      {/if}
+      <span class="text-lg font-bold">
+        {airport?.iata || airport?.icao || 'N/A'}
+      </span>
+    </div>
     <Tooltip.AutoTooltip
       text={airport?.name || 'Deleted Airport'}
       class="text-center w-32 text-xs text-muted-foreground truncate"
