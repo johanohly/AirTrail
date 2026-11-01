@@ -50,12 +50,22 @@
 
 <script lang="ts">
   import {
+    Armchair,
+    ArrowLeftRight,
     Calendar,
+    CalendarCheck,
+    CalendarDays,
     Funnel,
+    Globe,
     Hash,
+    LocateFixed,
+    PersonStanding,
     Plane,
     PlaneLanding,
     PlaneTakeoff,
+    Briefcase,
+    Ruler,
+    Ticket,
     UsersRound,
     X,
   } from '@o7/icon';
@@ -74,12 +84,25 @@
     createDefaultFilters,
     flightFiltersToBits,
     flightSignature,
+    flightTypeForFlight,
     hasFlightFilters,
     matchesLocationFilters,
   } from '$lib/components/flight-filters/model';
-  import type {
-    FlightFilters,
-    TempFilters,
+  import {
+    dayOptions,
+    durationBucketFor,
+    durationOptions,
+    flightReasonOptions,
+    flightTypeOptions,
+    monthOptions,
+    seatClassOptions,
+    seatTypeOptions,
+  } from '$lib/components/flight-filters/options';
+  import {
+    normalizeRoute,
+    routeKey,
+    type FlightFilters,
+    type TempFilters,
   } from '$lib/components/flight-filters/types';
   import UserAvatar from '$lib/components/display/UserAvatar.svelte';
   import {
@@ -89,17 +112,28 @@
     type FlightData,
   } from '$lib/utils';
   import type { Aircraft, Airline, Airport } from '$lib/db/types';
+  import { routeLabelForFlight } from '$lib/stats/aggregations';
   import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
 
   type FlightFilterColumnConfig =
     | ColumnConfig<FlightData, 'option', string, 'departureAirports'>
     | ColumnConfig<FlightData, 'option', string, 'arrivalAirports'>
+    | ColumnConfig<FlightData, 'option', string, 'routes'>
     | ColumnConfig<FlightData, 'option', string, 'year'>
     | ColumnConfig<FlightData, 'date', Date, 'date'>
     | ColumnConfig<FlightData, 'multiOption', string[], 'passengers'>
     | ColumnConfig<FlightData, 'option', string, 'airline'>
     | ColumnConfig<FlightData, 'option', string, 'aircraft'>
-    | ColumnConfig<FlightData, 'option', string, 'aircraftRegs'>;
+    | ColumnConfig<FlightData, 'option', string, 'aircraftRegs'>
+    | ColumnConfig<FlightData, 'option', string, 'months'>
+    | ColumnConfig<FlightData, 'option', string, 'days'>
+    | ColumnConfig<FlightData, 'option', string, 'flightType'>
+    | ColumnConfig<FlightData, 'option', string, 'flightNumber'>
+    | ColumnConfig<FlightData, 'option', string, 'duration'>
+    | ColumnConfig<FlightData, 'option', string, 'seatClass'>
+    | ColumnConfig<FlightData, 'option', string, 'flightReason'>
+    | ColumnConfig<FlightData, 'option', string, 'seatType'>
+    | ColumnConfig<FlightData, 'option', string, 'seatNumber'>;
 
   let {
     flights = $bindable(),
@@ -366,6 +400,72 @@
       .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
   });
 
+  const flightNumberOptions = $derived.by(() => {
+    const frequencyMap = new Map<string, number>();
+
+    for (const flight of scopedFlights) {
+      if (!flight.flightNumber) continue;
+      frequencyMap.set(
+        flight.flightNumber,
+        (frequencyMap.get(flight.flightNumber) ?? 0) + 1,
+      );
+    }
+
+    return Array.from(frequencyMap.entries())
+      .map(([flightNumber, count]) => ({
+        value: flightNumber,
+        label: flightNumber,
+        count,
+      }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  });
+
+  const seatNumberOptions = $derived.by(() => {
+    const frequencyMap = new Map<string, number>();
+
+    for (const flight of scopedFlights) {
+      for (const passenger of flight.passengers) {
+        if (!passenger.seatNumber) continue;
+        frequencyMap.set(
+          passenger.seatNumber,
+          (frequencyMap.get(passenger.seatNumber) ?? 0) + 1,
+        );
+      }
+    }
+
+    return Array.from(frequencyMap.entries())
+      .map(([seatNumber, count]) => ({
+        value: seatNumber,
+        label: seatNumber,
+        count,
+      }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  });
+
+  const routeOptions = $derived.by(() => {
+    const options = new Map<string, OptionSource>();
+
+    for (const flight of scopedFlights) {
+      if (!flight.from || !flight.to) continue;
+      const label = routeLabelForFlight(flight);
+      if (!label) continue;
+      const value = routeKey(
+        normalizeRoute(flight.from.id.toString(), flight.to.id.toString()),
+      );
+      const existing = options.get(value);
+      if (existing) {
+        existing.count = (existing.count ?? 0) + 1;
+      } else {
+        options.set(value, { value, label, count: 1 });
+      }
+    }
+
+    return Array.from(options.values()).sort(
+      (a, b) =>
+        (b.count ?? 0) - (a.count ?? 0) || a.label.localeCompare(b.label),
+    );
+  });
+
   const yearOptions = $derived.by(() => {
     const years = new Set<string>();
 
@@ -404,12 +504,46 @@
         hidden: tempLocationFiltersActive,
       },
       {
+        id: 'routes',
+        displayName: 'Route',
+        type: 'option',
+        accessor: (flight) =>
+          flight.from && flight.to
+            ? routeKey(
+                normalizeRoute(
+                  flight.from.id.toString(),
+                  flight.to.id.toString(),
+                ),
+              )
+            : '',
+        icon: ArrowLeftRight,
+        options: columnOptions(routeOptions),
+      },
+      {
         id: 'year',
         displayName: 'Year',
         type: 'option',
         accessor: (flight) => flight.date?.getFullYear().toString() ?? '',
         icon: Calendar,
         options: yearOptions,
+      },
+      {
+        id: 'months',
+        displayName: 'Month',
+        type: 'option',
+        accessor: (flight) =>
+          flight.date ? String(flight.date.getMonth()) : '',
+        icon: CalendarDays,
+        options: monthOptions,
+      },
+      {
+        id: 'days',
+        displayName: 'Day of Month',
+        type: 'option',
+        accessor: (flight) =>
+          flight.date ? String(flight.date.getDate()) : '',
+        icon: CalendarCheck,
+        options: dayOptions,
       },
       {
         id: 'date',
@@ -453,6 +587,73 @@
         accessor: (flight) => flight.aircraftReg ?? '',
         icon: Hash,
         options: columnOptions(aircraftRegOptions),
+      },
+      {
+        id: 'flightType',
+        displayName: 'Flight Type',
+        type: 'option',
+        accessor: (flight) => flightTypeForFlight(flight) ?? '',
+        icon: Globe,
+        options: flightTypeOptions,
+      },
+      {
+        id: 'flightNumber',
+        displayName: 'Flight Number',
+        type: 'option',
+        accessor: (flight) => flight.flightNumber ?? '',
+        icon: Ticket,
+        options: columnOptions(flightNumberOptions),
+      },
+      {
+        id: 'duration',
+        displayName: 'Duration',
+        type: 'option',
+        accessor: (flight) => durationBucketFor(flight.distance) ?? '',
+        icon: Ruler,
+        options: durationOptions,
+      },
+      {
+        id: 'seatClass',
+        displayName: 'Class',
+        type: 'option',
+        accessor: (flight) =>
+          flight.passengers.find(
+            (passenger) => passenger.seatClass != null,
+          )?.seatClass ?? '',
+        icon: Armchair,
+        options: seatClassOptions,
+      },
+      {
+        id: 'flightReason',
+        displayName: 'Reason',
+        type: 'option',
+        accessor: (flight) =>
+          flight.passengers.find(
+            (passenger) => passenger.flightReason != null,
+          )?.flightReason ?? '',
+        icon: Briefcase,
+        options: flightReasonOptions,
+      },
+      {
+        id: 'seatType',
+        displayName: 'Seat Type',
+        type: 'option',
+        accessor: (flight) =>
+          flight.passengers.find((passenger) => passenger.seat != null)
+            ?.seat ?? '',
+        icon: PersonStanding,
+        options: seatTypeOptions,
+      },
+      {
+        id: 'seatNumber',
+        displayName: 'Seat Number',
+        type: 'option',
+        accessor: (flight) =>
+          flight.passengers.find(
+            (passenger) => passenger.seatNumber != null,
+          )?.seatNumber ?? '',
+        icon: LocateFixed,
+        options: columnOptions(seatNumberOptions),
       },
     ] satisfies ReadonlyArray<FlightFilterColumnConfig>;
   });

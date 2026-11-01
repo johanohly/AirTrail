@@ -1,13 +1,23 @@
 <script lang="ts">
   import {
+    Armchair,
+    ArrowLeftRight,
+    Briefcase,
     Calendar as CalendarIcon,
+    CalendarCheck,
+    CalendarDays,
     Check,
     ChevronRight,
+    Globe,
     Hash,
+    LocateFixed,
+    PersonStanding,
     Plane,
     PlaneLanding,
     PlaneTakeoff,
+    Ruler,
     Search,
+    Ticket,
     UsersRound,
     X,
     Plus,
@@ -37,12 +47,25 @@
     type OptionColumnId,
   } from '$lib/components/flight-filters/model';
   import {
+    dayOptions,
+    durationOptions,
+    flightReasonOptions,
+    flightTypeOptions,
+    monthOptions,
+    seatClassOptions,
+    seatTypeOptions,
+    type FilterOptionSource,
+  } from '$lib/components/flight-filters/options';
+  import {
     hasTempFilters as hasActiveTempFilters,
+    normalizeRoute,
+    routeKey,
     type FlightFilters,
     type MultiOptionFilterOperator,
     type OptionFilterOperator,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
+  import { routeLabelForFlight } from '$lib/stats/aggregations';
   import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
   import { Button } from '$lib/components/ui/button';
   import {
@@ -131,6 +154,12 @@
       type: 'option',
       hidden: tempLocationFiltersActive,
     },
+    {
+      id: 'routes',
+      label: 'Route',
+      icon: ArrowLeftRight,
+      type: 'option',
+    },
     { id: 'date', label: 'Date', icon: CalendarIcon, type: 'date' },
     {
       id: 'passengers',
@@ -141,6 +170,45 @@
     { id: 'airline', label: 'Airline', icon: Airlines, type: 'option' },
     { id: 'aircraft', label: 'Aircraft', icon: Plane, type: 'option' },
     { id: 'aircraftRegs', label: 'Tail Number', icon: Hash, type: 'option' },
+    {
+      id: 'months',
+      label: 'Month',
+      icon: CalendarDays,
+      type: 'option',
+    },
+    {
+      id: 'days',
+      label: 'Day of Month',
+      icon: CalendarCheck,
+      type: 'option',
+    },
+    {
+      id: 'flightType',
+      label: 'Flight Type',
+      icon: Globe,
+      type: 'option',
+    },
+    {
+      id: 'flightNumber',
+      label: 'Flight Number',
+      icon: Ticket,
+      type: 'option',
+    },
+    { id: 'duration', label: 'Duration', icon: Ruler, type: 'option' },
+    { id: 'seatClass', label: 'Class', icon: Armchair, type: 'option' },
+    { id: 'flightReason', label: 'Reason', icon: Briefcase, type: 'option' },
+    {
+      id: 'seatType',
+      label: 'Seat Type',
+      icon: PersonStanding,
+      type: 'option',
+    },
+    {
+      id: 'seatNumber',
+      label: 'Seat Number',
+      icon: LocateFixed,
+      type: 'option',
+    },
   ]);
 
   const visibleColumns = $derived(columns.filter((column) => !column.hidden));
@@ -221,6 +289,11 @@
     );
   }
 
+  /* Static option lists keep their curated order and carry no counts. */
+  function staticOptions(options: FilterOptionSource[]): FilterOption[] {
+    return options;
+  }
+
   const optionsByColumn = $derived.by(() => {
     const passengers = new Map<string, FilterOption>();
 
@@ -283,6 +356,45 @@
           flight.aircraftReg
             ? { value: flight.aircraftReg, label: flight.aircraftReg }
             : null,
+        ),
+      ),
+      routes: countedOptions(
+        scopedFlights.map((flight) => {
+          if (!flight.from || !flight.to) return null;
+          const label = routeLabelForFlight(flight);
+          if (!label) return null;
+          return {
+            value: routeKey(
+              normalizeRoute(
+                flight.from.id.toString(),
+                flight.to.id.toString(),
+              ),
+            ),
+            label,
+          };
+        }),
+      ),
+      months: staticOptions(monthOptions),
+      days: staticOptions(dayOptions),
+      flightType: staticOptions(flightTypeOptions),
+      flightNumber: countedOptions(
+        scopedFlights.map((flight) =>
+          flight.flightNumber
+            ? { value: flight.flightNumber, label: flight.flightNumber }
+            : null,
+        ),
+      ),
+      duration: staticOptions(durationOptions),
+      seatClass: staticOptions(seatClassOptions),
+      flightReason: staticOptions(flightReasonOptions),
+      seatType: staticOptions(seatTypeOptions),
+      seatNumber: countedOptions(
+        scopedFlights.flatMap((flight) =>
+          flight.passengers.map((passenger) =>
+            passenger.seatNumber
+              ? { value: passenger.seatNumber, label: passenger.seatNumber }
+              : null,
+          ),
         ),
       ),
     } satisfies Record<OptionColumnId, FilterOption[]>;
