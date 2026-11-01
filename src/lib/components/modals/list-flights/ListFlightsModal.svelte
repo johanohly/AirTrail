@@ -64,6 +64,7 @@
   import { Duration, parseLocalizeISO } from '$lib/utils/datetime';
   import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
   import { isMediumScreen } from '$lib/utils/size';
+  import { urlForView } from '$lib/view-paths';
 
   let {
     open = $bindable<boolean>(),
@@ -402,6 +403,7 @@
   bind:open
   class="md:max-w-full flex flex-col md:h-full md:rounded-none!"
   drawerNoPadding
+  historyUrl={() => urlForView('flights')}
 >
   <div class="max-md:max-h-[calc(100dvh-200px)] max-md:overflow-auto">
     <div class="flex flex-col gap-2 max-md:px-4 max-md:py-4">

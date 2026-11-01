@@ -1,16 +1,7 @@
 import type { PageServerLoad } from './$types';
 
-import { DEFAULT_FLIGHT_SCOPE } from '$lib/flight-scope';
-import { trpcServer } from '$lib/server/server';
-import { canListFlights } from '$lib/server/authorization/flight';
+import { prefetchFlightPageData } from '$lib/server/utils/flight-page';
 
 export const load: PageServerLoad = async (event) => {
-  if (
-    !event.locals.authorization ||
-    !canListFlights(event.locals.authorization, DEFAULT_FLIGHT_SCOPE)
-  ) {
-    return;
-  }
-  await trpcServer.flight.list.ssr({ scope: 'mine' });
-  await trpcServer.flightTrack.list.ssr({ scope: 'mine' });
+  await prefetchFlightPageData(event);
 };
