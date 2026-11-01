@@ -156,7 +156,9 @@ export const routeLabelForFlight = (flight: FlightData): string | null => {
   const toCode = codeForAirport(flight.to);
   if (!fromCode || !toCode) return null;
   // Sorted so an outbound flight and its return count as one route.
-  return [fromCode, toCode].sort().join(' – ');
+  return fromCode <= toCode
+    ? `${fromCode} – ${toCode}`
+    : `${toCode} – ${fromCode}`;
 };
 
 export const flightChartBucketForFlight = (
