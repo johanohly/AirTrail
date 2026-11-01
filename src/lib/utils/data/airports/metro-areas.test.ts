@@ -35,8 +35,8 @@ describe('metro area registry', () => {
     }
   });
 
-  it('groups all five London airports together', () => {
-    for (const icao of ['EGLC', 'EGGW', 'EGKK', 'EGLL', 'EGSS']) {
+  it('groups all six London airports together', () => {
+    for (const icao of ['EGLC', 'EGGW', 'EGKK', 'EGLL', 'EGMC', 'EGSS']) {
       expect(metroAreaForIcao(icao)).toBe('LON');
     }
   });

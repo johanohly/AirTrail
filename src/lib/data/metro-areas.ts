@@ -15,7 +15,7 @@ export type MetroArea = { name: string; icaos: readonly string[] };
 /** Airport clusters keyed by IATA-style city code. */
 export const METRO_AREAS = {
   // Girona adjunct (90 km).
-  BCN: { name: 'Barcelona', icaos: ['LEBL', 'LEGA'] },
+  BCN: { name: 'Barcelona', icaos: ['LEBL', 'LEGE'] },
   BFS: { name: 'Belfast', icaos: ['EGAA', 'EGAC'] },
   BJS: { name: 'Beijing', icaos: ['ZBAA', 'ZBAD'] },
   BKK: { name: 'Bangkok', icaos: ['VTBD', 'VTBS'] },
@@ -39,8 +39,10 @@ export const METRO_AREAS = {
   JNB: { name: 'Johannesburg', icaos: ['FALA', 'FAOR'] },
   // ONT excluded (Inland Empire).
   LAX: { name: 'Los Angeles', icaos: ['KBUR', 'KLAX', 'KSNA'] },
-  // EGMC (Southend) excluded.
-  LON: { name: 'London', icaos: ['EGGW', 'EGKK', 'EGLC', 'EGLL', 'EGSS'] },
+  LON: {
+    name: 'London',
+    icaos: ['EGGW', 'EGKK', 'EGLC', 'EGLL', 'EGMC', 'EGSS'],
+  },
   // MMSM = NLU Felipe Ángeles.
   MEX: { name: 'Mexico City', icaos: ['MMMX', 'MMSM'] },
   // Same urban corridor; KPBI excluded.
