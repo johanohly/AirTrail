@@ -30,6 +30,8 @@ export const lucia = new Lucia(adapter, {
       roleAssignmentSource: db.role_assignment_source,
       // @ts-expect-error - Same as above
       oauthId: db.oauth_id,
+      // The hash stays out of the session user; only its presence matters.
+      hasPassword: db.password !== null,
       // @ts-expect-error - Same as above
       distanceUnit: db.distance_unit,
       // @ts-expect-error - Same as above

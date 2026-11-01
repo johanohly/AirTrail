@@ -88,6 +88,16 @@ export const editPasswordSchema = z
     }
   });
 
+export const setPasswordSchema = z
+  .object({
+    newPassword: z.string().min(8, 'Must be at least 8 characters long'),
+    confirmPassword: z.string(),
+  })
+  .refine(
+    ({ newPassword, confirmPassword }) => newPassword === confirmPassword,
+    { message: 'Passwords do not match', path: ['confirmPassword'] },
+  );
+
 export const addUserSchema = userSchema;
 
 export const createApiKeySchema = z.object({

@@ -4,9 +4,10 @@
   import { PageHeader } from '../index';
 
   import ApiKeys from './ApiKeys.svelte';
+  import ConnectedApps from './ConnectedApps.svelte';
   import EditPassword from './EditPassword.svelte';
   import OAuth from './OAuth.svelte';
-  import ConnectedApps from './ConnectedApps.svelte';
+  import SetPassword from './SetPassword.svelte';
 
   import { page } from '$app/state';
   import { hasClientPermission } from '$lib/authorization/permissions';
@@ -39,7 +40,11 @@
       </span>
     {:else}
       <div>
-        <EditPassword />
+        {#if user?.hasPassword === false}
+          <SetPassword />
+        {:else}
+          <EditPassword />
+        {/if}
       </div>
     {/if}
   </div>
