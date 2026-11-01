@@ -3,8 +3,11 @@ import { isDeepStrictEqual } from 'node:util';
 import { sql } from 'kysely';
 
 import type { DB } from '$lib/db/schema';
+import type { Flight, FlightCustomFieldValue } from '$lib/db/types';
 import {
   isCustomFieldValueEmpty,
+  isEntityType,
+  type CustomFieldDefinition,
   type EntityType,
   type FieldType,
   validateCustomFieldValue,
@@ -338,4 +341,170 @@ export const persistEntityCustomFieldPlan = async (
       await persistEntry(db, plan.entityType, entityId, fieldId, value);
     }
   }
+};
+
+type FlightFieldDefinition = Pick<CustomFieldDefinition, 'id' | 'fieldType'>;
+
+type FlightValueRow = {
+  entityId: string;
+  fieldId: number;
+  value: unknown;
+};
+
+type EntityFieldType = 'airport' | 'airline' | 'aircraft';
+
+type EntityNameMaps = Record<EntityFieldType, ReadonlyMap<number, string>>;
+
+const entityValueLabel = (
+  definition: FlightFieldDefinition,
+  value: unknown,
+  names: EntityNameMaps,
+): string | null => {
+  if (!isEntityType(definition.fieldType)) return null;
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return names[definition.fieldType as EntityFieldType].get(value) ?? null;
+};
+
+/**
+ * Group persisted flight custom field rows per flight, dropping values with
+ * no active definition or an empty value. Entries follow definition order and
+ * entity references carry their resolved display name.
+ */
+export const resolveFlightCustomFieldEntries = (
+  definitions: ReadonlyArray<FlightFieldDefinition>,
+  rows: ReadonlyArray<FlightValueRow>,
+  names: EntityNameMaps,
+): Map<string, FlightCustomFieldValue[]> => {
+  const fieldTypeById = new Map(
+    definitions.map((definition) => [definition.id, definition.fieldType]),
+  );
+
+  const rowsByEntity = new Map<string, FlightValueRow[]>();
+  for (const row of rows) {
+    if (!fieldTypeById.has(row.fieldId)) continue;
+    if (isCustomFieldValueEmpty(row.value)) continue;
+    const existing = rowsByEntity.get(row.entityId) ?? [];
+    existing.push(row);
+    rowsByEntity.set(row.entityId, existing);
+  }
+
+  const entriesByEntity = new Map<string, FlightCustomFieldValue[]>();
+  for (const [entityId, entityRows] of rowsByEntity) {
+    const rowsById = new Map(entityRows.map((row) => [row.fieldId, row]));
+    const entries: FlightCustomFieldValue[] = [];
+    for (const definition of definitions) {
+      const row = rowsById.get(definition.id);
+      if (!row) continue;
+      entries.push({
+        fieldId: definition.id,
+        value: row.value,
+        valueLabel: entityValueLabel(definition, row.value, names),
+      });
+    }
+    if (entries.length > 0) entriesByEntity.set(entityId, entries);
+  }
+  return entriesByEntity;
+};
+
+const entityNameMap = async (
+  db: Kysely<DB>,
+  table: EntityFieldType,
+  ids: ReadonlySet<number>,
+): Promise<Map<number, string>> => {
+  if (ids.size === 0) return new Map();
+
+  const rows =
+    table === 'airport'
+      ? await db
+          .selectFrom('airport')
+          .select(['id', 'name'])
+          .where('id', 'in', [...ids])
+          .execute()
+      : table === 'airline'
+        ? await db
+            .selectFrom('airline')
+            .select(['id', 'name'])
+            .where('id', 'in', [...ids])
+            .execute()
+        : await db
+            .selectFrom('aircraft')
+            .select(['id', 'name'])
+            .where('id', 'in', [...ids])
+            .execute();
+  return new Map(rows.map((row) => [row.id, row.name]));
+};
+
+/**
+ * Attach each flight's custom field values (with resolved entity names) for
+ * the authenticated flight list. Other consumers of the base flight query —
+ * public shares, the API, backups — never receive custom fields.
+ */
+export const attachFlightCustomFields = async (
+  db: Kysely<DB>,
+  flights: Flight[],
+): Promise<Flight[]> => {
+  if (flights.length === 0) return flights;
+
+  const definitions = await db
+    .selectFrom('customFieldDefinition')
+    .select(['id', 'fieldType'])
+    .where('entityType', '=', 'flight')
+    .where('active', '=', true)
+    .orderBy('order', 'asc')
+    .orderBy('label', 'asc')
+    .execute();
+
+  const withNoValues = (): Flight[] =>
+    flights.map((flight) => ({ ...flight, customFields: [] }));
+
+  if (definitions.length === 0) return withNoValues();
+
+  const rows = await db
+    .selectFrom('customFieldValue')
+    .select(['entityId', 'fieldId', 'value'])
+    .where('entityType', '=', 'flight')
+    .where(
+      'entityId',
+      'in',
+      flights.map((flight) => String(flight.id)),
+    )
+    .where(
+      'fieldId',
+      'in',
+      definitions.map((definition) => definition.id),
+    )
+    .execute();
+  if (rows.length === 0) return withNoValues();
+
+  const fieldTypeById = new Map(
+    definitions.map((definition) => [definition.id, definition.fieldType]),
+  );
+  const idsByType: Record<EntityFieldType, Set<number>> = {
+    airport: new Set(),
+    airline: new Set(),
+    aircraft: new Set(),
+  };
+  for (const row of rows) {
+    const fieldType = fieldTypeById.get(row.fieldId);
+    if (!fieldType || !isEntityType(fieldType)) continue;
+    if (typeof row.value !== 'number' || !Number.isFinite(row.value)) continue;
+    idsByType[fieldType as EntityFieldType].add(row.value);
+  }
+
+  const [airportNames, airlineNames, aircraftNames] = await Promise.all([
+    entityNameMap(db, 'airport', idsByType.airport),
+    entityNameMap(db, 'airline', idsByType.airline),
+    entityNameMap(db, 'aircraft', idsByType.aircraft),
+  ]);
+
+  const entriesByEntity = resolveFlightCustomFieldEntries(definitions, rows, {
+    airport: airportNames,
+    airline: airlineNames,
+    aircraft: aircraftNames,
+  });
+
+  return flights.map((flight) => ({
+    ...flight,
+    customFields: entriesByEntity.get(String(flight.id)) ?? [],
+  }));
 };

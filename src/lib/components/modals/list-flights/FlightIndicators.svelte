@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { Clock, Route, StickyNote, Users } from '@o7/icon/lucide';
+  import {
+    Clock,
+    Route,
+    SlidersHorizontal,
+    StickyNote,
+    Users,
+  } from '@o7/icon/lucide';
 
   import type {
     FlightIndicator,
@@ -22,6 +28,7 @@
     actualTimes: Clock,
     passengers: Users,
     note: StickyNote,
+    customFields: SlidersHorizontal,
   };
 </script>
 
@@ -47,7 +54,15 @@
           <Tooltip.Content
             class="max-w-[min(20rem,var(--bits-tooltip-content-available-width))] whitespace-normal break-words"
           >
-            {indicator.label}
+            {#if indicator.lines?.length}
+              <ul class="grid gap-0.5">
+                {#each indicator.lines as line, index (index)}
+                  <li>{line}</li>
+                {/each}
+              </ul>
+            {:else}
+              {indicator.label}
+            {/if}
           </Tooltip.Content>
         </Tooltip.Portal>
       </Tooltip.Root>
