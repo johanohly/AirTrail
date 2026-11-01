@@ -18,6 +18,8 @@ export type CalendarFeedOptions = {
   showEmoji: boolean;
   /** Minutes before departure for a reminder alarm, or null for none. */
   reminderOffsetMinutes: number | null;
+  /** Backslash-escape `,` and `;` in text values, as RFC 5545 requires. */
+  escapeSeparators?: boolean;
   /** Generation time, defaults to the current time. */
   now?: Date;
 };
@@ -29,20 +31,21 @@ const UID_DOMAIN = '@airtrail';
 
 const pad2 = (value: number) => value.toString().padStart(2, '0');
 
-/**
- * Escape a value for use in an ICS text property: backslash and newlines
- * only. RFC 5545 also demands escaping `:`/`,`/`;`, but several widely used
- * calendar clients (notably Proton Calendar) render those escapes literally,
- * while every parser splits values on the first colon only — so leaving them
- * unescaped displays correctly everywhere.
+/*
+ * Escape a value for use in an ICS text property. Colons never need escaping,
+ * but RFC 5545 (3.3.11) requires a backslash before `,` and `;`. Those are left
+ * bare by default because Proton Calendar reportedly renders the escapes
+ * literally; `escapeSeparators` produces the RFC form.
  */
-export const escapeText = (value: string): string =>
-  value
+export const escapeText = (value: string, escapeSeparators = false): string => {
+  const escaped = value
     .replace(/\r\n?/g, '\n')
     // RFC 5545 TEXT allows no control characters except HTAB.
     .replace(/[\x00-\x08\x0b-\x1f\x7f]/g, '')
     .replace(/\\/g, '\\\\')
     .replace(/\n/g, '\\n');
+  return escapeSeparators ? escaped.replace(/[,;]/g, '\\$&') : escaped;
+};
 
 /**
  * Fold a content line to at most 75 octets, continuing each following chunk
@@ -398,6 +401,8 @@ const eventLines = (
   );
   const allDay = !start && !end;
 
+  const toText = (value: string) => escapeText(value, options.escapeSeparators);
+
   const lines = [
     'BEGIN:VEVENT',
     `UID:${flightUid(flight.id, options.userId)}`,
@@ -416,17 +421,17 @@ const eventLines = (
     if (start && end) lines.push(`DTEND:${utcStamp(parseUtcIso(end)!)}`);
   }
 
-  lines.push(`SUMMARY:${escapeText(summary(flight, options))}`);
+  lines.push(`SUMMARY:${toText(summary(flight, options))}`);
 
   if (flight.from) {
-    lines.push(`LOCATION:${escapeText(airportLabel(flight.from))}`);
+    lines.push(`LOCATION:${toText(airportLabel(flight.from))}`);
     lines.push(
       `GEO:${formatGeo(flight.from.lat)};${formatGeo(flight.from.lon)}`,
     );
   }
 
   const text = description(flight, options, allDay, start, end);
-  if (text) lines.push(`DESCRIPTION:${escapeText(text)}`);
+  if (text) lines.push(`DESCRIPTION:${toText(text)}`);
 
   lines.push('TRANSP:OPAQUE', 'CATEGORIES:TRAVEL', 'STATUS:CONFIRMED');
 
@@ -455,7 +460,7 @@ export const buildCalendarFeed = (
     'VERSION:2.0',
     'PRODID:-//AirTrail//Flight Calendar//EN',
     'CALSCALE:GREGORIAN',
-    `X-WR-CALNAME:${escapeText(`${options.displayName}'s flights`)}`,
+    `X-WR-CALNAME:${escapeText(`${options.displayName}'s flights`, options.escapeSeparators)}`,
     'X-PUBLISHED-TTL:P1D',
   ];
 

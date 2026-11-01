@@ -829,7 +829,7 @@ describe('invalid airport timezones', () => {
 });
 
 describe('client compatibility', () => {
-  it('never escapes colons or commas, which Proton Calendar renders literally', () => {
+  it('leaves separators bare by default for Proton Calendar', () => {
     const ics = buildCalendarFeed([flight({ note: 'a,b;c:d' })], options());
 
     expect(ics).not.toContain('\\:');
@@ -837,6 +837,25 @@ describe('client compatibility', () => {
     expect(ics).not.toContain('\\;');
     // Newlines still need escaping.
     expect(ics).toContain('\\n');
+  });
+
+  it('escapes commas and semicolons in every text property on request', () => {
+    const ics = buildCalendarFeed(
+      [
+        flight({
+          flightNumber: 'FR,1;2',
+          from: { ...copenhagen, name: 'Kastrup, T3; North' },
+          note: 'a,b;c:d\\e',
+        }),
+      ],
+      options({ displayName: 'Doe, Jo', escapeSeparators: true }),
+    );
+
+    expect(property(ics, 'X-WR-CALNAME')).toBe("Doe\\, Jo's flights");
+    expect(property(ics, 'SUMMARY')).toContain('FR\\,1\\;2');
+    expect(property(ics, 'LOCATION')).toContain('Kastrup\\, T3\\; North');
+    expect(property(ics, 'DESCRIPTION')).toContain('Note: a\\,b\\;c:d\\\\e');
+    expect(property(ics, 'GEO')).toBe('55.61804;12.656');
   });
 
   it('folds at word boundaries when spaces are available', () => {
