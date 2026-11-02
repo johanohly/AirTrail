@@ -118,32 +118,32 @@
   <div class="mb-2 ml-2 mt-1 border-l pl-3">
     {#each visible as flight (flight.id)}
       {@const delay = arrivalDelayMinutes(flight)}
+      <!-- The card stays full width: squeezing it beside the delay hides
+           its flags, which only render from 416px of card width -->
       {#if onOpenFlight}
         <button
           type="button"
           class="w-full rounded px-1 py-2 text-left outline-none transition-colors hover:bg-hover focus-visible:ring-1 focus-visible:ring-ring"
           onclick={() => onOpenFlight(flight.id)}
         >
-          <div class="flex items-center gap-2">
-            <div class="min-w-0 flex-1"><FlightCard {flight} compact /></div>
-            {#if delay !== null}
-              <span
-                class="shrink-0 text-[13px] font-medium tabular-nums text-muted-foreground"
-              >
-                {signed(Math.round(delay))}
-              </span>
-            {/if}
-          </div>
-        </button>
-      {:else}
-        <div class="flex items-center gap-2 px-1 py-2">
-          <div class="min-w-0 flex-1"><FlightCard {flight} compact /></div>
+          <FlightCard {flight} compact />
           {#if delay !== null}
-            <span
-              class="shrink-0 text-[13px] font-medium tabular-nums text-muted-foreground"
+            <div
+              class="-mt-1 pr-1 text-right text-[13px] font-medium tabular-nums text-muted-foreground"
             >
               {signed(Math.round(delay))}
-            </span>
+            </div>
+          {/if}
+        </button>
+      {:else}
+        <div class="px-1 py-2">
+          <FlightCard {flight} compact />
+          {#if delay !== null}
+            <div
+              class="-mt-1 pr-1 text-right text-[13px] font-medium tabular-nums text-muted-foreground"
+            >
+              {signed(Math.round(delay))}
+            </div>
           {/if}
         </div>
       {/if}
