@@ -136,8 +136,10 @@
     </div>
   </div>
 
-  <!-- Two columns, so the flight list has room for its five rows -->
-  <div class="mt-6 grid grid-cols-1 gap-x-7 gap-y-6 sm:grid-cols-2">
+  <!-- All four widgets in one row on wide screens -->
+  <div
+    class="mt-6 grid grid-cols-1 gap-x-7 gap-y-6 sm:grid-cols-2 xl:grid-cols-4"
+  >
     {@render groupList('Delays by airline', 'airlines', report.worstAirlines)}
     {@render groupList('Delays by route', 'routes', report.worstRoutes)}
     {@render groupList(
