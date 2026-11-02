@@ -23,9 +23,12 @@
   const hasIcon = $derived(!!iconPath);
   const iconSrc = $derived(iconPath ? `/api/uploads/${iconPath}` : '');
 
-  // Logos sit on a white chip (like MortgageLab lender logos), scaled with size
+  // Logos sit on a white chip (like MortgageLab lender logos). The chip is
+  // oversized and pulled back with a negative margin, so logos render at the
+  // same size as before and the layout footprint stays {size}px
   const padding = $derived(Math.max(2, Math.round(size / 9)));
   const radius = $derived(Math.max(4, Math.round(size / 6)));
+  const chipSize = $derived(size + padding * 2);
 </script>
 
 {#if hasIcon}
@@ -34,7 +37,7 @@
     class="{loadingStatus === 'loaded'
       ? 'bg-white'
       : 'bg-transparent'} {className}"
-    style="width: {size}px; height: {size}px; border-radius: {radius}px;"
+    style="width: {chipSize}px; height: {chipSize}px; margin: -{padding}px; border-radius: {radius}px;"
   >
     <Avatar.Image
       src={iconSrc}
