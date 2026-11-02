@@ -31,7 +31,9 @@
 {#if hasIcon}
   <Avatar.Root
     bind:loadingStatus
-    class="bg-white {className}"
+    class="{loadingStatus === 'loaded'
+      ? 'bg-white'
+      : 'bg-transparent'} {className}"
     style="width: {size}px; height: {size}px; border-radius: {radius}px;"
   >
     <Avatar.Image
@@ -42,14 +44,16 @@
       style="padding: {padding}px;"
     />
     <Avatar.Fallback class="bg-white" style="border-radius: {radius}px;">
-      <div
-        class="flex items-center justify-center text-destructive"
-        style:width="{size}px"
-        style:height="{size}px"
-        title="Failed to load icon"
-      >
-        {@render fallbackIcon()}
-      </div>
+      {#if loadingStatus === 'error'}
+        <div
+          class="flex items-center justify-center text-destructive"
+          style:width="{size}px"
+          style:height="{size}px"
+          title="Failed to load icon"
+        >
+          {@render fallbackIcon()}
+        </div>
+      {/if}
     </Avatar.Fallback>
   </Avatar.Root>
 {:else}
