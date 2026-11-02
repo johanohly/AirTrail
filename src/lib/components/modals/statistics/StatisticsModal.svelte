@@ -162,7 +162,16 @@
   };
 
   $effect(() => {
-    if (drillDownOpen || !drillDownOrigin) return;
+    if (drillDownOpen) {
+      // Reopened through browser history rather than a click, so there was
+      // no opener to record; keep the scroll position at least.
+      drillDownOrigin ??= {
+        scrollTop: untrack(() => scrollContainer?.scrollTop ?? 0),
+        opener: null,
+      };
+      return;
+    }
+    if (!drillDownOrigin) return;
     const origin = drillDownOrigin;
     drillDownOrigin = null;
     if (!untrack(() => open)) return;
