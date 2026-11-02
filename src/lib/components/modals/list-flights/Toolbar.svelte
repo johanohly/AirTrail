@@ -47,6 +47,7 @@
     selecting = $bindable(),
     selectedFlights = $bindable(),
     hasTempFilters = false,
+    seatUserId,
     onAddFlight,
     canSelect = true,
     modalOpen = true,
@@ -62,6 +63,7 @@
     selecting: boolean;
     selectedFlights: number[];
     hasTempFilters?: boolean;
+    seatUserId?: string;
     onAddFlight?: () => void;
     canSelect?: boolean;
     modalOpen?: boolean;
@@ -154,6 +156,7 @@
           bind:filters
           bind:tempFilters
           {hasTempFilters}
+          {seatUserId}
         />
       </div>
       {#if filters}

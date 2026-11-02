@@ -18,11 +18,13 @@
     filters = $bindable(),
     tempFilters = $bindable(),
     hasTempFilters = false,
+    seatUserId,
   }: {
     flights: FlightData[];
     filters: FlightFilters;
     tempFilters?: TempFilters;
     hasTempFilters?: boolean;
+    seatUserId?: string;
   } = $props();
 
   let drawerOpen = $state(false);
@@ -31,7 +33,13 @@
 </script>
 
 {#if $isMediumScreen}
-  <Filters {flights} bind:filters bind:tempFilters {hasTempFilters} />
+  <Filters
+    {flights}
+    bind:filters
+    bind:tempFilters
+    {hasTempFilters}
+    {seatUserId}
+  />
 {:else}
   <span class="relative inline-flex">
     <Button
@@ -58,5 +66,6 @@
     bind:filters
     bind:tempFilters
     {hasTempFilters}
+    {seatUserId}
   />
 {/if}

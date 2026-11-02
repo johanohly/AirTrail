@@ -94,6 +94,7 @@
     flightTypeForFlight,
     hasFlightFilters,
     matchesLocationFilters,
+    seatPassengersForFlight,
   } from '$lib/components/flight-filters/model';
   import {
     compareSeatNumbers,
@@ -156,6 +157,7 @@
     hasTempFilters = false,
     layout = 'default',
     presentation = 'default',
+    seatUserId,
   }: {
     flights: FlightData[];
     filters: FlightFilters;
@@ -163,6 +165,7 @@
     hasTempFilters?: boolean;
     layout?: 'default' | 'stacked';
     presentation?: 'default' | 'map-popover';
+    seatUserId?: string;
   } = $props();
 
   type OptionSource = {
@@ -527,7 +530,12 @@
     const frequencyMap = new Map<string, number>();
 
     for (const flight of scopedFlights) {
-      for (const passenger of flight.passengers) {
+      // Only seats on rows the seat filters would consult are offered
+      for (const passenger of seatPassengersForFlight(
+        flight,
+        filters,
+        seatUserId,
+      )) {
         if (!passenger.seatNumber) continue;
         frequencyMap.set(
           passenger.seatNumber,

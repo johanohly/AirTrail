@@ -43,6 +43,7 @@
     optionColumnValues,
     pluralMultiOptionOperators,
     pluralOptionOperators,
+    seatPassengersForFlight,
     setOptionColumnOperator,
     setOptionColumnValues,
     singularMultiOptionOperators,
@@ -124,12 +125,14 @@
     filters = $bindable(),
     tempFilters = $bindable(),
     hasTempFilters = false,
+    seatUserId,
   }: {
     open: boolean;
     flights: FlightData[];
     filters: FlightFilters;
     tempFilters?: TempFilters;
     hasTempFilters?: boolean;
+    seatUserId?: string;
   } = $props();
 
   const prefs = $derived(getPreferences(page.data.user));
@@ -544,10 +547,12 @@
       seatType: staticOptions(seatTypeOptions),
       seatNumber: countedOptions(
         scopedFlights.flatMap((flight) =>
-          flight.passengers.map((passenger) =>
-            passenger.seatNumber
-              ? { value: passenger.seatNumber, label: passenger.seatNumber }
-              : null,
+          // Only seats on rows the seat filters would consult are offered
+          seatPassengersForFlight(flight, filters, seatUserId).map(
+            (passenger) =>
+              passenger.seatNumber
+                ? { value: passenger.seatNumber, label: passenger.seatNumber }
+                : null,
           ),
         ),
       ).sort((a, b) => compareSeatNumbers(a.label, b.label)),

@@ -510,7 +510,7 @@
         <div class="flex items-start gap-3">
           {#if showFilters}
             <div class="flex-1">
-              <ResponsiveFilters {flights} bind:filters />
+              <ResponsiveFilters {flights} bind:filters {seatUserId} />
             </div>
           {/if}
           {#if upcomingCount > 0}

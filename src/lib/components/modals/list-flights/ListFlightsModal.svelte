@@ -465,6 +465,7 @@
         {showingFrom}
         {showingTo}
         {hasTempFilters}
+        {seatUserId}
         numOfFlights={filteredFlights.length}
         canSelect={canBulkDelete}
         modalOpen={open &&

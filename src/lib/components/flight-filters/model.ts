@@ -1509,6 +1509,19 @@ function seatContextPassengers(
   return flight.passengers;
 }
 
+/*
+ * The passenger rows seat-related filters consult for this flight: the rows
+ * picked by an inclusive passengers filter when set, else the scope user's
+ * row, else every row.
+ */
+export function seatPassengersForFlight(
+  flight: FlightData,
+  filters: FlightFilters,
+  seatUserId?: string,
+): FlightPassenger[] {
+  return seatContextPassengers(flight, seatFilterContext(filters, seatUserId));
+}
+
 function passengerFieldMatches(
   passengers: FlightPassenger[],
   field: 'seat' | 'seatClass' | 'flightReason' | 'seatNumber',
