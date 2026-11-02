@@ -9,6 +9,8 @@ import {
 } from '$lib/track/schema';
 import type { prepareFlightArcData, FlightData } from '$lib/utils';
 
+import type { GlobeFitArc } from './globe-fit';
+
 export type FlightArc = ReturnType<typeof prepareFlightArcData>[number];
 
 export type FlightTrackIdentity = FlightArc & {
@@ -27,6 +29,29 @@ export const routeMatchesArc = (
   route: Route | null | undefined,
 ) => {
   return routeMatchesEndpoints(arc.from.id, arc.to.id, route);
+};
+
+// Arcs for every route touching one airport, deduplicated by route with a
+// flight count as frequency (the globe fit weights its center by it).
+export const collectAirportRouteArcs = (
+  flights: FlightData[],
+  airportId: number,
+): GlobeFitArc[] => {
+  const arcsByRoute = new Map<string, GlobeFitArc>();
+  for (const flight of flights) {
+    const { from, to } = flight;
+    if (!from || !to) continue;
+    if (from.id !== airportId && to.id !== airportId) continue;
+
+    const key = getRouteKey(from.id, to.id);
+    const existing = arcsByRoute.get(key);
+    if (existing) {
+      existing.frequency = (existing.frequency ?? 1) + 1;
+    } else {
+      arcsByRoute.set(key, { from, to, frequency: 1 });
+    }
+  }
+  return [...arcsByRoute.values()];
 };
 
 export const buildArcFrequencyPercentileByRoute = (flightArcs: FlightArc[]) => {
