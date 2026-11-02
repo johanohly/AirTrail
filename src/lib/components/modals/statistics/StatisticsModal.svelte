@@ -69,6 +69,7 @@
     seatUserId,
     showCountryStats = true,
     onOpenFlight,
+    onOpenAirport,
   }: {
     open?: boolean;
     flights: FlightData[];
@@ -79,6 +80,7 @@
     seatUserId?: string;
     showCountryStats?: boolean;
     onOpenFlight?: (flightId: number) => void;
+    onOpenAirport?: (airportId: number) => void;
   } = $props();
 
   const showScopeBanner = $derived(flightScopeState.current.scope !== 'mine');
@@ -156,6 +158,10 @@
   let activeChart: FlightChartKey | null = $state(null);
   let activeEntry: string | null = $state(null);
   let activeContinent: string | null = $state(null);
+  // The seat map starts clipped to the height of the lists beside it
+  let seatMapExpanded = $state(false);
+  let seatMapClipHeight = $state(0);
+  let seatMapHeight = $state(0);
   let modalHistory: ModalHistoryHandle | undefined = $state();
   let wasOpen = $state(false);
   const drillDownOpen = $derived(Boolean(activeChart || activeContinent));
@@ -699,12 +705,43 @@
               />
             {/each}
           </div>
-          <div class="min-w-0">
-            <SeatMap
-              flights={countedFlights}
-              {seatUserId}
-              onOpen={(seat) => openChart('seat-numbers', seat)}
-            />
+          <div class="min-h-0 min-w-0 lg:relative">
+            <!-- Collapsed, the map is taken out of the flow (lg:absolute), so
+                 the grid row — and the map's box — size to the lists column -->
+            <div
+              class={seatMapExpanded
+                ? ''
+                : 'lg:absolute lg:inset-0 lg:overflow-hidden'}
+              bind:clientHeight={seatMapClipHeight}
+            >
+              <div bind:clientHeight={seatMapHeight}>
+                <SeatMap
+                  flights={countedFlights}
+                  {seatUserId}
+                  onOpen={(seat) => openChart('seat-numbers', seat)}
+                />
+              </div>
+            </div>
+            {#if !seatMapExpanded && seatMapHeight > seatMapClipHeight}
+              <div
+                class="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-background via-background/85 to-transparent"
+              ></div>
+              <button
+                type="button"
+                class="absolute bottom-1.5 left-1/2 -translate-x-1/2 rounded-full border border-border bg-background/90 px-3 py-1 text-[12.5px] font-medium text-muted-foreground shadow-sm outline-none backdrop-blur transition-colors hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
+                onclick={() => (seatMapExpanded = true)}
+              >
+                View all rows
+              </button>
+            {:else if seatMapExpanded}
+              <button
+                type="button"
+                class="mx-auto mt-2 flex rounded px-2 py-1 text-[12.5px] text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
+                onclick={() => (seatMapExpanded = false)}
+              >
+                Show fewer rows
+              </button>
+            {/if}
           </div>
         </div>
       {/snippet}
@@ -716,7 +753,11 @@
         <PunctualitySection flights={completedFlights} onOpen={openChart} />
       {/snippet}
       {#snippet records()}
-        <RecordsSection flights={countedFlights} {onOpenFlight} />
+        <RecordsSection
+          flights={countedFlights}
+          {onOpenFlight}
+          {onOpenAirport}
+        />
       {/snippet}
       {@render section('Punctuality', punctuality)}
       {@render section('Records', records)}

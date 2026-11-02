@@ -93,7 +93,7 @@
     </label>
   </div>
   <div class="overflow-x-auto pb-1">
-    <div class="flex w-fit flex-col gap-1">
+    <div class="mx-auto flex w-fit flex-col gap-1">
       <div class="flex gap-1">
         <div class="w-8 shrink-0"></div>
         {#each rows.letters as letter (letter)}

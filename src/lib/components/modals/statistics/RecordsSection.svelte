@@ -4,6 +4,7 @@
   import {
     codeForAirport,
     extremeAirportsByLatitude,
+    extremeFlightSpeeds,
     extremeFlights,
     type AirportExtreme,
     type FlightExtreme,
@@ -19,21 +20,26 @@
   let {
     flights,
     onOpenFlight,
+    onOpenAirport,
   }: {
     flights: FlightData[];
     onOpenFlight?: (flightId: number) => void;
+    onOpenAirport?: (airportId: number) => void;
   } = $props();
 
   const prefs = $derived(getPreferences(page.data.user));
 
   const byDistance = $derived(extremeFlights(flights, 'distance'));
   const byDuration = $derived(extremeFlights(flights, 'duration'));
+  const bySpeed = $derived(extremeFlightSpeeds(flights));
   const byLatitude = $derived(extremeAirportsByLatitude(flights));
 
   const formatDistance = (km: number) =>
     `${Math.round(convertDistance(km, prefs)).toLocaleString()} ${distanceUnitLabel(prefs)}`;
   const formatDuration = (seconds: number) =>
     Duration.fromSeconds(seconds).toString(true);
+  const formatSpeed = (kmh: number) =>
+    `${Math.round(convertDistance(kmh, prefs)).toLocaleString()} ${distanceUnitLabel(prefs)}/h`;
   const formatLatitude = (latitude: number) =>
     `${Math.abs(latitude).toFixed(1)}°${latitude >= 0 ? 'N' : 'S'}`;
   const routeLabel = ({ flight }: FlightExtreme) =>
@@ -84,7 +90,7 @@
 {/snippet}
 
 {#snippet airportCard(label: string, extreme: AirportExtreme)}
-  <div class="min-w-0">
+  {#snippet content()}
     <div class="text-[13px] text-muted-foreground">{label}</div>
     <div
       class="mt-0.5 flex items-center gap-2 whitespace-nowrap text-xl font-bold tracking-tight lg:text-[26px]"
@@ -96,22 +102,31 @@
       {extreme.airport.municipality || extreme.airport.name}
       · {formatLatitude(extreme.latitude)}
     </div>
-  </div>
+  {/snippet}
+  <!-- Focuses the map on the airport, closing this modal first -->
+  {#if onOpenAirport}
+    <button
+      type="button"
+      class="min-w-0 -mx-2 rounded px-2 py-1 text-left outline-none transition-colors hover:bg-hover focus-visible:ring-1 focus-visible:ring-ring"
+      onclick={() => onOpenAirport?.(extreme.airport.id)}
+    >
+      {@render content()}
+    </button>
+  {:else}
+    <div class="min-w-0">
+      {@render content()}
+    </div>
+  {/if}
 {/snippet}
 
 <div class="grid gap-x-7 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+  <!-- Rows pair by flight: the longest route's time and speed, then the
+       shortest's, then the compass extremes -->
   {#if byDistance.longest}
     {@render flightCard(
       'Longest route',
       byDistance.longest,
       formatDistance(byDistance.longest.value),
-    )}
-  {/if}
-  {#if byDistance.shortest}
-    {@render flightCard(
-      'Shortest route',
-      byDistance.shortest,
-      formatDistance(byDistance.shortest.value),
     )}
   {/if}
   {#if byDuration.longest}
@@ -121,11 +136,32 @@
       formatDuration(byDuration.longest.value),
     )}
   {/if}
+  {#if bySpeed.fastest}
+    {@render flightCard(
+      'Fastest flight',
+      bySpeed.fastest,
+      formatSpeed(bySpeed.fastest.value),
+    )}
+  {/if}
+  {#if byDistance.shortest}
+    {@render flightCard(
+      'Shortest route',
+      byDistance.shortest,
+      formatDistance(byDistance.shortest.value),
+    )}
+  {/if}
   {#if byDuration.shortest}
     {@render flightCard(
       'Shortest flight',
       byDuration.shortest,
       formatDuration(byDuration.shortest.value),
+    )}
+  {/if}
+  {#if bySpeed.slowest}
+    {@render flightCard(
+      'Slowest flight',
+      bySpeed.slowest,
+      formatSpeed(bySpeed.slowest.value),
     )}
   {/if}
   {#if byLatitude.north}

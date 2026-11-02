@@ -675,6 +675,30 @@ export type AirportExtreme = {
   latitude: number;
 };
 
+export type FlightSpeedExtremes = {
+  fastest: FlightExtreme | null;
+  slowest: FlightExtreme | null;
+};
+
+/**
+ * The flights with the highest and lowest average ground speed — distance
+ * over duration, in km/h. Flights missing either value are skipped.
+ */
+export function extremeFlightSpeeds(
+  flights: FlightData[],
+): FlightSpeedExtremes {
+  let fastest: FlightExtreme | null = null;
+  let slowest: FlightExtreme | null = null;
+  for (const flight of flights) {
+    if (!flight.distance || !flight.duration) continue;
+
+    const speed = flight.distance / (flight.duration / 3600);
+    if (!fastest || speed > fastest.value) fastest = { flight, value: speed };
+    if (!slowest || speed < slowest.value) slowest = { flight, value: speed };
+  }
+  return { fastest, slowest };
+}
+
 /** The northernmost and southernmost airport any flight touched. */
 export function extremeAirportsByLatitude(flights: FlightData[]): {
   north: AirportExtreme | null;

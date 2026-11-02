@@ -29,6 +29,7 @@
     flightScopeState,
     focusFlightInList,
     mapDetailsState,
+    openAirportDetails,
     openFlightDetails,
     openModalsState,
     setFlightScope,
@@ -199,12 +200,20 @@
       await waitForModalHistoryIdle();
     },
     openFlightDetails,
+    openAirportDetails,
   });
 
   const openStatisticsFlight = (flightId: number) => {
     return navigateFlights({
       destination: 'list',
       focus: { type: 'flight', flightId },
+    });
+  };
+
+  const openStatisticsAirport = (airportId: number) => {
+    return navigateFlights({
+      destination: 'map',
+      focus: { type: 'airport', airportId },
     });
   };
 </script>
@@ -235,6 +244,7 @@
     seatUserId={effectiveSeatUserId}
     {showCountryStats}
     onOpenFlight={openStatisticsFlight}
+    onOpenAirport={openStatisticsAirport}
   />
 
   <Map

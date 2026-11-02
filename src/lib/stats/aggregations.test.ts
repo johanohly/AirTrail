@@ -12,6 +12,7 @@ import {
   DELAY_THRESHOLD_MINUTES,
   domesticInternationalSplit,
   extremeAirportsByLatitude,
+  extremeFlightSpeeds,
   extremeFlights,
   flightMatchesChartBucket,
   flightTotals,
@@ -385,6 +386,21 @@ describe('records', () => {
     expect(extremeFlights([flight(null, null)], 'distance')).toEqual({
       longest: null,
       shortest: null,
+    });
+  });
+
+  it('finds the fastest and slowest by ground speed, skipping half-recorded flights', () => {
+    // 1000 km in 2h → 500 km/h; 500 km in 4h → 125 km/h
+    const flights = [
+      flight(1000, 7200),
+      flight(500, 14400),
+      flight(2000, null),
+      flight(null, 3600),
+    ];
+
+    expect(extremeFlightSpeeds(flights)).toEqual({
+      fastest: { flight: flights[0], value: 500 },
+      slowest: { flight: flights[1], value: 125 },
     });
   });
 
