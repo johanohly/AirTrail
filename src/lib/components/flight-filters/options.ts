@@ -146,7 +146,7 @@ export const FILTER_GROUPS: readonly FilterGroup[] = [
   },
   {
     label: 'Airline & aircraft',
-    columns: ['airline', 'aircraft', 'aircraftRegs', 'flightNumber'],
+    columns: ['airline', 'flightNumber', 'aircraft', 'aircraftRegs'],
   },
   { label: 'Flight', columns: ['flightType', 'duration'] },
   {
