@@ -1,6 +1,7 @@
 <script lang="ts" generics="TData = unknown, TContext = any">
   import { CalendarDate } from '@internationalized/date';
   import { CalendarClock } from '@o7/icon';
+  import { Search, X } from '@o7/icon/lucide';
   import {
     DropdownMenu,
     Filter,
@@ -39,8 +40,19 @@
   } = $props();
 
   let open = $state(false);
+  let search = $state('');
 
   const today = todayCalendarDate();
+
+  /* The search is per-open: every menu open starts unfiltered. */
+  $effect(() => {
+    if (!open) search = '';
+  });
+
+  function handleSearchKeydown(event: KeyboardEvent) {
+    // Keep the menu's typeahead and item activation away from the input
+    event.stopPropagation();
+  }
 
   function dateOf(value: CalendarDate) {
     return new Date(value.year, value.month - 1, value.day);
@@ -76,17 +88,37 @@
     columns: Column<TData, ColumnDataType>[];
   };
 
+  const searchQuery = $derived(search.trim().toLowerCase());
+
+  function matchesSearch(label: string) {
+    if (!searchQuery) return true;
+    return label.toLowerCase().includes(searchQuery);
+  }
+
+  function matchesQuickDateSearch() {
+    if (!searchQuery) return true;
+    return ['quick date', 'preset', 'date'].some(
+      (keyword) =>
+        keyword.includes(searchQuery) || searchQuery.includes(keyword),
+    );
+  }
+
   const menuGroups = $derived.by(() => {
     const dateColumnVisible = !!dateColumn && !dateColumn.hidden;
 
     return FILTER_GROUPS.map((group) => ({
       label: group.label,
-      hasQuickDate: group.columns.includes('quickDate') && dateColumnVisible,
+      hasQuickDate:
+        group.columns.includes('quickDate') &&
+        dateColumnVisible &&
+        matchesQuickDateSearch(),
       columns: group.columns
         .filter((id) => id !== 'quickDate')
         .map((id) => {
           const column = columns.find((candidate) => candidate.id === id);
-          return column && !column.hidden ? column : undefined;
+          return column && !column.hidden && matchesSearch(column.displayName)
+            ? column
+            : undefined;
         })
         .filter((column): column is Column<TData, ColumnDataType> => !!column),
     })).filter((group) => group.hasQuickDate || group.columns.length > 0);
@@ -168,6 +200,44 @@
   </DropdownMenu.Trigger>
   <DropdownMenu.Portal>
     <DropdownMenu.Content align="start" sideOffset={8} data-filter-menu-content>
+      <div class="border-b p-2" data-filter-menu-search>
+        <label
+          class="flex h-8 items-center gap-2 rounded-md border bg-background px-2.5"
+        >
+          <Search
+            size={14}
+            aria-hidden="true"
+            class="shrink-0 text-muted-foreground"
+          />
+          <input
+            bind:value={search}
+            type="text"
+            placeholder="Search filters..."
+            aria-label="Search filters"
+            class="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+            onkeydown={handleSearchKeydown}
+          />
+          {#if search}
+            <button
+              type="button"
+              tabindex="-1"
+              aria-label="Clear filter search"
+              class="flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground"
+              onclick={() => (search = '')}
+            >
+              <X size={12} aria-hidden="true" />
+            </button>
+          {/if}
+        </label>
+      </div>
+      {#if searchQuery && menuGroups.length === 0}
+        <div
+          class="px-2 py-4 text-center text-xs text-muted-foreground"
+          data-filter-menu-empty
+        >
+          No matching filters.
+        </div>
+      {/if}
       {#each menuGroups as group, groupIndex (group.label)}
         {#if groupIndex > 0}
           <DropdownMenu.Separator class="h-px bg-border" />
