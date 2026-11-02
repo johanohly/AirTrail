@@ -11,10 +11,10 @@
 
   let {
     routeFlights,
-    listedFlights = routeFlights,
-    untrackedOnly = false,
-    untrackedCount = 0,
-    canShowUntrackedOnly = false,
+    listedFlights,
+    untrackedOnly,
+    untrackedCount,
+    canShowUntrackedOnly,
     onToggleUntrackedOnly,
     airlineCount,
     distance,
@@ -24,11 +24,12 @@
     onShowFlight,
   }: {
     routeFlights: FlightData[];
-    listedFlights?: FlightData[];
-    untrackedOnly?: boolean;
-    untrackedCount?: number;
-    canShowUntrackedOnly?: boolean;
-    onToggleUntrackedOnly?: () => void;
+    /** The rows shown: the whole route, or only its flights without a drawn track. */
+    listedFlights: FlightData[];
+    untrackedOnly: boolean;
+    untrackedCount: number;
+    canShowUntrackedOnly: boolean;
+    onToggleUntrackedOnly: () => void;
     airlineCount: number;
     distance: number | null;
     lastFlownLabel: string | null;
@@ -178,7 +179,7 @@
         class="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
         aria-pressed={untrackedOnly}
         title="Show only flights drawn on the great-circle line (no track)"
-        onclick={() => onToggleUntrackedOnly?.()}
+        onclick={onToggleUntrackedOnly}
       >
         No track · {untrackedCount}
       </Button>

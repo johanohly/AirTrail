@@ -7,6 +7,7 @@ import {
 } from '$lib/components/flight-filters/types';
 import type { NavigateFlights } from '$lib/flight-navigation';
 import {
+  getFlightRouteDisplay,
   mapDetailsState,
   openFlightDetails,
   setRouteUntrackedOnly,
@@ -22,7 +23,7 @@ export function useRouteDetails(
   flights: () => FlightData[],
   filters: () => FlightFilters | undefined,
   onNavigate: NavigateFlights,
-  trackedFlightIds: () => ReadonlySet<number> = () => new Set(),
+  trackedFlightIds: () => ReadonlySet<number>,
 ) {
   const prefs = $derived(getPreferences(page.data.user));
 
@@ -53,22 +54,32 @@ export function useRouteDetails(
       .sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0));
   });
 
-  // Flights without a track all share the route's great-circle line, so the
-  // pane can narrow to them (the map's second click on that line does this).
-  const untrackedOnly = $derived.by(() => {
-    const selection = mapDetailsState.selection;
-    return selection?.type === 'route' && !!selection.untrackedOnly;
-  });
-
+  // Flights whose track isn't drawn all share the route's great-circle line,
+  // so the pane can narrow to them (the map's second click on that line does
+  // this). "Tracked" matches the map: a stored track that is displayed.
   const untrackedFlights = $derived.by(() => {
     const tracked = trackedFlightIds();
-    return routeFlights.filter((flight) => !tracked.has(flight.id));
+    return routeFlights.filter(
+      (flight) =>
+        !(tracked.has(flight.id) && getFlightRouteDisplay(flight) === 'tracks'),
+    );
   });
 
   const canShowUntrackedOnly = $derived(
     untrackedFlights.length > 0 &&
       untrackedFlights.length < routeFlights.length,
   );
+
+  const untrackedOnly = $derived.by(() => {
+    const selection = mapDetailsState.selection;
+    return selection?.type === 'route' && !!selection.untrackedOnly;
+  });
+
+  // Drop the narrowing once it stops applying (the route switched to plain
+  // lines, or every flight became tracked), so the map and pane never differ.
+  $effect(() => {
+    if (untrackedOnly && !canShowUntrackedOnly) setRouteUntrackedOnly(false);
+  });
 
   const listedFlights = $derived(
     untrackedOnly && canShowUntrackedOnly ? untrackedFlights : routeFlights,
