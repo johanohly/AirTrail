@@ -96,6 +96,7 @@
     matchesLocationFilters,
   } from '$lib/components/flight-filters/model';
   import {
+    compareSeatNumbers,
     continentOptions,
     dayOptions,
     durationBucketFor,
@@ -488,7 +489,7 @@
         label: seatNumber,
         count,
       }))
-      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+      .sort((a, b) => compareSeatNumbers(a.label, b.label));
   });
 
   const routeOptions = $derived.by(() => {

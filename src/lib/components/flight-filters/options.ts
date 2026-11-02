@@ -101,6 +101,24 @@ export const continentOptions: FilterOptionSource[] = Object.entries(
 ).map(([value, label]) => ({ value, label }));
 
 /*
+ * Seat numbers order by row, then seat letter: 1A, 1B, 2C, 10A, 21F. Labels
+ * without a numeric row sort after the parseable ones.
+ */
+export function compareSeatNumbers(a: string, b: string): number {
+  const parse = (label: string) => /^(\d+)([A-Za-z]?)/.exec(label);
+  const aMatch = parse(a);
+  const bMatch = parse(b);
+  if (aMatch && bMatch) {
+    const row = Number(aMatch[1]) - Number(bMatch[1]);
+    if (row !== 0) return row;
+    return (aMatch[2] ?? '').localeCompare(bMatch[2] ?? '');
+  }
+  if (aMatch) return -1;
+  if (bMatch) return 1;
+  return a.localeCompare(b);
+}
+
+/*
  * Menu layout, shared by the desktop filter menu and the mobile filter home
  * screen. "quickDate" is a menu entry, not a filter column.
  */

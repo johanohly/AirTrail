@@ -52,6 +52,7 @@
     type OptionColumnId,
   } from '$lib/components/flight-filters/model';
   import {
+    compareSeatNumbers,
     continentOptions,
     countryName,
     dayOptions,
@@ -456,7 +457,7 @@
               : null,
           ),
         ),
-      ),
+      ).sort((a, b) => compareSeatNumbers(a.label, b.label)),
     } satisfies Record<OptionColumnId, FilterOption[]>;
   });
 

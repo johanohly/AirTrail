@@ -28,7 +28,7 @@ import {
   seatFilterContext,
   toggleFilterYear,
 } from './model';
-import { durationBucketFor } from './options';
+import { compareSeatNumbers, durationBucketFor } from './options';
 
 import type { FlightData } from '$lib/utils';
 
@@ -779,5 +779,19 @@ describe('note search', () => {
 
   it('resets with defaults', () => {
     expect(createDefaultFilters().noteQuery).toBe('');
+  });
+});
+
+describe('seat number sorting', () => {
+  it('orders seat numbers by row then seat letter', () => {
+    const seats = ['21F', '1A', '10A', '1B', '2C', 'X1'];
+    expect([...seats].sort(compareSeatNumbers)).toEqual([
+      '1A',
+      '1B',
+      '2C',
+      '10A',
+      '21F',
+      'X1',
+    ]);
   });
 });
