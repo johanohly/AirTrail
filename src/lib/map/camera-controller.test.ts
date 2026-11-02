@@ -299,6 +299,24 @@ describe('map camera controller', () => {
     ]);
   });
 
+  it('animates the mercator fit at focus speed, immune to reduced motion', () => {
+    const fake = createFakeMap();
+    const frames = createFrameScheduler();
+    const controller = createMapCameraController(fake.map, {
+      frameScheduler: frames.scheduler,
+    });
+
+    controller.fit([arc], {
+      projection: 'mercator',
+      padding: padding(),
+    });
+    frames.flush();
+
+    const fit = fake.calls.find((call) => call.name === 'fitBounds');
+    expect(fit?.options?.duration).toBe(1200);
+    expect(fit?.options?.essential).toBe(true);
+  });
+
   it('keeps the initial automatic fit after non-user map startup events', () => {
     const fake = createFakeMap();
     const frames = createFrameScheduler();
