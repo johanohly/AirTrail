@@ -488,6 +488,7 @@
       string,
       Map<string, { airline: Airline; count: number }>
     >();
+    const routeUses = new Map<string, Map<string, number>>();
 
     for (const flight of scopedFlights) {
       if (!flight.flightNumber) continue;
@@ -509,6 +510,16 @@
         });
       }
       airlineUses.set(flight.flightNumber, perNumber);
+
+      const routeLabel = routeLabelForFlight(flight);
+      if (!routeLabel) continue;
+      const routesPerNumber =
+        routeUses.get(flight.flightNumber) ?? new Map<string, number>();
+      routesPerNumber.set(
+        routeLabel,
+        (routesPerNumber.get(routeLabel) ?? 0) + 1,
+      );
+      routeUses.set(flight.flightNumber, routesPerNumber);
     }
 
     return Array.from(frequencyMap.entries())
@@ -516,11 +527,15 @@
         const topAirline = Array.from(
           airlineUses.get(flightNumber)?.values() ?? [],
         ).sort((a, b) => b.count - a.count)[0];
+        const topRoute = Array.from(
+          routeUses.get(flightNumber)?.entries() ?? [],
+        ).sort((a, b) => b[1] - a[1])[0]?.[0];
         return {
           value: flightNumber,
           count,
           airlineName: topAirline?.airline.name ?? '',
           icon: topAirline ? airlineIcon(topAirline.airline) : undefined,
+          route: topRoute,
         };
       })
       .sort(
@@ -528,9 +543,10 @@
           a.airlineName.localeCompare(b.airlineName) ||
           a.value.localeCompare(b.value, undefined, { numeric: true }),
       )
-      .map(({ value, count, icon }) => ({
+      .map(({ value, count, icon, route }) => ({
         value,
         label: value,
+        description: route,
         count,
         icon,
       }));

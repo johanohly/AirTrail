@@ -131,7 +131,14 @@
     label: string;
     description?: string;
     count?: number;
+    icon?: FilterIcon;
   };
+
+  // Columns whose options carry a secondary description render through the
+  // custom checkbox list instead of the stock editor (no secondary slot)
+  function hasDescribedOptions(column: Column<TData>) {
+    return column.id === 'aircraftRegs' || column.id === 'flightNumber';
+  }
 
   function regOptionsFor(column: Column<TData>): RegOption[] {
     const query = optionSearch.trim().toLowerCase();
@@ -466,7 +473,7 @@
             column={column as Column<TData, 'date'>}
             {actions}
           />
-        {:else if column.id === 'aircraftRegs'}
+        {:else if hasDescribedOptions(column)}
           {@const options = regOptionsFor(column)}
           <div class="flex flex-col" data-filter-option-list>
             <div class="border-b p-2">
@@ -481,8 +488,8 @@
                 <input
                   bind:value={optionSearch}
                   type="text"
-                  placeholder="Search tail numbers..."
-                  aria-label="Search tail numbers"
+                  placeholder={`Search ${column.displayName.toLowerCase()}...`}
+                  aria-label={`Search ${column.displayName.toLowerCase()}`}
                   class="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
                   onkeydown={handleSearchKeydown}
                 />
@@ -514,6 +521,9 @@
                       />
                     </svg>
                   </span>
+                  {#if option.icon}
+                    {@render menuIcon(option.icon)}
+                  {/if}
                   <span class="min-w-0 flex-1 truncate">{option.label}</span>
                   {#if option.description}
                     <span class="shrink-0 text-muted-foreground">
@@ -532,7 +542,7 @@
                   class="px-2 py-4 text-center text-xs text-muted-foreground"
                   data-filter-menu-empty
                 >
-                  No matching tail numbers.
+                  No matching {column.displayName.toLowerCase()}.
                 </div>
               {/if}
             </div>
