@@ -518,12 +518,22 @@
         ).sort((a, b) => b.count - a.count)[0];
         return {
           value: flightNumber,
-          label: flightNumber,
           count,
+          airlineName: topAirline?.airline.name ?? '',
           icon: topAirline ? airlineIcon(topAirline.airline) : undefined,
         };
       })
-      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+      .sort(
+        (a, b) =>
+          a.airlineName.localeCompare(b.airlineName) ||
+          a.value.localeCompare(b.value, undefined, { numeric: true }),
+      )
+      .map(({ value, count, icon }) => ({
+        value,
+        label: value,
+        count,
+        icon,
+      }));
   });
 
   const seatNumberOptions = $derived.by(() => {

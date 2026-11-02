@@ -405,6 +405,7 @@
       Map<
         string,
         {
+          name: string;
           iconPath: string | null;
           count: number;
         }
@@ -417,37 +418,50 @@
         flight.flightNumber,
         (counts.get(flight.flightNumber) ?? 0) + 1,
       );
-      const iconPath = flight.airline?.iconPath ?? null;
-      if (!iconPath) continue;
+      if (!flight.airline) continue;
       const perNumber =
         airlineUses.get(flight.flightNumber) ??
-        new Map<string, { iconPath: string | null; count: number }>();
-      const entry = perNumber.get(iconPath);
+        new Map<
+          string,
+          { name: string; iconPath: string | null; count: number }
+        >();
+      const entry = perNumber.get(flight.airline.name);
       if (entry) {
         entry.count += 1;
       } else {
-        perNumber.set(iconPath, { iconPath, count: 1 });
+        perNumber.set(flight.airline.name, {
+          name: flight.airline.name,
+          iconPath: flight.airline.iconPath,
+          count: 1,
+        });
       }
       airlineUses.set(flight.flightNumber, perNumber);
     }
 
     return Array.from(counts.entries())
       .map(([flightNumber, count]) => {
-        const topIconPath = Array.from(
+        const topAirline = Array.from(
           airlineUses.get(flightNumber)?.values() ?? [],
-        ).sort((a, b) => b.count - a.count)[0]?.iconPath;
+        ).sort((a, b) => b.count - a.count)[0];
         return {
           value: flightNumber,
-          label: flightNumber,
           count,
-          kind: 'airline' as const,
-          iconPath: topIconPath ?? null,
+          airlineName: topAirline?.name ?? '',
+          iconPath: topAirline?.iconPath ?? null,
         };
       })
       .sort(
         (a, b) =>
-          (b.count ?? 0) - (a.count ?? 0) || a.label.localeCompare(b.label),
-      );
+          a.airlineName.localeCompare(b.airlineName) ||
+          a.value.localeCompare(b.value, undefined, { numeric: true }),
+      )
+      .map(({ value, count, iconPath }) => ({
+        value,
+        label: value,
+        count,
+        kind: 'airline' as const,
+        iconPath,
+      }));
   }
 
   /* Static option lists keep their curated order and carry no counts. */
