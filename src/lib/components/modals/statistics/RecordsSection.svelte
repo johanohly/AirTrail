@@ -6,10 +6,10 @@
     extremeAirportsByLatitude,
     extremeFlightSpeeds,
     extremeFlights,
-    longestGap,
+    extremeTimeZones,
     type AirportExtreme,
   } from '$lib/stats/aggregations';
-  import { pluralize, type FlightData } from '$lib/utils';
+  import type { FlightData } from '$lib/utils';
   import { Duration } from '$lib/utils/datetime';
   import {
     convertDistance,
@@ -34,7 +34,7 @@
   const byDuration = $derived(extremeFlights(flights, 'duration'));
   const bySpeed = $derived(extremeFlightSpeeds(flights));
   const byLatitude = $derived(extremeAirportsByLatitude(flights));
-  const gap = $derived(longestGap(flights));
+  const byZones = $derived(extremeTimeZones(flights));
 
   const formatDistance = (km: number) =>
     `${Math.round(convertDistance(km, prefs)).toLocaleString()} ${distanceUnitLabel(prefs)}`;
@@ -189,19 +189,11 @@
   {#if byLatitude.south}
     {@render airportCard('Southernmost airport', byLatitude.south)}
   {/if}
-  {#if gap}
-    <div class="min-w-0">
-      <div class="text-[13px] text-muted-foreground">Longest gap</div>
-      <div
-        class="mt-0.5 whitespace-nowrap text-xl font-bold tracking-tight lg:text-[26px]"
-      >
-        {gap.days}
-        {pluralize(gap.days, 'day')}
-      </div>
-      <div class="truncate text-[13px] text-muted-foreground">
-        {formatDate(gap.from, prefs)}
-        → {gap.ongoing ? 'today' : formatDate(gap.to, prefs)}
-      </div>
-    </div>
+  {#if byZones}
+    {@render flightCard(
+      'Most time zones',
+      byZones.flight,
+      `${byZones.zones % 1 ? byZones.zones.toFixed(1) : byZones.zones} crossed`,
+    )}
   {/if}
 </div>

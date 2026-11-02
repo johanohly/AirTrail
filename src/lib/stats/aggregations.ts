@@ -699,43 +699,54 @@ export function extremeFlightSpeeds(
   return { fastest, slowest };
 }
 
-export type FlightGap = {
-  days: number;
-  from: Date;
-  to: Date;
-  /** True when the gap runs from the last flight to today. */
-  ongoing: boolean;
+export type TimeZoneExtreme = {
+  flight: FlightData;
+  zones: number;
+};
+
+/** A time zone's UTC offset in hours at a moment, or null if unknowable. */
+const offsetOf = (timeZone: string, at: Date): number | null => {
+  try {
+    const name = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      timeZoneName: 'longOffset',
+    })
+      .formatToParts(at)
+      .find((part) => part.type === 'timeZoneName')?.value;
+    if (!name) return null;
+    if (name === 'GMT' || name === 'UTC') return 0;
+
+    const match = name.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/);
+    if (!match) return null;
+    const sign = match[1] === '-' ? -1 : 1;
+    return sign * (Number(match[2]) + Number(match[3] ?? 0) / 60);
+  } catch {
+    return null;
+  }
 };
 
 /**
- * The longest stretch between two flights, departure to departure. When
- * nothing is scheduled after the last flight, the stretch from it to today
- * counts as well.
+ * The flight spanning the most time zones, comparing the airports' UTC
+ * offsets at departure and arrival so daylight saving counts.
  */
-export function longestGap(
+export function extremeTimeZones(
   flights: FlightData[],
-  now: Date = new Date(),
-): FlightGap | null {
-  const dated = flights
-    .map((flight) => flight.date ?? flight.dateStart)
-    .filter((date): date is NonNullable<typeof date> => date != null)
-    .sort((a, b) => a.getTime() - b.getTime());
-  if (dated.length === 0) return null;
+): TimeZoneExtreme | null {
+  let best: TimeZoneExtreme | null = null;
+  for (const flight of flights) {
+    if (!flight.from?.tz || !flight.to?.tz) continue;
 
-  let best: FlightGap | null = null;
-  const consider = (from: Date, to: Date, ongoing = false) => {
-    const days = Math.floor((to.getTime() - from.getTime()) / 86_400_000);
-    if (days > 0 && (!best || days > best.days)) {
-      best = { days, from, to, ongoing };
-    }
-  };
+    const depart = flight.departure ?? flight.date;
+    const arrive = flight.arrival ?? flight.dateEnd ?? flight.date;
+    if (!depart || !arrive) continue;
 
-  for (let i = 1; i < dated.length; i++) {
-    consider(dated[i - 1]!, dated[i]!);
+    const origin = offsetOf(flight.from.tz, depart);
+    const destination = offsetOf(flight.to.tz, arrive);
+    if (origin === null || destination === null) continue;
+
+    const zones = Math.abs(destination - origin);
+    if (!best || zones > best.zones) best = { flight, zones };
   }
-  const last = dated.at(-1)!;
-  if (last.getTime() < now.getTime()) consider(last, now, true);
-
   return best;
 }
 

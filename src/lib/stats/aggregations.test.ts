@@ -16,7 +16,7 @@ import {
   extremeFlights,
   flightMatchesChartBucket,
   flightTotals,
-  longestGap,
+  extremeTimeZones,
   normalizeSeatNumber,
   punctualityReport,
   reasonDistribution,
@@ -424,58 +424,54 @@ describe('records', () => {
     });
   });
 
-  const day = (iso: string) => new Date(iso);
-  const on = (iso: string) => ({ date: day(iso) }) as FlightData;
+  const zoneFlight = (fromTz: string, toTz: string, iso: string) =>
+    ({
+      from: { tz: fromTz },
+      to: { tz: toTz },
+      date: new Date(iso),
+    }) as unknown as FlightData;
 
-  it('finds the longest stretch between departures', () => {
-    const flights = [
-      on('2026-03-01T10:00:00Z'),
-      on('2026-03-04T10:00:00Z'), // 3 days
-      on('2026-06-01T10:00:00Z'), // 89 days — the winner
-      on('2026-06-04T10:00:00Z'), // 3 days
-    ];
-    const now = day('2026-06-05T10:00:00Z');
+  it('finds the flight spanning the most time zones', () => {
+    const short = zoneFlight(
+      'Europe/Copenhagen',
+      'Europe/Berlin',
+      '2026-06-01T10:00:00Z',
+    );
+    const long = zoneFlight(
+      'Europe/Copenhagen',
+      'America/Los_Angeles',
+      '2026-06-01T10:00:00Z',
+    );
 
-    expect(longestGap(flights, now)).toEqual({
-      days: 89,
-      from: day('2026-03-04T10:00:00Z'),
-      to: day('2026-06-01T10:00:00Z'),
-      ongoing: false,
+    expect(extremeTimeZones([short, long])).toEqual({
+      flight: long,
+      zones: 9,
     });
   });
 
-  it('counts the stretch from the last flight to today when nothing is scheduled', () => {
-    const flights = [on('2026-01-01T10:00:00Z'), on('2026-01-10T10:00:00Z')];
-    const now = day('2026-03-11T10:00:00Z'); // 60 days after the last flight
+  it('accounts for daylight saving at flight time', () => {
+    const summer = zoneFlight(
+      'Asia/Kolkata',
+      'Europe/London',
+      '2026-07-01T10:00:00Z',
+    );
+    const winter = zoneFlight(
+      'Asia/Kolkata',
+      'Europe/London',
+      '2026-01-01T10:00:00Z',
+    );
 
-    expect(longestGap(flights, now)).toMatchObject({
-      days: 60,
-      from: day('2026-01-10T10:00:00Z'),
-      to: now,
-      ongoing: true,
-    });
+    expect(extremeTimeZones([summer])).toEqual({ flight: summer, zones: 4.5 });
+    expect(extremeTimeZones([winter])).toEqual({ flight: winter, zones: 5.5 });
   });
 
-  it('ignores the today tail when a flight is scheduled ahead', () => {
-    const flights = [
-      on('2026-01-01T10:00:00Z'),
-      on('2026-01-10T10:00:00Z'),
-      on('2026-04-10T10:00:00Z'), // scheduled future flight
-    ];
-    const now = day('2026-03-11T10:00:00Z');
-
-    expect(longestGap(flights, now)).toMatchObject({
-      days: 90,
-      ongoing: false,
-      to: day('2026-04-10T10:00:00Z'),
-    });
-  });
-
-  it('skips undated flights and returns nothing without two dates', () => {
+  it('skips flights without both time zones and returns nothing', () => {
+    expect(extremeTimeZones([])).toBeNull();
     expect(
-      longestGap([{ date: null }] as unknown as FlightData[], new Date()),
+      extremeTimeZones([
+        zoneFlight('Europe/Copenhagen', '', '2026-06-01T10:00:00Z'),
+      ]),
     ).toBeNull();
-    expect(longestGap([], new Date())).toBeNull();
   });
 });
 
