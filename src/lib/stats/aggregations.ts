@@ -1,5 +1,6 @@
 import {
   ContinentMap,
+  type Airport,
   type VisitedCountry,
   VisitedCountryStatus,
   wasVisited,
@@ -640,6 +641,60 @@ export function flightTotals(flights: FlightData[]): FlightTotals {
     routes: routes.size,
     countries: countries.size,
   };
+}
+
+export type FlightExtreme = {
+  flight: FlightData;
+  value: number;
+};
+
+export type FlightExtremes = {
+  longest: FlightExtreme | null;
+  shortest: FlightExtreme | null;
+};
+
+/** The flights covering the most and least distance, or time in the air. */
+export function extremeFlights(
+  flights: FlightData[],
+  metric: 'distance' | 'duration',
+): FlightExtremes {
+  let longest: FlightExtreme | null = null;
+  let shortest: FlightExtreme | null = null;
+  for (const flight of flights) {
+    const value = flight[metric];
+    if (value == null) continue;
+
+    if (!longest || value > longest.value) longest = { flight, value };
+    if (!shortest || value < shortest.value) shortest = { flight, value };
+  }
+  return { longest, shortest };
+}
+
+export type AirportExtreme = {
+  airport: Airport;
+  latitude: number;
+};
+
+/** The northernmost and southernmost airport any flight touched. */
+export function extremeAirportsByLatitude(flights: FlightData[]): {
+  north: AirportExtreme | null;
+  south: AirportExtreme | null;
+} {
+  let north: AirportExtreme | null = null;
+  let south: AirportExtreme | null = null;
+  for (const flight of flights) {
+    for (const airport of [flight.from, flight.to]) {
+      if (!airport) continue;
+
+      if (!north || airport.lat > north.latitude) {
+        north = { airport, latitude: airport.lat };
+      }
+      if (!south || airport.lat < south.latitude) {
+        south = { airport, latitude: airport.lat };
+      }
+    }
+  }
+  return { north, south };
 }
 
 export function countFlightsPerYear(

@@ -10,6 +10,7 @@
   import BreakdownRow from './BreakdownRow.svelte';
   import PunctualitySection from './PunctualitySection.svelte';
   import RankedList from './RankedList.svelte';
+  import RecordsSection from './RecordsSection.svelte';
   import SeatMap from './SeatMap.svelte';
 
   import { resolve } from '$app/paths';
@@ -689,7 +690,7 @@
           <div
             class="grid gap-x-7 gap-y-6 sm:grid-cols-2 lg:grid-cols-1 lg:self-start lg:content-start"
           >
-            {#each ['seat-class', 'seat', 'reason'] as const as chartKey (chartKey)}
+            {#each ['seat-class', 'seat', 'reason', 'seat-numbers'] as const as chartKey (chartKey)}
               <RankedList
                 {chartKey}
                 flights={countedFlights}
@@ -714,7 +715,11 @@
       {#snippet punctuality()}
         <PunctualitySection flights={completedFlights} onOpen={openChart} />
       {/snippet}
+      {#snippet records()}
+        <RecordsSection flights={countedFlights} {onOpenFlight} />
+      {/snippet}
       {@render section('Punctuality', punctuality)}
+      {@render section('Records', records)}
     {/if}
     {#if showCountryStats}
       {@render section('Countries', countries)}

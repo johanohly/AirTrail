@@ -1,0 +1,137 @@
+<script lang="ts">
+  import { page } from '$app/state';
+
+  import {
+    codeForAirport,
+    extremeAirportsByLatitude,
+    extremeFlights,
+    type AirportExtreme,
+    type FlightExtreme,
+  } from '$lib/stats/aggregations';
+  import type { FlightData } from '$lib/utils';
+  import { Duration } from '$lib/utils/datetime';
+  import {
+    convertDistance,
+    distanceUnitLabel,
+    getPreferences,
+  } from '$lib/utils/preferences';
+
+  let {
+    flights,
+    onOpenFlight,
+  }: {
+    flights: FlightData[];
+    onOpenFlight?: (flightId: number) => void;
+  } = $props();
+
+  const prefs = $derived(getPreferences(page.data.user));
+
+  const byDistance = $derived(extremeFlights(flights, 'distance'));
+  const byDuration = $derived(extremeFlights(flights, 'duration'));
+  const byLatitude = $derived(extremeAirportsByLatitude(flights));
+
+  const formatDistance = (km: number) =>
+    `${Math.round(convertDistance(km, prefs)).toLocaleString()} ${distanceUnitLabel(prefs)}`;
+  const formatDuration = (seconds: number) =>
+    Duration.fromSeconds(seconds).toString(true);
+  const formatLatitude = (latitude: number) =>
+    `${Math.abs(latitude).toFixed(1)}°${latitude >= 0 ? 'N' : 'S'}`;
+  const routeLabel = ({ flight }: FlightExtreme) =>
+    [codeForAirport(flight.from), codeForAirport(flight.to)]
+      .filter(Boolean)
+      .join(' – ') || 'Unknown route';
+</script>
+
+{#snippet flag(country: string | null | undefined)}
+  {#if country}
+    <img
+      src="https://flagcdn.com/{country.toLowerCase()}.svg"
+      alt=""
+      title={country.toUpperCase()}
+      class="h-3.5 w-[21px] shrink-0 rounded-[2px] object-cover shadow-xs"
+      loading="lazy"
+      decoding="async"
+    />
+  {/if}
+{/snippet}
+
+{#snippet flightCard(label: string, extreme: FlightExtreme, value: string)}
+  {#snippet content()}
+    <div class="text-[13px] text-muted-foreground">{label}</div>
+    <div
+      class="mt-0.5 flex items-center gap-2 whitespace-nowrap text-xl font-bold tracking-tight lg:text-[26px]"
+    >
+      {@render flag(extreme.flight.from?.country)}
+      {@render flag(extreme.flight.to?.country)}
+      <span class="truncate">{routeLabel(extreme)}</span>
+    </div>
+    <div class="truncate text-[13px] text-muted-foreground">{value}</div>
+  {/snippet}
+  <!-- Opens the flight, like a drill-down row does -->
+  {#if onOpenFlight}
+    <button
+      type="button"
+      class="min-w-0 -mx-2 rounded px-2 py-1 text-left outline-none transition-colors hover:bg-hover focus-visible:ring-1 focus-visible:ring-ring"
+      onclick={() => onOpenFlight?.(extreme.flight.id)}
+    >
+      {@render content()}
+    </button>
+  {:else}
+    <div class="min-w-0">
+      {@render content()}
+    </div>
+  {/if}
+{/snippet}
+
+{#snippet airportCard(label: string, extreme: AirportExtreme)}
+  <div class="min-w-0">
+    <div class="text-[13px] text-muted-foreground">{label}</div>
+    <div
+      class="mt-0.5 flex items-center gap-2 whitespace-nowrap text-xl font-bold tracking-tight lg:text-[26px]"
+    >
+      {@render flag(extreme.airport.country)}
+      <span>{codeForAirport(extreme.airport)}</span>
+    </div>
+    <div class="truncate text-[13px] text-muted-foreground">
+      {extreme.airport.municipality || extreme.airport.name}
+      · {formatLatitude(extreme.latitude)}
+    </div>
+  </div>
+{/snippet}
+
+<div class="grid gap-x-7 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+  {#if byDistance.longest}
+    {@render flightCard(
+      'Longest route',
+      byDistance.longest,
+      formatDistance(byDistance.longest.value),
+    )}
+  {/if}
+  {#if byDistance.shortest}
+    {@render flightCard(
+      'Shortest route',
+      byDistance.shortest,
+      formatDistance(byDistance.shortest.value),
+    )}
+  {/if}
+  {#if byDuration.longest}
+    {@render flightCard(
+      'Longest flight',
+      byDuration.longest,
+      formatDuration(byDuration.longest.value),
+    )}
+  {/if}
+  {#if byDuration.shortest}
+    {@render flightCard(
+      'Shortest flight',
+      byDuration.shortest,
+      formatDuration(byDuration.shortest.value),
+    )}
+  {/if}
+  {#if byLatitude.north}
+    {@render airportCard('Northernmost airport', byLatitude.north)}
+  {/if}
+  {#if byLatitude.south}
+    {@render airportCard('Southernmost airport', byLatitude.south)}
+  {/if}
+</div>

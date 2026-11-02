@@ -11,6 +11,8 @@ import {
   countryDistribution,
   DELAY_THRESHOLD_MINUTES,
   domesticInternationalSplit,
+  extremeAirportsByLatitude,
+  extremeFlights,
   flightMatchesChartBucket,
   flightTotals,
   normalizeSeatNumber,
@@ -353,6 +355,55 @@ describe('toBreakdown', () => {
         { key: 'Aisle', value: 2 },
       ],
       missing: 3,
+    });
+  });
+});
+
+describe('records', () => {
+  const flight = (distance: number | null, duration: number | null) =>
+    ({ distance, duration }) as FlightData;
+
+  it('finds the longest and shortest by the chosen metric, skipping gaps', () => {
+    const flights = [
+      flight(1000, 3600),
+      flight(null, 7200),
+      flight(200, null),
+      flight(5000, 900),
+    ];
+
+    expect(extremeFlights(flights, 'distance')).toEqual({
+      longest: { flight: flights[3], value: 5000 },
+      shortest: { flight: flights[2], value: 200 },
+    });
+    expect(extremeFlights(flights, 'duration')).toEqual({
+      longest: { flight: flights[1], value: 7200 },
+      shortest: { flight: flights[3], value: 900 },
+    });
+  });
+
+  it('returns nothing without values to compare', () => {
+    expect(extremeFlights([flight(null, null)], 'distance')).toEqual({
+      longest: null,
+      shortest: null,
+    });
+  });
+
+  it('finds the northernmost and southernmost airport from both endpoints', () => {
+    const airport = (iata: string, lat: number) => ({ iata, lat });
+    const flights = [
+      {
+        from: airport('KEF', 64.13),
+        to: airport('LHR', 51.47),
+      },
+      {
+        from: airport('SIN', 1.36),
+        to: airport('DOH', 25.27),
+      },
+    ] as unknown as FlightData[];
+
+    expect(extremeAirportsByLatitude(flights)).toEqual({
+      north: { airport: { iata: 'KEF', lat: 64.13 }, latitude: 64.13 },
+      south: { airport: { iata: 'SIN', lat: 1.36 }, latitude: 1.36 },
     });
   });
 });
