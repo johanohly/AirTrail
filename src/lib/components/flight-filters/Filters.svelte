@@ -536,7 +536,7 @@
     return [
       {
         id: 'departureAirports',
-        displayName: 'Departure Airport',
+        displayName: 'Departure airport',
         type: 'option',
         accessor: (flight) => flight.from?.id.toString() ?? '',
         icon: PlaneTakeoff,
@@ -545,7 +545,7 @@
       },
       {
         id: 'arrivalAirports',
-        displayName: 'Arrival Airport',
+        displayName: 'Arrival airport',
         type: 'option',
         accessor: (flight) => flight.to?.id.toString() ?? '',
         icon: PlaneLanding,
@@ -570,7 +570,7 @@
       },
       {
         id: 'departureCountries',
-        displayName: 'Departure Country',
+        displayName: 'Departure country',
         type: 'option',
         accessor: (flight) => flight.from?.country ?? '',
         icon: Flag,
@@ -578,7 +578,7 @@
       },
       {
         id: 'arrivalCountries',
-        displayName: 'Arrival Country',
+        displayName: 'Arrival country',
         type: 'option',
         accessor: (flight) => flight.to?.country ?? '',
         icon: Flag,
@@ -586,7 +586,7 @@
       },
       {
         id: 'departureContinents',
-        displayName: 'Departure Continent',
+        displayName: 'Departure continent',
         type: 'option',
         accessor: (flight) => flight.from?.continent ?? '',
         icon: Earth,
@@ -594,7 +594,7 @@
       },
       {
         id: 'arrivalContinents',
-        displayName: 'Arrival Continent',
+        displayName: 'Arrival continent',
         type: 'option',
         accessor: (flight) => flight.to?.continent ?? '',
         icon: Earth,

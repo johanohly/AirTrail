@@ -102,19 +102,31 @@ export const continentOptions: FilterOptionSource[] = Object.entries(
 
 /*
  * Menu layout, shared by the desktop filter menu and the mobile filter home
- * screen. "quickDate" is a menu entry, not a filter column.
+ * screen. "quickDate" is a menu entry, not a filter column. Groups either
+ * list columns directly or split them into headed sub-groups.
  */
-export const FILTER_GROUPS = [
+export type FilterSubgroup = {
+  label: string;
+  columns: readonly string[];
+};
+
+export type FilterGroup = {
+  label: string;
+  columns?: readonly string[];
+  subgroups?: readonly FilterSubgroup[];
+};
+
+export const FILTER_GROUPS: readonly FilterGroup[] = [
   {
     label: 'Location',
-    columns: [
-      'departureAirports',
-      'arrivalAirports',
-      'routes',
-      'departureCountries',
-      'arrivalCountries',
-      'departureContinents',
-      'arrivalContinents',
+    columns: ['routes'],
+    subgroups: [
+      { label: 'Airport', columns: ['departureAirports', 'arrivalAirports'] },
+      { label: 'Country', columns: ['departureCountries', 'arrivalCountries'] },
+      {
+        label: 'Continent',
+        columns: ['departureContinents', 'arrivalContinents'],
+      },
     ],
   },
   {
@@ -131,4 +143,4 @@ export const FILTER_GROUPS = [
     columns: ['seatClass', 'flightReason', 'seatType', 'seatNumber'],
   },
   { label: 'People', columns: ['passengers'] },
-] as const;
+];

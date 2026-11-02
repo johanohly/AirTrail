@@ -70,28 +70,50 @@
     ),
   );
 
+  type MenuSection = {
+    label: string | undefined;
+    columns: Column<TData, ColumnDataType>[];
+  };
+
   type MenuGroup = {
     label: string;
     hasQuickDate: boolean;
-    columns: Column<TData, ColumnDataType>[];
+    sections: MenuSection[];
   };
 
   const menuGroups = $derived.by(() => {
     const dateColumnVisible = !!dateColumn && !dateColumn.hidden;
 
+    const visibleColumn = (id: string) => {
+      const column = columns.find((candidate) => candidate.id === id);
+      return column && !column.hidden ? column : undefined;
+    };
+
+    const section = (label: string | undefined, ids: readonly string[]) => ({
+      label,
+      columns: ids
+        .filter((id) => id !== 'quickDate')
+        .map(visibleColumn)
+        .filter((column): column is Column<TData, ColumnDataType> => !!column),
+    });
+
     return FILTER_GROUPS.map((group) => ({
       label: group.label,
       hasQuickDate:
-        (group.columns as readonly string[]).includes('quickDate') &&
-        dateColumnVisible,
-      columns: group.columns
-        .filter((id) => id !== 'quickDate')
-        .map((id) => columns.find((column) => column.id === id))
-        .filter(
-          (column): column is Column<TData, ColumnDataType> =>
-            !!column && !column.hidden,
+        (group.columns ?? []).includes('quickDate') && dateColumnVisible,
+      sections: group.subgroups
+        ? group.subgroups.map((subgroup) =>
+            section(subgroup.label, subgroup.columns),
+          )
+        : [section(undefined, group.columns ?? [])],
+    }))
+      .map((group) => ({
+        ...group,
+        sections: group.sections.filter(
+          (menuSection) => menuSection.columns.length > 0,
         ),
-    })).filter((group) => group.hasQuickDate || group.columns.length > 0);
+      }))
+      .filter((group) => group.hasQuickDate || group.sections.length > 0);
   });
 
   /* Mirrors bits-ui's filter-icon.svelte detection between components and snippets. */
@@ -228,54 +250,64 @@
               </DropdownMenu.Portal>
             </DropdownMenu.Sub>
           {/if}
-          {#each group.columns as column (column.id)}
-            <DropdownMenu.Sub>
-              <DropdownMenu.SubTrigger openDelay={0}>
-                <span>
-                  {#if column.icon}
-                    {@render menuIcon(column.icon)}
-                  {/if}
-                  {column.displayName}
-                </span>
-                {@render menuCaret()}
-              </DropdownMenu.SubTrigger>
-              <DropdownMenu.Portal>
-                <DropdownMenu.SubContent
-                  sideOffset={8}
-                  align={column.type === 'option' ||
-                  column.type === 'multiOption'
-                    ? 'list'
-                    : 'start'}
-                  collisionAvoidance={{ side: 'flip', align: 'shift' }}
-                >
-                  {#if column.id === 'date'}
-                    <Filter.DateEditor
-                      filter={findFilter(column, 'date')}
-                      column={column as Column<TData, 'date'>}
-                      {actions}
-                    />
-                  {:else if column.type === 'option' || column.type === 'multiOption'}
-                    <Filter.OptionEditor
-                      column={column as
-                        Column<TData, 'option'> | Column<TData, 'multiOption'>}
-                      {actions}
-                      filter={findFilter(
-                        column,
-                        column.type as 'option' | 'multiOption',
-                      ) as
-                        | FilterModel<'option'>
-                        | FilterModel<'multiOption'>
-                        | undefined}
-                      locale="en"
-                      {strategy}
-                    />
-                  {/if}
-                </DropdownMenu.SubContent>
-              </DropdownMenu.Portal>
-            </DropdownMenu.Sub>
+          {#each group.sections as section, sectionIndex (section.label ?? sectionIndex)}
+            {#if section.label}
+              <div
+                class="px-2 pb-1 pt-1.5 text-[11px] font-medium text-muted-foreground/80"
+                data-filter-menu-subgroup-heading
+              >
+                {section.label}
+              </div>
+            {/if}
+            {#each section.columns as column (column.id)}
+              {@render menuColumn(column)}
+            {/each}
           {/each}
         </DropdownMenu.Group>
       {/each}
     </DropdownMenu.Content>
   </DropdownMenu.Portal>
 </DropdownMenu.Root>
+
+{#snippet menuColumn(column: Column<TData, ColumnDataType>)}
+  <DropdownMenu.Sub>
+    <DropdownMenu.SubTrigger openDelay={0}>
+      <span>
+        {#if column.icon}
+          {@render menuIcon(column.icon)}
+        {/if}
+        {column.displayName}
+      </span>
+      {@render menuCaret()}
+    </DropdownMenu.SubTrigger>
+    <DropdownMenu.Portal>
+      <DropdownMenu.SubContent
+        sideOffset={8}
+        align={column.type === 'option' || column.type === 'multiOption'
+          ? 'list'
+          : 'start'}
+        collisionAvoidance={{ side: 'flip', align: 'shift' }}
+      >
+        {#if column.id === 'date'}
+          <Filter.DateEditor
+            filter={findFilter(column, 'date')}
+            column={column as Column<TData, 'date'>}
+            {actions}
+          />
+        {:else if column.type === 'option' || column.type === 'multiOption'}
+          <Filter.OptionEditor
+            column={column as
+              Column<TData, 'option'> | Column<TData, 'multiOption'>}
+            {actions}
+            filter={findFilter(
+              column,
+              column.type as 'option' | 'multiOption',
+            ) as FilterModel<'option'> | FilterModel<'multiOption'> | undefined}
+            locale="en"
+            {strategy}
+          />
+        {/if}
+      </DropdownMenu.SubContent>
+    </DropdownMenu.Portal>
+  </DropdownMenu.Sub>
+{/snippet}
