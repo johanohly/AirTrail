@@ -118,7 +118,7 @@
   } from '$lib/components/flight-filters/types';
   import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
   import type { Aircraft, Airline, Airport } from '$lib/db/types';
-  import { routeLabelForFlight } from '$lib/stats/aggregations';
+  import { codeForAirport, routeLabelForFlight } from '$lib/stats/aggregations';
   import {
     cn,
     getFlightPassengerLabel,
@@ -511,7 +511,10 @@
       }
       airlineUses.set(flight.flightNumber, perNumber);
 
-      const routeLabel = routeLabelForFlight(flight);
+      // Directional label: the same number out and back shows each way
+      const fromCode = codeForAirport(flight.from);
+      const toCode = codeForAirport(flight.to);
+      const routeLabel = fromCode && toCode ? `${fromCode} – ${toCode}` : null;
       if (!routeLabel) continue;
       const routesPerNumber =
         routeUses.get(flight.flightNumber) ?? new Map<string, number>();

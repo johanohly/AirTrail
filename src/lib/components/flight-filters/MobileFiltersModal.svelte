@@ -85,7 +85,7 @@
     ModalFooter,
     ModalHeader,
   } from '$lib/components/ui/modal';
-  import { routeLabelForFlight } from '$lib/stats/aggregations';
+  import { codeForAirport, routeLabelForFlight } from '$lib/stats/aggregations';
   import {
     cn,
     getFlightPassengerLabel,
@@ -455,7 +455,10 @@
       }
       airlineUses.set(flight.flightNumber, perNumber);
 
-      const routeLabel = routeLabelForFlight(flight);
+      // Directional label: the same number out and back shows each way
+      const fromCode = codeForAirport(flight.from);
+      const toCode = codeForAirport(flight.to);
+      const routeLabel = fromCode && toCode ? `${fromCode} – ${toCode}` : null;
       if (!routeLabel) continue;
       const routesPerNumber =
         routeUses.get(flight.flightNumber) ?? new Map<string, number>();
