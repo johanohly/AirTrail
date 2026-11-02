@@ -699,6 +699,46 @@ export function extremeFlightSpeeds(
   return { fastest, slowest };
 }
 
+export type FlightGap = {
+  days: number;
+  from: Date;
+  to: Date;
+  /** True when the gap runs from the last flight to today. */
+  ongoing: boolean;
+};
+
+/**
+ * The longest stretch between two flights, departure to departure. When
+ * nothing is scheduled after the last flight, the stretch from it to today
+ * counts as well.
+ */
+export function longestGap(
+  flights: FlightData[],
+  now: Date = new Date(),
+): FlightGap | null {
+  const dated = flights
+    .map((flight) => flight.date ?? flight.dateStart)
+    .filter((date): date is NonNullable<typeof date> => date != null)
+    .sort((a, b) => a.getTime() - b.getTime());
+  if (dated.length === 0) return null;
+
+  let best: FlightGap | null = null;
+  const consider = (from: Date, to: Date, ongoing = false) => {
+    const days = Math.floor((to.getTime() - from.getTime()) / 86_400_000);
+    if (days > 0 && (!best || days > best.days)) {
+      best = { days, from, to, ongoing };
+    }
+  };
+
+  for (let i = 1; i < dated.length; i++) {
+    consider(dated[i - 1]!, dated[i]!);
+  }
+  const last = dated.at(-1)!;
+  if (last.getTime() < now.getTime()) consider(last, now, true);
+
+  return best;
+}
+
 /** The northernmost and southernmost airport any flight touched. */
 export function extremeAirportsByLatitude(flights: FlightData[]): {
   north: AirportExtreme | null;

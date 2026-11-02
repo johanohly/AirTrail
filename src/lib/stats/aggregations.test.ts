@@ -16,6 +16,7 @@ import {
   extremeFlights,
   flightMatchesChartBucket,
   flightTotals,
+  longestGap,
   normalizeSeatNumber,
   punctualityReport,
   reasonDistribution,
@@ -421,6 +422,60 @@ describe('records', () => {
       north: { airport: { iata: 'KEF', lat: 64.13 }, latitude: 64.13 },
       south: { airport: { iata: 'SIN', lat: 1.36 }, latitude: 1.36 },
     });
+  });
+
+  const day = (iso: string) => new Date(iso);
+  const on = (iso: string) => ({ date: day(iso) }) as FlightData;
+
+  it('finds the longest stretch between departures', () => {
+    const flights = [
+      on('2026-03-01T10:00:00Z'),
+      on('2026-03-04T10:00:00Z'), // 3 days
+      on('2026-06-01T10:00:00Z'), // 89 days — the winner
+      on('2026-06-04T10:00:00Z'), // 3 days
+    ];
+    const now = day('2026-06-05T10:00:00Z');
+
+    expect(longestGap(flights, now)).toEqual({
+      days: 89,
+      from: day('2026-03-04T10:00:00Z'),
+      to: day('2026-06-01T10:00:00Z'),
+      ongoing: false,
+    });
+  });
+
+  it('counts the stretch from the last flight to today when nothing is scheduled', () => {
+    const flights = [on('2026-01-01T10:00:00Z'), on('2026-01-10T10:00:00Z')];
+    const now = day('2026-03-11T10:00:00Z'); // 60 days after the last flight
+
+    expect(longestGap(flights, now)).toMatchObject({
+      days: 60,
+      from: day('2026-01-10T10:00:00Z'),
+      to: now,
+      ongoing: true,
+    });
+  });
+
+  it('ignores the today tail when a flight is scheduled ahead', () => {
+    const flights = [
+      on('2026-01-01T10:00:00Z'),
+      on('2026-01-10T10:00:00Z'),
+      on('2026-04-10T10:00:00Z'), // scheduled future flight
+    ];
+    const now = day('2026-03-11T10:00:00Z');
+
+    expect(longestGap(flights, now)).toMatchObject({
+      days: 90,
+      ongoing: false,
+      to: day('2026-04-10T10:00:00Z'),
+    });
+  });
+
+  it('skips undated flights and returns nothing without two dates', () => {
+    expect(
+      longestGap([{ date: null }] as unknown as FlightData[], new Date()),
+    ).toBeNull();
+    expect(longestGap([], new Date())).toBeNull();
   });
 });
 
