@@ -137,6 +137,7 @@
   let activeContinent: string | null = $state(null);
   let modalHistory: ModalHistoryHandle | undefined = $state();
   let wasOpen = $state(false);
+  let scrollEl: HTMLElement | null = $state(null);
   const drillDownOpen = $derived(Boolean(activeChart || activeContinent));
 
   const countryStatus = $derived(
@@ -193,6 +194,16 @@
   };
 
   const restoreDrilldown = (state: unknown) => {
+    // Park focus on the dialog before the drill-down sheet unmounts: the
+    // dialog's focus scope reacts to the focused Back button being removed
+    // by focusing its first tabbable element, the filter row at the top,
+    // which scrolls the statistics back to the top.
+    if (activeChart || activeContinent) {
+      const dialog = scrollEl?.closest('[role="dialog"]');
+      if (dialog instanceof HTMLElement) {
+        dialog.focus({ preventScroll: true });
+      }
+    }
     const drilldown = state as
       | {
           activeChart?: unknown;
@@ -492,6 +503,7 @@
   <!-- Scrolls in here, so a drill-down sheet stays on screen however far down
        the row that opened it was -->
   <div
+    bind:this={scrollEl}
     class="h-full min-h-0 overflow-y-auto p-6"
     inert={drillDownOpen}
     data-testid="statistics-scroll"
