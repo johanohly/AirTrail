@@ -42,11 +42,81 @@
   let open = $state(false);
   let search = $state('');
 
+  /*
+   * bits-ui's pointer-transit lock leaks when the pointer hops between sub
+   * triggers faster than the submenu choreography settles — every later hover
+   * is then gated out and the menu freezes (stuck highlights, a submenu that
+   * never closes). We therefore own the submenu state ourselves: exactly one
+   * controlled submenu, our own hover-intent timers, and a watchdog that
+   * closes it once the pointer leaves the menu tree (root content or any
+   * portaled sub content).
+   */
+  let openSub: string | null = $state(null);
+  let intentTimer: ReturnType<typeof setTimeout> | null = null;
+  let exitTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const SUB_INTENT_MS = 100;
+  const MENU_EXIT_MS = 400;
+
   const today = todayCalendarDate();
+
+  function clearIntentTimer() {
+    if (intentTimer === null) return;
+    clearTimeout(intentTimer);
+    intentTimer = null;
+  }
+
+  function clearExitTimer() {
+    if (exitTimer === null) return;
+    clearTimeout(exitTimer);
+    exitTimer = null;
+  }
+
+  function closeSubmenus() {
+    clearIntentTimer();
+    openSub = null;
+  }
+
+  function openSubmenu(key: string) {
+    clearIntentTimer();
+    clearExitTimer();
+    openSub = key;
+  }
+
+  function scheduleSubmenu(key: string) {
+    clearExitTimer();
+    if (openSub === key) return;
+    clearIntentTimer();
+    intentTimer = setTimeout(() => {
+      intentTimer = null;
+      openSub = key;
+    }, SUB_INTENT_MS);
+  }
+
+  function handleSubOpenChange(key: string, next: boolean) {
+    if (next) {
+      openSubmenu(key);
+    } else if (openSub === key) {
+      clearIntentTimer();
+      openSub = null;
+    }
+  }
+
+  function scheduleExit() {
+    clearExitTimer();
+    exitTimer = setTimeout(() => {
+      exitTimer = null;
+      closeSubmenus();
+    }, MENU_EXIT_MS);
+  }
 
   /* The search is per-open: every menu open starts unfiltered. */
   $effect(() => {
-    if (!open) search = '';
+    if (!open) {
+      search = '';
+      clearExitTimer();
+      closeSubmenus();
+    }
   });
 
   function handleSearchKeydown(event: KeyboardEvent) {
@@ -199,7 +269,13 @@
     {/snippet}
   </DropdownMenu.Trigger>
   <DropdownMenu.Portal>
-    <DropdownMenu.Content align="start" sideOffset={8} data-filter-menu-content>
+    <DropdownMenu.Content
+      align="start"
+      sideOffset={8}
+      data-filter-menu-content
+      onpointerenter={clearExitTimer}
+      onpointerleave={scheduleExit}
+    >
       <div class="border-b p-2" data-filter-menu-search>
         <label
           class="flex h-8 items-center gap-2 rounded-md border bg-background px-2.5"
@@ -250,8 +326,15 @@
             {group.label}
           </DropdownMenu.GroupHeading>
           {#if group.hasQuickDate}
-            <DropdownMenu.Sub>
-              <DropdownMenu.SubTrigger openDelay={100}>
+            <DropdownMenu.Sub
+              open={openSub === 'quickDate'}
+              onOpenChange={(next) => handleSubOpenChange('quickDate', next)}
+            >
+              <DropdownMenu.SubTrigger
+                openDelay={100}
+                onpointerenter={() => scheduleSubmenu('quickDate')}
+                onpointerleave={clearIntentTimer}
+              >
                 <span>
                   <span aria-hidden="true" data-filter-menu-icon>
                     <CalendarClock size={16} aria-hidden="true" />
@@ -265,6 +348,11 @@
                   sideOffset={8}
                   align="list"
                   collisionAvoidance={{ side: 'flip', align: 'shift' }}
+                  onpointerenter={() => {
+                    clearIntentTimer();
+                    clearExitTimer();
+                  }}
+                  onpointerleave={scheduleExit}
                 >
                   {#each datePresets as preset (preset.id)}
                     <DropdownMenu.CheckboxItem
@@ -306,8 +394,15 @@
 </DropdownMenu.Root>
 
 {#snippet menuColumn(column: Column<TData, ColumnDataType>)}
-  <DropdownMenu.Sub>
-    <DropdownMenu.SubTrigger openDelay={100}>
+  <DropdownMenu.Sub
+    open={openSub === column.id}
+    onOpenChange={(next) => handleSubOpenChange(column.id, next)}
+  >
+    <DropdownMenu.SubTrigger
+      openDelay={100}
+      onpointerenter={() => scheduleSubmenu(column.id)}
+      onpointerleave={clearIntentTimer}
+    >
       <span>
         {#if column.icon}
           {@render menuIcon(column.icon)}
@@ -323,6 +418,11 @@
           ? 'list'
           : 'start'}
         collisionAvoidance={{ side: 'flip', align: 'shift' }}
+        onpointerenter={() => {
+          clearIntentTimer();
+          clearExitTimer();
+        }}
+        onpointerleave={scheduleExit}
       >
         {#if column.id === 'date'}
           <Filter.DateEditor
