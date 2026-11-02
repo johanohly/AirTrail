@@ -1,13 +1,25 @@
 <script lang="ts">
   import {
+    Armchair,
+    ArrowLeftRight,
+    Briefcase,
     Calendar as CalendarIcon,
+    CalendarCheck,
+    CalendarDays,
     Check,
     ChevronRight,
+    Earth,
+    Flag,
+    Globe,
     Hash,
+    LocateFixed,
+    PersonStanding,
     Plane,
     PlaneLanding,
     PlaneTakeoff,
+    Ruler,
     Search,
+    Ticket,
     UsersRound,
     X,
     Plus,
@@ -16,10 +28,13 @@
   import type { Component } from 'svelte';
 
   import MobileDateFilterScreen from './MobileDateFilterScreen.svelte';
+
   import { page } from '$app/state';
   import UserAvatar from '$lib/components/display/UserAvatar.svelte';
   import {
+    activeFilterCount,
     clearFilterColumn,
+    cloneFlightFilters,
     createDefaultFilters,
     dateFilterSummary,
     isFilterColumnActive,
@@ -28,6 +43,7 @@
     optionColumnValues,
     pluralMultiOptionOperators,
     pluralOptionOperators,
+    seatPassengersForFlight,
     setOptionColumnOperator,
     setOptionColumnValues,
     singularMultiOptionOperators,
@@ -37,7 +53,25 @@
     type OptionColumnId,
   } from '$lib/components/flight-filters/model';
   import {
+    compareSeatNumbers,
+    continentOptions,
+    countryName,
+    dayOptions,
+    durationOptions,
+    flightReasonOptions,
+    flightTypeOptions,
+    monthOptions,
+    searchMatchKind,
+    seatClassOptions,
+    seatTypeOptions,
+    type FilterOptionSource,
+    FILTER_GROUPS,
+  } from '$lib/components/flight-filters/options';
+  import {
     hasTempFilters as hasActiveTempFilters,
+    normalizeRoute,
+    routeKey,
+    type FilterLogic,
     type FlightFilters,
     type MultiOptionFilterOperator,
     type OptionFilterOperator,
@@ -51,6 +85,7 @@
     ModalFooter,
     ModalHeader,
   } from '$lib/components/ui/modal';
+  import { codeForAirport, routeLabelForFlight } from '$lib/stats/aggregations';
   import {
     cn,
     getFlightPassengerLabel,
@@ -91,18 +126,23 @@
     filters = $bindable(),
     tempFilters = $bindable(),
     hasTempFilters = false,
+    seatUserId,
   }: {
     open: boolean;
     flights: FlightData[];
     filters: FlightFilters;
     tempFilters?: TempFilters;
     hasTempFilters?: boolean;
+    seatUserId?: string;
   } = $props();
 
   const prefs = $derived(getPreferences(page.data.user));
 
   let screen = $state<Screen>({ kind: 'home' });
   let search = $state('');
+  // Set when the option screen was opened pre-filtered by the subject
+  // search; drives the "Filtered by" hint instead of the search input
+  let optionScreenFiltered = $state(false);
   let wasOpen = $state(open);
 
   const tempLocationFiltersActive = $derived(
@@ -119,17 +159,47 @@
   const columns = $derived<FilterColumn[]>([
     {
       id: 'departureAirports',
-      label: 'Departure Airport',
+      label: 'Departure airport',
       icon: PlaneTakeoff,
       type: 'option',
       hidden: tempLocationFiltersActive,
     },
     {
       id: 'arrivalAirports',
-      label: 'Arrival Airport',
+      label: 'Arrival airport',
       icon: PlaneLanding,
       type: 'option',
       hidden: tempLocationFiltersActive,
+    },
+    {
+      id: 'routes',
+      label: 'Route',
+      icon: ArrowLeftRight,
+      type: 'option',
+    },
+    {
+      id: 'departureCountries',
+      label: 'Departure country',
+      icon: Flag,
+      type: 'option',
+    },
+    {
+      id: 'arrivalCountries',
+      label: 'Arrival country',
+      icon: Flag,
+      type: 'option',
+    },
+    {
+      id: 'departureContinents',
+      label: 'Departure continent',
+      icon: Earth,
+      type: 'option',
+    },
+    {
+      id: 'arrivalContinents',
+      label: 'Arrival continent',
+      icon: Earth,
+      type: 'option',
     },
     { id: 'date', label: 'Date', icon: CalendarIcon, type: 'date' },
     {
@@ -141,6 +211,45 @@
     { id: 'airline', label: 'Airline', icon: Airlines, type: 'option' },
     { id: 'aircraft', label: 'Aircraft', icon: Plane, type: 'option' },
     { id: 'aircraftRegs', label: 'Tail Number', icon: Hash, type: 'option' },
+    {
+      id: 'months',
+      label: 'Month',
+      icon: CalendarDays,
+      type: 'option',
+    },
+    {
+      id: 'days',
+      label: 'Day of Month',
+      icon: CalendarCheck,
+      type: 'option',
+    },
+    {
+      id: 'flightType',
+      label: 'Flight Type',
+      icon: Globe,
+      type: 'option',
+    },
+    {
+      id: 'flightNumber',
+      label: 'Flight Number',
+      icon: Ticket,
+      type: 'option',
+    },
+    { id: 'duration', label: 'Duration', icon: Ruler, type: 'option' },
+    { id: 'seatClass', label: 'Class', icon: Armchair, type: 'option' },
+    { id: 'flightReason', label: 'Reason', icon: Briefcase, type: 'option' },
+    {
+      id: 'seatType',
+      label: 'Seat Type',
+      icon: PersonStanding,
+      type: 'option',
+    },
+    {
+      id: 'seatNumber',
+      label: 'Seat Number',
+      icon: LocateFixed,
+      type: 'option',
+    },
   ]);
 
   const visibleColumns = $derived(columns.filter((column) => !column.hidden));
@@ -148,11 +257,41 @@
   function resetNavigation() {
     screen = { kind: 'home' };
     search = '';
+    optionScreenFiltered = false;
+  }
+
+  // A subject stays listed when its name matches the search, or when any of
+  // its options does — mirroring the desktop menu search. searchMatchKind
+  // returns undefined for an empty query too, so guard it: an empty search
+  // lists every subject.
+  function matchesSubjectSearch(column: FilterColumn) {
+    if (!search.trim()) return true;
+    return subjectSearchMatch(column) !== undefined;
+  }
+
+  // Why the subject matched: only an options match opens the option screen
+  // pre-filtered; a name match opens the full list, since the query need
+  // not relate to the option values at all
+  function subjectSearchMatch(column: FilterColumn) {
+    const options = column.id === 'date' ? [] : optionsByColumn[column.id];
+    return searchMatchKind(column.label, options, search);
   }
 
   function go(next: Screen) {
-    screen = next;
+    // Keep the query only when the tapped subject matched via its options —
+    // that screen opens pre-filtered with a hint row; name matches open
+    // unfiltered
+    if (screen.kind === 'subjects' && next.kind === 'filter') {
+      const column = columnById(next.columnId);
+      if (column && subjectSearchMatch(column) === 'options') {
+        optionScreenFiltered = true;
+        screen = next;
+        return;
+      }
+    }
+    optionScreenFiltered = false;
     search = '';
+    screen = next;
   }
 
   function back() {
@@ -221,6 +360,168 @@
     );
   }
 
+  // Countries are keyed by their alpha-2 code and named via the ISO table
+  function countedAircraftRegOptions(
+    sourceFlights: FlightData[],
+  ): FilterOption[] {
+    const counts = new Map<string, number>();
+    // A tail number can fly several models; the model shown is the most
+    // frequent one among the scoped flights
+    const modelUses = new Map<
+      string,
+      Map<string, { name: string; count: number }>
+    >();
+
+    for (const flight of sourceFlights) {
+      if (!flight.aircraftReg) continue;
+      counts.set(flight.aircraftReg, (counts.get(flight.aircraftReg) ?? 0) + 1);
+      if (!flight.aircraft) continue;
+      const perReg =
+        modelUses.get(flight.aircraftReg) ??
+        new Map<string, { name: string; count: number }>();
+      const entry = perReg.get(flight.aircraft.name);
+      if (entry) {
+        entry.count += 1;
+      } else {
+        perReg.set(flight.aircraft.name, {
+          name: flight.aircraft.name,
+          count: 1,
+        });
+      }
+      modelUses.set(flight.aircraftReg, perReg);
+    }
+
+    return Array.from(counts.entries())
+      .map(([registration, count]) => {
+        const model = Array.from(
+          modelUses.get(registration)?.values() ?? [],
+        ).sort((a, b) => b.count - a.count)[0];
+        return {
+          value: registration,
+          label: registration,
+          shortLabel: model?.name,
+          count,
+        };
+      })
+      .sort(
+        (a, b) =>
+          (b.count ?? 0) - (a.count ?? 0) || a.label.localeCompare(b.label),
+      );
+  }
+
+  // Countries are keyed by their alpha-2 code and named via the ISO table
+  function countedCountryOptions(
+    countries: Array<string | null | undefined>,
+  ): FilterOption[] {
+    return countedOptions(
+      countries.map((country) =>
+        country
+          ? {
+              value: country,
+              label: countryName(country),
+              keywords: [country, countryName(country)],
+              kind: 'airport' as const,
+              country,
+            }
+          : null,
+      ),
+    );
+  }
+
+  // A flight number can be shared by several airlines (codeshares); the
+  // logo shown is the most frequent one among the scoped flights
+  function countedFlightNumberOptions(
+    sourceFlights: FlightData[],
+  ): FilterOption[] {
+    const counts = new Map<string, number>();
+    const airlineUses = new Map<
+      string,
+      Map<
+        string,
+        {
+          name: string;
+          iconPath: string | null;
+          count: number;
+        }
+      >
+    >();
+    const routeUses = new Map<string, Map<string, number>>();
+
+    for (const flight of sourceFlights) {
+      if (!flight.flightNumber) continue;
+      counts.set(
+        flight.flightNumber,
+        (counts.get(flight.flightNumber) ?? 0) + 1,
+      );
+      if (!flight.airline) continue;
+      const perNumber =
+        airlineUses.get(flight.flightNumber) ??
+        new Map<
+          string,
+          { name: string; iconPath: string | null; count: number }
+        >();
+      const entry = perNumber.get(flight.airline.name);
+      if (entry) {
+        entry.count += 1;
+      } else {
+        perNumber.set(flight.airline.name, {
+          name: flight.airline.name,
+          iconPath: flight.airline.iconPath,
+          count: 1,
+        });
+      }
+      airlineUses.set(flight.flightNumber, perNumber);
+
+      // Directional label: the same number out and back shows each way
+      const fromCode = codeForAirport(flight.from);
+      const toCode = codeForAirport(flight.to);
+      const routeLabel = fromCode && toCode ? `${fromCode} – ${toCode}` : null;
+      if (!routeLabel) continue;
+      const routesPerNumber =
+        routeUses.get(flight.flightNumber) ?? new Map<string, number>();
+      routesPerNumber.set(
+        routeLabel,
+        (routesPerNumber.get(routeLabel) ?? 0) + 1,
+      );
+      routeUses.set(flight.flightNumber, routesPerNumber);
+    }
+
+    return Array.from(counts.entries())
+      .map(([flightNumber, count]) => {
+        const topAirline = Array.from(
+          airlineUses.get(flightNumber)?.values() ?? [],
+        ).sort((a, b) => b.count - a.count)[0];
+        const topRoute = Array.from(
+          routeUses.get(flightNumber)?.entries() ?? [],
+        ).sort((a, b) => b[1] - a[1])[0]?.[0];
+        return {
+          value: flightNumber,
+          count,
+          airlineName: topAirline?.name ?? '',
+          iconPath: topAirline?.iconPath ?? null,
+          route: topRoute,
+        };
+      })
+      .sort(
+        (a, b) =>
+          a.airlineName.localeCompare(b.airlineName) ||
+          a.value.localeCompare(b.value, undefined, { numeric: true }),
+      )
+      .map(({ value, count, iconPath, route }) => ({
+        value,
+        label: value,
+        shortLabel: route,
+        count,
+        kind: 'airline' as const,
+        iconPath,
+      }));
+  }
+
+  /* Static option lists keep their curated order and carry no counts. */
+  function staticOptions(options: FilterOptionSource[]): FilterOption[] {
+    return options;
+  }
+
   const optionsByColumn = $derived.by(() => {
     const passengers = new Map<string, FilterOption>();
 
@@ -278,13 +579,50 @@
             : null,
         ),
       ),
-      aircraftRegs: countedOptions(
-        scopedFlights.map((flight) =>
-          flight.aircraftReg
-            ? { value: flight.aircraftReg, label: flight.aircraftReg }
-            : null,
-        ),
+      aircraftRegs: countedAircraftRegOptions(scopedFlights),
+      routes: countedOptions(
+        scopedFlights.map((flight) => {
+          if (!flight.from || !flight.to) return null;
+          const label = routeLabelForFlight(flight);
+          if (!label) return null;
+          return {
+            value: routeKey(
+              normalizeRoute(
+                flight.from.id.toString(),
+                flight.to.id.toString(),
+              ),
+            ),
+            label,
+          };
+        }),
       ),
+      departureCountries: countedCountryOptions(
+        scopedFlights.map((flight) => flight.from?.country),
+      ),
+      arrivalCountries: countedCountryOptions(
+        scopedFlights.map((flight) => flight.to?.country),
+      ),
+      departureContinents: staticOptions(continentOptions),
+      arrivalContinents: staticOptions(continentOptions),
+      months: staticOptions(monthOptions),
+      days: staticOptions(dayOptions),
+      flightType: staticOptions(flightTypeOptions),
+      flightNumber: countedFlightNumberOptions(scopedFlights),
+      duration: staticOptions(durationOptions),
+      seatClass: staticOptions(seatClassOptions),
+      flightReason: staticOptions(flightReasonOptions),
+      seatType: staticOptions(seatTypeOptions),
+      seatNumber: countedOptions(
+        scopedFlights.flatMap((flight) =>
+          // Only seats on rows the seat filters would consult are offered
+          seatPassengersForFlight(flight, filters, seatUserId).map(
+            (passenger) =>
+              passenger.seatNumber
+                ? { value: passenger.seatNumber, label: passenger.seatNumber }
+                : null,
+          ),
+        ),
+      ).sort((a, b) => compareSeatNumbers(a.label, b.label)),
     } satisfies Record<OptionColumnId, FilterOption[]>;
   });
 
@@ -342,6 +680,19 @@
   const activeColumns = $derived(
     visibleColumns.filter((column) => isColumnActive(column.id)),
   );
+
+  const activeGroups = $derived.by(() => {
+    return FILTER_GROUPS.map((group) => ({
+      label: group.label,
+      columns: group.columns
+        .map((id) =>
+          visibleColumns.find(
+            (candidate) => candidate.id === id && isColumnActive(candidate.id),
+          ),
+        )
+        .filter((column): column is FilterColumn => !!column),
+    })).filter((group) => group.columns.length > 0);
+  });
 
   $effect(() => {
     if (open && !wasOpen) {
@@ -431,6 +782,10 @@
     filters = createDefaultFilters();
   }
 
+  function setLogic(logic: FilterLogic) {
+    filters = cloneFlightFilters(filters, { logic });
+  }
+
   const title = $derived.by(() => {
     if (screen.kind === 'subjects') return 'Add filter';
     if (screen.kind === 'filter')
@@ -510,6 +865,74 @@
     <AnimatedSizeContainer height class="max-h-[72dvh]">
       {#if screen.kind === 'home'}
         <div class="flex max-h-[72dvh] flex-col gap-4 overflow-y-auto p-4">
+          <label
+            class="flex h-10 shrink-0 items-center gap-2 rounded-md border bg-background px-3 text-sm"
+          >
+            <Search size={16} class="text-muted-foreground" />
+            <input
+              type="text"
+              value={filters.noteQuery}
+              placeholder="Search notes"
+              aria-label="Search notes"
+              class="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
+              oninput={(event) => {
+                filters = cloneFlightFilters(filters, {
+                  noteQuery: event.currentTarget.value,
+                });
+              }}
+            />
+            {#if filters.noteQuery}
+              <button
+                type="button"
+                aria-label="Clear note search"
+                class="flex size-5 items-center justify-center rounded-sm text-muted-foreground"
+                onclick={() => {
+                  filters = cloneFlightFilters(filters, { noteQuery: '' });
+                }}
+              >
+                <X size={14} />
+              </button>
+            {/if}
+          </label>
+          {#if activeFilterCount(filters) >= 2}
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-muted-foreground">
+                Match
+              </span>
+              <div
+                class="flex rounded-lg border bg-muted/25 p-0.5 text-xs font-semibold"
+                role="group"
+                aria-label="Filter combination"
+              >
+                <button
+                  type="button"
+                  class={cn(
+                    'rounded-md px-2.5 py-1.5 transition-colors',
+                    filters.logic === 'and'
+                      ? 'bg-background text-foreground shadow-xs'
+                      : 'text-muted-foreground',
+                  )}
+                  aria-pressed={filters.logic === 'and'}
+                  onclick={() => setLogic('and')}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  class={cn(
+                    'rounded-md px-2.5 py-1.5 transition-colors',
+                    filters.logic === 'or'
+                      ? 'bg-background text-foreground shadow-xs'
+                      : 'text-muted-foreground',
+                  )}
+                  aria-pressed={filters.logic === 'or'}
+                  onclick={() => setLogic('or')}
+                >
+                  Any
+                </button>
+              </div>
+            </div>
+          {/if}
           <button
             type="button"
             class="flex min-h-14 w-full items-center gap-3 rounded-xl border border-dashed bg-muted/25 p-3 text-left transition-colors active:bg-muted"
@@ -530,59 +953,68 @@
           </button>
 
           {#if activeColumns.length}
-            <div class="space-y-2">
-              {#each activeColumns as column (column.id)}
-                <div
-                  class="group flex w-full items-center gap-2 rounded-xl border bg-background p-2.5 shadow-xs"
-                >
-                  <button
-                    type="button"
-                    class="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left transition-colors active:bg-muted"
-                    onclick={() =>
-                      go(
-                        column.id === 'date'
-                          ? { kind: 'date' }
-                          : { kind: 'filter', columnId: column.id },
-                      )}
-                  >
-                    <span
-                      class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+            <div class="space-y-3">
+              {#each activeGroups as group (group.label)}
+                <div class="space-y-2">
+                  <div class="px-1 text-xs font-medium text-muted-foreground">
+                    {group.label}
+                  </div>
+                  {#each group.columns as column (column.id)}
+                    <div
+                      class="group flex w-full items-center gap-2 rounded-xl border bg-background p-2.5 shadow-xs"
                     >
-                      <column.icon size={17} aria-hidden />
-                    </span>
-                    <span class="min-w-0 flex-1">
-                      <span class="flex min-w-0 items-center gap-1.5">
-                        <span class="truncate text-sm font-semibold">
-                          {column.label}
-                        </span>
-                        {#if column.id !== 'date'}
-                          <span
-                            class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
-                          >
-                            {operatorFor(column.id)}
-                          </span>
-                        {/if}
-                      </span>
-                      <span
-                        class="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground"
+                      <button
+                        type="button"
+                        class="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left transition-colors active:bg-muted"
+                        onclick={() =>
+                          go(
+                            column.id === 'date'
+                              ? { kind: 'date' }
+                              : { kind: 'filter', columnId: column.id },
+                          )}
                       >
-                        {#if column.id !== 'date'}
-                          {@render valueIconStack(column.id)}
-                        {/if}
-                        <span class="truncate">{valueSummary(column.id)}</span>
-                      </span>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    class="flex size-10 shrink-0 items-center justify-center rounded-md text-muted-foreground active:bg-muted"
-                    aria-label={`Remove ${column.label} filter`}
-                    onclick={(event) => {
-                      clearColumn(column.id);
-                    }}
-                  >
-                    <X size={16} />
-                  </button>
+                        <span
+                          class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+                        >
+                          <column.icon size={17} aria-hidden />
+                        </span>
+                        <span class="min-w-0 flex-1">
+                          <span class="flex min-w-0 items-center gap-1.5">
+                            <span class="truncate text-sm font-semibold">
+                              {column.label}
+                            </span>
+                            {#if column.id !== 'date'}
+                              <span
+                                class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+                              >
+                                {operatorFor(column.id)}
+                              </span>
+                            {/if}
+                          </span>
+                          <span
+                            class="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground"
+                          >
+                            {#if column.id !== 'date'}
+                              {@render valueIconStack(column.id)}
+                            {/if}
+                            <span class="truncate"
+                              >{valueSummary(column.id)}</span
+                            >
+                          </span>
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        class="flex size-10 shrink-0 items-center justify-center rounded-md text-muted-foreground active:bg-muted"
+                        aria-label={`Remove ${column.label} filter`}
+                        onclick={(event) => {
+                          clearColumn(column.id);
+                        }}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  {/each}
                 </div>
               {/each}
             </div>
@@ -609,9 +1041,7 @@
             </label>
           </div>
           <div class="min-h-0 flex-1 overflow-y-auto p-2">
-            {#each visibleColumns.filter((column) => column.label
-                .toLowerCase()
-                .includes(search.toLowerCase())) as column (column.id)}
+            {#each visibleColumns.filter(matchesSubjectSearch) as column (column.id)}
               <button
                 type="button"
                 class="flex min-h-14 w-full items-center gap-3 rounded-lg px-3 text-left active:bg-muted"
@@ -668,16 +1098,37 @@
                   </button>
                 {/each}
               </div>
-              <label
-                class="flex h-10 items-center gap-2 rounded-md border bg-background px-3 text-sm"
-              >
-                <Search size={16} class="text-muted-foreground" />
-                <input
-                  bind:value={search}
-                  class="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
-                  placeholder={`Search ${column.label.toLowerCase()}`}
-                />
-              </label>
+              {#if optionScreenFiltered && search.trim()}
+                <div
+                  class="flex items-center justify-between gap-2 text-sm text-muted-foreground"
+                >
+                  <span class="min-w-0 truncate">
+                    Filtered by "{search.trim()}"
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Clear search"
+                    class="flex size-6 shrink-0 items-center justify-center rounded-md active:bg-muted"
+                    onclick={() => {
+                      search = '';
+                      optionScreenFiltered = false;
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              {:else}
+                <label
+                  class="flex h-10 items-center gap-2 rounded-md border bg-background px-3 text-sm"
+                >
+                  <Search size={16} class="text-muted-foreground" />
+                  <input
+                    bind:value={search}
+                    class="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
+                    placeholder={`Search ${column.label.toLowerCase()}`}
+                  />
+                </label>
+              {/if}
             </div>
             <div class="min-h-0 flex-1 overflow-y-auto p-2">
               {#each filteredOptions(columnId) as option (option.value)}

@@ -50,56 +50,105 @@
 
 <script lang="ts">
   import {
+    Armchair,
+    ArrowLeftRight,
     Calendar,
+    CalendarCheck,
+    CalendarDays,
+    Earth,
+    Flag,
     Funnel,
+    Globe,
     Hash,
+    LocateFixed,
+    PersonStanding,
     Plane,
     PlaneLanding,
     PlaneTakeoff,
+    Briefcase,
+    Ruler,
+    Ticket,
     UsersRound,
     X,
   } from '@o7/icon';
   import { Airlines } from '@o7/icon/material';
   import { Filter, useDataTableFilters } from 'bits-ui';
+  import type { ColumnConfig, FilterIcon, FiltersState } from 'bits-ui';
   import { createRawSnippet } from 'svelte';
   import type { Component } from 'svelte';
-  import type { ColumnConfig, FilterIcon, FiltersState } from 'bits-ui';
 
   import './filter.css';
   import './filter-date.css';
 
+  import FilterMenu from './FilterMenu.svelte';
+
+  import UserAvatar from '$lib/components/display/UserAvatar.svelte';
   import {
+    activeFilterCount,
     bitsFiltersToFlightFilters,
     bitsSignature,
+    cloneFlightFilters,
     createDefaultFilters,
     flightFiltersToBits,
     flightSignature,
+    flightTypeForFlight,
     hasFlightFilters,
     matchesLocationFilters,
+    seatPassengersForFlight,
   } from '$lib/components/flight-filters/model';
-  import type {
-    FlightFilters,
-    TempFilters,
+  import {
+    compareSeatNumbers,
+    continentOptions,
+    dayOptions,
+    durationBucketFor,
+    durationOptions,
+    flightReasonOptions,
+    flightTypeOptions,
+    monthOptions,
+    countryName,
+    seatClassOptions,
+    seatTypeOptions,
+  } from '$lib/components/flight-filters/options';
+  import {
+    normalizeRoute,
+    routeKey,
+    type FilterLogic,
+    type FlightFilters,
+    type TempFilters,
   } from '$lib/components/flight-filters/types';
-  import UserAvatar from '$lib/components/display/UserAvatar.svelte';
+  import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
+  import type { Aircraft, Airline, Airport } from '$lib/db/types';
+  import { codeForAirport, routeLabelForFlight } from '$lib/stats/aggregations';
   import {
     cn,
     getFlightPassengerLabel,
     getFlightPassengerToken,
     type FlightData,
   } from '$lib/utils';
-  import type { Aircraft, Airline, Airport } from '$lib/db/types';
-  import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
 
   type FlightFilterColumnConfig =
     | ColumnConfig<FlightData, 'option', string, 'departureAirports'>
     | ColumnConfig<FlightData, 'option', string, 'arrivalAirports'>
+    | ColumnConfig<FlightData, 'option', string, 'routes'>
+    | ColumnConfig<FlightData, 'option', string, 'departureCountries'>
+    | ColumnConfig<FlightData, 'option', string, 'arrivalCountries'>
+    | ColumnConfig<FlightData, 'option', string, 'departureContinents'>
+    | ColumnConfig<FlightData, 'option', string, 'arrivalContinents'>
     | ColumnConfig<FlightData, 'option', string, 'year'>
     | ColumnConfig<FlightData, 'date', Date, 'date'>
     | ColumnConfig<FlightData, 'multiOption', string[], 'passengers'>
     | ColumnConfig<FlightData, 'option', string, 'airline'>
     | ColumnConfig<FlightData, 'option', string, 'aircraft'>
-    | ColumnConfig<FlightData, 'option', string, 'aircraftRegs'>;
+    | ColumnConfig<FlightData, 'option', string, 'aircraftRegs'>
+    | ColumnConfig<FlightData, 'option', string, 'months'>
+    | ColumnConfig<FlightData, 'option', string, 'days'>
+    | ColumnConfig<FlightData, 'option', string, 'flightType'>
+    | ColumnConfig<FlightData, 'option', string, 'flightNumber'>
+    | ColumnConfig<FlightData, 'option', string, 'duration'>
+    | ColumnConfig<FlightData, 'option', string, 'seatClass'>
+    | ColumnConfig<FlightData, 'option', string, 'flightReason'>
+    | ColumnConfig<FlightData, 'option', string, 'seatType'>
+    | ColumnConfig<FlightData, 'option', string, 'seatNumber'>;
 
   let {
     flights = $bindable(),
@@ -108,6 +157,7 @@
     hasTempFilters = false,
     layout = 'default',
     presentation = 'default',
+    seatUserId,
   }: {
     flights: FlightData[];
     filters: FlightFilters;
@@ -115,12 +165,14 @@
     hasTempFilters?: boolean;
     layout?: 'default' | 'stacked';
     presentation?: 'default' | 'map-popover';
+    seatUserId?: string;
   } = $props();
 
   type OptionSource = {
     value: string;
     label: string;
     shortLabel?: string;
+    description?: string;
     count?: number;
     icon?: FilterIcon;
     keywords?: string[];
@@ -153,17 +205,19 @@
     }));
   }
 
-  function airportFlagIcon(airport: Airport): FilterIcon {
-    const country = airport.country?.toLowerCase();
-    if (!country) return Plane;
-
-    const code = escapeAttribute(country);
-    const title = escapeAttribute(airport.country.toUpperCase());
+  function countryFlagIcon(country: string): FilterIcon {
+    const code = escapeAttribute(country.toLowerCase());
+    const title = escapeAttribute(country.toUpperCase());
 
     return createRawSnippet(() => ({
       render: () =>
         `<img data-filter-airport-flag-icon src="https://flagcdn.com/${code}.svg" alt="" title="${title}" loading="lazy" decoding="async" />`,
     }));
+  }
+
+  function airportFlagIcon(airport: Airport): FilterIcon {
+    if (!airport.country) return Plane;
+    return countryFlagIcon(airport.country);
   }
 
   function passengerAvatarIcon(username: string): FilterIcon {
@@ -245,6 +299,40 @@
   const arrivalAirports = $derived.by(() => {
     return uniqueAirports(scopedFlights, (flight) => flight.to);
   });
+
+  // Countries are keyed by their alpha-2 code and named via the ISO table
+  const countedCountryOptions = (
+    sourceFlights: FlightData[],
+    countrySelectors: Array<(flight: FlightData) => string | null | undefined>,
+  ) => {
+    const counts = new Map<string, number>();
+
+    for (const flight of sourceFlights) {
+      for (const countrySelector of countrySelectors) {
+        const country = countrySelector(flight);
+        if (!country) continue;
+        counts.set(country, (counts.get(country) ?? 0) + 1);
+      }
+    }
+
+    return Array.from(counts.entries())
+      .map(([country, count]) => ({
+        value: country,
+        label: countryName(country),
+        keywords: [country, countryName(country)],
+        count,
+        icon: countryFlagIcon(country),
+      }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  };
+
+  const departureCountryOptions = $derived(
+    countedCountryOptions(scopedFlights, [(flight) => flight.from?.country]),
+  );
+
+  const arrivalCountryOptions = $derived(
+    countedCountryOptions(scopedFlights, [(flight) => flight.to?.country]),
+  );
 
   const passengerOptions = $derived.by(() => {
     const options = new Map<string, OptionSource>();
@@ -348,6 +436,12 @@
 
   const aircraftRegOptions = $derived.by(() => {
     const frequencyMap = new Map<string, number>();
+    // A tail number can fly several models; the model shown is the most
+    // frequent one among the scoped flights
+    const modelUses = new Map<
+      string,
+      Map<string, { aircraft: Aircraft; count: number }>
+    >();
 
     for (const flight of scopedFlights) {
       if (!flight.aircraftReg) continue;
@@ -355,15 +449,161 @@
         flight.aircraftReg,
         (frequencyMap.get(flight.aircraftReg) ?? 0) + 1,
       );
+      if (!flight.aircraft) continue;
+      const perReg =
+        modelUses.get(flight.aircraftReg) ??
+        new Map<string, { aircraft: Aircraft; count: number }>();
+      const entry = perReg.get(flight.aircraft.name);
+      if (entry) {
+        entry.count += 1;
+      } else {
+        perReg.set(flight.aircraft.name, {
+          aircraft: flight.aircraft,
+          count: 1,
+        });
+      }
+      modelUses.set(flight.aircraftReg, perReg);
     }
 
     return Array.from(frequencyMap.entries())
-      .map(([registration, count]) => ({
-        value: registration,
-        label: registration,
+      .map(([registration, count]) => {
+        const topModel = Array.from(
+          modelUses.get(registration)?.values() ?? [],
+        ).sort((a, b) => b.count - a.count)[0];
+        return {
+          value: registration,
+          label: registration,
+          description: topModel?.aircraft.name,
+          count,
+        };
+      })
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  });
+
+  const flightNumberOptions = $derived.by(() => {
+    const frequencyMap = new Map<string, number>();
+    // A flight number can be shared by several airlines (codeshares); the
+    // logo shown is the most frequent one among the scoped flights
+    const airlineUses = new Map<
+      string,
+      Map<string, { airline: Airline; count: number }>
+    >();
+    const routeUses = new Map<string, Map<string, number>>();
+
+    for (const flight of scopedFlights) {
+      if (!flight.flightNumber) continue;
+      frequencyMap.set(
+        flight.flightNumber,
+        (frequencyMap.get(flight.flightNumber) ?? 0) + 1,
+      );
+      if (!flight.airline) continue;
+      const perNumber =
+        airlineUses.get(flight.flightNumber) ??
+        new Map<string, { airline: Airline; count: number }>();
+      const entry = perNumber.get(flight.airline.name);
+      if (entry) {
+        entry.count += 1;
+      } else {
+        perNumber.set(flight.airline.name, {
+          airline: flight.airline,
+          count: 1,
+        });
+      }
+      airlineUses.set(flight.flightNumber, perNumber);
+
+      // Directional label: the same number out and back shows each way
+      const fromCode = codeForAirport(flight.from);
+      const toCode = codeForAirport(flight.to);
+      const routeLabel = fromCode && toCode ? `${fromCode} – ${toCode}` : null;
+      if (!routeLabel) continue;
+      const routesPerNumber =
+        routeUses.get(flight.flightNumber) ?? new Map<string, number>();
+      routesPerNumber.set(
+        routeLabel,
+        (routesPerNumber.get(routeLabel) ?? 0) + 1,
+      );
+      routeUses.set(flight.flightNumber, routesPerNumber);
+    }
+
+    return Array.from(frequencyMap.entries())
+      .map(([flightNumber, count]) => {
+        const topAirline = Array.from(
+          airlineUses.get(flightNumber)?.values() ?? [],
+        ).sort((a, b) => b.count - a.count)[0];
+        const topRoute = Array.from(
+          routeUses.get(flightNumber)?.entries() ?? [],
+        ).sort((a, b) => b[1] - a[1])[0]?.[0];
+        return {
+          value: flightNumber,
+          count,
+          airlineName: topAirline?.airline.name ?? '',
+          icon: topAirline ? airlineIcon(topAirline.airline) : undefined,
+          route: topRoute,
+        };
+      })
+      .sort(
+        (a, b) =>
+          a.airlineName.localeCompare(b.airlineName) ||
+          a.value.localeCompare(b.value, undefined, { numeric: true }),
+      )
+      .map(({ value, count, icon, route }) => ({
+        value,
+        label: value,
+        description: route,
+        count,
+        icon,
+      }));
+  });
+
+  const seatNumberOptions = $derived.by(() => {
+    const frequencyMap = new Map<string, number>();
+
+    for (const flight of scopedFlights) {
+      // Only seats on rows the seat filters would consult are offered
+      for (const passenger of seatPassengersForFlight(
+        flight,
+        filters,
+        seatUserId,
+      )) {
+        if (!passenger.seatNumber) continue;
+        frequencyMap.set(
+          passenger.seatNumber,
+          (frequencyMap.get(passenger.seatNumber) ?? 0) + 1,
+        );
+      }
+    }
+
+    return Array.from(frequencyMap.entries())
+      .map(([seatNumber, count]) => ({
+        value: seatNumber,
+        label: seatNumber,
         count,
       }))
-      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+      .sort((a, b) => compareSeatNumbers(a.label, b.label));
+  });
+
+  const routeOptions = $derived.by(() => {
+    const options = new Map<string, OptionSource>();
+
+    for (const flight of scopedFlights) {
+      if (!flight.from || !flight.to) continue;
+      const label = routeLabelForFlight(flight);
+      if (!label) continue;
+      const value = routeKey(
+        normalizeRoute(flight.from.id.toString(), flight.to.id.toString()),
+      );
+      const existing = options.get(value);
+      if (existing) {
+        existing.count = (existing.count ?? 0) + 1;
+      } else {
+        options.set(value, { value, label, count: 1 });
+      }
+    }
+
+    return Array.from(options.values()).sort(
+      (a, b) =>
+        (b.count ?? 0) - (a.count ?? 0) || a.label.localeCompare(b.label),
+    );
   });
 
   const yearOptions = $derived.by(() => {
@@ -387,7 +627,7 @@
     return [
       {
         id: 'departureAirports',
-        displayName: 'Departure Airport',
+        displayName: 'Departure airport',
         type: 'option',
         accessor: (flight) => flight.from?.id.toString() ?? '',
         icon: PlaneTakeoff,
@@ -396,12 +636,60 @@
       },
       {
         id: 'arrivalAirports',
-        displayName: 'Arrival Airport',
+        displayName: 'Arrival airport',
         type: 'option',
         accessor: (flight) => flight.to?.id.toString() ?? '',
         icon: PlaneLanding,
         options: columnOptions(arrivalAirports),
         hidden: tempLocationFiltersActive,
+      },
+      {
+        id: 'routes',
+        displayName: 'Route',
+        type: 'option',
+        accessor: (flight) =>
+          flight.from && flight.to
+            ? routeKey(
+                normalizeRoute(
+                  flight.from.id.toString(),
+                  flight.to.id.toString(),
+                ),
+              )
+            : '',
+        icon: ArrowLeftRight,
+        options: columnOptions(routeOptions),
+      },
+      {
+        id: 'departureCountries',
+        displayName: 'Departure country',
+        type: 'option',
+        accessor: (flight) => flight.from?.country ?? '',
+        icon: Flag,
+        options: columnOptions(departureCountryOptions),
+      },
+      {
+        id: 'arrivalCountries',
+        displayName: 'Arrival country',
+        type: 'option',
+        accessor: (flight) => flight.to?.country ?? '',
+        icon: Flag,
+        options: columnOptions(arrivalCountryOptions),
+      },
+      {
+        id: 'departureContinents',
+        displayName: 'Departure continent',
+        type: 'option',
+        accessor: (flight) => flight.from?.continent ?? '',
+        icon: Earth,
+        options: continentOptions,
+      },
+      {
+        id: 'arrivalContinents',
+        displayName: 'Arrival continent',
+        type: 'option',
+        accessor: (flight) => flight.to?.continent ?? '',
+        icon: Earth,
+        options: continentOptions,
       },
       {
         id: 'year',
@@ -410,6 +698,24 @@
         accessor: (flight) => flight.date?.getFullYear().toString() ?? '',
         icon: Calendar,
         options: yearOptions,
+      },
+      {
+        id: 'months',
+        displayName: 'Month',
+        type: 'option',
+        accessor: (flight) =>
+          flight.date ? String(flight.date.getMonth()) : '',
+        icon: CalendarDays,
+        options: monthOptions,
+      },
+      {
+        id: 'days',
+        displayName: 'Day of Month',
+        type: 'option',
+        accessor: (flight) =>
+          flight.date ? String(flight.date.getDate()) : '',
+        icon: CalendarCheck,
+        options: dayOptions,
       },
       {
         id: 'date',
@@ -454,6 +760,70 @@
         icon: Hash,
         options: columnOptions(aircraftRegOptions),
       },
+      {
+        id: 'flightType',
+        displayName: 'Flight Type',
+        type: 'option',
+        accessor: (flight) => flightTypeForFlight(flight) ?? '',
+        icon: Globe,
+        options: flightTypeOptions,
+      },
+      {
+        id: 'flightNumber',
+        displayName: 'Flight Number',
+        type: 'option',
+        accessor: (flight) => flight.flightNumber ?? '',
+        icon: Ticket,
+        options: columnOptions(flightNumberOptions),
+      },
+      {
+        id: 'duration',
+        displayName: 'Duration',
+        type: 'option',
+        accessor: (flight) => durationBucketFor(flight.distance) ?? '',
+        icon: Ruler,
+        options: durationOptions,
+      },
+      {
+        id: 'seatClass',
+        displayName: 'Class',
+        type: 'option',
+        accessor: (flight) =>
+          flight.passengers.find((passenger) => passenger.seatClass != null)
+            ?.seatClass ?? '',
+        icon: Armchair,
+        options: seatClassOptions,
+      },
+      {
+        id: 'flightReason',
+        displayName: 'Reason',
+        type: 'option',
+        accessor: (flight) =>
+          flight.passengers.find((passenger) => passenger.flightReason != null)
+            ?.flightReason ?? '',
+        icon: Briefcase,
+        options: flightReasonOptions,
+      },
+      {
+        id: 'seatType',
+        displayName: 'Seat Type',
+        type: 'option',
+        accessor: (flight) =>
+          flight.passengers.find((passenger) => passenger.seat != null)?.seat ??
+          '',
+        icon: PersonStanding,
+        options: seatTypeOptions,
+      },
+      {
+        id: 'seatNumber',
+        displayName: 'Seat Number',
+        type: 'option',
+        accessor: (flight) =>
+          flight.passengers.find((passenger) => passenger.seatNumber != null)
+            ?.seatNumber ?? '',
+        icon: LocateFixed,
+        options: columnOptions(seatNumberOptions),
+      },
     ] satisfies ReadonlyArray<FlightFilterColumnConfig>;
   });
 
@@ -468,6 +838,10 @@
   let lastSyncedBitsSignature = $state(bitsSignature(filterState.filters));
   let lastSyncedFlightSignature = $state(flightSignature(filters));
   const showClear = $derived(hasFlightFilters(filters));
+
+  function setFilterLogic(logic: FilterLogic) {
+    filters = cloneFlightFilters(filters, { logic });
+  }
 
   function syncBitsFilters(nextBits: FiltersState) {
     filterState.actions.batch((actions) => {
@@ -541,14 +915,19 @@
 </Filter.Provider>
 
 {#snippet filterMenu()}
-  <Filter.Menu>
+  <FilterMenu
+    columns={providerColumns}
+    filters={filterState.filters}
+    actions={filterState.actions}
+    strategy={filterState.strategy}
+  >
     <Funnel size={16} aria-hidden="true" />
     {#if filterState.filters.length === 0 || layout === 'stacked'}
       <span>Filter</span>
     {:else}
       <span class="sr-only">Filter</span>
     {/if}
-  </Filter.Menu>
+  </FilterMenu>
 {/snippet}
 
 {#snippet filterList()}
@@ -567,6 +946,28 @@
 {/snippet}
 
 {#snippet filterActions()}
+  {#if activeFilterCount(filters) >= 2}
+    <div data-filter-logic role="group" aria-label="Filter combination">
+      <button
+        type="button"
+        data-active={filters.logic === 'and'}
+        aria-pressed={filters.logic === 'and'}
+        title="Match all filters"
+        onclick={() => setFilterLogic('and')}
+      >
+        All
+      </button>
+      <button
+        type="button"
+        data-active={filters.logic === 'or'}
+        aria-pressed={filters.logic === 'or'}
+        title="Match any filter"
+        onclick={() => setFilterLogic('or')}
+      >
+        Any
+      </button>
+    </div>
+  {/if}
   <button
     type="button"
     data-filter-actions

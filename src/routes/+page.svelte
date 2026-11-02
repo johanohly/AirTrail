@@ -7,9 +7,9 @@
   import { hasClientPermission } from '$lib/authorization/permissions';
   import {
     createDefaultFilters,
+    matchesDrilldownFlight,
     matchesFlight,
-    matchesLocationFilters,
-    matchesNonLocationFilters,
+    seatFilterContext,
   } from '$lib/components/flight-filters/model';
   import {
     createDefaultTempFilters,
@@ -119,6 +119,10 @@
     return user?.id;
   });
 
+  // Seat filters consult the scope's passenger row, or the rows picked by an
+  // inclusive passengers filter when one is set.
+  const seatCtx = $derived(seatFilterContext(filters, effectiveSeatUserId));
+
   const showPassengerDetails = $derived(
     flightScopeState.current.scope !== 'mine',
   );
@@ -133,18 +137,21 @@
   });
 
   const filteredFlights = $derived.by(() => {
-    return flights.filter((flight) => matchesFlight(flight, filters));
+    return flights.filter((flight) => matchesFlight(flight, filters, seatCtx));
   });
 
   const filteredDrilldownFlights = $derived.by(() => {
-    const locationFilters = hasActiveTempFilters(tempFilters)
-      ? tempFilters
-      : filters;
+    if (!hasActiveTempFilters(tempFilters)) {
+      // No active map drilldown: the list is just the logic-aware filter.
+      return flights.filter((flight) =>
+        matchesFlight(flight, filters, seatCtx),
+      );
+    }
 
-    return flights.filter(
-      (flight) =>
-        matchesLocationFilters(flight, locationFilters) &&
-        matchesNonLocationFilters(flight, filters),
+    // The drilldown's temporary location filter stays pinned; the user's own
+    // filters still combine per the All/Any toggle among themselves.
+    return flights.filter((flight) =>
+      matchesDrilldownFlight(flight, tempFilters, filters, seatCtx),
     );
   });
 
