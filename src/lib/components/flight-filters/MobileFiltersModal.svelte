@@ -342,6 +342,62 @@
     );
   }
 
+  // A flight number can be shared by several airlines (codeshares); the
+  // logo shown is the most frequent one among the scoped flights
+  function countedFlightNumberOptions(
+    sourceFlights: FlightData[],
+  ): FilterOption[] {
+    const counts = new Map<string, number>();
+    const airlineUses = new Map<
+      string,
+      Map<
+        string,
+        {
+          iconPath: string | null;
+          count: number;
+        }
+      >
+    >();
+
+    for (const flight of sourceFlights) {
+      if (!flight.flightNumber) continue;
+      counts.set(
+        flight.flightNumber,
+        (counts.get(flight.flightNumber) ?? 0) + 1,
+      );
+      const iconPath = flight.airline?.iconPath ?? null;
+      if (!iconPath) continue;
+      const perNumber =
+        airlineUses.get(flight.flightNumber) ??
+        new Map<string, { iconPath: string | null; count: number }>();
+      const entry = perNumber.get(iconPath);
+      if (entry) {
+        entry.count += 1;
+      } else {
+        perNumber.set(iconPath, { iconPath, count: 1 });
+      }
+      airlineUses.set(flight.flightNumber, perNumber);
+    }
+
+    return Array.from(counts.entries())
+      .map(([flightNumber, count]) => {
+        const topIconPath = Array.from(
+          airlineUses.get(flightNumber)?.values() ?? [],
+        ).sort((a, b) => b.count - a.count)[0]?.iconPath;
+        return {
+          value: flightNumber,
+          label: flightNumber,
+          count,
+          kind: 'airline' as const,
+          iconPath: topIconPath ?? null,
+        };
+      })
+      .sort(
+        (a, b) =>
+          (b.count ?? 0) - (a.count ?? 0) || a.label.localeCompare(b.label),
+      );
+  }
+
   /* Static option lists keep their curated order and carry no counts. */
   function staticOptions(options: FilterOptionSource[]): FilterOption[] {
     return options;
@@ -438,13 +494,7 @@
       months: staticOptions(monthOptions),
       days: staticOptions(dayOptions),
       flightType: staticOptions(flightTypeOptions),
-      flightNumber: countedOptions(
-        scopedFlights.map((flight) =>
-          flight.flightNumber
-            ? { value: flight.flightNumber, label: flight.flightNumber }
-            : null,
-        ),
-      ),
+      flightNumber: countedFlightNumberOptions(scopedFlights),
       duration: staticOptions(durationOptions),
       seatClass: staticOptions(seatClassOptions),
       flightReason: staticOptions(flightReasonOptions),

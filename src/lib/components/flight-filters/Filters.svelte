@@ -452,6 +452,12 @@
 
   const flightNumberOptions = $derived.by(() => {
     const frequencyMap = new Map<string, number>();
+    // A flight number can be shared by several airlines (codeshares); the
+    // logo shown is the most frequent one among the scoped flights
+    const airlineUses = new Map<
+      string,
+      Map<string, { airline: Airline; count: number }>
+    >();
 
     for (const flight of scopedFlights) {
       if (!flight.flightNumber) continue;
@@ -459,14 +465,34 @@
         flight.flightNumber,
         (frequencyMap.get(flight.flightNumber) ?? 0) + 1,
       );
+      if (!flight.airline) continue;
+      const perNumber =
+        airlineUses.get(flight.flightNumber) ??
+        new Map<string, { airline: Airline; count: number }>();
+      const entry = perNumber.get(flight.airline.name);
+      if (entry) {
+        entry.count += 1;
+      } else {
+        perNumber.set(flight.airline.name, {
+          airline: flight.airline,
+          count: 1,
+        });
+      }
+      airlineUses.set(flight.flightNumber, perNumber);
     }
 
     return Array.from(frequencyMap.entries())
-      .map(([flightNumber, count]) => ({
-        value: flightNumber,
-        label: flightNumber,
-        count,
-      }))
+      .map(([flightNumber, count]) => {
+        const topAirline = Array.from(
+          airlineUses.get(flightNumber)?.values() ?? [],
+        ).sort((a, b) => b.count - a.count)[0];
+        return {
+          value: flightNumber,
+          label: flightNumber,
+          count,
+          icon: topAirline ? airlineIcon(topAirline.airline) : undefined,
+        };
+      })
       .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
   });
 
