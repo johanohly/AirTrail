@@ -324,6 +324,55 @@
   }
 
   // Countries are keyed by their alpha-2 code and named via the ISO table
+  function countedAircraftRegOptions(
+    sourceFlights: FlightData[],
+  ): FilterOption[] {
+    const counts = new Map<string, number>();
+    // A tail number can fly several models; the model shown is the most
+    // frequent one among the scoped flights
+    const modelUses = new Map<
+      string,
+      Map<string, { name: string; count: number }>
+    >();
+
+    for (const flight of sourceFlights) {
+      if (!flight.aircraftReg) continue;
+      counts.set(flight.aircraftReg, (counts.get(flight.aircraftReg) ?? 0) + 1);
+      if (!flight.aircraft) continue;
+      const perReg =
+        modelUses.get(flight.aircraftReg) ??
+        new Map<string, { name: string; count: number }>();
+      const entry = perReg.get(flight.aircraft.name);
+      if (entry) {
+        entry.count += 1;
+      } else {
+        perReg.set(flight.aircraft.name, {
+          name: flight.aircraft.name,
+          count: 1,
+        });
+      }
+      modelUses.set(flight.aircraftReg, perReg);
+    }
+
+    return Array.from(counts.entries())
+      .map(([registration, count]) => {
+        const model = Array.from(
+          modelUses.get(registration)?.values() ?? [],
+        ).sort((a, b) => b.count - a.count)[0];
+        return {
+          value: registration,
+          label: registration,
+          shortLabel: model?.name,
+          count,
+        };
+      })
+      .sort(
+        (a, b) =>
+          (b.count ?? 0) - (a.count ?? 0) || a.label.localeCompare(b.label),
+      );
+  }
+
+  // Countries are keyed by their alpha-2 code and named via the ISO table
   function countedCountryOptions(
     countries: Array<string | null | undefined>,
   ): FilterOption[] {
@@ -460,13 +509,7 @@
             : null,
         ),
       ),
-      aircraftRegs: countedOptions(
-        scopedFlights.map((flight) =>
-          flight.aircraftReg
-            ? { value: flight.aircraftReg, label: flight.aircraftReg }
-            : null,
-        ),
-      ),
+      aircraftRegs: countedAircraftRegOptions(scopedFlights),
       routes: countedOptions(
         scopedFlights.map((flight) => {
           if (!flight.from || !flight.to) return null;

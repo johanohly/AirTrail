@@ -41,6 +41,7 @@
 
   let open = $state(false);
   let search = $state('');
+  let optionSearch = $state('');
 
   /*
    * bits-ui's pointer-transit lock leaks when the pointer hops between sub
@@ -114,6 +115,7 @@
   $effect(() => {
     if (!open) {
       search = '';
+      optionSearch = '';
       clearExitTimer();
       closeSubmenus();
     }
@@ -122,6 +124,40 @@
   function handleSearchKeydown(event: KeyboardEvent) {
     // Keep the menu's typeahead and item activation away from the input
     event.stopPropagation();
+  }
+
+  type RegOption = {
+    value: string;
+    label: string;
+    description?: string;
+    count?: number;
+  };
+
+  function regOptionsFor(column: Column<TData>): RegOption[] {
+    const query = optionSearch.trim().toLowerCase();
+    const options = column.getOptions() as RegOption[];
+    if (!query) return options;
+    return options.filter(
+      (option) =>
+        option.label.toLowerCase().includes(query) ||
+        option.value.toLowerCase().includes(query) ||
+        option.description?.toLowerCase().includes(query),
+    );
+  }
+
+  function isOptionValueSelected(column: Column<TData>, value: string) {
+    return (
+      findFilter(column, 'option')?.values.map(String).includes(value) ?? false
+    );
+  }
+
+  function toggleOptionValue(column: Column<TData>, value: string) {
+    const typed = column as Column<TData, 'option'>;
+    if (isOptionValueSelected(column, value)) {
+      actions.removeFilterValue(typed, [value]);
+    } else {
+      actions.addFilterValue(typed, [value]);
+    }
   }
 
   function dateOf(value: CalendarDate) {
@@ -430,6 +466,77 @@
             column={column as Column<TData, 'date'>}
             {actions}
           />
+        {:else if column.id === 'aircraftRegs'}
+          {@const options = regOptionsFor(column)}
+          <div class="flex flex-col" data-filter-option-list>
+            <div class="border-b p-2">
+              <label
+                class="flex h-8 items-center gap-2 rounded-md border bg-background px-2.5"
+              >
+                <Search
+                  size={14}
+                  aria-hidden="true"
+                  class="shrink-0 text-muted-foreground"
+                />
+                <input
+                  bind:value={optionSearch}
+                  type="text"
+                  placeholder="Search tail numbers..."
+                  aria-label="Search tail numbers"
+                  class="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+                  onkeydown={handleSearchKeydown}
+                />
+              </label>
+            </div>
+            <div class="max-h-[300px] overflow-y-auto p-1">
+              {#each options as option (option.value)}
+                {@const checked = isOptionValueSelected(column, option.value)}
+                <button
+                  type="button"
+                  role="menuitemcheckbox"
+                  aria-checked={checked}
+                  class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-accent"
+                  onclick={() => toggleOptionValue(column, option.value)}
+                >
+                  <span
+                    aria-hidden="true"
+                    data-state={checked ? 'checked' : 'unchecked'}
+                    data-filter-menu-checkbox-indicator
+                  >
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path
+                        d="m20 6-11 11-5-5"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  <span class="min-w-0 flex-1 truncate">{option.label}</span>
+                  {#if option.description}
+                    <span class="shrink-0 text-muted-foreground">
+                      {option.description}
+                    </span>
+                  {/if}
+                  {#if option.count}
+                    <span class="shrink-0 tabular-nums text-muted-foreground">
+                      {new Intl.NumberFormat().format(option.count)}
+                    </span>
+                  {/if}
+                </button>
+              {/each}
+              {#if options.length === 0}
+                <div
+                  class="px-2 py-4 text-center text-xs text-muted-foreground"
+                  data-filter-menu-empty
+                >
+                  No matching tail numbers.
+                </div>
+              {/if}
+            </div>
+          </div>
         {:else if column.type === 'option' || column.type === 'multiOption'}
           <Filter.OptionEditor
             column={column as

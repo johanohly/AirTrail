@@ -169,6 +169,7 @@
     value: string;
     label: string;
     shortLabel?: string;
+    description?: string;
     count?: number;
     icon?: FilterIcon;
     keywords?: string[];
@@ -432,6 +433,12 @@
 
   const aircraftRegOptions = $derived.by(() => {
     const frequencyMap = new Map<string, number>();
+    // A tail number can fly several models; the model shown is the most
+    // frequent one among the scoped flights
+    const modelUses = new Map<
+      string,
+      Map<string, { aircraft: Aircraft; count: number }>
+    >();
 
     for (const flight of scopedFlights) {
       if (!flight.aircraftReg) continue;
@@ -439,14 +446,34 @@
         flight.aircraftReg,
         (frequencyMap.get(flight.aircraftReg) ?? 0) + 1,
       );
+      if (!flight.aircraft) continue;
+      const perReg =
+        modelUses.get(flight.aircraftReg) ??
+        new Map<string, { aircraft: Aircraft; count: number }>();
+      const entry = perReg.get(flight.aircraft.name);
+      if (entry) {
+        entry.count += 1;
+      } else {
+        perReg.set(flight.aircraft.name, {
+          aircraft: flight.aircraft,
+          count: 1,
+        });
+      }
+      modelUses.set(flight.aircraftReg, perReg);
     }
 
     return Array.from(frequencyMap.entries())
-      .map(([registration, count]) => ({
-        value: registration,
-        label: registration,
-        count,
-      }))
+      .map(([registration, count]) => {
+        const topModel = Array.from(
+          modelUses.get(registration)?.values() ?? [],
+        ).sort((a, b) => b.count - a.count)[0];
+        return {
+          value: registration,
+          label: registration,
+          description: topModel?.aircraft.name,
+          count,
+        };
+      })
       .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
   });
 
