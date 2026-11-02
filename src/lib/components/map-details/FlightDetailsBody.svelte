@@ -2,6 +2,7 @@
   import { List } from '@o7/icon/lucide';
 
   import AircraftPhotoCard from './AircraftPhotoCard.svelte';
+  import FlightMilestones from './FlightMilestones.svelte';
 
   import { Button } from '$lib/components/ui/button';
   import { appConfig } from '$lib/state.svelte';
@@ -12,6 +13,7 @@
     toTitleCase,
     type FlightData,
   } from '$lib/utils';
+  import type { FlightMilestone } from '$lib/utils/data/flight-milestones';
   import type { FlightPassenger } from '$lib/db/types';
   import { Duration } from '$lib/utils/datetime';
   import { convertDistance, distanceUnitLabel } from '$lib/utils/preferences';
@@ -20,11 +22,13 @@
   let {
     flight,
     prefs,
+    milestones = [],
     seatUserId,
     onShowInList,
   }: {
     flight: FlightData;
     prefs: Preferences;
+    milestones?: FlightMilestone[];
     seatUserId?: string;
     onShowInList: () => void;
   } = $props();
@@ -115,6 +119,8 @@
       {/each}
     </dl>
   {/if}
+
+  <FlightMilestones {milestones} />
 
   {#if passengers.length}
     <div class="flex flex-col gap-1.5">

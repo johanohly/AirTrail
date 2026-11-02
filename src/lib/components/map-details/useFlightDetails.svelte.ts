@@ -2,11 +2,13 @@ import { page } from '$app/state';
 import type { NavigateFlights } from '$lib/flight-navigation';
 import { mapDetailsState, openRouteDetails } from '$lib/state.svelte';
 import { type FlightData } from '$lib/utils';
+import { buildFlightMilestones } from '$lib/utils/data/flight-milestones';
 import { getPreferences } from '$lib/utils/preferences';
 
 export function useFlightDetails(
   flights: () => FlightData[],
   onNavigate: NavigateFlights,
+  seatUserId?: () => string | null | undefined,
 ) {
   const prefs = $derived(getPreferences(page.data.user));
 
@@ -19,6 +21,13 @@ export function useFlightDetails(
     const id = selectedFlightId;
     if (id === null) return null;
     return flights().find((f) => f.id === id) ?? null;
+  });
+
+  const milestones = $derived.by(() => {
+    if (!flight) return [];
+    return buildFlightMilestones(flights(), flight, {
+      seatUserId: seatUserId?.() ?? null,
+    });
   });
 
   const showRoute = () => {
@@ -45,6 +54,9 @@ export function useFlightDetails(
     },
     get flight() {
       return flight;
+    },
+    get milestones() {
+      return milestones;
     },
     showRoute,
     showInList,
