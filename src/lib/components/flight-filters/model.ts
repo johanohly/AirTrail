@@ -144,6 +144,7 @@ export function createDefaultFilters(): FlightFilters {
     days: [],
     daysOperator: 'is any of',
     logic: 'and',
+    noteQuery: '',
   };
 }
 
@@ -205,7 +206,8 @@ export function hasFlightFilters(filters: FlightFilters | undefined): boolean {
       filters.seatType.length > 0 ||
       filters.seatNumber.length > 0 ||
       filters.months.length > 0 ||
-      filters.days.length > 0)
+      filters.days.length > 0 ||
+      filters.noteQuery.trim().length > 0)
   );
 }
 
@@ -250,6 +252,7 @@ export function activeFilterCount(filters: FlightFilters): number {
   if (filters.seatNumber.length) count++;
   if (filters.months.length) count++;
   if (filters.days.length) count++;
+  if (filters.noteQuery.trim()) count++;
   return count;
 }
 
@@ -1658,6 +1661,11 @@ function nonLocationFilterResults(
         filters.daysOperator,
       ),
     );
+  }
+
+  const noteQuery = filters.noteQuery.trim().toLowerCase();
+  if (noteQuery) {
+    results.push((flight.note ?? '').toLowerCase().includes(noteQuery));
   }
 
   if (filters.duration.length) {

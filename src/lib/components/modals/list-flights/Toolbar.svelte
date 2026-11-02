@@ -3,6 +3,7 @@
   import {
     ChevronLeft,
     ChevronRight,
+    Search,
     SquareDashedMousePointer,
     X,
   } from '@o7/icon/lucide';
@@ -15,6 +16,7 @@
   import type { FlightScope } from '$lib/flight-scope';
 
   import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
+  import { cloneFlightFilters } from '$lib/components/flight-filters/model';
   import {
     clearTempFilters,
     type FlightFilters,
@@ -154,6 +156,43 @@
           {hasTempFilters}
         />
       </div>
+      {#if filters}
+        <div class="relative flex-none">
+          <Search
+            size={14}
+            aria-hidden="true"
+            class="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
+          <input
+            type="text"
+            value={filters.noteQuery}
+            placeholder="Search notes"
+            aria-label="Search notes"
+            class="h-8 w-44 rounded-md border bg-background pe-7 ps-8 text-xs shadow-xs outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
+            oninput={(event) => {
+              if (filters) {
+                filters = cloneFlightFilters(filters, {
+                  noteQuery: event.currentTarget.value,
+                });
+              }
+            }}
+          />
+          {#if filters.noteQuery}
+            <button
+              type="button"
+              aria-label="Clear note search"
+              class="absolute end-1.5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+              onclick={() => {
+                if (filters) {
+                  filters = cloneFlightFilters(filters, { noteQuery: '' });
+                }
+              }}
+            >
+              <X size={12} aria-hidden="true" />
+            </button>
+          {/if}
+        </div>
+      {/if}
     </div>
 
     <div

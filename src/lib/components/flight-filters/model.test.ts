@@ -722,3 +722,62 @@ describe('filter logic', () => {
     expect(cloneFlightFilters(filters({ logic: 'or' }), {}).logic).toBe('or');
   });
 });
+
+describe('note search', () => {
+  it('matches note substrings case-insensitively and trimmed', () => {
+    const noted = flight({ note: 'Bucket List Trip' });
+    expect(matchesFlight(noted, filters({ noteQuery: 'bucket' }))).toBe(true);
+    expect(matchesFlight(noted, filters({ noteQuery: '  BUCKET ' }))).toBe(
+      true,
+    );
+    expect(matchesFlight(noted, filters({ noteQuery: 'work' }))).toBe(false);
+  });
+
+  it('passes flights without notes only when the query is empty', () => {
+    expect(matchesFlight(flight(), filters({ noteQuery: '' }))).toBe(true);
+    expect(matchesFlight(flight(), filters({ noteQuery: '   ' }))).toBe(true);
+    expect(
+      matchesFlight(flight({ note: null }), filters({ noteQuery: 'trip' })),
+    ).toBe(false);
+  });
+
+  it('counts in activeFilterCount and hasFlightFilters but not the signature', () => {
+    expect(activeFilterCount(filters({ noteQuery: 'x' }))).toBe(1);
+    expect(activeFilterCount(filters({ noteQuery: '  ' }))).toBe(0);
+    expect(hasFlightFilters(filters({ noteQuery: 'x' }))).toBe(true);
+    expect(hasFlightFilters(filters({ noteQuery: ' ' }))).toBe(false);
+    expect(flightSignature(filters({ noteQuery: 'x' }))).toBe(
+      flightSignature(filters()),
+    );
+  });
+
+  it('combines with other filters under and and or', () => {
+    const honeymoon = flight({ note: 'honeymoon to the Maldives' });
+    expect(
+      matchesFlight(
+        honeymoon,
+        filters({ noteQuery: 'honeymoon', duration: ['short'] }),
+      ),
+    ).toBe(true);
+    expect(
+      matchesFlight(
+        honeymoon,
+        filters({ noteQuery: 'honeymoon', duration: ['ultralong'] }),
+      ),
+    ).toBe(false);
+    expect(
+      matchesFlight(
+        honeymoon,
+        filters({
+          logic: 'or',
+          noteQuery: 'honeymoon',
+          duration: ['ultralong'],
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('resets with defaults', () => {
+    expect(createDefaultFilters().noteQuery).toBe('');
+  });
+});

@@ -699,6 +699,35 @@
     <AnimatedSizeContainer height class="max-h-[72dvh]">
       {#if screen.kind === 'home'}
         <div class="flex max-h-[72dvh] flex-col gap-4 overflow-y-auto p-4">
+          <label
+            class="flex h-10 shrink-0 items-center gap-2 rounded-md border bg-background px-3 text-sm"
+          >
+            <Search size={16} class="text-muted-foreground" />
+            <input
+              type="text"
+              value={filters.noteQuery}
+              placeholder="Search notes"
+              aria-label="Search notes"
+              class="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
+              oninput={(event) => {
+                filters = cloneFlightFilters(filters, {
+                  noteQuery: event.currentTarget.value,
+                });
+              }}
+            />
+            {#if filters.noteQuery}
+              <button
+                type="button"
+                aria-label="Clear note search"
+                class="flex size-5 items-center justify-center rounded-sm text-muted-foreground"
+                onclick={() => {
+                  filters = cloneFlightFilters(filters, { noteQuery: '' });
+                }}
+              >
+                <X size={14} />
+              </button>
+            {/if}
+          </label>
           {#if activeFilterCount(filters) >= 2}
             <div class="flex items-center justify-between">
               <span class="text-xs font-medium text-muted-foreground">

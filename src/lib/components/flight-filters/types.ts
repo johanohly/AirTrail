@@ -74,6 +74,8 @@ export type FlightFilters = LocationFilterValues &
     days: string[];
     daysOperator: OptionFilterOperator;
     logic: FilterLogic;
+    /* Free-text search over the flight note; not a filter column. */
+    noteQuery: string;
   };
 
 export type TempFilters = LocationFilterValues;
