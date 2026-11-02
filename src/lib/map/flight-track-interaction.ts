@@ -19,6 +19,8 @@ export type RouteInteractionContext = {
   hoveredAirportId?: number;
   selectedAirportId: number | null;
   selectedRoute: Route | null;
+  /** The selected route is narrowed to its flights without a track. */
+  selectedRouteUntrackedOnly?: boolean;
 };
 
 const interaction = (
@@ -34,8 +36,13 @@ export const resolveRouteInteraction = (
   arc: FlightArc,
   context: RouteInteractionContext,
 ): RouteInteraction => {
-  const { hoveredArc, hoveredAirportId, selectedAirportId, selectedRoute } =
-    context;
+  const {
+    hoveredArc,
+    hoveredAirportId,
+    selectedAirportId,
+    selectedRoute,
+    selectedRouteUntrackedOnly,
+  } = context;
   const hoveredTrackFlightId =
     hoveredArc && 'flightId' in hoveredArc ? hoveredArc.flightId : undefined;
 
@@ -51,10 +58,14 @@ export const resolveRouteInteraction = (
       : interaction('dimmed', 200);
   }
 
-  if (
-    (hoveredArc?.from === arc.from && hoveredArc?.to === arc.to) ||
-    routeMatchesArc(arc, selectedRoute)
-  ) {
+  if (routeMatchesArc(arc, selectedRoute)) {
+    // Narrowed to the untracked flights: keep the great-circle line lit and
+    // fade the route's own tracks, even while the line is hovered.
+    return selectedRouteUntrackedOnly && 'flightId' in arc
+      ? interaction('dimmed', 170)
+      : interaction('primary');
+  }
+  if (hoveredArc?.from === arc.from && hoveredArc?.to === arc.to) {
     return interaction('primary');
   }
   if (hoveredArc) return interaction('dimmed', 200);

@@ -51,4 +51,33 @@ describe('flight track interaction', () => {
     ]);
     expect(getEstimatedTrackUnderlayColor(state)).toEqual([0, 0, 0, 51]);
   });
+  it('keeps the great-circle line lit and fades tracks when narrowed to untracked flights', () => {
+    const selectedRoute = { a: '1', b: '2' };
+    const narrowed = context({
+      selectedRoute,
+      selectedRouteUntrackedOnly: true,
+    });
+
+    expect(resolveRouteInteraction(arc(1, 2), narrowed)).toEqual({
+      emphasis: 'primary',
+      opacity: 255,
+    });
+    expect(resolveRouteInteraction(track(7, 1, 2), narrowed)).toEqual({
+      emphasis: 'dimmed',
+      opacity: 170,
+    });
+    expect(
+      resolveRouteInteraction(
+        track(7, 1, 2),
+        context({
+          selectedRoute,
+          selectedRouteUntrackedOnly: true,
+          hoveredArc: arc(1, 2),
+        }),
+      ),
+    ).toEqual({ emphasis: 'dimmed', opacity: 170 });
+    expect(
+      resolveRouteInteraction(track(7, 1, 2), context({ selectedRoute })),
+    ).toEqual({ emphasis: 'primary', opacity: 255 });
+  });
 });

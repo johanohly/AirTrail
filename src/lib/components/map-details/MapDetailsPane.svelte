@@ -52,6 +52,7 @@
     () => flights,
     () => filters,
     navigateFlights,
+    () => trackedFlightIds,
   );
 
   const flight = useFlightDetails(() => flights, navigateFlights);
@@ -133,6 +134,11 @@
     {:else if mapDetailsState.selection?.type === 'route' && route.routeAirports}
       <RouteDetailsBody
         routeFlights={route.routeFlights}
+        listedFlights={route.listedFlights}
+        untrackedOnly={route.untrackedOnly}
+        untrackedCount={route.untrackedCount}
+        canShowUntrackedOnly={route.canShowUntrackedOnly}
+        onToggleUntrackedOnly={route.toggleUntrackedOnly}
         airlineCount={route.airlineCount}
         distance={route.distance}
         lastFlownLabel={route.lastFlownLabel}

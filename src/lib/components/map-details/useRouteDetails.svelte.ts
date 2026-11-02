@@ -6,7 +6,11 @@ import {
   type Route,
 } from '$lib/components/flight-filters/types';
 import type { NavigateFlights } from '$lib/flight-navigation';
-import { mapDetailsState, openFlightDetails } from '$lib/state.svelte';
+import {
+  mapDetailsState,
+  openFlightDetails,
+  setRouteUntrackedOnly,
+} from '$lib/state.svelte';
 import { type FlightData } from '$lib/utils';
 import {
   convertDistance,
@@ -18,6 +22,7 @@ export function useRouteDetails(
   flights: () => FlightData[],
   filters: () => FlightFilters | undefined,
   onNavigate: NavigateFlights,
+  trackedFlightIds: () => ReadonlySet<number> = () => new Set(),
 ) {
   const prefs = $derived(getPreferences(page.data.user));
 
@@ -47,6 +52,31 @@ export function useRouteDetails(
       .filter((flight) => matchesRoute(flight, selectedRoute))
       .sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0));
   });
+
+  // Flights without a track all share the route's great-circle line, so the
+  // pane can narrow to them (the map's second click on that line does this).
+  const untrackedOnly = $derived.by(() => {
+    const selection = mapDetailsState.selection;
+    return selection?.type === 'route' && !!selection.untrackedOnly;
+  });
+
+  const untrackedFlights = $derived.by(() => {
+    const tracked = trackedFlightIds();
+    return routeFlights.filter((flight) => !tracked.has(flight.id));
+  });
+
+  const canShowUntrackedOnly = $derived(
+    untrackedFlights.length > 0 &&
+      untrackedFlights.length < routeFlights.length,
+  );
+
+  const listedFlights = $derived(
+    untrackedOnly && canShowUntrackedOnly ? untrackedFlights : routeFlights,
+  );
+
+  const toggleUntrackedOnly = () => {
+    setRouteUntrackedOnly(!untrackedOnly);
+  };
 
   const routeAirports = $derived.by(() => {
     if (!selectedRoute) return null;
@@ -136,6 +166,19 @@ export function useRouteDetails(
     get routeFlights() {
       return routeFlights;
     },
+    get untrackedOnly() {
+      return untrackedOnly && canShowUntrackedOnly;
+    },
+    get untrackedCount() {
+      return untrackedFlights.length;
+    },
+    get canShowUntrackedOnly() {
+      return canShowUntrackedOnly;
+    },
+    get listedFlights() {
+      return listedFlights;
+    },
+    toggleUntrackedOnly,
     get routeAirports() {
       return routeAirports;
     },

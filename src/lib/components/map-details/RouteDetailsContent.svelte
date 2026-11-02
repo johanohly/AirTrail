@@ -45,7 +45,11 @@
   {header}
   {actions}
   onOpenChange={(v) => {
-    if (!v && mapDetailsState.selection?.type === 'route') {
+    if (v || mapDetailsState.selection?.type !== 'route') return;
+    // Escape first steps back from the untracked-only view to the full route.
+    if (details.untrackedOnly) {
+      details.toggleUntrackedOnly();
+    } else {
       closeMapDetails();
     }
   }}
@@ -53,6 +57,11 @@
   {#if details.routeAirports}
     <RouteDetailsBody
       routeFlights={details.routeFlights}
+      listedFlights={details.listedFlights}
+      untrackedOnly={details.untrackedOnly}
+      untrackedCount={details.untrackedCount}
+      canShowUntrackedOnly={details.canShowUntrackedOnly}
+      onToggleUntrackedOnly={details.toggleUntrackedOnly}
       airlineCount={details.airlineCount}
       distance={details.distance}
       lastFlownLabel={details.lastFlownLabel}

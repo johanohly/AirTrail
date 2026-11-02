@@ -65,7 +65,8 @@ export const openModalsState = $state<OpenModalsState>({
 
 export type MapDetailsSelection =
   | { type: 'airport'; airportId: number }
-  | { type: 'route'; route: Route }
+  /** `untrackedOnly` narrows the route to its flights drawn on the shared great-circle line. */
+  | { type: 'route'; route: Route; untrackedOnly?: boolean }
   | { type: 'flight'; flightId: number };
 
 export const mapDetailsState = $state<{
@@ -94,6 +95,12 @@ export const openRouteDetails = (route: Route) => {
   };
   mapDetailsState.focusedRouteDisplay = null;
   mapDetailsState.focusRequest += 1;
+};
+
+export const setRouteUntrackedOnly = (untrackedOnly: boolean) => {
+  const selection = mapDetailsState.selection;
+  if (selection?.type !== 'route') return;
+  mapDetailsState.selection = { ...selection, untrackedOnly };
 };
 
 export const openFlightDetails = (flightId: number) => {
