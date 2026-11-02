@@ -434,8 +434,10 @@ model public_share {
   show_flight_list Boolean @default(false)
 
   // Flight filtering
-  date_from String? // YYYY-MM-DD
-  date_to   String? // YYYY-MM-DD
+  /// @kyselyType('all' | 'past' | 'upcoming' | 'custom')
+  flight_selection String  @default("all")
+  date_from        String? // YYYY-MM-DD
+  date_to          String? // YYYY-MM-DD
 
   // Data privacy settings
   show_flight_numbers Boolean @default(true)

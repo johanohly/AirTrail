@@ -139,7 +139,21 @@
                       Flight List
                     </span>
                   {/if}
-                  {#if share.dateFrom || share.dateTo}
+                  {#if share.flightSelection === 'past'}
+                    <span
+                      class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground"
+                    >
+                      Past Only
+                    </span>
+                  {/if}
+                  {#if share.flightSelection === 'upcoming'}
+                    <span
+                      class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground"
+                    >
+                      Upcoming Only
+                    </span>
+                  {/if}
+                  {#if share.flightSelection === 'custom'}
                     <span
                       class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground"
                     >

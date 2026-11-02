@@ -307,6 +307,10 @@ export type public_share = {
     showMap: Generated<boolean>;
     showStats: Generated<boolean>;
     showFlightList: Generated<boolean>;
+    /**
+     * @kyselyType('all' | 'past' | 'upcoming' | 'custom')
+     */
+    flightSelection: Generated<'all' | 'past' | 'upcoming' | 'custom'>;
     dateFrom: string | null;
     dateTo: string | null;
     showFlightNumbers: Generated<boolean>;
