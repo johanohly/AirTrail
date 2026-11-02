@@ -70,50 +70,26 @@
     ),
   );
 
-  type MenuSection = {
-    label: string | undefined;
-    columns: Column<TData, ColumnDataType>[];
-  };
-
   type MenuGroup = {
     label: string;
     hasQuickDate: boolean;
-    sections: MenuSection[];
+    columns: Column<TData, ColumnDataType>[];
   };
 
   const menuGroups = $derived.by(() => {
     const dateColumnVisible = !!dateColumn && !dateColumn.hidden;
 
-    const visibleColumn = (id: string) => {
-      const column = columns.find((candidate) => candidate.id === id);
-      return column && !column.hidden ? column : undefined;
-    };
-
-    const section = (label: string | undefined, ids: readonly string[]) => ({
-      label,
-      columns: ids
-        .filter((id) => id !== 'quickDate')
-        .map(visibleColumn)
-        .filter((column): column is Column<TData, ColumnDataType> => !!column),
-    });
-
     return FILTER_GROUPS.map((group) => ({
       label: group.label,
-      hasQuickDate:
-        (group.columns ?? []).includes('quickDate') && dateColumnVisible,
-      sections: group.subgroups
-        ? group.subgroups.map((subgroup) =>
-            section(subgroup.label, subgroup.columns),
-          )
-        : [section(undefined, group.columns ?? [])],
-    }))
-      .map((group) => ({
-        ...group,
-        sections: group.sections.filter(
-          (menuSection) => menuSection.columns.length > 0,
-        ),
-      }))
-      .filter((group) => group.hasQuickDate || group.sections.length > 0);
+      hasQuickDate: group.columns.includes('quickDate') && dateColumnVisible,
+      columns: group.columns
+        .filter((id) => id !== 'quickDate')
+        .map((id) => {
+          const column = columns.find((candidate) => candidate.id === id);
+          return column && !column.hidden ? column : undefined;
+        })
+        .filter((column): column is Column<TData, ColumnDataType> => !!column),
+    })).filter((group) => group.hasQuickDate || group.columns.length > 0);
   });
 
   /* Mirrors bits-ui's filter-icon.svelte detection between components and snippets. */
@@ -250,18 +226,8 @@
               </DropdownMenu.Portal>
             </DropdownMenu.Sub>
           {/if}
-          {#each group.sections as section, sectionIndex (section.label ?? sectionIndex)}
-            {#if section.label}
-              <div
-                class="px-2 pb-1 pt-1.5 text-[11px] font-medium text-muted-foreground/80"
-                data-filter-menu-subgroup-heading
-              >
-                {section.label}
-              </div>
-            {/if}
-            {#each section.columns as column (column.id)}
-              {@render menuColumn(column)}
-            {/each}
+          {#each group.columns as column (column.id)}
+            {@render menuColumn(column)}
           {/each}
         </DropdownMenu.Group>
       {/each}

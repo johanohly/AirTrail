@@ -516,38 +516,16 @@
   );
 
   const activeGroups = $derived.by(() => {
-    const activeColumn = (id: string) => {
-      const column = visibleColumns.find(
-        (candidate) => candidate.id === id && isColumnActive(candidate.id),
-      );
-      return column;
-    };
-
     return FILTER_GROUPS.map((group) => ({
       label: group.label,
-      sections: group.subgroups
-        ? group.subgroups.map((subgroup) => ({
-            label: subgroup.label,
-            columns: subgroup.columns
-              .map(activeColumn)
-              .filter((column): column is FilterColumn => !!column),
-          }))
-        : [
-            {
-              label: undefined,
-              columns: (group.columns ?? [])
-                .map(activeColumn)
-                .filter((column): column is FilterColumn => !!column),
-            },
-          ],
-    }))
-      .map((group) => ({
-        ...group,
-        sections: group.sections.filter(
-          (section) => section.columns.length > 0,
-        ),
-      }))
-      .filter((group) => group.sections.length > 0);
+      columns: group.columns
+        .map((id) =>
+          visibleColumns.find(
+            (candidate) => candidate.id === id && isColumnActive(candidate.id),
+          ),
+        )
+        .filter((column): column is FilterColumn => !!column),
+    })).filter((group) => group.columns.length > 0);
   });
 
   $effect(() => {
@@ -786,70 +764,61 @@
                   <div class="px-1 text-xs font-medium text-muted-foreground">
                     {group.label}
                   </div>
-                  {#each group.sections as section, sectionIndex (section.label ?? sectionIndex)}
-                    {#if section.label}
-                      <div
-                        class="px-1 text-[11px] font-medium text-muted-foreground/70"
+                  {#each group.columns as column (column.id)}
+                    <div
+                      class="group flex w-full items-center gap-2 rounded-xl border bg-background p-2.5 shadow-xs"
+                    >
+                      <button
+                        type="button"
+                        class="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left transition-colors active:bg-muted"
+                        onclick={() =>
+                          go(
+                            column.id === 'date'
+                              ? { kind: 'date' }
+                              : { kind: 'filter', columnId: column.id },
+                          )}
                       >
-                        {section.label}
-                      </div>
-                    {/if}
-                    {#each section.columns as column (column.id)}
-                      <div
-                        class="group flex w-full items-center gap-2 rounded-xl border bg-background p-2.5 shadow-xs"
-                      >
-                        <button
-                          type="button"
-                          class="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left transition-colors active:bg-muted"
-                          onclick={() =>
-                            go(
-                              column.id === 'date'
-                                ? { kind: 'date' }
-                                : { kind: 'filter', columnId: column.id },
-                            )}
+                        <span
+                          class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
                         >
-                          <span
-                            class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
-                          >
-                            <column.icon size={17} aria-hidden />
-                          </span>
-                          <span class="min-w-0 flex-1">
-                            <span class="flex min-w-0 items-center gap-1.5">
-                              <span class="truncate text-sm font-semibold">
-                                {column.label}
-                              </span>
-                              {#if column.id !== 'date'}
-                                <span
-                                  class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
-                                >
-                                  {operatorFor(column.id)}
-                                </span>
-                              {/if}
+                          <column.icon size={17} aria-hidden />
+                        </span>
+                        <span class="min-w-0 flex-1">
+                          <span class="flex min-w-0 items-center gap-1.5">
+                            <span class="truncate text-sm font-semibold">
+                              {column.label}
                             </span>
-                            <span
-                              class="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground"
-                            >
-                              {#if column.id !== 'date'}
-                                {@render valueIconStack(column.id)}
-                              {/if}
-                              <span class="truncate"
-                                >{valueSummary(column.id)}</span
+                            {#if column.id !== 'date'}
+                              <span
+                                class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
                               >
-                            </span>
+                                {operatorFor(column.id)}
+                              </span>
+                            {/if}
                           </span>
-                        </button>
-                        <button
-                          type="button"
-                          class="flex size-10 shrink-0 items-center justify-center rounded-md text-muted-foreground active:bg-muted"
-                          aria-label={`Remove ${column.label} filter`}
-                          onclick={(event) => {
-                            clearColumn(column.id);
-                          }}
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                    {/each}
+                          <span
+                            class="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground"
+                          >
+                            {#if column.id !== 'date'}
+                              {@render valueIconStack(column.id)}
+                            {/if}
+                            <span class="truncate"
+                              >{valueSummary(column.id)}</span
+                            >
+                          </span>
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        class="flex size-10 shrink-0 items-center justify-center rounded-md text-muted-foreground active:bg-muted"
+                        aria-label={`Remove ${column.label} filter`}
+                        onclick={(event) => {
+                          clearColumn(column.id);
+                        }}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
                   {/each}
                 </div>
               {/each}
