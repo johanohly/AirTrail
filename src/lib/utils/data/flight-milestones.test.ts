@@ -501,13 +501,13 @@ describe('buildFlightMilestones', () => {
 
     expect(keysOf(buildFlightMilestones([full], full))).toEqual([
       'overall',
+      'airport-from',
+      'airport-to',
       'route',
       'airline',
       'aircraft',
       'tail',
       'seat',
-      'airport-from',
-      'airport-to',
       'cabin-first',
     ]);
   });

@@ -81,6 +81,22 @@ export const DIMENSIONS: readonly DimensionDef[] = [
     labelFor: () => 'flight',
   },
   {
+    key: 'airport-from',
+    groupOf: (f) => (f.from ? String(f.from.id) : null),
+    // Any arrival or departure counts as one visit to the airport,
+    // regardless of direction; a same-airport flight still counts once.
+    matches: airportVisitMatches,
+    // The pane prefixes the ordinal ("3rd"), so the label carries the
+    // singular noun the ordinal binds to: "3rd time at LHR".
+    labelFor: (f) => `time at ${codeForAirport(f.from)}`,
+  },
+  {
+    key: 'airport-to',
+    groupOf: (f) => (f.to ? String(f.to.id) : null),
+    matches: airportVisitMatches,
+    labelFor: (f) => `time at ${codeForAirport(f.to)}`,
+  },
+  {
     key: 'route',
     groupOf: (f) => routeLabelForFlight(f),
     labelFor: (f) => `flight ${routeLabelForFlight(f)}`,
@@ -107,22 +123,6 @@ export const DIMENSIONS: readonly DimensionDef[] = [
       const passenger = scopedPassengerOf(f, ctx);
       return `flight on seat ${passenger?.seatNumber?.trim()}`;
     },
-  },
-  {
-    key: 'airport-from',
-    groupOf: (f) => (f.from ? String(f.from.id) : null),
-    // Any arrival or departure counts as one visit to the airport,
-    // regardless of direction; a same-airport flight still counts once.
-    matches: airportVisitMatches,
-    // The pane prefixes the ordinal ("3rd"), so the label carries the
-    // singular noun the ordinal binds to: "3rd time at LHR".
-    labelFor: (f) => `time at ${codeForAirport(f.from)}`,
-  },
-  {
-    key: 'airport-to',
-    groupOf: (f) => (f.to ? String(f.to.id) : null),
-    matches: airportVisitMatches,
-    labelFor: (f) => `time at ${codeForAirport(f.to)}`,
   },
   {
     key: 'cabin-first',
