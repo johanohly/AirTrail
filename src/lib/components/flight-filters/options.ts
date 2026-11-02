@@ -125,6 +125,31 @@ export function optionMatchesQuery(
 }
 
 /*
+ * Why a filter matches a search query: by its name, by its options, both,
+ * or not at all. Only an options match opens the pre-filtered submenu — a
+ * name match opens the full list, since e.g. "seat" matches the Seat
+ * Number column but none of its seat numbers.
+ */
+export type SearchMatchKind = 'name' | 'options' | 'both';
+
+export function searchMatchKind(
+  name: string,
+  options: Parameters<typeof optionMatchesQuery>[0][],
+  query: string,
+): SearchMatchKind | undefined {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return undefined;
+  const nameMatch = name.toLowerCase().includes(needle);
+  const optionMatch = options.some((option) =>
+    optionMatchesQuery(option, needle),
+  );
+  if (nameMatch && optionMatch) return 'both';
+  if (nameMatch) return 'name';
+  if (optionMatch) return 'options';
+  return undefined;
+}
+
+/*
  * Seat numbers order by row, then seat letter: 1A, 1B, 2C, 10A, 21F. Labels
  * without a numeric row sort after the parseable ones.
  */

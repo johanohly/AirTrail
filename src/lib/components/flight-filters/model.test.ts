@@ -33,6 +33,7 @@ import {
   compareSeatNumbers,
   durationBucketFor,
   optionMatchesQuery,
+  searchMatchKind,
 } from './options';
 
 import type { FlightData } from '$lib/utils';
@@ -853,5 +854,51 @@ describe('option search matching', () => {
     expect(
       optionMatchesQuery({ label: 'Economy', value: 'economy' }, 'FRA'),
     ).toBe(false);
+  });
+});
+
+describe('search match kinds', () => {
+  const airportOptions = [
+    { label: 'Frankfurt am Main', value: '6', shortLabel: 'FRA' },
+    { label: 'Madrid Barajas', value: '12', shortLabel: 'MAD' },
+  ];
+
+  it('distinguishes name, options, and both matches', () => {
+    expect(searchMatchKind('Seat Number', [], 'seat')).toBe('name');
+    expect(searchMatchKind('Departure airport', airportOptions, 'madrid')).toBe(
+      'options',
+    );
+    expect(
+      searchMatchKind(
+        'Departure airport',
+        [
+          ...airportOptions,
+          { label: 'Airport terminal', value: '99', keywords: ['airport'] },
+        ],
+        'airport',
+      ),
+    ).toBe('both');
+  });
+
+  it('returns nothing when neither matches', () => {
+    expect(
+      searchMatchKind('Departure airport', airportOptions, 'helsinki'),
+    ).toBeUndefined();
+  });
+
+  it('returns nothing without a query', () => {
+    expect(searchMatchKind('Seat Number', airportOptions, '')).toBeUndefined();
+    expect(
+      searchMatchKind('Seat Number', airportOptions, '   '),
+    ).toBeUndefined();
+  });
+
+  it('matches options through values and short labels', () => {
+    expect(searchMatchKind('Departure airport', airportOptions, '12')).toBe(
+      'options',
+    );
+    expect(searchMatchKind('Departure airport', airportOptions, 'MAD')).toBe(
+      'options',
+    );
   });
 });

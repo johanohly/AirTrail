@@ -61,7 +61,7 @@
     flightReasonOptions,
     flightTypeOptions,
     monthOptions,
-    optionMatchesQuery,
+    searchMatchKind,
     seatClassOptions,
     seatTypeOptions,
     type FilterOptionSource,
@@ -140,6 +140,9 @@
 
   let screen = $state<Screen>({ kind: 'home' });
   let search = $state('');
+  // Set when the option screen was opened pre-filtered by the subject
+  // search; drives the "Filtered by" hint instead of the search input
+  let optionScreenFiltered = $state(false);
   let wasOpen = $state(open);
 
   const tempLocationFiltersActive = $derived(
@@ -254,26 +257,39 @@
   function resetNavigation() {
     screen = { kind: 'home' };
     search = '';
+    optionScreenFiltered = false;
   }
 
   // A subject stays listed when its name matches the search, or when any of
   // its options does — mirroring the desktop menu search
+  // A subject stays listed when its name matches the search, or when any of
+  // its options does — mirroring the desktop menu search
   function matchesSubjectSearch(column: FilterColumn) {
-    const query = search.trim().toLowerCase();
-    if (!query) return true;
-    if (column.label.toLowerCase().includes(query)) return true;
-    if (column.id === 'date') return false;
-    return optionsByColumn[column.id].some((option) =>
-      optionMatchesQuery(option, query),
-    );
+    return subjectSearchMatch(column) !== undefined;
+  }
+
+  // Why the subject matched: only an options match opens the option screen
+  // pre-filtered; a name match opens the full list, since the query need
+  // not relate to the option values at all
+  function subjectSearchMatch(column: FilterColumn) {
+    const options = column.id === 'date' ? [] : optionsByColumn[column.id];
+    return searchMatchKind(column.label, options, search);
   }
 
   function go(next: Screen) {
-    // Keep the query when drilling from the subject list into a filter, so
-    // the option screen starts with the same search
-    if (!(screen.kind === 'subjects' && next.kind === 'filter')) {
-      search = '';
+    // Keep the query only when the tapped subject matched via its options —
+    // that screen opens pre-filtered with a hint row; name matches open
+    // unfiltered
+    if (screen.kind === 'subjects' && next.kind === 'filter') {
+      const column = columnById(next.columnId);
+      if (column && subjectSearchMatch(column) === 'options') {
+        optionScreenFiltered = true;
+        screen = next;
+        return;
+      }
     }
+    optionScreenFiltered = false;
+    search = '';
     screen = next;
   }
 
@@ -1081,7 +1097,7 @@
                   </button>
                 {/each}
               </div>
-              {#if search.trim()}
+              {#if optionScreenFiltered && search.trim()}
                 <div
                   class="flex items-center justify-between gap-2 text-sm text-muted-foreground"
                 >
@@ -1092,7 +1108,10 @@
                     type="button"
                     aria-label="Clear search"
                     class="flex size-6 shrink-0 items-center justify-center rounded-md active:bg-muted"
-                    onclick={() => (search = '')}
+                    onclick={() => {
+                      search = '';
+                      optionScreenFiltered = false;
+                    }}
                   >
                     <X size={14} />
                   </button>

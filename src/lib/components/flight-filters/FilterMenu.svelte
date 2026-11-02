@@ -23,7 +23,11 @@
     todayCalendarDate,
     type DatePresetId,
   } from './model';
-  import { FILTER_GROUPS, optionMatchesQuery } from './options';
+  import {
+    FILTER_GROUPS,
+    optionMatchesQuery,
+    searchMatchKind,
+  } from './options';
 
   let {
     columns,
@@ -141,15 +145,17 @@
   }
 
   /*
-   * With a global query, every option column renders through the custom
-   * checkbox list, pre-filtered to the matching options. The stock editor
-   * stays in charge when there is no query — it is the only path with
-   * operator switching, which the filtered submenu intentionally omits;
-   * clearing the query brings the full editor back.
+   * With a global query, only columns matched through their options render
+   * the custom checkbox list, pre-filtered to the matching options — a name
+   * match (e.g. "seat" on Seat Number) opens the full list instead, since
+   * the query need not relate to the option values at all. The stock editor
+   * stays in charge otherwise — it is the only path with operator
+   * switching, which the filtered submenu intentionally omits; clearing the
+   * query brings it back everywhere.
    */
   function usesOptionList(column: Column<TData>) {
     if (searchQuery) {
-      return column.type === 'option' || column.type === 'multiOption';
+      return columnSearchMatch(column) === 'options';
     }
     return hasDescribedOptions(column);
   }
@@ -158,7 +164,7 @@
     const options = column.getOptions() as RegOption[];
 
     // Global search mode: only the options matching the query
-    if (searchQuery) {
+    if (columnSearchMatch(column) === 'options') {
       return options.filter((option) =>
         optionMatchesQuery(option, searchQuery),
       );
@@ -252,13 +258,18 @@
     return column.getOptions() as ColumnOptionLike[];
   }
 
+  function columnSearchMatch(column: Column<TData>) {
+    return searchMatchKind(
+      column.displayName,
+      columnOptionsOf(column),
+      searchQuery,
+    );
+  }
+
   // A column matches when its name does, or when any of its options does —
   // so queries like "mad" surface the airport columns holding Madrid/MAD
   function columnMatchesSearch(column: Column<TData>) {
-    if (matchesSearch(column.displayName)) return true;
-    return columnOptionsOf(column).some((option) =>
-      optionMatchesQuery(option, searchQuery),
-    );
+    return columnSearchMatch(column) !== undefined;
   }
 
   const menuGroups = $derived.by(() => {
@@ -523,7 +534,7 @@
           <!-- Same surface/list structure as the stock editors: the surface
                pins the search row, the list is the only scroller -->
           <div data-menu-data-surface>
-            {#if searchQuery}
+            {#if columnSearchMatch(column) === 'options'}
               <div
                 class="flex items-center justify-between gap-2 border-b px-3 py-2 text-xs text-muted-foreground"
               >
