@@ -818,12 +818,18 @@ export function arrivalDelayMinutes(flight: FlightData): number | null {
   return (actual.getTime() - scheduled.getTime()) / 60_000;
 }
 
-export type AirlineDelay = {
-  airline: string;
+export type PunctualityEntry = {
+  key: string;
   assessedFlights: number;
   delayedFlights: number;
   totalDelayMinutes: number;
   delayRate: number; // percentage of assessed flights that were delayed
+};
+
+export type FlightDelay = {
+  flight: FlightData;
+  /** Signed: positive is late, negative is early. */
+  delayMinutes: number;
 };
 
 export type PunctualityReport = {
@@ -832,21 +838,22 @@ export type PunctualityReport = {
   delayRate: number; // percentage of assessed flights delayed (0..100)
   totalDelayMinutes: number;
   worstDelayMinutes: number;
-  worstAirlines: AirlineDelay[];
+  earlyFlights: number; // flights that arrived ahead of schedule
+  totalEarlyMinutes: number; // how much early time, in total
+  bestEarlyMinutes: number; // the single biggest early arrival
+  worstAirlines: PunctualityEntry[];
+  worstRoutes: PunctualityEntry[];
+  worstDepartureAirports: PunctualityEntry[];
+  worstDelays: FlightDelay[]; // the individually most-delayed flights
 };
 
-export function punctualityReport(
+/** Assessed flights grouped by a key, ranked by accumulated delay. */
+const punctualityEntries = (
   flights: FlightData[],
-  options?: { worstAirlineLimit?: number },
-): PunctualityReport {
-  const worstAirlineLimit = options?.worstAirlineLimit ?? 3;
-
-  let assessedFlights = 0;
-  let delayedFlights = 0;
-  let totalDelayMinutes = 0;
-  let worstDelayMinutes = 0;
-
-  const byAirline = new Map<
+  keyOf: (flight: FlightData) => string | null,
+  limit: number,
+): PunctualityEntry[] => {
+  const groups = new Map<
     string,
     { assessed: number; delayed: number; delayMinutes: number }
   >();
@@ -854,38 +861,71 @@ export function punctualityReport(
   for (const flight of flights) {
     const delay = arrivalDelayMinutes(flight);
     if (delay === null) continue;
+    const key = keyOf(flight);
+    if (key === null) continue;
 
-    assessedFlights++;
-    const airlineName = flight.airline?.name ?? 'Unknown airline';
-    const airline = byAirline.get(airlineName) ?? {
+    const group = groups.get(key) ?? {
       assessed: 0,
       delayed: 0,
       delayMinutes: 0,
     };
-    airline.assessed++;
+    group.assessed++;
+    if (delay > DELAY_THRESHOLD_MINUTES) {
+      group.delayed++;
+      group.delayMinutes += delay;
+    }
+    groups.set(key, group);
+  }
+
+  return [...groups.entries()]
+    .filter(([, group]) => group.delayed > 0)
+    .map(([key, group]) => ({
+      key,
+      assessedFlights: group.assessed,
+      delayedFlights: group.delayed,
+      totalDelayMinutes: group.delayMinutes,
+      delayRate: (group.delayed / group.assessed) * 100,
+    }))
+    .sort((a, b) => b.totalDelayMinutes - a.totalDelayMinutes)
+    .slice(0, limit);
+};
+
+export function punctualityReport(
+  flights: FlightData[],
+  options?: { groupLimit?: number; flightLimit?: number },
+): PunctualityReport {
+  const groupLimit = options?.groupLimit ?? 3;
+  const flightLimit = options?.flightLimit ?? 5;
+
+  let assessedFlights = 0;
+  let delayedFlights = 0;
+  let totalDelayMinutes = 0;
+  let worstDelayMinutes = 0;
+  let earlyFlights = 0;
+  let totalEarlyMinutes = 0;
+  let bestEarlyMinutes = 0;
+
+  const delays: FlightDelay[] = [];
+
+  for (const flight of flights) {
+    const delay = arrivalDelayMinutes(flight);
+    if (delay === null) continue;
+
+    assessedFlights++;
+    delays.push({ flight, delayMinutes: delay });
 
     if (delay > DELAY_THRESHOLD_MINUTES) {
       delayedFlights++;
       totalDelayMinutes += delay;
       worstDelayMinutes = Math.max(worstDelayMinutes, delay);
-      airline.delayed++;
-      airline.delayMinutes += delay;
+    } else if (delay < 0) {
+      earlyFlights++;
+      totalEarlyMinutes += -delay;
+      bestEarlyMinutes = Math.max(bestEarlyMinutes, -delay);
     }
-
-    byAirline.set(airlineName, airline);
   }
 
-  const worstAirlines: AirlineDelay[] = [...byAirline.entries()]
-    .filter(([, a]) => a.delayed > 0)
-    .map(([airline, a]) => ({
-      airline,
-      assessedFlights: a.assessed,
-      delayedFlights: a.delayed,
-      totalDelayMinutes: a.delayMinutes,
-      delayRate: (a.delayed / a.assessed) * 100,
-    }))
-    .sort((a, b) => b.totalDelayMinutes - a.totalDelayMinutes)
-    .slice(0, worstAirlineLimit);
+  delays.sort((a, b) => b.delayMinutes - a.delayMinutes);
 
   return {
     assessedFlights,
@@ -893,7 +933,21 @@ export function punctualityReport(
     delayRate: assessedFlights ? (delayedFlights / assessedFlights) * 100 : 0,
     totalDelayMinutes,
     worstDelayMinutes,
-    worstAirlines,
+    earlyFlights,
+    totalEarlyMinutes,
+    bestEarlyMinutes,
+    worstAirlines: punctualityEntries(
+      flights,
+      (flight) => flight.airline?.name ?? 'Unknown airline',
+      groupLimit,
+    ),
+    worstRoutes: punctualityEntries(flights, routeLabelForFlight, groupLimit),
+    worstDepartureAirports: punctualityEntries(
+      flights,
+      (flight) => codeForAirport(flight.from),
+      groupLimit,
+    ),
+    worstDelays: delays.slice(0, flightLimit),
   };
 }
 

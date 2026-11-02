@@ -565,6 +565,24 @@ describe('punctualityReport', () => {
     expect(report.delayRate).toBeCloseTo((1 / 3) * 100);
   });
 
+  it('totals time gained by early arrivals, with the best one', () => {
+    const earlyTwice = [
+      makeFlight({
+        arrivalScheduled: '2024-01-01T10:00:00Z',
+        arrival: '2024-01-01T09:45:00Z', // 15 early
+      }),
+      makeFlight({
+        arrivalScheduled: '2024-01-02T10:00:00Z',
+        arrival: '2024-01-02T09:50:00Z', // 10 early
+      }),
+    ];
+
+    const report = punctualityReport(earlyTwice);
+    expect(report.earlyFlights).toBe(2);
+    expect(report.totalEarlyMinutes).toBe(25);
+    expect(report.bestEarlyMinutes).toBe(15);
+  });
+
   it('ranks worst airlines by accumulated delay and respects the limit', () => {
     const flights = [
       makeFlight({
@@ -584,18 +602,75 @@ describe('punctualityReport', () => {
       }),
     ];
 
-    const report = punctualityReport(flights, { worstAirlineLimit: 1 });
+    const report = punctualityReport(flights, { groupLimit: 1 });
     expect(report.worstAirlines).toHaveLength(1);
     expect(report.worstAirlines[0]).toMatchObject({
-      airline: 'Beta',
+      key: 'Beta',
       totalDelayMinutes: 120,
       delayedFlights: 1,
       assessedFlights: 1,
     });
 
     const full = punctualityReport(flights);
-    expect(full.worstAirlines.map((a) => a.airline)).toEqual(['Beta', 'Alpha']);
-    const alpha = full.worstAirlines.find((a) => a.airline === 'Alpha')!;
+    expect(full.worstAirlines.map((a) => a.key)).toEqual(['Beta', 'Alpha']);
+    const alpha = full.worstAirlines.find((a) => a.key === 'Alpha')!;
     expect(alpha.delayRate).toBeCloseTo(50); // 1 of 2 Alpha flights delayed
+  });
+
+  it('groups delays by route and departing airport too', () => {
+    const flights = [
+      {
+        ...makeFlight({
+          arrivalScheduled: '2024-01-01T10:00:00Z',
+          arrival: '2024-01-01T10:30:00Z', // +30
+        }),
+        from: { iata: 'CPH' },
+        to: { iata: 'LHR' },
+      },
+      {
+        ...makeFlight({
+          arrivalScheduled: '2024-01-02T10:00:00Z',
+          arrival: '2024-01-02T11:00:00Z', // +60
+        }),
+        from: { iata: 'ARN' },
+        to: { iata: 'LHR' },
+      },
+    ] as unknown as FlightData[];
+
+    const report = punctualityReport(flights);
+    expect(report.worstRoutes.map((r) => r.key)).toEqual([
+      'ARN – LHR',
+      'CPH – LHR',
+    ]);
+    expect(report.worstRoutes[0]).toMatchObject({
+      totalDelayMinutes: 60,
+      delayedFlights: 1,
+    });
+    expect(report.worstDepartureAirports.map((a) => a.key)).toEqual([
+      'ARN',
+      'CPH',
+    ]);
+  });
+
+  it('lists the individually most-delayed flights, most late first', () => {
+    const flights = [
+      makeFlight({
+        arrivalScheduled: '2024-01-01T10:00:00Z',
+        arrival: '2024-01-01T10:20:00Z', // +20
+      }),
+      makeFlight({
+        arrivalScheduled: '2024-01-02T10:00:00Z',
+        arrival: '2024-01-02T09:50:00Z', // −10
+      }),
+      makeFlight({
+        arrivalScheduled: '2024-01-03T10:00:00Z',
+        arrival: '2024-01-03T11:00:00Z', // +60
+      }),
+    ];
+
+    const report = punctualityReport(flights);
+    expect(report.worstDelays.map((d) => Math.round(d.delayMinutes))).toEqual([
+      60, 20, -10,
+    ]);
   });
 });

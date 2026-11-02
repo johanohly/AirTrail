@@ -750,7 +750,11 @@
       {@render section('Airlines and aircraft', aircraftLists)}
       {@render section('On board', boardSection)}
       {#snippet punctuality()}
-        <PunctualitySection flights={completedFlights} onOpen={openChart} />
+        <PunctualitySection
+          flights={completedFlights}
+          onOpen={openChart}
+          {onOpenFlight}
+        />
       {/snippet}
       {#snippet records()}
         <RecordsSection
