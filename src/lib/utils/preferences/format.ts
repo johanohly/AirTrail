@@ -2,6 +2,7 @@ import {
   cToF,
   feetToMeters,
   hpaToInhg,
+  kmhToKt,
   kmToMiles,
   kmToNauticalMiles,
   ktToKmh,
@@ -114,6 +115,9 @@ export const formatWindSpeed = (kt: number, prefs: WindPrefs): string => {
   const v = convertWindSpeed(kt, prefs);
   return `${Math.round(v)} ${windSpeedUnitLabel(prefs)}`;
 };
+
+export const formatSpeed = (kmh: number, prefs: WindPrefs): string =>
+  formatWindSpeed(kmhToKt(kmh), prefs);
 
 // ----- Temperature ------------------------------------------------------
 

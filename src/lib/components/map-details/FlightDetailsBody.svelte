@@ -16,7 +16,11 @@
   import type { FlightMilestone } from '$lib/utils/data/flight-milestones';
   import type { FlightPassenger } from '$lib/db/types';
   import { Duration } from '$lib/utils/datetime';
-  import { convertDistance, distanceUnitLabel } from '$lib/utils/preferences';
+  import {
+    convertDistance,
+    distanceUnitLabel,
+    formatSpeed,
+  } from '$lib/utils/preferences';
   import type { Preferences } from '$lib/zod/user';
 
   let {
@@ -41,6 +45,12 @@
 
   const durationLabel = $derived(
     flight.duration ? Duration.fromSeconds(flight.duration).toString() : null,
+  );
+
+  const avgSpeedLabel = $derived(
+    typeof flight.distance === 'number' && flight.duration
+      ? formatSpeed((flight.distance * 3600) / flight.duration, prefs)
+      : null,
   );
 
   const seatLabel = $derived(formatSeatForUser(flight, seatUserId));
@@ -100,6 +110,7 @@
       r.push({ label: 'Aircraft', value: formatAircraft(flight) });
     if (distanceLabel) r.push({ label: 'Distance', value: distanceLabel });
     if (durationLabel) r.push({ label: 'Duration', value: durationLabel });
+    if (avgSpeedLabel) r.push({ label: 'Avg. speed', value: avgSpeedLabel });
     if (seatLabel) r.push({ label: 'Seat', value: seatLabel });
     if (departureGate) r.push({ label: 'Departure', value: departureGate });
     if (arrivalGate) r.push({ label: 'Arrival', value: arrivalGate });

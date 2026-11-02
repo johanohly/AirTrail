@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { kmhToKt } from './convert';
 import {
   altitudeUnitLabel,
   convertAltitude,
@@ -8,6 +9,7 @@ import {
   formatDate,
   formatDateTime,
   formatFlightDate,
+  formatSpeed,
   formatTime,
 } from './format';
 
@@ -92,5 +94,21 @@ describe('time preferences', () => {
     expect(
       formatDateTime(date, { dateFormat: 'iso', timeFormat: '24h' }, 'UTC'),
     ).toBe('2026-04-26 22:30');
+  });
+});
+
+describe('speed preferences', () => {
+  it.each([
+    ['kt', '486 kt'],
+    ['kmh', '900 km/h'],
+    ['mph', '559 mph'],
+    ['ms', '250 m/s'],
+  ] as const)('formats a speed in %s', (windSpeedUnit, expected) => {
+    expect(formatSpeed(900, { windSpeedUnit })).toBe(expected);
+  });
+
+  it('converts km/h to knots', () => {
+    expect(kmhToKt(185.2)).toBeCloseTo(100);
+    expect(kmhToKt(900)).toBeCloseTo(485.9611, 4);
   });
 });
