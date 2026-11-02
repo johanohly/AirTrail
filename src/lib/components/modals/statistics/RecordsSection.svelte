@@ -14,6 +14,7 @@
   import {
     convertDistance,
     distanceUnitLabel,
+    formatDate,
     getPreferences,
   } from '$lib/utils/preferences';
 
@@ -46,6 +47,16 @@
     [codeForAirport(flight.from), codeForAirport(flight.to)]
       .filter(Boolean)
       .join(' – ') || 'Unknown route';
+  // Identifies the flight behind a record: its number and the day it flew
+  const flightDetail = ({ flight }: FlightExtreme) =>
+    [
+      flight.flightNumber,
+      flight.date && formatDate(flight.date, prefs, flight.from?.tz),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  const withDetail = (extreme: FlightExtreme, value: string) =>
+    [value, flightDetail(extreme)].filter(Boolean).join(' · ');
 </script>
 
 {#snippet flag(country: string | null | undefined)}
@@ -133,7 +144,7 @@
     {@render flightCard(
       'Longest flight',
       byDuration.longest,
-      formatDuration(byDuration.longest.value),
+      withDetail(byDuration.longest, formatDuration(byDuration.longest.value)),
     )}
   {/if}
   {#if bySpeed.fastest}
@@ -154,7 +165,10 @@
     {@render flightCard(
       'Shortest flight',
       byDuration.shortest,
-      formatDuration(byDuration.shortest.value),
+      withDetail(
+        byDuration.shortest,
+        formatDuration(byDuration.shortest.value),
+      ),
     )}
   {/if}
   {#if bySpeed.slowest}
