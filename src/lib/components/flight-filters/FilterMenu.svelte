@@ -536,7 +536,9 @@
           />
         {:else if hasDescribedOptions(column)}
           {@const options = regOptionsFor(column)}
-          <div class="flex flex-col" data-filter-option-list>
+          <!-- Same surface/list structure as the stock editors: the surface
+               pins the search row, the list is the only scroller -->
+          <div data-menu-data-surface>
             <div class="border-b p-2">
               <label
                 class="flex h-8 items-center gap-2 rounded-md border bg-background px-2.5"
@@ -556,7 +558,7 @@
                 />
               </label>
             </div>
-            <div class="max-h-[300px] overflow-y-auto p-1">
+            <div data-menu-data-list>
               {#each options as option (option.value)}
                 {@const checked = isOptionValueSelected(column, option.value)}
                 <button
