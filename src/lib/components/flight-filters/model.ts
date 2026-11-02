@@ -25,6 +25,10 @@ export type FilterColumnId =
   | 'departureAirports'
   | 'arrivalAirports'
   | 'routes'
+  | 'departureCountries'
+  | 'arrivalCountries'
+  | 'departureContinents'
+  | 'arrivalContinents'
   | 'date'
   | 'passengers'
   | 'airline'
@@ -100,6 +104,14 @@ export function createDefaultFilters(): FlightFilters {
     airportsEither: [],
     routes: [],
     routesOperator: 'is any of',
+    departureCountries: [],
+    departureCountriesOperator: 'is any of',
+    arrivalCountries: [],
+    arrivalCountriesOperator: 'is any of',
+    departureContinents: [],
+    departureContinentsOperator: 'is any of',
+    arrivalContinents: [],
+    arrivalContinentsOperator: 'is any of',
     years: [],
     yearsOperator: 'is any of',
     fromDate: undefined,
@@ -143,6 +155,10 @@ export function cloneFlightFilters(
     arrivalAirports: [...source.arrivalAirports],
     airportsEither: [...source.airportsEither],
     routes: source.routes.map((route) => ({ ...route })),
+    departureCountries: [...source.departureCountries],
+    arrivalCountries: [...source.arrivalCountries],
+    departureContinents: [...source.departureContinents],
+    arrivalContinents: [...source.arrivalContinents],
     years: [...source.years],
     passengers: [...source.passengers],
     airline: [...source.airline],
@@ -168,6 +184,10 @@ export function hasFlightFilters(filters: FlightFilters | undefined): boolean {
       filters.arrivalAirports.length > 0 ||
       filters.airportsEither.length > 0 ||
       filters.routes.length > 0 ||
+      filters.departureCountries.length > 0 ||
+      filters.arrivalCountries.length > 0 ||
+      filters.departureContinents.length > 0 ||
+      filters.arrivalContinents.length > 0 ||
       filters.years.length > 0 ||
       filters.fromDate ||
       filters.toDate ||
@@ -258,6 +278,14 @@ export function rawOptionColumnOperator(
       return filters.arrivalAirportsOperator;
     case 'routes':
       return filters.routesOperator;
+    case 'departureCountries':
+      return filters.departureCountriesOperator;
+    case 'arrivalCountries':
+      return filters.arrivalCountriesOperator;
+    case 'departureContinents':
+      return filters.departureContinentsOperator;
+    case 'arrivalContinents':
+      return filters.arrivalContinentsOperator;
     case 'airline':
       return filters.airlineOperator;
     case 'aircraft':
@@ -337,6 +365,22 @@ export function setOptionColumnOperator(
     case 'routes':
       return cloneFlightFilters(filters, {
         routesOperator: operator as OptionFilterOperator,
+      });
+    case 'departureCountries':
+      return cloneFlightFilters(filters, {
+        departureCountriesOperator: operator as OptionFilterOperator,
+      });
+    case 'arrivalCountries':
+      return cloneFlightFilters(filters, {
+        arrivalCountriesOperator: operator as OptionFilterOperator,
+      });
+    case 'departureContinents':
+      return cloneFlightFilters(filters, {
+        departureContinentsOperator: operator as OptionFilterOperator,
+      });
+    case 'arrivalContinents':
+      return cloneFlightFilters(filters, {
+        arrivalContinentsOperator: operator as OptionFilterOperator,
       });
     case 'airline':
       return cloneFlightFilters(filters, {
@@ -431,6 +475,26 @@ export function setOptionColumnValues(
       return cloneFlightFilters(filters, {
         routes: values.map(routeFromKey),
         routesOperator: operator as OptionFilterOperator,
+      });
+    case 'departureCountries':
+      return cloneFlightFilters(filters, {
+        departureCountries: values,
+        departureCountriesOperator: operator as OptionFilterOperator,
+      });
+    case 'arrivalCountries':
+      return cloneFlightFilters(filters, {
+        arrivalCountries: values,
+        arrivalCountriesOperator: operator as OptionFilterOperator,
+      });
+    case 'departureContinents':
+      return cloneFlightFilters(filters, {
+        departureContinents: values,
+        departureContinentsOperator: operator as OptionFilterOperator,
+      });
+    case 'arrivalContinents':
+      return cloneFlightFilters(filters, {
+        arrivalContinents: values,
+        arrivalContinentsOperator: operator as OptionFilterOperator,
       });
     case 'airline':
       return cloneFlightFilters(filters, {
@@ -845,6 +909,26 @@ export function flightFiltersToBits(source: FlightFilters): FiltersState {
       source.arrivalAirportsOperator,
     ),
     optionFilter('routes', source.routes.map(routeKey), source.routesOperator),
+    optionFilter(
+      'departureCountries',
+      source.departureCountries,
+      source.departureCountriesOperator,
+    ),
+    optionFilter(
+      'arrivalCountries',
+      source.arrivalCountries,
+      source.arrivalCountriesOperator,
+    ),
+    optionFilter(
+      'departureContinents',
+      source.departureContinents,
+      source.departureContinentsOperator,
+    ),
+    optionFilter(
+      'arrivalContinents',
+      source.arrivalContinents,
+      source.arrivalContinentsOperator,
+    ),
     dateFilterFromFlightFilters(source),
     multiOptionFilter(
       'passengers',
@@ -927,6 +1011,14 @@ function resetBitsManagedFilters(base?: FlightFilters): FlightFilters {
     arrivalAirportsOperator: 'is any of',
     routes: [],
     routesOperator: 'is any of',
+    departureCountries: [],
+    departureCountriesOperator: 'is any of',
+    arrivalCountries: [],
+    arrivalCountriesOperator: 'is any of',
+    departureContinents: [],
+    departureContinentsOperator: 'is any of',
+    arrivalContinents: [],
+    arrivalContinentsOperator: 'is any of',
     years: [],
     yearsOperator: 'is any of',
     fromDate: undefined,
@@ -982,6 +1074,26 @@ export function bitsFiltersToFlightFilters(
       case 'routes':
         nextFilters.routes = stringValues(filter).map(routeFromKey);
         nextFilters.routesOperator = filter.operator as OptionFilterOperator;
+        break;
+      case 'departureCountries':
+        nextFilters.departureCountries = stringValues(filter);
+        nextFilters.departureCountriesOperator =
+          filter.operator as OptionFilterOperator;
+        break;
+      case 'arrivalCountries':
+        nextFilters.arrivalCountries = stringValues(filter);
+        nextFilters.arrivalCountriesOperator =
+          filter.operator as OptionFilterOperator;
+        break;
+      case 'departureContinents':
+        nextFilters.departureContinents = stringValues(filter);
+        nextFilters.departureContinentsOperator =
+          filter.operator as OptionFilterOperator;
+        break;
+      case 'arrivalContinents':
+        nextFilters.arrivalContinents = stringValues(filter);
+        nextFilters.arrivalContinentsOperator =
+          filter.operator as OptionFilterOperator;
         break;
       case 'passengers':
         nextFilters.passengers = stringValues(filter);
@@ -1087,6 +1199,14 @@ export function flightSignature(source: FlightFilters) {
     airportsEither: source.airportsEither,
     routes: source.routes,
     routesOperator: source.routesOperator,
+    departureCountries: source.departureCountries,
+    departureCountriesOperator: source.departureCountriesOperator,
+    arrivalCountries: source.arrivalCountries,
+    arrivalCountriesOperator: source.arrivalCountriesOperator,
+    departureContinents: source.departureContinents,
+    departureContinentsOperator: source.departureContinentsOperator,
+    arrivalContinents: source.arrivalContinents,
+    arrivalContinentsOperator: source.arrivalContinentsOperator,
     years: source.years,
     yearsOperator: source.yearsOperator,
     fromDate: source.fromDate?.toString(),
@@ -1222,6 +1342,46 @@ export function matchesLocationFilters(
     ) {
       return false;
     }
+  }
+
+  if (
+    !optionMatches(
+      flight.from?.country,
+      locationFilters.departureCountries ?? [],
+      locationFilters.departureCountriesOperator,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !optionMatches(
+      flight.to?.country,
+      locationFilters.arrivalCountries ?? [],
+      locationFilters.arrivalCountriesOperator,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !optionMatches(
+      flight.from?.continent,
+      locationFilters.departureContinents ?? [],
+      locationFilters.departureContinentsOperator,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !optionMatches(
+      flight.to?.continent,
+      locationFilters.arrivalContinents ?? [],
+      locationFilters.arrivalContinentsOperator,
+    )
+  ) {
+    return false;
   }
 
   return true;

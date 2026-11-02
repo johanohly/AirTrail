@@ -22,12 +22,20 @@ export type LocationFilterValues = {
   arrivalAirports: string[];
   airportsEither: string[];
   routes: Route[];
+  departureCountries: string[];
+  arrivalCountries: string[];
+  departureContinents: string[];
+  arrivalContinents: string[];
 };
 
 export type LocationFilterOperators = {
   departureAirportsOperator: OptionFilterOperator;
   arrivalAirportsOperator: OptionFilterOperator;
   routesOperator: OptionFilterOperator;
+  departureCountriesOperator: OptionFilterOperator;
+  arrivalCountriesOperator: OptionFilterOperator;
+  departureContinentsOperator: OptionFilterOperator;
+  arrivalContinentsOperator: OptionFilterOperator;
 };
 
 export type FlightFilters = LocationFilterValues &
@@ -74,6 +82,10 @@ export const createDefaultTempFilters = (): TempFilters => ({
   arrivalAirports: [],
   airportsEither: [],
   routes: [],
+  departureCountries: [],
+  arrivalCountries: [],
+  departureContinents: [],
+  arrivalContinents: [],
 });
 
 export const defaultTempFilters: TempFilters = createDefaultTempFilters();
@@ -117,6 +129,10 @@ export function clearTempFilters(tempFilters: TempFilters): void {
   tempFilters.arrivalAirports = [];
   tempFilters.airportsEither = [];
   tempFilters.routes = [];
+  tempFilters.departureCountries = [];
+  tempFilters.arrivalCountries = [];
+  tempFilters.departureContinents = [];
+  tempFilters.arrivalContinents = [];
 }
 
 export function setTempDepartureAirport(

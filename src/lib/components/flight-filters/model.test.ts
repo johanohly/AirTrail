@@ -39,8 +39,8 @@ const at = (year: number, month: number, day: number) =>
 
 const flight = (next: Record<string, unknown> = {}) =>
   ({
-    from: { id: 1, country: 'DE' },
-    to: { id: 2, country: 'US' },
+    from: { id: 1, country: 'DE', continent: 'EU' },
+    to: { id: 2, country: 'US', continent: 'NA' },
     date: at(2024, 5, 15),
     distance: 800,
     flightNumber: 'LH123',
@@ -567,5 +567,55 @@ describe('date presets and month filters', () => {
     expect(matchesFlight(flight(on(2026, 5, 15)), filtered)).toBe(true);
     expect(matchesFlight(flight(on(2025, 5, 15)), filtered)).toBe(false);
     expect(matchesFlight(flight(on(2026, 3, 10)), filtered)).toBe(false);
+  });
+});
+
+describe('country and continent filters', () => {
+  it('matches departure and arrival countries', () => {
+    expect(
+      matchesFlight(flight(), filters({ departureCountries: ['DE'] })),
+    ).toBe(true);
+    expect(
+      matchesFlight(flight(), filters({ departureCountries: ['US'] })),
+    ).toBe(false);
+    expect(matchesFlight(flight(), filters({ arrivalCountries: ['US'] }))).toBe(
+      true,
+    );
+    expect(matchesFlight(flight(), filters({ arrivalCountries: ['DE'] }))).toBe(
+      false,
+    );
+  });
+
+  it('matches departure and arrival continents', () => {
+    expect(
+      matchesFlight(flight(), filters({ departureContinents: ['EU'] })),
+    ).toBe(true);
+    expect(
+      matchesFlight(flight(), filters({ departureContinents: ['NA'] })),
+    ).toBe(false);
+    expect(
+      matchesFlight(flight(), filters({ arrivalContinents: ['NA'] })),
+    ).toBe(true);
+  });
+
+  it('round-trips country and continent columns through bits', () => {
+    const cases = [
+      ['departureCountries', ['DE', 'US']],
+      ['arrivalCountries', ['US', 'FR']],
+      ['departureContinents', ['EU', 'NA']],
+      ['arrivalContinents', ['NA', 'AS']],
+    ] as const;
+
+    for (const [columnId, values] of cases) {
+      const start = setOptionColumnOperator(
+        setOptionColumnValues(filters(), columnId, [...values]),
+        columnId,
+        'is none of',
+      );
+      const round = bitsFiltersToFlightFilters(flightFiltersToBits(start));
+
+      expect(optionColumnValues(round, columnId)).toEqual(values);
+      expect(optionColumnOperator(round, columnId)).toBe('is none of');
+    }
   });
 });

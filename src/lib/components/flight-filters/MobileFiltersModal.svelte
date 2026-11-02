@@ -8,6 +8,8 @@
     CalendarDays,
     Check,
     ChevronRight,
+    Earth,
+    Flag,
     Globe,
     Hash,
     LocateFixed,
@@ -48,6 +50,8 @@
     type OptionColumnId,
   } from '$lib/components/flight-filters/model';
   import {
+    continentOptions,
+    countryName,
     dayOptions,
     durationOptions,
     flightReasonOptions,
@@ -160,6 +164,30 @@
       id: 'routes',
       label: 'Route',
       icon: ArrowLeftRight,
+      type: 'option',
+    },
+    {
+      id: 'departureCountries',
+      label: 'Departure Country',
+      icon: Flag,
+      type: 'option',
+    },
+    {
+      id: 'arrivalCountries',
+      label: 'Arrival Country',
+      icon: Flag,
+      type: 'option',
+    },
+    {
+      id: 'departureContinents',
+      label: 'Departure Continent',
+      icon: Earth,
+      type: 'option',
+    },
+    {
+      id: 'arrivalContinents',
+      label: 'Arrival Continent',
+      icon: Earth,
       type: 'option',
     },
     { id: 'date', label: 'Date', icon: CalendarIcon, type: 'date' },
@@ -291,6 +319,25 @@
     );
   }
 
+  // Countries are keyed by their alpha-2 code and named via the ISO table
+  function countedCountryOptions(
+    countries: Array<string | null | undefined>,
+  ): FilterOption[] {
+    return countedOptions(
+      countries.map((country) =>
+        country
+          ? {
+              value: country,
+              label: countryName(country),
+              keywords: [country, countryName(country)],
+              kind: 'airport' as const,
+              country,
+            }
+          : null,
+      ),
+    );
+  }
+
   /* Static option lists keep their curated order and carry no counts. */
   function staticOptions(options: FilterOptionSource[]): FilterOption[] {
     return options;
@@ -376,6 +423,14 @@
           };
         }),
       ),
+      departureCountries: countedCountryOptions(
+        scopedFlights.map((flight) => flight.from?.country),
+      ),
+      arrivalCountries: countedCountryOptions(
+        scopedFlights.map((flight) => flight.to?.country),
+      ),
+      departureContinents: staticOptions(continentOptions),
+      arrivalContinents: staticOptions(continentOptions),
       months: staticOptions(monthOptions),
       days: staticOptions(dayOptions),
       flightType: staticOptions(flightTypeOptions),

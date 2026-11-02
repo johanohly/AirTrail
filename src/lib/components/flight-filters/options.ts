@@ -1,7 +1,21 @@
+import { COUNTRIES } from '$lib/data/countries';
 import { MONTHS, SHORT_MONTHS } from '$lib/data/datetime';
-import { FlightReasons, SeatClasses, SeatTypes } from '$lib/db/types';
+import {
+  ContinentMap,
+  FlightReasons,
+  SeatClasses,
+  SeatTypes,
+} from '$lib/db/types';
 import { toTitleCase } from '$lib/utils';
 import { estimateFlightDuration } from '$lib/utils/datetime/duration';
+
+const COUNTRY_NAMES = new Map(
+  COUNTRIES.map((country) => [country.alpha2, country.name]),
+);
+
+/* The country's display name, falling back to its alpha-2 code. */
+export const countryName = (code: string): string =>
+  COUNTRY_NAMES.get(code) ?? code;
 
 export type FilterOptionSource = {
   value: string;
@@ -81,6 +95,11 @@ export const dayOptions: FilterOptionSource[] = Array.from(
   (_, i) => ({ value: String(i + 1), label: String(i + 1) }),
 );
 
+/* Continents of an airport, labeled with the app's continent names. */
+export const continentOptions: FilterOptionSource[] = Object.entries(
+  ContinentMap,
+).map(([value, label]) => ({ value, label }));
+
 /*
  * Menu layout, shared by the desktop filter menu and the mobile filter home
  * screen. "quickDate" is a menu entry, not a filter column.
@@ -88,7 +107,15 @@ export const dayOptions: FilterOptionSource[] = Array.from(
 export const FILTER_GROUPS = [
   {
     label: 'Location',
-    columns: ['departureAirports', 'arrivalAirports', 'routes'],
+    columns: [
+      'departureAirports',
+      'arrivalAirports',
+      'routes',
+      'departureCountries',
+      'arrivalCountries',
+      'departureContinents',
+      'arrivalContinents',
+    ],
   },
   {
     label: 'Date & time',

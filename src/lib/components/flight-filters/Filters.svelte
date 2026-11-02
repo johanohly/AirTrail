@@ -55,6 +55,8 @@
     Calendar,
     CalendarCheck,
     CalendarDays,
+    Earth,
+    Flag,
     Funnel,
     Globe,
     Hash,
@@ -92,12 +94,14 @@
     matchesLocationFilters,
   } from '$lib/components/flight-filters/model';
   import {
+    continentOptions,
     dayOptions,
     durationBucketFor,
     durationOptions,
     flightReasonOptions,
     flightTypeOptions,
     monthOptions,
+    countryName,
     seatClassOptions,
     seatTypeOptions,
   } from '$lib/components/flight-filters/options';
@@ -121,6 +125,10 @@
     | ColumnConfig<FlightData, 'option', string, 'departureAirports'>
     | ColumnConfig<FlightData, 'option', string, 'arrivalAirports'>
     | ColumnConfig<FlightData, 'option', string, 'routes'>
+    | ColumnConfig<FlightData, 'option', string, 'departureCountries'>
+    | ColumnConfig<FlightData, 'option', string, 'arrivalCountries'>
+    | ColumnConfig<FlightData, 'option', string, 'departureContinents'>
+    | ColumnConfig<FlightData, 'option', string, 'arrivalContinents'>
     | ColumnConfig<FlightData, 'option', string, 'year'>
     | ColumnConfig<FlightData, 'date', Date, 'date'>
     | ColumnConfig<FlightData, 'multiOption', string[], 'passengers'>
@@ -189,17 +197,19 @@
     }));
   }
 
-  function airportFlagIcon(airport: Airport): FilterIcon {
-    const country = airport.country?.toLowerCase();
-    if (!country) return Plane;
-
-    const code = escapeAttribute(country);
-    const title = escapeAttribute(airport.country.toUpperCase());
+  function countryFlagIcon(country: string): FilterIcon {
+    const code = escapeAttribute(country.toLowerCase());
+    const title = escapeAttribute(country.toUpperCase());
 
     return createRawSnippet(() => ({
       render: () =>
         `<img data-filter-airport-flag-icon src="https://flagcdn.com/${code}.svg" alt="" title="${title}" loading="lazy" decoding="async" />`,
     }));
+  }
+
+  function airportFlagIcon(airport: Airport): FilterIcon {
+    if (!airport.country) return Plane;
+    return countryFlagIcon(airport.country);
   }
 
   function passengerAvatarIcon(username: string): FilterIcon {
@@ -281,6 +291,40 @@
   const arrivalAirports = $derived.by(() => {
     return uniqueAirports(scopedFlights, (flight) => flight.to);
   });
+
+  // Countries are keyed by their alpha-2 code and named via the ISO table
+  const countedCountryOptions = (
+    sourceFlights: FlightData[],
+    countrySelectors: Array<(flight: FlightData) => string | null | undefined>,
+  ) => {
+    const counts = new Map<string, number>();
+
+    for (const flight of sourceFlights) {
+      for (const countrySelector of countrySelectors) {
+        const country = countrySelector(flight);
+        if (!country) continue;
+        counts.set(country, (counts.get(country) ?? 0) + 1);
+      }
+    }
+
+    return Array.from(counts.entries())
+      .map(([country, count]) => ({
+        value: country,
+        label: countryName(country),
+        keywords: [country, countryName(country)],
+        count,
+        icon: countryFlagIcon(country),
+      }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  };
+
+  const departureCountryOptions = $derived(
+    countedCountryOptions(scopedFlights, [(flight) => flight.from?.country]),
+  );
+
+  const arrivalCountryOptions = $derived(
+    countedCountryOptions(scopedFlights, [(flight) => flight.to?.country]),
+  );
 
   const passengerOptions = $derived.by(() => {
     const options = new Map<string, OptionSource>();
@@ -520,6 +564,38 @@
             : '',
         icon: ArrowLeftRight,
         options: columnOptions(routeOptions),
+      },
+      {
+        id: 'departureCountries',
+        displayName: 'Departure Country',
+        type: 'option',
+        accessor: (flight) => flight.from?.country ?? '',
+        icon: Flag,
+        options: columnOptions(departureCountryOptions),
+      },
+      {
+        id: 'arrivalCountries',
+        displayName: 'Arrival Country',
+        type: 'option',
+        accessor: (flight) => flight.to?.country ?? '',
+        icon: Flag,
+        options: columnOptions(arrivalCountryOptions),
+      },
+      {
+        id: 'departureContinents',
+        displayName: 'Departure Continent',
+        type: 'option',
+        accessor: (flight) => flight.from?.continent ?? '',
+        icon: Earth,
+        options: continentOptions,
+      },
+      {
+        id: 'arrivalContinents',
+        displayName: 'Arrival Continent',
+        type: 'option',
+        accessor: (flight) => flight.to?.continent ?? '',
+        icon: Earth,
+        options: continentOptions,
       },
       {
         id: 'year',
