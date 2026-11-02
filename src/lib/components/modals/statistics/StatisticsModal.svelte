@@ -754,6 +754,7 @@
           flights={completedFlights}
           onOpen={openChart}
           {onOpenFlight}
+          {onOpenAirport}
         />
       {/snippet}
       {#snippet records()}

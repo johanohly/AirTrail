@@ -851,7 +851,7 @@ export type PunctualityReport = {
 const punctualityEntries = (
   flights: FlightData[],
   keyOf: (flight: FlightData) => string | null,
-  limit: number,
+  limit?: number,
 ): PunctualityEntry[] => {
   const groups = new Map<
     string,
@@ -887,14 +887,15 @@ const punctualityEntries = (
       delayRate: (group.delayed / group.assessed) * 100,
     }))
     .sort((a, b) => b.totalDelayMinutes - a.totalDelayMinutes)
-    .slice(0, limit);
+    .slice(0, limit ?? Number.POSITIVE_INFINITY);
 };
 
 export function punctualityReport(
   flights: FlightData[],
   options?: { groupLimit?: number; flightLimit?: number },
 ): PunctualityReport {
-  const groupLimit = options?.groupLimit ?? 3;
+  // Groups come back untrimmed by default, so lists can count "All N"
+  const groupLimit = options?.groupLimit;
   const flightLimit = options?.flightLimit ?? 5;
 
   let assessedFlights = 0;
