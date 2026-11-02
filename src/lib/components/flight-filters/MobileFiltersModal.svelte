@@ -32,7 +32,9 @@
   import { page } from '$app/state';
   import UserAvatar from '$lib/components/display/UserAvatar.svelte';
   import {
+    activeFilterCount,
     clearFilterColumn,
+    cloneFlightFilters,
     createDefaultFilters,
     dateFilterSummary,
     isFilterColumnActive,
@@ -66,6 +68,7 @@
     hasTempFilters as hasActiveTempFilters,
     normalizeRoute,
     routeKey,
+    type FilterLogic,
     type FlightFilters,
     type MultiOptionFilterOperator,
     type OptionFilterOperator,
@@ -613,6 +616,10 @@
     filters = createDefaultFilters();
   }
 
+  function setLogic(logic: FilterLogic) {
+    filters = cloneFlightFilters(filters, { logic });
+  }
+
   const title = $derived.by(() => {
     if (screen.kind === 'subjects') return 'Add filter';
     if (screen.kind === 'filter')
@@ -692,6 +699,45 @@
     <AnimatedSizeContainer height class="max-h-[72dvh]">
       {#if screen.kind === 'home'}
         <div class="flex max-h-[72dvh] flex-col gap-4 overflow-y-auto p-4">
+          {#if activeFilterCount(filters) >= 2}
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-muted-foreground">
+                Match
+              </span>
+              <div
+                class="flex rounded-lg border bg-muted/25 p-0.5 text-xs font-semibold"
+                role="group"
+                aria-label="Filter combination"
+              >
+                <button
+                  type="button"
+                  class={cn(
+                    'rounded-md px-2.5 py-1.5 transition-colors',
+                    filters.logic === 'and'
+                      ? 'bg-background text-foreground shadow-xs'
+                      : 'text-muted-foreground',
+                  )}
+                  aria-pressed={filters.logic === 'and'}
+                  onclick={() => setLogic('and')}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  class={cn(
+                    'rounded-md px-2.5 py-1.5 transition-colors',
+                    filters.logic === 'or'
+                      ? 'bg-background text-foreground shadow-xs'
+                      : 'text-muted-foreground',
+                  )}
+                  aria-pressed={filters.logic === 'or'}
+                  onclick={() => setLogic('or')}
+                >
+                  Any
+                </button>
+              </div>
+            </div>
+          {/if}
           <button
             type="button"
             class="flex min-h-14 w-full items-center gap-3 rounded-xl border border-dashed bg-muted/25 p-3 text-left transition-colors active:bg-muted"

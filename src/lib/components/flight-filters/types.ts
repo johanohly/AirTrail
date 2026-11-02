@@ -17,6 +17,9 @@ export type MultiOptionFilterOperator =
   | 'exclude if all'
   | 'exclude exactly';
 
+/* How active filters combine: every filter must match, or any of them. */
+export type FilterLogic = 'and' | 'or';
+
 export type LocationFilterValues = {
   departureAirports: string[];
   arrivalAirports: string[];
@@ -70,6 +73,7 @@ export type FlightFilters = LocationFilterValues &
     monthsOperator: OptionFilterOperator;
     days: string[];
     daysOperator: OptionFilterOperator;
+    logic: FilterLogic;
   };
 
 export type TempFilters = LocationFilterValues;

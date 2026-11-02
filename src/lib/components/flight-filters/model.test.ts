@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   activeDatePreset,
+  activeFilterCount,
   activeDatePresetForRange,
   applyDatePreset,
   bitsFiltersToFlightFilters,
@@ -17,6 +18,7 @@ import {
   flightTypeForFlight,
   hasFlightFilters,
   matchesFlight,
+  matchesLocationFilters,
   optionColumnOperator,
   optionColumnValues,
   perYearFilters,
@@ -617,5 +619,106 @@ describe('country and continent filters', () => {
       expect(optionColumnValues(round, columnId)).toEqual(values);
       expect(optionColumnOperator(round, columnId)).toBe('is none of');
     }
+  });
+});
+
+describe('filter logic', () => {
+  it('requires every active filter under and', () => {
+    const both = filters({ departureCountries: ['DE'], duration: ['short'] });
+    expect(matchesFlight(flight(), both)).toBe(true);
+    expect(matchesFlight(flight({ distance: 9000 }), both)).toBe(false);
+    expect(
+      matchesFlight(
+        flight({ from: { id: 3, country: 'FR', continent: 'EU' } }),
+        both,
+      ),
+    ).toBe(false);
+  });
+
+  it('matches any active filter under or', () => {
+    const either = filters({
+      logic: 'or',
+      departureCountries: ['FR'],
+      duration: ['short'],
+    });
+    expect(matchesFlight(flight(), either)).toBe(true);
+    expect(matchesFlight(flight({ distance: 9000 }), either)).toBe(false);
+  });
+
+  it('spans location and non-location dimensions under or', () => {
+    const mixed = filters({
+      logic: 'or',
+      arrivalCountries: ['FR'],
+      flightNumber: ['LH123'],
+    });
+    expect(matchesFlight(flight(), mixed)).toBe(true);
+    expect(matchesFlight(flight({ flightNumber: 'XX999' }), mixed)).toBe(false);
+  });
+
+  it('behaves identically with zero or one active dimension', () => {
+    expect(matchesFlight(flight(), filters({ logic: 'or' }))).toBe(true);
+    const single = filters({ logic: 'or', airline: ['Lufthansa'] });
+    expect(matchesFlight(flight(), single)).toBe(false);
+  });
+
+  it('replaces any-endpoint columns with a cross-filter or', () => {
+    const spain = filters({
+      logic: 'or',
+      departureCountries: ['ES'],
+      arrivalCountries: ['ES'],
+    });
+    expect(
+      matchesFlight(
+        flight({ from: { id: 1, country: 'ES', continent: 'EU' } }),
+        spain,
+      ),
+    ).toBe(true);
+    expect(
+      matchesFlight(
+        flight({ to: { id: 2, country: 'ES', continent: 'EU' } }),
+        spain,
+      ),
+    ).toBe(true);
+    expect(matchesFlight(flight(), spain)).toBe(false);
+  });
+
+  it('keeps drilldown location matching pure and', () => {
+    const userFilters = filters({
+      logic: 'or',
+      departureCountries: ['DE'],
+      arrivalCountries: ['FR'],
+    });
+    expect(matchesFlight(flight(), userFilters)).toBe(true);
+    expect(matchesLocationFilters(flight(), userFilters)).toBe(false);
+  });
+
+  it('counts active dimensions', () => {
+    expect(activeFilterCount(filters())).toBe(0);
+    expect(activeFilterCount(filters({ departureCountries: ['DE'] }))).toBe(1);
+    expect(
+      activeFilterCount(
+        filters({
+          departureCountries: ['DE'],
+          days: ['5'],
+          years: ['2024'],
+        }),
+      ),
+    ).toBe(3);
+    expect(
+      activeFilterCount(
+        filters({
+          fromDate: new CalendarDate(2024, 1, 1),
+          toDate: new CalendarDate(2024, 3, 1),
+        }),
+      ),
+    ).toBe(1);
+    expect(activeFilterCount(filters({ logic: 'or' }))).toBe(0);
+  });
+
+  it('defaults to and, clones, and resets with clear-all', () => {
+    expect(createDefaultFilters().logic).toBe('and');
+    const cloned = cloneFlightFilters(filters({ logic: 'or' }));
+    expect(cloned.logic).toBe('or');
+    expect(cloneFlightFilters(filters({ logic: 'or' }), {}).logic).toBe('or');
   });
 });

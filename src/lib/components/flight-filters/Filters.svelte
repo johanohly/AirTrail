@@ -84,8 +84,10 @@
 
   import UserAvatar from '$lib/components/display/UserAvatar.svelte';
   import {
+    activeFilterCount,
     bitsFiltersToFlightFilters,
     bitsSignature,
+    cloneFlightFilters,
     createDefaultFilters,
     flightFiltersToBits,
     flightSignature,
@@ -108,6 +110,7 @@
   import {
     normalizeRoute,
     routeKey,
+    type FilterLogic,
     type FlightFilters,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
@@ -745,6 +748,10 @@
   let lastSyncedFlightSignature = $state(flightSignature(filters));
   const showClear = $derived(hasFlightFilters(filters));
 
+  function setFilterLogic(logic: FilterLogic) {
+    filters = cloneFlightFilters(filters, { logic });
+  }
+
   function syncBitsFilters(nextBits: FiltersState) {
     filterState.actions.batch((actions) => {
       actions.removeAllFilters();
@@ -848,6 +855,28 @@
 {/snippet}
 
 {#snippet filterActions()}
+  {#if activeFilterCount(filters) >= 2}
+    <div data-filter-logic role="group" aria-label="Filter combination">
+      <button
+        type="button"
+        data-active={filters.logic === 'and'}
+        aria-pressed={filters.logic === 'and'}
+        title="Match all filters"
+        onclick={() => setFilterLogic('and')}
+      >
+        All
+      </button>
+      <button
+        type="button"
+        data-active={filters.logic === 'or'}
+        aria-pressed={filters.logic === 'or'}
+        title="Match any filter"
+        onclick={() => setFilterLogic('or')}
+      >
+        Any
+      </button>
+    </div>
+  {/if}
   <button
     type="button"
     data-filter-actions

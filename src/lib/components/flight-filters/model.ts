@@ -8,6 +8,7 @@ import {
   routeFromKey,
   routeKey,
   routeMatchesEndpoints,
+  type FilterLogic,
   type FlightFilters,
   type LocationFilters,
   type MultiOptionFilterOperator,
@@ -142,6 +143,7 @@ export function createDefaultFilters(): FlightFilters {
     monthsOperator: 'is any of',
     days: [],
     daysOperator: 'is any of',
+    logic: 'and',
   };
 }
 
@@ -205,6 +207,50 @@ export function hasFlightFilters(filters: FlightFilters | undefined): boolean {
       filters.months.length > 0 ||
       filters.days.length > 0)
   );
+}
+
+/*
+ * Combines per-dimension results: AND needs every active filter to match, OR
+ * needs one. With nothing active there is nothing to fail on.
+ */
+function combineFilterResults(
+  results: boolean[],
+  logic: FilterLogic = 'and',
+): boolean {
+  if (!results.length) return true;
+  return logic === 'or' ? results.some(Boolean) : results.every(Boolean);
+}
+
+/*
+ * The number of dimensions with values selected. The logic toggle only
+ * changes results from two active dimensions on.
+ */
+export function activeFilterCount(filters: FlightFilters): number {
+  let count = 0;
+  if (filters.departureAirports.length) count++;
+  if (filters.arrivalAirports.length) count++;
+  if (filters.airportsEither.length) count++;
+  if (filters.routes.length) count++;
+  if (filters.departureCountries.length) count++;
+  if (filters.arrivalCountries.length) count++;
+  if (filters.departureContinents.length) count++;
+  if (filters.arrivalContinents.length) count++;
+  if (filters.years.length) count++;
+  if (filters.fromDate || filters.toDate) count++;
+  if (filters.passengers.length) count++;
+  if (filters.airline.length) count++;
+  if (filters.aircraft.length) count++;
+  if (filters.aircraftRegs.length) count++;
+  if (filters.flightType.length) count++;
+  if (filters.flightNumber.length) count++;
+  if (filters.duration.length) count++;
+  if (filters.seatClass.length) count++;
+  if (filters.flightReason.length) count++;
+  if (filters.seatType.length) count++;
+  if (filters.seatNumber.length) count++;
+  if (filters.months.length) count++;
+  if (filters.days.length) count++;
+  return count;
 }
 
 export function normalizeOptionOperator(
@@ -1292,99 +1338,108 @@ export function multiOptionMatches(
   }
 }
 
-export function matchesLocationFilters(
+/*
+ * One boolean per location dimension with values selected. Inactive
+ * dimensions contribute nothing, so the combination logic can skip them.
+ */
+function locationFilterResults(
   flight: FlightData,
   locationFilters: LocationFilters,
-) {
+): boolean[] {
+  const results: boolean[] = [];
   const fromId = flight.from?.id.toString();
   const toId = flight.to?.id.toString();
-  const departureAirports = locationFilters.departureAirports ?? [];
-  const arrivalAirports = locationFilters.arrivalAirports ?? [];
 
-  if (
-    !optionMatches(
-      fromId,
-      departureAirports,
-      locationFilters.departureAirportsOperator,
-    )
-  ) {
-    return false;
+  if (locationFilters.departureAirports.length) {
+    results.push(
+      optionMatches(
+        fromId,
+        locationFilters.departureAirports,
+        locationFilters.departureAirportsOperator,
+      ),
+    );
   }
 
-  if (
-    !optionMatches(
-      toId,
-      arrivalAirports,
-      locationFilters.arrivalAirportsOperator,
-    )
-  ) {
-    return false;
+  if (locationFilters.arrivalAirports.length) {
+    results.push(
+      optionMatches(
+        toId,
+        locationFilters.arrivalAirports,
+        locationFilters.arrivalAirportsOperator,
+      ),
+    );
   }
 
-  if (
-    locationFilters.airportsEither.length &&
-    (!fromId ||
-      !toId ||
-      ![fromId, toId].some((id) => locationFilters.airportsEither.includes(id)))
-  ) {
-    return false;
+  if (locationFilters.airportsEither.length) {
+    results.push(
+      !!fromId &&
+        !!toId &&
+        [fromId, toId].some((id) =>
+          locationFilters.airportsEither.includes(id),
+        ),
+    );
   }
 
   if (locationFilters.routes.length) {
     const flightRoute =
       fromId && toId ? routeKey(normalizeRoute(fromId, toId)) : undefined;
-    if (
-      !optionMatches(
+    results.push(
+      optionMatches(
         flightRoute,
         locationFilters.routes.map(routeKey),
         locationFilters.routesOperator ?? 'is any of',
-      )
-    ) {
-      return false;
-    }
+      ),
+    );
   }
 
-  if (
-    !optionMatches(
-      flight.from?.country,
-      locationFilters.departureCountries ?? [],
-      locationFilters.departureCountriesOperator,
-    )
-  ) {
-    return false;
+  if (locationFilters.departureCountries.length) {
+    results.push(
+      optionMatches(
+        flight.from?.country,
+        locationFilters.departureCountries,
+        locationFilters.departureCountriesOperator,
+      ),
+    );
   }
 
-  if (
-    !optionMatches(
-      flight.to?.country,
-      locationFilters.arrivalCountries ?? [],
-      locationFilters.arrivalCountriesOperator,
-    )
-  ) {
-    return false;
+  if (locationFilters.arrivalCountries.length) {
+    results.push(
+      optionMatches(
+        flight.to?.country,
+        locationFilters.arrivalCountries,
+        locationFilters.arrivalCountriesOperator,
+      ),
+    );
   }
 
-  if (
-    !optionMatches(
-      flight.from?.continent,
-      locationFilters.departureContinents ?? [],
-      locationFilters.departureContinentsOperator,
-    )
-  ) {
-    return false;
+  if (locationFilters.departureContinents.length) {
+    results.push(
+      optionMatches(
+        flight.from?.continent,
+        locationFilters.departureContinents,
+        locationFilters.departureContinentsOperator,
+      ),
+    );
   }
 
-  if (
-    !optionMatches(
-      flight.to?.continent,
-      locationFilters.arrivalContinents ?? [],
-      locationFilters.arrivalContinentsOperator,
-    )
-  ) {
-    return false;
+  if (locationFilters.arrivalContinents.length) {
+    results.push(
+      optionMatches(
+        flight.to?.continent,
+        locationFilters.arrivalContinents,
+        locationFilters.arrivalContinentsOperator,
+      ),
+    );
   }
 
-  return true;
+  return results;
+}
+
+export function matchesLocationFilters(
+  flight: FlightData,
+  locationFilters: LocationFilters,
+) {
+  return combineFilterResults(locationFilterResults(flight, locationFilters));
 }
 
 function getFilterBoundary(
@@ -1472,185 +1527,205 @@ export function flightTypeForFlight(flight: FlightData): string | undefined {
     : 'international';
 }
 
+/*
+ * One boolean per non-location dimension with values selected. The two date
+ * bounds form a single date-range dimension.
+ */
+function nonLocationFilterResults(
+  flight: FlightData,
+  filters: FlightFilters,
+  seatCtx?: SeatFilterContext,
+): boolean[] {
+  const results: boolean[] = [];
+
+  if (filters.years.length) {
+    results.push(
+      optionMatches(
+        flight.date?.getFullYear().toString(),
+        filters.years,
+        filters.yearsOperator,
+      ),
+    );
+  }
+
+  if (filters.fromDate || filters.toDate) {
+    let matches = true;
+    if (
+      filters.fromDate &&
+      (!flight.dateEnd ||
+        isBefore(
+          flight.dateEnd,
+          getFilterBoundary(filters.fromDate, flight.dateEnd.timeZone ?? 'UTC'),
+        ))
+    ) {
+      matches = false;
+    }
+    if (
+      matches &&
+      filters.toDate &&
+      (!flight.dateStart ||
+        isAfter(
+          flight.dateStart,
+          getFilterBoundary(
+            filters.toDate,
+            flight.dateStart.timeZone ?? 'UTC',
+            true,
+          ),
+        ))
+    ) {
+      matches = false;
+    }
+    results.push(matches);
+  }
+
+  if (filters.passengers.length) {
+    results.push(
+      multiOptionMatches(
+        flight.passengers
+          .map((passenger) => getFlightPassengerToken(passenger))
+          .filter((token): token is string => !!token),
+        filters.passengers,
+        filters.passengersOperator,
+      ),
+    );
+  }
+
+  if (filters.airline.length) {
+    results.push(
+      optionMatches(
+        flight.airline?.name,
+        filters.airline,
+        filters.airlineOperator,
+      ),
+    );
+  }
+
+  if (filters.aircraft.length) {
+    results.push(
+      optionMatches(
+        flight.aircraft?.name,
+        filters.aircraft,
+        filters.aircraftOperator,
+      ),
+    );
+  }
+
+  if (filters.aircraftRegs.length) {
+    results.push(
+      optionMatches(
+        flight.aircraftReg,
+        filters.aircraftRegs,
+        filters.aircraftRegsOperator,
+      ),
+    );
+  }
+
+  if (filters.flightType.length) {
+    results.push(
+      optionMatches(
+        flightTypeForFlight(flight),
+        filters.flightType,
+        filters.flightTypeOperator,
+      ),
+    );
+  }
+
+  if (filters.flightNumber.length) {
+    results.push(
+      optionMatches(
+        flight.flightNumber,
+        filters.flightNumber,
+        filters.flightNumberOperator,
+      ),
+    );
+  }
+
+  if (filters.months.length) {
+    results.push(
+      optionMatches(
+        flight.date ? String(flight.date.getMonth()) : undefined,
+        filters.months,
+        filters.monthsOperator,
+      ),
+    );
+  }
+
+  if (filters.days.length) {
+    results.push(
+      optionMatches(
+        flight.date ? String(flight.date.getDate()) : undefined,
+        filters.days,
+        filters.daysOperator,
+      ),
+    );
+  }
+
+  if (filters.duration.length) {
+    results.push(
+      optionMatches(
+        durationBucketFor(flight.distance),
+        filters.duration,
+        filters.durationOperator,
+      ),
+    );
+  }
+
+  const seatPassengers = seatContextPassengers(flight, seatCtx);
+  if (filters.seatClass.length) {
+    results.push(
+      passengerFieldMatches(
+        seatPassengers,
+        'seatClass',
+        filters.seatClass,
+        filters.seatClassOperator,
+      ),
+    );
+  }
+
+  if (filters.flightReason.length) {
+    results.push(
+      passengerFieldMatches(
+        seatPassengers,
+        'flightReason',
+        filters.flightReason,
+        filters.flightReasonOperator,
+      ),
+    );
+  }
+
+  if (filters.seatType.length) {
+    results.push(
+      passengerFieldMatches(
+        seatPassengers,
+        'seat',
+        filters.seatType,
+        filters.seatTypeOperator,
+      ),
+    );
+  }
+
+  if (filters.seatNumber.length) {
+    results.push(
+      passengerFieldMatches(
+        seatPassengers,
+        'seatNumber',
+        filters.seatNumber,
+        filters.seatNumberOperator,
+      ),
+    );
+  }
+
+  return results;
+}
+
 export function matchesNonLocationFilters(
   flight: FlightData,
   filters: FlightFilters,
   seatCtx?: SeatFilterContext,
 ) {
-  if (
-    !optionMatches(
-      flight.date?.getFullYear().toString(),
-      filters.years,
-      filters.yearsOperator,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    filters.fromDate &&
-    (!flight.dateEnd ||
-      isBefore(
-        flight.dateEnd,
-        getFilterBoundary(filters.fromDate, flight.dateEnd.timeZone ?? 'UTC'),
-      ))
-  ) {
-    return false;
-  }
-
-  if (
-    filters.toDate &&
-    (!flight.dateStart ||
-      isAfter(
-        flight.dateStart,
-        getFilterBoundary(
-          filters.toDate,
-          flight.dateStart.timeZone ?? 'UTC',
-          true,
-        ),
-      ))
-  ) {
-    return false;
-  }
-
-  if (
-    !multiOptionMatches(
-      flight.passengers
-        .map((passenger) => getFlightPassengerToken(passenger))
-        .filter((token): token is string => !!token),
-      filters.passengers,
-      filters.passengersOperator,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    !optionMatches(
-      flight.airline?.name,
-      filters.airline,
-      filters.airlineOperator,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    !optionMatches(
-      flight.aircraft?.name,
-      filters.aircraft,
-      filters.aircraftOperator,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    !optionMatches(
-      flight.aircraftReg,
-      filters.aircraftRegs,
-      filters.aircraftRegsOperator,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    !optionMatches(
-      flightTypeForFlight(flight),
-      filters.flightType,
-      filters.flightTypeOperator,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    !optionMatches(
-      flight.flightNumber,
-      filters.flightNumber,
-      filters.flightNumberOperator,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    !optionMatches(
-      flight.date ? String(flight.date.getMonth()) : undefined,
-      filters.months,
-      filters.monthsOperator,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    !optionMatches(
-      flight.date ? String(flight.date.getDate()) : undefined,
-      filters.days,
-      filters.daysOperator,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    !optionMatches(
-      durationBucketFor(flight.distance),
-      filters.duration,
-      filters.durationOperator,
-    )
-  ) {
-    return false;
-  }
-
-  const seatPassengers = seatContextPassengers(flight, seatCtx);
-  if (
-    !passengerFieldMatches(
-      seatPassengers,
-      'seatClass',
-      filters.seatClass,
-      filters.seatClassOperator,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    !passengerFieldMatches(
-      seatPassengers,
-      'flightReason',
-      filters.flightReason,
-      filters.flightReasonOperator,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    !passengerFieldMatches(
-      seatPassengers,
-      'seat',
-      filters.seatType,
-      filters.seatTypeOperator,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    !passengerFieldMatches(
-      seatPassengers,
-      'seatNumber',
-      filters.seatNumber,
-      filters.seatNumberOperator,
-    )
-  ) {
-    return false;
-  }
-
-  return true;
+  return combineFilterResults(
+    nonLocationFilterResults(flight, filters, seatCtx),
+  );
 }
 
 export function matchesFlight(
@@ -1658,8 +1733,11 @@ export function matchesFlight(
   filters: FlightFilters,
   seatCtx?: SeatFilterContext,
 ) {
-  return (
-    matchesLocationFilters(flight, filters) &&
-    matchesNonLocationFilters(flight, filters, seatCtx)
+  return combineFilterResults(
+    [
+      ...locationFilterResults(flight, filters),
+      ...nonLocationFilterResults(flight, filters, seatCtx),
+    ],
+    filters.logic,
   );
 }
