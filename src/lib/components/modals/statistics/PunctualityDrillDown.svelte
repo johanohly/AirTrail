@@ -74,7 +74,7 @@
   );
   const subtitle = $derived(
     mode === 'average'
-      ? `${entries.length} ${TITLES[chartKey].many} with recorded arrivals. Mean minutes vs schedule — − means early.`
+      ? `${entries.length} ${TITLES[chartKey].many} with delayed flights. Average minutes late per delayed flight.`
       : `${entries.length} ${TITLES[chartKey].many} across ${report.assessedFlights} assessed ${pluralize(report.assessedFlights, 'flight')}. Minutes past the ${DELAY_THRESHOLD_MINUTES}-minute threshold.`,
   );
 

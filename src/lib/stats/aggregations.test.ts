@@ -673,29 +673,29 @@ describe('punctualityReport', () => {
     ).toBe(true);
   });
 
-  it('ranks averages across every assessed flight, signed', () => {
+  it('ranks averages over delayed flights only, excluding on-time airlines', () => {
     const flights = [
       makeFlight({
         airline: { name: 'Alpha' },
         arrivalScheduled: '2024-01-01T10:00:00Z',
-        arrival: '2024-01-01T11:00:00Z', // +60
+        arrival: '2024-01-01T11:00:00Z', // +60, delayed
       }),
       makeFlight({
         airline: { name: 'Alpha' },
         arrivalScheduled: '2024-01-02T10:00:00Z',
-        arrival: '2024-01-02T10:10:00Z', // +10
+        arrival: '2024-01-02T10:10:00Z', // +10, on time
       }),
       makeFlight({
         airline: { name: 'Beta' },
         arrivalScheduled: '2024-01-03T10:00:00Z',
-        arrival: '2024-01-03T09:40:00Z', // −20
+        arrival: '2024-01-03T09:40:00Z', // −20, early
       }),
     ];
 
     const report = punctualityReport(flights);
-    expect(report.avgAirlines.map((a) => a.key)).toEqual(['Alpha', 'Beta']);
-    expect(report.avgAirlines[0]).toMatchObject({ averageDelayMinutes: 35 });
-    expect(report.avgAirlines[1]).toMatchObject({ averageDelayMinutes: -20 });
+    // Beta never lands late, so it leaves the average ranking entirely
+    expect(report.avgAirlines.map((a) => a.key)).toEqual(['Alpha']);
+    expect(report.avgAirlines[0]).toMatchObject({ averageDelayMinutes: 60 });
   });
 
   it('lists only delayed flights, most late first', () => {

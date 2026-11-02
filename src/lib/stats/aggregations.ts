@@ -848,7 +848,7 @@ export type PunctualityEntry = {
   assessedFlights: number;
   delayedFlights: number;
   totalDelayMinutes: number;
-  /** Mean signed delay across assessed flights; negative leans early. */
+  /** Mean minutes late across the group's delayed flights. */
   averageDelayMinutes: number;
   delayRate: number; // percentage of assessed flights that were delayed
 };
@@ -885,12 +885,7 @@ const punctualityEntries = (
 ): PunctualityEntry[] => {
   const groups = new Map<
     string,
-    {
-      assessed: number;
-      delayed: number;
-      delayMinutes: number;
-      signedMinutes: number;
-    }
+    { assessed: number; delayed: number; delayMinutes: number }
   >();
 
   for (const flight of flights) {
@@ -903,10 +898,8 @@ const punctualityEntries = (
       assessed: 0,
       delayed: 0,
       delayMinutes: 0,
-      signedMinutes: 0,
     };
     group.assessed++;
-    group.signedMinutes += delay;
     if (delay > DELAY_THRESHOLD_MINUTES) {
       group.delayed++;
       group.delayMinutes += delay;
@@ -919,7 +912,8 @@ const punctualityEntries = (
     assessedFlights: group.assessed,
     delayedFlights: group.delayed,
     totalDelayMinutes: group.delayMinutes,
-    averageDelayMinutes: group.signedMinutes / group.assessed,
+    averageDelayMinutes:
+      group.delayed > 0 ? group.delayMinutes / group.delayed : 0,
     delayRate: (group.delayed / group.assessed) * 100,
   }));
 };
@@ -933,8 +927,11 @@ const byAccumulatedDelay = (
     .sort((a, b) => b.totalDelayMinutes - a.totalDelayMinutes)
     .slice(0, limit ?? Number.POSITIVE_INFINITY);
 
+/** Average rankings cover only groups that actually had delayed flights. */
 const byAverageDelay = (entries: PunctualityEntry[]): PunctualityEntry[] =>
-  [...entries].sort((a, b) => b.averageDelayMinutes - a.averageDelayMinutes);
+  entries
+    .filter((entry) => entry.delayedFlights > 0)
+    .sort((a, b) => b.averageDelayMinutes - a.averageDelayMinutes);
 
 export function punctualityReport(
   flights: FlightData[],
