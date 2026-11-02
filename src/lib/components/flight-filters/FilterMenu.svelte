@@ -269,6 +269,9 @@
   // A column matches when its name does, or when any of its options does —
   // so queries like "mad" surface the airport columns holding Madrid/MAD
   function columnMatchesSearch(column: Column<TData>) {
+    // searchMatchKind returns undefined for an empty query too — without this
+    // guard, clearing the search would hide every column but Quick Date.
+    if (!searchQuery) return true;
     return columnSearchMatch(column) !== undefined;
   }
 

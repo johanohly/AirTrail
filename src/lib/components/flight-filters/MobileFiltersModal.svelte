@@ -261,10 +261,11 @@
   }
 
   // A subject stays listed when its name matches the search, or when any of
-  // its options does — mirroring the desktop menu search
-  // A subject stays listed when its name matches the search, or when any of
-  // its options does — mirroring the desktop menu search
+  // its options does — mirroring the desktop menu search. searchMatchKind
+  // returns undefined for an empty query too, so guard it: an empty search
+  // lists every subject.
   function matchesSubjectSearch(column: FilterColumn) {
+    if (!search.trim()) return true;
     return subjectSearchMatch(column) !== undefined;
   }
 
