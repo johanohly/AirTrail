@@ -247,6 +247,7 @@
   <Map
     bind:filters
     bind:tempFilters
+    seatUserId={effectiveSeatUserId}
     {flights}
     {filteredFlights}
     {flightTracks}
