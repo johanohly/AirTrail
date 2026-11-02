@@ -652,7 +652,7 @@ describe('punctualityReport', () => {
     ]);
   });
 
-  it('lists the individually most-delayed flights, most late first', () => {
+  it('lists only delayed flights, most late first', () => {
     const flights = [
       makeFlight({
         arrivalScheduled: '2024-01-01T10:00:00Z',
@@ -660,7 +660,7 @@ describe('punctualityReport', () => {
       }),
       makeFlight({
         arrivalScheduled: '2024-01-02T10:00:00Z',
-        arrival: '2024-01-02T09:50:00Z', // −10
+        arrival: '2024-01-02T09:50:00Z', // −10, not delayed
       }),
       makeFlight({
         arrivalScheduled: '2024-01-03T10:00:00Z',
@@ -670,7 +670,7 @@ describe('punctualityReport', () => {
 
     const report = punctualityReport(flights);
     expect(report.worstDelays.map((d) => Math.round(d.delayMinutes))).toEqual([
-      60, 20, -10,
+      60, 20,
     ]);
   });
 });

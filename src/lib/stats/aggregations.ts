@@ -913,7 +913,11 @@ export function punctualityReport(
     if (delay === null) continue;
 
     assessedFlights++;
-    delays.push({ flight, delayMinutes: delay });
+    // Only flights past the threshold are "delayed flights"; early and
+    // on-time ones belong to the other widgets
+    if (delay > DELAY_THRESHOLD_MINUTES) {
+      delays.push({ flight, delayMinutes: delay });
+    }
 
     if (delay > DELAY_THRESHOLD_MINUTES) {
       delayedFlights++;

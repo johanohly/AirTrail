@@ -4,30 +4,32 @@
   import { CHART_NOUNS, createDetailsLookup } from './breakdown';
   import BreakdownLabel from './BreakdownLabel.svelte';
   import BreakdownRow from './BreakdownRow.svelte';
+  import DelayedFlightRow from './DelayedFlightRow.svelte';
 
-  import { page } from '$app/state';
   import { HelpTooltip } from '$lib/components/ui/tooltip';
   import {
     DELAY_THRESHOLD_MINUTES,
     punctualityReport,
-    routeLabelForFlight,
-    type FlightChartKey,
-    type FlightDelay,
     type PunctualityEntry,
   } from '$lib/stats/aggregations';
   import { pluralize, type FlightData } from '$lib/utils';
   import { Duration } from '$lib/utils/datetime';
   import { round } from '$lib/utils/number';
-  import { formatDate, getPreferences } from '$lib/utils/preferences';
 
   let {
     flights,
-    onOpen,
+    onOpenDelay,
+    onOpenAllDelayed,
     onOpenFlight,
     onOpenAirport,
   }: {
     flights: FlightData[];
-    onOpen: (key: FlightChartKey, entry?: string) => void;
+    /** Opens the chart's drawer ranked by delay. */
+    onOpenDelay: (
+      key: 'airlines' | 'routes' | 'airports',
+      entry?: string,
+    ) => void;
+    onOpenAllDelayed: () => void;
     onOpenFlight?: (flightId: number) => void;
     onOpenAirport?: (airportId: number) => void;
   } = $props();
@@ -35,7 +37,6 @@
   const DISPLAY_LIMIT = 3;
 
   const report = $derived(punctualityReport(flights));
-  const prefs = $derived(getPreferences(page.data.user));
   // Built once per chart, not per row
   const detailsFor = $derived.by(() => ({
     airlines: createDetailsLookup('airlines', flights),
@@ -59,19 +60,6 @@
     `${minutes < 0 ? '−' : '+'}${duration(Math.abs(minutes))}`;
 </script>
 
-{#snippet flag(country: string | null | undefined)}
-  {#if country}
-    <img
-      src="https://flagcdn.com/{country.toLowerCase()}.svg"
-      alt=""
-      title={country.toUpperCase()}
-      class="h-3 w-[18px] shrink-0 rounded-[2px] object-cover shadow-xs"
-      loading="lazy"
-      decoding="async"
-    />
-  {/if}
-{/snippet}
-
 {#snippet groupList(
   title: string,
   chartKey: 'airlines' | 'routes' | 'airports',
@@ -89,10 +77,7 @@
             onOpenAirport &&
             airportIdFor.has(entry.key)
               ? onOpenAirport(airportIdFor.get(entry.key)!)
-              : onOpen(
-                  chartKey,
-                  entry.key === 'Unknown airline' ? 'No Data' : entry.key,
-                )}
+              : onOpenDelay(chartKey, entry.key)}
         >
           <BreakdownLabel
             {chartKey}
@@ -106,7 +91,7 @@
       <button
         type="button"
         class="mt-1 flex items-center gap-0.5 rounded px-2 py-1 text-[12.5px] text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
-        onclick={() => onOpen(chartKey)}
+        onclick={() => onOpenDelay(chartKey)}
       >
         All {entries.length}
         {CHART_NOUNS[chartKey][1]}
@@ -121,7 +106,7 @@
     No flights have both a scheduled and an actual arrival yet.
   </p>
 {:else}
-  <div class="grid gap-x-7 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="grid gap-x-7 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
     <div>
       <div class="flex items-center gap-1 text-[13px] text-muted-foreground">
         Delayed flights
@@ -143,11 +128,13 @@
           ? duration(report.totalDelayMinutes)
           : '0m'}
       </div>
-      {#if report.worstDelayMinutes > 0}
-        <div class="text-[13px] text-muted-foreground">
-          Worst {signed(report.worstDelayMinutes)}
-        </div>
-      {/if}
+      <div class="text-[13px] text-muted-foreground">
+        {report.delayedFlights}
+        {pluralize(report.delayedFlights, 'flight')} late
+        {#if report.worstDelayMinutes > 0}
+          · worst {signed(report.worstDelayMinutes)}
+        {/if}
+      </div>
     </div>
     <div>
       <div class="text-[13px] text-muted-foreground">Ahead of schedule</div>
@@ -162,16 +149,6 @@
           )}
         </div>
       {/if}
-    </div>
-    <div>
-      <div class="text-[13px] text-muted-foreground">Balance</div>
-      <div class="text-[26px] font-bold tracking-tight">
-        {signed(report.totalDelayMinutes - report.totalEarlyMinutes)}
-      </div>
-      <div class="truncate text-[13px] text-muted-foreground">
-        {duration(report.totalDelayMinutes)} lost ·
-        {duration(report.totalEarlyMinutes)} gained
-      </div>
     </div>
   </div>
 
@@ -190,27 +167,28 @@
       {#if report.worstDelays.length}
         <div class="space-y-0.5">
           {#each report.worstDelays as delay (delay.flight.id)}
-            <BreakdownRow
-              share={delay.delayMinutes /
-                (report.worstDelays[0]?.delayMinutes || 1)}
-              value={signed(delay.delayMinutes)}
+            <DelayedFlightRow
+              {delay}
+              largest={report.worstDelays[0]?.delayMinutes || 1}
               onclick={() => onOpenFlight?.(delay.flight.id)}
-            >
-              {@render flag(delay.flight.from?.country)}
-              {@render flag(delay.flight.to?.country)}
-              <span class="min-w-0 shrink truncate font-semibold">
-                {routeLabelForFlight(delay.flight) ?? 'Unknown flight'}
-              </span>
-              {#if delay.flight.date}
-                <span class="min-w-0 truncate text-muted-foreground">
-                  {formatDate(delay.flight.date, prefs, delay.flight.from?.tz)}
-                </span>
-              {/if}
-            </BreakdownRow>
+            />
           {/each}
         </div>
+        {#if report.delayedFlights > report.worstDelays.length}
+          <button
+            type="button"
+            class="mt-1 flex items-center gap-0.5 rounded px-2 py-1 text-[12.5px] text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
+            onclick={onOpenAllDelayed}
+          >
+            All {report.delayedFlights} delayed
+            {pluralize(report.delayedFlights, 'flight', 'flights')}
+            <ChevronRight size={13} />
+          </button>
+        {/if}
       {:else}
-        <p class="px-2 text-sm text-muted-foreground">Nothing assessed.</p>
+        <p class="px-2 text-sm text-muted-foreground">
+          Every assessed flight arrived on time.
+        </p>
       {/if}
     </div>
   </div>

@@ -8,6 +8,7 @@
   import FlightsPerWeekday from './charts/FlightsPerWeekday.svelte';
   import FlightsPerYear from './charts/FlightsPerYear.svelte';
   import BreakdownRow from './BreakdownRow.svelte';
+  import DelayedFlightsSheet from './DelayedFlightsSheet.svelte';
   import PunctualitySection from './PunctualitySection.svelte';
   import RankedList from './RankedList.svelte';
   import RecordsSection from './RecordsSection.svelte';
@@ -158,13 +159,17 @@
   let activeChart: FlightChartKey | null = $state(null);
   let activeEntry: string | null = $state(null);
   let activeContinent: string | null = $state(null);
+  let activeMetric = $state<'flights' | 'distance' | 'delay'>('flights');
+  let activeDelayedFlights = $state(false);
   // The seat map starts clipped to the height of the lists beside it
   let seatMapExpanded = $state(false);
   let seatMapClipHeight = $state(0);
   let seatMapHeight = $state(0);
   let modalHistory: ModalHistoryHandle | undefined = $state();
   let wasOpen = $state(false);
-  const drillDownOpen = $derived(Boolean(activeChart || activeContinent));
+  const drillDownOpen = $derived(
+    Boolean(activeChart || activeContinent || activeDelayedFlights),
+  );
 
   const countryStatus = $derived(
     COUNTRY_CHARTS['visited-country-status'].aggregate(visitedCountries),
@@ -228,12 +233,36 @@
   const openChart = (key: FlightChartKey, entry?: string) => {
     activeChart = key;
     activeEntry = entry ?? null;
-    modalHistory?.push({ activeChart, activeEntry, activeContinent });
+    activeMetric = 'flights';
+    pushDrilldown();
+  };
+
+  /** Like openChart, but the drawer lands ranked by delay. */
+  const openDelayChart = (key: FlightChartKey, entry?: string) => {
+    activeChart = key;
+    activeEntry = entry ?? null;
+    activeMetric = 'delay';
+    pushDrilldown();
+  };
+
+  const openDelayedFlights = () => {
+    activeDelayedFlights = true;
+    pushDrilldown();
   };
 
   const openContinent = (continent: string) => {
     activeContinent = continent;
-    modalHistory?.push({ activeChart, activeEntry, activeContinent });
+    pushDrilldown();
+  };
+
+  const pushDrilldown = () => {
+    modalHistory?.push({
+      activeChart,
+      activeEntry,
+      activeContinent,
+      activeMetric,
+      activeDelayedFlights,
+    });
   };
 
   const restoreDrilldown = (state: unknown) => {
@@ -242,6 +271,8 @@
           activeChart?: unknown;
           activeEntry?: unknown;
           activeContinent?: unknown;
+          activeMetric?: unknown;
+          activeDelayedFlights?: unknown;
         }
       | undefined;
     const chart = drilldown?.activeChart;
@@ -255,17 +286,27 @@
       typeof drilldown?.activeContinent === 'string'
         ? drilldown.activeContinent
         : null;
+    activeMetric =
+      drilldown?.activeMetric === 'flights' ||
+      drilldown?.activeMetric === 'distance' ||
+      drilldown?.activeMetric === 'delay'
+        ? drilldown.activeMetric
+        : 'flights';
+    activeDelayedFlights = drilldown?.activeDelayedFlights === true;
   };
 
   $effect(() => {
     const closedFromDrilldown =
-      wasOpen && !open && (activeChart || activeContinent);
+      wasOpen &&
+      !open &&
+      (activeChart || activeContinent || activeDelayedFlights);
     wasOpen = open;
 
     if (closedFromDrilldown) {
       activeChart = null;
       activeEntry = null;
       activeContinent = null;
+      activeDelayedFlights = false;
     }
 
     if (open) {
@@ -752,7 +793,8 @@
       {#snippet punctuality()}
         <PunctualitySection
           flights={completedFlights}
-          onOpen={openChart}
+          onOpenDelay={openDelayChart}
+          onOpenAllDelayed={openDelayedFlights}
           {onOpenFlight}
           {onOpenAirport}
         />
@@ -782,10 +824,17 @@
     <ChartDrillDown
       chartKey={activeChart}
       initialEntry={activeEntry}
+      initialMetric={activeMetric}
       flights={countedFlights}
       onBack={() => modalHistory?.back()}
       {onOpenFlight}
       {seatUserId}
+    />
+  {:else if activeDelayedFlights}
+    <DelayedFlightsSheet
+      flights={completedFlights}
+      onBack={() => modalHistory?.back()}
+      {onOpenFlight}
     />
   {/if}
 </Modal>
