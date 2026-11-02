@@ -1,6 +1,7 @@
 <script lang="ts">
   import NumberFlow from '@number-flow/svelte';
   import { Plus } from '@o7/icon/lucide';
+  import { tick, untrack } from 'svelte';
 
   import ChartDrillDown from './charts/ChartDrillDown.svelte';
   import ContinentDrillDown from './charts/ContinentDrillDown.svelte';
@@ -139,6 +140,40 @@
   let wasOpen = $state(false);
   const drillDownOpen = $derived(Boolean(activeChart || activeContinent));
 
+  // Closing a drill-down removes the focused control inside it, so the dialog
+  // moves focus to its first control and the page scrolls back to the top.
+  // Remember where the page was and which control opened the sheet, and put
+  // both back once it closes.
+  let scrollContainer: HTMLDivElement | undefined = $state();
+  let drillDownOrigin: {
+    scrollTop: number;
+    opener: HTMLElement | null;
+  } | null = null;
+
+  const rememberDrillDownOrigin = () => {
+    if (drillDownOrigin) return;
+    drillDownOrigin = {
+      scrollTop: scrollContainer?.scrollTop ?? 0,
+      opener:
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null,
+    };
+  };
+
+  $effect(() => {
+    if (drillDownOpen || !drillDownOrigin) return;
+    const origin = drillDownOrigin;
+    drillDownOrigin = null;
+    if (!untrack(() => open)) return;
+    void tick().then(() => {
+      if (scrollContainer) scrollContainer.scrollTop = origin.scrollTop;
+      if (origin.opener?.isConnected) {
+        origin.opener.focus({ preventScroll: true });
+      }
+    });
+  });
+
   const countryStatus = $derived(
     COUNTRY_CHARTS['visited-country-status'].aggregate(visitedCountries),
   );
@@ -182,12 +217,14 @@
   );
 
   const openChart = (key: FlightChartKey, entry?: string) => {
+    rememberDrillDownOrigin();
     activeChart = key;
     activeEntry = entry ?? null;
     modalHistory?.push({ activeChart, activeEntry, activeContinent });
   };
 
   const openContinent = (continent: string) => {
+    rememberDrillDownOrigin();
     activeContinent = continent;
     modalHistory?.push({ activeChart, activeEntry, activeContinent });
   };
@@ -492,6 +529,7 @@
   <!-- Scrolls in here, so a drill-down sheet stays on screen however far down
        the row that opened it was -->
   <div
+    bind:this={scrollContainer}
     class="h-full min-h-0 overflow-y-auto p-6"
     inert={drillDownOpen}
     data-testid="statistics-scroll"
