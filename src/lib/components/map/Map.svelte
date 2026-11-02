@@ -111,6 +111,10 @@
 
   let map: MapLibreMap | undefined = $state.raw(undefined);
   let cameraController: MapCameraController | undefined = $state.raw(undefined);
+  // Hover cards would open over these panels while the pointer crosses the
+  // map on its way to them, so map hover pauses while either is open.
+  let appearancePopoverOpen = $state(false);
+  let filterPopoverOpen = $state(false);
   let canRenderMap = $state(!browser);
   let filterDrawerOpen = $state(false);
   let showPreviousView = $state(false);
@@ -477,6 +481,7 @@
           {openAipConfigured}
           {hasFallbackArcs}
           showTracksSection={flightTracks.length > 0}
+          bind:popoverOpen={appearancePopoverOpen}
         />
       </ControlGroup>
     </Control>
@@ -488,7 +493,7 @@
           </ControlButton>
           {#if filters}
             {#if $isMediumScreen}
-              <Popover.Root>
+              <Popover.Root bind:open={filterPopoverOpen}>
                 <Popover.Trigger>
                   <ControlButton title="Filter flights">
                     <span class="relative inline-flex">
@@ -595,6 +600,7 @@
       {flightTracks}
       bind:tempFilters
       {onNavigate}
+      hoverEnabled={!appearancePopoverOpen && !filterPopoverOpen}
     />
   </MapLibre>
 
