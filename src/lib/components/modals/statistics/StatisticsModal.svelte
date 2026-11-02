@@ -9,6 +9,7 @@
   import FlightsPerYear from './charts/FlightsPerYear.svelte';
   import BreakdownRow from './BreakdownRow.svelte';
   import DelayedFlightsSheet from './DelayedFlightsSheet.svelte';
+  import PunctualityDrillDown from './PunctualityDrillDown.svelte';
   import PunctualitySection from './PunctualitySection.svelte';
   import RankedList from './RankedList.svelte';
   import RecordsSection from './RecordsSection.svelte';
@@ -159,7 +160,10 @@
   let activeChart: FlightChartKey | null = $state(null);
   let activeEntry: string | null = $state(null);
   let activeContinent: string | null = $state(null);
-  let activeMetric = $state<'flights' | 'distance' | 'delay'>('flights');
+  let activePunctuality: {
+    key: 'airlines' | 'routes' | 'departure-airports';
+    mode: 'total' | 'average';
+  } | null = $state(null);
   let activeDelayedFlights = $state(false);
   // The seat map starts clipped to the height of the lists beside it
   let seatMapExpanded = $state(false);
@@ -168,7 +172,12 @@
   let modalHistory: ModalHistoryHandle | undefined = $state();
   let wasOpen = $state(false);
   const drillDownOpen = $derived(
-    Boolean(activeChart || activeContinent || activeDelayedFlights),
+    Boolean(
+      activeChart ||
+      activeContinent ||
+      activePunctuality ||
+      activeDelayedFlights,
+    ),
   );
 
   const countryStatus = $derived(
@@ -233,15 +242,18 @@
   const openChart = (key: FlightChartKey, entry?: string) => {
     activeChart = key;
     activeEntry = entry ?? null;
-    activeMetric = 'flights';
     pushDrilldown();
   };
 
-  /** Like openChart, but the drawer lands ranked by delay. */
-  const openDelayChart = (key: FlightChartKey, entry?: string) => {
-    activeChart = key;
+  /** Opens the punctuality dock, ranked by delay totals or averages. */
+  const openPunctuality = (
+    key: 'airlines' | 'routes' | 'departure-airports',
+    mode: 'total' | 'average',
+    entry?: string,
+  ) => {
+    activeChart = null;
+    activePunctuality = { key, mode };
     activeEntry = entry ?? null;
-    activeMetric = 'delay';
     pushDrilldown();
   };
 
@@ -260,7 +272,8 @@
       activeChart,
       activeEntry,
       activeContinent,
-      activeMetric,
+      // A plain copy: history.pushState cannot clone $state proxies
+      activePunctuality: activePunctuality ? { ...activePunctuality } : null,
       activeDelayedFlights,
     });
   };
@@ -271,7 +284,7 @@
           activeChart?: unknown;
           activeEntry?: unknown;
           activeContinent?: unknown;
-          activeMetric?: unknown;
+          activePunctuality?: unknown;
           activeDelayedFlights?: unknown;
         }
       | undefined;
@@ -286,12 +299,19 @@
       typeof drilldown?.activeContinent === 'string'
         ? drilldown.activeContinent
         : null;
-    activeMetric =
-      drilldown?.activeMetric === 'flights' ||
-      drilldown?.activeMetric === 'distance' ||
-      drilldown?.activeMetric === 'delay'
-        ? drilldown.activeMetric
-        : 'flights';
+    const punctuality = drilldown?.activePunctuality as
+      { key?: unknown; mode?: unknown } | null | undefined;
+    activePunctuality =
+      punctuality &&
+      (punctuality.key === 'airlines' ||
+        punctuality.key === 'routes' ||
+        punctuality.key === 'departure-airports') &&
+      (punctuality.mode === 'total' || punctuality.mode === 'average')
+        ? {
+            key: punctuality.key,
+            mode: punctuality.mode,
+          }
+        : null;
     activeDelayedFlights = drilldown?.activeDelayedFlights === true;
   };
 
@@ -299,13 +319,17 @@
     const closedFromDrilldown =
       wasOpen &&
       !open &&
-      (activeChart || activeContinent || activeDelayedFlights);
+      (activeChart ||
+        activeContinent ||
+        activePunctuality ||
+        activeDelayedFlights);
     wasOpen = open;
 
     if (closedFromDrilldown) {
       activeChart = null;
       activeEntry = null;
       activeContinent = null;
+      activePunctuality = null;
       activeDelayedFlights = false;
     }
 
@@ -793,7 +817,7 @@
       {#snippet punctuality()}
         <PunctualitySection
           flights={completedFlights}
-          onOpenDelay={openDelayChart}
+          onOpenPunctuality={openPunctuality}
           onOpenAllDelayed={openDelayedFlights}
           {onOpenFlight}
           {onOpenAirport}
@@ -824,11 +848,19 @@
     <ChartDrillDown
       chartKey={activeChart}
       initialEntry={activeEntry}
-      initialMetric={activeMetric}
       flights={countedFlights}
       onBack={() => modalHistory?.back()}
       {onOpenFlight}
       {seatUserId}
+    />
+  {:else if activePunctuality}
+    <PunctualityDrillDown
+      chartKey={activePunctuality.key}
+      mode={activePunctuality.mode}
+      initialEntry={activeEntry}
+      flights={completedFlights}
+      onBack={() => modalHistory?.back()}
+      {onOpenFlight}
     />
   {:else if activeDelayedFlights}
     <DelayedFlightsSheet

@@ -31,6 +31,7 @@ export const CHART_NOUNS: Record<FlightChartKey, [string, string]> = {
   'aircraft-models': ['aircraft type', 'aircraft types'],
   'aircraft-regs': ['aircraft', 'aircraft'],
   airports: ['airport', 'airports'],
+  'departure-airports': ['departure airport', 'departure airports'],
   countries: ['country', 'countries'],
   routes: ['route', 'routes'],
 };
@@ -90,7 +91,11 @@ export const createDetailsLookup = (
         break;
       }
       case 'airports':
-        for (const airport of [flight.from, flight.to]) {
+      case 'departure-airports': {
+        // The departing variant only labels flights leaving the airport
+        const endpoints =
+          chartKey === 'airports' ? [flight.from, flight.to] : [flight.from];
+        for (const airport of endpoints) {
           add(codeForAirport(airport), () => ({
             airport: airport ?? undefined,
             description: cityOf(airport),
@@ -98,6 +103,7 @@ export const createDetailsLookup = (
           }));
         }
         break;
+      }
       case 'countries':
         for (const country of [flight.from?.country, flight.to?.country]) {
           add(country?.toUpperCase(), () => ({

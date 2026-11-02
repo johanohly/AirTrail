@@ -9,6 +9,7 @@ import {
   countriesByContinentDetails,
   countriesByContinentDistribution,
   countryDistribution,
+  departureAirportDistribution,
   DELAY_THRESHOLD_MINUTES,
   domesticInternationalSplit,
   extremeAirportsByLatitude,
@@ -650,6 +651,51 @@ describe('punctualityReport', () => {
       'ARN',
       'CPH',
     ]);
+  });
+
+  it('counts departure airports from departures only', () => {
+    const flights = [
+      { from: { iata: 'CPH' }, to: { iata: 'LHR' } },
+      { from: { iata: 'LHR' }, to: { iata: 'CPH' } },
+      { from: { iata: 'CPH' }, to: { iata: 'AMS' } },
+    ] as FlightData[];
+
+    expect(departureAirportDistribution(flights, {})).toEqual({
+      CPH: 2,
+      LHR: 1,
+    });
+    // The bucket matches departures only, unlike the airports chart
+    expect(
+      flightMatchesChartBucket(flights[1]!, 'departure-airports', 'CPH', {}),
+    ).toBe(false);
+    expect(
+      flightMatchesChartBucket(flights[1]!, 'departure-airports', 'LHR', {}),
+    ).toBe(true);
+  });
+
+  it('ranks averages across every assessed flight, signed', () => {
+    const flights = [
+      makeFlight({
+        airline: { name: 'Alpha' },
+        arrivalScheduled: '2024-01-01T10:00:00Z',
+        arrival: '2024-01-01T11:00:00Z', // +60
+      }),
+      makeFlight({
+        airline: { name: 'Alpha' },
+        arrivalScheduled: '2024-01-02T10:00:00Z',
+        arrival: '2024-01-02T10:10:00Z', // +10
+      }),
+      makeFlight({
+        airline: { name: 'Beta' },
+        arrivalScheduled: '2024-01-03T10:00:00Z',
+        arrival: '2024-01-03T09:40:00Z', // −20
+      }),
+    ];
+
+    const report = punctualityReport(flights);
+    expect(report.avgAirlines.map((a) => a.key)).toEqual(['Alpha', 'Beta']);
+    expect(report.avgAirlines[0]).toMatchObject({ averageDelayMinutes: 35 });
+    expect(report.avgAirlines[1]).toMatchObject({ averageDelayMinutes: -20 });
   });
 
   it('lists only delayed flights, most late first', () => {

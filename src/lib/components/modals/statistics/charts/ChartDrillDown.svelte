@@ -9,15 +9,12 @@
   import { Input } from '$lib/components/ui/input';
   import * as Tabs from '$lib/components/ui/tabs';
   import {
-    arrivalDelayMinutes,
-    DELAY_THRESHOLD_MINUTES,
     FLIGHT_CHARTS,
     flightMatchesChartBucket,
     toBreakdown,
     type FlightChartKey,
   } from '$lib/stats/aggregations';
   import { pluralize, type FlightData } from '$lib/utils';
-  import { Duration } from '$lib/utils/datetime';
   import {
     convertDistance,
     distanceUnitLabel,
@@ -30,7 +27,6 @@
   let {
     chartKey,
     initialEntry,
-    initialMetric,
     flights,
     onBack,
     onOpenFlight,
@@ -38,8 +34,6 @@
   }: {
     chartKey: FlightChartKey;
     initialEntry?: string | null;
-    /** The ranking the list should open on, e.g. delay from Punctuality. */
-    initialMetric?: Metric;
     flights: FlightData[];
     onBack: () => void;
     onOpenFlight?: (flightId: number) => void;
@@ -63,16 +57,10 @@
       : summary;
   });
 
-  /* Rows can be ranked by flight count, by the distance those flights
-     covered — the way Flightradar24's lists switch — or by how late the
-     flights arrived. */
-  type Metric = 'flights' | 'distance' | 'delay';
+  /* Rows can be ranked by flight count or by the distance those flights
+     covered, the way Flightradar24's lists switch. */
+  type Metric = 'flights' | 'distance';
   let metric = $state<Metric>('flights');
-  // Opening another chart resets the ranking, unless it carries its own
-  $effect(() => {
-    void chartKey;
-    metric = initialMetric ?? 'flights';
-  });
 
   const prefs = $derived(getPreferences(page.data.user));
 
@@ -92,47 +80,22 @@
     return map;
   });
 
-  // Accumulated minutes past the delay threshold, per bucket
-  const delaysByKey = $derived.by(() => {
-    const map = new Map<string, number>();
-    for (const { key } of breakdown.entries) {
-      map.set(
-        key,
-        flightsFor(key).reduce((sum, f) => {
-          const delay = arrivalDelayMinutes(f);
-          return delay !== null && delay > DELAY_THRESHOLD_MINUTES
-            ? sum + delay
-            : sum;
-        }, 0),
-      );
-    }
-    return map;
-  });
-
   const metricValueOf = (key: string) =>
-    metric === 'distance'
-      ? (distancesByKey.get(key) ?? 0)
-      : metric === 'delay'
-        ? (delaysByKey.get(key) ?? 0)
-        : null;
+    metric === 'distance' ? (distancesByKey.get(key) ?? 0) : null;
 
-  const rankedEntries = $derived.by(() => {
-    if (metric === 'flights') return breakdown.entries;
-    const values = metric === 'distance' ? distancesByKey : delaysByKey;
-    return breakdown.entries
-      .filter(({ key }) => (values.get(key) ?? 0) > 0)
-      .sort((a, b) => (values.get(b.key) ?? 0) - (values.get(a.key) ?? 0));
-  });
-  const largest = $derived.by(() => {
-    const values =
-      metric === 'distance'
-        ? distancesByKey
-        : metric === 'delay'
-          ? delaysByKey
-          : null;
-    if (!values) return breakdown.entries[0]?.value ?? 0;
-    return Math.max(...values.values(), 0);
-  });
+  const rankedEntries = $derived(
+    metric === 'distance'
+      ? [...breakdown.entries].sort(
+          (a, b) =>
+            (distancesByKey.get(b.key) ?? 0) - (distancesByKey.get(a.key) ?? 0),
+        )
+      : breakdown.entries,
+  );
+  const largest = $derived(
+    metric === 'distance'
+      ? Math.max(...distancesByKey.values(), 0)
+      : (breakdown.entries[0]?.value ?? 0),
+  );
 
   const missingDistance = $derived(
     breakdown.missing > 0
@@ -144,11 +107,7 @@
     `${Math.round(convertDistance(km, prefs)).toLocaleString()} ${distanceUnitLabel(prefs)}`;
 
   const formatMetric = (key: string, count: number) =>
-    metric === 'distance'
-      ? formatKm(distancesByKey.get(key) ?? 0)
-      : metric === 'delay'
-        ? `+${Duration.fromSeconds((delaysByKey.get(key) ?? 0) * 60).toString(true)}`
-        : count;
+    metric === 'distance' ? formatKm(distancesByKey.get(key) ?? 0) : count;
 
   let query = $state('');
   let expandedKey = $derived<string | null>(initialEntry ?? null);
@@ -210,15 +169,12 @@
     <Tabs.Root
       value={metric}
       onValueChange={(value) => {
-        if (value === 'flights' || value === 'distance' || value === 'delay') {
-          metric = value;
-        }
+        if (value === 'flights' || value === 'distance') metric = value;
       }}
     >
       <Tabs.List class="h-9">
         <Tabs.Trigger value="flights">Flights</Tabs.Trigger>
         <Tabs.Trigger value="distance">Distance</Tabs.Trigger>
-        <Tabs.Trigger value="delay">Delay</Tabs.Trigger>
       </Tabs.List>
     </Tabs.Root>
   </div>
@@ -237,11 +193,9 @@
         {@render expansion(key)}
       {/if}
     {:else}
-      <p class="py-3 text-sm text-muted-foreground">
-        {metric === 'delay' ? 'No delayed flights recorded' : 'No matches'}
-      </p>
+      <p class="py-3 text-sm text-muted-foreground">No matches</p>
     {/each}
-    {#if breakdown.missing > 0 && !query.trim() && metric !== 'delay'}
+    {#if breakdown.missing > 0 && !query.trim()}
       <BreakdownRow
         value={metric === 'distance'
           ? formatKm(missingDistance)

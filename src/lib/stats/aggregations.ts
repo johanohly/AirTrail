@@ -20,6 +20,7 @@ export type FlightChartKey =
   | 'aircraft-models'
   | 'aircraft-regs'
   | 'airports'
+  | 'departure-airports'
   | 'countries'
   | 'routes';
 
@@ -176,7 +177,12 @@ export const flightChartBucketForFlight = (
   flight: FlightData,
   key: Exclude<
     FlightChartKey,
-    'seat' | 'seat-class' | 'seat-numbers' | 'airports' | 'countries'
+    | 'seat'
+    | 'seat-class'
+    | 'seat-numbers'
+    | 'airports'
+    | 'departure-airports'
+    | 'countries'
   >,
 ): string | null => {
   switch (key) {
@@ -249,6 +255,10 @@ export const flightMatchesChartBucket = (
       codeForAirport(flight.from) === bucket ||
       codeForAirport(flight.to) === bucket
     );
+  }
+
+  if (chartKey === 'departure-airports') {
+    return codeForAirport(flight.from) === bucket;
   }
 
   if (chartKey === 'countries') {
@@ -528,6 +538,21 @@ export function airportDistribution(
 
       counts[code] = (counts[code] ?? 0) + 1;
     }
+  }
+  return sortAndLimit(counts, options);
+}
+
+export function departureAirportDistribution(
+  flights: FlightData[],
+  _ctx: StatsContext,
+  options?: AggregationOptions,
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const { from } of flights) {
+    const code = codeForAirport(from);
+    if (!code) continue;
+
+    counts[code] = (counts[code] ?? 0) + 1;
   }
   return sortAndLimit(counts, options);
 }
@@ -823,6 +848,8 @@ export type PunctualityEntry = {
   assessedFlights: number;
   delayedFlights: number;
   totalDelayMinutes: number;
+  /** Mean signed delay across assessed flights; negative leans early. */
+  averageDelayMinutes: number;
   delayRate: number; // percentage of assessed flights that were delayed
 };
 
@@ -844,18 +871,26 @@ export type PunctualityReport = {
   worstAirlines: PunctualityEntry[];
   worstRoutes: PunctualityEntry[];
   worstDepartureAirports: PunctualityEntry[];
+  /** The same groups, ranked by mean signed delay instead. */
+  avgAirlines: PunctualityEntry[];
+  avgRoutes: PunctualityEntry[];
+  avgDepartureAirports: PunctualityEntry[];
   worstDelays: FlightDelay[]; // the individually most-delayed flights
 };
 
-/** Assessed flights grouped by a key, ranked by accumulated delay. */
+/** Assessed flights grouped by a key, with totals and averages. */
 const punctualityEntries = (
   flights: FlightData[],
   keyOf: (flight: FlightData) => string | null,
-  limit?: number,
 ): PunctualityEntry[] => {
   const groups = new Map<
     string,
-    { assessed: number; delayed: number; delayMinutes: number }
+    {
+      assessed: number;
+      delayed: number;
+      delayMinutes: number;
+      signedMinutes: number;
+    }
   >();
 
   for (const flight of flights) {
@@ -868,8 +903,10 @@ const punctualityEntries = (
       assessed: 0,
       delayed: 0,
       delayMinutes: 0,
+      signedMinutes: 0,
     };
     group.assessed++;
+    group.signedMinutes += delay;
     if (delay > DELAY_THRESHOLD_MINUTES) {
       group.delayed++;
       group.delayMinutes += delay;
@@ -877,18 +914,27 @@ const punctualityEntries = (
     groups.set(key, group);
   }
 
-  return [...groups.entries()]
-    .filter(([, group]) => group.delayed > 0)
-    .map(([key, group]) => ({
-      key,
-      assessedFlights: group.assessed,
-      delayedFlights: group.delayed,
-      totalDelayMinutes: group.delayMinutes,
-      delayRate: (group.delayed / group.assessed) * 100,
-    }))
+  return [...groups.entries()].map(([key, group]) => ({
+    key,
+    assessedFlights: group.assessed,
+    delayedFlights: group.delayed,
+    totalDelayMinutes: group.delayMinutes,
+    averageDelayMinutes: group.signedMinutes / group.assessed,
+    delayRate: (group.delayed / group.assessed) * 100,
+  }));
+};
+
+const byAccumulatedDelay = (
+  entries: PunctualityEntry[],
+  limit?: number,
+): PunctualityEntry[] =>
+  entries
+    .filter((entry) => entry.delayedFlights > 0)
     .sort((a, b) => b.totalDelayMinutes - a.totalDelayMinutes)
     .slice(0, limit ?? Number.POSITIVE_INFINITY);
-};
+
+const byAverageDelay = (entries: PunctualityEntry[]): PunctualityEntry[] =>
+  [...entries].sort((a, b) => b.averageDelayMinutes - a.averageDelayMinutes);
 
 export function punctualityReport(
   flights: FlightData[],
@@ -941,16 +987,30 @@ export function punctualityReport(
     earlyFlights,
     totalEarlyMinutes,
     bestEarlyMinutes,
-    worstAirlines: punctualityEntries(
-      flights,
-      (flight) => flight.airline?.name ?? 'Unknown airline',
+    worstAirlines: byAccumulatedDelay(
+      punctualityEntries(
+        flights,
+        (flight) => flight.airline?.name ?? 'Unknown airline',
+      ),
       groupLimit,
     ),
-    worstRoutes: punctualityEntries(flights, routeLabelForFlight, groupLimit),
-    worstDepartureAirports: punctualityEntries(
-      flights,
-      (flight) => codeForAirport(flight.from),
+    worstRoutes: byAccumulatedDelay(
+      punctualityEntries(flights, routeLabelForFlight),
       groupLimit,
+    ),
+    worstDepartureAirports: byAccumulatedDelay(
+      punctualityEntries(flights, (flight) => codeForAirport(flight.from)),
+      groupLimit,
+    ),
+    avgAirlines: byAverageDelay(
+      punctualityEntries(
+        flights,
+        (flight) => flight.airline?.name ?? 'Unknown airline',
+      ),
+    ),
+    avgRoutes: byAverageDelay(punctualityEntries(flights, routeLabelForFlight)),
+    avgDepartureAirports: byAverageDelay(
+      punctualityEntries(flights, (flight) => codeForAirport(flight.from)),
     ),
     worstDelays: delays.slice(0, flightLimit),
   };
@@ -993,6 +1053,10 @@ export const FLIGHT_CHARTS: Record<
     aggregate: aircraftRegDistribution,
   },
   airports: { title: 'Airports', aggregate: airportDistribution },
+  'departure-airports': {
+    title: 'Departing airports',
+    aggregate: departureAirportDistribution,
+  },
   countries: { title: 'Countries', aggregate: countryDistribution },
   routes: { title: 'Routes', aggregate: routeDistribution },
 };

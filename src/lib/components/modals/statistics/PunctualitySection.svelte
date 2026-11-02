@@ -18,15 +18,16 @@
 
   let {
     flights,
-    onOpenDelay,
+    onOpenPunctuality,
     onOpenAllDelayed,
     onOpenFlight,
     onOpenAirport,
   }: {
     flights: FlightData[];
-    /** Opens the chart's drawer ranked by delay. */
-    onOpenDelay: (
-      key: 'airlines' | 'routes' | 'airports',
+    /** Opens the punctuality dock, ranked by delay totals or averages. */
+    onOpenPunctuality: (
+      key: 'airlines' | 'routes' | 'departure-airports',
+      mode: 'total' | 'average',
       entry?: string,
     ) => void;
     onOpenAllDelayed: () => void;
@@ -41,7 +42,7 @@
   const detailsFor = $derived.by(() => ({
     airlines: createDetailsLookup('airlines', flights),
     routes: createDetailsLookup('routes', flights),
-    airports: createDetailsLookup('airports', flights),
+    'departure-airports': createDetailsLookup('departure-airports', flights),
   }));
   // Departure airport codes to their ids, for the dedicated airport view
   const airportIdFor = $derived.by(() => {
@@ -62,22 +63,27 @@
 
 {#snippet groupList(
   title: string,
-  chartKey: 'airlines' | 'routes' | 'airports',
+  chartKey: 'airlines' | 'routes' | 'departure-airports',
   entries: PunctualityEntry[],
+  variant: 'total' | 'average' = 'total',
 )}
+  {@const valueOf = (entry: PunctualityEntry) =>
+    variant === 'average'
+      ? Math.round(entry.averageDelayMinutes)
+      : entry.totalDelayMinutes}
   <div class="min-w-0">
     <h4 class="mb-1.5 text-[13px] font-semibold">{title}</h4>
     <div class="space-y-0.5">
       {#each entries.slice(0, DISPLAY_LIMIT) as entry (entry.key)}
         <BreakdownRow
-          share={entry.totalDelayMinutes / (entries[0]?.totalDelayMinutes ?? 1)}
-          value={signed(entry.totalDelayMinutes)}
+          share={valueOf(entry) / (valueOf(entries[0]!) || 1)}
+          value={signed(valueOf(entry))}
           onclick={() =>
-            chartKey === 'airports' &&
+            chartKey === 'departure-airports' &&
             onOpenAirport &&
             airportIdFor.has(entry.key)
               ? onOpenAirport(airportIdFor.get(entry.key)!)
-              : onOpenDelay(chartKey, entry.key)}
+              : onOpenPunctuality(chartKey, variant, entry.key)}
         >
           <BreakdownLabel
             {chartKey}
@@ -91,7 +97,7 @@
       <button
         type="button"
         class="mt-1 flex items-center gap-0.5 rounded px-2 py-1 text-[12.5px] text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
-        onclick={() => onOpenDelay(chartKey)}
+        onclick={() => onOpenPunctuality(chartKey, variant)}
       >
         All {entries.length}
         {CHART_NOUNS[chartKey][1]}
@@ -152,14 +158,13 @@
     </div>
   </div>
 
-  <div
-    class="mt-6 grid gap-x-7 gap-y-6 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-4"
-  >
+  <!-- Two columns, so the flight list has room for its five rows -->
+  <div class="mt-6 grid grid-cols-1 gap-x-7 gap-y-6 sm:grid-cols-2">
     {@render groupList('Delays by airline', 'airlines', report.worstAirlines)}
     {@render groupList('Delays by route', 'routes', report.worstRoutes)}
     {@render groupList(
       'Delays by departing airport',
-      'airports',
+      'departure-airports',
       report.worstDepartureAirports,
     )}
     <div class="min-w-0">
@@ -191,5 +196,23 @@
         </p>
       {/if}
     </div>
+    {@render groupList(
+      'Avg delay by airline',
+      'airlines',
+      report.avgAirlines,
+      'average',
+    )}
+    {@render groupList(
+      'Avg delay by route',
+      'routes',
+      report.avgRoutes,
+      'average',
+    )}
+    {@render groupList(
+      'Avg delay by departing airport',
+      'departure-airports',
+      report.avgDepartureAirports,
+      'average',
+    )}
   </div>
 {/if}
