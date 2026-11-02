@@ -5,6 +5,8 @@
   import BreakdownRow from './BreakdownRow.svelte';
   import DrillDownSheet from './DrillDownSheet.svelte';
 
+  import * as Tabs from '$lib/components/ui/tabs';
+
   import {
     arrivalDelayMinutes,
     DELAY_THRESHOLD_MINUTES,
@@ -28,20 +30,28 @@
 
   let {
     chartKey,
-    mode,
+    initialMode,
     initialEntry,
     flights,
     onBack,
     onOpenFlight,
   }: {
     chartKey: keyof typeof TITLES;
-    /** total ranks by accumulated late minutes; average by mean difference. */
-    mode: 'total' | 'average';
+    /** The ranking the dock opens on; the in-dock toggle switches it. */
+    initialMode?: 'total' | 'average';
     initialEntry?: string | null;
     flights: FlightData[];
     onBack: () => void;
     onOpenFlight?: (flightId: number) => void;
   } = $props();
+
+  // total ranks by accumulated late minutes; average by mean difference
+  type Mode = 'total' | 'average';
+  let mode = $state<Mode>('total');
+  $effect(() => {
+    void chartKey;
+    mode = initialMode ?? 'total';
+  });
 
   const report = $derived(punctualityReport(flights));
   const entries = $derived<PunctualityEntry[]>(
@@ -151,6 +161,19 @@
 {/snippet}
 
 <DrillDownSheet {title} {subtitle} {onBack}>
+  <div class="mb-2 flex justify-end">
+    <Tabs.Root
+      value={mode}
+      onValueChange={(value) => {
+        if (value === 'total' || value === 'average') mode = value;
+      }}
+    >
+      <Tabs.List class="h-9">
+        <Tabs.Trigger value="total">Total</Tabs.Trigger>
+        <Tabs.Trigger value="average">Average</Tabs.Trigger>
+      </Tabs.List>
+    </Tabs.Root>
+  </div>
   <div class="space-y-0.5">
     {#each entries as entry (entry.key)}
       <BreakdownRow

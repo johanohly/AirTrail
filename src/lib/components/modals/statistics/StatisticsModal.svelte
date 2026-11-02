@@ -245,14 +245,13 @@
     pushDrilldown();
   };
 
-  /** Opens the punctuality dock, ranked by delay totals or averages. */
+  /** Opens the punctuality dock on its totals ranking. */
   const openPunctuality = (
     key: 'airlines' | 'routes' | 'departure-airports',
-    mode: 'total' | 'average',
     entry?: string,
   ) => {
     activeChart = null;
-    activePunctuality = { key, mode };
+    activePunctuality = { key, mode: 'total' };
     activeEntry = entry ?? null;
     pushDrilldown();
   };
@@ -820,7 +819,6 @@
           onOpenPunctuality={openPunctuality}
           onOpenAllDelayed={openDelayedFlights}
           {onOpenFlight}
-          {onOpenAirport}
         />
       {/snippet}
       {#snippet records()}
@@ -856,7 +854,7 @@
   {:else if activePunctuality}
     <PunctualityDrillDown
       chartKey={activePunctuality.key}
-      mode={activePunctuality.mode}
+      initialMode={activePunctuality.mode}
       initialEntry={activeEntry}
       flights={completedFlights}
       onBack={() => modalHistory?.back()}
