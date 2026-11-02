@@ -30,6 +30,7 @@ async function openDrillDownFromBottomOfStatistics(page: Page) {
   const sheet = page.getByTestId('statistics-drill-down');
   await expect(sheet).toBeVisible();
   return {
+    row,
     scroller,
     sheet,
     scrollTop: await scroller.evaluate((el) => el.scrollTop),
@@ -39,7 +40,7 @@ async function openDrillDownFromBottomOfStatistics(page: Page) {
 test('closing a drill-down keeps the statistics scroll position', async ({
   page,
 }) => {
-  const { scroller, sheet, scrollTop } =
+  const { row, scroller, sheet, scrollTop } =
     await openDrillDownFromBottomOfStatistics(page);
   expect(scrollTop).toBeGreaterThan(100);
 
@@ -49,12 +50,14 @@ test('closing a drill-down keeps the statistics scroll position', async ({
     .click();
   await expect(sheet).toHaveCount(0);
   expect(await scroller.evaluate((el) => el.scrollTop)).toBe(scrollTop);
+  // Keyboard users resume on the row that opened the drill-down.
+  await expect(row).toBeFocused();
 });
 
 test('dismissing a drill-down with Escape keeps the statistics scroll position', async ({
   page,
 }) => {
-  const { scroller, sheet, scrollTop } =
+  const { row, scroller, sheet, scrollTop } =
     await openDrillDownFromBottomOfStatistics(page);
   expect(scrollTop).toBeGreaterThan(100);
 
@@ -69,4 +72,5 @@ test('dismissing a drill-down with Escape keeps the statistics scroll position',
   // The statistics stay open behind the dismissed sheet.
   await expect(page.getByTestId('statistics-scroll')).toBeVisible();
   expect(await scroller.evaluate((el) => el.scrollTop)).toBe(scrollTop);
+  await expect(row).toBeFocused();
 });
