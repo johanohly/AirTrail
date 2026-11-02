@@ -23,7 +23,7 @@
     todayCalendarDate,
     type DatePresetId,
   } from './model';
-  import { FILTER_GROUPS } from './options';
+  import { FILTER_GROUPS, optionMatchesQuery } from './options';
 
   let {
     columns,
@@ -153,13 +153,15 @@
   }
 
   function isOptionValueSelected(column: Column<TData>, value: string) {
-    return (
-      findFilter(column, 'option')?.values.map(String).includes(value) ?? false
-    );
+    const values =
+      column.type === 'multiOption'
+        ? findFilter(column, 'multiOption')?.values
+        : findFilter(column, 'option')?.values;
+    return values?.map(String).includes(value) ?? false;
   }
 
   function toggleOptionValue(column: Column<TData>, value: string) {
-    const typed = column as Column<TData, 'option'>;
+    const typed = column as Column<TData, 'option' | 'multiOption'>;
     if (isOptionValueSelected(column, value)) {
       actions.removeFilterValue(typed, [value]);
     } else {
@@ -216,6 +218,38 @@
     );
   }
 
+  type ColumnOptionLike = {
+    value: string;
+    label: string;
+    shortLabel?: string;
+    keywords?: string[];
+  };
+
+  const MAX_INLINE_OPTION_MATCHES = 8;
+
+  function columnOptionsOf(column: Column<TData>): ColumnOptionLike[] {
+    if (column.type !== 'option' && column.type !== 'multiOption') return [];
+    return column.getOptions() as ColumnOptionLike[];
+  }
+
+  // A column matches when its name does, or when any of its options does —
+  // so queries like "mad" surface the airport columns holding Madrid/MAD
+  function columnMatchesSearch(column: Column<TData>) {
+    if (matchesSearch(column.displayName)) return true;
+    return columnOptionsOf(column).some((option) =>
+      optionMatchesQuery(option, searchQuery),
+    );
+  }
+
+  // Matching options shown inline under a column the name alone wouldn't
+  // surface; the submenu entry below them still opens the full list
+  function inlineOptionMatchesFor(column: Column<TData>) {
+    if (matchesSearch(column.displayName)) return [];
+    return columnOptionsOf(column)
+      .filter((option) => optionMatchesQuery(option, searchQuery))
+      .slice(0, MAX_INLINE_OPTION_MATCHES);
+  }
+
   const menuGroups = $derived.by(() => {
     const dateColumnVisible = !!dateColumn && !dateColumn.hidden;
 
@@ -229,7 +263,7 @@
         .filter((id) => id !== 'quickDate')
         .map((id) => {
           const column = columns.find((candidate) => candidate.id === id);
-          return column && !column.hidden && matchesSearch(column.displayName)
+          return column && !column.hidden && columnMatchesSearch(column)
             ? column
             : undefined;
         })
@@ -429,6 +463,33 @@
           {/if}
           {#each group.columns as column (column.id)}
             {@render menuColumn(column)}
+            {@const inlineMatches = inlineOptionMatchesFor(column)}
+            {#each inlineMatches as option (option.value)}
+              <DropdownMenu.CheckboxItem
+                checked={isOptionValueSelected(column, option.value)}
+                onCheckedChange={() => toggleOptionValue(column, option.value)}
+              >
+                {#snippet children({ checked })}
+                  <span
+                    aria-hidden="true"
+                    data-state={checked ? 'checked' : 'unchecked'}
+                    data-filter-menu-checkbox-indicator
+                  >
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path
+                        d="m20 6-11 11-5-5"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  <span>{option.label}</span>
+                {/snippet}
+              </DropdownMenu.CheckboxItem>
+            {/each}
           {/each}
         </DropdownMenu.Group>
       {/each}

@@ -28,7 +28,11 @@ import {
   seatFilterContext,
   toggleFilterYear,
 } from './model';
-import { compareSeatNumbers, durationBucketFor } from './options';
+import {
+  compareSeatNumbers,
+  durationBucketFor,
+  optionMatchesQuery,
+} from './options';
 
 import type { FlightData } from '$lib/utils';
 
@@ -793,5 +797,41 @@ describe('seat number sorting', () => {
       '21F',
       'X1',
     ]);
+  });
+});
+
+describe('option search matching', () => {
+  const option = {
+    label: 'Frankfurt am Main',
+    value: '6',
+    shortLabel: 'FRA',
+    keywords: ['Frankfurt am Main', 'FRA', 'EDDF'],
+  };
+
+  it('matches labels, values, short labels, and keywords', () => {
+    expect(optionMatchesQuery(option, 'frankfurt')).toBe(true);
+    expect(optionMatchesQuery(option, 'fra')).toBe(true);
+    expect(optionMatchesQuery(option, '6')).toBe(true);
+    expect(optionMatchesQuery(option, 'edd')).toBe(true);
+    expect(optionMatchesQuery(option, 'munich')).toBe(false);
+  });
+
+  it('trims the query and ignores case', () => {
+    expect(optionMatchesQuery(option, '  FRA ')).toBe(true);
+    expect(optionMatchesQuery(option, 'FRANKFURT')).toBe(true);
+  });
+
+  it('matches everything on an empty query', () => {
+    expect(optionMatchesQuery(option, '')).toBe(true);
+    expect(optionMatchesQuery(option, '   ')).toBe(true);
+  });
+
+  it('works without optional fields', () => {
+    expect(
+      optionMatchesQuery({ label: 'Economy', value: 'economy' }, 'eco'),
+    ).toBe(true);
+    expect(
+      optionMatchesQuery({ label: 'Economy', value: 'economy' }, 'FRA'),
+    ).toBe(false);
   });
 });

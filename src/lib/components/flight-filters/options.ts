@@ -101,6 +101,30 @@ export const continentOptions: FilterOptionSource[] = Object.entries(
 ).map(([value, label]) => ({ value, label }));
 
 /*
+ * Case-insensitive substring match of a filter option against a search
+ * query, over its label, value, short label, and keywords. An empty query
+ * matches everything.
+ */
+export function optionMatchesQuery(
+  option: {
+    label: string;
+    value: string;
+    shortLabel?: string;
+    keywords?: string[];
+  },
+  query: string,
+): boolean {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  if (option.label.toLowerCase().includes(needle)) return true;
+  if (option.value.toLowerCase().includes(needle)) return true;
+  if (option.shortLabel?.toLowerCase().includes(needle)) return true;
+  return (option.keywords ?? []).some((keyword) =>
+    keyword.toLowerCase().includes(needle),
+  );
+}
+
+/*
  * Seat numbers order by row, then seat letter: 1A, 1B, 2C, 10A, 21F. Labels
  * without a numeric row sort after the parseable ones.
  */

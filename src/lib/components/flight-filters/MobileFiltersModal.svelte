@@ -61,6 +61,7 @@
     flightReasonOptions,
     flightTypeOptions,
     monthOptions,
+    optionMatchesQuery,
     seatClassOptions,
     seatTypeOptions,
     type FilterOptionSource,
@@ -255,9 +256,25 @@
     search = '';
   }
 
+  // A subject stays listed when its name matches the search, or when any of
+  // its options does — mirroring the desktop menu search
+  function matchesSubjectSearch(column: FilterColumn) {
+    const query = search.trim().toLowerCase();
+    if (!query) return true;
+    if (column.label.toLowerCase().includes(query)) return true;
+    if (column.id === 'date') return false;
+    return optionsByColumn[column.id].some((option) =>
+      optionMatchesQuery(option, query),
+    );
+  }
+
   function go(next: Screen) {
+    // Keep the query when drilling from the subject list into a filter, so
+    // the option screen starts with the same search
+    if (!(screen.kind === 'subjects' && next.kind === 'filter')) {
+      search = '';
+    }
     screen = next;
-    search = '';
   }
 
   function back() {
@@ -1004,9 +1021,7 @@
             </label>
           </div>
           <div class="min-h-0 flex-1 overflow-y-auto p-2">
-            {#each visibleColumns.filter((column) => column.label
-                .toLowerCase()
-                .includes(search.toLowerCase())) as column (column.id)}
+            {#each visibleColumns.filter(matchesSubjectSearch) as column (column.id)}
               <button
                 type="button"
                 class="flex min-h-14 w-full items-center gap-3 rounded-lg px-3 text-left active:bg-muted"
