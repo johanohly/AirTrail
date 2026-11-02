@@ -205,7 +205,7 @@
           </DropdownMenu.GroupHeading>
           {#if group.hasQuickDate}
             <DropdownMenu.Sub>
-              <DropdownMenu.SubTrigger openDelay={0}>
+              <DropdownMenu.SubTrigger openDelay={100}>
                 <span>
                   <span aria-hidden="true" data-filter-menu-icon>
                     <CalendarClock size={16} aria-hidden="true" />
@@ -271,7 +271,7 @@
 
 {#snippet menuColumn(column: Column<TData, ColumnDataType>)}
   <DropdownMenu.Sub>
-    <DropdownMenu.SubTrigger openDelay={0}>
+    <DropdownMenu.SubTrigger openDelay={100}>
       <span>
         {#if column.icon}
           {@render menuIcon(column.icon)}
