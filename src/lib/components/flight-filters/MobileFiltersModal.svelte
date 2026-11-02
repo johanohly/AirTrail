@@ -1081,16 +1081,34 @@
                   </button>
                 {/each}
               </div>
-              <label
-                class="flex h-10 items-center gap-2 rounded-md border bg-background px-3 text-sm"
-              >
-                <Search size={16} class="text-muted-foreground" />
-                <input
-                  bind:value={search}
-                  class="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
-                  placeholder={`Search ${column.label.toLowerCase()}`}
-                />
-              </label>
+              {#if search.trim()}
+                <div
+                  class="flex items-center justify-between gap-2 text-sm text-muted-foreground"
+                >
+                  <span class="min-w-0 truncate">
+                    Filtered by "{search.trim()}"
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Clear search"
+                    class="flex size-6 shrink-0 items-center justify-center rounded-md active:bg-muted"
+                    onclick={() => (search = '')}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              {:else}
+                <label
+                  class="flex h-10 items-center gap-2 rounded-md border bg-background px-3 text-sm"
+                >
+                  <Search size={16} class="text-muted-foreground" />
+                  <input
+                    bind:value={search}
+                    class="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
+                    placeholder={`Search ${column.label.toLowerCase()}`}
+                  />
+                </label>
+              {/if}
             </div>
             <div class="min-h-0 flex-1 overflow-y-auto p-2">
               {#each filteredOptions(columnId) as option (option.value)}

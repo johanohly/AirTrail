@@ -140,9 +140,31 @@
     return column.id === 'aircraftRegs' || column.id === 'flightNumber';
   }
 
+  /*
+   * With a global query, every option column renders through the custom
+   * checkbox list, pre-filtered to the matching options. The stock editor
+   * stays in charge when there is no query — it is the only path with
+   * operator switching, which the filtered submenu intentionally omits;
+   * clearing the query brings the full editor back.
+   */
+  function usesOptionList(column: Column<TData>) {
+    if (searchQuery) {
+      return column.type === 'option' || column.type === 'multiOption';
+    }
+    return hasDescribedOptions(column);
+  }
+
   function regOptionsFor(column: Column<TData>): RegOption[] {
-    const query = optionSearch.trim().toLowerCase();
     const options = column.getOptions() as RegOption[];
+
+    // Global search mode: only the options matching the query
+    if (searchQuery) {
+      return options.filter((option) =>
+        optionMatchesQuery(option, searchQuery),
+      );
+    }
+
+    const query = optionSearch.trim().toLowerCase();
     if (!query) return options;
     return options.filter(
       (option) =>
@@ -225,8 +247,6 @@
     keywords?: string[];
   };
 
-  const MAX_INLINE_OPTION_MATCHES = 8;
-
   function columnOptionsOf(column: Column<TData>): ColumnOptionLike[] {
     if (column.type !== 'option' && column.type !== 'multiOption') return [];
     return column.getOptions() as ColumnOptionLike[];
@@ -239,15 +259,6 @@
     return columnOptionsOf(column).some((option) =>
       optionMatchesQuery(option, searchQuery),
     );
-  }
-
-  // Matching options shown inline under a column the name alone wouldn't
-  // surface; the submenu entry below them still opens the full list
-  function inlineOptionMatchesFor(column: Column<TData>) {
-    if (matchesSearch(column.displayName)) return [];
-    return columnOptionsOf(column)
-      .filter((option) => optionMatchesQuery(option, searchQuery))
-      .slice(0, MAX_INLINE_OPTION_MATCHES);
   }
 
   const menuGroups = $derived.by(() => {
@@ -463,33 +474,6 @@
           {/if}
           {#each group.columns as column (column.id)}
             {@render menuColumn(column)}
-            {@const inlineMatches = inlineOptionMatchesFor(column)}
-            {#each inlineMatches as option (option.value)}
-              <DropdownMenu.CheckboxItem
-                checked={isOptionValueSelected(column, option.value)}
-                onCheckedChange={() => toggleOptionValue(column, option.value)}
-              >
-                {#snippet children({ checked })}
-                  <span
-                    aria-hidden="true"
-                    data-state={checked ? 'checked' : 'unchecked'}
-                    data-filter-menu-checkbox-indicator
-                  >
-                    <svg viewBox="0 0 24 24" focusable="false">
-                      <path
-                        d="m20 6-11 11-5-5"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                  </span>
-                  <span>{option.label}</span>
-                {/snippet}
-              </DropdownMenu.CheckboxItem>
-            {/each}
           {/each}
         </DropdownMenu.Group>
       {/each}
@@ -534,30 +518,49 @@
             column={column as Column<TData, 'date'>}
             {actions}
           />
-        {:else if hasDescribedOptions(column)}
+        {:else if usesOptionList(column)}
           {@const options = regOptionsFor(column)}
           <!-- Same surface/list structure as the stock editors: the surface
                pins the search row, the list is the only scroller -->
           <div data-menu-data-surface>
-            <div class="border-b p-2">
-              <label
-                class="flex h-8 items-center gap-2 rounded-md border bg-background px-2.5"
+            {#if searchQuery}
+              <div
+                class="flex items-center justify-between gap-2 border-b px-3 py-2 text-xs text-muted-foreground"
               >
-                <Search
-                  size={14}
-                  aria-hidden="true"
-                  class="shrink-0 text-muted-foreground"
-                />
-                <input
-                  bind:value={optionSearch}
-                  type="text"
-                  placeholder={`Search ${column.displayName.toLowerCase()}...`}
-                  aria-label={`Search ${column.displayName.toLowerCase()}`}
-                  class="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
-                  onkeydown={handleSearchKeydown}
-                />
-              </label>
-            </div>
+                <span class="min-w-0 truncate">
+                  Filtered by "{search.trim()}"
+                </span>
+                <button
+                  type="button"
+                  tabindex="-1"
+                  aria-label="Clear search"
+                  class="flex size-4 shrink-0 items-center justify-center rounded-sm hover:text-foreground"
+                  onclick={() => (search = '')}
+                >
+                  <X size={12} aria-hidden="true" />
+                </button>
+              </div>
+            {:else}
+              <div class="border-b p-2">
+                <label
+                  class="flex h-8 items-center gap-2 rounded-md border bg-background px-2.5"
+                >
+                  <Search
+                    size={14}
+                    aria-hidden="true"
+                    class="shrink-0 text-muted-foreground"
+                  />
+                  <input
+                    bind:value={optionSearch}
+                    type="text"
+                    placeholder={`Search ${column.displayName.toLowerCase()}...`}
+                    aria-label={`Search ${column.displayName.toLowerCase()}`}
+                    class="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+                    onkeydown={handleSearchKeydown}
+                  />
+                </label>
+              </div>
+            {/if}
             <div data-menu-data-list>
               {#each options as option (option.value)}
                 {@const checked = isOptionValueSelected(column, option.value)}
