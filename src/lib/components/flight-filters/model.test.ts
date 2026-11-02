@@ -18,6 +18,7 @@ import {
   flightTypeForFlight,
   hasFlightFilters,
   matchesFlight,
+  matchesDrilldownFlight,
   matchesLocationFilters,
   optionColumnOperator,
   optionColumnValues,
@@ -694,6 +695,25 @@ describe('filter logic', () => {
     });
     expect(matchesFlight(flight(), userFilters)).toBe(true);
     expect(matchesLocationFilters(flight(), userFilters)).toBe(false);
+  });
+
+  it('honors the logic toggle within user filters during drilldowns', () => {
+    const temp = filters({ departureAirports: ['1'] });
+    const either = filters({
+      logic: 'or',
+      duration: ['short'],
+      flightNumber: ['XX999'],
+    });
+    const both = filters({ duration: ['short'], flightNumber: ['XX999'] });
+
+    // Pinned location (from.id 1) matches; among the user's filters only
+    // duration does — so Any passes and All fails.
+    expect(matchesDrilldownFlight(flight(), temp, either)).toBe(true);
+    expect(matchesDrilldownFlight(flight(), temp, both)).toBe(false);
+
+    // A non-matching pinned location rejects regardless of logic.
+    const elsewhere = filters({ departureAirports: ['99'] });
+    expect(matchesDrilldownFlight(flight(), elsewhere, either)).toBe(false);
   });
 
   it('counts active dimensions', () => {

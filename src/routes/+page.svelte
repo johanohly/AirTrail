@@ -7,9 +7,8 @@
   import { hasClientPermission } from '$lib/authorization/permissions';
   import {
     createDefaultFilters,
+    matchesDrilldownFlight,
     matchesFlight,
-    matchesLocationFilters,
-    matchesNonLocationFilters,
     seatFilterContext,
   } from '$lib/components/flight-filters/model';
   import {
@@ -142,14 +141,17 @@
   });
 
   const filteredDrilldownFlights = $derived.by(() => {
-    const locationFilters = hasActiveTempFilters(tempFilters)
-      ? tempFilters
-      : filters;
+    if (!hasActiveTempFilters(tempFilters)) {
+      // No active map drilldown: the list is just the logic-aware filter.
+      return flights.filter((flight) =>
+        matchesFlight(flight, filters, seatCtx),
+      );
+    }
 
-    return flights.filter(
-      (flight) =>
-        matchesLocationFilters(flight, locationFilters) &&
-        matchesNonLocationFilters(flight, filters, seatCtx),
+    // The drilldown's temporary location filter stays pinned; the user's own
+    // filters still combine per the All/Any toggle among themselves.
+    return flights.filter((flight) =>
+      matchesDrilldownFlight(flight, tempFilters, filters, seatCtx),
     );
   });
 

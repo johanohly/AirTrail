@@ -1762,3 +1762,24 @@ export function matchesFlight(
     filters.logic,
   );
 }
+
+/*
+ * A map drilldown pins a temporary location filter, which stays fixed (AND);
+ * the user's own non-location filters still combine per filters.logic among
+ * themselves. Without this, the drilldown-fed flight list would hard-AND
+ * every dimension and silently ignore the All/Any toggle.
+ */
+export function matchesDrilldownFlight(
+  flight: FlightData,
+  locationFilters: LocationFilters,
+  filters: FlightFilters,
+  seatCtx?: SeatFilterContext,
+) {
+  if (!combineFilterResults(locationFilterResults(flight, locationFilters))) {
+    return false;
+  }
+  return combineFilterResults(
+    nonLocationFilterResults(flight, filters, seatCtx),
+    filters.logic,
+  );
+}
