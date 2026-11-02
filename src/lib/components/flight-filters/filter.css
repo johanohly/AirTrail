@@ -671,11 +671,16 @@
 
   [data-dropdown-menu-checkbox-item][data-highlighted]
     [data-filter-menu-checkbox-indicator],
+  [data-filter-option-item]:hover [data-filter-menu-checkbox-indicator],
+  [data-filter-option-item]:focus-visible [data-filter-menu-checkbox-indicator],
   [data-filter-menu-checkbox-indicator][data-state='checked'] {
     opacity: 1;
   }
 
   [data-dropdown-menu-checkbox-item][data-highlighted]
+    [data-filter-menu-checkbox-indicator],
+  [data-filter-option-item]:hover [data-filter-menu-checkbox-indicator],
+  [data-filter-option-item]:focus-visible
     [data-filter-menu-checkbox-indicator] {
     border-color: color-mix(in srgb, var(--foreground) 32%, var(--border));
   }
