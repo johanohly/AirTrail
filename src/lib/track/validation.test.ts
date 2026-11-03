@@ -99,7 +99,18 @@ describe('track timing fallback', () => {
   } as FlightFormData;
 
   it('checks actual departure and arrival when the schedule is absent', () => {
-    const issues = validateTrackTiming(track, timingForm, events);
+    const issues = validateTrackTiming(
+      track,
+      {
+        ...timingForm,
+        // Matching runway times must not override the actual gate times.
+        takeoffScheduled: '1970-01-01T00:00:00.000Z',
+        takeoffScheduledTime: '00:00',
+        landingScheduled: '1970-01-01T00:00:00.000Z',
+        landingScheduledTime: '09:00',
+      },
+      events,
+    );
     expect(issues.map((issue) => issue.field)).toEqual([
       'departure',
       'arrival',
@@ -137,6 +148,24 @@ describe('track timing fallback', () => {
         events,
       ).map((issue) => issue.field),
     ).toEqual(['arrival']);
+    expect(
+      validateTrackTiming(
+        track,
+        {
+          ...timingForm,
+          departure: null,
+          arrival: null,
+          takeoffScheduled: '1970-01-03T00:00:00.000Z',
+          takeoffScheduledTime: '00:00',
+          landingActual: '1970-01-03T00:00:00.000Z',
+          landingActualTime: '09:00',
+        },
+        events,
+      ),
+    ).toEqual([
+      expect.objectContaining({ field: 'departure', comparison: 'scheduled' }),
+      expect.objectContaining({ field: 'arrival', comparison: 'actual' }),
+    ]);
   });
 
   it('uses the airport timezone for actual times and retains the 24-hour tolerance', () => {
@@ -153,18 +182,39 @@ describe('track timing fallback', () => {
     ).toEqual([]);
   });
 
-  it('skips incomplete actual times without mixing scheduled and actual fields', () => {
+  it('skips incomplete pairs and falls back to scheduled then actual OFF/ON times', () => {
+    const incomplete = {
+      ...timingForm,
+      departureTime: null,
+      departureScheduledTime: '12:00',
+      arrival: null,
+    };
+    expect(validateTrackTiming(track, incomplete, events)).toEqual([]);
+    const runway = {
+      ...incomplete,
+      takeoffScheduled: '1970-01-01T00:00:00.000Z',
+      takeoffScheduledTime: '00:00',
+      landingScheduled: '1970-01-01T00:00:00.000Z',
+      landingScheduledTime: '09:00',
+      takeoffActual: '1970-01-03T00:00:00.000Z',
+      takeoffActualTime: '00:00',
+      landingActual: '1970-01-03T00:00:00.000Z',
+      landingActualTime: '09:00',
+    };
+    expect(validateTrackTiming(track, runway, events)).toEqual([]);
     expect(
       validateTrackTiming(
         track,
         {
-          ...timingForm,
-          departureTime: null,
-          departureScheduledTime: '12:00',
-          arrival: null,
+          ...runway,
+          takeoffScheduledTime: null,
+          landingScheduled: null,
         },
         events,
       ),
-    ).toEqual([]);
+    ).toEqual([
+      expect.objectContaining({ field: 'departure', comparison: 'actual' }),
+      expect.objectContaining({ field: 'arrival', comparison: 'actual' }),
+    ]);
   });
 });

@@ -81,6 +81,36 @@ export const validateTrackMetadata = (
   return issues;
 };
 
+const selectComparisonTime = (form: FlightFormData, departure: boolean) => {
+  const fields = departure
+    ? ([
+        'departureScheduled',
+        'departure',
+        'takeoffScheduled',
+        'takeoffActual',
+      ] as const)
+    : ([
+        'arrivalScheduled',
+        'arrival',
+        'landingScheduled',
+        'landingActual',
+      ] as const);
+  for (const field of fields) {
+    const date = form[field];
+    const time = form[`${field}Time`];
+    if (date && time) {
+      return {
+        date,
+        time,
+        comparison: field.endsWith('Scheduled')
+          ? ('scheduled' as const)
+          : ('actual' as const),
+      };
+    }
+  }
+  return null;
+};
+
 export const validateTrackTiming = (
   track: FlightTrackInput,
   form: FlightFormData,
@@ -91,33 +121,21 @@ export const validateTrackTiming = (
     const time =
       (departure ? events.takeoff : events.landing) ??
       (departure ? track.times?.[0] : track.times?.at(-1));
-    const scheduledDate = departure
-      ? form.departureScheduled
-      : form.arrivalScheduled;
-    const scheduledTime = departure
-      ? form.departureScheduledTime
-      : form.arrivalScheduledTime;
-    const useSchedule = Boolean(scheduledDate && scheduledTime);
-    const date = useSchedule
-      ? scheduledDate
-      : departure
-        ? form.departure
-        : form.arrival;
-    const comparisonTime = useSchedule
-      ? scheduledTime
-      : departure
-        ? form.departureTime
-        : form.arrivalTime;
+    const selected = selectComparisonTime(form, departure);
     const airport = departure ? form.from : form.to;
-    if (time == null || !date || !comparisonTime || !airport?.tz) continue;
+    if (time == null || !selected || !airport?.tz) continue;
     try {
-      const reference = mergeTimeWithDate(date, comparisonTime, airport.tz);
+      const reference = mergeTimeWithDate(
+        selected.date,
+        selected.time,
+        airport.tz,
+      );
       if (Math.abs(time * 1000 - reference.getTime()) > 24 * 60 * 60 * 1000) {
         issues.push({
           kind: 'timing',
-          comparison: useSchedule ? 'scheduled' : 'actual',
+          comparison: selected.comparison,
           field: departure ? 'departure' : 'arrival',
-          message: `${departure ? 'Departure' : 'Arrival'} track time differs from ${useSchedule ? 'the original schedule' : 'the entered actual time'} by more than 24 hours. Check that this track belongs to this flight.`,
+          message: `${departure ? 'Departure' : 'Arrival'} track time differs from ${selected.comparison === 'scheduled' ? 'the original schedule' : 'the entered actual time'} by more than 24 hours. Check that this track belongs to this flight.`,
         });
       }
     } catch {
