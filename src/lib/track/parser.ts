@@ -1,5 +1,7 @@
 import { gpx, kml } from '@tmcw/togeojson';
 
+import { extractKmlMetadata, type TrackMetadata } from './metadata';
+
 import {
   type FlightTrackCoordinate,
   type FlightTrackInput,
@@ -21,6 +23,7 @@ export type ParsedTrackCandidate = {
   endTime: number | null;
   startCoordinate: FlightTrackCoordinate;
   endCoordinate: FlightTrackCoordinate;
+  metadata?: TrackMetadata;
 };
 
 type RawTrack = {
@@ -68,9 +71,17 @@ export const parseTrackCandidates = (
     return parseReadsbTrackCandidates(content, sourceName);
   }
 
-  return [
-    toTrackCandidate(parseTrackContent(content, sourceFormat, sourceName)),
-  ];
+  const candidate = toTrackCandidate(
+    parseTrackContent(content, sourceFormat, sourceName),
+  );
+  if (sourceFormat === 'kml') {
+    const document = new DOMParser().parseFromString(
+      content,
+      'application/xml',
+    );
+    candidate.metadata = extractKmlMetadata(document);
+  }
+  return [candidate];
 };
 
 export const parseTrackContent = (
