@@ -8,9 +8,16 @@
   import { findAutomaticTrackCandidate } from '$lib/track/candidates';
   import {
     clearTrackEventTimes,
+    detectTrackEventTimes,
     prepareTrackEventTimes,
   } from '$lib/track/event-times';
   import { parseTrackFile, type ParsedTrackCandidate } from '$lib/track/parser';
+  import type { TrackMetadata } from '$lib/track/metadata';
+  import {
+    validateTrackMetadata,
+    validateTrackTiming,
+  } from '$lib/track/validation';
+  import { formatTrackWarnings } from '$lib/track/warnings';
   import type { FlightTrackInput } from '$lib/track/schema';
   import { formatDateTime, getPreferences } from '$lib/utils/preferences';
   import { isSmallScreen } from '$lib/utils/size';
@@ -18,8 +25,10 @@
 
   let {
     form,
+    formOpen = true,
   }: {
     form: SuperForm<FlightFormData>;
+    formOpen?: boolean;
   } = $props();
 
   const { form: formData } = form;
@@ -33,6 +42,8 @@
   let formSnapshot = $state.raw<ReturnType<typeof form.capture> | null>(null);
   let filledTimes = $state<Partial<FlightFormData>>({});
   let filledTimesSnapshot = $state<Partial<FlightFormData>>({});
+  let metadata: TrackMetadata | null = $state(null);
+  let metadataSnapshot: TrackMetadata | null = $state(null);
 
   const prefs = $derived(getPreferences(page.data.user));
   const filledTimesNote = $derived.by(() => {
@@ -54,9 +65,26 @@
   });
 
   const track = $derived($formData.track);
+  $effect(() => {
+    if (!formOpen) {
+      metadata = null;
+      metadataSnapshot = null;
+    } else if (!track) {
+      metadata = null;
+    }
+  });
   const hasTrack = $derived(!!track);
-  const timingWarnings = $derived(
-    track ? prepareTrackEventTimes(track, $formData).warnings : [],
+  const trackWarnings = $derived(
+    track
+      ? formatTrackWarnings([
+          ...validateTrackTiming(
+            track,
+            $formData,
+            detectTrackEventTimes(track),
+          ),
+          ...validateTrackMetadata(metadata, $formData),
+        ])
+      : [],
   );
   const trackSummary = $derived.by(() => {
     if (!track) return null;
@@ -83,6 +111,7 @@
       track: nextTrack,
     }));
     filledTimes = {};
+    metadata = null;
   };
 
   const automaticCandidate = (candidates: ParsedTrackCandidate[]) => {
@@ -114,6 +143,8 @@
     originalPointCount = count;
     trackCandidates = [];
     setTrack(trackInput);
+    metadata = candidate.metadata ?? null;
+    if (validateTrackMetadata(metadata, $formData).length) return;
     const { values } = prepareTrackEventTimes(trackInput, $formData);
     formData.update((current) => ({ ...current, ...values }));
     filledTimes = values;
@@ -150,15 +181,25 @@
   size={$isSmallScreen ? 'sm' : 'icon-sm'}
   variant="outline"
   class={hasTrack ? 'border-primary text-primary' : ''}
+  title={trackWarnings.length
+    ? 'Flight track has validation warnings'
+    : 'Flight track'}
   onclick={() => {
     formSnapshot = form.capture();
     filledTimesSnapshot = { ...filledTimes };
+    metadataSnapshot = metadata;
     open = true;
   }}
 >
   <Route size={16} />
   {#if $isSmallScreen}
     Flight Track
+  {/if}
+  {#if trackWarnings.length}
+    <span
+      class="text-amber-600 dark:text-amber-400"
+      aria-label="Track validation warnings">!</span
+    >
   {/if}
 </Button>
 
@@ -171,6 +212,7 @@
   onDiscard={() => {
     if (formSnapshot) form.restore(formSnapshot);
     filledTimes = { ...filledTimesSnapshot };
+    metadata = metadataSnapshot;
     error = null;
     originalPointCount = null;
     trackCandidates = [];
@@ -239,10 +281,23 @@
             {filledTimesNote}
           </p>
         {/if}
-        {#each timingWarnings as warning}
-          <p role="alert" class="text-sm text-amber-600 dark:text-amber-400">
-            {warning}
-          </p>
+        {#each trackWarnings as warning}
+          <div
+            role="alert"
+            class="space-y-1 text-sm text-amber-600 dark:text-amber-400"
+          >
+            <p>{warning.message}</p>
+            {#if warning.details.length}
+              <div class="space-y-0.5 text-xs">
+                <p class="font-medium">Track → entered flight</p>
+                {#each warning.details as detail}
+                  <p class="break-words">
+                    {detail.label}: {detail.trackValue} → {detail.enteredValue}
+                  </p>
+                {/each}
+              </div>
+            {/if}
+          </div>
         {/each}
         <div
           class="min-w-0 overflow-hidden rounded-md border bg-muted/30 px-3 py-2 text-sm shadow-xs"
