@@ -1,6 +1,8 @@
 import type { FlightTrackInput } from './schema';
 
-import { decomposeToLocal, mergeTimeWithDate } from '$lib/utils/datetime';
+import { validateTrackTiming } from './validation';
+
+import { decomposeToLocal } from '$lib/utils/datetime';
 import type { FlightFormData } from '$lib/zod/flight';
 
 const MAX_TRANSITION_GAP_SECONDS = 60;
@@ -41,31 +43,15 @@ export const prepareTrackEventTimes = (
   form: FlightFormData,
 ) => {
   const events = detectTrackEventTimes(track);
-  const warnings: string[] = [];
+  const warnings = validateTrackTiming(track, form, events).map(
+    (issue) => issue.message,
+  );
   const values: Partial<FlightFormData> = {};
   for (const departure of [true, false]) {
-    const label = departure ? 'Departure' : 'Arrival';
     const event = departure ? events.takeoff : events.landing;
-    const time = event ?? (departure ? track.times?.[0] : track.times?.at(-1));
-    const date = departure ? form.departureScheduled : form.arrivalScheduled;
-    const scheduledTime = departure
-      ? form.departureScheduledTime
-      : form.arrivalScheduledTime;
     const airport = departure ? form.from : form.to;
     if (!airport?.tz) continue;
     const timezone = airport.tz;
-    if (time !== undefined && time !== null && date && scheduledTime) {
-      try {
-        const scheduled = mergeTimeWithDate(date, scheduledTime, timezone);
-        if (Math.abs(time * 1000 - scheduled.getTime()) > 24 * 60 * 60 * 1000) {
-          warnings.push(
-            `${label} track time differs from the original schedule by more than 24 hours. Check that this track belongs to this flight.`,
-          );
-        }
-      } catch {
-        // Incomplete or invalid schedule input cannot be compared yet.
-      }
-    }
     const dateField = departure ? 'takeoffActual' : 'landingActual';
     const timeField = departure ? 'takeoffActualTime' : 'landingActualTime';
     if (
