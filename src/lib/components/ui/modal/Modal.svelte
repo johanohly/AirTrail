@@ -80,6 +80,7 @@
     handleBackButton = true,
     onOpenChange,
     onHistoryStateChange,
+    historyUrl,
     historyHandle = $bindable(),
     children,
   }: {
@@ -106,6 +107,7 @@
     handleBackButton?: boolean;
     onOpenChange?: (open: boolean) => void;
     onHistoryStateChange?: (state: unknown) => void;
+    historyUrl?: () => string | undefined;
     historyHandle?: ModalHistoryHandle;
     children: Snippet;
   } = $props();
@@ -223,7 +225,7 @@
           if (!closed && reason === 'history' && open) registerHistory();
         })();
       },
-      { closeOnEscape, onStateChange: onHistoryStateChange },
+      { closeOnEscape, url: historyUrl, onStateChange: onHistoryStateChange },
     );
   };
 
