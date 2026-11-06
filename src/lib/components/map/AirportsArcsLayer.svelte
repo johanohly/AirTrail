@@ -419,6 +419,11 @@
     if (!selectedRoute) return [];
     return [Number(selectedRoute.a), Number(selectedRoute.b)];
   });
+  const selectedAirportConnectionIds = $derived.by(() => {
+    if (selectedAirportId === null) return null;
+    const airport = visitedAirports.find((a) => a.id === selectedAirportId);
+    return new Set(airport?.flights.flatMap((f) => f.airports) ?? []);
+  });
   const getAirportFillColor = () => {
     return (airport: (typeof visitedAirports)[number]): Color => {
       if (selectedAirportId === airport.id) {
@@ -442,6 +447,11 @@
         return INACTIVE_COLOR(50);
       } else if (hoveredAirport) {
         return INACTIVE_COLOR(50);
+      } else if (
+        selectedAirportConnectionIds &&
+        !selectedAirportConnectionIds.has(airport.id)
+      ) {
+        return INACTIVE_COLOR(45);
       } else {
         return AIRPORT_COLOR(50);
       }
@@ -470,6 +480,11 @@
         return AIRPORT_COLOR(255);
       } else if (hoveredArc) {
         return INACTIVE_COLOR(255);
+      } else if (
+        selectedAirportConnectionIds &&
+        !selectedAirportConnectionIds.has(airport.id)
+      ) {
+        return INACTIVE_COLOR(230);
       } else {
         return AIRPORT_COLOR(255);
       }
