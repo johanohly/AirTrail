@@ -61,6 +61,7 @@
     openAirportDetails,
     openFlightDetails,
     openRouteDetails,
+    setRouteUntrackedOnly,
   } from '$lib/state.svelte';
   import type { FlightTrackRow } from '$lib/track/schema';
   import { type FlightData, prepareVisitedAirports } from '$lib/utils';
@@ -269,14 +270,23 @@
       e.object.from.id.toString(),
       e.object.to.id.toString(),
     );
-    // While this route's pane is open, clicking its point-to-point line opens
-    // the flight list drilled down to the whole route; otherwise open (or
-    // switch to) that route's details.
+    // While this route's pane is open, clicking its point-to-point line
+    // narrows the pane to the flights drawn on it (those without a track) when
+    // the route also has tracked flights, and toggles back on the next click.
+    // On a route with no tracks it opens the flight list for the whole route.
+    // Otherwise open (or switch to) that route's details.
     if (selectedRoute && routeMatchesArc(e.object, selectedRoute)) {
-      onNavigate?.({
-        destination: 'list',
-        focus: { type: 'route', route },
-      });
+      const hasTrackedFlights = e.object.flights.some((flight) =>
+        trackFlightIds.has(flight.id),
+      );
+      if (hasTrackedFlights) {
+        setRouteUntrackedOnly(!selectedRouteUntrackedOnly);
+      } else {
+        onNavigate?.({
+          destination: 'list',
+          focus: { type: 'route', route },
+        });
+      }
     } else {
       openRouteDetails(route);
     }
@@ -355,6 +365,11 @@
   const selectedRoute = $derived.by(() => {
     const selection = mapDetailsState.selection;
     return selection?.type === 'route' ? selection.route : null;
+  });
+
+  const selectedRouteUntrackedOnly = $derived.by(() => {
+    const selection = mapDetailsState.selection;
+    return selection?.type === 'route' && !!selection.untrackedOnly;
   });
 
   // Hovering a flight row in the route pane sets mapDetailsState.hoveredFlightTrackId
@@ -638,6 +653,7 @@
       hoveredAirportId: hoveredAirport?.id,
       selectedAirportId,
       selectedRoute,
+      selectedRouteUntrackedOnly,
     });
 
   const getTrackColor = <T extends FlightArc>(
@@ -715,6 +731,7 @@
                 mapDetailsState.hoveredFlightTrackId,
                 selectedAirportId,
                 selectedRoute,
+                selectedRouteUntrackedOnly,
                 mapPreferences.arcColor,
                 arcFrequencyPercentileByRoute,
               ],
@@ -724,6 +741,7 @@
                 mapDetailsState.hoveredFlightTrackId,
                 selectedAirportId,
                 selectedRoute,
+                selectedRouteUntrackedOnly,
                 isDarkMode,
               ],
             },

@@ -11,6 +11,11 @@
 
   let {
     routeFlights,
+    listedFlights,
+    untrackedOnly,
+    untrackedCount,
+    canShowUntrackedOnly,
+    onToggleUntrackedOnly,
     airlineCount,
     distance,
     lastFlownLabel,
@@ -19,6 +24,12 @@
     onShowFlight,
   }: {
     routeFlights: FlightData[];
+    /** The rows shown: the whole route, or only its flights without a drawn track. */
+    listedFlights: FlightData[];
+    untrackedOnly: boolean;
+    untrackedCount: number;
+    canShowUntrackedOnly: boolean;
+    onToggleUntrackedOnly: () => void;
     airlineCount: number;
     distance: number | null;
     lastFlownLabel: string | null;
@@ -159,8 +170,20 @@
       Flights
     </h3>
     <span class="text-xs text-muted-foreground tabular-nums">
-      {routeFlights.length}
+      {listedFlights.length}
     </span>
+    {#if canShowUntrackedOnly}
+      <Button
+        variant={untrackedOnly ? 'secondary' : 'ghost'}
+        size="sm"
+        class="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+        aria-pressed={untrackedOnly}
+        title="Show only flights drawn on the great-circle line (no track)"
+        onclick={onToggleUntrackedOnly}
+      >
+        No track · {untrackedCount}
+      </Button>
+    {/if}
     {#if routeFlights.length > 0}
       <Button
         variant="ghost"
@@ -173,7 +196,7 @@
     {/if}
   </div>
   <ul class="flex flex-col divide-y divide-border/50">
-    {#each routeFlights as flight (flight.id)}
+    {#each listedFlights as flight (flight.id)}
       {@render flightRow(flight)}
     {/each}
   </ul>
