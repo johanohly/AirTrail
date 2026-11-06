@@ -57,10 +57,10 @@
   } from '$lib/utils';
   import { formatAircraft } from '$lib/utils/data/aircraft';
   import {
-    buildTimingSummary,
-    type TimingStatus,
-  } from '$lib/utils/flight-timing';
-  import { Duration, parseLocalizeISO } from '$lib/utils/datetime';
+    buildFlightSideTimes,
+    timingStatusClass,
+  } from '$lib/utils/data/flight-times';
+  import { Duration } from '$lib/utils/datetime';
   import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
   import { isMediumScreen } from '$lib/utils/size';
 
@@ -92,14 +92,6 @@
     onNavigate?: NavigateFlights;
   } = $props();
 
-  const parseRunwayTime = (value: string | null, airport: Airport | null) =>
-    value && airport ? parseLocalizeISO(value, airport.tz) : null;
-
-  const timingClass = (status: TimingStatus) => ({
-    'text-green-600 dark:text-green-400': status === 'early',
-    'text-red-600 dark:text-red-400': status === 'late',
-  });
-
   const prefs = $derived(getPreferences(appPage.data.user));
   const access = $derived(
     createFlightListAccess({
@@ -119,42 +111,12 @@
     const data = filteredFlights;
     if (!data) return [];
 
+    const preferScheduled = prefs.flightTimeSource === 'scheduled';
+
     return sortByDepartureDesc(
       data.map((f) => {
-        const depDate = f.departure;
-        const arrDate = f.arrival;
-
-        // Compare actual vs scheduled times
-        const depScheduled =
-          f.raw.departureScheduled && f.from
-            ? parseLocalizeISO(f.raw.departureScheduled, f.from.tz)
-            : null;
-        const arrScheduled =
-          f.raw.arrivalScheduled && f.to
-            ? parseLocalizeISO(f.raw.arrivalScheduled, f.to.tz)
-            : null;
-
-        const takeoffActual = parseRunwayTime(f.raw.takeoffActual, f.from);
-        const landingActual = parseRunwayTime(f.raw.landingActual, f.to);
-        const takeoffScheduled = parseRunwayTime(
-          f.raw.takeoffScheduled,
-          f.from,
-        );
-        const landingScheduled = parseRunwayTime(f.raw.landingScheduled, f.to);
-        const depTiming = buildTimingSummary({
-          gateActual: depDate,
-          gateScheduled: depScheduled,
-          runwayActual: takeoffActual,
-          runwayScheduled: takeoffScheduled,
-          side: 'departure',
-        });
-        const arrTiming = buildTimingSummary({
-          gateActual: arrDate,
-          gateScheduled: arrScheduled,
-          runwayActual: landingActual,
-          runwayScheduled: landingScheduled,
-          side: 'arrival',
-        });
+        const dep = buildFlightSideTimes(f, 'departure', preferScheduled);
+        const arr = buildFlightSideTimes(f, 'arrival', preferScheduled);
 
         return {
           ...f,
@@ -164,14 +126,18 @@
             ? Duration.fromSeconds(f.duration).toString()
             : '',
           hasDateDisplay: !!f.date,
-          depAt: (depDate ?? depScheduled) as Date | null,
+          depAt: dep.at,
           depFallback:
-            !(depDate ?? depScheduled) && f.date
+            !dep.at && f.date
               ? formatFlightDate(f.date, f.datePrecision, prefs)
               : null,
-          arrAt: (arrDate ?? arrScheduled) as Date | null,
-          depTiming,
-          arrTiming,
+          arrAt: arr.at,
+          depIsActual: dep.isActual,
+          arrIsActual: arr.isActual,
+          depScheduled: dep.scheduled,
+          arrScheduled: arr.scheduled,
+          depTiming: dep.timing,
+          arrTiming: arr.timing,
           seat: formatSeatForUser(f, seatUserId),
           passengerLabels: showPassengerDetails
             ? getFlightPassengerLabels(f)
@@ -684,7 +650,12 @@
         airportLabel={flight.from?.iata}
         side="right"
         timing={flight.depTiming}
-        class={cn('text-sm', timingClass(flight.depTiming.status))}
+        actualDate={flight.departure}
+        scheduledDate={flight.depScheduled}
+        class={cn(
+          'text-sm',
+          flight.depIsActual ? timingStatusClass(flight.depTiming.status) : {},
+        )}
       />
     {:else if flight.depFallback}
       <p class="text-sm">{flight.depFallback}</p>
@@ -700,9 +671,11 @@
         airportLabel={flight.to?.iata}
         side="right"
         timing={flight.arrTiming}
+        actualDate={flight.arrival}
+        scheduledDate={flight.arrScheduled}
         class={cn(
           'text-sm overflow-hidden text-ellipsis whitespace-nowrap',
-          timingClass(flight.arrTiming.status),
+          flight.arrIsActual ? timingStatusClass(flight.arrTiming.status) : {},
         )}
       />
     {/if}

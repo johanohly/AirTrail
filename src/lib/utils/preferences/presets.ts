@@ -10,6 +10,7 @@ export interface Preset {
 }
 
 const FLIGHT_TIME_DISPLAY_DEFAULT: Preferences['flightTimeDisplay'] = 'airport';
+const FLIGHT_TIME_SOURCE_DEFAULT: Preferences['flightTimeSource'] = 'actual';
 
 export const presets: Record<PresetKey, Preset> = {
   metric: {
@@ -25,6 +26,7 @@ export const presets: Record<PresetKey, Preset> = {
       dateFormat: 'eu',
       weekStartsOn: 'mon',
       flightTimeDisplay: FLIGHT_TIME_DISPLAY_DEFAULT,
+      flightTimeSource: FLIGHT_TIME_SOURCE_DEFAULT,
     },
   },
   imperial: {
@@ -40,6 +42,7 @@ export const presets: Record<PresetKey, Preset> = {
       dateFormat: 'us',
       weekStartsOn: 'sun',
       flightTimeDisplay: FLIGHT_TIME_DISPLAY_DEFAULT,
+      flightTimeSource: FLIGHT_TIME_SOURCE_DEFAULT,
     },
   },
   aviation: {
@@ -56,6 +59,7 @@ export const presets: Record<PresetKey, Preset> = {
       dateFormat: 'iso',
       weekStartsOn: 'mon',
       flightTimeDisplay: FLIGHT_TIME_DISPLAY_DEFAULT,
+      flightTimeSource: FLIGHT_TIME_SOURCE_DEFAULT,
     },
   },
 };
@@ -81,7 +85,8 @@ export const matchPreset = (prefs: Preferences): PresetKey | null => {
       v.timeFormat === prefs.timeFormat &&
       v.dateFormat === prefs.dateFormat &&
       v.weekStartsOn === prefs.weekStartsOn &&
-      v.flightTimeDisplay === prefs.flightTimeDisplay
+      v.flightTimeDisplay === prefs.flightTimeDisplay &&
+      v.flightTimeSource === prefs.flightTimeSource
     ) {
       return preset.key;
     }

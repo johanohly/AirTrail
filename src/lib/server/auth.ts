@@ -48,6 +48,8 @@ export const lucia = new Lucia(adapter, {
       weekStartsOn: db.week_starts_on,
       // @ts-expect-error - Same as above
       flightTimeDisplay: db.flight_time_display,
+      // @ts-expect-error - Same as above
+      flightTimeSource: db.flight_time_source,
     };
   },
 });

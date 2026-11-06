@@ -28,6 +28,7 @@ export const publicUserQuery = (db: Kysely<DB>) =>
       'user.dateFormat',
       'user.weekStartsOn',
       'user.flightTimeDisplay',
+      'user.flightTimeSource',
       'accessRole.name as roleName',
     ]);
 
@@ -48,6 +49,7 @@ export const toPublicUser = (user: PublicUser): PublicUser => {
     dateFormat,
     weekStartsOn,
     flightTimeDisplay,
+    flightTimeSource,
   } = user;
 
   return {
@@ -66,6 +68,7 @@ export const toPublicUser = (user: PublicUser): PublicUser => {
     dateFormat,
     weekStartsOn,
     flightTimeDisplay,
+    flightTimeSource,
   };
 };
 
@@ -88,6 +91,7 @@ export const toPageUser = (
   dateFormat: user.dateFormat,
   weekStartsOn: user.weekStartsOn,
   flightTimeDisplay: user.flightTimeDisplay,
+  flightTimeSource: user.flightTimeSource,
   hasOAuthLinked: Boolean(user.oauthId),
   hasPassword: user.hasPassword,
 });

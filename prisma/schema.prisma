@@ -46,6 +46,8 @@ model user {
   week_starts_on      String @default("auto")
   /// @kyselyType('airport' | 'utc' | 'system')
   flight_time_display String @default("airport")
+  /// @kyselyType('actual' | 'scheduled')
+  flight_time_source String @default("actual")
 
   sessions                     session[]
   flight_passengers            flight_passenger[]

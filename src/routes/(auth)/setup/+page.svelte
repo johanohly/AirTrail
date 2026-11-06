@@ -48,6 +48,7 @@
       $formData.dateFormat = v.dateFormat;
       $formData.weekStartsOn = v.weekStartsOn;
       $formData.flightTimeDisplay = v.flightTimeDisplay;
+      $formData.flightTimeSource = v.flightTimeSource;
     }
   });
 
@@ -60,6 +61,7 @@
     dateFormat: $formData.dateFormat,
     weekStartsOn: $formData.weekStartsOn,
     flightTimeDisplay: $formData.flightTimeDisplay,
+    flightTimeSource: $formData.flightTimeSource,
   });
 
   let showCustom = $state(false);
@@ -122,6 +124,7 @@
               $formData.dateFormat = values.dateFormat;
               $formData.weekStartsOn = values.weekStartsOn;
               $formData.flightTimeDisplay = values.flightTimeDisplay;
+              $formData.flightTimeSource = values.flightTimeSource;
             }}
           />
           <button
@@ -192,6 +195,13 @@
                   ($formData.flightTimeDisplay =
                     v as typeof $formData.flightTimeDisplay)}
               />
+              <PreferenceField
+                field="flightTimeSource"
+                value={$formData.flightTimeSource}
+                onChange={(v) =>
+                  ($formData.flightTimeSource =
+                    v as typeof $formData.flightTimeSource)}
+              />
             </div>
           {/if}
 
@@ -226,6 +236,11 @@
             type="hidden"
             name="flightTimeDisplay"
             value={$formData.flightTimeDisplay}
+          />
+          <input
+            type="hidden"
+            name="flightTimeSource"
+            value={$formData.flightTimeSource}
           />
         </div>
 

@@ -24,6 +24,8 @@
 
   let {
     date,
+    actualDate = null,
+    scheduledDate = null,
     airportTz = null,
     airportLabel = null,
     mode = 'flight',
@@ -35,6 +37,8 @@
     children,
   }: {
     date: Date | null | undefined;
+    actualDate?: Date | null;
+    scheduledDate?: Date | null;
     airportTz?: string | null;
     airportLabel?: string | null;
     mode?: TimeDisplayMode;
@@ -75,11 +79,17 @@
   });
 
   const modalCtx = getModalContext();
+  // Outside modals the tooltip gets no z-index from the context, which leaves
+  // it under raised surfaces like the map details pane (z-20); fall back to
+  // the shared tooltip layer (popover/tooltip contents use z-50).
+  const STANDALONE_Z_INDEX = 50;
   const payload = $derived.by(() => {
     if (!date) return undefined;
     const modalZ = modalCtx?.getContentZIndex();
     return {
       date,
+      actualDate,
+      scheduledDate,
       airportTz,
       airportLabel,
       mode,
@@ -91,7 +101,7 @@
             .map((n) => `${n.label} ${formatTime(n.date, prefs, primaryTz)}`)
             .join(', ')
         : null,
-      zIndex: modalZ !== undefined ? modalZ + 5 : undefined,
+      zIndex: modalZ !== undefined ? modalZ + 5 : STANDALONE_Z_INDEX,
     };
   });
 </script>
