@@ -8,16 +8,10 @@
   import { findAutomaticTrackCandidate } from '$lib/track/candidates';
   import {
     clearTrackEventTimes,
-    detectTrackEventTimes,
     prepareTrackEventTimes,
   } from '$lib/track/event-times';
+  import { findTrackMismatches, type TrackMetadata } from '$lib/track/metadata';
   import { parseTrackFile, type ParsedTrackCandidate } from '$lib/track/parser';
-  import type { TrackMetadata } from '$lib/track/metadata';
-  import {
-    validateTrackMetadata,
-    validateTrackTiming,
-  } from '$lib/track/validation';
-  import { formatTrackWarnings } from '$lib/track/warnings';
   import type { FlightTrackInput } from '$lib/track/schema';
   import { formatDateTime, getPreferences } from '$lib/utils/preferences';
   import { isSmallScreen } from '$lib/utils/size';
@@ -25,10 +19,8 @@
 
   let {
     form,
-    formOpen = true,
   }: {
     form: SuperForm<FlightFormData>;
-    formOpen?: boolean;
   } = $props();
 
   const { form: formData } = form;
@@ -42,8 +34,8 @@
   let formSnapshot = $state.raw<ReturnType<typeof form.capture> | null>(null);
   let filledTimes = $state<Partial<FlightFormData>>({});
   let filledTimesSnapshot = $state<Partial<FlightFormData>>({});
-  let metadata: TrackMetadata | null = $state(null);
-  let metadataSnapshot: TrackMetadata | null = $state(null);
+  let metadata = $state.raw<TrackMetadata | null>(null);
+  let metadataSnapshot = $state.raw<TrackMetadata | null>(null);
 
   const prefs = $derived(getPreferences(page.data.user));
   const filledTimesNote = $derived.by(() => {
@@ -65,26 +57,13 @@
   });
 
   const track = $derived($formData.track);
-  $effect(() => {
-    if (!formOpen) {
-      metadata = null;
-      metadataSnapshot = null;
-    } else if (!track) {
-      metadata = null;
-    }
-  });
   const hasTrack = $derived(!!track);
-  const trackWarnings = $derived(
-    track
-      ? formatTrackWarnings([
-          ...validateTrackTiming(
-            track,
-            $formData,
-            detectTrackEventTimes(track),
-          ),
-          ...validateTrackMetadata(metadata, $formData),
-        ])
-      : [],
+  const timingWarnings = $derived(
+    track ? prepareTrackEventTimes(track, $formData).warnings : [],
+  );
+  const mismatches = $derived(findTrackMismatches(metadata, $formData));
+  const hasWarnings = $derived(
+    timingWarnings.length > 0 || mismatches.length > 0,
   );
   const trackSummary = $derived.by(() => {
     if (!track) return null;
@@ -144,7 +123,14 @@
     trackCandidates = [];
     setTrack(trackInput);
     metadata = candidate.metadata ?? null;
-    if (validateTrackMetadata(metadata, $formData).length) return;
+    // A track from another route shouldn't fill this flight's times. A flight
+    // number mismatch alone can be a codeshare, so it only warns.
+    if (
+      findTrackMismatches(metadata, $formData).some(
+        (mismatch) => mismatch.field !== 'flightNumber',
+      )
+    )
+      return;
     const { values } = prepareTrackEventTimes(trackInput, $formData);
     formData.update((current) => ({ ...current, ...values }));
     filledTimes = values;
@@ -180,9 +166,13 @@
 <Button
   size={$isSmallScreen ? 'sm' : 'icon-sm'}
   variant="outline"
-  class={hasTrack ? 'border-primary text-primary' : ''}
-  title={trackWarnings.length
-    ? 'Flight track has validation warnings'
+  class={hasWarnings
+    ? 'relative overflow-visible border-amber-500 text-amber-600 dark:text-amber-400'
+    : hasTrack
+      ? 'border-primary text-primary'
+      : ''}
+  aria-label={hasWarnings
+    ? 'Flight track, may not match this flight'
     : 'Flight track'}
   onclick={() => {
     formSnapshot = form.capture();
@@ -195,11 +185,13 @@
   {#if $isSmallScreen}
     Flight Track
   {/if}
-  {#if trackWarnings.length}
+  {#if hasWarnings}
     <span
-      class="text-amber-600 dark:text-amber-400"
-      aria-label="Track validation warnings">!</span
+      class="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white"
+      aria-hidden="true"
     >
+      !
+    </span>
   {/if}
 </Button>
 
@@ -281,24 +273,24 @@
             {filledTimesNote}
           </p>
         {/if}
-        {#each trackWarnings as warning}
-          <div
-            role="alert"
-            class="space-y-1 text-sm text-amber-600 dark:text-amber-400"
-          >
-            <p>{warning.message}</p>
-            {#if warning.details.length}
-              <div class="space-y-0.5 text-xs">
-                <p class="font-medium">Track → entered flight</p>
-                {#each warning.details as detail}
-                  <p class="break-words">
-                    {detail.label}: {detail.trackValue} → {detail.enteredValue}
-                  </p>
-                {/each}
-              </div>
-            {/if}
-          </div>
+        {#each timingWarnings as warning}
+          <p role="alert" class="text-sm text-amber-600 dark:text-amber-400">
+            {warning}
+          </p>
         {/each}
+        {#if mismatches.length}
+          <div role="alert" class="text-sm text-amber-600 dark:text-amber-400">
+            <p>This track may belong to a different flight.</p>
+            <ul class="mt-1 space-y-0.5 text-xs">
+              {#each mismatches as mismatch (mismatch.field)}
+                <li class="break-words">
+                  {mismatch.label}: {mismatch.track} in the track, {mismatch.entered}
+                  entered
+                </li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
         <div
           class="min-w-0 overflow-hidden rounded-md border bg-muted/30 px-3 py-2 text-sm shadow-xs"
           data-testid="flight-track-summary"

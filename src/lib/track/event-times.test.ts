@@ -253,3 +253,48 @@ describe('track event times', () => {
     ).toEqual({});
   });
 });
+
+describe('track timing check', () => {
+  const twoDaysLater = {
+    ...form,
+    departureScheduled: null,
+    departureScheduledTime: null,
+    departure: '1970-01-03T00:00:00.000Z',
+    departureTime: '00:00',
+    arrival: '1970-01-03T00:00:00.000Z',
+    arrivalTime: '09:00',
+  } as FlightFormData;
+  const endpoints = track([undefined, undefined], [0, 3600]);
+
+  it('compares against the entered times when there is no schedule', () => {
+    expect(prepareTrackEventTimes(endpoints, twoDaysLater).warnings).toEqual([
+      'Departure track time differs from the entered time by more than 24 hours. Check that this track belongs to this flight.',
+      'Arrival track time differs from the entered time by more than 24 hours. Check that this track belongs to this flight.',
+    ]);
+  });
+
+  it('prefers the schedule over the entered time on each side', () => {
+    const { warnings } = prepareTrackEventTimes(endpoints, {
+      ...twoDaysLater,
+      departureScheduled: '1970-01-01T00:00:00.000Z',
+      departureScheduledTime: '00:00',
+    });
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/^Arrival/);
+  });
+
+  it('falls back to runway times when no gate time is complete', () => {
+    const { warnings } = prepareTrackEventTimes(endpoints, {
+      ...twoDaysLater,
+      departureTime: null,
+      arrival: null,
+      takeoffScheduled: '1970-01-03T00:00:00.000Z',
+      takeoffScheduledTime: '00:00',
+      landingActual: '1970-01-01T00:00:00.000Z',
+      landingActualTime: '09:00',
+    });
+    expect(warnings).toEqual([
+      'Departure track time differs from the original schedule by more than 24 hours. Check that this track belongs to this flight.',
+    ]);
+  });
+});

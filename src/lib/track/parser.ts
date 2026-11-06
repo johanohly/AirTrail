@@ -23,7 +23,7 @@ export type ParsedTrackCandidate = {
   endTime: number | null;
   startCoordinate: FlightTrackCoordinate;
   endCoordinate: FlightTrackCoordinate;
-  metadata?: TrackMetadata;
+  metadata?: TrackMetadata | null;
 };
 
 type RawTrack = {
