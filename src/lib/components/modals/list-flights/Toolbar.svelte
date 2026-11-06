@@ -368,7 +368,6 @@
                       Select
                     </Button>
                   {/if}
-                  {@render pageSizeSelect()}
                 </div>
               </div>
 
