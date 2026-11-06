@@ -92,6 +92,11 @@ const intentPriority = (intent: CameraIntent) => {
 };
 
 const cameraEventGenerationKey = 'airtrailCameraGeneration';
+// Shared by focus and fit moves so every programmatic camera change flies at
+// the same pace. Explicit rather than maplibre's distance-based auto duration
+// (which stretches to several seconds for world-spanning fits), and passed
+// alongside essential: true so prefers-reduced-motion cannot zero it out.
+const MOVE_DURATION = 1200;
 const defaultFrameScheduler: FrameScheduler = {
   request: (callback) => requestAnimationFrame(callback),
   cancel: (handle) => cancelAnimationFrame(handle),
@@ -210,6 +215,7 @@ export const createMapCameraController = (
         {
           center: target.center,
           zoom: target.zoom,
+          duration: MOVE_DURATION,
           essential: true,
         },
         beginProgrammaticMove(),
@@ -221,7 +227,11 @@ export const createMapCameraController = (
     const bounds = calculateBounds(intent.arcs);
     if (!bounds) return;
     map.setPadding(padding);
-    map.fitBounds(bounds, undefined, beginProgrammaticMove());
+    map.fitBounds(
+      bounds,
+      { duration: MOVE_DURATION, essential: true },
+      beginProgrammaticMove(),
+    );
     cameraMode = intent.resultMode;
   };
 
@@ -247,7 +257,7 @@ export const createMapCameraController = (
       center: target.center,
       zoom: target.zoom,
       padding: intent.padding,
-      duration: cameraMoved ? 1200 : 300,
+      duration: cameraMoved ? MOVE_DURATION : 300,
       essential: true,
     };
     const eventData = beginProgrammaticMove();

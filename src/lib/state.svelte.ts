@@ -68,22 +68,28 @@ export type MapDetailsSelection =
   | { type: 'route'; route: Route }
   | { type: 'flight'; flightId: number };
 
+export type AirportFocusMode = 'airport' | 'routes';
+
 export const mapDetailsState = $state<{
   selection: MapDetailsSelection | null;
   focusRequest: number;
   hoveredFlightTrackId: number | null;
   /** Temporary override for the focused flight or route, null when following the map setting. */
   focusedRouteDisplay: RouteDisplayMode | null;
+  /** Camera view for an airport selection: single airport or all its routes. */
+  airportFocusMode: AirportFocusMode;
 }>({
   selection: null,
   focusRequest: 0,
   hoveredFlightTrackId: null,
   focusedRouteDisplay: null,
+  airportFocusMode: 'airport',
 });
 
 export const openAirportDetails = (airportId: number) => {
   mapDetailsState.selection = { type: 'airport', airportId };
   mapDetailsState.focusedRouteDisplay = null;
+  mapDetailsState.airportFocusMode = 'airport';
   mapDetailsState.focusRequest += 1;
 };
 
@@ -93,23 +99,33 @@ export const openRouteDetails = (route: Route) => {
     route: normalizeRoute(route.a, route.b),
   };
   mapDetailsState.focusedRouteDisplay = null;
+  mapDetailsState.airportFocusMode = 'airport';
   mapDetailsState.focusRequest += 1;
 };
 
 export const openFlightDetails = (flightId: number) => {
   mapDetailsState.selection = { type: 'flight', flightId };
   mapDetailsState.focusedRouteDisplay = null;
+  mapDetailsState.airportFocusMode = 'airport';
   mapDetailsState.focusRequest += 1;
 };
 
 export const focusMapDetails = () => {
   if (!mapDetailsState.selection) return;
+  mapDetailsState.airportFocusMode = 'airport';
+  mapDetailsState.focusRequest += 1;
+};
+
+export const focusAirportRoutes = () => {
+  if (mapDetailsState.selection?.type !== 'airport') return;
+  mapDetailsState.airportFocusMode = 'routes';
   mapDetailsState.focusRequest += 1;
 };
 
 export const closeMapDetails = () => {
   mapDetailsState.selection = null;
   mapDetailsState.focusedRouteDisplay = null;
+  mapDetailsState.airportFocusMode = 'airport';
 };
 
 type FocusableFlight = {

@@ -53,7 +53,10 @@
     type CameraFocusTarget,
     type MapCameraController,
   } from '$lib/map/camera-controller';
-  import { hasFallbackFlightArcs } from '$lib/map/flight-layer-data';
+  import {
+    collectAirportRouteArcs,
+    hasFallbackFlightArcs,
+  } from '$lib/map/flight-layer-data';
   import { exposeRenderState } from '$lib/map/render-state';
   import {
     initMapPreferences,
@@ -187,6 +190,11 @@
 
   const allVisitedAirports = $derived(prepareVisitedAirports(flights));
   const allFlightArcs = $derived(prepareFlightArcData(flights));
+  const airportRouteArcs = $derived.by(() => {
+    const selection = mapDetailsState.selection;
+    if (selection?.type !== 'airport') return [];
+    return collectAirportRouteArcs(flights, selection.airportId);
+  });
 
   const detailsPanePadding = () => {
     if (!mapDetailsState.selection) {
@@ -365,11 +373,22 @@
           (a) => a.id === selection.airportId,
         );
         if (airport) {
-          focusTarget = {
-            type: 'point',
-            center: [airport.lon, airport.lat],
-            zoom: 13,
-          };
+          if (
+            mapDetailsState.airportFocusMode === 'routes' &&
+            airportRouteArcs.length > 0
+          ) {
+            focusTarget = {
+              type: 'arcs',
+              arcs: airportRouteArcs,
+              projection: mapPreferences.projection,
+            };
+          } else {
+            focusTarget = {
+              type: 'point',
+              center: [airport.lon, airport.lat],
+              zoom: 13,
+            };
+          }
         }
       } else {
         // route or flight — both fit a single great-circle arc between two

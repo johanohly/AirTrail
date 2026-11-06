@@ -171,6 +171,7 @@
     map.fitBounds(bounds, {
       padding: 20,
       linear: false,
+      essential: true,
     });
   };
 
