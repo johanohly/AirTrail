@@ -67,6 +67,24 @@ describe('view paths', () => {
     );
   });
 
+  it('drops the modal keys of a closed modal entry', () => {
+    stubWindow('/flights');
+    const replaceState = stubHistory({
+      'sveltekit:history-index': 7,
+      modal: 'modal-1',
+      modalState: undefined,
+      modalDepth: 0,
+    });
+
+    stripViewPath();
+
+    expect(replaceState).toHaveBeenCalledWith(
+      { 'sveltekit:history-index': 7 },
+      '',
+      '/',
+    );
+  });
+
   it('strips down to a bare slash when nothing follows', () => {
     stubWindow('/statistics');
     const replaceState = stubHistory(null);

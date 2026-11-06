@@ -202,9 +202,14 @@
     openFlightDetails,
   });
 
-  onMount(() => {
+  const restoreViewFromPath = () => {
     const view = readViewFromPath();
     if (view === undefined) return;
+    const viewOpen =
+      view === 'flights'
+        ? openModalsState.listFlights
+        : openModalsState.statistics;
+    if (viewOpen) return;
     // The view path is present only while a modal history entry exists, so
     // strip it before the modal re-pushes its own entry (this keeps a prior
     // entry for the browser back button to land on).
@@ -217,6 +222,17 @@
     } else {
       openModalsState.statistics = true;
     }
+  };
+
+  onMount(() => {
+    restoreViewFromPath();
+    // Browser forward can land on the entry of a modal that has since been
+    // closed, leaving a view path in the address bar with no modal open.
+    const onPopstate = () => {
+      void waitForModalHistoryIdle().then(restoreViewFromPath);
+    };
+    window.addEventListener('popstate', onPopstate);
+    return () => window.removeEventListener('popstate', onPopstate);
   });
 
   const openStatisticsFlight = (flightId: number) => {

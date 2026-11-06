@@ -1,5 +1,7 @@
 export type ViewParam = 'flights' | 'statistics';
 
+const MODAL_STATE_KEYS = ['modal', 'modalState', 'modalDepth'];
+
 const VIEW_PATHS = {
   flights: '/flights',
   statistics: '/statistics',
@@ -33,8 +35,13 @@ export function readViewFromPath(): ViewParam | undefined {
  */
 export function stripViewPath(): void {
   if (typeof window === 'undefined') return;
+  const state = { ...(history.state as Record<string, unknown> | null) };
+  // An entry reached with the forward button still carries the closed modal's
+  // keys. Left in place, going back to it would look like a step inside the
+  // reopened modal instead of closing it.
+  for (const key of MODAL_STATE_KEYS) delete state[key];
   history.replaceState(
-    { ...(history.state as Record<string, unknown> | null) },
+    state,
     '',
     `/${window.location.search}${window.location.hash}`,
   );
