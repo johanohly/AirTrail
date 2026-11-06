@@ -53,6 +53,13 @@ export type FlightPassengerRecord = Selectable<flight_passenger>;
 export type FlightPassenger = FlightPassengerRecord & {
   user: Pick<User, 'id' | 'displayName' | 'username'> | null;
 };
+/** One flight custom field value, attached by the flight list query. */
+export type FlightCustomFieldValue = {
+  fieldId: number;
+  value: unknown;
+  /** Resolved entity name for airport/airline/aircraft values; null otherwise. */
+  valueLabel: string | null;
+};
 export type Flight = Omit<
   Selectable<flight>,
   'fromId' | 'toId' | 'aircraftId' | 'airlineId'
@@ -62,6 +69,8 @@ export type Flight = Omit<
   passengers: FlightPassenger[];
   aircraft: Aircraft | null;
   airline: Airline | null;
+  /** Present only on tRPC flight.list results. */
+  customFields?: FlightCustomFieldValue[];
 };
 export type FlightTrack = Selectable<flight_track>;
 type CreateFlightAirport = Partial<Airport>;

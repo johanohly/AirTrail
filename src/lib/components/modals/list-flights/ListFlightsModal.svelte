@@ -46,6 +46,7 @@
   import type { NavigateFlights } from '$lib/flight-navigation';
   import { canShowFlightOnMap } from '$lib/flight-visibility';
   import { flightAddedState, flightListFocusState } from '$lib/state.svelte';
+  import { trpc } from '$lib/trpc';
   import {
     cn,
     cancelHighlight,
@@ -115,6 +116,13 @@
     access.canDeleteFlight(flight);
   const canBulkDelete = $derived(access.canBulkDelete(filteredFlights));
 
+  // Disabled for anonymous visitors on public shares, where the flight list
+  // is reused without a session.
+  const customFieldDefinitions = trpc.customField.listDefinitions.query(
+    { entityType: 'flight' },
+    { enabled: Boolean(appPage.data.user) },
+  );
+
   const formattedFlights = $derived.by(() => {
     const data = filteredFlights;
     if (!data) return [];
@@ -180,6 +188,7 @@
             hasTrack: trackedFlightIds?.has(f.id) ?? false,
             viewerId: seatUserId ?? null,
             includePassengers: !showPassengerDetails,
+            customFieldDefinitions: $customFieldDefinitions.data ?? [],
           }),
         };
       }),
