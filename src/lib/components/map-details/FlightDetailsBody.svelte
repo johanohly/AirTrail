@@ -47,8 +47,10 @@
     flight.duration ? Duration.fromSeconds(flight.duration).toString() : null,
   );
 
+  // Without both recorded times the duration is estimated from the distance,
+  // so a speed derived from it would carry no information.
   const avgSpeedLabel = $derived(
-    typeof flight.distance === 'number' && flight.duration
+    flight.departure && flight.arrival && flight.distance && flight.duration
       ? formatSpeed((flight.distance * 3600) / flight.duration, prefs)
       : null,
   );

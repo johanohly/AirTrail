@@ -2,7 +2,6 @@ import {
   cToF,
   feetToMeters,
   hpaToInhg,
-  kmhToKt,
   kmToMiles,
   kmToNauticalMiles,
   ktToKmh,
@@ -116,8 +115,11 @@ export const formatWindSpeed = (kt: number, prefs: WindPrefs): string => {
   return `${Math.round(v)} ${windSpeedUnitLabel(prefs)}`;
 };
 
-export const formatSpeed = (kmh: number, prefs: WindPrefs): string =>
-  formatWindSpeed(kmhToKt(kmh), prefs);
+const SPEED_UNIT_LABELS = { km: 'km/h', mi: 'mph', nm: 'kt' } as const;
+
+/** Formats a ground speed in the unit that matches the distance preference. */
+export const formatSpeed = (kmh: number, prefs: DistancePrefs): string =>
+  `${Math.round(convertDistance(kmh, prefs))} ${SPEED_UNIT_LABELS[prefs.distanceUnit]}`;
 
 // ----- Temperature ------------------------------------------------------
 

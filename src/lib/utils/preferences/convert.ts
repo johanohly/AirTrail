@@ -7,7 +7,6 @@ export const feetToMeters = (feet: number) => feet * 0.3048;
 export const ktToMph = (kt: number) => kt * 1.150779448;
 export const ktToKmh = (kt: number) => kt * 1.852;
 export const ktToMs = (kt: number) => kt * 0.514444444;
-export const kmhToKt = (kmh: number) => kmh / 1.852;
 
 export const cToF = (c: number) => (c * 9) / 5 + 32;
 
