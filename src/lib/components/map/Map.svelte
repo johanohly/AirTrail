@@ -53,10 +53,7 @@
     type CameraFocusTarget,
     type MapCameraController,
   } from '$lib/map/camera-controller';
-  import {
-    collectAirportRouteArcs,
-    hasFallbackFlightArcs,
-  } from '$lib/map/flight-layer-data';
+  import { hasFallbackFlightArcs } from '$lib/map/flight-layer-data';
   import { exposeRenderState } from '$lib/map/render-state';
   import {
     initMapPreferences,
@@ -193,7 +190,13 @@
   const airportRouteArcs = $derived.by(() => {
     const selection = mapDetailsState.selection;
     if (selection?.type !== 'airport') return [];
-    return collectAirportRouteArcs(flights, selection.airportId);
+    return drawnFlights.flatMap(({ from, to }) =>
+      from &&
+      to &&
+      (from.id === selection.airportId || to.id === selection.airportId)
+        ? [{ from, to }]
+        : [],
+    );
   });
 
   const detailsPanePadding = () => {
@@ -373,10 +376,7 @@
           (a) => a.id === selection.airportId,
         );
         if (airport) {
-          if (
-            mapDetailsState.airportFocusMode === 'routes' &&
-            airportRouteArcs.length > 0
-          ) {
+          if (selection.view === 'routes' && airportRouteArcs.length > 0) {
             focusTarget = {
               type: 'arcs',
               arcs: airportRouteArcs,

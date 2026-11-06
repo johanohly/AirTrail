@@ -64,11 +64,9 @@ export const openModalsState = $state<OpenModalsState>({
 });
 
 export type MapDetailsSelection =
-  | { type: 'airport'; airportId: number }
+  | { type: 'airport'; airportId: number; view: 'airport' | 'routes' }
   | { type: 'route'; route: Route }
   | { type: 'flight'; flightId: number };
-
-export type AirportFocusMode = 'airport' | 'routes';
 
 export const mapDetailsState = $state<{
   selection: MapDetailsSelection | null;
@@ -76,20 +74,16 @@ export const mapDetailsState = $state<{
   hoveredFlightTrackId: number | null;
   /** Temporary override for the focused flight or route, null when following the map setting. */
   focusedRouteDisplay: RouteDisplayMode | null;
-  /** Camera view for an airport selection: single airport or all its routes. */
-  airportFocusMode: AirportFocusMode;
 }>({
   selection: null,
   focusRequest: 0,
   hoveredFlightTrackId: null,
   focusedRouteDisplay: null,
-  airportFocusMode: 'airport',
 });
 
 export const openAirportDetails = (airportId: number) => {
-  mapDetailsState.selection = { type: 'airport', airportId };
+  mapDetailsState.selection = { type: 'airport', airportId, view: 'airport' };
   mapDetailsState.focusedRouteDisplay = null;
-  mapDetailsState.airportFocusMode = 'airport';
   mapDetailsState.focusRequest += 1;
 };
 
@@ -99,33 +93,32 @@ export const openRouteDetails = (route: Route) => {
     route: normalizeRoute(route.a, route.b),
   };
   mapDetailsState.focusedRouteDisplay = null;
-  mapDetailsState.airportFocusMode = 'airport';
   mapDetailsState.focusRequest += 1;
 };
 
 export const openFlightDetails = (flightId: number) => {
   mapDetailsState.selection = { type: 'flight', flightId };
   mapDetailsState.focusedRouteDisplay = null;
-  mapDetailsState.airportFocusMode = 'airport';
   mapDetailsState.focusRequest += 1;
 };
 
 export const focusMapDetails = () => {
-  if (!mapDetailsState.selection) return;
-  mapDetailsState.airportFocusMode = 'airport';
+  const selection = mapDetailsState.selection;
+  if (!selection) return;
+  if (selection.type === 'airport') selection.view = 'airport';
   mapDetailsState.focusRequest += 1;
 };
 
 export const focusAirportRoutes = () => {
-  if (mapDetailsState.selection?.type !== 'airport') return;
-  mapDetailsState.airportFocusMode = 'routes';
+  const selection = mapDetailsState.selection;
+  if (selection?.type !== 'airport') return;
+  selection.view = 'routes';
   mapDetailsState.focusRequest += 1;
 };
 
 export const closeMapDetails = () => {
   mapDetailsState.selection = null;
   mapDetailsState.focusedRouteDisplay = null;
-  mapDetailsState.airportFocusMode = 'airport';
 };
 
 type FocusableFlight = {

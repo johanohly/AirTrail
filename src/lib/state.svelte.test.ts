@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { mapPreferences } from './map/map-preferences.svelte';
 import {
   closeMapDetails,
+  focusAirportRoutes,
+  focusMapDetails,
   getFlightRouteDisplay,
   getFocusedRouteDisplay,
   isFocusedFlight,
@@ -120,5 +122,45 @@ describe('focused route display', () => {
     setRouteDisplayPreference('points');
     expect(getFlightRouteDisplay(onRoute)).toBe('points');
     expect(getFlightRouteDisplay(elsewhere)).toBe('points');
+  });
+});
+
+describe('airport routes view', () => {
+  beforeEach(() => {
+    closeMapDetails();
+  });
+
+  it('opens an airport on the airport itself', () => {
+    openAirportDetails(10);
+    focusAirportRoutes();
+    openAirportDetails(20);
+
+    expect(mapDetailsState.selection).toEqual({
+      type: 'airport',
+      airportId: 20,
+      view: 'airport',
+    });
+  });
+
+  it('switches between the routes and the airport', () => {
+    openAirportDetails(10);
+    const request = mapDetailsState.focusRequest;
+
+    focusAirportRoutes();
+    expect(mapDetailsState.selection).toMatchObject({ view: 'routes' });
+
+    focusMapDetails();
+    expect(mapDetailsState.selection).toMatchObject({ view: 'airport' });
+    expect(mapDetailsState.focusRequest).toBe(request + 2);
+  });
+
+  it('ignores the routes view without an airport selected', () => {
+    openFlightDetails(1);
+    const request = mapDetailsState.focusRequest;
+
+    focusAirportRoutes();
+
+    expect(mapDetailsState.selection).toEqual({ type: 'flight', flightId: 1 });
+    expect(mapDetailsState.focusRequest).toBe(request);
   });
 });
