@@ -132,9 +132,6 @@
 {/snippet}
 
 <div class="grid gap-x-7 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-  <!-- Rows pair by flight: the longest route's time and speed, then the
-       shortest's, then the compass extremes and the longest time on the
-       ground -->
   {#if byDistance.longest}
     {@render flightCard(
       'Longest route',

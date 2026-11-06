@@ -564,10 +564,13 @@ export function countryDistribution(
 ): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const { from, to } of flights) {
-    for (const country of [from?.country, to?.country]) {
-      if (!country) continue;
-
-      const code = country.toUpperCase();
+    // A domestic flight counts once, matching the flights its row opens.
+    const codes = new Set(
+      [from?.country, to?.country].flatMap((country) =>
+        country ? [country.toUpperCase()] : [],
+      ),
+    );
+    for (const code of codes) {
       counts[code] = (counts[code] ?? 0) + 1;
     }
   }
@@ -769,7 +772,10 @@ export function extremeTimeZones(
     const destination = offsetOf(flight.to.tz, arrive);
     if (origin === null || destination === null) continue;
 
-    const zones = Math.abs(destination - origin);
+    // Offsets run from -12 to +14, so the short way round may cross the
+    // date line: Tokyo to Honolulu is 5 zones, not 19.
+    const difference = Math.abs(destination - origin);
+    const zones = Math.min(difference, 24 - difference);
     if (!best || zones > best.zones) best = { flight, zones };
   }
   return best;

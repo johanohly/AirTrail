@@ -191,9 +191,9 @@ describe('flight country statistics', () => {
     },
   ] as FlightData[];
 
-  it('counts both endpoints per flight, keyed by uppercase code', () => {
+  it('counts each country once per flight, keyed by uppercase code', () => {
     expect(countryDistribution(flights, {})).toEqual({
-      ES: 4,
+      ES: 3,
       IE: 3,
       US: 1,
     });
@@ -448,6 +448,16 @@ describe('records', () => {
       flight: long,
       zones: 9,
     });
+  });
+
+  it('takes the short way round across the date line', () => {
+    const transpacific = zoneFlight(
+      'Asia/Tokyo',
+      'Pacific/Honolulu',
+      '2026-06-01T10:00:00Z',
+    );
+
+    expect(extremeTimeZones([transpacific])?.zones).toBe(5);
   });
 
   it('accounts for daylight saving at flight time', () => {
