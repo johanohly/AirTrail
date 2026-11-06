@@ -1,4 +1,5 @@
 import type { FlightData } from '$lib/utils';
+import { sameMetroArea } from '$lib/utils/data/airports/metro-areas';
 import {
   isCompletedFlight,
   resolveFlightTimeline,
@@ -8,6 +9,11 @@ import {
 export const MAX_LAYOVER_HOURS = 12;
 
 const MAX_LAYOVER_MS = MAX_LAYOVER_HOURS * 60 * 60 * 1000;
+
+/** Wider window for a self-transfer between two airports of the same metro area. */
+export const MAX_METRO_LAYOVER_HOURS = 24;
+
+const MAX_METRO_LAYOVER_MS = MAX_METRO_LAYOVER_HOURS * 60 * 60 * 1000;
 
 /** Bucket for flights that only have a placeholder date. */
 const UNDATED_YEAR = 0;
@@ -58,21 +64,28 @@ export const sortByDepartureDesc = <T extends FlightData>(flights: T[]): T[] =>
     .map(({ flight }) => flight);
 
 /**
- * True when `later` leaves from where `earlier` landed, soon enough to be a
- * layover. Both times must be known: a same-day pair without times is just as
- * likely to be two unrelated flights.
+ * True when `later` leaves from where `earlier` landed — or from another
+ * airport in the same metro area — soon enough to be a layover. Both times
+ * must be known: a same-day pair without times is just as likely to be two
+ * unrelated flights.
  */
 const isLayover = (earlier: FlightData, later: FlightData) => {
-  if (!earlier.to || !later.from || earlier.to.id !== later.from.id) {
-    return false;
-  }
+  const sameAirport =
+    !!earlier.to && !!later.from && earlier.to.id === later.from.id;
+  const metroTransfer =
+    !!earlier.to &&
+    !!later.from &&
+    !sameAirport &&
+    sameMetroArea(earlier.to.icao, later.from.icao);
+  if (!sameAirport && !metroTransfer) return false;
 
   const { effectiveArrival } = resolveFlightTimeline(earlier.raw);
   const { effectiveDeparture } = resolveFlightTimeline(later.raw);
   if (!effectiveArrival || !effectiveDeparture) return false;
 
   const gap = effectiveDeparture.getTime() - effectiveArrival.getTime();
-  return gap >= 0 && gap < MAX_LAYOVER_MS;
+  const maxGap = sameAirport ? MAX_LAYOVER_MS : MAX_METRO_LAYOVER_MS;
+  return gap >= 0 && gap < maxGap;
 };
 
 /** Id of the first flight that has already happened, if upcoming ones precede it. */
