@@ -17,13 +17,14 @@
     openAipConfigured = false,
     showTracksSection = false,
     hasFallbackArcs = true,
+    popoverOpen = $bindable(false),
   }: {
     openAipConfigured?: boolean;
     showTracksSection?: boolean;
     hasFallbackArcs?: boolean;
+    popoverOpen?: boolean;
   } = $props();
 
-  let popoverOpen = $state(false);
   let activeTab = $state('map');
   const isAdmin = $derived(
     hasClientPermission(

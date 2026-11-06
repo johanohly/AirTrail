@@ -4,7 +4,7 @@
   import { MapLibreOverlay } from '@deck.gl/maplibre';
   import { isTouchDevice } from '@melt-ui/svelte/internal/helpers';
   import { mode } from 'mode-watcher';
-  import { onDestroy } from 'svelte';
+  import { onDestroy, untrack } from 'svelte';
   import {
     Box,
     getId,
@@ -122,12 +122,14 @@
     flightTracks = [],
     tempFilters = $bindable(),
     onNavigate,
+    hoverEnabled = true,
   }: {
     flights: FlightData[];
     flightArcs: FlightArc[];
     flightTracks?: FlightTrackRow[];
     tempFilters?: TempFilters;
     onNavigate?: NavigateFlights;
+    hoverEnabled?: boolean;
   } = $props();
 
   const visitedAirports = $derived.by(() => {
@@ -203,11 +205,21 @@
     return projection?.type ?? projection?.name ?? 'unknown';
   };
 
+  const canHover = () => hoverEnabled && !isTouchDevice();
+
+  const clearHover = () => {
+    if (!hoveredArc && !hoveredAirport) return;
+    hoveredArc = undefined;
+    hoveredAirport = undefined;
+    mapDetailsState.hoveredFlightTrackId = null;
+    layerEvent.value = undefined;
+  };
+
   const handleAirportHover = (
     e: PickingInfo<VisitedAirport>,
     event?: DeckPointerEvent,
   ) => {
-    if (!isTouchDevice()) {
+    if (canHover()) {
       mapDetailsState.hoveredFlightTrackId = null;
       hoveredAirport = e.object ?? undefined;
       popupPosition.update(getDeckPointerPixel(e, event));
@@ -225,7 +237,7 @@
     e: PickingInfo<FlightArc>,
     event?: DeckPointerEvent,
   ) => {
-    if (!isTouchDevice()) {
+    if (canHover()) {
       mapDetailsState.hoveredFlightTrackId = null;
       hoveredArc = e.object ?? undefined;
       popupPosition.update(getDeckPointerPixel(e, event));
@@ -243,7 +255,7 @@
     e: PickingInfo<FlightTrackPath>,
     event?: DeckPointerEvent,
   ) => {
-    if (!isTouchDevice()) {
+    if (canHover()) {
       mapDetailsState.hoveredFlightTrackId = e.object?.flightId ?? null;
       hoveredArc = e.object ?? undefined;
       popupPosition.update(getDeckPointerPixel(e, event));
@@ -313,6 +325,30 @@
     if (loaded && layer && map) {
       map.removeControl(layer);
     }
+  });
+
+  $effect(() => {
+    if (!hoverEnabled) untrack(clearHover);
+  });
+
+  // deck.gl only reports the end of a hover when a pick under the pointer comes
+  // up empty, and it skips picking once the pointer is off the canvas. Leaving
+  // straight from a route onto a map control, or pressing one, would otherwise
+  // leave the card open on top of it.
+  $effect(() => {
+    if (!map) return;
+    const canvas = map.getCanvas();
+
+    const handlePointerDown = (e: PointerEvent) => {
+      if (!canvas.contains(e.target as Node)) clearHover();
+    };
+
+    canvas.addEventListener('pointerleave', clearHover);
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    return () => {
+      canvas.removeEventListener('pointerleave', clearHover);
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+    };
   });
 
   $effect(() => {
