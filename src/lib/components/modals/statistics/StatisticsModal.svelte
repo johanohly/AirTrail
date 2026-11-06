@@ -137,6 +137,8 @@
   let activeContinent: string | null = $state(null);
   let modalHistory: ModalHistoryHandle | undefined = $state();
   let wasOpen = $state(false);
+  let scrollEl: HTMLElement | null = $state(null);
+  let drillDownOpener: HTMLElement | null = $state(null);
   const drillDownOpen = $derived(Boolean(activeChart || activeContinent));
 
   const countryStatus = $derived(
@@ -181,18 +183,36 @@
       hasClientPermission(page.data.authorization, 'flight.import.own'),
   );
 
+  // The control that opened the drill-down, so focus can return to it.
+  const openerElement = () =>
+    document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+
   const openChart = (key: FlightChartKey, entry?: string) => {
+    drillDownOpener = openerElement();
     activeChart = key;
     activeEntry = entry ?? null;
     modalHistory?.push({ activeChart, activeEntry, activeContinent });
   };
 
   const openContinent = (continent: string) => {
+    drillDownOpener = openerElement();
     activeContinent = continent;
     modalHistory?.push({ activeChart, activeEntry, activeContinent });
   };
 
   const restoreDrilldown = (state: unknown) => {
+    // Park focus on the dialog before the drill-down sheet unmounts: the
+    // dialog's focus scope reacts to the focused Back button being removed
+    // by focusing its first tabbable element, the filter row at the top,
+    // which scrolls the statistics back to the top.
+    if (activeChart || activeContinent) {
+      const dialog = scrollEl?.closest('[role="dialog"]');
+      if (dialog instanceof HTMLElement) {
+        dialog.focus({ preventScroll: true });
+      }
+    }
     const drilldown = state as
       | {
           activeChart?: unknown;
@@ -212,6 +232,20 @@
         ? drilldown.activeContinent
         : null;
   };
+
+  // Once the sheet has closed and its `inert` lifted, focus returns to the
+  // row that opened it, so keyboard users resume where they left off.
+  let wasDrillDownOpen = $state(false);
+  $effect(() => {
+    if (wasDrillDownOpen && !drillDownOpen && open && drillDownOpener) {
+      const opener = drillDownOpener;
+      drillDownOpener = null;
+      if (opener.isConnected) {
+        opener.focus({ preventScroll: true });
+      }
+    }
+    wasDrillDownOpen = drillDownOpen;
+  });
 
   $effect(() => {
     const closedFromDrilldown =
@@ -492,6 +526,7 @@
   <!-- Scrolls in here, so a drill-down sheet stays on screen however far down
        the row that opened it was -->
   <div
+    bind:this={scrollEl}
     class="h-full min-h-0 overflow-y-auto p-6"
     inert={drillDownOpen}
     data-testid="statistics-scroll"
