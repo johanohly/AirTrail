@@ -18,6 +18,7 @@ if (browser) {
  * `page.url.pathname` alone.
  */
 export const currentPathname = (): string => {
+  void page.url;
   void popstateTick;
   return browser ? window.location.pathname : page.url.pathname;
 };

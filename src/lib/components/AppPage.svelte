@@ -214,7 +214,7 @@
     // strip it before the modal re-pushes its own entry (this keeps a prior
     // entry for the browser back button to land on).
     stripViewPath();
-    // Never flip modal flags when the modals are unmounted — the map
+    // Never flip modal flags when the modals are unmounted -- the map
     // navigator reads them to decide where to route.
     if (!canReadOwnFlights) return;
     if (view === 'flights') {

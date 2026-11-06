@@ -132,30 +132,6 @@
   };
 </script>
 
-{#snippet pageSizeSelect()}
-  <Select.Root
-    type="single"
-    value={String(pageSize)}
-    onValueChange={(value) => {
-      if (!value) return;
-      const next = Number(value);
-      if (!PAGE_SIZE_OPTIONS.includes(next)) return;
-      pageSize = next;
-      writeFlightsPerPage(next);
-      page = 1;
-    }}
-  >
-    <Select.Trigger size="sm" aria-label="Flights per page" class="w-auto">
-      {pageSize} / page
-    </Select.Trigger>
-    <Select.Content>
-      {#each PAGE_SIZE_OPTIONS as option (option)}
-        <Select.Item value={String(option)} label={String(option)} />
-      {/each}
-    </Select.Content>
-  </Select.Root>
-{/snippet}
-
 <!-- Top bar: filters + Select (desktop only) -->
 {#if filters}
   <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
@@ -316,9 +292,33 @@
                     {' '}{numOfFlights === 1 ? 'flight' : 'flights'}
                   </div>
                   <div class="flex items-center gap-2">
-                    <div class="hidden sm:flex">
-                      {@render pageSizeSelect()}
-                    </div>
+                    <Select.Root
+                      type="single"
+                      value={String(pageSize)}
+                      onValueChange={(value) => {
+                        if (!value) return;
+                        const next = Number(value);
+                        pageSize = next;
+                        writeFlightsPerPage(next);
+                        page = 1;
+                      }}
+                    >
+                      <Select.Trigger
+                        size="sm"
+                        aria-label="Flights per page"
+                        class="w-auto max-sm:hidden"
+                      >
+                        {pageSize} / page
+                      </Select.Trigger>
+                      <Select.Content>
+                        {#each PAGE_SIZE_OPTIONS as option (option)}
+                          <Select.Item
+                            value={String(option)}
+                            label={String(option)}
+                          />
+                        {/each}
+                      </Select.Content>
+                    </Select.Root>
                     <Button
                       onclick={() => {
                         page = Math.max(1, page - 1);

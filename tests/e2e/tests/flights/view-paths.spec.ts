@@ -50,4 +50,17 @@ test.describe('View paths', () => {
     await expect(page.getByText('All Flights')).toBeHidden();
     await expect(page.getByTestId('list-flights-button')).toBeVisible();
   });
+
+  test('updates the dock after following a link from the map', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'More' }).click();
+    await page.getByRole('link', { name: 'Visited countries' }).click();
+    await expect(page).toHaveURL('/visited-countries');
+
+    const nav = page.getByRole('navigation', { name: 'Main navigation' });
+    await expect(nav.locator('a[href="/"]')).toBeVisible();
+    await expect(page.getByTestId('list-flights-button')).toBeHidden();
+  });
 });

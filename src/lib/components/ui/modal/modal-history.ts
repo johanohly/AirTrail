@@ -105,17 +105,13 @@ export const createModalHistoryController = (adapter: HistoryAdapter) => {
   };
 
   const activateEntry = (entry: QueuedModalHistoryEntry) => {
-    const depthZeroState = {
-      modal: entry.id,
-      modalState: undefined,
-      modalDepth: 0,
-    };
-    // The URL is resolved at activation time so queued entries — e.g. one
-    // modal opening while another is still closing — read fresh state once
-    // the previous entry's URL has been reverted.
+    // The URL is resolved at activation time so queued entries (one modal
+    // opening while another is still closing) read fresh state once the
+    // previous entry's URL has been reverted.
+    const state = { modal: entry.id, modalState: undefined, modalDepth: 0 };
     const url = entry.url?.();
-    if (url === undefined) adapter.pushState(depthZeroState, '');
-    else adapter.pushState(depthZeroState, '', url);
+    if (url === undefined) adapter.pushState(state, '');
+    else adapter.pushState(state, '', url);
     let internalDepth = 0;
     for (const state of entry.queuedStates) {
       internalDepth += 1;
@@ -357,8 +353,7 @@ const getBrowserController = () => {
         ...(history.state as Record<string, unknown> | null),
         ...(data as Record<string, unknown>),
       };
-      if (url === undefined) history.pushState(state, unused);
-      else history.pushState(state, unused, url);
+      history.pushState(state, unused, url);
     },
     back: () => history.back(),
     listen: (callback) => {
