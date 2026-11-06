@@ -1,6 +1,7 @@
 <script lang="ts">
   import NumberFlow from '@number-flow/svelte';
   import { Plus } from '@o7/icon/lucide';
+  import { tick } from 'svelte';
 
   import ChartDrillDown from './charts/ChartDrillDown.svelte';
   import ContinentDrillDown from './charts/ContinentDrillDown.svelte';
@@ -137,8 +138,9 @@
   let activeContinent: string | null = $state(null);
   let modalHistory: ModalHistoryHandle | undefined = $state();
   let wasOpen = $state(false);
-  let scrollEl: HTMLElement | null = $state(null);
-  let drillDownOpener: HTMLElement | null = $state(null);
+  let scrollEl: HTMLElement | undefined;
+  /** The control that opened the drill-down, so focus can return to it. */
+  let drillDownOpener: Element | null = null;
   const drillDownOpen = $derived(Boolean(activeChart || activeContinent));
 
   const countryStatus = $derived(
@@ -183,36 +185,20 @@
       hasClientPermission(page.data.authorization, 'flight.import.own'),
   );
 
-  // The control that opened the drill-down, so focus can return to it.
-  const openerElement = () =>
-    document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-
   const openChart = (key: FlightChartKey, entry?: string) => {
-    drillDownOpener = openerElement();
+    drillDownOpener = document.activeElement;
     activeChart = key;
     activeEntry = entry ?? null;
     modalHistory?.push({ activeChart, activeEntry, activeContinent });
   };
 
   const openContinent = (continent: string) => {
-    drillDownOpener = openerElement();
+    drillDownOpener = document.activeElement;
     activeContinent = continent;
     modalHistory?.push({ activeChart, activeEntry, activeContinent });
   };
 
-  const restoreDrilldown = (state: unknown) => {
-    // Park focus on the dialog before the drill-down sheet unmounts: the
-    // dialog's focus scope reacts to the focused Back button being removed
-    // by focusing its first tabbable element, the filter row at the top,
-    // which scrolls the statistics back to the top.
-    if (activeChart || activeContinent) {
-      const dialog = scrollEl?.closest('[role="dialog"]');
-      if (dialog instanceof HTMLElement) {
-        dialog.focus({ preventScroll: true });
-      }
-    }
+  const restoreDrilldown = async (state: unknown) => {
     const drilldown = state as
       | {
           activeChart?: unknown;
@@ -221,31 +207,39 @@
         }
       | undefined;
     const chart = drilldown?.activeChart;
-    activeChart =
+    const nextChart =
       typeof chart === 'string' && chart in FLIGHT_CHARTS
         ? (chart as FlightChartKey)
         : null;
-    activeEntry =
-      typeof drilldown?.activeEntry === 'string' ? drilldown.activeEntry : null;
-    activeContinent =
+    const nextContinent =
       typeof drilldown?.activeContinent === 'string'
         ? drilldown.activeContinent
         : null;
-  };
+    const closing = drillDownOpen && !nextChart && !nextContinent;
 
-  // Once the sheet has closed and its `inert` lifted, focus returns to the
-  // row that opened it, so keyboard users resume where they left off.
-  let wasDrillDownOpen = $state(false);
-  $effect(() => {
-    if (wasDrillDownOpen && !drillDownOpen && open && drillDownOpener) {
-      const opener = drillDownOpener;
-      drillDownOpener = null;
-      if (opener.isConnected) {
-        opener.focus({ preventScroll: true });
-      }
+    // When the sheet unmounts with focus inside it, the dialog's focus scope
+    // moves focus to the first control at the top, which scrolls the
+    // statistics back up. Parking focus on the dialog first avoids that.
+    if (closing) {
+      const dialog = scrollEl?.closest('[role="dialog"]');
+      if (dialog instanceof HTMLElement) dialog.focus({ preventScroll: true });
     }
-    wasDrillDownOpen = drillDownOpen;
-  });
+
+    activeChart = nextChart;
+    activeEntry =
+      typeof drilldown?.activeEntry === 'string' ? drilldown.activeEntry : null;
+    activeContinent = nextContinent;
+    if (!closing) return;
+
+    // Once the statistics are interactive again, keyboard users resume on
+    // the row that opened the drill-down.
+    await tick();
+    const opener = drillDownOpener;
+    drillDownOpener = null;
+    if (opener instanceof HTMLElement && opener.isConnected) {
+      opener.focus({ preventScroll: true });
+    }
+  };
 
   $effect(() => {
     const closedFromDrilldown =
@@ -253,6 +247,7 @@
     wasOpen = open;
 
     if (closedFromDrilldown) {
+      drillDownOpener = null;
       activeChart = null;
       activeEntry = null;
       activeContinent = null;
