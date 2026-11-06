@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { sortByDepartureDesc } from '../../list-flights/flight-list-groups';
   import FlightCard from '../../list-flights/FlightCard.svelte';
   import { CHART_NOUNS, createDetailsLookup } from '../breakdown';
   import BreakdownLabel from '../BreakdownLabel.svelte';
@@ -66,8 +67,9 @@
     );
   });
 
+  const newestFirst = $derived(sortByDepartureDesc(flights));
   const flightsFor = (key: string) =>
-    flights.filter((flight) =>
+    newestFirst.filter((flight) =>
       flightMatchesChartBucket(flight, chartKey, key, { userId: seatUserId }),
     );
 </script>
