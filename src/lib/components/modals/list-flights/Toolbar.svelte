@@ -10,8 +10,6 @@
   import { Portal } from 'bits-ui';
   import { toast } from 'svelte-sonner';
 
-  import { PAGE_SIZE_OPTIONS, writeFlightsPerPage } from './page-size-storage';
-
   import { page as pageState } from '$app/state';
   import { hasClientPermission } from '$lib/authorization/permissions';
   import type { FlightScope } from '$lib/flight-scope';
@@ -40,7 +38,6 @@
     filters = $bindable(),
     tempFilters = $bindable(),
     page = $bindable(),
-    pageSize = $bindable(),
     pageCount,
     showingFrom,
     showingTo,
@@ -56,7 +53,6 @@
     filters?: FlightFilters;
     tempFilters?: TempFilters;
     page: number;
-    pageSize: number;
     pageCount: number;
     showingFrom: number;
     showingTo: number;
@@ -292,33 +288,6 @@
                     {' '}{numOfFlights === 1 ? 'flight' : 'flights'}
                   </div>
                   <div class="flex items-center gap-2">
-                    <Select.Root
-                      type="single"
-                      value={String(pageSize)}
-                      onValueChange={(value) => {
-                        if (!value) return;
-                        const next = Number(value);
-                        pageSize = next;
-                        writeFlightsPerPage(next);
-                        page = 1;
-                      }}
-                    >
-                      <Select.Trigger
-                        size="sm"
-                        aria-label="Flights per page"
-                        class="w-auto max-sm:hidden"
-                      >
-                        {pageSize} / page
-                      </Select.Trigger>
-                      <Select.Content>
-                        {#each PAGE_SIZE_OPTIONS as option (option)}
-                          <Select.Item
-                            value={String(option)}
-                            label={String(option)}
-                          />
-                        {/each}
-                      </Select.Content>
-                    </Select.Root>
                     <Button
                       onclick={() => {
                         page = Math.max(1, page - 1);
