@@ -54,7 +54,11 @@
     navigateFlights,
   );
 
-  const flight = useFlightDetails(() => flights, navigateFlights);
+  const flight = useFlightDetails(
+    () => flights,
+    navigateFlights,
+    () => seatUserId,
+  );
 
   const hasTrack = $derived(
     flights.some(
@@ -144,6 +148,7 @@
       <FlightDetailsBody
         flight={flight.flight}
         prefs={flight.prefs}
+        milestones={flight.milestones}
         {seatUserId}
         onShowInList={flight.showInList}
       />

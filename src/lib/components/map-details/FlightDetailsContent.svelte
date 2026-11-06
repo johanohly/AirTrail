@@ -47,6 +47,7 @@
     <FlightDetailsBody
       flight={details.flight}
       prefs={details.prefs}
+      milestones={details.milestones}
       {seatUserId}
       onShowInList={details.showInList}
     />
