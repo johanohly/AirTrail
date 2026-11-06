@@ -1644,6 +1644,9 @@ components:
           type: boolean
         showFlightList:
           type: boolean
+        flightSelection:
+          type: string
+          enum: [all, past, upcoming, custom]
         dateFrom:
           type: [string, 'null']
         dateTo:

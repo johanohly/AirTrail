@@ -26,6 +26,7 @@
     showMap: boolean;
     showStats: boolean;
     showFlightList: boolean;
+    flightSelection: 'all' | 'past' | 'upcoming' | 'custom';
     dateFrom: string | null;
     dateTo: string | null;
     showFlightNumbers: boolean;
@@ -56,6 +57,7 @@
     showMap: share.showMap,
     showStats: share.showStats,
     showFlightList: share.showFlightList,
+    flightSelection: share.flightSelection,
     dateFrom: share.dateFrom || '',
     dateTo: share.dateTo || '',
     showFlightNumbers: share.showFlightNumbers,

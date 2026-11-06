@@ -22,7 +22,7 @@ The same check runs when a visitor opens a link. If the share owner loses the pe
 3. Fill in the form described below.
 4. Click **Create**.
 
-The new share appears in the list with badges for the enabled content: **Map**, **Tracks**, **Statistics**, **Flight List**, and **Date Filtered**. Use the buttons next to a share to copy its URL, preview it in a new tab, edit it, or delete it.
+The new share appears in the list with badges for the enabled content: **Map**, **Tracks**, **Statistics**, **Flight List**, and a flights-included badge (**Past Only**, **Upcoming Only**, or **Date Filtered**). Use the buttons next to a share to copy its URL, preview it in a new tab, edit it, or delete it.
 
 <Screenshot name="settings-share" alt="The Share settings page listing one share with its enabled content" />
 
@@ -54,9 +54,18 @@ Expired shares stop working immediately and are removed the next time a share li
 
 When you edit a share that has an expiry, the form shows it as **Custom date**. Choosing a relative option again counts from the moment you save.
 
-### Date Range (Optional)
+### Flights Included
 
-Set a start date, an end date, or both to limit the share to flights in that range. Both ends are inclusive and compare against the flight date. Leave the range empty to include all flights.
+| Option                | Flights shared                        |
+| --------------------- | ------------------------------------- |
+| All flights           | Every flight.                         |
+| Past flights only     | Flights that have already happened.   |
+| Upcoming flights only | Flights that have not happened yet.   |
+| Custom date range     | Flights within the chosen date range. |
+
+**All flights** is the default. **Past flights only** and **Upcoming flights only** are decided each time someone opens the link, so flights appear automatically once they have been flown — an upcoming-only share eventually shows no flights at all.
+
+Choosing **Custom date range** reveals the date fields. Set a start date, an end date, or both to limit the share to flights in that range. Both ends are inclusive and compare against the flight date. Leave the range empty to include all flights.
 
 ### Content Visibility
 
