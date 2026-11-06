@@ -7,6 +7,7 @@
   import PassengerCustomFields from './PassengerCustomFields.svelte';
   import PassengerPicker from './PassengerPicker.svelte';
 
+  import { seatTypeLabels } from '$lib/components/flight-filters/options';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
   import * as Form from '$lib/components/ui/form';
@@ -46,16 +47,6 @@
     }
     return valid;
   }
-
-  const seatTypeLabels: Record<string, string> = {
-    window: 'Window',
-    middle: 'Middle',
-    aisle: 'Aisle',
-    pilot: 'Pilot',
-    copilot: 'Co-pilot',
-    jumpseat: 'Jumpseat',
-    other: 'Other',
-  };
 
   const getExcludedUserIds = (currentIndex: number): string[] => {
     return $formData.passengers

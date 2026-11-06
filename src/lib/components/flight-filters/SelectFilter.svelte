@@ -9,6 +9,7 @@
   } from '@o7/icon';
   import { Calendar } from '@o7/icon/lucide';
   import { Airlines } from '@o7/icon/material';
+  import type { Snippet, SvelteComponent } from 'svelte';
 
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
@@ -16,7 +17,6 @@
   import * as Popover from '$lib/components/ui/popover';
   import { Separator } from '$lib/components/ui/separator';
   import { cn } from '$lib/utils';
-  import type { Snippet, SvelteComponent } from 'svelte';
 
   let {
     filterValues = $bindable<string[]>(),

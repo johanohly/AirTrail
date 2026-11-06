@@ -96,6 +96,7 @@
     flightTracks = [],
     filters = $bindable(),
     tempFilters = $bindable(),
+    seatUserId,
     onNavigate,
   }: {
     flights: FlightData[];
@@ -103,6 +104,7 @@
     flightTracks?: FlightTrackRow[];
     filters?: FlightFilters;
     tempFilters?: TempFilters;
+    seatUserId?: string;
     onNavigate?: NavigateFlights;
   } = $props();
 
@@ -511,6 +513,7 @@
                     bind:flights
                     bind:filters
                     bind:tempFilters
+                    {seatUserId}
                     layout="stacked"
                     presentation="map-popover"
                   />
@@ -604,6 +607,7 @@
       {flights}
       bind:filters
       bind:tempFilters
+      {seatUserId}
     />
   {/if}
 {:else}

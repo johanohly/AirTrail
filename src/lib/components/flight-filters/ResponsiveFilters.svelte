@@ -4,25 +4,27 @@
   import Filters from './Filters.svelte';
   import MobileFiltersModal from './MobileFiltersModal.svelte';
 
+  import { hasFlightFilters } from '$lib/components/flight-filters/model';
   import type {
     FlightFilters,
     TempFilters,
   } from '$lib/components/flight-filters/types';
-  import { hasFlightFilters } from '$lib/components/flight-filters/model';
   import { Button } from '$lib/components/ui/button';
-  import { isMediumScreen } from '$lib/utils/size';
   import type { FlightData } from '$lib/utils';
+  import { isMediumScreen } from '$lib/utils/size';
 
   let {
     flights,
     filters = $bindable(),
     tempFilters = $bindable(),
     hasTempFilters = false,
+    seatUserId,
   }: {
     flights: FlightData[];
     filters: FlightFilters;
     tempFilters?: TempFilters;
     hasTempFilters?: boolean;
+    seatUserId?: string;
   } = $props();
 
   let drawerOpen = $state(false);
@@ -31,7 +33,13 @@
 </script>
 
 {#if $isMediumScreen}
-  <Filters {flights} bind:filters bind:tempFilters {hasTempFilters} />
+  <Filters
+    {flights}
+    bind:filters
+    bind:tempFilters
+    {hasTempFilters}
+    {seatUserId}
+  />
 {:else}
   <span class="relative inline-flex">
     <Button
@@ -58,5 +66,6 @@
     bind:filters
     bind:tempFilters
     {hasTempFilters}
+    {seatUserId}
   />
 {/if}

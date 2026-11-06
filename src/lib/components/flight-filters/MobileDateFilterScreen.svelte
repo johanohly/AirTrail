@@ -5,8 +5,13 @@
 
   import { page } from '$app/state';
   import {
+    activeDatePreset,
+    applyDatePreset,
     cloneFlightFilters,
     dateFilterSummary,
+    datePresets,
+    todayCalendarDate,
+    type DatePresetId,
   } from '$lib/components/flight-filters/model';
   import type { FlightFilters } from '$lib/components/flight-filters/types';
   import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
@@ -23,10 +28,20 @@
 
   const prefs = $derived(getPreferences(page.data.user));
 
+  const today = todayCalendarDate();
+
   let calendarPlaceholder = $state<DateValue | undefined>(undefined);
 
   function updateFilters(next: Partial<FlightFilters>) {
     filters = cloneFlightFilters(filters, next);
+  }
+
+  function toggleDatePreset(id: DatePresetId) {
+    if (activeDatePreset(filters, today) === id) {
+      updateFilters({ years: [], fromDate: undefined, toDate: undefined });
+    } else {
+      filters = applyDatePreset(filters, id, today);
+    }
   }
 
   function setDateMode(mode: 'single' | 'range' | 'from' | 'to') {
@@ -61,15 +76,6 @@
     if (filters.fromDate) return 'from';
     if (filters.toDate) return 'to';
     return 'single';
-  }
-
-  function setThisYear() {
-    const year = new Date().getFullYear();
-    updateFilters({
-      years: [],
-      fromDate: new CalendarDate(year, 1, 1),
-      toDate: new CalendarDate(year, 12, 31),
-    });
   }
 
   const dateRangeValue = $derived.by(() => ({
@@ -121,6 +127,22 @@
   <div class="max-h-[72dvh] overflow-y-auto p-4">
     <div class="mb-3 text-sm text-muted-foreground">
       {dateFilterSummary(filters, prefs)}
+    </div>
+    <div class="mb-3 flex gap-2 overflow-x-auto">
+      {#each datePresets as preset (preset.id)}
+        <button
+          type="button"
+          class={cn(
+            'h-8 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors',
+            activeDatePreset(filters, today) === preset.id
+              ? 'border-foreground bg-foreground text-background'
+              : 'bg-background text-muted-foreground active:bg-muted',
+          )}
+          onclick={() => toggleDatePreset(preset.id)}
+        >
+          {preset.label}
+        </button>
+      {/each}
     </div>
     <div class="mb-4 flex gap-2 overflow-x-auto">
       {#each [{ value: 'single', label: 'Exact' }, { value: 'range', label: 'Range' }, { value: 'from', label: 'From' }, { value: 'to', label: 'Until' }] as mode (mode.value)}
@@ -214,13 +236,10 @@
       </DateRangePicker.Calendar>
     </DateRangePicker.Root>
 
-    <div class="mt-4 grid grid-cols-2 gap-2">
-      <Button variant="outline" class="h-11" onclick={setThisYear}>
-        This year
-      </Button>
+    <div class="mt-4">
       <Button
         variant="outline"
-        class="h-11"
+        class="h-11 w-full"
         onclick={() =>
           updateFilters({
             years: [],
