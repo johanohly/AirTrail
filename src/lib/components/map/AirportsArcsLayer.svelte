@@ -327,17 +327,14 @@
     }
   });
 
-  // While a map control panel is open, a card would open for any route the
-  // pointer crosses on its way to the panel and sit on top of it.
   $effect(() => {
     if (!hoverEnabled) untrack(clearHover);
   });
 
-  // Hover state is otherwise cleared only when deck.gl picks nothing under the
-  // pointer, which takes a move across empty map. Going straight from a route
-  // onto a map control or off the map never does that, and neither does a tap
-  // on a control, so the hover card stayed open over the filter popover. Clear
-  // it when the pointer leaves the canvas and on any press outside it.
+  // deck.gl only reports the end of a hover when a pick under the pointer comes
+  // up empty, and it skips picking once the pointer is off the canvas. Leaving
+  // straight from a route onto a map control, or pressing one, would otherwise
+  // leave the card open on top of it.
   $effect(() => {
     if (!map) return;
     const canvas = map.getCanvas();

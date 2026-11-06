@@ -600,7 +600,8 @@
       {flightTracks}
       bind:tempFilters
       {onNavigate}
-      hoverEnabled={!appearancePopoverOpen && !filterPopoverOpen}
+      hoverEnabled={!appearancePopoverOpen &&
+        !(filterPopoverOpen && $isMediumScreen)}
     />
   </MapLibre>
 
