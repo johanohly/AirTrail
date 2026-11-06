@@ -9,15 +9,14 @@ import {
 import type { Airport, Flight } from '$lib/db/types';
 import { prepareFlightData } from '$lib/utils';
 
-const airport = (id: number, tz: string, icao?: string): Airport =>
-  ({ id, tz, icao, lon: 0, lat: 0 }) as Airport;
+const airport = (id: number, tz: string, lat: number, lon: number): Airport =>
+  ({ id, tz, lat, lon }) as Airport;
 
-const LHR = airport(1, 'Europe/London', 'EGLL');
-const DXB = airport(2, 'Asia/Dubai', 'OMDB');
-const SYD = airport(3, 'Australia/Sydney', 'YSSY');
-const LGW = airport(4, 'Europe/London', 'EGKK');
-const CDG = airport(5, 'Europe/Paris', 'LFPG');
-const JFK = airport(6, 'America/New_York', 'KJFK');
+const LHR = airport(1, 'Europe/London', 51.47, -0.4543);
+const DXB = airport(2, 'Asia/Dubai', 25.2528, 55.3644);
+const SYD = airport(3, 'Australia/Sydney', -33.9461, 151.177);
+const LGW = airport(4, 'Europe/London', 51.1481, -0.1903);
+const CDG = airport(5, 'Europe/Paris', 49.0128, 2.55);
 
 type FlightInput = {
   id: number;
@@ -156,58 +155,30 @@ describe('buildFlightListYears', () => {
     ]);
   });
 
-  it('groups legs connected by a transfer between airports in the same metro area', () => {
+  it('groups legs connected by a transfer to a nearby airport', () => {
     expect(groupedIds(build(londonConnection, '2024-06-01T00:00:00Z'))).toEqual(
       [[2, 1]],
     );
   });
 
-  it('groups an overnight metro transfer under 24 hours', () => {
+  it('keeps legs apart when the nearby transfer is longer than 12 hours', () => {
     const [onward, inbound] = londonConnection;
-    const nextMorning = {
+    const nextDay = {
       ...onward!,
       departure: '2024-03-02T13:00:00.000Z',
     } as Flight;
 
     expect(
-      groupedIds(build([nextMorning, inbound!], '2024-06-01T00:00:00Z')),
-    ).toEqual([[2, 1]]);
-  });
-
-  it('keeps legs apart when the metro transfer is longer than 24 hours', () => {
-    const [onward, inbound] = londonConnection;
-    const aDayLater = {
-      ...onward!,
-      departure: '2024-03-02T23:00:00.000Z',
-    } as Flight;
-
-    expect(
-      groupedIds(build([aDayLater, inbound!], '2024-06-01T00:00:00Z')),
+      groupedIds(build([nextDay, inbound!], '2024-06-01T00:00:00Z')),
     ).toEqual([[2], [1]]);
   });
 
-  it('keeps legs apart when the airports are in different metro areas', () => {
+  it('keeps legs apart when the airports are too far apart to transfer', () => {
     const [onward, inbound] = londonConnection;
     const fromParis = { ...onward!, from: CDG } as Flight;
-    const fromNewYork = { ...onward!, from: JFK } as Flight;
 
     expect(
       groupedIds(build([fromParis, inbound!], '2024-06-01T00:00:00Z')),
-    ).toEqual([[2], [1]]);
-    expect(
-      groupedIds(build([fromNewYork, inbound!], '2024-06-01T00:00:00Z')),
-    ).toEqual([[2], [1]]);
-  });
-
-  it('keeps legs apart when only one endpoint is in a metro area', () => {
-    const [onward, inbound] = londonConnection;
-    const untagged = {
-      ...onward!,
-      from: airport(7, 'Europe/London'),
-    } as Flight;
-
-    expect(
-      groupedIds(build([untagged, inbound!], '2024-06-01T00:00:00Z')),
     ).toEqual([[2], [1]]);
   });
 
