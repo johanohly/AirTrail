@@ -28,6 +28,7 @@ const createNavigator = (statisticsOpen = false) => {
   const events: string[] = [];
   const focusFlightInList = vi.fn();
   const openFlightDetails = vi.fn();
+  const openAirportDetails = vi.fn();
   const navigate = createFlightNavigator({
     getState: () => state,
     commitState: (next) => {
@@ -44,12 +45,17 @@ const createNavigator = (statisticsOpen = false) => {
       openFlightDetails(flightId);
       events.push(`details:${flightId}`);
     },
+    openAirportDetails: (airportId) => {
+      openAirportDetails(airportId);
+      events.push(`airport:${airportId}`);
+    },
   });
 
   return {
     navigate,
     focusFlightInList,
     openFlightDetails,
+    openAirportDetails,
     events,
     state: () => ({
       ...state,
@@ -200,6 +206,26 @@ describe('flight navigation', () => {
       'commit:list=false,statistics=false',
       'wait',
       'details:11',
+    ]);
+  });
+
+  it('closes the statistics modal and focuses an airport on the map', async () => {
+    const harness = createNavigator(true);
+
+    await harness.navigate({
+      destination: 'map',
+      focus: { type: 'airport', airportId: 7 },
+    });
+
+    expect(harness.state()).toMatchObject({
+      listOpen: false,
+      statsOpen: false,
+    });
+    expect(harness.openAirportDetails).toHaveBeenCalledWith(7);
+    expect(harness.events).toEqual([
+      'commit:list=false,statistics=false',
+      'wait',
+      'airport:7',
     ]);
   });
 });

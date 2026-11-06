@@ -20,7 +20,9 @@ export type FlightNavigationIntent =
   | { destination: 'list'; focus: FlightListFocus }
   | {
       destination: 'map';
-      focus: { type: 'flight'; flightId: number };
+      focus:
+        | { type: 'flight'; flightId: number }
+        | { type: 'airport'; airportId: number };
     };
 
 export type NavigateFlights = (
@@ -38,6 +40,7 @@ type FlightNavigationTransition = {
   state: FlightNavigationState;
   focusFlightId?: number;
   detailFlightId?: number;
+  detailAirportId?: number;
 };
 
 export type FlightNavigatorDependencies = {
@@ -46,6 +49,7 @@ export type FlightNavigatorDependencies = {
   focusFlightInList: (flightId: number) => void;
   waitForModalClose: () => Promise<void>;
   openFlightDetails: (flightId: number) => void;
+  openAirportDetails: (airportId: number) => void;
 };
 
 export const planFlightNavigation = (
@@ -55,15 +59,17 @@ export const planFlightNavigation = (
   const tempFilters = createDefaultTempFilters();
 
   if (intent.destination === 'map') {
-    return {
+    const base = {
       state: {
         tempFilters,
         focusedListFlightId: null,
         listOpen: false,
         statisticsOpen: false,
       },
-      detailFlightId: intent.focus.flightId,
     };
+    return intent.focus.type === 'flight'
+      ? { ...base, detailFlightId: intent.focus.flightId }
+      : { ...base, detailAirportId: intent.focus.airportId };
   }
 
   const focus = intent.focus;
@@ -100,9 +106,18 @@ export const createFlightNavigator = (
     if (transition.focusFlightId !== undefined) {
       dependencies.focusFlightInList(transition.focusFlightId);
     }
-    if (transition.detailFlightId === undefined) return;
+    if (
+      transition.detailFlightId === undefined &&
+      transition.detailAirportId === undefined
+    ) {
+      return;
+    }
 
     await dependencies.waitForModalClose();
-    dependencies.openFlightDetails(transition.detailFlightId);
+    if (transition.detailFlightId !== undefined) {
+      dependencies.openFlightDetails(transition.detailFlightId);
+    } else {
+      dependencies.openAirportDetails(transition.detailAirportId!);
+    }
   };
 };

@@ -5,7 +5,9 @@
   import BreakdownRow from '../BreakdownRow.svelte';
   import DrillDownSheet from '../DrillDownSheet.svelte';
 
+  import { page } from '$app/state';
   import { Input } from '$lib/components/ui/input';
+  import * as Tabs from '$lib/components/ui/tabs';
   import {
     FLIGHT_CHARTS,
     flightMatchesChartBucket,
@@ -13,6 +15,11 @@
     type FlightChartKey,
   } from '$lib/stats/aggregations';
   import { pluralize, type FlightData } from '$lib/utils';
+  import {
+    convertDistance,
+    distanceUnitLabel,
+    getPreferences,
+  } from '$lib/utils/preferences';
 
   const FLIGHT_PREVIEW_LIMIT = 5;
   const SEARCH_THRESHOLD = 8;
@@ -38,8 +45,9 @@
       FLIGHT_CHARTS[chartKey].aggregate(flights, { userId: seatUserId }),
     ),
   );
-  const largest = $derived(breakdown.entries[0]?.value ?? 0);
-  const detailsFor = $derived(createDetailsLookup(chartKey, flights));
+  const detailsFor = $derived(
+    createDetailsLookup(chartKey, flights, { userId: seatUserId }),
+  );
   const subtitle = $derived.by(() => {
     const count = breakdown.entries.length;
     const [one, many] = CHART_NOUNS[chartKey];
@@ -49,25 +57,72 @@
       : summary;
   });
 
+  /* Rows can be ranked by flight count or by the distance those flights
+     covered, the way Flightradar24's lists switch. */
+  type Metric = 'flights' | 'distance';
+  let metric = $state<Metric>('flights');
+
+  const prefs = $derived(getPreferences(page.data.user));
+
+  const flightsFor = (key: string) =>
+    flights.filter((flight) =>
+      flightMatchesChartBucket(flight, chartKey, key, { userId: seatUserId }),
+    );
+
+  const distancesByKey = $derived.by(() => {
+    const map = new Map<string, number>();
+    for (const { key } of breakdown.entries) {
+      map.set(
+        key,
+        flightsFor(key).reduce((sum, f) => sum + (f.distance ?? 0), 0),
+      );
+    }
+    return map;
+  });
+
+  const metricValueOf = (key: string) =>
+    metric === 'distance' ? (distancesByKey.get(key) ?? 0) : null;
+
+  const rankedEntries = $derived(
+    metric === 'distance'
+      ? [...breakdown.entries].sort(
+          (a, b) =>
+            (distancesByKey.get(b.key) ?? 0) - (distancesByKey.get(a.key) ?? 0),
+        )
+      : breakdown.entries,
+  );
+  const largest = $derived(
+    metric === 'distance'
+      ? Math.max(...distancesByKey.values(), 0)
+      : (breakdown.entries[0]?.value ?? 0),
+  );
+
+  const missingDistance = $derived(
+    breakdown.missing > 0
+      ? flightsFor('No Data').reduce((sum, f) => sum + (f.distance ?? 0), 0)
+      : 0,
+  );
+
+  const formatKm = (km: number) =>
+    `${Math.round(convertDistance(km, prefs)).toLocaleString()} ${distanceUnitLabel(prefs)}`;
+
+  const formatMetric = (key: string, count: number) =>
+    metric === 'distance' ? formatKm(distancesByKey.get(key) ?? 0) : count;
+
   let query = $state('');
   let expandedKey = $derived<string | null>(initialEntry ?? null);
   let fullyExpanded: string[] = $state([]);
 
   const visibleEntries = $derived.by(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return breakdown.entries;
-    return breakdown.entries.filter(
+    if (!needle) return rankedEntries;
+    return rankedEntries.filter(
       ({ key }) =>
         key.toLowerCase().includes(needle) ||
         detailsFor(key).description?.toLowerCase().includes(needle) ||
         detailsFor(key).subtitle?.toLowerCase().includes(needle),
     );
   });
-
-  const flightsFor = (key: string) =>
-    flights.filter((flight) =>
-      flightMatchesChartBucket(flight, chartKey, key, { userId: seatUserId }),
-    );
 </script>
 
 {#snippet expansion(key: string)}
@@ -103,18 +158,32 @@
 {/snippet}
 
 <DrillDownSheet title={FLIGHT_CHARTS[chartKey].title} {subtitle} {onBack}>
-  {#if breakdown.entries.length > SEARCH_THRESHOLD}
-    <Input
-      bind:value={query}
-      placeholder="Search {CHART_NOUNS[chartKey][1]}"
-      class="mb-2 h-9"
-    />
-  {/if}
+  <div class="mb-2 flex items-center gap-2">
+    {#if breakdown.entries.length > SEARCH_THRESHOLD}
+      <Input
+        bind:value={query}
+        placeholder="Search {CHART_NOUNS[chartKey][1]}"
+        class="h-9 min-w-0 flex-1"
+      />
+    {/if}
+    <Tabs.Root
+      value={metric}
+      onValueChange={(value) => {
+        if (value === 'flights' || value === 'distance') metric = value;
+      }}
+    >
+      <Tabs.List class="h-9">
+        <Tabs.Trigger value="flights">Flights</Tabs.Trigger>
+        <Tabs.Trigger value="distance">Distance</Tabs.Trigger>
+      </Tabs.List>
+    </Tabs.Root>
+  </div>
   <div class="space-y-0.5">
     {#each visibleEntries as { key, value } (key)}
+      {@const metricValue = metricValueOf(key) ?? value}
       <BreakdownRow
-        share={value / largest}
-        {value}
+        share={metricValue / largest}
+        value={formatMetric(key, value)}
         expanded={expandedKey === key}
         onclick={() => (expandedKey = expandedKey === key ? null : key)}
       >
@@ -128,7 +197,9 @@
     {/each}
     {#if breakdown.missing > 0 && !query.trim()}
       <BreakdownRow
-        value={breakdown.missing}
+        value={metric === 'distance'
+          ? formatKm(missingDistance)
+          : breakdown.missing}
         expanded={expandedKey === 'No Data'}
         onclick={() =>
           (expandedKey = expandedKey === 'No Data' ? null : 'No Data')}

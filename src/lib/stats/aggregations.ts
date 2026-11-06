@@ -1,5 +1,6 @@
 import {
   ContinentMap,
+  type Airport,
   type VisitedCountry,
   VisitedCountryStatus,
   wasVisited,
@@ -12,12 +13,15 @@ import { type FlightData, toTitleCase } from '$lib/utils';
 export type FlightChartKey =
   | 'seat-class'
   | 'seat'
+  | 'seat-numbers'
   | 'reason'
   | 'continents'
   | 'airlines'
   | 'aircraft-models'
   | 'aircraft-regs'
   | 'airports'
+  | 'departure-airports'
+  | 'countries'
   | 'routes';
 
 export type CountryChartKey = 'visited-country-status';
@@ -151,6 +155,14 @@ export const codeForAirport = (
   airport: FlightData['from'] | null | undefined,
 ) => airport?.iata || airport?.icao || null;
 
+/** A seat number in canonical form, like "12F", or null if unusable. */
+export const normalizeSeatNumber = (
+  seatNumber: string | null | undefined,
+): string | null => {
+  const match = seatNumber?.trim().match(/^(\d{1,3})\s*([A-Z])$/i);
+  return match ? `${match[1]}${match[2]!.toUpperCase()}` : null;
+};
+
 export const routeLabelForFlight = (flight: FlightData): string | null => {
   const fromCode = codeForAirport(flight.from);
   const toCode = codeForAirport(flight.to);
@@ -163,7 +175,15 @@ export const routeLabelForFlight = (flight: FlightData): string | null => {
 
 export const flightChartBucketForFlight = (
   flight: FlightData,
-  key: Exclude<FlightChartKey, 'seat' | 'seat-class' | 'airports'>,
+  key: Exclude<
+    FlightChartKey,
+    | 'seat'
+    | 'seat-class'
+    | 'seat-numbers'
+    | 'airports'
+    | 'departure-airports'
+    | 'countries'
+  >,
 ): string | null => {
   switch (key) {
     case 'airlines':
@@ -194,6 +214,7 @@ export const flightMatchesChartBucket = (
   if (
     chartKey === 'seat' ||
     chartKey === 'seat-class' ||
+    chartKey === 'seat-numbers' ||
     chartKey === 'reason'
   ) {
     const field =
@@ -201,7 +222,9 @@ export const flightMatchesChartBucket = (
         ? 'seat'
         : chartKey === 'seat-class'
           ? 'seatClass'
-          : 'flightReason';
+          : chartKey === 'seat-numbers'
+            ? 'seatNumber'
+            : 'flightReason';
     const passengers = ctx.userId
       ? flight.passengers.filter((passenger) => passenger.userId === ctx.userId)
       : flight.passengers;
@@ -216,6 +239,12 @@ export const flightMatchesChartBucket = (
       return passengers.some((passenger) => !passenger[field]);
     }
 
+    if (chartKey === 'seat-numbers') {
+      return passengers.some(
+        (passenger) => normalizeSeatNumber(passenger.seatNumber) === bucket,
+      );
+    }
+
     return passengers.some(
       (seat) => seat[field] && toTitleCase(seat[field]) === bucket,
     );
@@ -225,6 +254,16 @@ export const flightMatchesChartBucket = (
     return (
       codeForAirport(flight.from) === bucket ||
       codeForAirport(flight.to) === bucket
+    );
+  }
+
+  if (chartKey === 'departure-airports') {
+    return codeForAirport(flight.from) === bucket;
+  }
+
+  if (chartKey === 'countries') {
+    return [flight.from?.country, flight.to?.country].some(
+      (country) => country?.toUpperCase() === bucket,
     );
   }
 
@@ -281,6 +320,39 @@ export function seatDistribution(
   }
 
   return sortAndLimit(counts, options);
+}
+
+export function seatNumberDistribution(
+  flights: FlightData[],
+  ctx: StatsContext,
+  options?: AggregationOptions,
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const flight of flights) {
+    const passengers = ctx.userId
+      ? flight.passengers.filter((p) => p.userId === ctx.userId)
+      : flight.passengers;
+    for (const { seatNumber } of passengers) {
+      const seat = normalizeSeatNumber(seatNumber);
+      if (!seat) continue;
+
+      counts[seat] = (counts[seat] ?? 0) + 1;
+    }
+  }
+
+  // Seats with the same count sit together ordered by row, then column,
+  // so the list reads the way the cabin does. The sorts downstream are
+  // stable, so count and distance rankings keep this order within ties.
+  const ordered = Object.fromEntries(
+    Object.entries(counts).sort(([seatA, countA], [seatB, countB]) => {
+      if (countA !== countB) return countB - countA;
+      const rowA = Number(seatA.slice(0, -1));
+      const rowB = Number(seatB.slice(0, -1));
+      if (rowA !== rowB) return rowA - rowB;
+      return seatA.at(-1)!.localeCompare(seatB.at(-1)!);
+    }),
+  );
+  return sortAndLimit(ordered, options);
 }
 
 export function seatClassDistribution(
@@ -470,6 +542,261 @@ export function airportDistribution(
   return sortAndLimit(counts, options);
 }
 
+export function departureAirportDistribution(
+  flights: FlightData[],
+  _ctx: StatsContext,
+  options?: AggregationOptions,
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const { from } of flights) {
+    const code = codeForAirport(from);
+    if (!code) continue;
+
+    counts[code] = (counts[code] ?? 0) + 1;
+  }
+  return sortAndLimit(counts, options);
+}
+
+export function countryDistribution(
+  flights: FlightData[],
+  _ctx: StatsContext,
+  options?: AggregationOptions,
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const { from, to } of flights) {
+    for (const country of [from?.country, to?.country]) {
+      if (!country) continue;
+
+      const code = country.toUpperCase();
+      counts[code] = (counts[code] ?? 0) + 1;
+    }
+  }
+  return sortAndLimit(counts, options);
+}
+
+export type DomesticInternationalSplit = {
+  domestic: number;
+  international: number;
+};
+
+export function domesticInternationalSplit(
+  flights: FlightData[],
+): DomesticInternationalSplit {
+  let domestic = 0;
+  let international = 0;
+  for (const { from, to } of flights) {
+    if (!from?.country || !to?.country) continue;
+
+    if (from.country.toUpperCase() === to.country.toUpperCase()) {
+      domestic++;
+    } else {
+      international++;
+    }
+  }
+  return { domestic, international };
+}
+
+/** Distinct calendar days a flight departed on, ignoring the time of day. */
+export function travelDayCount(flights: FlightData[]): number {
+  const days = new Set<string>();
+  for (const flight of flights) {
+    const date = flight.date ?? flight.dateStart;
+    if (!date) continue;
+
+    days.add(`${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`);
+  }
+  return days.size;
+}
+
+/**
+ * Share (0-1) of flights where the passenger flew the aircraft themselves,
+ * i.e. held the pilot or copilot seat. Flights without a matching passenger
+ * are excluded from the denominator.
+ */
+export function autopilotRatio(
+  flights: FlightData[],
+  ctx: StatsContext,
+): number | null {
+  let flown = 0;
+  let crewed = 0;
+  for (const flight of flights) {
+    const passengers = ctx.userId
+      ? flight.passengers.filter((p) => p.userId === ctx.userId)
+      : flight.passengers;
+    if (passengers.length === 0) continue;
+
+    flown++;
+    if (passengers.some((p) => p.seat === 'pilot' || p.seat === 'copilot')) {
+      crewed++;
+    }
+  }
+  if (flown === 0) return null;
+  return crewed / flown;
+}
+
+export type FlightTotals = {
+  airlines: number;
+  aircraftModels: number;
+  routes: number;
+  countries: number;
+};
+
+/** How many distinct airlines, aircraft types, routes and countries appear. */
+export function flightTotals(flights: FlightData[]): FlightTotals {
+  const airlines = new Set<string>();
+  const aircraftModels = new Set<string>();
+  const routes = new Set<string>();
+  const countries = new Set<string>();
+
+  for (const flight of flights) {
+    if (flight.airline?.name) airlines.add(flight.airline.name);
+    if (flight.aircraft?.name) aircraftModels.add(flight.aircraft.name);
+
+    const route = routeLabelForFlight(flight);
+    if (route) routes.add(route);
+
+    for (const country of [flight.from?.country, flight.to?.country]) {
+      if (country) countries.add(country.toUpperCase());
+    }
+  }
+
+  return {
+    airlines: airlines.size,
+    aircraftModels: aircraftModels.size,
+    routes: routes.size,
+    countries: countries.size,
+  };
+}
+
+export type FlightExtreme = {
+  flight: FlightData;
+  value: number;
+};
+
+export type FlightExtremes = {
+  longest: FlightExtreme | null;
+  shortest: FlightExtreme | null;
+};
+
+/** The flights covering the most and least distance, or time in the air. */
+export function extremeFlights(
+  flights: FlightData[],
+  metric: 'distance' | 'duration',
+): FlightExtremes {
+  let longest: FlightExtreme | null = null;
+  let shortest: FlightExtreme | null = null;
+  for (const flight of flights) {
+    const value = flight[metric];
+    if (value == null) continue;
+
+    if (!longest || value > longest.value) longest = { flight, value };
+    if (!shortest || value < shortest.value) shortest = { flight, value };
+  }
+  return { longest, shortest };
+}
+
+export type AirportExtreme = {
+  airport: Airport;
+  latitude: number;
+};
+
+export type FlightSpeedExtremes = {
+  fastest: FlightExtreme | null;
+  slowest: FlightExtreme | null;
+};
+
+/**
+ * The flights with the highest and lowest average ground speed — distance
+ * over duration, in km/h. Flights missing either value are skipped.
+ */
+export function extremeFlightSpeeds(
+  flights: FlightData[],
+): FlightSpeedExtremes {
+  let fastest: FlightExtreme | null = null;
+  let slowest: FlightExtreme | null = null;
+  for (const flight of flights) {
+    if (!flight.distance || !flight.duration) continue;
+
+    const speed = flight.distance / (flight.duration / 3600);
+    if (!fastest || speed > fastest.value) fastest = { flight, value: speed };
+    if (!slowest || speed < slowest.value) slowest = { flight, value: speed };
+  }
+  return { fastest, slowest };
+}
+
+export type TimeZoneExtreme = {
+  flight: FlightData;
+  zones: number;
+};
+
+/** A time zone's UTC offset in hours at a moment, or null if unknowable. */
+const offsetOf = (timeZone: string, at: Date): number | null => {
+  try {
+    const name = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      timeZoneName: 'longOffset',
+    })
+      .formatToParts(at)
+      .find((part) => part.type === 'timeZoneName')?.value;
+    if (!name) return null;
+    if (name === 'GMT' || name === 'UTC') return 0;
+
+    const match = name.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/);
+    if (!match) return null;
+    const sign = match[1] === '-' ? -1 : 1;
+    return sign * (Number(match[2]) + Number(match[3] ?? 0) / 60);
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * The flight spanning the most time zones, comparing the airports' UTC
+ * offsets at departure and arrival so daylight saving counts.
+ */
+export function extremeTimeZones(
+  flights: FlightData[],
+): TimeZoneExtreme | null {
+  let best: TimeZoneExtreme | null = null;
+  for (const flight of flights) {
+    if (!flight.from?.tz || !flight.to?.tz) continue;
+
+    const depart = flight.departure ?? flight.date;
+    const arrive = flight.arrival ?? flight.dateEnd ?? flight.date;
+    if (!depart || !arrive) continue;
+
+    const origin = offsetOf(flight.from.tz, depart);
+    const destination = offsetOf(flight.to.tz, arrive);
+    if (origin === null || destination === null) continue;
+
+    const zones = Math.abs(destination - origin);
+    if (!best || zones > best.zones) best = { flight, zones };
+  }
+  return best;
+}
+
+/** The northernmost and southernmost airport any flight touched. */
+export function extremeAirportsByLatitude(flights: FlightData[]): {
+  north: AirportExtreme | null;
+  south: AirportExtreme | null;
+} {
+  let north: AirportExtreme | null = null;
+  let south: AirportExtreme | null = null;
+  for (const flight of flights) {
+    for (const airport of [flight.from, flight.to]) {
+      if (!airport) continue;
+
+      if (!north || airport.lat > north.latitude) {
+        north = { airport, latitude: airport.lat };
+      }
+      if (!south || airport.lat < south.latitude) {
+        south = { airport, latitude: airport.lat };
+      }
+    }
+  }
+  return { north, south };
+}
+
 export function countFlightsPerYear(
   flights: FlightData[],
 ): { year: number; flights: number }[] {
@@ -516,12 +843,20 @@ export function arrivalDelayMinutes(flight: FlightData): number | null {
   return (actual.getTime() - scheduled.getTime()) / 60_000;
 }
 
-export type AirlineDelay = {
-  airline: string;
+export type PunctualityEntry = {
+  key: string;
   assessedFlights: number;
   delayedFlights: number;
   totalDelayMinutes: number;
+  /** Mean minutes late across the group's delayed flights. */
+  averageDelayMinutes: number;
   delayRate: number; // percentage of assessed flights that were delayed
+};
+
+export type FlightDelay = {
+  flight: FlightData;
+  /** Signed: positive is late, negative is early. */
+  delayMinutes: number;
 };
 
 export type PunctualityReport = {
@@ -530,21 +865,25 @@ export type PunctualityReport = {
   delayRate: number; // percentage of assessed flights delayed (0..100)
   totalDelayMinutes: number;
   worstDelayMinutes: number;
-  worstAirlines: AirlineDelay[];
+  earlyFlights: number; // flights that arrived ahead of schedule
+  totalEarlyMinutes: number; // how much early time, in total
+  bestEarlyMinutes: number; // the single biggest early arrival
+  worstAirlines: PunctualityEntry[];
+  worstRoutes: PunctualityEntry[];
+  worstDepartureAirports: PunctualityEntry[];
+  /** The same groups, ranked by mean signed delay instead. */
+  avgAirlines: PunctualityEntry[];
+  avgRoutes: PunctualityEntry[];
+  avgDepartureAirports: PunctualityEntry[];
+  worstDelays: FlightDelay[]; // the individually most-delayed flights
 };
 
-export function punctualityReport(
+/** Assessed flights grouped by a key, with totals and averages. */
+const punctualityEntries = (
   flights: FlightData[],
-  options?: { worstAirlineLimit?: number },
-): PunctualityReport {
-  const worstAirlineLimit = options?.worstAirlineLimit ?? 3;
-
-  let assessedFlights = 0;
-  let delayedFlights = 0;
-  let totalDelayMinutes = 0;
-  let worstDelayMinutes = 0;
-
-  const byAirline = new Map<
+  keyOf: (flight: FlightData) => string | null,
+): PunctualityEntry[] => {
+  const groups = new Map<
     string,
     { assessed: number; delayed: number; delayMinutes: number }
   >();
@@ -552,38 +891,89 @@ export function punctualityReport(
   for (const flight of flights) {
     const delay = arrivalDelayMinutes(flight);
     if (delay === null) continue;
+    const key = keyOf(flight);
+    if (key === null) continue;
 
-    assessedFlights++;
-    const airlineName = flight.airline?.name ?? 'Unknown airline';
-    const airline = byAirline.get(airlineName) ?? {
+    const group = groups.get(key) ?? {
       assessed: 0,
       delayed: 0,
       delayMinutes: 0,
     };
-    airline.assessed++;
+    group.assessed++;
+    if (delay > DELAY_THRESHOLD_MINUTES) {
+      group.delayed++;
+      group.delayMinutes += delay;
+    }
+    groups.set(key, group);
+  }
+
+  return [...groups.entries()].map(([key, group]) => ({
+    key,
+    assessedFlights: group.assessed,
+    delayedFlights: group.delayed,
+    totalDelayMinutes: group.delayMinutes,
+    averageDelayMinutes:
+      group.delayed > 0 ? group.delayMinutes / group.delayed : 0,
+    delayRate: (group.delayed / group.assessed) * 100,
+  }));
+};
+
+const byAccumulatedDelay = (
+  entries: PunctualityEntry[],
+  limit?: number,
+): PunctualityEntry[] =>
+  entries
+    .filter((entry) => entry.delayedFlights > 0)
+    .sort((a, b) => b.totalDelayMinutes - a.totalDelayMinutes)
+    .slice(0, limit ?? Number.POSITIVE_INFINITY);
+
+/** Average rankings cover only groups that actually had delayed flights. */
+const byAverageDelay = (entries: PunctualityEntry[]): PunctualityEntry[] =>
+  entries
+    .filter((entry) => entry.delayedFlights > 0)
+    .sort((a, b) => b.averageDelayMinutes - a.averageDelayMinutes);
+
+export function punctualityReport(
+  flights: FlightData[],
+  options?: { groupLimit?: number; flightLimit?: number },
+): PunctualityReport {
+  // Groups come back untrimmed by default, so lists can count "All N"
+  const groupLimit = options?.groupLimit;
+  const flightLimit = options?.flightLimit ?? 5;
+
+  let assessedFlights = 0;
+  let delayedFlights = 0;
+  let totalDelayMinutes = 0;
+  let worstDelayMinutes = 0;
+  let earlyFlights = 0;
+  let totalEarlyMinutes = 0;
+  let bestEarlyMinutes = 0;
+
+  const delays: FlightDelay[] = [];
+
+  for (const flight of flights) {
+    const delay = arrivalDelayMinutes(flight);
+    if (delay === null) continue;
+
+    assessedFlights++;
+    // Only flights past the threshold are "delayed flights"; early and
+    // on-time ones belong to the other widgets
+    if (delay > DELAY_THRESHOLD_MINUTES) {
+      delays.push({ flight, delayMinutes: delay });
+    }
 
     if (delay > DELAY_THRESHOLD_MINUTES) {
       delayedFlights++;
       totalDelayMinutes += delay;
       worstDelayMinutes = Math.max(worstDelayMinutes, delay);
-      airline.delayed++;
-      airline.delayMinutes += delay;
+    } else if (delay < 0) {
+      earlyFlights++;
+      totalEarlyMinutes += -delay;
+      bestEarlyMinutes = Math.max(bestEarlyMinutes, -delay);
     }
-
-    byAirline.set(airlineName, airline);
   }
 
-  const worstAirlines: AirlineDelay[] = [...byAirline.entries()]
-    .filter(([, a]) => a.delayed > 0)
-    .map(([airline, a]) => ({
-      airline,
-      assessedFlights: a.assessed,
-      delayedFlights: a.delayed,
-      totalDelayMinutes: a.delayMinutes,
-      delayRate: (a.delayed / a.assessed) * 100,
-    }))
-    .sort((a, b) => b.totalDelayMinutes - a.totalDelayMinutes)
-    .slice(0, worstAirlineLimit);
+  delays.sort((a, b) => b.delayMinutes - a.delayMinutes);
 
   return {
     assessedFlights,
@@ -591,7 +981,35 @@ export function punctualityReport(
     delayRate: assessedFlights ? (delayedFlights / assessedFlights) * 100 : 0,
     totalDelayMinutes,
     worstDelayMinutes,
-    worstAirlines,
+    earlyFlights,
+    totalEarlyMinutes,
+    bestEarlyMinutes,
+    worstAirlines: byAccumulatedDelay(
+      punctualityEntries(
+        flights,
+        (flight) => flight.airline?.name ?? 'Unknown airline',
+      ),
+      groupLimit,
+    ),
+    worstRoutes: byAccumulatedDelay(
+      punctualityEntries(flights, routeLabelForFlight),
+      groupLimit,
+    ),
+    worstDepartureAirports: byAccumulatedDelay(
+      punctualityEntries(flights, (flight) => codeForAirport(flight.from)),
+      groupLimit,
+    ),
+    avgAirlines: byAverageDelay(
+      punctualityEntries(
+        flights,
+        (flight) => flight.airline?.name ?? 'Unknown airline',
+      ),
+    ),
+    avgRoutes: byAverageDelay(punctualityEntries(flights, routeLabelForFlight)),
+    avgDepartureAirports: byAverageDelay(
+      punctualityEntries(flights, (flight) => codeForAirport(flight.from)),
+    ),
+    worstDelays: delays.slice(0, flightLimit),
   };
 }
 
@@ -619,6 +1037,7 @@ export const FLIGHT_CHARTS: Record<
 > = {
   'seat-class': { title: 'Seat class', aggregate: seatClassDistribution },
   seat: { title: 'Seat position', aggregate: seatDistribution },
+  'seat-numbers': { title: 'Seats', aggregate: seatNumberDistribution },
   reason: { title: 'Reason', aggregate: reasonDistribution },
   continents: { title: 'Destinations', aggregate: continentDistribution },
   airlines: { title: 'Airlines', aggregate: airlineDistribution },
@@ -631,6 +1050,11 @@ export const FLIGHT_CHARTS: Record<
     aggregate: aircraftRegDistribution,
   },
   airports: { title: 'Airports', aggregate: airportDistribution },
+  'departure-airports': {
+    title: 'Departing airports',
+    aggregate: departureAirportDistribution,
+  },
+  countries: { title: 'Countries', aggregate: countryDistribution },
   routes: { title: 'Routes', aggregate: routeDistribution },
 };
 

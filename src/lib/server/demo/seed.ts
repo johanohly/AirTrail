@@ -315,7 +315,9 @@ export const seedDemo = async () => {
     jonas: ids.jonas,
     ella: ids.ella,
   };
+  let legCount = 0;
   const createLeg = async (leg: Leg, reason: string, with_: Companion[]) => {
+    legCount++;
     const departs = shiftLocal(leg.departs, offset);
     const from = airports.get(leg.from)!;
     const to = airports.get(leg.to)!;
@@ -324,6 +326,16 @@ export const seedDemo = async () => {
     const departure = zonedToUtc(departs, from.tz);
     const duration = estimatedDuration(origin, destination);
     const arrival = new Date(departure.getTime() + duration * 1000);
+    // Scheduled arrival, minutes ahead of the actual one: mostly on time,
+    // some late, a few early, so punctuality has a story to tell. Fixed
+    // pattern, so screenshot mode stays reproducible.
+    const SCHEDULE_DEVIATIONS = [
+      0, 22, -8, 65, 0, 14, -15, 38, 0, 110, 5, -3, 47, 0, -20, 18, 75, 0, 9,
+      -6,
+    ];
+    const deviation =
+      SCHEDULE_DEVIATIONS[legCount % SCHEDULE_DEVIATIONS.length]!;
+    const arrivalScheduled = new Date(arrival.getTime() - deviation * 60_000);
     const passenger = (userId: string, position: number) => ({
       userId,
       guestName: null,
@@ -348,6 +360,8 @@ export const seedDemo = async () => {
         date: departs.slice(0, 10),
         departure: departure.toISOString(),
         arrival: arrival.toISOString(),
+        arrivalScheduled:
+          deviation === 0 ? null : arrivalScheduled.toISOString(),
         duration,
         flightNumber: leg.flightNumber,
         aircraftReg: leg.registration ?? null,
