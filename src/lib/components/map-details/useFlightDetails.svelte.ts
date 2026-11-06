@@ -1,14 +1,16 @@
 import { page } from '$app/state';
+import { buildFlightMilestones } from './flight-milestones';
+
+import { sortByDepartureDesc } from '$lib/components/modals/list-flights/flight-list-groups';
 import type { NavigateFlights } from '$lib/flight-navigation';
 import { mapDetailsState, openRouteDetails } from '$lib/state.svelte';
 import { type FlightData } from '$lib/utils';
-import { buildFlightMilestones } from '$lib/utils/data/flight-milestones';
 import { getPreferences } from '$lib/utils/preferences';
 
 export function useFlightDetails(
   flights: () => FlightData[],
   onNavigate: NavigateFlights,
-  seatUserId?: () => string | null | undefined,
+  seatUserId: () => string | undefined,
 ) {
   const prefs = $derived(getPreferences(page.data.user));
 
@@ -23,11 +25,14 @@ export function useFlightDetails(
     return flights().find((f) => f.id === id) ?? null;
   });
 
+  const chronological = $derived(sortByDepartureDesc(flights()).reverse());
+
+  // Without a seat user the map shows everyone's flights, which no single
+  // traveller's milestones can be counted over.
   const milestones = $derived.by(() => {
-    if (!flight) return [];
-    return buildFlightMilestones(flights(), flight, {
-      seatUserId: seatUserId?.() ?? null,
-    });
+    const userId = seatUserId();
+    if (!flight || !userId) return [];
+    return buildFlightMilestones(chronological, flight, userId);
   });
 
   const showRoute = () => {

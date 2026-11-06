@@ -3,6 +3,7 @@
 
   import AircraftPhotoCard from './AircraftPhotoCard.svelte';
   import FlightMilestones from './FlightMilestones.svelte';
+  import type { FlightMilestone } from './flight-milestones';
 
   import { Button } from '$lib/components/ui/button';
   import { appConfig } from '$lib/state.svelte';
@@ -13,7 +14,6 @@
     toTitleCase,
     type FlightData,
   } from '$lib/utils';
-  import type { FlightMilestone } from '$lib/utils/data/flight-milestones';
   import type { FlightPassenger } from '$lib/db/types';
   import { Duration } from '$lib/utils/datetime';
   import {
