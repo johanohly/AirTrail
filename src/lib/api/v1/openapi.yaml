@@ -1647,6 +1647,9 @@ components:
         flightSelection:
           type: string
           enum: [all, past, upcoming, custom]
+          description: >-
+            Which flights the share includes. dateFrom and dateTo only apply to
+            custom. When omitted, a request with dateFrom or dateTo uses custom.
         dateFrom:
           type: [string, 'null']
         dateTo:

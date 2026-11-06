@@ -1,10 +1,12 @@
 import { z } from 'zod';
 
+import { ShareFlightSelections } from '$lib/db/types';
+
 export const baseShareSchema = z.object({
   showMap: z.boolean().default(true),
   showStats: z.boolean().default(false),
   showFlightList: z.boolean().default(false),
-  flightSelection: z.enum(['all', 'past', 'upcoming', 'custom']).default('all'),
+  flightSelection: z.enum(ShareFlightSelections).default('all'),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   showFlightNumbers: z.boolean().default(true),

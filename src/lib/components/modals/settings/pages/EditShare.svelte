@@ -13,6 +13,7 @@
     ModalBody,
     ModalBreadcrumbHeader,
   } from '$lib/components/ui/modal';
+  import type { ShareFlightSelection } from '$lib/db/types';
   import { trpc } from '$lib/trpc';
   import { shareSchema } from '$lib/zod/share';
   import { TextTooltip } from '$lib/components/ui/tooltip/index.js';
@@ -26,7 +27,7 @@
     showMap: boolean;
     showStats: boolean;
     showFlightList: boolean;
-    flightSelection: 'all' | 'past' | 'upcoming' | 'custom';
+    flightSelection: ShareFlightSelection;
     dateFrom: string | null;
     dateTo: string | null;
     showFlightNumbers: boolean;

@@ -136,6 +136,14 @@ export const FlightReasons = ['leisure', 'business', 'crew', 'other'] as const;
 export const FlightDatePrecisions = ['day', 'month', 'year'] as const;
 export type FlightDatePrecision = (typeof FlightDatePrecisions)[number];
 
+export const ShareFlightSelections = [
+  'all',
+  'past',
+  'upcoming',
+  'custom',
+] as const;
+export type ShareFlightSelection = (typeof ShareFlightSelections)[number];
+
 export const VisitedCountryStatus = [
   'lived',
   'visited',

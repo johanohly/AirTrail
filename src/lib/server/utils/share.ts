@@ -16,6 +16,7 @@ import type {
   FlightPassenger,
   PublicShare,
 } from '$lib/db/types';
+import { ShareFlightSelections } from '$lib/db/types';
 import { generateRandomString } from '$lib/server/utils/random';
 import { reduceFlightTrackForMap } from '$lib/track/render';
 import {
@@ -59,7 +60,8 @@ export const shareCreateSchema = z
     slug: z.string().optional(),
     expiresAt: z.date().optional(),
   })
-  .merge(baseShareSchema);
+  .merge(baseShareSchema)
+  .extend({ flightSelection: z.enum(ShareFlightSelections).optional() });
 
 export const shareUpdateSchema = z.object({
   id: z.number(),
@@ -68,7 +70,7 @@ export const shareUpdateSchema = z.object({
   showMap: z.boolean().optional(),
   showStats: z.boolean().optional(),
   showFlightList: z.boolean().optional(),
-  flightSelection: z.enum(['all', 'past', 'upcoming', 'custom']).optional(),
+  flightSelection: z.enum(ShareFlightSelections).optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   showFlightNumbers: z.boolean().optional(),
@@ -139,11 +141,26 @@ const withTrackInvariant = <T extends Partial<ShareValues>>(
   showMap: boolean | undefined,
 ): T => (showMap === false ? { ...values, showTracks: false } : values);
 
-/** Dates only apply to the custom-range selection; other modes ignore them. */
-const withDateInvariant = <T extends Partial<ShareValues>>(values: T): T =>
-  values.flightSelection && values.flightSelection !== 'custom'
-    ? { ...values, dateFrom: null, dateTo: null }
-    : values;
+/*
+ * Dates only apply to the custom range. Clients written before the selection
+ * existed send dates without one, and those still mean a custom range rather
+ * than silently widening the share to every flight.
+ */
+const withFlightSelection = <
+  T extends Partial<
+    Pick<ShareValues, 'flightSelection' | 'dateFrom' | 'dateTo'>
+  >,
+>(
+  values: T,
+): T => {
+  const flightSelection =
+    values.flightSelection ??
+    (values.dateFrom || values.dateTo ? 'custom' : undefined);
+  if (!flightSelection) return values;
+  return flightSelection === 'custom'
+    ? { ...values, flightSelection }
+    : { ...values, flightSelection, dateFrom: null, dateTo: null };
+};
 
 /** Inserts a share, generating a slug when none is given. */
 export const insertShare = async (
@@ -155,7 +172,9 @@ export const insertShare = async (
   return db
     .insertInto('publicShare')
     .values({
-      ...withDateInvariant(withTrackInvariant(values, values.showMap ?? true)),
+      ...withFlightSelection(
+        withTrackInvariant(values, values.showMap ?? true),
+      ),
       slug,
       userId,
     })
@@ -180,7 +199,7 @@ export const patchShare = async (
   return db
     .updateTable('publicShare')
     .set(
-      withDateInvariant(
+      withFlightSelection(
         withTrackInvariant(patch, patch.showMap ?? current.showMap),
       ),
     )
@@ -314,15 +333,13 @@ export async function getPublicShareData(slug: string) {
   };
 }
 
-/**
- * Get flights for a share according to its selection mode
- * Reuses the complete listFlightBaseQuery instead of sparse field selection
- * 'custom' applies the raw date range, so it may include future flights
+/*
+ * Past and upcoming are decided per request, so a flight moves between them on
+ * its own. A custom range compares raw dates and may include future flights.
  */
 async function getFilteredFlightsForShare(share: PublicShare) {
   let query = listFlightBaseQuery(db, share.userId);
 
-  // Apply date filtering only for the custom date-range selection
   if (share.flightSelection === 'custom') {
     if (share.dateFrom) {
       query = query.where('flight.date', '>=', share.dateFrom);
@@ -332,11 +349,7 @@ async function getFilteredFlightsForShare(share: PublicShare) {
     }
   }
 
-  // The query selects the same complete flight rows as Flight, but Kysely's
-  // inferred shape does not match the type exactly.
   const flights = (await query.execute()) as Flight[];
-
-  // Selection modes are evaluated against "now" at request time
   const now = new Date();
   if (share.flightSelection === 'past')
     return flights.filter((flight) => isCompletedFlight(flight, now));
