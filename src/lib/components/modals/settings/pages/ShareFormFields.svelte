@@ -38,11 +38,6 @@
     { value: 'custom', label: 'Custom date range' },
   ];
 
-  const getCurrentFlightSelectionLabel = (value: string) => {
-    const option = flightSelectionOptions.find((opt) => opt.value === value);
-    return option?.label || 'Select flights';
-  };
-
   function generateNewSlug() {
     $formData.slug = generateRandomString(12);
   }
@@ -170,12 +165,14 @@
       <Form.Label class="flex items-center gap-1.5">
         Flights Included
         <HelpTooltip
-          text="Past and upcoming are decided each time someone opens the link, so flights move to past automatically once flown."
+          text="Past and upcoming are decided each time someone opens the link, so a flight counts as past once it has landed."
         />
       </Form.Label>
       <Select.Root type="single" bind:value={$formData.flightSelection}>
         <Select.Trigger {...props}>
-          {getCurrentFlightSelectionLabel($formData.flightSelection)}
+          {flightSelectionOptions.find(
+            (option) => option.value === $formData.flightSelection,
+          )?.label}
         </Select.Trigger>
         <Select.Content>
           {#each flightSelectionOptions as option (option.value)}
