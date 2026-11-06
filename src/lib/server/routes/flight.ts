@@ -11,7 +11,7 @@ import {
   flightScopeSchema,
   resolveFlightScope,
 } from '$lib/flight-scope';
-import { attachFlightCustomFields } from '$lib/server/utils/custom-fields';
+import { attachFlightCustomFieldValues } from '$lib/server/utils/custom-fields';
 import {
   createFlight,
   createManyFlights,
@@ -90,7 +90,7 @@ export const flightRouter = router({
       const flights = await listFlightsInScope(
         resolveFlightScope(input, user.id),
       );
-      return await attachFlightCustomFields(db, flights);
+      return await attachFlightCustomFieldValues(db, flights);
     }),
   guests: permissionProcedure('flight.read.own').query(
     async ({ ctx: { user } }) => {

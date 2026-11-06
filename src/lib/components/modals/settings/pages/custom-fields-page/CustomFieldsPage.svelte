@@ -57,6 +57,7 @@
         includeInactive: true,
       });
     }
+    void trpc.flight.list.utils.invalidate();
   };
 
   const onDragStart = (event: any) => {

@@ -14,6 +14,7 @@ import type {
 import type { FlightTrackInput } from '$lib/track/schema';
 import type { Insertable, Kysely, Selectable, Transaction } from 'kysely';
 import type { DB } from '$lib/db/schema';
+import type { FieldType } from '$lib/utils/custom-fields';
 
 /** Either a pooled connection or an open transaction. */
 export type DatabaseConnection = Kysely<DB> | Transaction<DB>;
@@ -53,12 +54,11 @@ export type FlightPassengerRecord = Selectable<flight_passenger>;
 export type FlightPassenger = FlightPassengerRecord & {
   user: Pick<User, 'id' | 'displayName' | 'username'> | null;
 };
-/** One flight custom field value, attached by the flight list query. */
 export type FlightCustomFieldValue = {
-  fieldId: number;
+  label: string;
+  fieldType: FieldType;
+  /** Airport, airline and aircraft values hold the name instead of the id. */
   value: unknown;
-  /** Resolved entity name for airport/airline/aircraft values; null otherwise. */
-  valueLabel: string | null;
 };
 export type Flight = Omit<
   Selectable<flight>,
@@ -69,8 +69,8 @@ export type Flight = Omit<
   passengers: FlightPassenger[];
   aircraft: Aircraft | null;
   airline: Airline | null;
-  /** Present only on tRPC flight.list results. */
-  customFields?: FlightCustomFieldValue[];
+  /** Only `flight.list` attaches these, for the flight list. */
+  customFieldValues?: FlightCustomFieldValue[];
 };
 export type FlightTrack = Selectable<flight_track>;
 type CreateFlightAirport = Partial<Airport>;

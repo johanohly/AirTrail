@@ -101,6 +101,7 @@
         includeInactive: true,
       });
     }
+    void trpc.flight.list.utils.invalidate();
   };
 
   const save = async () => {

@@ -1,11 +1,10 @@
 import type { FlightCustomFieldValue } from '$lib/db/types';
 import { getFlightPassengerLabel, type FlightData } from '$lib/utils';
-import {
-  isCustomFieldValueEmpty,
-  isEntityType,
-  isTextLike,
-  type CustomFieldDefinition,
-} from '$lib/utils/custom-fields';
+import { isCustomFieldValueEmpty } from '$lib/utils/custom-fields';
+import { formatDate } from '$lib/utils/preferences';
+import type { Preferences } from '$lib/zod/user';
+
+type DatePrefs = Pick<Preferences, 'dateFormat'>;
 
 export type FlightIndicatorKey =
   'track' | 'actualTimes' | 'passengers' | 'note' | 'customFields';
@@ -13,12 +12,12 @@ export type FlightIndicatorKey =
 export type FlightIndicator = {
   key: FlightIndicatorKey;
   label: string;
-  /** Multi-line tooltip body, rendered one entry per line instead of `label`. */
+  /** Tooltip lines, shown instead of `label`. */
   lines?: string[];
 };
 
 const NOTE_PREVIEW_LENGTH = 160;
-const CUSTOM_FIELD_VALUE_PREVIEW_LENGTH = 100;
+const CUSTOM_FIELD_PREVIEW_LENGTH = 100;
 
 const indicator = (
   key: FlightIndicatorKey,
@@ -93,70 +92,39 @@ const buildNoteIndicator = (flight: FlightData): FlightIndicator | null => {
   );
 };
 
-export const formatCustomFieldValue = (
-  definition: Pick<CustomFieldDefinition, 'fieldType'>,
-  entry: Pick<FlightCustomFieldValue, 'value' | 'valueLabel'>,
+const formatCustomFieldValue = (
+  { fieldType, value }: FlightCustomFieldValue,
+  prefs?: DatePrefs,
 ): string | null => {
-  const value = entry.value;
   if (isCustomFieldValueEmpty(value)) return null;
 
-  if (isEntityType(definition.fieldType)) {
-    // Never surface a raw entity id — the name resolution happened server-side.
-    return entry.valueLabel?.trim() || null;
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (Array.isArray(value)) value = value.join(', ');
+  if (fieldType === 'date' && prefs && typeof value === 'string') {
+    const date = new Date(`${value}T00:00:00Z`);
+    if (!Number.isNaN(date.getTime())) value = formatDate(date, prefs, 'UTC');
   }
-  if (isTextLike(definition.fieldType)) {
-    const text = typeof value === 'string' ? value.trim() : '';
-    return text
-      ? truncatePreview(text, CUSTOM_FIELD_VALUE_PREVIEW_LENGTH)
-      : null;
-  }
-  if (definition.fieldType === 'number') {
-    return typeof value === 'number' && Number.isFinite(value)
-      ? String(value)
-      : null;
-  }
-  if (definition.fieldType === 'boolean') {
-    return typeof value === 'boolean' ? (value ? 'Yes' : 'No') : null;
-  }
-  if (definition.fieldType === 'multi-select') {
-    if (!Array.isArray(value)) return null;
-    const joined = value
-      .filter((item): item is string => typeof item === 'string')
-      .join(', ');
-    return joined
-      ? truncatePreview(joined, CUSTOM_FIELD_VALUE_PREVIEW_LENGTH)
-      : null;
-  }
-  // date and select values are plain strings, validated at write time
-  const text = typeof value === 'string' ? value : '';
-  return text || null;
+  const text = String(value).trim();
+  return text ? truncatePreview(text, CUSTOM_FIELD_PREVIEW_LENGTH) : null;
 };
 
-export const buildCustomFieldsIndicator = (
+const buildCustomFieldsIndicator = (
   flight: FlightData,
-  definitions: readonly CustomFieldDefinition[],
+  prefs?: DatePrefs,
 ): FlightIndicator | null => {
-  const entries = flight.customFields;
-  if (!entries?.length || definitions.length === 0) return null;
-
-  const entriesById = new Map(entries.map((entry) => [entry.fieldId, entry]));
-  const lines: string[] = [];
-  for (const definition of definitions) {
-    const entry = entriesById.get(definition.id);
-    if (!entry) continue;
-    const formatted = formatCustomFieldValue(definition, entry);
-    if (formatted === null) continue;
-    lines.push(`${definition.label}: ${formatted}`);
-  }
-  if (lines.length === 0) return null;
+  const lines = (flight.customFieldValues ?? []).flatMap((entry) => {
+    const formatted = formatCustomFieldValue(entry, prefs);
+    return formatted ? [`${entry.label}: ${formatted}`] : [];
+  });
+  if (!lines.length) return null;
 
   return {
     key: 'customFields',
-    lines,
     label: truncatePreview(
       `Custom fields: ${lines.join('; ')}`,
       NOTE_PREVIEW_LENGTH,
     ),
+    lines,
   };
 };
 
@@ -169,12 +137,12 @@ export const buildFlightIndicators = (
     hasTrack = false,
     viewerId = null,
     includePassengers = true,
-    customFieldDefinitions = [],
+    datePrefs,
   }: {
     hasTrack?: boolean;
     viewerId?: string | null;
     includePassengers?: boolean;
-    customFieldDefinitions?: CustomFieldDefinition[];
+    datePrefs?: DatePrefs;
   } = {},
 ): FlightIndicator[] => {
   return [
@@ -182,6 +150,6 @@ export const buildFlightIndicators = (
     buildActualTimesIndicator(flight),
     includePassengers ? buildPassengerIndicator(flight, viewerId) : null,
     buildNoteIndicator(flight),
-    buildCustomFieldsIndicator(flight, customFieldDefinitions),
+    buildCustomFieldsIndicator(flight, datePrefs),
   ].filter(isIndicator);
 };
