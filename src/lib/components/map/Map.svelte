@@ -187,17 +187,6 @@
 
   const allVisitedAirports = $derived(prepareVisitedAirports(flights));
   const allFlightArcs = $derived(prepareFlightArcData(flights));
-  const airportRouteArcs = $derived.by(() => {
-    const selection = mapDetailsState.selection;
-    if (selection?.type !== 'airport') return [];
-    return drawnFlights.flatMap(({ from, to }) =>
-      from &&
-      to &&
-      (from.id === selection.airportId || to.id === selection.airportId)
-        ? [{ from, to }]
-        : [],
-    );
-  });
 
   const detailsPanePadding = () => {
     if (!mapDetailsState.selection) {
@@ -375,11 +364,19 @@
         const airport = allVisitedAirports.find(
           (a) => a.id === selection.airportId,
         );
+        const routeArcs =
+          selection.view === 'routes'
+            ? drawnFlights.flatMap(({ from, to }) =>
+                from && to && [from.id, to.id].includes(selection.airportId)
+                  ? [{ from, to }]
+                  : [],
+              )
+            : [];
         if (airport) {
-          if (selection.view === 'routes' && airportRouteArcs.length > 0) {
+          if (routeArcs.length > 0) {
             focusTarget = {
               type: 'arcs',
-              arcs: airportRouteArcs,
+              arcs: routeArcs,
               projection: mapPreferences.projection,
             };
           } else {
