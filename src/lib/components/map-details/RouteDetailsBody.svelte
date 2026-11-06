@@ -1,6 +1,6 @@
 <script lang="ts">
   import NumberFlow from '@number-flow/svelte';
-  import { List } from '@o7/icon/lucide';
+  import { List, Route } from '@o7/icon/lucide';
 
   import { AirlineIcon, RouteArrow } from '$lib/components/display';
   import { Button } from '$lib/components/ui/button';
@@ -11,6 +11,7 @@
 
   let {
     routeFlights,
+    hasTrack,
     airlineCount,
     distance,
     lastFlownLabel,
@@ -19,6 +20,7 @@
     onShowFlight,
   }: {
     routeFlights: FlightData[];
+    hasTrack: (flightId: number) => boolean;
     airlineCount: number;
     distance: number | null;
     lastFlownLabel: string | null;
@@ -100,8 +102,11 @@
       </div>
 
       <div
-        class="shrink-0 text-right text-xs font-medium text-muted-foreground tabular-nums"
+        class="flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground tabular-nums"
       >
+        {#if hasTrack(flight.id)}
+          <Route size={14} aria-hidden="true" />
+        {/if}
         {dateLabel}
       </div>
     </button>

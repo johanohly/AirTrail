@@ -52,6 +52,7 @@
     () => flights,
     () => filters,
     navigateFlights,
+    () => trackedFlightIds,
   );
 
   const flight = useFlightDetails(() => flights, navigateFlights);
@@ -133,6 +134,7 @@
     {:else if mapDetailsState.selection?.type === 'route' && route.routeAirports}
       <RouteDetailsBody
         routeFlights={route.routeFlights}
+        hasTrack={route.hasTrack}
         airlineCount={route.airlineCount}
         distance={route.distance}
         lastFlownLabel={route.lastFlownLabel}

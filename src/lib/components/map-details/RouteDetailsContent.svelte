@@ -53,6 +53,7 @@
   {#if details.routeAirports}
     <RouteDetailsBody
       routeFlights={details.routeFlights}
+      hasTrack={details.hasTrack}
       airlineCount={details.airlineCount}
       distance={details.distance}
       lastFlownLabel={details.lastFlownLabel}

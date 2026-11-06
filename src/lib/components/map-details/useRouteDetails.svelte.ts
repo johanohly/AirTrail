@@ -18,6 +18,7 @@ export function useRouteDetails(
   flights: () => FlightData[],
   filters: () => FlightFilters | undefined,
   onNavigate: NavigateFlights,
+  trackedFlightIds: () => ReadonlySet<number>,
 ) {
   const prefs = $derived(getPreferences(page.data.user));
 
@@ -123,7 +124,10 @@ export function useRouteDetails(
     openFlightDetails(flightId);
   };
 
+  const hasTrack = (flightId: number) => trackedFlightIds().has(flightId);
+
   return {
+    hasTrack,
     get prefs() {
       return prefs;
     },
