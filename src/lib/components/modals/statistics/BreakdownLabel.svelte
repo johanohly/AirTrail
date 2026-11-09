@@ -16,7 +16,6 @@
 
   const isCode = $derived(
     chartKey === 'airports' ||
-      chartKey === 'departure-airports' ||
       chartKey === 'countries' ||
       chartKey === 'routes' ||
       chartKey === 'aircraft-regs' ||

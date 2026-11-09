@@ -8,12 +8,9 @@
   import FlightsPerWeekday from './charts/FlightsPerWeekday.svelte';
   import FlightsPerYear from './charts/FlightsPerYear.svelte';
   import BreakdownRow from './BreakdownRow.svelte';
-  import DelayedFlightsSheet from './DelayedFlightsSheet.svelte';
-  import PunctualityDrillDown from './PunctualityDrillDown.svelte';
   import PunctualitySection from './PunctualitySection.svelte';
   import RankedList from './RankedList.svelte';
   import RecordsSection from './RecordsSection.svelte';
-  import SeatMap from './SeatMap.svelte';
 
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
@@ -28,7 +25,6 @@
   } from '$lib/components/flight-filters/model';
   import { Button } from '$lib/components/ui/button';
   import { Switch } from '$lib/components/ui/switch';
-  import * as Tooltip from '$lib/components/ui/tooltip';
   import { hasClientPermission } from '$lib/authorization/permissions';
   import { flightScopeState, openModalsState } from '$lib/state.svelte';
   import { Modal } from '$lib/components/ui/modal';
@@ -37,15 +33,11 @@
   import type { FlightFilters } from '$lib/components/flight-filters/types';
   import { type VisitedCountry, wasVisited } from '$lib/db/types';
   import {
-    autopilotRatio,
     COUNTRY_BAR_CHARTS,
     COUNTRY_CHARTS,
     countriesByContinentDetails,
-    domesticInternationalSplit,
     FLIGHT_CHARTS,
-    flightTotals,
     type FlightChartKey,
-    travelDayCount,
   } from '$lib/stats/aggregations';
   import {
     readIncludeUpcoming,
@@ -115,11 +107,6 @@
   });
 
   const prefs = $derived(getPreferences(page.data.user));
-
-  const EARTH_CIRCUMFERENCE_KM = 40075;
-  const MOON_DISTANCE_KM = 384400;
-  const SUN_DISTANCE_KM = 149597870;
-
   let totalDuration = $derived.by(() =>
     Duration.fromSeconds(
       countedFlights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
@@ -146,39 +133,14 @@
       (c) => c.status === 'visited' || c.status === 'lived',
     ).length,
   );
-  let earthCircumnavigations = $derived(totalDistance / EARTH_CIRCUMFERENCE_KM);
-  let moonTraversals = $derived(totalDistance / MOON_DISTANCE_KM);
-  let sunTraversals = $derived(totalDistance / SUN_DISTANCE_KM);
-  let travelDays = $derived(travelDayCount(countedFlights));
-  let totals = $derived(flightTotals(countedFlights));
-  let domesticSplit = $derived(domesticInternationalSplit(countedFlights));
-  let durationWeeks = $derived(totalDuration.days / 7);
-  let autopilot = $derived(
-    autopilotRatio(countedFlights, { userId: seatUserId }),
-  );
+  let earthCircumnavigations = $derived(totalDistance / 40075);
 
   let activeChart: FlightChartKey | null = $state(null);
   let activeEntry: string | null = $state(null);
   let activeContinent: string | null = $state(null);
-  let activePunctuality: {
-    key: 'airlines' | 'routes' | 'departure-airports';
-    mode: 'total' | 'average';
-  } | null = $state(null);
-  let activeDelayedFlights = $state(false);
-  // The seat map starts clipped to the height of the lists beside it
-  let seatMapExpanded = $state(false);
-  let seatMapClipHeight = $state(0);
-  let seatMapHeight = $state(0);
   let modalHistory: ModalHistoryHandle | undefined = $state();
   let wasOpen = $state(false);
-  const drillDownOpen = $derived(
-    Boolean(
-      activeChart ||
-      activeContinent ||
-      activePunctuality ||
-      activeDelayedFlights,
-    ),
-  );
+  const drillDownOpen = $derived(Boolean(activeChart || activeContinent));
 
   const countryStatus = $derived(
     COUNTRY_CHARTS['visited-country-status'].aggregate(visitedCountries),
@@ -205,23 +167,6 @@
     const total = timed.reduce((sum, f) => sum + (f.duration ?? 0), 0);
     return Duration.fromSeconds(Math.round(total / timed.length));
   });
-
-  /* The totals strip says one sub-line per cell, so compose the extras in */
-  const flightsSub = $derived.by(() => {
-    const { domestic, international } = domesticSplit;
-    if (domestic + international > 0) {
-      return `${domestic} domestic · ${international} international`;
-    }
-    return firstYear && !selectedYears.length ? `since ${firstYear}` : null;
-  });
-  const durationSub = $derived.by(() => {
-    const parts: string[] = [];
-    if (durationWeeks >= 1) parts.push(`≈ ${round(durationWeeks, 1)} weeks`);
-    if (averageDuration) {
-      parts.push(`${averageDuration.toString(true)} per flight`);
-    }
-    return parts.join(' · ') || null;
-  });
   const airportCountries = $derived(
     new Set(
       countedFlights
@@ -242,39 +187,12 @@
   const openChart = (key: FlightChartKey, entry?: string) => {
     activeChart = key;
     activeEntry = entry ?? null;
-    pushDrilldown();
-  };
-
-  /** Opens the punctuality dock on its totals ranking. */
-  const openPunctuality = (
-    key: 'airlines' | 'routes' | 'departure-airports',
-    entry?: string,
-  ) => {
-    activeChart = null;
-    activePunctuality = { key, mode: 'total' };
-    activeEntry = entry ?? null;
-    pushDrilldown();
-  };
-
-  const openDelayedFlights = () => {
-    activeDelayedFlights = true;
-    pushDrilldown();
+    modalHistory?.push({ activeChart, activeEntry, activeContinent });
   };
 
   const openContinent = (continent: string) => {
     activeContinent = continent;
-    pushDrilldown();
-  };
-
-  const pushDrilldown = () => {
-    modalHistory?.push({
-      activeChart,
-      activeEntry,
-      activeContinent,
-      // A plain copy: history.pushState cannot clone $state proxies
-      activePunctuality: activePunctuality ? { ...activePunctuality } : null,
-      activeDelayedFlights,
-    });
+    modalHistory?.push({ activeChart, activeEntry, activeContinent });
   };
 
   const restoreDrilldown = (state: unknown) => {
@@ -283,8 +201,6 @@
           activeChart?: unknown;
           activeEntry?: unknown;
           activeContinent?: unknown;
-          activePunctuality?: unknown;
-          activeDelayedFlights?: unknown;
         }
       | undefined;
     const chart = drilldown?.activeChart;
@@ -298,38 +214,17 @@
       typeof drilldown?.activeContinent === 'string'
         ? drilldown.activeContinent
         : null;
-    const punctuality = drilldown?.activePunctuality as
-      { key?: unknown; mode?: unknown } | null | undefined;
-    activePunctuality =
-      punctuality &&
-      (punctuality.key === 'airlines' ||
-        punctuality.key === 'routes' ||
-        punctuality.key === 'departure-airports') &&
-      (punctuality.mode === 'total' || punctuality.mode === 'average')
-        ? {
-            key: punctuality.key,
-            mode: punctuality.mode,
-          }
-        : null;
-    activeDelayedFlights = drilldown?.activeDelayedFlights === true;
   };
 
   $effect(() => {
     const closedFromDrilldown =
-      wasOpen &&
-      !open &&
-      (activeChart ||
-        activeContinent ||
-        activePunctuality ||
-        activeDelayedFlights);
+      wasOpen && !open && (activeChart || activeContinent);
     wasOpen = open;
 
     if (closedFromDrilldown) {
       activeChart = null;
       activeEntry = null;
       activeContinent = null;
-      activePunctuality = null;
-      activeDelayedFlights = false;
     }
 
     if (open) {
@@ -339,7 +234,7 @@
           (acc, curr) => (acc += curr.distance ?? 0),
           0,
         );
-        earthCircumnavigations = totalDistance / EARTH_CIRCUMFERENCE_KM;
+        earthCircumnavigations = totalDistance / 40075;
         const duration = Duration.fromSeconds(
           countedFlights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
         );
@@ -354,9 +249,6 @@
             .flatMap((f) => [f.from!.name, f.to!.name]),
         ).size;
         countriesCount = visitedCountries.filter(wasVisited).length;
-        travelDays = travelDayCount(countedFlights);
-        totals = flightTotals(countedFlights);
-        autopilot = autopilotRatio(countedFlights, { userId: seatUserId });
       }, 200);
     } else {
       flightCount = 0;
@@ -365,16 +257,13 @@
       airports = 0;
       countriesCount = 0;
       earthCircumnavigations = 0;
-      travelDays = 0;
-      totals = { airlines: 0, aircraftModels: 0, routes: 0, countries: 0 };
-      autopilot = 0;
     }
   });
 </script>
 
 {#snippet total(
   label: string,
-  sub: string | import('svelte').Snippet | null,
+  sub: string | null,
   cell: string,
   value: import('svelte').Snippet,
 )}
@@ -386,9 +275,7 @@
       {@render value()}
     </div>
     {#if sub}
-      <div class="truncate text-[13px] text-muted-foreground">
-        {#if typeof sub === 'string'}{sub}{:else}{@render sub()}{/if}
-      </div>
+      <div class="truncate text-[13px] text-muted-foreground">{sub}</div>
     {/if}
   </div>
 {/snippet}
@@ -407,7 +294,12 @@
 {/snippet}
 
 {#snippet lists(keys: FlightChartKey[])}
-  <div class="grid gap-x-7 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+  <div
+    class={[
+      'grid gap-x-7 gap-y-6 sm:grid-cols-2',
+      keys.length === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3',
+    ]}
+  >
     {#each keys as chartKey (chartKey)}
       <RankedList
         {chartKey}
@@ -560,31 +452,6 @@
 {/snippet}
 
 {#snippet flightsValue()}<NumberFlow value={flightCount} />{/snippet}
-{#snippet distanceSubLine()}
-  <!-- The Moon and Sun ratios live behind the Earth one, where there is room -->
-  <Tooltip.Root>
-    <Tooltip.Trigger
-      class="cursor-default text-[13px] text-muted-foreground underline decoration-dotted decoration-transparent underline-offset-2 transition-colors hover:decoration-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-    >
-      {round(earthCircumnavigations, 2)}× around Earth
-    </Tooltip.Trigger>
-    <Tooltip.Content>
-      <div class="space-y-0.5">
-        <p>{round(moonTraversals, 2)}× to the Moon</p>
-        <p>{round(sunTraversals, 4)}× to the Sun</p>
-      </div>
-    </Tooltip.Content>
-  </Tooltip.Root>
-{/snippet}
-{#snippet travelDaysValue()}<NumberFlow value={travelDays} />{/snippet}
-{#snippet autopilotValue()}
-  {#if autopilot === null}
-    <span class="text-muted-foreground">—</span>
-  {:else}<NumberFlow value={Math.round(autopilot * 100)} />%{/if}
-{/snippet}
-{#snippet airlinesValue()}<NumberFlow value={totals.airlines} />{/snippet}
-{#snippet aircraftValue()}<NumberFlow value={totals.aircraftModels} />{/snippet}
-{#snippet routesValue()}<NumberFlow value={totals.routes} />{/snippet}
 {#snippet distanceValue()}
   <NumberFlow
     value={convertDistance(totalDistance, prefs)}
@@ -673,7 +540,7 @@
       >
         {@render total(
           'Flights',
-          flightsSub,
+          firstYear && !selectedYears.length ? `since ${firstYear}` : null,
           showCountryStats
             ? 'order-1 col-span-2 lg:order-none lg:col-span-1'
             : 'order-1 col-span-3 lg:order-none lg:col-span-1',
@@ -681,13 +548,15 @@
         )}
         {@render total(
           'Distance',
-          distanceSubLine,
+          `${round(earthCircumnavigations, 2)}× around Earth`,
           'order-4 col-span-3 lg:order-none lg:col-span-1 lg:border-l lg:pl-6',
           distanceValue,
         )}
         {@render total(
           'Duration',
-          durationSub,
+          averageDuration
+            ? `${averageDuration.toString(true)} per flight`
+            : null,
           'order-5 col-span-3 border-l pl-3 lg:order-none lg:col-span-1 lg:pl-6',
           durationValue,
         )}
@@ -711,115 +580,21 @@
         {/if}
       </div>
 
-      <div
-        class="grid grid-cols-6 lg:grid-cols-[0.8fr_1.25fr_1.1fr_0.8fr_0.95fr] lg:border-b"
-      >
-        {@render total(
-          'Travel days',
-          null,
-          'order-1 col-span-2 lg:order-none lg:col-span-1',
-          travelDaysValue,
-        )}
-        {@render total(
-          'Autopilot ratio',
-          'flown as pilot or copilot',
-          'order-2 col-span-2 border-l pl-3 lg:order-none lg:col-span-1 lg:border-l lg:pl-6',
-          autopilotValue,
-        )}
-        {@render total(
-          'Airlines',
-          null,
-          'order-3 col-span-2 border-l pl-3 lg:order-none lg:col-span-1 lg:border-l lg:pl-6',
-          airlinesValue,
-        )}
-        {@render total(
-          'Aircraft',
-          null,
-          'order-4 col-span-3 lg:order-none lg:col-span-1 lg:border-l lg:pl-6',
-          aircraftValue,
-        )}
-        {@render total(
-          'Routes',
-          null,
-          'order-5 col-span-3 border-l pl-3 lg:order-none lg:col-span-1 lg:border-l lg:pl-6',
-          routesValue,
-        )}
-      </div>
-
       {#snippet whereLists()}
-        {@render lists(['airports', 'countries', 'routes', 'continents'])}
+        {@render lists(['airports', 'routes', 'countries', 'continents'])}
       {/snippet}
       {#snippet aircraftLists()}
         {@render lists(['airlines', 'aircraft-models', 'aircraft-regs'])}
       {/snippet}
-      {#snippet boardSection()}
-        <!-- Wide screens get the seat map beside the lists, narrow ones stack -->
-        <div
-          class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:gap-10"
-        >
-          <div
-            class="grid gap-x-7 gap-y-6 sm:grid-cols-2 lg:grid-cols-1 lg:self-start lg:content-start"
-          >
-            {#each ['seat-class', 'seat', 'reason', 'seat-numbers'] as const as chartKey (chartKey)}
-              <RankedList
-                {chartKey}
-                flights={countedFlights}
-                {seatUserId}
-                onOpen={openChart}
-              />
-            {/each}
-          </div>
-          <div class="min-h-0 min-w-0 lg:relative">
-            <!-- Collapsed, the map is taken out of the flow (lg:absolute), so
-                 the grid row — and the map's box — size to the lists column -->
-            <div
-              class={seatMapExpanded
-                ? ''
-                : 'lg:absolute lg:inset-0 lg:overflow-hidden'}
-              bind:clientHeight={seatMapClipHeight}
-            >
-              <div bind:clientHeight={seatMapHeight}>
-                <SeatMap
-                  flights={countedFlights}
-                  {seatUserId}
-                  onOpen={(seat) => openChart('seat-numbers', seat)}
-                />
-              </div>
-            </div>
-            {#if !seatMapExpanded && seatMapHeight > seatMapClipHeight}
-              <div
-                class="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-background via-background/85 to-transparent"
-              ></div>
-              <button
-                type="button"
-                class="absolute bottom-1.5 left-1/2 -translate-x-1/2 rounded-full border border-border bg-background/90 px-3 py-1 text-[12.5px] font-medium text-muted-foreground shadow-sm outline-none backdrop-blur transition-colors hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
-                onclick={() => (seatMapExpanded = true)}
-              >
-                View all rows
-              </button>
-            {:else if seatMapExpanded}
-              <button
-                type="button"
-                class="mx-auto mt-2 flex rounded px-2 py-1 text-[12.5px] text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
-                onclick={() => (seatMapExpanded = false)}
-              >
-                Show fewer rows
-              </button>
-            {/if}
-          </div>
-        </div>
+      {#snippet boardLists()}
+        {@render lists(['seat-class', 'seat', 'reason', 'seat-numbers'])}
       {/snippet}
       {@render section('When', whenCharts)}
       {@render section('Where', whereLists)}
       {@render section('Airlines and aircraft', aircraftLists)}
-      {@render section('On board', boardSection)}
+      {@render section('On board', boardLists)}
       {#snippet punctuality()}
-        <PunctualitySection
-          flights={completedFlights}
-          onOpenPunctuality={openPunctuality}
-          onOpenAllDelayed={openDelayedFlights}
-          {onOpenFlight}
-        />
+        <PunctualitySection flights={completedFlights} onOpen={openChart} />
       {/snippet}
       {#snippet records()}
         <RecordsSection
@@ -850,21 +625,6 @@
       onBack={() => modalHistory?.back()}
       {onOpenFlight}
       {seatUserId}
-    />
-  {:else if activePunctuality}
-    <PunctualityDrillDown
-      chartKey={activePunctuality.key}
-      initialMode={activePunctuality.mode}
-      initialEntry={activeEntry}
-      flights={completedFlights}
-      onBack={() => modalHistory?.back()}
-      {onOpenFlight}
-    />
-  {:else if activeDelayedFlights}
-    <DelayedFlightsSheet
-      flights={completedFlights}
-      onBack={() => modalHistory?.back()}
-      {onOpenFlight}
     />
   {/if}
 </Modal>

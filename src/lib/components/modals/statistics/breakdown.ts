@@ -1,5 +1,4 @@
 import type { Airline, Airport } from '$lib/db/types';
-import { COUNTRIES } from '$lib/data/countries';
 import {
   codeForAirport,
   normalizeSeatNumber,
@@ -8,6 +7,7 @@ import {
   type StatsContext,
 } from '$lib/stats/aggregations';
 import { toTitleCase, type FlightData } from '$lib/utils';
+import { countryFromAlpha2 } from '$lib/utils/data/countries';
 
 export type BreakdownDetails = {
   airline?: Airline;
@@ -31,16 +31,12 @@ export const CHART_NOUNS: Record<FlightChartKey, [string, string]> = {
   'aircraft-models': ['aircraft type', 'aircraft types'],
   'aircraft-regs': ['aircraft', 'aircraft'],
   airports: ['airport', 'airports'],
-  'departure-airports': ['departure airport', 'departure airports'],
   countries: ['country', 'countries'],
   routes: ['route', 'routes'],
 };
 
 const cityOf = (airport: Airport | null | undefined) =>
   airport?.municipality || airport?.name || 'Unknown';
-
-const countryNameOf = (code: string) =>
-  COUNTRIES.find((country) => country.alpha2 === code.toUpperCase())?.name;
 
 /* Everything a breakdown row can say about its key, looked up once per render. */
 export const createDetailsLookup = (
@@ -91,11 +87,7 @@ export const createDetailsLookup = (
         break;
       }
       case 'airports':
-      case 'departure-airports': {
-        // The departing variant only labels flights leaving the airport
-        const endpoints =
-          chartKey === 'airports' ? [flight.from, flight.to] : [flight.from];
-        for (const airport of endpoints) {
+        for (const airport of [flight.from, flight.to]) {
           add(codeForAirport(airport), () => ({
             airport: airport ?? undefined,
             description: cityOf(airport),
@@ -103,12 +95,12 @@ export const createDetailsLookup = (
           }));
         }
         break;
-      }
       case 'countries':
         for (const country of [flight.from?.country, flight.to?.country]) {
-          add(country?.toUpperCase(), () => ({
-            countryCode: country!.toUpperCase(),
-            description: countryNameOf(country!),
+          const code = country?.toUpperCase();
+          add(code, () => ({
+            countryCode: code,
+            description: countryFromAlpha2(code!)?.name,
           }));
         }
         break;

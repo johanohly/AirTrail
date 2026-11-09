@@ -1,20 +1,22 @@
 <script lang="ts">
-  import { page } from '$app/state';
+  import type { Snippet } from 'svelte';
 
+  import { page } from '$app/state';
+  import type { Airport } from '$lib/db/types';
+  import { codeForAirport } from '$lib/stats/aggregations';
   import {
-    codeForAirport,
-    extremeAirportsByLatitude,
-    extremeFlightSpeeds,
-    extremeFlights,
-    extremeTimeZones,
-    type AirportExtreme,
-  } from '$lib/stats/aggregations';
+    distanceRecords,
+    durationRecords,
+    latitudeRecords,
+    speedRecords,
+    timeZoneRecord,
+  } from '$lib/stats/records';
   import type { FlightData } from '$lib/utils';
   import { Duration } from '$lib/utils/datetime';
   import {
     convertDistance,
-    distanceUnitLabel,
-    formatDate,
+    formatDistance,
+    formatFlightDate,
     getPreferences,
   } from '$lib/utils/preferences';
 
@@ -28,36 +30,35 @@
     onOpenAirport?: (airportId: number) => void;
   } = $props();
 
+  const SPEED_UNITS = { km: 'km/h', mi: 'mph', nm: 'kt' } as const;
+
   const prefs = $derived(getPreferences(page.data.user));
 
-  const byDistance = $derived(extremeFlights(flights, 'distance'));
-  const byDuration = $derived(extremeFlights(flights, 'duration'));
-  const bySpeed = $derived(extremeFlightSpeeds(flights));
-  const byLatitude = $derived(extremeAirportsByLatitude(flights));
-  const byZones = $derived(extremeTimeZones(flights));
+  const byDistance = $derived(distanceRecords(flights));
+  const byDuration = $derived(durationRecords(flights));
+  const bySpeed = $derived(speedRecords(flights));
+  const byLatitude = $derived(latitudeRecords(flights));
+  const byZones = $derived(timeZoneRecord(flights));
 
-  const formatDistance = (km: number) =>
-    `${Math.round(convertDistance(km, prefs)).toLocaleString()} ${distanceUnitLabel(prefs)}`;
   const formatDuration = (seconds: number) =>
     Duration.fromSeconds(seconds).toString(true);
   const formatSpeed = (kmh: number) =>
-    `${Math.round(convertDistance(kmh, prefs)).toLocaleString()} ${distanceUnitLabel(prefs)}/h`;
+    `${Math.round(convertDistance(kmh, prefs)).toLocaleString()} ${SPEED_UNITS[prefs.distanceUnit]}`;
   const formatLatitude = (latitude: number) =>
     `${Math.abs(latitude).toFixed(1)}°${latitude >= 0 ? 'N' : 'S'}`;
   const routeLabel = (flight: FlightData) =>
     [codeForAirport(flight.from), codeForAirport(flight.to)]
       .filter(Boolean)
       .join(' – ') || 'Unknown route';
-  // Identifies the flight behind a record: its number and the day it flew
-  const flightDetail = (flight: FlightData) =>
+  // Names the flight behind a record by its number and the day it flew.
+  const withFlightDetail = (flight: FlightData, value: string) =>
     [
+      value,
       flight.flightNumber,
-      flight.date && formatDate(flight.date, prefs, flight.from?.tz),
+      flight.date && formatFlightDate(flight.date, flight.datePrecision, prefs),
     ]
       .filter(Boolean)
       .join(' · ');
-  const withDetail = (flight: FlightData, value: string) =>
-    [value, flightDetail(flight)].filter(Boolean).join(' · ');
 </script>
 
 {#snippet flag(country: string | null | undefined)}
@@ -73,24 +74,26 @@
   {/if}
 {/snippet}
 
-{#snippet flightCard(label: string, flight: FlightData, value: string)}
+{#snippet card(
+  label: string,
+  headline: Snippet,
+  detail: string,
+  onclick: (() => void) | undefined,
+)}
   {#snippet content()}
     <div class="text-[13px] text-muted-foreground">{label}</div>
     <div
       class="mt-0.5 flex items-center gap-2 whitespace-nowrap text-xl font-bold tracking-tight lg:text-[26px]"
     >
-      {@render flag(flight.from?.country)}
-      {@render flag(flight.to?.country)}
-      <span class="truncate">{routeLabel(flight)}</span>
+      {@render headline()}
     </div>
-    <div class="truncate text-[13px] text-muted-foreground">{value}</div>
+    <div class="truncate text-[13px] text-muted-foreground">{detail}</div>
   {/snippet}
-  <!-- Opens the flight, like a drill-down row does -->
-  {#if onOpenFlight}
+  {#if onclick}
     <button
       type="button"
-      class="min-w-0 -mx-2 rounded px-2 py-1 text-left outline-none transition-colors hover:bg-hover focus-visible:ring-1 focus-visible:ring-ring"
-      onclick={() => onOpenFlight?.(flight.id)}
+      class="-mx-2 min-w-0 rounded px-2 py-1 text-left outline-none transition-colors hover:bg-hover focus-visible:ring-1 focus-visible:ring-ring"
+      {onclick}
     >
       {@render content()}
     </button>
@@ -101,83 +104,80 @@
   {/if}
 {/snippet}
 
-{#snippet airportCard(label: string, extreme: AirportExtreme)}
-  {#snippet content()}
-    <div class="text-[13px] text-muted-foreground">{label}</div>
-    <div
-      class="mt-0.5 flex items-center gap-2 whitespace-nowrap text-xl font-bold tracking-tight lg:text-[26px]"
-    >
-      {@render flag(extreme.airport.country)}
-      <span>{codeForAirport(extreme.airport)}</span>
-    </div>
-    <div class="truncate text-[13px] text-muted-foreground">
-      {extreme.airport.municipality || extreme.airport.name}
-      · {formatLatitude(extreme.latitude)}
-    </div>
+{#snippet flightCard(label: string, flight: FlightData, detail: string)}
+  {#snippet headline()}
+    {@render flag(flight.from?.country)}
+    {@render flag(flight.to?.country)}
+    <span class="truncate">{routeLabel(flight)}</span>
   {/snippet}
-  <!-- Focuses the map on the airport, closing this modal first -->
-  {#if onOpenAirport}
-    <button
-      type="button"
-      class="min-w-0 -mx-2 rounded px-2 py-1 text-left outline-none transition-colors hover:bg-hover focus-visible:ring-1 focus-visible:ring-ring"
-      onclick={() => onOpenAirport?.(extreme.airport.id)}
-    >
-      {@render content()}
-    </button>
-  {:else}
-    <div class="min-w-0">
-      {@render content()}
-    </div>
-  {/if}
+  {@render card(
+    label,
+    headline,
+    detail,
+    onOpenFlight && (() => onOpenFlight?.(flight.id)),
+  )}
+{/snippet}
+
+{#snippet airportCard(label: string, airport: Airport)}
+  {#snippet headline()}
+    {@render flag(airport.country)}
+    <span class="truncate">{codeForAirport(airport)}</span>
+  {/snippet}
+  {@render card(
+    label,
+    headline,
+    `${airport.municipality || airport.name} · ${formatLatitude(airport.lat)}`,
+    onOpenAirport && (() => onOpenAirport?.(airport.id)),
+  )}
 {/snippet}
 
 <div class="grid gap-x-7 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-  {#if byDistance.longest}
+  {#if byDistance.highest}
     {@render flightCard(
       'Longest route',
-      byDistance.longest.flight,
-      formatDistance(byDistance.longest.value),
+      byDistance.highest.flight,
+      formatDistance(byDistance.highest.value, prefs),
     )}
   {/if}
-  {#if byDuration.longest}
+  {#if byDuration.highest}
     {@render flightCard(
       'Longest flight',
-      byDuration.longest.flight,
-      withDetail(
-        byDuration.longest.flight,
-        formatDuration(byDuration.longest.value),
+      byDuration.highest.flight,
+      withFlightDetail(
+        byDuration.highest.flight,
+        formatDuration(byDuration.highest.value),
       ),
     )}
   {/if}
-  {#if bySpeed.fastest}
+  {#if bySpeed.highest}
     {@render flightCard(
       'Fastest flight',
-      bySpeed.fastest.flight,
-      formatSpeed(bySpeed.fastest.value),
+      bySpeed.highest.flight,
+      formatSpeed(bySpeed.highest.value),
     )}
   {/if}
-  {#if byDistance.shortest}
+  {#if byDistance.lowest}
     {@render flightCard(
       'Shortest route',
-      byDistance.shortest.flight,
-      formatDistance(byDistance.shortest.value),
+      byDistance.lowest.flight,
+      formatDistance(byDistance.lowest.value, prefs),
     )}
   {/if}
-  {#if byDuration.shortest}
+  {#if byDuration.lowest}
     {@render flightCard(
       'Shortest flight',
-      byDuration.shortest.flight,
-      withDetail(
-        byDuration.shortest.flight,
-        formatDuration(byDuration.shortest.value),
+      byDuration.lowest.flight,
+      withFlightDetail(
+        byDuration.lowest.flight,
+        formatDuration(byDuration.lowest.value),
       ),
     )}
   {/if}
-  {#if bySpeed.slowest}
+  {#if bySpeed.lowest}
     {@render flightCard(
       'Slowest flight',
-      bySpeed.slowest.flight,
-      formatSpeed(bySpeed.slowest.value),
+      bySpeed.lowest.flight,
+      formatSpeed(bySpeed.lowest.value),
     )}
   {/if}
   {#if byLatitude.north}
@@ -190,7 +190,7 @@
     {@render flightCard(
       'Most time zones',
       byZones.flight,
-      `${byZones.zones % 1 ? byZones.zones.toFixed(1) : byZones.zones} crossed`,
+      `${byZones.value % 1 ? byZones.value.toFixed(1) : byZones.value} crossed`,
     )}
   {/if}
 </div>
