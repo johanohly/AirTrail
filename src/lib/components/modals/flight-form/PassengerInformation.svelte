@@ -14,14 +14,18 @@
   import * as Select from '$lib/components/ui/select';
   import { Separator } from '$lib/components/ui/separator';
   import { TextTooltip } from '$lib/components/ui/tooltip/index.js';
-  import { FlightReasons, SeatClasses, SeatTypes } from '$lib/db/types';
+  import { SeatClasses, SeatTypes } from '$lib/db/types';
+  import { page } from '$app/state';
+  import { trpc } from '$lib/trpc';
+  import {
+    flightReasonOptions,
+    flightReasonLabel,
+  } from '$lib/utils/flight-reasons';
   import { cn, toTitleCase } from '$lib/utils';
   import type { CustomFieldDefinition } from '$lib/utils/custom-fields';
   import type { flightSchema } from '$lib/zod/flight';
 
-  type FlightReason = (typeof FlightReasons)[number];
-  const isFlightReason = (value: string): value is FlightReason =>
-    FlightReasons.some((reason) => reason === value);
+  const reasonsQuery = trpc.user.flightReasons.query();
 
   let {
     form,
@@ -174,23 +178,25 @@
                           // Assign through the store so superforms sees it.
                           if ($formData.passengers[index]) {
                             $formData.passengers[index].flightReason =
-                              isFlightReason(value) ? value : null;
+                              value || null;
                           }
                         }}
                         allowDeselect
                       >
                         <Select.Trigger {...props} size="sm">
                           {$formData.passengers[index]?.flightReason
-                            ? toTitleCase(
+                            ? flightReasonLabel(
                                 $formData.passengers[index].flightReason,
                               )
                             : 'Select reason'}
                         </Select.Trigger>
                         <Select.Content>
-                          <Select.Item value="leisure" label="Leisure" />
-                          <Select.Item value="business" label="Business" />
-                          <Select.Item value="crew" label="Crew" />
-                          <Select.Item value="other" label="Other" />
+                          {#each flightReasonOptions($formData.passengers[index]?.userId === page.data.user?.id ? ($reasonsQuery.data ?? []) : []) as reason}
+                            <Select.Item
+                              value={reason}
+                              label={flightReasonLabel(reason)}
+                            />
+                          {/each}
                         </Select.Content>
                       </Select.Root>
                       <input
