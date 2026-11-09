@@ -8,6 +8,13 @@ import { parseISO } from 'date-fns';
 
 import { COUNTRIES } from '$lib/data/countries';
 import { type FlightData, toTitleCase } from '$lib/utils';
+import { flightReasonLabel } from '$lib/utils/flight-reasons';
+
+// Keep custom labels distinct from the chart's synthetic buckets.
+const reasonBucketLabel = (reason: string) =>
+  ['No Data', 'Others'].includes(reason)
+    ? `${reason} (reason)`
+    : flightReasonLabel(reason);
 
 export type FlightChartKey =
   | 'seat-class'
@@ -248,7 +255,11 @@ export const flightMatchesChartBucket = (
     }
 
     return passengers.some(
-      (seat) => seat[field] && toTitleCase(seat[field]) === bucket,
+      (seat) =>
+        seat[field] &&
+        (field === 'flightReason'
+          ? reasonBucketLabel(seat[field])
+          : toTitleCase(seat[field])) === bucket,
     );
   }
 
@@ -380,7 +391,7 @@ export function seatClassDistribution(
       ),
     ).length;
     return acc;
-  }, {});
+  }, Object.create(null));
 
   const totalClassified = Object.values(counts).reduce((a, b) => a + b, 0);
   const noData = flights.length - totalClassified;
@@ -396,18 +407,31 @@ export function reasonDistribution(
   ctx: StatsContext,
   options?: AggregationOptions,
 ): Record<string, number> {
-  const categories = ['leisure', 'business', 'crew', 'other'];
+  const categories = [
+    ...new Set([
+      'leisure',
+      'business',
+      'crew',
+      'other',
+      ...flights.flatMap((flight) =>
+        flight.passengers
+          .filter((passenger) => !ctx.userId || passenger.userId === ctx.userId)
+          .map((passenger) => passenger.flightReason)
+          .filter((reason): reason is string => reason !== null),
+      ),
+    ]),
+  ];
 
   if (!ctx.userId) {
     const passengers = flights.flatMap((flight) => flight.passengers);
     const counts = categories.reduce<Record<string, number>>(
       (acc, category) => {
-        acc[toTitleCase(category)] = passengers.filter(
+        acc[reasonBucketLabel(category)] = passengers.filter(
           (passenger) => passenger.flightReason === category,
         ).length;
         return acc;
       },
-      {},
+      Object.create(null),
     );
     const totalClassified = Object.values(counts).reduce((a, b) => a + b, 0);
     const noData = passengers.length - totalClassified;
@@ -416,7 +440,7 @@ export function reasonDistribution(
   }
 
   const counts = categories.reduce<Record<string, number>>((acc, category) => {
-    acc[toTitleCase(category)] = flights.filter((flight) =>
+    acc[reasonBucketLabel(category)] = flights.filter((flight) =>
       flight.passengers.some(
         (passenger) =>
           passenger.userId === ctx.userId &&
