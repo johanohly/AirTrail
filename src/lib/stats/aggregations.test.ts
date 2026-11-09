@@ -242,11 +242,9 @@ describe('seat numbers', () => {
   });
 
   it('ranks by count, then orders equal counts by row and column', () => {
-    const seats = ['12F', '2C', '10A', '2A', '3C', '12F'].map(
-      (seatNumber) => ({
-        passengers: [{ userId: 'one', seatNumber }],
-      }),
-    ) as FlightData[];
+    const seats = ['12F', '2C', '10A', '2A', '3C', '12F'].map((seatNumber) => ({
+      passengers: [{ userId: 'one', seatNumber }],
+    })) as FlightData[];
 
     expect(
       Object.keys(seatNumberDistribution(seats, { userId: 'one' })),
