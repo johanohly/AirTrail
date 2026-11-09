@@ -2,6 +2,9 @@ import { CalendarDate } from '@internationalized/date';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  cycleOptionValue,
+  optionValueState,
+  isFilterColumnActive,
   cloneFlightFilters,
   createDefaultFilters,
   perYearFilters,
@@ -161,5 +164,114 @@ describe('year filter', () => {
     expect(perYearFilters(filters({ years: ['2025'] })).years).toEqual([]);
     const fromDate = new CalendarDate(2025, 2, 1);
     expect(perYearFilters(filters({ fromDate })).fromDate).toEqual(fromDate);
+  });
+});
+
+describe('three-state option filters', () => {
+  it('cycles a full-year date selection without leaving a conflicting date range', () => {
+    const initial = filters({
+      fromDate: new CalendarDate(2026, 1, 1),
+      toDate: new CalendarDate(2026, 12, 31),
+    });
+    expect(optionValueState(initial, 'years', '2026')).toBe('include');
+    const excluded = cycleOptionValue(initial, 'years', '2026');
+    expect(optionValueState(excluded, 'years', '2026')).toBe('exclude');
+    expect(excluded.fromDate).toBeUndefined();
+    expect(excluded.toDate).toBeUndefined();
+    const expanded = cycleOptionValue(initial, 'years', '2025');
+    expect(expanded.years).toEqual(['2026', '2025']);
+  });
+  const flight = (airline?: string, passengers: string[] = [], year = 2026) =>
+    ({
+      airline: airline ? { name: airline } : null,
+      passengers: passengers.map((userId) => ({
+        userId,
+        user: { id: userId, username: userId },
+      })),
+      date: new Date(year, 0, 1),
+      from: { id: 1 },
+      to: { id: 2 },
+    }) as unknown as FlightData;
+
+  it('cycles without mutating the original and clears exclusion-only filters', () => {
+    const original = filters();
+    const include = cycleOptionValue(original, 'airline', 'Cathay');
+    const exclude = cycleOptionValue(include, 'airline', 'Cathay');
+    const cleared = cycleOptionValue(exclude, 'airline', 'Cathay');
+    expect(optionValueState(original, 'airline', 'Cathay')).toBe('unselected');
+    expect(optionValueState(include, 'airline', 'Cathay')).toBe('include');
+    expect(optionValueState(exclude, 'airline', 'Cathay')).toBe('exclude');
+    expect(hasFlightFilters(exclude)).toBe(true);
+    expect(isFilterColumnActive(exclude, 'airline')).toBe(true);
+    expect(hasFlightFilters(cleared)).toBe(false);
+    expect(matchesFlight(flight('Cathay'), exclude)).toBe(false);
+    expect(matchesFlight(flight('HK Express'), exclude)).toBe(true);
+    expect(matchesFlight(flight(), exclude)).toBe(true);
+    expect(hasFlightFilters(clearFilterColumn(exclude, 'airline'))).toBe(false);
+  });
+
+  it('combines any included airline with exclusions and ANDs different categories', () => {
+    let selected = cycleOptionValue(filters(), 'airline', 'Cathay');
+    selected = cycleOptionValue(selected, 'airline', 'HK Express');
+    selected = cycleOptionValue(
+      cycleOptionValue(selected, 'airline', 'AirAsia'),
+      'airline',
+      'AirAsia',
+    );
+    selected = cycleOptionValue(selected, 'years', '2026');
+    expect(matchesFlight(flight('Cathay'), selected)).toBe(true);
+    expect(matchesFlight(flight('HK Express'), selected)).toBe(true);
+    expect(matchesFlight(flight('AirAsia'), selected)).toBe(false);
+    expect(matchesFlight(flight('Cathay', [], 2025), selected)).toBe(false);
+    expect(matchesFlight(flight(), selected)).toBe(false);
+    expect(bitsFiltersToFlightFilters(flightFiltersToBits(selected))).toEqual(
+      selected,
+    );
+    const clone = cloneFlightFilters(selected);
+    clone.excludedValues!.airline!.push('Other');
+    expect(selected.excludedValues!.airline).toEqual(['AirAsia']);
+  });
+
+  it('excludes a flight containing a blocked passenger even with an included passenger', () => {
+    let selected = cycleOptionValue(filters(), 'passengers', 'user:me');
+    selected = cycleOptionValue(
+      cycleOptionValue(selected, 'passengers', 'user:other'),
+      'passengers',
+      'user:other',
+    );
+    expect(matchesFlight(flight('Cathay', ['me']), selected)).toBe(true);
+    expect(matchesFlight(flight('Cathay', ['me', 'other']), selected)).toBe(
+      false,
+    );
+    expect(matchesFlight(flight('Cathay', ['someone']), selected)).toBe(false);
+  });
+
+  it('preserves legacy exclusions when cycling another value', () => {
+    const legacy = filters({ airline: ['Cathay'], airlineOperator: 'is not' });
+    expect(optionValueState(legacy, 'airline', 'Cathay')).toBe('exclude');
+    const next = cycleOptionValue(legacy, 'airline', 'HK Express');
+    expect(optionValueState(next, 'airline', 'Cathay')).toBe('exclude');
+    expect(matchesFlight(flight('Cathay'), next)).toBe(false);
+    expect(matchesFlight(flight('HK Express'), next)).toBe(true);
+  });
+
+  it('applies airport and year exclusions, and clears year exclusions with the date filter', () => {
+    let selected = cycleOptionValue(
+      cycleOptionValue(filters(), 'departureAirports', '1'),
+      'departureAirports',
+      '1',
+    );
+    expect(matchesFlight(flight('Cathay'), selected)).toBe(false);
+    selected = clearFilterColumn(selected, 'departureAirports');
+    selected = cycleOptionValue(
+      cycleOptionValue(selected, 'years', '2026'),
+      'years',
+      '2026',
+    );
+    expect(matchesFlight(flight('Cathay'), selected)).toBe(false);
+    expect(matchesFlight(flight('Cathay', [], 2025), selected)).toBe(true);
+    expect(
+      matchesFlight(flight('Cathay'), clearFilterColumn(selected, 'date')),
+    ).toBe(true);
   });
 });
