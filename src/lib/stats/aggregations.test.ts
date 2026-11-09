@@ -49,6 +49,39 @@ describe('country statistics', () => {
 });
 
 describe('passenger reason statistics', () => {
+  it('counts removed custom reasons with their original labels and filters by passenger', () => {
+    const customFlights = [
+      {
+        passengers: [
+          { userId: 'one', flightReason: 'Study abroad' },
+          { userId: 'two', flightReason: 'VIP' },
+        ],
+      },
+      { passengers: [{ userId: 'one', flightReason: null }] },
+    ] as FlightData[];
+    expect(reasonDistribution(customFlights, { userId: 'one' })).toMatchObject({
+      'Study abroad': 1,
+      'No Data': 1,
+    });
+    expect(
+      reasonDistribution(customFlights, { userId: 'one' }),
+    ).not.toHaveProperty('VIP');
+    expect(reasonDistribution(customFlights, {})).toMatchObject({
+      'Study abroad': 1,
+      VIP: 1,
+      'No Data': 1,
+    });
+    expect(
+      flightMatchesChartBucket(customFlights[0]!, 'reason', 'Study abroad', {
+        userId: 'one',
+      }),
+    ).toBe(true);
+    expect(
+      flightMatchesChartBucket(customFlights[0]!, 'reason', 'VIP', {
+        userId: 'one',
+      }),
+    ).toBe(false);
+  });
   const flights = [
     {
       passengers: [
