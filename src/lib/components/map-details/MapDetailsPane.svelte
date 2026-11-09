@@ -52,9 +52,14 @@
     () => flights,
     () => filters,
     navigateFlights,
+    () => trackedFlightIds,
   );
 
-  const flight = useFlightDetails(() => flights, navigateFlights);
+  const flight = useFlightDetails(
+    () => flights,
+    navigateFlights,
+    () => seatUserId,
+  );
 
   const hasTrack = $derived(
     flights.some(
@@ -133,6 +138,7 @@
     {:else if mapDetailsState.selection?.type === 'route' && route.routeAirports}
       <RouteDetailsBody
         routeFlights={route.routeFlights}
+        hasTrack={route.hasTrack}
         airlineCount={route.airlineCount}
         distance={route.distance}
         lastFlownLabel={route.lastFlownLabel}
@@ -144,6 +150,7 @@
       <FlightDetailsBody
         flight={flight.flight}
         prefs={flight.prefs}
+        milestones={flight.milestones}
         {seatUserId}
         onShowInList={flight.showInList}
       />

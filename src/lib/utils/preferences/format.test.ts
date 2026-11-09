@@ -8,6 +8,7 @@ import {
   formatDate,
   formatDateTime,
   formatFlightDate,
+  formatSpeed,
   formatTime,
 } from './format';
 
@@ -92,5 +93,15 @@ describe('time preferences', () => {
     expect(
       formatDateTime(date, { dateFormat: 'iso', timeFormat: '24h' }, 'UTC'),
     ).toBe('2026-04-26 22:30');
+  });
+});
+
+describe('speed preferences', () => {
+  it.each([
+    ['km', '900 km/h'],
+    ['mi', '559 mph'],
+    ['nm', '486 kt'],
+  ] as const)('formats a speed for %s distances', (distanceUnit, expected) => {
+    expect(formatSpeed(900, { distanceUnit })).toBe(expected);
   });
 });

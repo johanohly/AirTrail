@@ -6,6 +6,7 @@ export {
   type FlightData,
   type SimpleFlight,
   formatSeatForUser,
+  passengerForUser,
   getFlightPassengerLabels,
   getFlightPassengerLabel,
   getFlightPassengerToken,

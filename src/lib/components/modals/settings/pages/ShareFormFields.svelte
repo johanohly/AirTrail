@@ -31,6 +31,13 @@
     return option?.label || 'Select duration';
   };
 
+  const flightSelectionOptions = [
+    { value: 'all', label: 'All flights' },
+    { value: 'past', label: 'Past flights only' },
+    { value: 'upcoming', label: 'Upcoming flights only' },
+    { value: 'custom', label: 'Custom date range' },
+  ];
+
   function generateNewSlug() {
     $formData.slug = generateRandomString(12);
   }
@@ -151,13 +158,46 @@
   </div>
 </div>
 
-<!-- Date Range Filter -->
-<DateRangeField
-  {form}
-  startName="dateFrom"
-  endName="dateTo"
-  label="Date Range (Optional)"
-/>
+<!-- Flights Included -->
+<Form.Field {form} name="flightSelection" class="flex flex-col">
+  <Form.Control>
+    {#snippet children({ props })}
+      <Form.Label class="flex items-center gap-1.5">
+        Flights Included
+        <HelpTooltip
+          text="Past and upcoming are decided each time someone opens the link, so a flight counts as past once it has landed."
+        />
+      </Form.Label>
+      <Select.Root type="single" bind:value={$formData.flightSelection}>
+        <Select.Trigger {...props}>
+          {flightSelectionOptions.find(
+            (option) => option.value === $formData.flightSelection,
+          )?.label}
+        </Select.Trigger>
+        <Select.Content>
+          {#each flightSelectionOptions as option (option.value)}
+            <Select.Item value={option.value} label={option.label} />
+          {/each}
+        </Select.Content>
+      </Select.Root>
+      <input
+        name={props.name}
+        type="hidden"
+        value={$formData.flightSelection}
+      />
+    {/snippet}
+  </Form.Control>
+  <Form.FieldErrors />
+</Form.Field>
+
+{#if $formData.flightSelection === 'custom'}
+  <DateRangeField
+    {form}
+    startName="dateFrom"
+    endName="dateTo"
+    label="Date Range"
+  />
+{/if}
 
 <!-- Data Privacy -->
 <div class="flex flex-col gap-2">

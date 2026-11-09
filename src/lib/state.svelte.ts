@@ -64,7 +64,7 @@ export const openModalsState = $state<OpenModalsState>({
 });
 
 export type MapDetailsSelection =
-  | { type: 'airport'; airportId: number }
+  | { type: 'airport'; airportId: number; view: 'airport' | 'routes' }
   | { type: 'route'; route: Route }
   | { type: 'flight'; flightId: number };
 
@@ -82,7 +82,7 @@ export const mapDetailsState = $state<{
 });
 
 export const openAirportDetails = (airportId: number) => {
-  mapDetailsState.selection = { type: 'airport', airportId };
+  mapDetailsState.selection = { type: 'airport', airportId, view: 'airport' };
   mapDetailsState.focusedRouteDisplay = null;
   mapDetailsState.focusRequest += 1;
 };
@@ -103,7 +103,16 @@ export const openFlightDetails = (flightId: number) => {
 };
 
 export const focusMapDetails = () => {
-  if (!mapDetailsState.selection) return;
+  const selection = mapDetailsState.selection;
+  if (!selection) return;
+  if (selection.type === 'airport') selection.view = 'airport';
+  mapDetailsState.focusRequest += 1;
+};
+
+export const focusAirportRoutes = () => {
+  const selection = mapDetailsState.selection;
+  if (selection?.type !== 'airport') return;
+  selection.view = 'routes';
   mapDetailsState.focusRequest += 1;
 };
 

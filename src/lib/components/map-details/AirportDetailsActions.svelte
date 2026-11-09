@@ -1,7 +1,11 @@
 <script lang="ts">
-  import { Funnel, Locate, X } from '@o7/icon/lucide';
+  import { Funnel, Locate, Waypoints, X } from '@o7/icon/lucide';
 
-  import { closeMapDetails, focusMapDetails } from '$lib/state.svelte';
+  import {
+    closeMapDetails,
+    focusAirportRoutes,
+    focusMapDetails,
+  } from '$lib/state.svelte';
 
   import DetailsActionButton from './DetailsActionButton.svelte';
 
@@ -21,6 +25,12 @@
   shortLabel="Locate"
   icon={Locate}
   onclick={focusMapDetails}
+/>
+<DetailsActionButton
+  label="Locate airport routes"
+  shortLabel="Routes"
+  icon={Waypoints}
+  onclick={focusAirportRoutes}
 />
 {#if hasFilters}
   <DetailsActionButton

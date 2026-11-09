@@ -200,18 +200,22 @@ export const formatSeat = (f: FlightData) => {
   return formatSeatForUser(f, userId);
 };
 
+/** The given user's passenger row, or the only passenger when no user is given. */
+export const passengerForUser = (
+  f: FlightData,
+  userId: string | null | undefined,
+) => {
+  if (userId) return f.passengers.find((item) => item.userId === userId);
+  return f.passengers.length === 1 ? f.passengers[0] : undefined;
+};
+
 export const formatSeatForUser = (
   f: FlightData,
   userId: string | null | undefined,
 ) => {
   const t = (s: string) => toTitleCase(s);
 
-  let passenger;
-  if (userId) {
-    passenger = f.passengers.find((item) => item.userId === userId);
-  } else if (f.passengers.length === 1) {
-    passenger = f.passengers[0];
-  }
+  const passenger = passengerForUser(f, userId);
   if (!passenger) return null;
 
   if (passenger.seat && passenger.seatNumber && passenger.seatClass) {
