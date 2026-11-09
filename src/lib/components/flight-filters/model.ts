@@ -21,6 +21,7 @@ import { FlightReasons } from '$lib/db/types';
 export type FilterColumnId =
   | 'departureAirports'
   | 'arrivalAirports'
+  | 'years'
   | 'date'
   | 'passengers'
   | 'reasons'
@@ -120,6 +121,16 @@ export function cloneFlightFilters(
     airline: [...source.airline],
     aircraft: [...source.aircraft],
     aircraftRegs: [...source.aircraftRegs],
+    ...(source.excludedValues
+      ? {
+          excludedValues: Object.fromEntries(
+            Object.entries(source.excludedValues).map(([key, values]) => [
+              key,
+              [...values],
+            ]),
+          ),
+        }
+      : {}),
     ...next,
   };
 }
@@ -127,7 +138,10 @@ export function cloneFlightFilters(
 export function hasFlightFilters(filters: FlightFilters | undefined): boolean {
   return !!(
     filters &&
-    (filters.departureAirports.length > 0 ||
+    (Object.values(filters.excludedValues ?? {}).some(
+      (values) => values.length > 0,
+    ) ||
+      filters.departureAirports.length > 0 ||
       filters.arrivalAirports.length > 0 ||
       filters.airportsEither.length > 0 ||
       filters.routes.length > 0 ||
@@ -204,6 +218,8 @@ export function rawOptionColumnOperator(
   columnId: OptionColumnId,
 ): OptionFilterOperator | MultiOptionFilterOperator {
   switch (columnId) {
+    case 'years':
+      return filters.yearsOperator;
     case 'passengers':
       return filters.passengersOperator;
     case 'departureAirports':
@@ -258,6 +274,10 @@ export function setOptionColumnOperator(
   operator: OptionFilterOperator | MultiOptionFilterOperator,
 ): FlightFilters {
   switch (columnId) {
+    case 'years':
+      return cloneFlightFilters(filters, {
+        yearsOperator: operator as OptionFilterOperator,
+      });
     case 'passengers':
       return cloneFlightFilters(filters, {
         passengersOperator: operator as MultiOptionFilterOperator,
@@ -312,6 +332,11 @@ export function setOptionColumnValues(
   const operator = normalizeOperatorForCount(filters, columnId, values.length);
 
   switch (columnId) {
+    case 'years':
+      return cloneFlightFilters(filters, {
+        years: values,
+        yearsOperator: operator as OptionFilterOperator,
+      });
     case 'passengers':
       return cloneFlightFilters(filters, {
         passengers: values,
@@ -356,13 +381,22 @@ export function clearFilterColumn(
 ): FlightFilters {
   if (columnId === 'date') {
     return cloneFlightFilters(filters, {
+      ...(filters.excludedValues?.years
+        ? { excludedValues: { ...filters.excludedValues, years: [] } }
+        : {}),
       years: [],
       fromDate: undefined,
       toDate: undefined,
     });
   }
 
-  return setOptionColumnValues(filters, columnId, []);
+  return setOptionColumnValues(
+    cloneFlightFilters(filters, {
+      excludedValues: { ...filters.excludedValues, [columnId]: [] },
+    }),
+    columnId,
+    [],
+  );
 }
 
 export function isFilterColumnActive(
@@ -370,10 +404,18 @@ export function isFilterColumnActive(
   columnId: FilterColumnId,
 ): boolean {
   if (columnId === 'date') {
-    return !!(filters.years.length || filters.fromDate || filters.toDate);
+    return !!(
+      filters.years.length ||
+      filters.excludedValues?.years?.length ||
+      filters.fromDate ||
+      filters.toDate
+    );
   }
 
-  return optionColumnValues(filters, columnId).length > 0;
+  return (
+    optionColumnValues(filters, columnId).length > 0 ||
+    !!filters.excludedValues?.[columnId]?.length
+  );
 }
 
 /*
@@ -413,6 +455,9 @@ export function toggleFilterYear(
     return clearFilterColumn(filters, 'date');
   }
   return cloneFlightFilters(filters, {
+    ...(filters.excludedValues?.years
+      ? { excludedValues: { ...filters.excludedValues, years: [] } }
+      : {}),
     years: [year],
     yearsOperator: 'is',
     fromDate: undefined,
@@ -624,6 +669,10 @@ export function flightFiltersToBits(source: FlightFilters): FiltersState {
     if (filter) nextFilters.push(filter);
   }
 
+  for (const [column, values] of Object.entries(source.excludedValues ?? {})) {
+    const filter = optionFilter(column + 'Excluded', values, 'is none of');
+    if (filter) nextFilters.push(filter);
+  }
   return nextFilters;
 }
 
@@ -692,9 +741,28 @@ export function bitsFiltersToFlightFilters(
   base?: FlightFilters,
 ): FlightFilters {
   const nextFilters = resetBitsManagedFilters(base);
+  const excludedValues: NonNullable<FlightFilters['excludedValues']> = {};
   const dateFilters: FilterModel[] = [];
 
   for (const filter of source) {
+    if (filter.columnId.endsWith('Excluded')) {
+      const column = filter.columnId.slice(0, -8) as OptionColumnId;
+      if (
+        [
+          'departureAirports',
+          'arrivalAirports',
+          'years',
+          'passengers',
+          'reasons',
+          'airline',
+          'aircraft',
+          'aircraftRegs',
+        ].includes(column)
+      ) {
+        excludedValues[column] = stringValues(filter);
+      }
+      continue;
+    }
     switch (filter.columnId) {
       case 'departureAirports':
         nextFilters.departureAirports = stringValues(filter);
@@ -741,6 +809,9 @@ export function bitsFiltersToFlightFilters(
     }
   }
 
+  if (Object.keys(excludedValues).length)
+    nextFilters.excludedValues = excludedValues;
+  else delete nextFilters.excludedValues;
   dateFilters.forEach((filter) => applyDateFilter(nextFilters, filter));
 
   return nextFilters;
@@ -767,6 +838,7 @@ export function bitsSignature(source: FiltersState) {
 
 export function flightSignature(source: FlightFilters) {
   return JSON.stringify({
+    excludedValues: source.excludedValues,
     departureAirports: source.departureAirports,
     departureAirportsOperator: source.departureAirportsOperator,
     arrivalAirports: source.arrivalAirports,
@@ -846,6 +918,15 @@ export function matchesLocationFilters(
   flight: FlightData,
   locationFilters: LocationFilters,
 ) {
+  if (
+    locationFilters.excludedValues?.departureAirports?.includes(
+      flight.from?.id.toString() ?? '',
+    ) ||
+    locationFilters.excludedValues?.arrivalAirports?.includes(
+      flight.to?.id.toString() ?? '',
+    )
+  )
+    return false;
   const fromId = flight.from?.id.toString();
   const toId = flight.to?.id.toString();
   const departureAirports = locationFilters.departureAirports ?? [];
@@ -906,6 +987,30 @@ export function matchesNonLocationFilters(
   filters: FlightFilters,
   userId: string | null | undefined = page.data.user?.id,
 ) {
+  const excluded = filters.excludedValues;
+  if (excluded) {
+    const values = {
+      years: flight.date?.getFullYear().toString(),
+      reasons: flightReasonForUser(flight, userId),
+      airline: flight.airline?.name,
+      aircraft: flight.aircraft?.name,
+      aircraftRegs: flight.aircraftReg,
+    };
+    if (
+      Object.entries(values).some(
+        ([key, value]) =>
+          value != null &&
+          excluded[key as keyof typeof values]?.includes(value),
+      )
+    )
+      return false;
+    if (
+      flight.passengers.some((passenger) =>
+        excluded.passengers?.includes(getFlightPassengerToken(passenger) ?? ''),
+      )
+    )
+      return false;
+  }
   if (
     !optionMatches(
       flight.date?.getFullYear().toString(),
@@ -1036,4 +1141,74 @@ export function flightReasonFilterOptions(
       : value,
     count,
   })).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+}
+
+/** Read legacy category operators as per-value states without changing saved filters. */
+export function optionValueState(
+  filters: FlightFilters,
+  column: OptionColumnId,
+  value: string,
+): 'unselected' | 'include' | 'exclude' {
+  if (filters.excludedValues?.[column]?.includes(value)) return 'exclude';
+  if (
+    column === 'years' &&
+    !filters.years.length &&
+    selectedFilterYears(filters).includes(value)
+  )
+    return 'include';
+  if (!filters[column].includes(value)) return 'unselected';
+  const operator =
+    column === 'passengers'
+      ? filters.passengersOperator
+      : rawOptionColumnOperator(filters, column);
+  return operator.startsWith('exclude') ||
+    operator === 'is not' ||
+    operator === 'is none of'
+    ? 'exclude'
+    : 'include';
+}
+
+export function cycleOptionValue(
+  filters: FlightFilters,
+  column: OptionColumnId,
+  value: string,
+): FlightFilters {
+  const state = optionValueState(filters, column, value);
+  const currentValues =
+    column === 'years' && !filters.years.length
+      ? selectedFilterYears(filters)
+      : filters[column];
+  const included = currentValues.filter(
+    (item) =>
+      item !== value && optionValueState(filters, column, item) === 'include',
+  );
+  const excluded = [
+    ...new Set([
+      ...(filters.excludedValues?.[column] ?? []),
+      ...filters[column].filter(
+        (item) => optionValueState(filters, column, item) === 'exclude',
+      ),
+    ]),
+  ].filter((item) => item !== value);
+  if (state === 'unselected') included.push(value);
+  if (state === 'include') excluded.push(value);
+  const excludedValues = { ...filters.excludedValues };
+  if (excluded.length) excludedValues[column] = excluded;
+  else delete excludedValues[column];
+  const next = cloneFlightFilters(filters, {
+    [column]: included,
+    ...(column === 'years' ? { fromDate: undefined, toDate: undefined } : {}),
+    excludedValues,
+  });
+  if (column === 'passengers')
+    return setOptionColumnOperator(
+      next,
+      column,
+      normalizeMultiOptionOperator('include any of', included.length),
+    );
+  return setOptionColumnOperator(
+    next,
+    column,
+    normalizeOptionOperator('is any of', included.length),
+  );
 }
