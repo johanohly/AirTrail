@@ -1,19 +1,35 @@
+import type { FlightCustomFieldValue } from '$lib/db/types';
 import { getFlightPassengerLabel, type FlightData } from '$lib/utils';
+import { isCustomFieldValueEmpty } from '$lib/utils/custom-fields';
+import { formatDate } from '$lib/utils/preferences';
+import type { Preferences } from '$lib/zod/user';
+
+type DatePrefs = Pick<Preferences, 'dateFormat'>;
 
 export type FlightIndicatorKey =
-  'track' | 'actualTimes' | 'passengers' | 'note';
+  'track' | 'actualTimes' | 'passengers' | 'note' | 'customFields';
 
 export type FlightIndicator = {
   key: FlightIndicatorKey;
   label: string;
+  /** Tooltip lines, shown instead of `label`. */
+  lines?: string[];
 };
 
 const NOTE_PREVIEW_LENGTH = 160;
+const CUSTOM_FIELD_PREVIEW_LENGTH = 100;
 
 const indicator = (
   key: FlightIndicatorKey,
   label: string,
 ): FlightIndicator => ({ key, label });
+
+const truncatePreview = (text: string, maxLength: number) => {
+  const characters = Array.from(text);
+  return characters.length > maxLength
+    ? `${characters.slice(0, maxLength).join('').trimEnd()}…`
+    : text;
+};
 
 const companionsOf = (flight: FlightData, viewerId: string | null) => {
   if (!viewerId) {
@@ -70,12 +86,46 @@ const buildNoteIndicator = (flight: FlightData): FlightIndicator | null => {
   const note = flight.note?.trim();
   if (!note) return null;
 
-  const characters = Array.from(note);
-  const preview =
-    characters.length > NOTE_PREVIEW_LENGTH
-      ? `${characters.slice(0, NOTE_PREVIEW_LENGTH).join('').trimEnd()}…`
-      : note;
-  return indicator('note', `Note: ${preview}`);
+  return indicator(
+    'note',
+    `Note: ${truncatePreview(note, NOTE_PREVIEW_LENGTH)}`,
+  );
+};
+
+const formatCustomFieldValue = (
+  { fieldType, value }: FlightCustomFieldValue,
+  prefs?: DatePrefs,
+): string | null => {
+  if (isCustomFieldValueEmpty(value)) return null;
+
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (Array.isArray(value)) value = value.join(', ');
+  if (fieldType === 'date' && prefs && typeof value === 'string') {
+    const date = new Date(`${value}T00:00:00Z`);
+    if (!Number.isNaN(date.getTime())) value = formatDate(date, prefs, 'UTC');
+  }
+  const text = String(value).trim();
+  return text ? truncatePreview(text, CUSTOM_FIELD_PREVIEW_LENGTH) : null;
+};
+
+const buildCustomFieldsIndicator = (
+  flight: FlightData,
+  prefs?: DatePrefs,
+): FlightIndicator | null => {
+  const lines = (flight.customFieldValues ?? []).flatMap((entry) => {
+    const formatted = formatCustomFieldValue(entry, prefs);
+    return formatted ? [`${entry.label}: ${formatted}`] : [];
+  });
+  if (!lines.length) return null;
+
+  return {
+    key: 'customFields',
+    label: truncatePreview(
+      `Custom fields: ${lines.join('; ')}`,
+      NOTE_PREVIEW_LENGTH,
+    ),
+    lines,
+  };
 };
 
 const isIndicator = (value: FlightIndicator | null): value is FlightIndicator =>
@@ -87,10 +137,12 @@ export const buildFlightIndicators = (
     hasTrack = false,
     viewerId = null,
     includePassengers = true,
+    datePrefs,
   }: {
     hasTrack?: boolean;
     viewerId?: string | null;
     includePassengers?: boolean;
+    datePrefs?: DatePrefs;
   } = {},
 ): FlightIndicator[] => {
   return [
@@ -98,5 +150,6 @@ export const buildFlightIndicators = (
     buildActualTimesIndicator(flight),
     includePassengers ? buildPassengerIndicator(flight, viewerId) : null,
     buildNoteIndicator(flight),
+    buildCustomFieldsIndicator(flight, datePrefs),
   ].filter(isIndicator);
 };

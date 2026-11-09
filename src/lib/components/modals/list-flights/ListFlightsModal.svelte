@@ -181,6 +181,7 @@
             hasTrack: trackedFlightIds?.has(f.id) ?? false,
             viewerId: seatUserId ?? null,
             includePassengers: !showPassengerDetails,
+            datePrefs: prefs,
           }),
         };
       }),
@@ -509,7 +510,7 @@
       <ScrollArea type="hover">
         <div
           class={cn(
-            'hidden gap-y-2 md:grid md:grid-cols-[max-content_32px_minmax(16rem,1fr)_12px_auto] lg:grid-cols-[max-content_12px_minmax(0,12rem)_12px_minmax(16rem,1fr)_12px_auto] xl:grid-cols-[max-content_12px_minmax(0,12rem)_12px_minmax(0,12rem)_12px_minmax(18rem,1fr)_12px_auto]',
+            'hidden gap-y-2 md:grid md:grid-cols-[max-content_12px_minmax(12rem,1fr)_12px_auto] lg:grid-cols-[max-content_12px_minmax(0,12rem)_12px_minmax(16rem,1fr)_12px_auto] xl:grid-cols-[max-content_12px_minmax(0,12rem)_12px_minmax(0,12rem)_12px_minmax(18rem,1fr)_12px_auto]',
             {
               'gap-y-4': showPassengerDetails,
             },
@@ -606,7 +607,7 @@
                         {@render flightAndTailNumber(flight)}
                       </div>
                       <div class="hidden xl:block" aria-hidden="true"></div>
-                      <div class="flex min-w-0 px-8 xl:px-12">
+                      <div class="flex min-w-0 px-4 lg:px-8 xl:px-12">
                         <div
                           class="w-full grid grid-cols-[auto_1fr_auto] gap-3"
                         >

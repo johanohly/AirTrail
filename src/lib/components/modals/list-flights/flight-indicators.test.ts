@@ -173,4 +173,52 @@ describe('buildFlightIndicators', () => {
       'note',
     ]);
   });
+
+  it('lists custom field values one per line', () => {
+    const withFields = flight({
+      customFieldValues: [
+        { label: 'Booking', fieldType: 'text', value: ' ABC123 ' },
+        { label: 'Lounge', fieldType: 'boolean', value: false },
+        { label: 'Extras', fieldType: 'multi-select', value: ['Wifi', 'Meal'] },
+        { label: 'Booked on', fieldType: 'date', value: '2026-01-31' },
+        { label: 'Via', fieldType: 'airport', value: 'Heathrow' },
+        { label: 'Miles', fieldType: 'number', value: 1200 },
+      ],
+    });
+    const indicator = buildFlightIndicators(withFields, {
+      datePrefs: { dateFormat: 'iso' },
+    }).find((i) => i.key === 'customFields');
+
+    expect(indicator?.lines).toEqual([
+      'Booking: ABC123',
+      'Lounge: No',
+      'Extras: Wifi, Meal',
+      'Booked on: 2026-01-31',
+      'Via: Heathrow',
+      'Miles: 1200',
+    ]);
+  });
+
+  it('formats custom date values with the date preference', () => {
+    const withDate = flight({
+      customFieldValues: [
+        { label: 'Booked on', fieldType: 'date', value: '2026-01-31' },
+      ],
+    });
+    expect(
+      buildFlightIndicators(withDate, {
+        datePrefs: { dateFormat: 'eu' },
+      }).find((i) => i.key === 'customFields')?.lines,
+    ).toEqual(['Booked on: 31/01/2026']);
+  });
+
+  it('skips the custom fields indicator when every value is blank', () => {
+    const blank = flight({
+      customFieldValues: [
+        { label: 'Booking', fieldType: 'text', value: '   ' },
+        { label: 'Extras', fieldType: 'multi-select', value: [] },
+      ],
+    });
+    expect(keys(blank)).toEqual([]);
+  });
 });
