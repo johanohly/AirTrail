@@ -26,7 +26,12 @@
   let calendarPlaceholder = $state<DateValue | undefined>(undefined);
 
   function updateFilters(next: Partial<FlightFilters>) {
-    filters = cloneFlightFilters(filters, next);
+    filters = cloneFlightFilters(filters, {
+      ...next,
+      ...(filters.excludedValues?.years
+        ? { excludedValues: { ...filters.excludedValues, years: [] } }
+        : {}),
+    });
   }
 
   function setDateMode(mode: 'single' | 'range' | 'from' | 'to') {
