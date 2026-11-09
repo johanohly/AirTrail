@@ -37,6 +37,8 @@ export type FlightFilters = LocationFilterValues &
     toDate: CalendarDate | undefined;
     passengers: string[];
     passengersOperator: MultiOptionFilterOperator;
+    reasons: string[];
+    reasonsOperator: OptionFilterOperator;
     airline: string[];
     airlineOperator: OptionFilterOperator;
     aircraft: string[];
