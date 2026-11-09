@@ -60,16 +60,28 @@
     X,
   } from '@o7/icon';
   import { Airlines } from '@o7/icon/material';
-  import { Filter, useDataTableFilters } from 'bits-ui';
+  import { DropdownMenu as Menu, Filter, useDataTableFilters } from 'bits-ui';
+  import type { Column, ColumnOption, FilterModel } from 'bits-ui';
+  import FilterOptionIcon from './FilterOptionIcon.svelte';
+  import TriStateOptionEditor from './TriStateOptionEditor.svelte';
+  import TriStateOptionItem from './TriStateOptionItem.svelte';
   import { createRawSnippet } from 'svelte';
   import type { Component } from 'svelte';
   import type { ColumnConfig, FilterIcon, FiltersState } from 'bits-ui';
+
+  import { page } from '$app/state';
 
   import './filter.css';
   import './filter-date.css';
 
   import {
+    cloneFlightFilters,
+    clearFilterColumn,
+    optionValueState,
+    type OptionColumnId,
     bitsFiltersToFlightFilters,
+    flightReasonFilterOptions,
+    flightReasonForUser,
     bitsSignature,
     createDefaultFilters,
     flightFiltersToBits,
@@ -97,6 +109,7 @@
     | ColumnConfig<FlightData, 'option', string, 'year'>
     | ColumnConfig<FlightData, 'date', Date, 'date'>
     | ColumnConfig<FlightData, 'multiOption', string[], 'passengers'>
+    | ColumnConfig<FlightData, 'option', string, 'reasons'>
     | ColumnConfig<FlightData, 'option', string, 'airline'>
     | ColumnConfig<FlightData, 'option', string, 'aircraft'>
     | ColumnConfig<FlightData, 'option', string, 'aircraftRegs'>;
@@ -431,6 +444,15 @@
         options: columnOptions(passengerOptions),
       },
       {
+        id: 'reasons',
+        displayName: 'Flight Reason',
+        type: 'option',
+        accessor: (flight) =>
+          flightReasonForUser(flight, page.data.user?.id) ?? '',
+        icon: Plane,
+        options: flightReasonFilterOptions(flights, page.data.user?.id),
+      },
+      {
         id: 'airline',
         displayName: 'Airline',
         type: 'option',
@@ -462,7 +484,7 @@
     data: flights,
     columnsConfig,
     entityName: 'Flight',
-    defaultFilters: flightFiltersToBits(filters),
+    defaultFilters: uiFilters(filters),
   });
 
   let lastSyncedBitsSignature = $state(bitsSignature(filterState.filters));
@@ -490,15 +512,31 @@
     if (currentBitsSignature === lastSyncedBitsSignature) return;
 
     lastSyncedBitsSignature = currentBitsSignature;
-    filters = bitsFiltersToFlightFilters(filterState.filters, filters);
+    // Options write directly to the shared model; Bits UI manages the date editor.
+    const dates = bitsFiltersToFlightFilters(
+      filterState.filters.filter((filter) => filter.columnId === 'date'),
+    );
+    filters = cloneFlightFilters(filters, {
+      fromDate: dates.fromDate,
+      toDate: dates.toDate,
+      ...(dates.fromDate || dates.toDate
+        ? {
+            years: [],
+            excludedValues: { ...filters.excludedValues, years: [] },
+          }
+        : {}),
+    });
     lastSyncedFlightSignature = flightSignature(filters);
+    const nextBits = uiFilters(filters);
+    lastSyncedBitsSignature = bitsSignature(nextBits);
+    syncBitsFilters(nextBits);
   });
 
   $effect(() => {
     const currentFlightSignature = flightSignature(filters);
     if (currentFlightSignature === lastSyncedFlightSignature) return;
 
-    const nextBits = flightFiltersToBits(filters);
+    const nextBits = uiFilters(filters);
     const nextBitsSignature = bitsSignature(nextBits);
 
     lastSyncedFlightSignature = currentFlightSignature;
@@ -508,6 +546,83 @@
     syncBitsFilters(nextBits);
   });
 
+  function optionId(id: string): OptionColumnId {
+    return (id === 'year' ? 'years' : id) as OptionColumnId;
+  }
+  function uiFilters(source: FlightFilters): FiltersState {
+    const result = flightFiltersToBits(source).filter(
+      (filter) => !filter.columnId.endsWith('Excluded'),
+    );
+    for (const [id, excluded] of Object.entries(source.excludedValues ?? {})) {
+      if (!excluded.length) continue;
+      const columnId = id === 'years' ? 'year' : id;
+      const existing = result.find((filter) => filter.columnId === columnId);
+      if (existing)
+        existing.values = [
+          ...new Set([...existing.values, ...excluded]),
+        ] as string[];
+      else
+        result.push({
+          columnId,
+          type: id === 'passengers' ? 'multiOption' : 'option',
+          operator: id === 'passengers' ? 'exclude if any of' : 'is none of',
+          values: excluded,
+        });
+    }
+    return result;
+  }
+  function optionsFor(column: Column<FlightData>): ColumnOption[] {
+    if (column.type !== 'option' && column.type !== 'multiOption') return [];
+    const optionColumn = column as Column<FlightData, 'option'>;
+    const counts = optionColumn.getFacetedUniqueValues();
+    return optionColumn.getOptions().map((option) => ({
+      ...option,
+      count: counts?.get(option.value) ?? option.count,
+    }));
+  }
+  function summary(column: Column<FlightData>) {
+    const id = optionId(column.id);
+    const options = new Map(
+      optionsFor(column).map((option) => [option.value, option.label]),
+    );
+    const selected = [
+      ...new Set([
+        ...(uiFilters(filters)
+          .find((filter) => filter.columnId === column.id)
+          ?.values.map(String) ?? []),
+        ...(filters.excludedValues?.[id] ?? []),
+      ]),
+    ];
+    return (['include', 'exclude'] as const)
+      .map((state) => {
+        const labels = selected
+          .filter((value) => optionValueState(filters, id, value) === state)
+          .map((value) => options.get(value) ?? value);
+        return labels.length
+          ? (state === 'include' ? 'Include: ' : 'Exclude: ') +
+              labels.join(', ')
+          : '';
+      })
+      .filter(Boolean)
+      .join('; ');
+  }
+  const menuNodes = $derived(
+    filterState.columns
+      .filter((column) => !column.hidden)
+      .map((column) => ({
+        kind: 'submenu' as const,
+        id: column.id,
+        title: column.displayName,
+        meta: { column, option: undefined as ColumnOption | undefined },
+        nodes: optionsFor(column).map((option) => ({
+          kind: 'item' as const,
+          id: column.id + ':' + option.value,
+          label: option.label,
+          keywords: [option.value, ...(option.keywords ?? [])],
+          meta: { column, option },
+        })),
+      })),
+  );
   const providerColumns = $derived(filterState.columns);
 </script>
 
@@ -541,14 +656,85 @@
 </Filter.Provider>
 
 {#snippet filterMenu()}
-  <Filter.Menu>
-    <Funnel size={16} aria-hidden="true" />
-    {#if filterState.filters.length === 0 || layout === 'stacked'}
-      <span>Filter</span>
-    {:else}
-      <span class="sr-only">Filter</span>
-    {/if}
-  </Filter.Menu>
+  <Menu.Root>
+    <Menu.Trigger>
+      {#snippet child({ props })}
+        <Filter.Trigger
+          {...props}
+          hasVisibleFilters={filterState.filters.length > 0}
+          variant="clean"
+        >
+          <Funnel size={16} aria-hidden="true" />
+          {#if filterState.filters.length === 0 || layout === 'stacked'}<span
+              >Filter</span
+            >{:else}<span class="sr-only">Filter</span>{/if}
+        </Filter.Trigger>
+      {/snippet}
+    </Menu.Trigger>
+    <Menu.Portal
+      ><Menu.Content align="start" sideOffset={8} data-filter-menu-content>
+        <Menu.DataSurface content={menuNodes}>
+          <Menu.DataInput
+            placeholder="Search filters..."
+            data-filter-menu-input
+          />
+          <Menu.DataList data-filter-menu-list>
+            {#snippet children({ nodes: rows })}
+              {#each rows as row}
+                {#if 'node' in row && row.node.meta}
+                  {@const column = row.node.meta.column}
+                  {#if row.node.kind === 'submenu'}
+                    <Menu.Sub>
+                      <Menu.SubTrigger id={row.node.id} openDelay={0}
+                        ><span
+                          ><FilterOptionIcon
+                            icon={column.icon}
+                          />{column.displayName}</span
+                        ><span data-filter-menu-caret aria-hidden="true"
+                          >&#8250;</span
+                        ></Menu.SubTrigger
+                      >
+                      <Menu.Portal
+                        ><Menu.SubContent
+                          sideOffset={8}
+                          align={column.type === 'date' ? 'start' : 'list'}
+                        >
+                          {#if column.type === 'date'}<Filter.DateEditor
+                              column={column as Column<FlightData, 'date'>}
+                              filter={filterState.filters.find(
+                                (filter) => filter.columnId === 'date',
+                              ) as FilterModel<'date'> | undefined}
+                              actions={filterState.actions}
+                            />
+                          {:else}<TriStateOptionEditor
+                              options={optionsFor(column)}
+                              columnId={optionId(column.id)}
+                              label={column.displayName}
+                              bind:filters
+                            />{/if}
+                        </Menu.SubContent></Menu.Portal
+                      >
+                    </Menu.Sub>
+                  {:else if row.node.meta.option}
+                    <TriStateOptionItem
+                      id={row.node.id}
+                      option={row.node.meta.option}
+                      columnId={optionId(column.id)}
+                      breadcrumb={column.displayName}
+                      bind:filters
+                    />
+                  {/if}
+                {/if}
+              {/each}
+            {/snippet}
+          </Menu.DataList>
+          <Menu.DataEmpty data-filter-menu-empty
+            >No matching filters.</Menu.DataEmpty
+          >
+        </Menu.DataSurface>
+      </Menu.Content></Menu.Portal
+    >
+  </Menu.Root>
 {/snippet}
 
 {#snippet filterList()}
@@ -556,11 +742,43 @@
     {#snippet children({ filter, column })}
       <Filter.Item {filter} {column}>
         <Filter.Subject />
-        <Filter.Operator />
-        <Filter.Value />
-        <Filter.Remove aria-label={`Remove ${column.displayName} filter`}>
+        {#if column.type === 'date'}
+          <Filter.Operator /><Filter.Value />
+        {:else}
+          <Menu.Root>
+            <Menu.Trigger
+              data-filter-value
+              data-variant="clean"
+              title={summary(column)}
+              ><span>{summary(column)}</span></Menu.Trigger
+            >
+            <Menu.Portal
+              ><Menu.Content align="start" sideOffset={8}
+                ><TriStateOptionEditor
+                  options={optionsFor(column)}
+                  columnId={optionId(column.id)}
+                  label={column.displayName}
+                  bind:filters
+                /></Menu.Content
+              ></Menu.Portal
+            >
+          </Menu.Root>
+        {/if}
+        <button
+          type="button"
+          data-filter-remove
+          data-variant="clean"
+          aria-label={`Remove ${column.displayName} filter`}
+          onclick={() =>
+            (filters = clearFilterColumn(
+              filters,
+              column.id === 'year'
+                ? 'years'
+                : (column.id as OptionColumnId | 'date'),
+            ))}
+        >
           <X size={16} aria-hidden="true" />
-        </Filter.Remove>
+        </button>
       </Filter.Item>
     {/snippet}
   </Filter.List>

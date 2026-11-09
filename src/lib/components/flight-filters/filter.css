@@ -657,6 +657,22 @@
     filter: blur(0);
   }
 
+  [data-filter-menu-checkbox-indicator][data-selection] {
+    opacity: 1;
+  }
+
+  [data-filter-menu-checkbox-indicator][data-selection='include'] {
+    border-color: var(--color-green-600);
+    background: var(--color-green-600);
+    color: white;
+  }
+
+  [data-filter-menu-checkbox-indicator][data-selection='exclude'] {
+    border-color: var(--color-red-600);
+    background: var(--color-red-600);
+    color: white;
+  }
+
   [data-dropdown-menu-item] > span,
   [data-dropdown-menu-checkbox-item] > span,
   [data-dropdown-menu-radio-item] > span,

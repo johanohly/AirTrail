@@ -19,28 +19,21 @@
   import { page } from '$app/state';
   import UserAvatar from '$lib/components/display/UserAvatar.svelte';
   import {
+    cycleOptionValue,
+    optionValueState,
     clearFilterColumn,
+    flightReasonFilterOptions,
     createDefaultFilters,
     dateFilterSummary,
     isFilterColumnActive,
     matchesLocationFilters,
-    optionColumnOperator,
     optionColumnValues,
-    pluralMultiOptionOperators,
-    pluralOptionOperators,
-    setOptionColumnOperator,
-    setOptionColumnValues,
-    singularMultiOptionOperators,
-    singularOptionOperators,
     type FilterColumnId,
-    type NonPassengerOptionColumnId,
     type OptionColumnId,
   } from '$lib/components/flight-filters/model';
   import {
     hasTempFilters as hasActiveTempFilters,
     type FlightFilters,
-    type MultiOptionFilterOperator,
-    type OptionFilterOperator,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
   import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
@@ -138,6 +131,7 @@
       icon: UsersRound,
       type: 'multiOption',
     },
+    { id: 'reasons', label: 'Flight Reason', icon: Plane, type: 'option' },
     { id: 'airline', label: 'Airline', icon: Airlines, type: 'option' },
     { id: 'aircraft', label: 'Aircraft', icon: Plane, type: 'option' },
     { id: 'aircraftRegs', label: 'Tail Number', icon: Hash, type: 'option' },
@@ -221,114 +215,97 @@
     );
   }
 
-  const optionsByColumn = $derived.by(() => {
-    const passengers = new Map<string, FilterOption>();
+  const optionsByColumn = $derived.by<Record<OptionColumnId, FilterOption[]>>(
+    () => {
+      const passengers = new Map<string, FilterOption>();
 
-    for (const flight of scopedFlights) {
-      for (const passenger of flight.passengers) {
-        const value = getFlightPassengerToken(passenger);
-        const label = getFlightPassengerLabel(passenger);
-        if (!value || !label) continue;
-        const existing = passengers.get(value);
-        if (existing) {
-          existing.count = (existing.count ?? 0) + 1;
-        } else {
-          passengers.set(value, {
-            value,
-            label,
-            count: 1,
-            kind: 'passenger',
-            username:
-              passenger.user?.username ??
-              `guest:${passenger.guestName ?? label}`,
-          });
+      for (const flight of scopedFlights) {
+        for (const passenger of flight.passengers) {
+          const value = getFlightPassengerToken(passenger);
+          const label = getFlightPassengerLabel(passenger);
+          if (!value || !label) continue;
+          const existing = passengers.get(value);
+          if (existing) {
+            existing.count = (existing.count ?? 0) + 1;
+          } else {
+            passengers.set(value, {
+              value,
+              label,
+              count: 1,
+              kind: 'passenger',
+              username:
+                passenger.user?.username ??
+                `guest:${passenger.guestName ?? label}`,
+            });
+          }
         }
       }
-    }
 
-    return {
-      departureAirports: uniqueAirportOptions((flight) => flight.from),
-      arrivalAirports: uniqueAirportOptions((flight) => flight.to),
-      passengers: sortOptions(Array.from(passengers.values())),
-      airline: countedOptions(
-        scopedFlights.map((flight) =>
-          flight.airline
-            ? {
-                value: flight.airline.name,
-                label: flight.airline.name,
-                keywords: [flight.airline.iata, flight.airline.icao].filter(
-                  (code): code is string => !!code,
-                ),
-                kind: 'airline',
-                iconPath: flight.airline.iconPath,
-              }
-            : null,
+      return {
+        years: [
+          ...new Set(
+            scopedFlights.flatMap((flight) =>
+              flight.date ? [flight.date.getFullYear().toString()] : [],
+            ),
+          ),
+        ]
+          .sort()
+          .reverse()
+          .map((value) => ({ value, label: value })),
+        departureAirports: uniqueAirportOptions((flight) => flight.from),
+        arrivalAirports: uniqueAirportOptions((flight) => flight.to),
+        passengers: sortOptions(Array.from(passengers.values())),
+        reasons: flightReasonFilterOptions(flights, page.data.user?.id),
+        airline: countedOptions(
+          scopedFlights.map((flight) =>
+            flight.airline
+              ? {
+                  value: flight.airline.name,
+                  label: flight.airline.name,
+                  keywords: [flight.airline.iata, flight.airline.icao].filter(
+                    (code): code is string => !!code,
+                  ),
+                  kind: 'airline',
+                  iconPath: flight.airline.iconPath,
+                }
+              : null,
+          ),
         ),
-      ),
-      aircraft: countedOptions(
-        scopedFlights.map((flight) =>
-          flight.aircraft
-            ? {
-                value: flight.aircraft.name,
-                label: flight.aircraft.name,
-                keywords: [flight.aircraft.icao].filter(
-                  (code): code is string => !!code,
-                ),
-              }
-            : null,
+        aircraft: countedOptions(
+          scopedFlights.map((flight) =>
+            flight.aircraft
+              ? {
+                  value: flight.aircraft.name,
+                  label: flight.aircraft.name,
+                  keywords: [flight.aircraft.icao].filter(
+                    (code): code is string => !!code,
+                  ),
+                }
+              : null,
+          ),
         ),
-      ),
-      aircraftRegs: countedOptions(
-        scopedFlights.map((flight) =>
-          flight.aircraftReg
-            ? { value: flight.aircraftReg, label: flight.aircraftReg }
-            : null,
+        aircraftRegs: countedOptions(
+          scopedFlights.map((flight) =>
+            flight.aircraftReg
+              ? { value: flight.aircraftReg, label: flight.aircraftReg }
+              : null,
+          ),
         ),
-      ),
-    } satisfies Record<OptionColumnId, FilterOption[]>;
-  });
+      } satisfies Record<OptionColumnId, FilterOption[]>;
+    },
+  );
 
   function valuesFor(columnId: OptionColumnId) {
-    return optionColumnValues(filters, columnId);
-  }
-
-  function operatorFor(columnId: OptionColumnId) {
-    if (columnId === 'passengers') {
-      return optionColumnOperator(filters, columnId);
-    }
-    return optionColumnOperator(filters, columnId);
-  }
-
-  function setOperator(
-    columnId: OptionColumnId,
-    operator: OptionFilterOperator | MultiOptionFilterOperator,
-  ) {
-    if (columnId === 'passengers') {
-      filters = setOptionColumnOperator(
-        filters,
-        columnId,
-        operator as MultiOptionFilterOperator,
-      );
-      return;
-    }
-
-    filters = setOptionColumnOperator(
-      filters,
-      columnId as NonPassengerOptionColumnId,
-      operator as OptionFilterOperator,
-    );
-  }
-
-  function setValues(columnId: OptionColumnId, values: string[]) {
-    filters = setOptionColumnValues(filters, columnId, values);
+    return [
+      ...new Set([
+        ...optionColumnValues(filters, columnId),
+        ...(filters.excludedValues?.[columnId] ?? []),
+      ]),
+    ];
   }
 
   function toggleValue(columnId: OptionColumnId, value: string) {
-    const currentValues = valuesFor(columnId);
-    const nextValues = currentValues.includes(value)
-      ? currentValues.filter((item) => item !== value)
-      : [...currentValues, value];
-    setValues(columnId, nextValues);
+    filters = cycleOptionValue(filters, columnId, value);
   }
 
   function clearColumn(columnId: FilterColumnId) {
@@ -361,18 +338,6 @@
     return dateFilterSummary(filters, prefs);
   }
 
-  function selectedOptions(columnId: OptionColumnId) {
-    const optionMap = new Map(
-      optionsByColumn[columnId].map((option) => [option.value, option]),
-    );
-    return valuesFor(columnId).map(
-      (value) =>
-        optionMap.get(value)?.shortLabel ??
-        optionMap.get(value)?.label ??
-        value,
-    );
-  }
-
   function selectedOptionObjects(columnId: OptionColumnId) {
     const optionMap = new Map(
       optionsByColumn[columnId].map((option) => [option.value, option]),
@@ -384,10 +349,28 @@
 
   function valueSummary(columnId: FilterColumnId) {
     if (columnId === 'date') return dateSummary();
-    const labels = selectedOptions(columnId);
-    if (!labels.length) return 'Choose values';
-    if (labels.length <= 2) return labels.join(', ');
-    return `${labels.slice(0, 2).join(', ')} +${labels.length - 2}`;
+    const optionMap = new Map(
+      optionsByColumn[columnId].map((option) => [
+        option.value,
+        option.shortLabel ?? option.label,
+      ]),
+    );
+    return (
+      (['include', 'exclude'] as const)
+        .map((state) => {
+          const labels = valuesFor(columnId)
+            .filter(
+              (value) => optionValueState(filters, columnId, value) === state,
+            )
+            .map((value) => optionMap.get(value) ?? value);
+          return labels.length
+            ? (state === 'include' ? 'Include: ' : 'Exclude: ') +
+                labels.join(', ')
+            : '';
+        })
+        .filter(Boolean)
+        .join(' \u00b7 ') || 'Choose values'
+    );
   }
 
   function filteredOptions(columnId: OptionColumnId) {
@@ -406,17 +389,6 @@
 
   function optionCount(columnId: OptionColumnId) {
     return valuesFor(columnId).length;
-  }
-
-  function operatorsFor(columnId: OptionColumnId) {
-    const hasMultipleValues = valuesFor(columnId).length > 1;
-    if (columnId === 'passengers') {
-      return hasMultipleValues
-        ? pluralMultiOptionOperators
-        : singularMultiOptionOperators;
-    }
-
-    return hasMultipleValues ? pluralOptionOperators : singularOptionOperators;
   }
 
   function hasOptionIcon(option: FilterOption) {
@@ -556,11 +528,32 @@
                           {column.label}
                         </span>
                         {#if column.id !== 'date'}
-                          <span
-                            class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
-                          >
-                            {operatorFor(column.id)}
-                          </span>
+                          {@const included = valuesFor(column.id).filter(
+                            (value) =>
+                              optionValueState(
+                                filters,
+                                column.id as OptionColumnId,
+                                value,
+                              ) === 'include',
+                          ).length}
+                          {@const excluded = valuesFor(column.id).filter(
+                            (value) =>
+                              optionValueState(
+                                filters,
+                                column.id as OptionColumnId,
+                                value,
+                              ) === 'exclude',
+                          ).length}
+                          {#if included}<span
+                              class="inline-flex items-center gap-1 rounded bg-green-600 px-1.5 text-xs text-white"
+                              aria-label={included + ' included'}
+                              ><Check size={12} aria-hidden /> {included}</span
+                            >{/if}
+                          {#if excluded}<span
+                              class="inline-flex items-center gap-1 rounded bg-red-600 px-1.5 text-xs text-white"
+                              aria-label={excluded + ' excluded'}
+                              ><X size={12} aria-hidden /> {excluded}</span
+                            >{/if}
                         {/if}
                       </span>
                       <span
@@ -652,22 +645,10 @@
         {#if column}
           <div class="flex max-h-[72dvh] flex-col">
             <div class="space-y-3 border-b p-3">
-              <div class="flex gap-2 overflow-x-auto pb-0.5">
-                {#each operatorsFor(columnId) as operator (operator.value)}
-                  <button
-                    type="button"
-                    class={cn(
-                      'h-8 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors',
-                      operatorFor(columnId) === operator.value
-                        ? 'border-foreground bg-foreground text-background'
-                        : 'bg-background text-muted-foreground active:bg-muted',
-                    )}
-                    onclick={() => setOperator(columnId, operator.value)}
-                  >
-                    {operator.label}
-                  </button>
-                {/each}
-              </div>
+              <p class="text-xs text-muted-foreground">
+                Click to include, click again to exclude, click once more to
+                clear.
+              </p>
               <label
                 class="flex h-10 items-center gap-2 rounded-md border bg-background px-3 text-sm"
               >
@@ -681,21 +662,30 @@
             </div>
             <div class="min-h-0 flex-1 overflow-y-auto p-2">
               {#each filteredOptions(columnId) as option (option.value)}
-                {@const selected = valuesFor(columnId).includes(option.value)}
+                {@const state = optionValueState(
+                  filters,
+                  columnId,
+                  option.value,
+                )}
                 <button
                   type="button"
                   class="flex min-h-12 w-full items-center gap-3 rounded-lg px-3 text-left active:bg-muted"
+                  aria-label={`${option.label}: ${state}. Click to ${state === 'unselected' ? 'include' : state === 'include' ? 'exclude' : 'clear'}.`}
                   onclick={() => toggleValue(columnId, option.value)}
                 >
                   <span
                     class={cn(
                       'flex size-5 shrink-0 items-center justify-center rounded border',
-                      selected &&
-                        'border-foreground bg-foreground text-background',
+                      state === 'include' &&
+                        'border-green-600 bg-green-600 text-white',
+                      state === 'exclude' &&
+                        'border-red-600 bg-red-600 text-white',
                     )}
                   >
-                    {#if selected}
-                      <Check size={14} />
+                    {#if state === 'include'}
+                      <Check size={14} aria-hidden />
+                    {:else if state === 'exclude'}
+                      <X size={14} aria-hidden />
                     {/if}
                   </span>
                   {#if hasOptionIcon(option)}

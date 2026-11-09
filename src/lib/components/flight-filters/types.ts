@@ -31,12 +31,27 @@ export type LocationFilterOperators = {
 
 export type FlightFilters = LocationFilterValues &
   LocationFilterOperators & {
+    excludedValues?: Partial<
+      Record<
+        | 'departureAirports'
+        | 'arrivalAirports'
+        | 'years'
+        | 'passengers'
+        | 'reasons'
+        | 'airline'
+        | 'aircraft'
+        | 'aircraftRegs',
+        string[]
+      >
+    >;
     years: string[];
     yearsOperator: OptionFilterOperator;
     fromDate: CalendarDate | undefined;
     toDate: CalendarDate | undefined;
     passengers: string[];
     passengersOperator: MultiOptionFilterOperator;
+    reasons: string[];
+    reasonsOperator: OptionFilterOperator;
     airline: string[];
     airlineOperator: OptionFilterOperator;
     aircraft: string[];
@@ -48,7 +63,8 @@ export type FlightFilters = LocationFilterValues &
 export type TempFilters = LocationFilterValues;
 
 export type LocationFilters = LocationFilterValues &
-  Partial<LocationFilterOperators>;
+  Partial<LocationFilterOperators> &
+  Pick<FlightFilters, 'excludedValues'>;
 
 export const createDefaultTempFilters = (): TempFilters => ({
   departureAirports: [],
