@@ -25,3 +25,16 @@ export const LHR: AirportInput = {
   tz: 'Europe/London',
   type: 'large_airport',
 };
+
+export const CDG: AirportInput = {
+  icao: 'LFPG',
+  iata: 'CDG',
+  name: 'Charles de Gaulle International Airport',
+  municipality: 'Paris',
+  lat: 49.0128,
+  lon: 2.55,
+  country: 'FR',
+  continent: 'EU',
+  tz: 'Europe/Paris',
+  type: 'large_airport',
+};
