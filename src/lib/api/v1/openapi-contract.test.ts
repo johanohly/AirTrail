@@ -24,7 +24,6 @@ import {
 } from '$lib/zod/user';
 import {
   FlightDatePrecisions,
-  FlightReasons,
   SeatClasses,
   SeatTypes,
   VisitedCountryStatus,
@@ -112,15 +111,8 @@ describe('enum vocabularies', () => {
     ],
     ['Passenger.seat', 'Passenger', 'seat', SeatTypes],
     ['Passenger.seatClass', 'Passenger', 'seatClass', SeatClasses],
-    ['Passenger.flightReason', 'Passenger', 'flightReason', FlightReasons],
     ['PassengerInput.seat', 'PassengerInput', 'seat', SeatTypes],
     ['PassengerInput.seatClass', 'PassengerInput', 'seatClass', SeatClasses],
-    [
-      'PassengerInput.flightReason',
-      'PassengerInput',
-      'flightReason',
-      FlightReasons,
-    ],
     ['VisitedCountry.status', 'VisitedCountry', 'status', VisitedCountryStatus],
     [
       'VisitedCountryInput.status',
@@ -212,6 +204,19 @@ describe('enum vocabularies', () => {
 });
 
 describe('input schemas', () => {
+  it('documents custom reasons as strings instead of a fixed enum', () => {
+    for (const name of ['Passenger', 'PassengerInput']) {
+      expect(schema(name).properties.flightReason.type).toEqual([
+        'string',
+        'null',
+      ]);
+      expect(schema(name).properties.flightReason.enum).toBeUndefined();
+    }
+    expect(
+      passengerInputSchema.parse({ userId: 'me', flightReason: 'Study abroad' })
+        .flightReason,
+    ).toBe('Study abroad');
+  });
   const inputSchemas: [string, unknown][] = [
     ['FlightInput', flightInputSchema],
     ['PassengerInput', passengerInputSchema],

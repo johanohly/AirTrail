@@ -262,6 +262,27 @@ describe('processAirTrailFile', () => {
     expect(result.flights[0]?.passengers[0]?.flightReason).toBe('business');
   });
 
+  it('preserves a custom reason from a backup even when it is absent from settings', async () => {
+    const content = JSON.stringify({
+      users: exportedUsers,
+      flights: [
+        {
+          ...flightBase,
+          passengers: flightBase.passengers.map((passenger) => ({
+            ...passenger,
+            flightReason: 'Study abroad',
+          })),
+          from: airportObject('EKCH'),
+          to: airportObject('EIDW'),
+          airline: null,
+          aircraft: null,
+        },
+      ],
+    });
+    const result = await processAirTrailFile(content, baseOptions);
+    expect(result.flights[0]?.passengers[0]?.flightReason).toBe('Study abroad');
+  });
+
   it('falls back to names when nested airline or aircraft objects have no ICAO code', async () => {
     const content = JSON.stringify({
       users: exportedUsers,
