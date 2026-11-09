@@ -33,10 +33,12 @@
   import { isMediumScreen } from '$lib/utils/size';
   import { checkForNewVersions } from '$lib/utils/version';
   import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
+  import FlightReasonsSettings from './pages/FlightReasonsSettings.svelte';
 
   const ACCOUNT_SETTINGS = [
     { title: 'General', id: 'general', permission: null },
     { title: 'Preferences', id: 'preferences', permission: null },
+    { title: 'Custom Fields', id: 'custom-fields', permission: null },
     { title: 'Security', id: 'security', permission: null },
     { title: 'Appearance', id: 'appearance', permission: null },
     { title: 'Share', id: 'share', permission: null },
@@ -52,11 +54,6 @@
         'data.aircraft.manage',
         'data.airlines.manage',
       ],
-    },
-    {
-      title: 'Custom Fields',
-      id: 'custom-fields',
-      permissions: ['custom_fields.manage'],
     },
     {
       title: 'Integrations',
@@ -255,7 +252,10 @@
           {:else if activeTab === 'data'}
             <DataPage />
           {:else if activeTab === 'custom-fields'}
-            <CustomFieldsPage />
+            <FlightReasonsSettings />
+            {#if hasClientPermission(page.data.authorization, 'custom_fields.manage')}
+              <CustomFieldsPage />
+            {/if}
           {:else if activeTab === 'integrations'}
             <IntegrationsPage />
           {:else if activeTab === 'users'}
