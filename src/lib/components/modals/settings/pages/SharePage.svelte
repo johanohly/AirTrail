@@ -13,6 +13,7 @@
   import { Card } from '$lib/components/ui/card';
   import { Input } from '$lib/components/ui/input';
   import { TextTooltip } from '$lib/components/ui/tooltip/index.js';
+  import type { PublicShare, ShareFlightSelection } from '$lib/db/types';
   import { api, trpc } from '$lib/trpc';
   import { formatDate, getPreferences } from '$lib/utils/preferences';
 
@@ -23,6 +24,18 @@
   );
 
   const sharesQuery = trpc.share.list.query();
+
+  const SELECTION_BADGES = {
+    all: null,
+    past: 'Past Only',
+    upcoming: 'Upcoming Only',
+    custom: 'Date Filtered',
+  } satisfies Record<ShareFlightSelection, string | null>;
+
+  const selectionBadge = (share: PublicShare) =>
+    share.flightSelection === 'custom' && !share.dateFrom && !share.dateTo
+      ? null
+      : SELECTION_BADGES[share.flightSelection];
 
   const deleteShare = async (id: number) => {
     try {
@@ -139,11 +152,11 @@
                       Flight List
                     </span>
                   {/if}
-                  {#if share.dateFrom || share.dateTo}
+                  {#if selectionBadge(share)}
                     <span
                       class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground"
                     >
-                      Date Filtered
+                      {selectionBadge(share)}
                     </span>
                   {/if}
                 </div>

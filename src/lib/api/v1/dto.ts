@@ -117,6 +117,7 @@ export const toShareDto = (share: Selectable<public_share>) => ({
   showMap: share.showMap,
   showStats: share.showStats,
   showFlightList: share.showFlightList,
+  flightSelection: share.flightSelection,
   dateFrom: share.dateFrom,
   dateTo: share.dateTo,
   showFlightNumbers: share.showFlightNumbers,

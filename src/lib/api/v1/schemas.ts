@@ -4,6 +4,7 @@ import {
   FlightReasons,
   SeatClasses,
   SeatTypes,
+  ShareFlightSelections,
   VisitedCountryStatus,
 } from '$lib/db/types';
 import { flightTrackInputSchema } from '$lib/track/schema';
@@ -90,6 +91,7 @@ export const shareInputSchema = z.object({
   showMap: z.boolean().default(true),
   showStats: z.boolean().default(false),
   showFlightList: z.boolean().default(false),
+  flightSelection: z.enum(ShareFlightSelections).optional(),
   dateFrom: z.string().nullable().optional().default(null),
   dateTo: z.string().nullable().optional().default(null),
   showFlightNumbers: z.boolean().default(true),
