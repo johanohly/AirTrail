@@ -3,6 +3,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { sql } from 'kysely';
 
 import type { DB } from '$lib/db/schema';
+import type { Flight, FlightCustomFieldValue } from '$lib/db/types';
 import {
   isCustomFieldValueEmpty,
   type EntityType,
@@ -338,4 +339,78 @@ export const persistEntityCustomFieldPlan = async (
       await persistEntry(db, plan.entityType, entityId, fieldId, value);
     }
   }
+};
+
+const ENTITY_TABLES = ['airport', 'airline', 'aircraft'] as const;
+type EntityTable = (typeof ENTITY_TABLES)[number];
+
+const isEntityTable = (fieldType: string): fieldType is EntityTable =>
+  (ENTITY_TABLES as readonly string[]).includes(fieldType);
+
+const loadEntityNames = async (
+  db: Kysely<DB>,
+  rows: Array<{ fieldType: string; value: unknown }>,
+) => {
+  const names = await Promise.all(
+    ENTITY_TABLES.map(async (table) => {
+      const ids = new Set<number>();
+      for (const row of rows) {
+        if (row.fieldType === table && typeof row.value === 'number') {
+          ids.add(row.value);
+        }
+      }
+      if (!ids.size) return [table, new Map<number, string>()] as const;
+
+      const found = await db
+        .selectFrom(table)
+        .select(['id', 'name'])
+        .where('id', 'in', [...ids])
+        .execute();
+      return [table, new Map(found.map((row) => [row.id, row.name]))] as const;
+    }),
+  );
+  return Object.fromEntries(names) as Record<EntityTable, Map<number, string>>;
+};
+
+/*
+ * Only `flight.list` attaches custom field values, for the flight list. Shares,
+ * the API and backups go through the base flight query and never see them.
+ * The flight ids go in as one array parameter, because a parameter per flight
+ * would hit Postgres's 65535 limit on large instances.
+ */
+export const attachFlightCustomFieldValues = async (
+  db: Kysely<DB>,
+  flights: Flight[],
+): Promise<Flight[]> => {
+  if (!flights.length) return flights;
+
+  const flightIds = flights.map((flight) => String(flight.id));
+  const rows = await db
+    .selectFrom('customFieldValue as v')
+    .innerJoin('customFieldDefinition as d', 'd.id', 'v.fieldId')
+    .select(['v.entityId', 'v.value', 'd.label', 'd.fieldType'])
+    .where('v.entityType', '=', 'flight')
+    .where('d.active', '=', true)
+    .where('v.entityId', '=', sql<string>`any(${flightIds}::text[])`)
+    .orderBy('d.order')
+    .orderBy('d.label')
+    .execute();
+
+  const names = await loadEntityNames(db, rows);
+  const valuesByFlight = new Map<string, FlightCustomFieldValue[]>();
+  for (const row of rows) {
+    const value = isEntityTable(row.fieldType)
+      ? names[row.fieldType].get(row.value as number)
+      : row.value;
+    if (isCustomFieldValueEmpty(value)) continue;
+
+    const values = valuesByFlight.get(row.entityId) ?? [];
+    values.push({ label: row.label, fieldType: row.fieldType, value });
+    valuesByFlight.set(row.entityId, values);
+  }
+
+  return flights.map((flight) => ({
+    ...flight,
+    customFieldValues: valuesByFlight.get(String(flight.id)) ?? [],
+  }));
 };

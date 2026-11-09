@@ -52,6 +52,7 @@
     distanceUnitLabel,
     getPreferences,
   } from '$lib/utils/preferences';
+  import { urlForView } from '$lib/view-paths';
 
   let {
     open = $bindable<boolean>(),
@@ -495,6 +496,7 @@
   dialogOnly
   dialogNoPadding
   closeButton={!drillDownOpen}
+  historyUrl={() => urlForView('statistics')}
   onHistoryStateChange={restoreDrilldown}
 >
   <!-- Scrolls in here, so a drill-down sheet stays on screen however far down

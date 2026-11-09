@@ -1,4 +1,4 @@
-import type { FlightData } from '$lib/utils';
+import { distanceBetween, type FlightData } from '$lib/utils';
 import {
   isCompletedFlight,
   resolveFlightTimeline,
@@ -8,6 +8,12 @@ import {
 export const MAX_LAYOVER_HOURS = 12;
 
 const MAX_LAYOVER_MS = MAX_LAYOVER_HOURS * 60 * 60 * 1000;
+
+/**
+ * How far apart the arrival and departure airports may be for a stop to still
+ * count as a layover, so that self-transfers such as Gatwick to Heathrow group.
+ */
+export const MAX_TRANSFER_KM = 100;
 
 /** Bucket for flights that only have a placeholder date. */
 const UNDATED_YEAR = 0;
@@ -58,12 +64,20 @@ export const sortByDepartureDesc = <T extends FlightData>(flights: T[]): T[] =>
     .map(({ flight }) => flight);
 
 /**
- * True when `later` leaves from where `earlier` landed, soon enough to be a
- * layover. Both times must be known: a same-day pair without times is just as
- * likely to be two unrelated flights.
+ * True when `later` leaves from where `earlier` landed, or from an airport
+ * close enough to transfer to by road or rail, soon enough to be a layover.
+ * Both times must be known: a same-day pair without times is just as likely to
+ * be two unrelated flights.
  */
 const isLayover = (earlier: FlightData, later: FlightData) => {
-  if (!earlier.to || !later.from || earlier.to.id !== later.from.id) {
+  const { to } = earlier;
+  const { from } = later;
+  if (!to || !from) return false;
+  if (
+    to.id !== from.id &&
+    distanceBetween([to.lon, to.lat], [from.lon, from.lat]) / 1000 >
+      MAX_TRANSFER_KM
+  ) {
     return false;
   }
 
