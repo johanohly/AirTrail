@@ -36,6 +36,45 @@ export const detectTrackEventTimes = (track: FlightTrackInput) => {
   };
 };
 
+/*
+ * The track is compared against the first complete date and time on each side,
+ * from the gate schedule down to the runway times, so a flight entered with
+ * only simple times is still checked.
+ */
+const COMPARISON_FIELDS = {
+  departure: [
+    'departureScheduled',
+    'departure',
+    'takeoffScheduled',
+    'takeoffActual',
+  ],
+  arrival: ['arrivalScheduled', 'arrival', 'landingScheduled', 'landingActual'],
+} as const;
+
+const findComparisonTime = (
+  form: FlightFormData,
+  side: keyof typeof COMPARISON_FIELDS,
+  timezone: string,
+) => {
+  for (const field of COMPARISON_FIELDS[side]) {
+    const date = form[field];
+    const time = form[`${field}Time`];
+    if (!date || !time) continue;
+    try {
+      return {
+        at: mergeTimeWithDate(date, time, timezone).getTime(),
+        reference: field.endsWith('Scheduled')
+          ? 'the original schedule'
+          : 'the entered time',
+      };
+    } catch {
+      // Invalid time input is reported by the flight form itself.
+      return null;
+    }
+  }
+  return null;
+};
+
 export const prepareTrackEventTimes = (
   track: FlightTrackInput,
   form: FlightFormData,
@@ -47,24 +86,23 @@ export const prepareTrackEventTimes = (
     const label = departure ? 'Departure' : 'Arrival';
     const event = departure ? events.takeoff : events.landing;
     const time = event ?? (departure ? track.times?.[0] : track.times?.at(-1));
-    const date = departure ? form.departureScheduled : form.arrivalScheduled;
-    const scheduledTime = departure
-      ? form.departureScheduledTime
-      : form.arrivalScheduledTime;
     const airport = departure ? form.from : form.to;
     if (!airport?.tz) continue;
     const timezone = airport.tz;
-    if (time !== undefined && time !== null && date && scheduledTime) {
-      try {
-        const scheduled = mergeTimeWithDate(date, scheduledTime, timezone);
-        if (Math.abs(time * 1000 - scheduled.getTime()) > 24 * 60 * 60 * 1000) {
-          warnings.push(
-            `${label} track time differs from the original schedule by more than 24 hours. Check that this track belongs to this flight.`,
-          );
-        }
-      } catch {
-        // Incomplete or invalid schedule input cannot be compared yet.
-      }
+    const comparison = findComparisonTime(
+      form,
+      departure ? 'departure' : 'arrival',
+      timezone,
+    );
+    if (
+      time !== undefined &&
+      time !== null &&
+      comparison &&
+      Math.abs(time * 1000 - comparison.at) > 24 * 60 * 60 * 1000
+    ) {
+      warnings.push(
+        `${label} track time differs from ${comparison.reference} by more than 24 hours. Check that this track belongs to this flight.`,
+      );
     }
     const dateField = departure ? 'takeoffActual' : 'landingActual';
     const timeField = departure ? 'takeoffActualTime' : 'landingActualTime';

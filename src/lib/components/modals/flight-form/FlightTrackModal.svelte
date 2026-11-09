@@ -10,6 +10,7 @@
     clearTrackEventTimes,
     prepareTrackEventTimes,
   } from '$lib/track/event-times';
+  import { findTrackMismatches, type TrackMetadata } from '$lib/track/metadata';
   import { parseTrackFile, type ParsedTrackCandidate } from '$lib/track/parser';
   import type { FlightTrackInput } from '$lib/track/schema';
   import { formatDateTime, getPreferences } from '$lib/utils/preferences';
@@ -33,6 +34,8 @@
   let formSnapshot = $state.raw<ReturnType<typeof form.capture> | null>(null);
   let filledTimes = $state<Partial<FlightFormData>>({});
   let filledTimesSnapshot = $state<Partial<FlightFormData>>({});
+  let metadata = $state.raw<TrackMetadata | null>(null);
+  let metadataSnapshot = $state.raw<TrackMetadata | null>(null);
 
   const prefs = $derived(getPreferences(page.data.user));
   const filledTimesNote = $derived.by(() => {
@@ -57,6 +60,10 @@
   const hasTrack = $derived(!!track);
   const timingWarnings = $derived(
     track ? prepareTrackEventTimes(track, $formData).warnings : [],
+  );
+  const mismatches = $derived(findTrackMismatches(metadata, $formData));
+  const hasWarnings = $derived(
+    timingWarnings.length > 0 || mismatches.length > 0,
   );
   const trackSummary = $derived.by(() => {
     if (!track) return null;
@@ -83,6 +90,7 @@
       track: nextTrack,
     }));
     filledTimes = {};
+    metadata = null;
   };
 
   const automaticCandidate = (candidates: ParsedTrackCandidate[]) => {
@@ -114,6 +122,15 @@
     originalPointCount = count;
     trackCandidates = [];
     setTrack(trackInput);
+    metadata = candidate.metadata ?? null;
+    // A track from another route shouldn't fill this flight's times. A flight
+    // number mismatch alone can be a codeshare, so it only warns.
+    if (
+      findTrackMismatches(metadata, $formData).some(
+        (mismatch) => mismatch.field !== 'flightNumber',
+      )
+    )
+      return;
     const { values } = prepareTrackEventTimes(trackInput, $formData);
     formData.update((current) => ({ ...current, ...values }));
     filledTimes = values;
@@ -149,16 +166,32 @@
 <Button
   size={$isSmallScreen ? 'sm' : 'icon-sm'}
   variant="outline"
-  class={hasTrack ? 'border-primary text-primary' : ''}
+  class={hasWarnings
+    ? 'relative overflow-visible border-amber-500 text-amber-600 dark:text-amber-400'
+    : hasTrack
+      ? 'border-primary text-primary'
+      : ''}
+  aria-label={hasWarnings
+    ? 'Flight track, may not match this flight'
+    : 'Flight track'}
   onclick={() => {
     formSnapshot = form.capture();
     filledTimesSnapshot = { ...filledTimes };
+    metadataSnapshot = metadata;
     open = true;
   }}
 >
   <Route size={16} />
   {#if $isSmallScreen}
     Flight Track
+  {/if}
+  {#if hasWarnings}
+    <span
+      class="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white"
+      aria-hidden="true"
+    >
+      !
+    </span>
   {/if}
 </Button>
 
@@ -171,6 +204,7 @@
   onDiscard={() => {
     if (formSnapshot) form.restore(formSnapshot);
     filledTimes = { ...filledTimesSnapshot };
+    metadata = metadataSnapshot;
     error = null;
     originalPointCount = null;
     trackCandidates = [];
@@ -244,6 +278,19 @@
             {warning}
           </p>
         {/each}
+        {#if mismatches.length}
+          <div role="alert" class="text-sm text-amber-600 dark:text-amber-400">
+            <p>This track may belong to a different flight.</p>
+            <ul class="mt-1 space-y-0.5 text-xs">
+              {#each mismatches as mismatch (mismatch.field)}
+                <li class="break-words">
+                  {mismatch.label}: {mismatch.track} in the track, {mismatch.entered}
+                  entered
+                </li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
         <div
           class="min-w-0 overflow-hidden rounded-md border bg-muted/30 px-3 py-2 text-sm shadow-xs"
           data-testid="flight-track-summary"
