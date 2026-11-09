@@ -3,16 +3,11 @@
 
   import { Button } from '$lib/components/ui/button';
   import { trpc } from '$lib/trpc';
-  import { cn } from '$lib/utils';
   import { PHOTO_BROWSER_CACHE_MS } from '$lib/zod/aircraft-photo';
 
-  let {
-    reg,
-    compact = false,
-  }: {
-    reg: string;
-    compact?: boolean;
-  } = $props();
+  import AircraftPhotoFigure from './AircraftPhotoFigure.svelte';
+
+  let { reg }: { reg: string } = $props();
 
   const regStore = writable(reg);
   $effect(() => {
@@ -37,39 +32,14 @@
 </script>
 
 {#if $photoQuery.isLoading}
-  <div
-    class={cn(
-      'w-full animate-pulse rounded-md bg-muted',
-      compact ? 'h-20' : 'aspect-[3/2]',
-    )}
-  ></div>
+  <div class="aspect-[3/2] w-full animate-pulse rounded-md bg-muted"></div>
 {:else if photo}
   {#if failedSrc !== photo.thumbnailSrc}
-    <figure>
-      <a href={photo.link} target="_blank" rel="noopener">
-        <img
-          src={photo.thumbnailSrc}
-          alt="{reg}, photo by {photo.photographer}"
-          loading="lazy"
-          onerror={() => (failedSrc = photo.thumbnailSrc)}
-          class={cn(
-            'w-full rounded-md border border-border/60 object-cover',
-            compact && 'h-20',
-          )}
-        />
-      </a>
-      <figcaption class="mt-1 text-xs text-muted-foreground">
-        © {photo.photographer} /
-        <a
-          href={photo.link}
-          target="_blank"
-          rel="noopener"
-          class="underline decoration-dotted underline-offset-2 hover:text-foreground"
-        >
-          Planespotters.net
-        </a>
-      </figcaption>
-    </figure>
+    <AircraftPhotoFigure
+      {reg}
+      {photo}
+      onerror={() => (failedSrc = photo.thumbnailSrc)}
+    />
   {/if}
 {:else if unavailable}
   <div class="flex items-center justify-between gap-2">
@@ -84,6 +54,4 @@
       Retry
     </Button>
   </div>
-{:else if compact && result?.status === 'none'}
-  <p class="text-xs text-muted-foreground">No photo found</p>
 {/if}
