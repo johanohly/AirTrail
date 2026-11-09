@@ -115,6 +115,12 @@ export const formatWindSpeed = (kt: number, prefs: WindPrefs): string => {
   return `${Math.round(v)} ${windSpeedUnitLabel(prefs)}`;
 };
 
+const SPEED_UNIT_LABELS = { km: 'km/h', mi: 'mph', nm: 'kt' } as const;
+
+/** Formats a ground speed in the unit that matches the distance preference. */
+export const formatSpeed = (kmh: number, prefs: DistancePrefs): string =>
+  `${Math.round(convertDistance(kmh, prefs))} ${SPEED_UNIT_LABELS[prefs.distanceUnit]}`;
+
 // ----- Temperature ------------------------------------------------------
 
 export const convertTemperature = (c: number, prefs: TempPrefs): number =>

@@ -2,6 +2,8 @@
   import { List } from '@o7/icon/lucide';
 
   import AircraftPhotoCard from './AircraftPhotoCard.svelte';
+  import FlightMilestones from './FlightMilestones.svelte';
+  import type { FlightMilestone } from './flight-milestones';
 
   import { Button } from '$lib/components/ui/button';
   import { appConfig } from '$lib/state.svelte';
@@ -14,17 +16,23 @@
   } from '$lib/utils';
   import type { FlightPassenger } from '$lib/db/types';
   import { Duration } from '$lib/utils/datetime';
-  import { convertDistance, distanceUnitLabel } from '$lib/utils/preferences';
+  import {
+    convertDistance,
+    distanceUnitLabel,
+    formatSpeed,
+  } from '$lib/utils/preferences';
   import type { Preferences } from '$lib/zod/user';
 
   let {
     flight,
     prefs,
+    milestones = [],
     seatUserId,
     onShowInList,
   }: {
     flight: FlightData;
     prefs: Preferences;
+    milestones?: FlightMilestone[];
     seatUserId?: string;
     onShowInList: () => void;
   } = $props();
@@ -37,6 +45,14 @@
 
   const durationLabel = $derived(
     flight.duration ? Duration.fromSeconds(flight.duration).toString() : null,
+  );
+
+  // Without both recorded times the duration is estimated from the distance,
+  // so a speed derived from it would carry no information.
+  const avgSpeedLabel = $derived(
+    flight.departure && flight.arrival && flight.distance && flight.duration
+      ? formatSpeed((flight.distance * 3600) / flight.duration, prefs)
+      : null,
   );
 
   const seatLabel = $derived(formatSeatForUser(flight, seatUserId));
@@ -96,6 +112,7 @@
       r.push({ label: 'Aircraft', value: formatAircraft(flight) });
     if (distanceLabel) r.push({ label: 'Distance', value: distanceLabel });
     if (durationLabel) r.push({ label: 'Duration', value: durationLabel });
+    if (avgSpeedLabel) r.push({ label: 'Avg. speed', value: avgSpeedLabel });
     if (seatLabel) r.push({ label: 'Seat', value: seatLabel });
     if (departureGate) r.push({ label: 'Departure', value: departureGate });
     if (arrivalGate) r.push({ label: 'Arrival', value: arrivalGate });
@@ -115,6 +132,8 @@
       {/each}
     </dl>
   {/if}
+
+  <FlightMilestones {milestones} />
 
   {#if passengers.length}
     <div class="flex flex-col gap-1.5">
