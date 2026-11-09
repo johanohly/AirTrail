@@ -15,12 +15,15 @@ import { getFlightPassengerToken, type FlightData } from '$lib/utils';
 import { parseLocalISO } from '$lib/utils/datetime';
 import { formatDate } from '$lib/utils/preferences';
 import type { Preferences } from '$lib/zod/user';
+import { page } from '$app/state';
+import { FlightReasons } from '$lib/db/types';
 
 export type FilterColumnId =
   | 'departureAirports'
   | 'arrivalAirports'
   | 'date'
   | 'passengers'
+  | 'reasons'
   | 'airline'
   | 'aircraft'
   | 'aircraftRegs';
@@ -90,6 +93,8 @@ export function createDefaultFilters(): FlightFilters {
     toDate: undefined,
     passengers: [],
     passengersOperator: 'include any of',
+    reasons: [],
+    reasonsOperator: 'is any of',
     airline: [],
     airlineOperator: 'is any of',
     aircraft: [],
@@ -111,6 +116,7 @@ export function cloneFlightFilters(
     routes: source.routes.map((route) => ({ ...route })),
     years: [...source.years],
     passengers: [...source.passengers],
+    reasons: [...source.reasons],
     airline: [...source.airline],
     aircraft: [...source.aircraft],
     aircraftRegs: [...source.aircraftRegs],
@@ -129,6 +135,7 @@ export function hasFlightFilters(filters: FlightFilters | undefined): boolean {
       filters.fromDate ||
       filters.toDate ||
       filters.passengers.length > 0 ||
+      filters.reasons.length > 0 ||
       filters.airline.length > 0 ||
       filters.aircraft.length > 0 ||
       filters.aircraftRegs.length > 0)
@@ -203,6 +210,8 @@ export function rawOptionColumnOperator(
       return filters.departureAirportsOperator;
     case 'arrivalAirports':
       return filters.arrivalAirportsOperator;
+    case 'reasons':
+      return filters.reasonsOperator;
     case 'airline':
       return filters.airlineOperator;
     case 'aircraft':
@@ -261,6 +270,10 @@ export function setOptionColumnOperator(
       return cloneFlightFilters(filters, {
         arrivalAirportsOperator: operator as OptionFilterOperator,
       });
+    case 'reasons':
+      return cloneFlightFilters(filters, {
+        reasonsOperator: operator as OptionFilterOperator,
+      });
     case 'airline':
       return cloneFlightFilters(filters, {
         airlineOperator: operator as OptionFilterOperator,
@@ -313,6 +326,11 @@ export function setOptionColumnValues(
       return cloneFlightFilters(filters, {
         arrivalAirports: values,
         arrivalAirportsOperator: operator as OptionFilterOperator,
+      });
+    case 'reasons':
+      return cloneFlightFilters(filters, {
+        reasons: values,
+        reasonsOperator: operator as OptionFilterOperator,
       });
     case 'airline':
       return cloneFlightFilters(filters, {
@@ -594,6 +612,7 @@ export function flightFiltersToBits(source: FlightFilters): FiltersState {
       source.passengers,
       source.passengersOperator,
     ),
+    optionFilter('reasons', source.reasons, source.reasonsOperator),
     optionFilter('airline', source.airline, source.airlineOperator),
     optionFilter('aircraft', source.aircraft, source.aircraftOperator),
     optionFilter(
@@ -657,6 +676,8 @@ function resetBitsManagedFilters(base?: FlightFilters): FlightFilters {
     toDate: undefined,
     passengers: [],
     passengersOperator: 'include any of',
+    reasons: [],
+    reasonsOperator: 'is any of',
     airline: [],
     airlineOperator: 'is any of',
     aircraft: [],
@@ -689,6 +710,10 @@ export function bitsFiltersToFlightFilters(
         nextFilters.passengers = stringValues(filter);
         nextFilters.passengersOperator =
           filter.operator as MultiOptionFilterOperator;
+        break;
+      case 'reasons':
+        nextFilters.reasons = stringValues(filter);
+        nextFilters.reasonsOperator = filter.operator as OptionFilterOperator;
         break;
       case 'airline':
         nextFilters.airline = stringValues(filter);
@@ -754,6 +779,8 @@ export function flightSignature(source: FlightFilters) {
     toDate: source.toDate?.toString(),
     passengers: source.passengers,
     passengersOperator: source.passengersOperator,
+    reasons: source.reasons,
+    reasonsOperator: source.reasonsOperator,
     airline: source.airline,
     airlineOperator: source.airlineOperator,
     aircraft: source.aircraft,
@@ -877,6 +904,7 @@ function getFilterBoundary(
 export function matchesNonLocationFilters(
   flight: FlightData,
   filters: FlightFilters,
+  userId: string | null | undefined = page.data.user?.id,
 ) {
   if (
     !optionMatches(
@@ -928,6 +956,15 @@ export function matchesNonLocationFilters(
 
   if (
     !optionMatches(
+      flightReasonForUser(flight, userId),
+      filters.reasons,
+      filters.reasonsOperator,
+    )
+  )
+    return false;
+
+  if (
+    !optionMatches(
       flight.airline?.name,
       filters.airline,
       filters.airlineOperator,
@@ -959,9 +996,44 @@ export function matchesNonLocationFilters(
   return true;
 }
 
-export function matchesFlight(flight: FlightData, filters: FlightFilters) {
+export function matchesFlight(
+  flight: FlightData,
+  filters: FlightFilters,
+  userId: string | null | undefined = page.data.user?.id,
+) {
   return (
     matchesLocationFilters(flight, filters) &&
-    matchesNonLocationFilters(flight, filters)
+    matchesNonLocationFilters(flight, filters, userId)
   );
+}
+
+// Reasons belong to passengers; never fall back to another passenger's reason.
+export function flightReasonForUser(
+  flight: Pick<FlightData, 'passengers'>,
+  userId?: string | null,
+): string | null {
+  if (!userId) return null;
+  return (
+    flight.passengers.find((passenger) => passenger.userId === userId)
+      ?.flightReason ?? null
+  );
+}
+
+export function flightReasonFilterOptions(
+  flights: Pick<FlightData, 'passengers'>[],
+  userId?: string | null,
+) {
+  const counts = new Map<string, number>();
+  for (const flight of flights) {
+    const reason = flightReasonForUser(flight, userId);
+    if (!reason?.trim()) continue;
+    counts.set(reason, (counts.get(reason) ?? 0) + 1);
+  }
+  return Array.from(counts, ([value, count]) => ({
+    value,
+    label: FlightReasons.some((builtin) => builtin === value)
+      ? value.charAt(0).toUpperCase() + value.slice(1)
+      : value,
+    count,
+  })).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 }

@@ -65,11 +65,15 @@
   import type { Component } from 'svelte';
   import type { ColumnConfig, FilterIcon, FiltersState } from 'bits-ui';
 
+  import { page } from '$app/state';
+
   import './filter.css';
   import './filter-date.css';
 
   import {
     bitsFiltersToFlightFilters,
+    flightReasonFilterOptions,
+    flightReasonForUser,
     bitsSignature,
     createDefaultFilters,
     flightFiltersToBits,
@@ -97,6 +101,7 @@
     | ColumnConfig<FlightData, 'option', string, 'year'>
     | ColumnConfig<FlightData, 'date', Date, 'date'>
     | ColumnConfig<FlightData, 'multiOption', string[], 'passengers'>
+    | ColumnConfig<FlightData, 'option', string, 'reasons'>
     | ColumnConfig<FlightData, 'option', string, 'airline'>
     | ColumnConfig<FlightData, 'option', string, 'aircraft'>
     | ColumnConfig<FlightData, 'option', string, 'aircraftRegs'>;
@@ -429,6 +434,15 @@
             .filter((value): value is string => !!value),
         icon: UsersRound,
         options: columnOptions(passengerOptions),
+      },
+      {
+        id: 'reasons',
+        displayName: 'Flight Reason',
+        type: 'option',
+        accessor: (flight) =>
+          flightReasonForUser(flight, page.data.user?.id) ?? '',
+        icon: Plane,
+        options: flightReasonFilterOptions(flights, page.data.user?.id),
       },
       {
         id: 'airline',

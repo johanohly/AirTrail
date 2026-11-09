@@ -20,6 +20,7 @@
   import UserAvatar from '$lib/components/display/UserAvatar.svelte';
   import {
     clearFilterColumn,
+    flightReasonFilterOptions,
     createDefaultFilters,
     dateFilterSummary,
     isFilterColumnActive,
@@ -138,6 +139,7 @@
       icon: UsersRound,
       type: 'multiOption',
     },
+    { id: 'reasons', label: 'Flight Reason', icon: Plane, type: 'option' },
     { id: 'airline', label: 'Airline', icon: Airlines, type: 'option' },
     { id: 'aircraft', label: 'Aircraft', icon: Plane, type: 'option' },
     { id: 'aircraftRegs', label: 'Tail Number', icon: Hash, type: 'option' },
@@ -221,72 +223,75 @@
     );
   }
 
-  const optionsByColumn = $derived.by(() => {
-    const passengers = new Map<string, FilterOption>();
+  const optionsByColumn = $derived.by<Record<OptionColumnId, FilterOption[]>>(
+    () => {
+      const passengers = new Map<string, FilterOption>();
 
-    for (const flight of scopedFlights) {
-      for (const passenger of flight.passengers) {
-        const value = getFlightPassengerToken(passenger);
-        const label = getFlightPassengerLabel(passenger);
-        if (!value || !label) continue;
-        const existing = passengers.get(value);
-        if (existing) {
-          existing.count = (existing.count ?? 0) + 1;
-        } else {
-          passengers.set(value, {
-            value,
-            label,
-            count: 1,
-            kind: 'passenger',
-            username:
-              passenger.user?.username ??
-              `guest:${passenger.guestName ?? label}`,
-          });
+      for (const flight of scopedFlights) {
+        for (const passenger of flight.passengers) {
+          const value = getFlightPassengerToken(passenger);
+          const label = getFlightPassengerLabel(passenger);
+          if (!value || !label) continue;
+          const existing = passengers.get(value);
+          if (existing) {
+            existing.count = (existing.count ?? 0) + 1;
+          } else {
+            passengers.set(value, {
+              value,
+              label,
+              count: 1,
+              kind: 'passenger',
+              username:
+                passenger.user?.username ??
+                `guest:${passenger.guestName ?? label}`,
+            });
+          }
         }
       }
-    }
 
-    return {
-      departureAirports: uniqueAirportOptions((flight) => flight.from),
-      arrivalAirports: uniqueAirportOptions((flight) => flight.to),
-      passengers: sortOptions(Array.from(passengers.values())),
-      airline: countedOptions(
-        scopedFlights.map((flight) =>
-          flight.airline
-            ? {
-                value: flight.airline.name,
-                label: flight.airline.name,
-                keywords: [flight.airline.iata, flight.airline.icao].filter(
-                  (code): code is string => !!code,
-                ),
-                kind: 'airline',
-                iconPath: flight.airline.iconPath,
-              }
-            : null,
+      return {
+        departureAirports: uniqueAirportOptions((flight) => flight.from),
+        arrivalAirports: uniqueAirportOptions((flight) => flight.to),
+        passengers: sortOptions(Array.from(passengers.values())),
+        reasons: flightReasonFilterOptions(flights, page.data.user?.id),
+        airline: countedOptions(
+          scopedFlights.map((flight) =>
+            flight.airline
+              ? {
+                  value: flight.airline.name,
+                  label: flight.airline.name,
+                  keywords: [flight.airline.iata, flight.airline.icao].filter(
+                    (code): code is string => !!code,
+                  ),
+                  kind: 'airline',
+                  iconPath: flight.airline.iconPath,
+                }
+              : null,
+          ),
         ),
-      ),
-      aircraft: countedOptions(
-        scopedFlights.map((flight) =>
-          flight.aircraft
-            ? {
-                value: flight.aircraft.name,
-                label: flight.aircraft.name,
-                keywords: [flight.aircraft.icao].filter(
-                  (code): code is string => !!code,
-                ),
-              }
-            : null,
+        aircraft: countedOptions(
+          scopedFlights.map((flight) =>
+            flight.aircraft
+              ? {
+                  value: flight.aircraft.name,
+                  label: flight.aircraft.name,
+                  keywords: [flight.aircraft.icao].filter(
+                    (code): code is string => !!code,
+                  ),
+                }
+              : null,
+          ),
         ),
-      ),
-      aircraftRegs: countedOptions(
-        scopedFlights.map((flight) =>
-          flight.aircraftReg
-            ? { value: flight.aircraftReg, label: flight.aircraftReg }
-            : null,
+        aircraftRegs: countedOptions(
+          scopedFlights.map((flight) =>
+            flight.aircraftReg
+              ? { value: flight.aircraftReg, label: flight.aircraftReg }
+              : null,
+          ),
         ),
-      ),
-    } satisfies Record<OptionColumnId, FilterOption[]>;
-  });
+      } satisfies Record<OptionColumnId, FilterOption[]>;
+    },
+  );
 
   function valuesFor(columnId: OptionColumnId) {
     return optionColumnValues(filters, columnId);
