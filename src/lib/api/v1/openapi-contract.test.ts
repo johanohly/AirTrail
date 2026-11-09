@@ -16,6 +16,7 @@ import {
   dateFormatSchema,
   distanceUnitSchema,
   flightTimeDisplaySchema,
+  flightTimeSourceSchema,
   pressureUnitSchema,
   temperatureUnitSchema,
   timeFormatSchema,
@@ -188,6 +189,12 @@ describe('enum vocabularies', () => {
       'Preferences',
       'flightTimeDisplay',
       options(flightTimeDisplaySchema),
+    ],
+    [
+      'Preferences.flightTimeSource',
+      'Preferences',
+      'flightTimeSource',
+      options(flightTimeSourceSchema),
     ],
   ])(
     '%s matches its source of truth',

@@ -1583,6 +1583,9 @@ components:
         flightTimeDisplay:
           type: string
           enum: [airport, utc, system]
+        flightTimeSource:
+          type: string
+          enum: [actual, scheduled]
     VisitedCountryInput:
       type: object
       required: [code, status]

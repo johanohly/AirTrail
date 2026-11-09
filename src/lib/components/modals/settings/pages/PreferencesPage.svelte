@@ -39,6 +39,7 @@
       <PreferenceField field="dateFormat" />
       <PreferenceField field="weekStartsOn" />
       <PreferenceField field="flightTimeDisplay" />
+      <PreferenceField field="flightTimeSource" />
     </div>
     <DateTimePreview />
   </section>
