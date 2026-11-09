@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import {
   FlightDatePrecisions,
-  FlightReasons,
   SeatClasses,
   SeatTypes,
   ShareFlightSelections,
@@ -9,6 +8,7 @@ import {
 } from '$lib/db/types';
 import { flightTrackInputSchema } from '$lib/track/schema';
 import { isKnownCountryCode } from '$lib/utils/data/countries';
+import { flightReasonSchema } from '$lib/utils/flight-reasons';
 
 const nullableText = z.string().max(500).nullable().optional().default(null);
 const nullableDateTime = z
@@ -26,7 +26,7 @@ export const passengerInputSchema = z
     seat: z.enum(SeatTypes).nullable().default(null),
     seatNumber: z.string().max(20).nullable().default(null),
     seatClass: z.enum(SeatClasses).nullable().default(null),
-    flightReason: z.enum(FlightReasons).nullable().default(null),
+    flightReason: flightReasonSchema.default(null),
     customFields: z.record(z.string(), z.unknown()).optional(),
   })
   .refine(

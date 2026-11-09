@@ -20,7 +20,7 @@ import type { FieldType } from '$lib/utils/custom-fields';
 export type DatabaseConnection = Kysely<DB> | Transaction<DB>;
 
 export type FullUser = Selectable<user>;
-export type User = Omit<FullUser, 'password'>;
+export type User = Omit<FullUser, 'password' | 'customFlightReasons'>;
 export const publicUserFields = [
   'id',
   'username',

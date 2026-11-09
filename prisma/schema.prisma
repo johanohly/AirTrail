@@ -46,6 +46,7 @@ model user {
   week_starts_on      String @default("auto")
   /// @kyselyType('airport' | 'utc' | 'system')
   flight_time_display String @default("airport")
+  custom_flight_reasons String[] @default([])
 
   sessions                     session[]
   flight_passengers            flight_passenger[]
@@ -256,7 +257,6 @@ model flight_passenger {
   seat_number   String?
   /// @kyselyType('economy' | 'economy+' | 'business' | 'first' | 'private')
   seat_class    String?
-  /// @kyselyType('leisure' | 'business' | 'crew' | 'other')
   flight_reason String?
 
   user   user?  @relation(fields: [user_id], references: [id], onDelete: Cascade)
