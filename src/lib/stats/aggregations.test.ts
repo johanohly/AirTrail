@@ -7,12 +7,15 @@ import {
   countFlightsPerYear,
   countriesByContinentDetails,
   countriesByContinentDistribution,
+  countryDistribution,
   DELAY_THRESHOLD_MINUTES,
   flightMatchesChartBucket,
+  normalizeSeatNumber,
   punctualityReport,
   reasonDistribution,
   routeDistribution,
   routeLabelForFlight,
+  seatNumberDistribution,
   toBreakdown,
 } from './aggregations';
 import type { FlightData } from '$lib/utils';
@@ -156,6 +159,115 @@ describe('routes', () => {
     const inbound = flight('LHR', 'CPH');
     expect(routeLabelForFlight(inbound)).toBe('CPH – LHR');
     expect(flightMatchesChartBucket(inbound, 'routes', 'CPH – LHR')).toBe(true);
+  });
+});
+
+describe('flight country statistics', () => {
+  const flights = [
+    {
+      from: { iata: 'DUB', country: 'IE' },
+      to: { iata: 'SCQ', country: 'ES' },
+    },
+    {
+      from: { iata: 'SCQ', country: 'ES' },
+      to: { iata: 'DUB', country: 'IE' },
+    },
+    {
+      from: { iata: 'MAD', country: 'es' },
+      to: { iata: 'BCN', country: 'ES' },
+    },
+    {
+      from: { iata: 'DUB', country: 'IE' },
+      to: { iata: 'BOS', country: 'US' },
+    },
+  ] as FlightData[];
+
+  it('counts each country once per flight, keyed by uppercase code', () => {
+    expect(countryDistribution(flights, {})).toEqual({
+      ES: 3,
+      IE: 3,
+      US: 1,
+    });
+  });
+
+  it('matches flights touching a country bucket', () => {
+    expect(flightMatchesChartBucket(flights[0]!, 'countries', 'ES', {})).toBe(
+      true,
+    );
+    expect(flightMatchesChartBucket(flights[0]!, 'countries', 'US', {})).toBe(
+      false,
+    );
+    expect(flightMatchesChartBucket(flights[2]!, 'countries', 'ES', {})).toBe(
+      true,
+    );
+  });
+});
+
+describe('seat numbers', () => {
+  it('normalizes case and surrounding space', () => {
+    expect(normalizeSeatNumber(' 12f ')).toBe('12F');
+    expect(normalizeSeatNumber('2A')).toBe('2A');
+    expect(normalizeSeatNumber('07c')).toBe('7C');
+    expect(normalizeSeatNumber('row 12')).toBeNull();
+    expect(normalizeSeatNumber('')).toBeNull();
+    expect(normalizeSeatNumber(null)).toBeNull();
+  });
+
+  const flights = [
+    {
+      passengers: [
+        { userId: 'one', seatNumber: '12f', seat: 'window' },
+        { userId: 'two', seatNumber: '3C', seat: 'aisle' },
+      ],
+    },
+    {
+      passengers: [{ userId: 'one', seatNumber: '3c' }],
+    },
+  ] as FlightData[];
+
+  it('counts only the scoped passenger, not every passenger', () => {
+    expect(seatNumberDistribution(flights, { userId: 'one' })).toEqual({
+      '3C': 1,
+      '12F': 1,
+    });
+    expect(seatNumberDistribution(flights, { userId: 'two' })).toEqual({
+      '3C': 1,
+    });
+  });
+
+  it('counts every passenger when unscoped', () => {
+    expect(seatNumberDistribution(flights, {})).toEqual({
+      '3C': 2,
+      '12F': 1,
+    });
+  });
+
+  it('ranks by count, then orders equal counts by row and column', () => {
+    const seats = ['12F', '2C', '10A', '2A', '3C', '12F'].map((seatNumber) => ({
+      passengers: [{ userId: 'one', seatNumber }],
+    })) as FlightData[];
+
+    expect(
+      Object.keys(seatNumberDistribution(seats, { userId: 'one' })),
+    ).toEqual(['12F', '2A', '2C', '3C', '10A']);
+  });
+
+  it('matches a flight through the scoped passenger only', () => {
+    expect(
+      flightMatchesChartBucket(flights[0]!, 'seat-numbers', '12F', {
+        userId: 'one',
+      }),
+    ).toBe(true);
+    expect(
+      flightMatchesChartBucket(flights[0]!, 'seat-numbers', '12F', {
+        userId: 'two',
+      }),
+    ).toBe(false);
+    expect(
+      flightMatchesChartBucket(flights[1]!, 'seat-numbers', '3C', {
+        userId: 'two',
+      }),
+    ).toBe(false);
   });
 });
 

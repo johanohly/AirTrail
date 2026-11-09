@@ -29,6 +29,7 @@
     flightScopeState,
     focusFlightInList,
     mapDetailsState,
+    openAirportDetails,
     openFlightDetails,
     openModalsState,
     setFlightScope,
@@ -200,6 +201,7 @@
       await waitForModalHistoryIdle();
     },
     openFlightDetails,
+    openAirportDetails,
   });
 
   const restoreViewFromPath = () => {
@@ -241,6 +243,13 @@
       focus: { type: 'flight', flightId },
     });
   };
+
+  const openStatisticsAirport = (airportId: number) => {
+    return navigateFlights({
+      destination: 'map',
+      focus: { type: 'airport', airportId },
+    });
+  };
 </script>
 
 {#if canReadOwnFlights}
@@ -269,6 +278,7 @@
     seatUserId={effectiveSeatUserId}
     {showCountryStats}
     onOpenFlight={openStatisticsFlight}
+    onOpenAirport={openStatisticsAirport}
   />
 
   <Map

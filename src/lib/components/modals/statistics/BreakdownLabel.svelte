@@ -14,11 +14,15 @@
     details: BreakdownDetails;
   } = $props();
 
-  const isCode = $derived(
-    chartKey === 'airports' ||
-      chartKey === 'routes' ||
-      chartKey === 'aircraft-regs',
-  );
+  const CODE_KEYS = new Set<FlightChartKey>([
+    'airports',
+    'countries',
+    'routes',
+    'aircraft-regs',
+    'seat-numbers',
+  ]);
+
+  const isCode = $derived(CODE_KEYS.has(chartKey));
 </script>
 
 {#snippet flag(country: string | null | undefined)}
@@ -38,6 +42,8 @@
   <AirlineIcon airline={details.airline} size={20} fallback="plane" />
 {:else if details.airport}
   {@render flag(details.airport.country)}
+{:else if details.countryCode}
+  {@render flag(details.countryCode)}
 {:else if details.route}
   {@render flag(details.route.first?.country)}
   {@render flag(details.route.second?.country)}

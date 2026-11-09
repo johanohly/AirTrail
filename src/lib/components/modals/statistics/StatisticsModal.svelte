@@ -11,6 +11,7 @@
   import BreakdownRow from './BreakdownRow.svelte';
   import PunctualitySection from './PunctualitySection.svelte';
   import RankedList from './RankedList.svelte';
+  import RecordsSection from './RecordsSection.svelte';
 
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
@@ -64,6 +65,7 @@
     seatUserId,
     showCountryStats = true,
     onOpenFlight,
+    onOpenAirport,
   }: {
     open?: boolean;
     flights: FlightData[];
@@ -74,6 +76,7 @@
     seatUserId?: string;
     showCountryStats?: boolean;
     onOpenFlight?: (flightId: number) => void;
+    onOpenAirport?: (airportId: number) => void;
   } = $props();
 
   const showScopeBanner = $derived(flightScopeState.current.scope !== 'mine');
@@ -321,7 +324,12 @@
 {/snippet}
 
 {#snippet lists(keys: FlightChartKey[])}
-  <div class="grid gap-x-7 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+  <div
+    class={[
+      'grid gap-x-7 gap-y-6 sm:grid-cols-2',
+      keys.length === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3',
+    ]}
+  >
     {#each keys as chartKey (chartKey)}
       <RankedList
         {chartKey}
@@ -605,13 +613,13 @@
       </div>
 
       {#snippet whereLists()}
-        {@render lists(['airports', 'routes', 'continents'])}
+        {@render lists(['airports', 'routes', 'countries', 'continents'])}
       {/snippet}
       {#snippet aircraftLists()}
         {@render lists(['airlines', 'aircraft-models', 'aircraft-regs'])}
       {/snippet}
       {#snippet boardLists()}
-        {@render lists(['seat-class', 'seat', 'reason'])}
+        {@render lists(['seat-class', 'seat', 'reason', 'seat-numbers'])}
       {/snippet}
       {@render section('When', whenCharts)}
       {@render section('Where', whereLists)}
@@ -620,7 +628,15 @@
       {#snippet punctuality()}
         <PunctualitySection flights={completedFlights} onOpen={openChart} />
       {/snippet}
+      {#snippet records()}
+        <RecordsSection
+          flights={countedFlights}
+          {onOpenFlight}
+          {onOpenAirport}
+        />
+      {/snippet}
       {@render section('Punctuality', punctuality)}
+      {@render section('Records', records)}
     {/if}
     {#if showCountryStats}
       {@render section('Countries', countries)}

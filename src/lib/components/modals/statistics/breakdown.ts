@@ -1,15 +1,22 @@
 import type { Airline, Airport } from '$lib/db/types';
 import {
   codeForAirport,
+  countryCodesOf,
+  normalizeSeatNumber,
   routeLabelForFlight,
+  scopedPassengers,
   type FlightChartKey,
+  type StatsContext,
 } from '$lib/stats/aggregations';
-import type { FlightData } from '$lib/utils';
+import { toTitleCase, type FlightData } from '$lib/utils';
+import { countryFromAlpha2 } from '$lib/utils/data/countries';
 
 export type BreakdownDetails = {
   airline?: Airline;
   airport?: Airport;
   route?: { first: Airport | null; second: Airport | null };
+  /** ISO 3166 alpha-2 code, for the country behind a row. */
+  countryCode?: string;
   /** What the row's code means, such as the aircraft behind a registration. */
   description?: string;
   /** Where a drill-down row says more than the list row has room for. */
@@ -19,12 +26,14 @@ export type BreakdownDetails = {
 export const CHART_NOUNS: Record<FlightChartKey, [string, string]> = {
   'seat-class': ['seat class', 'seat classes'],
   seat: ['seat position', 'seat positions'],
+  'seat-numbers': ['seat', 'seats'],
   reason: ['reason', 'reasons'],
   continents: ['continent', 'continents'],
   airlines: ['airline', 'airlines'],
   'aircraft-models': ['aircraft type', 'aircraft types'],
   'aircraft-regs': ['aircraft', 'aircraft'],
   airports: ['airport', 'airports'],
+  countries: ['country', 'countries'],
   routes: ['route', 'routes'],
 };
 
@@ -35,6 +44,7 @@ const cityOf = (airport: Airport | null | undefined) =>
 export const createDetailsLookup = (
   chartKey: FlightChartKey,
   flights: FlightData[],
+  ctx: StatsContext = {},
 ) => {
   const details = new Map<string, BreakdownDetails>();
   const add = (
@@ -64,12 +74,29 @@ export const createDetailsLookup = (
           description: flight.aircraft?.name,
         }));
         break;
+      case 'seat-numbers':
+        for (const passenger of scopedPassengers(flight, ctx)) {
+          add(normalizeSeatNumber(passenger.seatNumber), () => ({
+            description: passenger.seat
+              ? toTitleCase(passenger.seat)
+              : undefined,
+          }));
+        }
+        break;
       case 'airports':
         for (const airport of [flight.from, flight.to]) {
           add(codeForAirport(airport), () => ({
             airport: airport ?? undefined,
             description: cityOf(airport),
             subtitle: airport?.name,
+          }));
+        }
+        break;
+      case 'countries':
+        for (const code of countryCodesOf(flight)) {
+          add(code, () => ({
+            countryCode: code,
+            description: countryFromAlpha2(code)?.name,
           }));
         }
         break;

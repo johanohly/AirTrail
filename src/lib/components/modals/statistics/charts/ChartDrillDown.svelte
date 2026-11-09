@@ -39,7 +39,9 @@
     ),
   );
   const largest = $derived(breakdown.entries[0]?.value ?? 0);
-  const detailsFor = $derived(createDetailsLookup(chartKey, flights));
+  const detailsFor = $derived(
+    createDetailsLookup(chartKey, flights, { userId: seatUserId }),
+  );
   const subtitle = $derived.by(() => {
     const count = breakdown.entries.length;
     const [one, many] = CHART_NOUNS[chartKey];

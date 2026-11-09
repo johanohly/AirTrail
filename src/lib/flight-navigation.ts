@@ -16,12 +16,12 @@ export type FlightListFocus =
       direction: 'departure' | 'arrival';
     };
 
+export type MapFocus =
+  { type: 'flight'; flightId: number } | { type: 'airport'; airportId: number };
+
 export type FlightNavigationIntent =
   | { destination: 'list'; focus: FlightListFocus }
-  | {
-      destination: 'map';
-      focus: { type: 'flight'; flightId: number };
-    };
+  | { destination: 'map'; focus: MapFocus };
 
 export type NavigateFlights = (
   intent: FlightNavigationIntent,
@@ -37,7 +37,7 @@ export type FlightNavigationState = {
 type FlightNavigationTransition = {
   state: FlightNavigationState;
   focusFlightId?: number;
-  detailFlightId?: number;
+  mapFocus?: MapFocus;
 };
 
 export type FlightNavigatorDependencies = {
@@ -46,6 +46,7 @@ export type FlightNavigatorDependencies = {
   focusFlightInList: (flightId: number) => void;
   waitForModalClose: () => Promise<void>;
   openFlightDetails: (flightId: number) => void;
+  openAirportDetails: (airportId: number) => void;
 };
 
 export const planFlightNavigation = (
@@ -62,7 +63,7 @@ export const planFlightNavigation = (
         listOpen: false,
         statisticsOpen: false,
       },
-      detailFlightId: intent.focus.flightId,
+      mapFocus: intent.focus,
     };
   }
 
@@ -100,9 +101,14 @@ export const createFlightNavigator = (
     if (transition.focusFlightId !== undefined) {
       dependencies.focusFlightInList(transition.focusFlightId);
     }
-    if (transition.detailFlightId === undefined) return;
+    const { mapFocus } = transition;
+    if (!mapFocus) return;
 
     await dependencies.waitForModalClose();
-    dependencies.openFlightDetails(transition.detailFlightId);
+    if (mapFocus.type === 'flight') {
+      dependencies.openFlightDetails(mapFocus.flightId);
+    } else {
+      dependencies.openAirportDetails(mapFocus.airportId);
+    }
   };
 };
