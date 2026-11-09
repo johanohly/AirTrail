@@ -368,12 +368,28 @@
         const airport = allVisitedAirports.find(
           (a) => a.id === selection.airportId,
         );
+        const routeArcs =
+          selection.view === 'routes'
+            ? drawnFlights.flatMap(({ from, to }) =>
+                from && to && [from.id, to.id].includes(selection.airportId)
+                  ? [{ from, to }]
+                  : [],
+              )
+            : [];
         if (airport) {
-          focusTarget = {
-            type: 'point',
-            center: [airport.lon, airport.lat],
-            zoom: 13,
-          };
+          if (routeArcs.length > 0) {
+            focusTarget = {
+              type: 'arcs',
+              arcs: routeArcs,
+              projection: mapPreferences.projection,
+            };
+          } else {
+            focusTarget = {
+              type: 'point',
+              center: [airport.lon, airport.lat],
+              zoom: 13,
+            };
+          }
         }
       } else {
         // route or flight — both fit a single great-circle arc between two
