@@ -186,10 +186,7 @@ export type flight_passenger = {
      * @kyselyType('economy' | 'economy+' | 'business' | 'first' | 'private')
      */
     seatClass: 'economy' | 'economy+' | 'business' | 'first' | 'private' | null;
-    /**
-     * @kyselyType('leisure' | 'business' | 'crew' | 'other')
-     */
-    flightReason: 'leisure' | 'business' | 'crew' | 'other' | null;
+    flightReason: string | null;
 };
 export type flight_track = {
     flightId: number;
@@ -370,6 +367,7 @@ export type user = {
      * @kyselyType('airport' | 'utc' | 'system')
      */
     flightTimeDisplay: Generated<'airport' | 'utc' | 'system'>;
+    customFlightReasons: Generated<string[]>;
 };
 export type visited_country = {
     id: Generated<number>;

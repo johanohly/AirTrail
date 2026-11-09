@@ -21,8 +21,27 @@ import { createApiKey } from '$lib/server/utils/auth';
 import { updateUserPreferences } from '$lib/server/utils/user';
 import { updatePreferencesSchema } from '$lib/zod/user';
 import { grantableSubset } from '$lib/api/v1/scopes';
+import { customFlightReasonsSchema } from '$lib/utils/flight-reasons';
 
 export const userRouter = router({
+  flightReasons: authedProcedure.query(async ({ ctx }) => {
+    const user = await db
+      .selectFrom('user')
+      .select('customFlightReasons')
+      .where('id', '=', ctx.user.id)
+      .executeTakeFirstOrThrow();
+    return user.customFlightReasons;
+  }),
+  updateFlightReasons: authedProcedure
+    .input(customFlightReasonsSchema)
+    .mutation(async ({ ctx, input }) => {
+      await db
+        .updateTable('user')
+        .set({ customFlightReasons: input })
+        .where('id', '=', ctx.user.id)
+        .execute();
+      return true;
+    }),
   me: authedProcedure.query(({ ctx: { user } }) => {
     return user;
   }),
