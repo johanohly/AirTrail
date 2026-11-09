@@ -9,12 +9,14 @@ import {
 import type { Airport, Flight } from '$lib/db/types';
 import { prepareFlightData } from '$lib/utils';
 
-const airport = (id: number, tz: string): Airport =>
-  ({ id, tz, lon: 0, lat: 0 }) as Airport;
+const airport = (id: number, tz: string, lat: number, lon: number): Airport =>
+  ({ id, tz, lat, lon }) as Airport;
 
-const LHR = airport(1, 'Europe/London');
-const DXB = airport(2, 'Asia/Dubai');
-const SYD = airport(3, 'Australia/Sydney');
+const LHR = airport(1, 'Europe/London', 51.47, -0.4543);
+const DXB = airport(2, 'Asia/Dubai', 25.2528, 55.3644);
+const SYD = airport(3, 'Australia/Sydney', -33.9461, 151.177);
+const LGW = airport(4, 'Europe/London', 51.1481, -0.1903);
+const CDG = airport(5, 'Europe/Paris', 49.0128, 2.55);
 
 type FlightInput = {
   id: number;
@@ -84,6 +86,26 @@ const dubaiConnection = [
   }),
 ];
 
+// SYD -> LGW, then LHR -> DXB: a 3h self-transfer across London.
+const londonConnection = [
+  flight({
+    id: 2,
+    from: LHR,
+    to: DXB,
+    date: '2024-03-02',
+    departure: '2024-03-02T01:00:00.000Z',
+    arrival: '2024-03-02T12:00:00.000Z',
+  }),
+  flight({
+    id: 1,
+    from: SYD,
+    to: LGW,
+    date: '2024-03-01',
+    departure: '2024-03-01T06:00:00.000Z',
+    arrival: '2024-03-01T22:00:00.000Z',
+  }),
+];
+
 describe('sortByDepartureDesc', () => {
   const order = (flights: Flight[]) =>
     sortByDepartureDesc(prepareFlightData(flights)).map((f) => f.id);
@@ -131,6 +153,33 @@ describe('buildFlightListYears', () => {
     expect(groupedIds(build(dubaiConnection, '2024-06-01T00:00:00Z'))).toEqual([
       [2, 1],
     ]);
+  });
+
+  it('groups legs connected by a transfer to a nearby airport', () => {
+    expect(groupedIds(build(londonConnection, '2024-06-01T00:00:00Z'))).toEqual(
+      [[2, 1]],
+    );
+  });
+
+  it('keeps legs apart when the nearby transfer is longer than 12 hours', () => {
+    const [onward, inbound] = londonConnection;
+    const nextDay = {
+      ...onward!,
+      departure: '2024-03-02T13:00:00.000Z',
+    } as Flight;
+
+    expect(
+      groupedIds(build([nextDay, inbound!], '2024-06-01T00:00:00Z')),
+    ).toEqual([[2], [1]]);
+  });
+
+  it('keeps legs apart when the airports are too far apart to transfer', () => {
+    const [onward, inbound] = londonConnection;
+    const fromParis = { ...onward!, from: CDG } as Flight;
+
+    expect(
+      groupedIds(build([fromParis, inbound!], '2024-06-01T00:00:00Z')),
+    ).toEqual([[2], [1]]);
   });
 
   it('keeps legs apart when the stop is longer than 12 hours', () => {
