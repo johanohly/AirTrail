@@ -1,9 +1,10 @@
-import { tz } from '@date-fns/tz';
+import { tz, TZDate } from '@date-fns/tz';
 import {
   differenceInCalendarDays,
   format,
   isValid,
   parse,
+  parseISO,
   subDays,
   addDays,
 } from 'date-fns';
@@ -37,10 +38,106 @@ const AERODATABOX_GATEWAYS: Record<
 
 const rateLimiter = new RequestRateLimiter(1, 1, 2, 1, 1000);
 
+type AedbxTime = { local?: string; utc?: string };
+
+type AedbxMovement = {
+  airport: { icao?: string; timeZone?: string };
+  terminal?: string;
+  gate?: string;
+  scheduledTime?: AedbxTime;
+  revisedTime?: AedbxTime;
+  runwayTime?: AedbxTime;
+  predictedTime?: AedbxTime;
+  quality?: string[];
+};
+
+type AedbxFlight = {
+  departure: AedbxMovement;
+  arrival: AedbxMovement;
+  airline?: { iata?: string; icao?: string };
+  aircraft?: { reg?: string };
+};
+
+/**
+ * A movement time is only unambiguously a gate time when `revisedTime` and
+ * `runwayTime` are both present and differ; then `runwayTime` is the runway
+ * time and `revisedTime` the gate (off-block/on-block) time.
+ */
+type MovementTimes = {
+  /** Best estimate of the gate time (revised, falling back to scheduled). */
+  actual: TZDate | null;
+  /** Actual/estimated wheels-off (departure) or touchdown (arrival) time. */
+  runway: TZDate | null;
+  /** True when the API guarantees the gate-vs-runway semantics above. */
+  isGateTime: boolean;
+};
+
 function sanitizeFlightNumber(fn: string): string {
   // Remove spaces and dashes, uppercase (e.g., "SK 728" -> "SK728")
   return fn.replace(/\s|-/g, '').toUpperCase();
 }
+
+/**
+ * Parse a movement time into the movement's airport timezone.
+ *
+ * The `utc` member is a plain ISO-8601 string, so it is parsed into an instant
+ * and only then re-contextualized in the airport timezone. The `local` member
+ * (e.g. `2019-08-29 06:25+01:00`) is only used when `utc` is missing.
+ */
+function parseMovementTime(
+  time: AedbxTime | undefined,
+  tzId: string,
+): TZDate | null {
+  if (!time) return null;
+
+  if (time.utc) {
+    const instant = parseISO(time.utc);
+    if (isValid(instant)) return new TZDate(instant, tzId);
+  }
+
+  if (!time.local) return null;
+  const parsed = parse(time.local, 'yyyy-MM-dd HH:mmxxx', new Date(), {
+    in: tz(tzId),
+  });
+  return isValid(parsed) ? parsed : null;
+}
+
+/**
+ * Resolve the times of a departure/arrival movement. `predictedTime` is
+ * intentionally never read: it is an experimental prediction, not an actual
+ * or estimated time.
+ */
+function resolveMovementTimes(
+  movement: AedbxMovement,
+  tzId: string,
+): MovementTimes {
+  const revised = parseMovementTime(movement.revisedTime, tzId);
+  const runway = parseMovementTime(movement.runwayTime, tzId);
+  const actual = revised ?? parseMovementTime(movement.scheduledTime, tzId);
+
+  const isGateTime =
+    revised !== null &&
+    runway !== null &&
+    revised.getTime() !== runway.getTime();
+
+  return { actual, runway, isGateTime };
+}
+
+const MAX_TAXI_MINUTES = 120;
+const AIRBORNE_MIN_MINUTES = 10;
+const AIRBORNE_MAX_MINUTES = 18 * 60;
+
+/** Whole minutes from `earlier` to `later`, rounded. */
+const minutesBetween = (later: Date, earlier: Date): number =>
+  Math.round((later.getTime() - earlier.getTime()) / 60_000);
+
+const sanitizeTaxiMinutes = (minutes: number): number | null =>
+  minutes >= 0 && minutes <= MAX_TAXI_MINUTES ? minutes : null;
+
+const sanitizeAirborneMinutes = (minutes: number): number | null =>
+  minutes >= AIRBORNE_MIN_MINUTES && minutes <= AIRBORNE_MAX_MINUTES
+    ? minutes
+    : null;
 
 async function fetchAeroDataBox(path: string): Promise<Response> {
   const integrations = (await appConfig.get())?.integrations;
@@ -85,7 +182,7 @@ export async function getFlightRoute(
     const toDate = format(addDays(now, 2), 'yyyy-MM-dd');
     path = `/flights/number/${encodeURIComponent(
       cleaned,
-    )}/${fromDate}/${toDate}?dateLocalRole=Both&withAircraftImage=false&withLocation=false`;
+    )}/${fromDate}/${toDate}?dateLocalRole=Both`;
   }
 
   const resp = await fetchAeroDataBox(path);
@@ -97,27 +194,6 @@ export async function getFlightRoute(
     console.error('Failed to fetch flight data:', resp.statusText);
     throw new Error('Failed to fetch flight data');
   }
-
-  type AedbxFlight = {
-    departure: {
-      airport: { icao?: string; timeZone?: string };
-      terminal?: string;
-      gate?: string;
-      scheduledTime?: { local: string };
-      revisedTime?: { local: string };
-      actualTime?: { local: string };
-    };
-    arrival: {
-      airport: { icao?: string; timeZone?: string };
-      terminal?: string;
-      gate?: string;
-      scheduledTime?: { local: string };
-      revisedTime?: { local: string };
-      actualTime?: { local: string };
-    };
-    airline?: { iata?: string; icao?: string };
-    aircraft?: { reg?: string };
-  };
 
   const data = (await resp.json()) as AedbxFlight[];
   if (!Array.isArray(data) || data.length === 0) {
@@ -137,38 +213,43 @@ export async function getFlightRoute(
       continue;
     }
 
-    const parseTime = (timeStr: string | undefined, tzId: string) => {
-      if (!timeStr) return null;
-      return parse(timeStr, 'yyyy-MM-dd HH:mmxxx', new Date(), {
-        in: tz(tzId),
-      });
-    };
-
     const depTz = item.departure.airport.timeZone ?? fromAirport.tz;
     const arrTz = item.arrival.airport.timeZone ?? toAirport.tz;
 
     // Actual time (best estimate of what actually happened)
-    const departureTimeStr =
-      item.departure.actualTime?.local ??
-      item.departure.revisedTime?.local ??
-      item.departure.scheduledTime?.local;
-    const arrivalTimeStr =
-      item.arrival.actualTime?.local ??
-      item.arrival.revisedTime?.local ??
-      item.arrival.scheduledTime?.local;
-
-    const departureTime = parseTime(departureTimeStr, depTz);
-    const arrivalTime = parseTime(arrivalTimeStr, arrTz);
+    const depTimes = resolveMovementTimes(item.departure, depTz);
+    const arrTimes = resolveMovementTimes(item.arrival, arrTz);
+    const departureTime = depTimes.actual;
+    const arrivalTime = arrTimes.actual;
 
     // Scheduled time
-    const departureScheduled = parseTime(
-      item.departure.scheduledTime?.local,
+    const departureScheduled = parseMovementTime(
+      item.departure.scheduledTime,
       depTz,
     );
-    const arrivalScheduled = parseTime(
-      item.arrival.scheduledTime?.local,
+    const arrivalScheduled = parseMovementTime(
+      item.arrival.scheduledTime,
       arrTz,
     );
+
+    // Informational durations derived at fetch time; never persisted.
+    const taxiOut =
+      depTimes.isGateTime && depTimes.actual && depTimes.runway
+        ? sanitizeTaxiMinutes(minutesBetween(depTimes.runway, depTimes.actual))
+        : null;
+    const taxiIn =
+      arrTimes.isGateTime && arrTimes.actual && arrTimes.runway
+        ? sanitizeTaxiMinutes(minutesBetween(arrTimes.actual, arrTimes.runway))
+        : null;
+    const airborneTime =
+      depTimes.isGateTime &&
+      arrTimes.isGateTime &&
+      depTimes.runway &&
+      arrTimes.runway
+        ? sanitizeAirborneMinutes(
+            minutesBetween(arrTimes.runway, depTimes.runway),
+          )
+        : null;
 
     let airline: Airline | null = null;
     if (item.airline?.icao) {
@@ -192,6 +273,11 @@ export async function getFlightRoute(
       departureGate: item.departure.gate ?? null,
       arrivalTerminal: item.arrival.terminal ?? null,
       arrivalGate: item.arrival.gate ?? null,
+      departureRunway: depTimes.runway,
+      arrivalRunway: arrTimes.runway,
+      taxiOut,
+      taxiIn,
+      airborneTime,
     };
 
     result.push(flightInfo);

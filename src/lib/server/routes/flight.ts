@@ -73,6 +73,10 @@ export const flightRouter = router({
         arrivalScheduled: r.arrivalScheduled
           ? r.arrivalScheduled.toISOString()
           : null,
+        departureRunway: r.departureRunway
+          ? r.departureRunway.toISOString()
+          : null,
+        arrivalRunway: r.arrivalRunway ? r.arrivalRunway.toISOString() : null,
       }));
     }),
   lookupAircraftByReg: authedProcedure

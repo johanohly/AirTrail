@@ -38,6 +38,28 @@
     return null;
   };
 
+  const formatDuration = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = Math.round(minutes % 60);
+    if (hours === 0) return `${mins}m`;
+    if (mins === 0) return `${hours}h`;
+    return `${hours}h ${mins}m`;
+  };
+
+  // One-line summary of the fetched flight profile, e.g.
+  // "2h 35m airborne · taxi 17m / 8m". Null when nothing is derived.
+  const durationHint = (result: LookupResult) => {
+    const parts: string[] = [];
+    if (result.airborneTime != null) {
+      parts.push(`${formatDuration(result.airborneTime)} airborne`);
+    }
+    const taxis = [result.taxiOut, result.taxiIn]
+      .filter((minutes): minutes is number => minutes != null)
+      .map((minutes) => formatDuration(minutes));
+    if (taxis.length > 0) parts.push(`taxi ${taxis.join(' / ')}`);
+    return parts.length > 0 ? parts.join(' · ') : null;
+  };
+
   type FlightFormData = z.infer<typeof flightSchema>;
   type TimetableTab = 'scheduled' | 'actual';
 
@@ -67,6 +89,10 @@
     departureGate?: FlightFormData['departureGate'];
     arrivalTerminal?: FlightFormData['arrivalTerminal'];
     arrivalGate?: FlightFormData['arrivalGate'];
+    // Fetch-time derived, informational only; not part of the form.
+    taxiOut?: number | null;
+    taxiIn?: number | null;
+    airborneTime?: number | null;
   };
 
   let lookupResults: LookupResult[] | null = $state(null);
@@ -398,6 +424,12 @@
               <div class="text-xs text-muted-foreground truncate">
                 {r.airline?.name ?? r.airline?.icao ?? 'Unknown'}
               </div>
+
+              {#if durationHint(r)}
+                <div class="text-xs text-muted-foreground truncate">
+                  {durationHint(r)}
+                </div>
+              {/if}
             </div>
           </div>
         </button>
