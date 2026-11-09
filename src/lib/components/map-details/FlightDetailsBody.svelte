@@ -15,6 +15,7 @@
     type FlightData,
   } from '$lib/utils';
   import type { FlightPassenger } from '$lib/db/types';
+  import { averageSpeedKmh } from '$lib/stats/records';
   import { Duration } from '$lib/utils/datetime';
   import {
     convertDistance,
@@ -47,13 +48,10 @@
     flight.duration ? Duration.fromSeconds(flight.duration).toString() : null,
   );
 
-  // Without both recorded times the duration is estimated from the distance,
-  // so a speed derived from it would carry no information.
-  const avgSpeedLabel = $derived(
-    flight.departure && flight.arrival && flight.distance && flight.duration
-      ? formatSpeed((flight.distance * 3600) / flight.duration, prefs)
-      : null,
-  );
+  const avgSpeedLabel = $derived.by(() => {
+    const speed = averageSpeedKmh(flight);
+    return speed === null ? null : formatSpeed(speed, prefs);
+  });
 
   const seatLabel = $derived(formatSeatForUser(flight, seatUserId));
 

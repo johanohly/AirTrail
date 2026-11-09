@@ -14,9 +14,9 @@
   import type { FlightData } from '$lib/utils';
   import { Duration } from '$lib/utils/datetime';
   import {
-    convertDistance,
     formatDistance,
     formatFlightDate,
+    formatSpeed,
     getPreferences,
   } from '$lib/utils/preferences';
 
@@ -30,8 +30,6 @@
     onOpenAirport?: (airportId: number) => void;
   } = $props();
 
-  const SPEED_UNITS = { km: 'km/h', mi: 'mph', nm: 'kt' } as const;
-
   const prefs = $derived(getPreferences(page.data.user));
 
   const byDistance = $derived(distanceRecords(flights));
@@ -42,8 +40,6 @@
 
   const formatDuration = (seconds: number) =>
     Duration.fromSeconds(seconds).toString(true);
-  const formatSpeed = (kmh: number) =>
-    `${Math.round(convertDistance(kmh, prefs)).toLocaleString()} ${SPEED_UNITS[prefs.distanceUnit]}`;
   const formatLatitude = (latitude: number) =>
     `${Math.abs(latitude).toFixed(1)}°${latitude >= 0 ? 'N' : 'S'}`;
   const formatZones = (zones: number) =>
@@ -156,7 +152,7 @@
       bySpeed.highest.flight,
       withFlightDetail(
         bySpeed.highest.flight,
-        formatSpeed(bySpeed.highest.value),
+        formatSpeed(bySpeed.highest.value, prefs),
       ),
     )}
   {/if}
@@ -183,7 +179,7 @@
       bySpeed.lowest.flight,
       withFlightDetail(
         bySpeed.lowest.flight,
-        formatSpeed(bySpeed.lowest.value),
+        formatSpeed(bySpeed.lowest.value, prefs),
       ),
     )}
   {/if}

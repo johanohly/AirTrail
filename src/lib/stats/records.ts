@@ -34,16 +34,18 @@ export const durationRecords = (flights: FlightData[]) =>
   highestAndLowest(flights, (flight) => flight.duration);
 
 /**
- * The flights with the highest and lowest average ground speed, in km/h.
- * Without both recorded times the duration is estimated from the distance,
- * so a speed derived from it would carry no information.
+ * A flight's average ground speed in km/h, or null when it has no measured
+ * one. Without both recorded times the duration is estimated from the
+ * distance, so a speed derived from it would carry no information.
  */
+export const averageSpeedKmh = (flight: FlightData): number | null =>
+  flight.departure && flight.arrival && flight.distance && flight.duration
+    ? (flight.distance * 3600) / flight.duration
+    : null;
+
+/** The flights with the highest and lowest measured average ground speed. */
 export const speedRecords = (flights: FlightData[]) =>
-  highestAndLowest(flights, (flight) =>
-    flight.departure && flight.arrival && flight.distance && flight.duration
-      ? (flight.distance * 3600) / flight.duration
-      : null,
-  );
+  highestAndLowest(flights, averageSpeedKmh);
 
 /** A time zone's UTC offset in hours at a moment, or null if unknowable. */
 const offsetOf = (timeZone: string, at: Date): number | null => {
