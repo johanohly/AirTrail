@@ -46,11 +46,12 @@
     `${Math.round(convertDistance(kmh, prefs)).toLocaleString()} ${SPEED_UNITS[prefs.distanceUnit]}`;
   const formatLatitude = (latitude: number) =>
     `${Math.abs(latitude).toFixed(1)}°${latitude >= 0 ? 'N' : 'S'}`;
+  const formatZones = (zones: number) =>
+    `${zones % 1 ? zones.toFixed(1) : zones} crossed`;
   const routeLabel = (flight: FlightData) =>
     [codeForAirport(flight.from), codeForAirport(flight.to)]
       .filter(Boolean)
       .join(' – ') || 'Unknown route';
-  // Names the flight behind a record by its number and the day it flew.
   const withFlightDetail = (flight: FlightData, value: string) =>
     [
       value,
@@ -114,7 +115,7 @@
     label,
     headline,
     detail,
-    onOpenFlight && (() => onOpenFlight?.(flight.id)),
+    onOpenFlight && (() => onOpenFlight(flight.id)),
   )}
 {/snippet}
 
@@ -127,7 +128,7 @@
     label,
     headline,
     `${airport.municipality || airport.name} · ${formatLatitude(airport.lat)}`,
-    onOpenAirport && (() => onOpenAirport?.(airport.id)),
+    onOpenAirport && (() => onOpenAirport(airport.id)),
   )}
 {/snippet}
 
@@ -153,7 +154,10 @@
     {@render flightCard(
       'Fastest flight',
       bySpeed.highest.flight,
-      formatSpeed(bySpeed.highest.value),
+      withFlightDetail(
+        bySpeed.highest.flight,
+        formatSpeed(bySpeed.highest.value),
+      ),
     )}
   {/if}
   {#if byDistance.lowest}
@@ -177,7 +181,10 @@
     {@render flightCard(
       'Slowest flight',
       bySpeed.lowest.flight,
-      formatSpeed(bySpeed.lowest.value),
+      withFlightDetail(
+        bySpeed.lowest.flight,
+        formatSpeed(bySpeed.lowest.value),
+      ),
     )}
   {/if}
   {#if byLatitude.north}
@@ -190,7 +197,7 @@
     {@render flightCard(
       'Most time zones',
       byZones.flight,
-      `${byZones.value % 1 ? byZones.value.toFixed(1) : byZones.value} crossed`,
+      formatZones(byZones.value),
     )}
   {/if}
 </div>

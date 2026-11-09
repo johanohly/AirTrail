@@ -324,9 +324,8 @@ export const seedDemo = async () => {
     jonas: ids.jonas,
     ella: ids.ella,
   };
-  let legCount = 0;
+  let legIndex = 0;
   const createLeg = async (leg: Leg, reason: string, with_: Companion[]) => {
-    legCount++;
     const departs = shiftLocal(leg.departs, offset);
     const from = airports.get(leg.from)!;
     const to = airports.get(leg.to)!;
@@ -336,7 +335,7 @@ export const seedDemo = async () => {
     const duration = estimatedDuration(origin, destination);
     const arrival = new Date(departure.getTime() + duration * 1000);
     const deviation =
-      SCHEDULE_DEVIATIONS[legCount % SCHEDULE_DEVIATIONS.length]!;
+      SCHEDULE_DEVIATIONS[legIndex++ % SCHEDULE_DEVIATIONS.length]!;
     const arrivalScheduled = new Date(arrival.getTime() - deviation * 60_000);
     const passenger = (userId: string, position: number) => ({
       userId,

@@ -158,10 +158,17 @@ export const normalizeSeatNumber = (
   seatNumber: string | null | undefined,
 ): string | null => {
   const match = seatNumber?.trim().match(/^(\d{1,3})\s*([A-Z])$/i);
-  return match ? `${match[1]}${match[2]!.toUpperCase()}` : null;
+  return match ? `${Number(match[1])}${match[2]!.toUpperCase()}` : null;
 };
 
-const countryCodesOf = (flight: FlightData) =>
+/** The passengers whose stats are shown: one user's, or everyone's. */
+export const scopedPassengers = (flight: FlightData, ctx: StatsContext) =>
+  ctx.userId
+    ? flight.passengers.filter((passenger) => passenger.userId === ctx.userId)
+    : flight.passengers;
+
+/** A flight's uppercased country codes, once each for a domestic flight. */
+export const countryCodesOf = (flight: FlightData) =>
   new Set(
     [flight.from?.country, flight.to?.country].flatMap((country) =>
       country ? [country.toUpperCase()] : [],
@@ -211,10 +218,15 @@ export const flightMatchesChartBucket = (
 ): boolean => {
   if (bucket === 'Others') return false;
 
+  if (chartKey === 'seat-numbers') {
+    return scopedPassengers(flight, ctx).some(
+      (passenger) => normalizeSeatNumber(passenger.seatNumber) === bucket,
+    );
+  }
+
   if (
     chartKey === 'seat' ||
     chartKey === 'seat-class' ||
-    chartKey === 'seat-numbers' ||
     chartKey === 'reason'
   ) {
     const field =
@@ -222,12 +234,8 @@ export const flightMatchesChartBucket = (
         ? 'seat'
         : chartKey === 'seat-class'
           ? 'seatClass'
-          : chartKey === 'seat-numbers'
-            ? 'seatNumber'
-            : 'flightReason';
-    const passengers = ctx.userId
-      ? flight.passengers.filter((passenger) => passenger.userId === ctx.userId)
-      : flight.passengers;
+          : 'flightReason';
+    const passengers = scopedPassengers(flight, ctx);
 
     if (bucket === 'No Data') {
       if (ctx.userId) {
@@ -237,12 +245,6 @@ export const flightMatchesChartBucket = (
         );
       }
       return passengers.some((passenger) => !passenger[field]);
-    }
-
-    if (chartKey === 'seat-numbers') {
-      return passengers.some(
-        (passenger) => normalizeSeatNumber(passenger.seatNumber) === bucket,
-      );
     }
 
     return passengers.some(
@@ -323,10 +325,7 @@ export function seatNumberDistribution(
 ): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const flight of flights) {
-    const passengers = ctx.userId
-      ? flight.passengers.filter((p) => p.userId === ctx.userId)
-      : flight.passengers;
-    for (const { seatNumber } of passengers) {
+    for (const { seatNumber } of scopedPassengers(flight, ctx)) {
       const seat = normalizeSeatNumber(seatNumber);
       if (!seat) continue;
 

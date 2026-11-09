@@ -1,22 +1,17 @@
 import type { Airport } from '$lib/db/types';
 import type { FlightData } from '$lib/utils';
 
-export type FlightRecord = {
+type RecordHolder = {
   flight: FlightData;
   value: number;
-};
-
-export type FlightRecordPair = {
-  highest: FlightRecord | null;
-  lowest: FlightRecord | null;
 };
 
 const highestAndLowest = (
   flights: FlightData[],
   valueOf: (flight: FlightData) => number | null,
-): FlightRecordPair => {
-  let highest: FlightRecord | null = null;
-  let lowest: FlightRecord | null = null;
+) => {
+  let highest: RecordHolder | null = null;
+  let lowest: RecordHolder | null = null;
   for (const flight of flights) {
     const value = valueOf(flight);
     if (value === null) continue;
@@ -27,9 +22,12 @@ const highestAndLowest = (
   return { highest, lowest };
 };
 
-/** The flights covering the most and least distance, in km. */
+/**
+ * The flights covering the most and least distance, in km. A flight back to
+ * its own airport covers none, so it doesn't count as the shortest route.
+ */
 export const distanceRecords = (flights: FlightData[]) =>
-  highestAndLowest(flights, (flight) => flight.distance);
+  highestAndLowest(flights, (flight) => flight.distance || null);
 
 /** The flights with the most and least time in the air, in seconds. */
 export const durationRecords = (flights: FlightData[]) =>
@@ -70,20 +68,19 @@ const offsetOf = (timeZone: string, at: Date): number | null => {
 
 /**
  * The flight spanning the most time zones, comparing the airports' UTC
- * offsets at departure and arrival so daylight saving counts. Flights that
- * stay within one zone are no record, so this is null when all of them do.
+ * offsets at departure so daylight saving counts. Both are read at the same
+ * moment: reading the arrival later could straddle a changeover and count a
+ * zone that no flight crossed. Flights that stay within one zone are no
+ * record, so this is null when all of them do.
  */
-export const timeZoneRecord = (flights: FlightData[]): FlightRecord | null => {
-  let best: FlightRecord | null = null;
+export const timeZoneRecord = (flights: FlightData[]): RecordHolder | null => {
+  let best: RecordHolder | null = null;
   for (const flight of flights) {
-    if (!flight.from?.tz || !flight.to?.tz) continue;
+    const at = flight.departure ?? flight.date;
+    if (!flight.from?.tz || !flight.to?.tz || !at) continue;
 
-    const depart = flight.departure ?? flight.date;
-    const arrive = flight.arrival ?? flight.dateEnd ?? flight.date;
-    if (!depart || !arrive) continue;
-
-    const origin = offsetOf(flight.from.tz, depart);
-    const destination = offsetOf(flight.to.tz, arrive);
+    const origin = offsetOf(flight.from.tz, at);
+    const destination = offsetOf(flight.to.tz, at);
     if (origin === null || destination === null) continue;
 
     // Offsets run from -12 to +14, so the short way round may cross the

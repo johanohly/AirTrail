@@ -14,13 +14,15 @@
     details: BreakdownDetails;
   } = $props();
 
-  const isCode = $derived(
-    chartKey === 'airports' ||
-      chartKey === 'countries' ||
-      chartKey === 'routes' ||
-      chartKey === 'aircraft-regs' ||
-      chartKey === 'seat-numbers',
-  );
+  const CODE_KEYS = new Set<FlightChartKey>([
+    'airports',
+    'countries',
+    'routes',
+    'aircraft-regs',
+    'seat-numbers',
+  ]);
+
+  const isCode = $derived(CODE_KEYS.has(chartKey));
 </script>
 
 {#snippet flag(country: string | null | undefined)}

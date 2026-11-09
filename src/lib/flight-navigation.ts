@@ -16,14 +16,12 @@ export type FlightListFocus =
       direction: 'departure' | 'arrival';
     };
 
+export type MapFocus =
+  { type: 'flight'; flightId: number } | { type: 'airport'; airportId: number };
+
 export type FlightNavigationIntent =
   | { destination: 'list'; focus: FlightListFocus }
-  | {
-      destination: 'map';
-      focus:
-        | { type: 'flight'; flightId: number }
-        | { type: 'airport'; airportId: number };
-    };
+  | { destination: 'map'; focus: MapFocus };
 
 export type NavigateFlights = (
   intent: FlightNavigationIntent,
@@ -39,8 +37,7 @@ export type FlightNavigationState = {
 type FlightNavigationTransition = {
   state: FlightNavigationState;
   focusFlightId?: number;
-  detailFlightId?: number;
-  detailAirportId?: number;
+  mapFocus?: MapFocus;
 };
 
 export type FlightNavigatorDependencies = {
@@ -59,17 +56,15 @@ export const planFlightNavigation = (
   const tempFilters = createDefaultTempFilters();
 
   if (intent.destination === 'map') {
-    const base = {
+    return {
       state: {
         tempFilters,
         focusedListFlightId: null,
         listOpen: false,
         statisticsOpen: false,
       },
+      mapFocus: intent.focus,
     };
-    return intent.focus.type === 'flight'
-      ? { ...base, detailFlightId: intent.focus.flightId }
-      : { ...base, detailAirportId: intent.focus.airportId };
   }
 
   const focus = intent.focus;
@@ -106,18 +101,14 @@ export const createFlightNavigator = (
     if (transition.focusFlightId !== undefined) {
       dependencies.focusFlightInList(transition.focusFlightId);
     }
-    if (
-      transition.detailFlightId === undefined &&
-      transition.detailAirportId === undefined
-    ) {
-      return;
-    }
+    const { mapFocus } = transition;
+    if (!mapFocus) return;
 
     await dependencies.waitForModalClose();
-    if (transition.detailFlightId !== undefined) {
-      dependencies.openFlightDetails(transition.detailFlightId);
+    if (mapFocus.type === 'flight') {
+      dependencies.openFlightDetails(mapFocus.flightId);
     } else {
-      dependencies.openAirportDetails(transition.detailAirportId!);
+      dependencies.openAirportDetails(mapFocus.airportId);
     }
   };
 };

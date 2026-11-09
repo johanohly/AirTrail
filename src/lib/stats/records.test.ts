@@ -40,6 +40,15 @@ describe('distance and duration records', () => {
     });
   });
 
+  it('leaves a flight back to its own airport out of the shortest route', () => {
+    const flights = [flight(0, 1800), flight(350, 3600)];
+
+    expect(distanceRecords(flights).lowest).toEqual({
+      flight: flights[1],
+      value: 350,
+    });
+  });
+
   it('returns nothing without values to compare', () => {
     expect(distanceRecords([flight(null, null)])).toEqual({
       highest: null,
@@ -139,6 +148,18 @@ describe('time zone record', () => {
 
     expect(timeZoneRecord([summer])?.value).toBe(4.5);
     expect(timeZoneRecord([winter])?.value).toBe(5.5);
+  });
+
+  it('counts no zone for a domestic flight across a changeover month', () => {
+    // Logged by month: the period starts in winter time and ends in summer.
+    const march = {
+      from: { tz: 'Europe/Berlin' },
+      to: { tz: 'Europe/Berlin' },
+      date: new Date('2025-03-01T00:00:00Z'),
+      dateEnd: new Date('2025-03-31T23:59:59Z'),
+    } as unknown as FlightData;
+
+    expect(timeZoneRecord([march])).toBeNull();
   });
 
   it('returns nothing when no flight leaves its time zone', () => {

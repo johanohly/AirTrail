@@ -207,6 +207,7 @@ describe('seat numbers', () => {
   it('normalizes case and surrounding space', () => {
     expect(normalizeSeatNumber(' 12f ')).toBe('12F');
     expect(normalizeSeatNumber('2A')).toBe('2A');
+    expect(normalizeSeatNumber('07c')).toBe('7C');
     expect(normalizeSeatNumber('row 12')).toBeNull();
     expect(normalizeSeatNumber('')).toBeNull();
     expect(normalizeSeatNumber(null)).toBeNull();
