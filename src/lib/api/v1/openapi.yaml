@@ -1169,7 +1169,7 @@ components:
             - private
         flightReason:
           type: [string, 'null']
-          enum: [leisure, business, crew, other]
+          description: Built-in or custom passenger reason. Saved reasons remain readable after removal from settings.
     PassengerInput:
       type: object
       description: Exactly one of userId and guestName is required.
@@ -1205,7 +1205,7 @@ components:
             - private
         flightReason:
           type: [string, 'null']
-          enum: [leisure, business, crew, other]
+          description: Built-in reason, or an active custom reason for the authenticated passenger. An unchanged saved reason may be retained after removal from settings.
         customFields:
           type: object
           additionalProperties: true

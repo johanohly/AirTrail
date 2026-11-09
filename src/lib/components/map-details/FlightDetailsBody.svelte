@@ -23,6 +23,7 @@
     formatSpeed,
   } from '$lib/utils/preferences';
   import type { Preferences } from '$lib/zod/user';
+  import { flightReasonLabel } from '$lib/utils/flight-reasons';
 
   let {
     flight,
@@ -76,7 +77,7 @@
         name: getFlightPassengerLabel(passenger),
         seat: seatDescriptor(passenger),
         reason: passenger.flightReason
-          ? toTitleCase(passenger.flightReason)
+          ? flightReasonLabel(passenger.flightReason)
           : null,
       }))
       .filter(
