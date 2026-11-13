@@ -9,6 +9,7 @@ import { apiError, legacyApiRoute } from '$lib/server/utils/api';
 import {
   flightValuesFromForm,
   saveFlightAggregate,
+  withTrackEventTimes,
 } from '$lib/server/utils/flight';
 import { aircraftSchema } from '$lib/zod/aircraft';
 import { airlineSchema } from '$lib/zod/airline';
@@ -163,7 +164,8 @@ export const POST = legacyApiRoute(async ({ principal, event }) => {
   const existingId = parsed.data.id ?? null;
   const id = await saveFlightAggregate(apiFlightWriter(principal), {
     id: existingId,
-    ...prepared,
+    customFields: prepared.customFields,
+    values: withTrackEventTimes(prepared.values),
   });
   return json({ success: true, ...(existingId === null ? { id } : {}) });
 });

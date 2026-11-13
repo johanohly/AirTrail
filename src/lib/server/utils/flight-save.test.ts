@@ -5,6 +5,7 @@ import type { Permission } from '$lib/authorization/permissions';
 import type { CreateFlight } from '$lib/db/types';
 import { AuthorizationError } from '$lib/server/authorization/authorize';
 import type { AuthorizationContext } from '$lib/server/authorization/context';
+import type { FlightTrackInput } from '$lib/track/schema';
 
 const mocks = vi.hoisted(() => ({
   getFlightPrimitive: vi.fn(),
@@ -48,7 +49,11 @@ vi.mock('$lib/server/utils/custom-fields', async (importOriginal) => ({
   persistEntityCustomFieldPlan: async () => {},
 }));
 
-const { saveFlightAggregate } = await import('./flight');
+const {
+  fillFlightTimesFromTrackWithConnection,
+  saveFlightAggregate,
+  withTrackEventTimes,
+} = await import('./flight');
 
 const role = (...permissions: Permission[]): AuthorizationContext => ({
   userId: 'me',
@@ -193,5 +198,83 @@ describe('updating a flight', () => {
     await expect(
       update(w, values([passenger('me', 10), passenger('other')])),
     ).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe('takeoff and landing times from a written track', () => {
+  // Takeoff at 07:00:30 UTC, landing at 08:59:45 UTC.
+  const track: FlightTrackInput = {
+    sourceFormat: 'kml',
+    sourceName: null,
+    coordinates: [
+      [0, 0, 0],
+      [0, 0, 10],
+      [0, 0, 10],
+      [0, 0, 0],
+    ],
+    times: [25170, 25230, 32370, 32385],
+  };
+  const flight = (extra: Partial<CreateFlight> = {}) =>
+    values([passenger('me')], {
+      datePrecision: 'day',
+      from: { tz: 'UTC' },
+      to: { tz: 'UTC' },
+      departureScheduled: '1970-01-01T07:00:00.000Z',
+      takeoffActual: null,
+      landingActual: null,
+      track,
+      ...extra,
+    } as unknown as Partial<CreateFlight>);
+
+  it('fills empty times on API, MCP and import writes', () => {
+    expect(withTrackEventTimes(flight())).toMatchObject({
+      takeoffActual: '1970-01-01T07:00:00.000Z',
+      landingActual: '1970-01-01T08:59:00.000Z',
+    });
+  });
+
+  it('never overwrites a time in the payload', () => {
+    expect(
+      withTrackEventTimes(flight({ landingActual: '1970-01-01T09:01:00Z' })),
+    ).toMatchObject({
+      takeoffActual: '1970-01-01T07:00:00.000Z',
+      landingActual: '1970-01-01T09:01:00Z',
+    });
+  });
+
+  it('leaves a payload without a track alone', () => {
+    const input = flight({ track: undefined });
+    expect(withTrackEventTimes(input)).toBe(input);
+  });
+
+  it('does not fill on the shared save path the web form uses', async () => {
+    await create(writer(role('flight.create.own')), flight());
+    expect(mocks.createFlightPrimitiveWithConnection).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ takeoffActual: null, landingActual: null }),
+    );
+  });
+
+  it('fills only the empty sides of a stored flight', async () => {
+    mocks.getFlightPrimitive.mockResolvedValue(
+      flight({ landingActual: '1970-01-01T09:01:00.000Z' }),
+    );
+    const updates: unknown[][] = [];
+    const query = {
+      set: (value: unknown) => (updates.push([value]), query),
+      where: (...args: unknown[]) => (updates.at(-1)!.push(args), query),
+      execute: async () => [],
+    };
+    const trx = { updateTable: () => query } as unknown as Parameters<
+      typeof fillFlightTimesFromTrackWithConnection
+    >[0];
+    await fillFlightTimesFromTrackWithConnection(trx, 1, track);
+    expect(updates).toEqual([
+      [
+        { takeoffActual: '1970-01-01T07:00:00.000Z' },
+        ['id', '=', 1],
+        ['takeoffActual', 'is', null],
+      ],
+    ]);
   });
 });

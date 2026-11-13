@@ -7,6 +7,7 @@ import {
   flightTrackPayloadSchema,
   type FlightTrackInput,
 } from '$lib/track/schema';
+import { fillFlightTimesFromTrackWithConnection } from '$lib/server/utils/flight';
 import { requireFlightScope } from '../access';
 import type { ApiPrincipal } from '../principal';
 
@@ -47,7 +48,10 @@ export const setFlightTrack = async (
   track: FlightTrackInput,
 ) => {
   await requireFlightScope(principal, 'update', flightId);
-  await upsertFlightTrackPrimitiveWithConnection(db, flightId, track);
+  await db.transaction().execute(async (trx) => {
+    await upsertFlightTrackPrimitiveWithConnection(trx, flightId, track);
+    await fillFlightTimesFromTrackWithConnection(trx, flightId, track);
+  });
   return readTrack(flightId);
 };
 
