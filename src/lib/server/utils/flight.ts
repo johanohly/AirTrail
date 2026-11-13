@@ -23,6 +23,8 @@ import {
 import type { DB } from '$lib/db/schema';
 import type { CreateFlight, DatabaseConnection, Flight } from '$lib/db/types';
 import type { ResolvedFlightScope } from '$lib/flight-scope';
+import type { FlightTrackInput } from '$lib/track/schema';
+import { fillTrackEventTimes } from '$lib/track/event-times';
 import { AuthorizationError } from '$lib/server/authorization/authorize';
 import type { AuthorizationContext } from '$lib/server/authorization/context';
 import {
@@ -177,6 +179,44 @@ export const getFlight = async (id: number) => {
 
 export const createFlight = async (data: CreateFlight) => {
   return await createFlightPrimitive(db, data);
+};
+
+/*
+ * Fills empty takeoff and landing times from the track being written, as the
+ * upload dialog does. For API, MCP and import writes only: the web form runs
+ * the detection itself, and a time the user cleared there must stay cleared.
+ */
+export const withTrackEventTimes = (values: CreateFlight): CreateFlight =>
+  values.track
+    ? { ...values, ...fillTrackEventTimes(values.track, values) }
+    : values;
+
+/** Fills an existing flight's empty takeoff and landing times from a track. */
+export const fillFlightTimesFromTrackWithConnection = async (
+  trx: DatabaseConnection,
+  flightId: number,
+  track: FlightTrackInput,
+) => {
+  const flight = await getFlightPrimitive(trx, flightId);
+  if (!flight) return;
+  const { takeoffActual, landingActual } = fillTrackEventTimes(track, flight);
+  // The null checks keep a value written after the flight was read.
+  if (takeoffActual) {
+    await trx
+      .updateTable('flight')
+      .set({ takeoffActual })
+      .where('id', '=', flightId)
+      .where('takeoffActual', 'is', null)
+      .execute();
+  }
+  if (landingActual) {
+    await trx
+      .updateTable('flight')
+      .set({ landingActual })
+      .where('id', '=', flightId)
+      .where('landingActual', 'is', null)
+      .execute();
+  }
 };
 
 type FlightAggregatePlan = {
@@ -719,7 +759,7 @@ export const createManyFlights = async (
       (acc, f) => acc + (f.passengers?.length ?? 0),
       0,
     );
-    await createManyFlightsPrimitive(db, data);
+    await createManyFlightsPrimitive(db, data.map(withTrackEventTimes));
     return { insertedFlights, updatedFlights: 0, attachedPassengers };
   }
 
@@ -833,7 +873,10 @@ export const createManyFlights = async (
   // Insert new flights and their passengers
   let insertedFlights = 0;
   if (flightsToInsert.length) {
-    await createManyFlightsPrimitive(db, flightsToInsert);
+    await createManyFlightsPrimitive(
+      db,
+      flightsToInsert.map(withTrackEventTimes),
+    );
     insertedFlights = flightsToInsert.length;
   }
 
@@ -867,6 +910,7 @@ export const createManyFlights = async (
 
       for (const { flightId, track } of tracksToUpsert) {
         await upsertFlightTrackPrimitiveWithConnection(trx, flightId, track);
+        await fillFlightTimesFromTrackWithConnection(trx, flightId, track);
       }
 
       if (passengersToAttach.length) {

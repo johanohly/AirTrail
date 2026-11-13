@@ -1,6 +1,7 @@
 import type { FlightTrackInput } from './schema';
 
 import { decomposeToLocal, mergeTimeWithDate } from '$lib/utils/datetime';
+import type { CreateFlight } from '$lib/db/types';
 import type { FlightFormData } from '$lib/zod/flight';
 
 const MAX_TRANSITION_GAP_SECONDS = 60;
@@ -50,10 +51,14 @@ const COMPARISON_FIELDS = {
   ],
   arrival: ['arrivalScheduled', 'arrival', 'landingScheduled', 'landingActual'],
 } as const;
+type Side = keyof typeof COMPARISON_FIELDS;
+
+const comparisonReference = (field: string) =>
+  field.endsWith('Scheduled') ? 'the original schedule' : 'the entered time';
 
 const findComparisonTime = (
   form: FlightFormData,
-  side: keyof typeof COMPARISON_FIELDS,
+  side: Side,
   timezone: string,
 ) => {
   for (const field of COMPARISON_FIELDS[side]) {
@@ -63,9 +68,7 @@ const findComparisonTime = (
     try {
       return {
         at: mergeTimeWithDate(date, time, timezone).getTime(),
-        reference: field.endsWith('Scheduled')
-          ? 'the original schedule'
-          : 'the entered time',
+        reference: comparisonReference(field),
       };
     } catch {
       // Invalid time input is reported by the flight form itself.
@@ -75,25 +78,38 @@ const findComparisonTime = (
   return null;
 };
 
-export const prepareTrackEventTimes = (
+type SideInput = {
+  /** Null skips the side, as when the airport is unknown. */
+  comparison: { at: number; reference: string } | null | undefined;
+  /** True when the side already has a takeoff or landing value. */
+  filled: boolean;
+};
+
+/*
+ * The rules shared by the upload dialog and server-side track writes: compare
+ * each side against the flight's own times, and fill only empty sides of a
+ * day-precision flight. A mismatch on either side fills nothing.
+ */
+export const resolveTrackEventTimes = (
   track: FlightTrackInput,
-  form: FlightFormData,
+  {
+    datePrecision,
+    sides,
+  }: {
+    datePrecision: string;
+    sides: Record<Side, SideInput | null>;
+  },
 ) => {
   const events = detectTrackEventTimes(track);
   const warnings: string[] = [];
-  const values: Partial<FlightFormData> = {};
+  const filled: { takeoff?: number; landing?: number } = {};
   for (const departure of [true, false]) {
+    const side = sides[departure ? 'departure' : 'arrival'];
+    if (!side) continue;
     const label = departure ? 'Departure' : 'Arrival';
     const event = departure ? events.takeoff : events.landing;
     const time = event ?? (departure ? track.times?.[0] : track.times?.at(-1));
-    const airport = departure ? form.from : form.to;
-    if (!airport?.tz) continue;
-    const timezone = airport.tz;
-    const comparison = findComparisonTime(
-      form,
-      departure ? 'departure' : 'arrival',
-      timezone,
-    );
+    const { comparison } = side;
     if (
       time !== undefined &&
       time !== null &&
@@ -104,26 +120,98 @@ export const prepareTrackEventTimes = (
         `${label} track time differs from ${comparison.reference} by more than 24 hours. Check that this track belongs to this flight.`,
       );
     }
-    const dateField = departure ? 'takeoffActual' : 'landingActual';
-    const timeField = departure ? 'takeoffActualTime' : 'landingActualTime';
-    if (
-      form.datePrecision === 'day' &&
-      event !== null &&
-      !form[dateField] &&
-      !form[timeField]
-    ) {
-      // The form stores canonical 24-hour times and formats them for display.
-      // Browser locales can produce strings the time validator rejects.
-      const local = decomposeToLocal(
-        new Date(event * 1000).toISOString(),
-        timezone,
-        'fr-FR',
-      );
-      values[dateField] = local.date;
-      values[timeField] = local.time;
+    if (datePrecision === 'day' && event !== null && !side.filled) {
+      filled[departure ? 'takeoff' : 'landing'] = event;
     }
   }
-  return { values: warnings.length ? {} : values, warnings };
+  return { events: warnings.length ? {} : filled, warnings };
+};
+
+export const prepareTrackEventTimes = (
+  track: FlightTrackInput,
+  form: FlightFormData,
+) => {
+  const side = (departure: boolean): SideInput | null => {
+    const timezone = (departure ? form.from : form.to)?.tz;
+    if (!timezone) return null;
+    const dateField = departure ? 'takeoffActual' : 'landingActual';
+    const timeField = departure ? 'takeoffActualTime' : 'landingActualTime';
+    return {
+      comparison: findComparisonTime(
+        form,
+        departure ? 'departure' : 'arrival',
+        timezone,
+      ),
+      filled: Boolean(form[dateField] || form[timeField]),
+    };
+  };
+  const { events, warnings } = resolveTrackEventTimes(track, {
+    datePrecision: form.datePrecision,
+    sides: { departure: side(true), arrival: side(false) },
+  });
+  const values: Partial<FlightFormData> = {};
+  for (const departure of [true, false]) {
+    const event = departure ? events.takeoff : events.landing;
+    const timezone = (departure ? form.from : form.to)?.tz;
+    if (event === undefined || !timezone) continue;
+    // The form stores canonical 24-hour times and formats them for display.
+    // Browser locales can produce strings the time validator rejects.
+    const local = decomposeToLocal(
+      new Date(event * 1000).toISOString(),
+      timezone,
+      'fr-FR',
+    );
+    values[departure ? 'takeoffActual' : 'landingActual'] = local.date;
+    values[departure ? 'takeoffActualTime' : 'landingActualTime'] = local.time;
+  }
+  return { values, warnings };
+};
+
+type StoredFlightTimes = Pick<
+  CreateFlight,
+  'datePrecision' | 'from' | 'to' | (typeof COMPARISON_FIELDS)[Side][number]
+>;
+
+/*
+ * Server-side counterpart of `prepareTrackEventTimes` for flights whose times
+ * are stored as UTC ISO strings, as the API, MCP and import write them.
+ * Returns only the sides to fill, rounded down to the minute like the HH:MM
+ * the upload dialog fills.
+ */
+export const fillTrackEventTimes = (
+  track: FlightTrackInput,
+  flight: StoredFlightTimes,
+): { takeoffActual?: string; landingActual?: string } => {
+  const side = (departure: boolean): SideInput | null => {
+    if (!(departure ? flight.from : flight.to)) return null;
+    const fields = COMPARISON_FIELDS[departure ? 'departure' : 'arrival'];
+    const field = fields.find((name) => flight[name]);
+    const at = field ? Date.parse(flight[field]!) : NaN;
+    return {
+      comparison:
+        field && !Number.isNaN(at)
+          ? {
+              at,
+              reference: comparisonReference(field),
+            }
+          : null,
+      filled: Boolean(departure ? flight.takeoffActual : flight.landingActual),
+    };
+  };
+  const { events } = resolveTrackEventTimes(track, {
+    datePrecision: flight.datePrecision,
+    sides: { departure: side(true), arrival: side(false) },
+  });
+  const toIso = (seconds: number) =>
+    new Date((seconds - (seconds % 60)) * 1000).toISOString();
+  return {
+    ...(events.takeoff !== undefined && {
+      takeoffActual: toIso(events.takeoff),
+    }),
+    ...(events.landing !== undefined && {
+      landingActual: toIso(events.landing),
+    }),
+  };
 };
 
 /** Clear only complete pairs that still match this upload's autofilled values. */

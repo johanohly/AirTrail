@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   clearTrackEventTimes,
   detectTrackEventTimes,
+  fillTrackEventTimes,
   prepareTrackEventTimes,
 } from './event-times';
 import type { FlightTrackInput } from './schema';
@@ -296,5 +297,79 @@ describe('track timing check', () => {
     expect(warnings).toEqual([
       'Departure track time differs from the original schedule by more than 24 hours. Check that this track belongs to this flight.',
     ]);
+  });
+});
+
+describe('filling stored flight times from a track', () => {
+  // Takeoff at 07:00:30 UTC, landing at 08:59:45 UTC.
+  const stored = track([0, 10, 10, 0], [25170, 25230, 32370, 32385]);
+  const flight = {
+    datePrecision: 'day',
+    from: { tz: 'UTC' },
+    to: { tz: 'Asia/Hong_Kong' },
+    departureScheduled: '1970-01-01T07:00:00.000Z',
+    departure: null,
+    takeoffScheduled: null,
+    takeoffActual: null,
+    arrivalScheduled: null,
+    arrival: '1970-01-01T09:05:00.000Z',
+    landingScheduled: null,
+    landingActual: null,
+  } as unknown as Parameters<typeof fillTrackEventTimes>[1];
+
+  it('fills both sides as UTC ISO strings rounded down to the minute', () => {
+    expect(fillTrackEventTimes(stored, flight)).toEqual({
+      takeoffActual: '1970-01-01T07:00:00.000Z',
+      landingActual: '1970-01-01T08:59:00.000Z',
+    });
+  });
+  it('matches what the upload dialog fills for the same track', () => {
+    const { values } = prepareTrackEventTimes(stored, form);
+    expect(values.takeoffActualTime).toBe('07:00');
+    // 08:59 UTC is 16:59 in Hong Kong.
+    expect(values.landingActualTime).toBe('16:59');
+  });
+  it('keeps a side that already has a value', () => {
+    expect(
+      fillTrackEventTimes(stored, {
+        ...flight,
+        takeoffActual: '1970-01-01T07:05:00.000Z',
+      }),
+    ).toEqual({ landingActual: '1970-01-01T08:59:00.000Z' });
+  });
+  it('fills nothing on partial-date flights', () => {
+    expect(
+      fillTrackEventTimes(stored, { ...flight, datePrecision: 'month' }),
+    ).toEqual({});
+  });
+  it('fills nothing when either side is over 24 hours from the flight', () => {
+    expect(
+      fillTrackEventTimes(stored, {
+        ...flight,
+        arrival: '1970-01-03T09:05:00.000Z',
+      }),
+    ).toEqual({});
+  });
+  it('fills a side without flight times to compare against', () => {
+    expect(
+      fillTrackEventTimes(stored, {
+        ...flight,
+        departureScheduled: null,
+        arrival: null,
+      }),
+    ).toEqual({
+      takeoffActual: '1970-01-01T07:00:00.000Z',
+      landingActual: '1970-01-01T08:59:00.000Z',
+    });
+  });
+  it('skips a side without an airport', () => {
+    expect(fillTrackEventTimes(stored, { ...flight, to: null })).toEqual({
+      takeoffActual: '1970-01-01T07:00:00.000Z',
+    });
+  });
+  it('fills nothing when the track has no clear transition', () => {
+    expect(
+      fillTrackEventTimes(track([10, 10], [25230, 32370]), flight),
+    ).toEqual({});
   });
 });
