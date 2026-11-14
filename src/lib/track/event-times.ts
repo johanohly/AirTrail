@@ -1,6 +1,8 @@
+import { TZDate } from '@date-fns/tz';
+
 import type { FlightTrackInput } from './schema';
 
-import { decomposeToLocal, mergeTimeWithDate } from '$lib/utils/datetime';
+import { mergeTimeWithDate } from '$lib/utils/datetime';
 import type { FlightFormData } from '$lib/zod/flight';
 
 const MAX_TRANSITION_GAP_SECONDS = 60;
@@ -75,13 +77,26 @@ const findComparisonTime = (
   return null;
 };
 
+export type DetectedTrackEventTimes = {
+  takeoffActual: TZDate | null;
+  landingActual: TZDate | null;
+};
+
+/**
+ * Detect takeoff and landing for this flight, in each airport's timezone. Both
+ * are left empty when the track fails the timing check. Existing form values
+ * are not considered here; the caller decides how to merge them.
+ */
 export const prepareTrackEventTimes = (
   track: FlightTrackInput,
   form: FlightFormData,
 ) => {
   const events = detectTrackEventTimes(track);
   const warnings: string[] = [];
-  const values: Partial<FlightFormData> = {};
+  const detected: DetectedTrackEventTimes = {
+    takeoffActual: null,
+    landingActual: null,
+  };
   for (const departure of [true, false]) {
     const label = departure ? 'Departure' : 'Arrival';
     const event = departure ? events.takeoff : events.landing;
@@ -104,26 +119,21 @@ export const prepareTrackEventTimes = (
         `${label} track time differs from ${comparison.reference} by more than 24 hours. Check that this track belongs to this flight.`,
       );
     }
-    const dateField = departure ? 'takeoffActual' : 'landingActual';
-    const timeField = departure ? 'takeoffActualTime' : 'landingActualTime';
-    if (
-      form.datePrecision === 'day' &&
-      event !== null &&
-      !form[dateField] &&
-      !form[timeField]
-    ) {
-      // The form stores canonical 24-hour times and formats them for display.
-      // Browser locales can produce strings the time validator rejects.
-      const local = decomposeToLocal(
-        new Date(event * 1000).toISOString(),
+    if (form.datePrecision === 'day' && event !== null) {
+      // The form stores times to the minute, so round down to match what a
+      // previous fill saved and avoid a conflict on every re-detection.
+      detected[departure ? 'takeoffActual' : 'landingActual'] = new TZDate(
+        Math.floor(event / 60) * 60_000,
         timezone,
-        'fr-FR',
       );
-      values[dateField] = local.date;
-      values[timeField] = local.time;
     }
   }
-  return { values: warnings.length ? {} : values, warnings };
+  return {
+    detected: warnings.length
+      ? { takeoffActual: null, landingActual: null }
+      : detected,
+    warnings,
+  };
 };
 
 /** Clear only complete pairs that still match this upload's autofilled values. */

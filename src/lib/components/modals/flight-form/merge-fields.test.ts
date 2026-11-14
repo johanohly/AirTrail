@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildMergeFieldStates,
   buildMergePlan,
+  buildTrackTimesMergePlan,
   getFetchedSources,
   isConflict,
   type FormatTime,
@@ -359,5 +360,83 @@ describe('getFetchedSources', () => {
     const sources = getFetchedSources(baseResult({ departure: dep }), false);
     expect(sources.departure).toBeNull();
     expect(sources.arrival).toBeNull();
+  });
+});
+
+describe('buildTrackTimesMergePlan', () => {
+  const hkg = airport(4, 'VHHH', 'HKG', 'Asia/Hong_Kong');
+  const lhr = airport(2, 'EGLL', 'LHR', 'Europe/London');
+  const takeoff = new TZDate('2026-01-01T14:05:00Z', 'Asia/Hong_Kong');
+  const landing = new TZDate('2026-01-02T02:10:00Z', 'Europe/London');
+  const plan = (overrides: Partial<FlightFormData> = {}) =>
+    buildTrackTimesMergePlan({
+      current: baseForm({ from: hkg, to: lhr, ...overrides }),
+      detected: { takeoffActual: takeoff, landingActual: landing },
+      formatTime,
+    });
+  const present = (states: MergeFieldState[]) =>
+    states.filter((state) => state.fetchedPresent).map((state) => state.key);
+
+  it('only offers takeoff and landing', () => {
+    const { states } = plan({ airline: airline(1, 'Cathay') });
+    expect(present(states)).toEqual(['takeoffActual', 'landingActual']);
+    expect(states.some(isConflict)).toBe(false);
+  });
+
+  it('fills empty fields in each airport timezone', () => {
+    expect(plan().buildPatch({})).toEqual({
+      takeoffActual: '2026-01-01T00:00:00.000Z',
+      takeoffActualTime: '22:05',
+      landingActual: '2026-01-02T00:00:00.000Z',
+      landingActualTime: '02:10',
+    });
+  });
+
+  it('treats an equal typed time as no conflict', () => {
+    const { states } = plan({
+      takeoffActual: '2026-01-01T00:00:00.000Z',
+      takeoffActualTime: '22:05',
+    });
+    const state = byKey(states, 'takeoffActual');
+    expect(state.equal).toBe(true);
+    expect(isConflict(state)).toBe(false);
+  });
+
+  it('flags a differing time and applies the chosen side', () => {
+    const current = {
+      takeoffActual: '2026-01-01T00:00:00.000Z',
+      takeoffActualTime: '22:30',
+    };
+    const result = plan(current);
+    const state = byKey(result.states, 'takeoffActual');
+    expect(isConflict(state)).toBe(true);
+    expect(state.currentDisplay).toBe('2026-01-01 22:30');
+    expect(state.fetchedDisplay).toBe('2026-01-01 22:05');
+
+    expect(result.buildPatch({ takeoffActual: 'fetched' })).toMatchObject({
+      takeoffActualTime: '22:05',
+      landingActualTime: '02:10',
+    });
+    const kept = result.buildPatch({ takeoffActual: 'current' });
+    expect(kept.takeoffActualTime).toBeUndefined();
+    expect(kept.landingActualTime).toBe('02:10');
+  });
+
+  it('leaves a side alone when nothing was detected for it', () => {
+    const { states, buildPatch } = buildTrackTimesMergePlan({
+      current: baseForm({
+        from: hkg,
+        to: lhr,
+        landingActual: '2026-01-02T00:00:00.000Z',
+        landingActualTime: '03:00',
+      }),
+      detected: { takeoffActual: takeoff, landingActual: null },
+      formatTime,
+    });
+    expect(present(states)).toEqual(['takeoffActual']);
+    expect(buildPatch({})).toEqual({
+      takeoffActual: '2026-01-01T00:00:00.000Z',
+      takeoffActualTime: '22:05',
+    });
   });
 });

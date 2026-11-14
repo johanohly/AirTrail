@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { FileUp, Route, Trash2 } from '@o7/icon/lucide';
+  import { FileUp, PlaneTakeoff, Route, Trash2 } from '@o7/icon/lucide';
+  import { toast } from 'svelte-sonner';
   import type { SuperForm } from 'sveltekit-superforms';
 
   import { page } from '$app/state';
@@ -13,9 +14,21 @@
   import { findTrackMismatches, type TrackMetadata } from '$lib/track/metadata';
   import { parseTrackFile, type ParsedTrackCandidate } from '$lib/track/parser';
   import type { FlightTrackInput } from '$lib/track/schema';
-  import { formatDateTime, getPreferences } from '$lib/utils/preferences';
+  import {
+    formatDateTime,
+    formatTime,
+    getPreferences,
+  } from '$lib/utils/preferences';
   import { isSmallScreen } from '$lib/utils/size';
   import type { FlightFormData } from '$lib/zod/flight';
+
+  import FlightMergeConflictModal from './FlightMergeConflictModal.svelte';
+  import {
+    buildTrackTimesMergePlan,
+    isConflict,
+    type MergeChoices,
+    type MergeField,
+  } from './merge-fields';
 
   let {
     form,
@@ -36,6 +49,20 @@
   let filledTimesSnapshot = $state<Partial<FlightFormData>>({});
   let metadata = $state.raw<TrackMetadata | null>(null);
   let metadataSnapshot = $state.raw<TrackMetadata | null>(null);
+  // When set, the conflict picker is shown; `resolve` returns the user's
+  // per-field choices, or null if they cancelled.
+  let mergeState = $state<{
+    fields: MergeField[];
+    applied: MergeField[];
+    resolve: (choices: MergeChoices | null) => void;
+  } | null>(null);
+
+  const TIME_FIELDS = [
+    'takeoffActual',
+    'takeoffActualTime',
+    'landingActual',
+    'landingActualTime',
+  ] as const;
 
   const prefs = $derived(getPreferences(page.data.user));
   const filledTimesNote = $derived.by(() => {
@@ -131,9 +158,96 @@
       )
     )
       return;
-    const { values } = prepareTrackEventTimes(trackInput, $formData);
-    formData.update((current) => ({ ...current, ...values }));
-    filledTimes = values;
+    void applyDetectedTimes(trackInput, { quiet: true });
+  };
+
+  const toField = ({
+    key,
+    label,
+    currentDisplay,
+    fetchedDisplay,
+  }: MergeField): MergeField => ({
+    key,
+    label,
+    currentDisplay,
+    fetchedDisplay,
+  });
+
+  /**
+   * Detect takeoff and landing from the track and merge them into the form.
+   * Empty fields are filled, and differing values go to the conflict picker.
+   * `quiet` (on upload) only reports a fill, as an upload did before.
+   */
+  const applyDetectedTimes = async (
+    trackInput: FlightTrackInput,
+    { quiet }: { quiet: boolean },
+  ) => {
+    if ($formData.datePrecision !== 'day') {
+      if (!quiet) {
+        toast.info('Times can only be detected for flights with an exact date');
+      }
+      return;
+    }
+    const { detected, warnings } = prepareTrackEventTimes(
+      trackInput,
+      $formData,
+    );
+    if (warnings.length) {
+      if (!quiet) {
+        toast.warning("Times not filled: the track doesn't match this flight");
+      }
+      return;
+    }
+
+    const plan = buildTrackTimesMergePlan({
+      current: $formData,
+      detected,
+      formatTime: (date) => formatTime(date, prefs, date.timeZone),
+    });
+    const conflicts = plan.states.filter(isConflict);
+    const applied = plan.states.filter(
+      (state) => state.fetchedPresent && !isConflict(state),
+    );
+    const added = applied.filter((state) => !state.currentPresent);
+
+    if (!applied.length && !conflicts.length) {
+      if (!quiet) toast.info('No takeoff or landing found in this track');
+      return;
+    }
+    if (!added.length && !conflicts.length) {
+      if (!quiet) toast.info('Times already match the track');
+      return;
+    }
+
+    let choices: MergeChoices = {};
+    if (conflicts.length) {
+      const resolved = await new Promise<MergeChoices | null>((resolve) => {
+        mergeState = {
+          fields: conflicts.map(toField),
+          applied: added.map(toField),
+          resolve,
+        };
+      });
+      mergeState = null;
+      if (!resolved) return;
+      choices = resolved;
+    }
+
+    const patch = plan.buildPatch(choices);
+    formData.update((current) => ({ ...current, ...patch }));
+
+    // Remember only the values the track supplied, so removing or replacing
+    // the track clears them but never a value the user kept or typed.
+    const filled: Partial<FlightFormData> = {};
+    for (const state of [...added, ...conflicts]) {
+      if (isConflict(state) && choices[state.key] !== 'fetched') continue;
+      const key = state.key as 'takeoffActual' | 'landingActual';
+      filled[key] = patch[key];
+      filled[`${key}Time`] = patch[`${key}Time`];
+    }
+    filledTimes = { ...filledTimes, ...filled };
+
+    if (Object.keys(filled).length) toast.success('Times filled from track');
   };
 
   // The file input has no `accept` filter because iOS has no system type for
@@ -199,7 +313,10 @@
   bind:open
   dismissal="form"
   dirty={formSnapshot !== null &&
-    JSON.stringify(track) !== JSON.stringify(formSnapshot.data.track)}
+    (JSON.stringify(track) !== JSON.stringify(formSnapshot.data.track) ||
+      TIME_FIELDS.some(
+        (field) => $formData[field] !== formSnapshot?.data[field],
+      ))}
   busy={parsing}
   onDiscard={() => {
     if (formSnapshot) form.restore(formSnapshot);
@@ -363,18 +480,48 @@
     </div>
   </ModalBody>
   <div class="flex justify-between gap-2 px-6 pb-4">
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      loading={parsing}
-      onclick={() => fileInput?.click()}
-    >
-      <FileUp size={14} />
-      {hasTrack ? 'Replace' : 'Upload'}
-    </Button>
+    <div class="flex gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        loading={parsing}
+        onclick={() => fileInput?.click()}
+      >
+        <FileUp size={14} />
+        {hasTrack ? 'Replace' : 'Upload'}
+      </Button>
+      {#if track}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={parsing || !trackSummary?.hasTimes}
+          title={trackSummary?.hasTimes
+            ? 'Detect takeoff and landing times from this track'
+            : 'This track has no timestamps'}
+          onclick={() => applyDetectedTimes(track, { quiet: false })}
+        >
+          <PlaneTakeoff size={14} />
+          Detect times
+        </Button>
+      {/if}
+    </div>
     <Button size="sm" disabled={parsing} onclick={() => (open = false)}
       >Done</Button
     >
   </div>
 </Modal>
+
+{#if mergeState}
+  <FlightMergeConflictModal
+    open={true}
+    fields={mergeState.fields}
+    applied={mergeState.applied}
+    description="The times detected from the track differ from the current values."
+    fetchedLabel="Track"
+    appliedLabel="Also filled in from the track"
+    onResolve={(choices) => mergeState?.resolve(choices)}
+    onCancel={() => mergeState?.resolve(null)}
+  />
+{/if}

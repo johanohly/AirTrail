@@ -11,6 +11,9 @@
     applied,
     onResolve,
     onCancel,
+    description = 'Some values fetched from AeroDataBox conflict with the current values.',
+    fetchedLabel = 'Fetched',
+    appliedLabel = 'Also filled in from the lookup',
   }: {
     open?: boolean;
     /** Conflicting fields the user must resolve. */
@@ -19,6 +22,12 @@
     applied: MergeField[];
     onResolve: (choices: MergeChoices) => void;
     onCancel: () => void;
+    /** Explains where the conflicting values came from. */
+    description?: string;
+    /** Title for the incoming side, e.g. "Fetched" or "Track". */
+    fetchedLabel?: string;
+    /** Heading for values applied without a conflict. */
+    appliedLabel?: string;
   } = $props();
 
   let choices = $state<MergeChoices>({});
@@ -61,14 +70,14 @@
   <ModalBody>
     <div class="mb-3 flex items-center justify-between gap-3">
       <p class="text-sm text-muted-foreground">
-        Some values fetched from AeroDataBox conflict with the current values.
+        {description}
       </p>
       <div class="flex shrink-0 gap-2">
         <Button variant="outline" size="sm" onclick={() => setAll('current')}>
           Keep all current
         </Button>
         <Button variant="outline" size="sm" onclick={() => setAll('fetched')}>
-          Use all fetched
+          Use all {fetchedLabel.toLowerCase()}
         </Button>
       </div>
     </div>
@@ -82,7 +91,7 @@
             {field.label}
           </legend>
           <div class="grid grid-cols-2 gap-2">
-            {#each [{ value: 'current', title: 'Current', display: field.currentDisplay }, { value: 'fetched', title: 'Fetched', display: field.fetchedDisplay }] as option (option.value)}
+            {#each [{ value: 'current', title: 'Current', display: field.currentDisplay }, { value: 'fetched', title: fetchedLabel, display: field.fetchedDisplay }] as option (option.value)}
               {@const selected = choices[field.key] === option.value}
               <button
                 type="button"
@@ -116,7 +125,7 @@
         <p
           class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
         >
-          Also filled in from the lookup
+          {appliedLabel}
         </p>
         <div class="grid gap-1.5">
           {#each applied as field (field.key)}
