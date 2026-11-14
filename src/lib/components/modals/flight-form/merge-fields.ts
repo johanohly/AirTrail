@@ -23,6 +23,8 @@ export type MergeFieldKey =
   | 'arrival'
   | 'departureScheduled'
   | 'arrivalScheduled'
+  | 'takeoffActual'
+  | 'landingActual'
   | 'departureTerminal'
   | 'departureGate'
   | 'arrivalTerminal'
@@ -70,6 +72,9 @@ export type FetchedSources = {
   arrival: TZDate | null;
   departureScheduled: TZDate | null;
   arrivalScheduled: TZDate | null;
+  /** Only provided by track detection; the flight lookup leaves these out. */
+  takeoffActual?: TZDate | null;
+  landingActual?: TZDate | null;
 };
 
 export type MergePlan = {
@@ -164,6 +169,8 @@ const dateTimeFields = {
     timeField: 'arrivalScheduledTime',
     airportField: 'to',
   },
+  takeoffActual: { timeField: 'takeoffActualTime', airportField: 'from' },
+  landingActual: { timeField: 'landingActualTime', airportField: 'to' },
 } as const;
 
 type DateTimeFieldKey = keyof typeof dateTimeFields;
@@ -397,6 +404,22 @@ export function buildMergePlan(args: {
       current.to?.tz,
       sources.arrivalScheduled,
     ),
+    dateTimeState(
+      'takeoffActual',
+      'Takeoff',
+      current.takeoffActual,
+      current.takeoffActualTime,
+      current.from?.tz,
+      sources.takeoffActual ?? null,
+    ),
+    dateTimeState(
+      'landingActual',
+      'Landing',
+      current.landingActual,
+      current.landingActualTime,
+      current.to?.tz,
+      sources.landingActual ?? null,
+    ),
     stringState(
       'departureTerminal',
       'Departure terminal',
@@ -454,6 +477,40 @@ export function buildMergePlan(args: {
     states: descriptors.map(publicState),
     buildPatch,
   };
+}
+
+/**
+ * Merge plan for takeoff and landing times detected from a track. No other
+ * field has a fetched value, so only these two can be applied or conflict.
+ */
+export function buildTrackTimesMergePlan(args: {
+  current: FlightFormData;
+  detected: { takeoffActual: TZDate | null; landingActual: TZDate | null };
+  formatTime: FormatTime;
+}): MergePlan {
+  return buildMergePlan({
+    current: args.current,
+    // The form types airports as non-null, but they are null until picked,
+    // and a missing fetched airport is never applied.
+    result: {
+      from: null as unknown as FlightFormData['from'],
+      to: null as unknown as FlightFormData['to'],
+      airline: null,
+      departure: null,
+      arrival: null,
+      departureScheduled: null,
+      arrivalScheduled: null,
+    },
+    aircraft: null,
+    sources: {
+      departure: null,
+      arrival: null,
+      departureScheduled: null,
+      arrivalScheduled: null,
+      ...args.detected,
+    },
+    formatTime: args.formatTime,
+  });
 }
 
 /** Build just the display/conflict state when no patch is needed. */
