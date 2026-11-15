@@ -11,6 +11,9 @@ import { aircraftSchema } from '$lib/zod/aircraft';
 import { airlineSchema } from '$lib/zod/airline';
 import { flightTrackInputSchema } from '$lib/track/schema';
 
+export const FLIGHT_LOOKUP_DATE_KINDS = ['scheduled', 'actual'] as const;
+export type FlightLookupDateKind = (typeof FLIGHT_LOOKUP_DATE_KINDS)[number];
+
 const regex24h = /^([01]?\d|2[0-3])(?::|\.|)[0-5]\d(?:\s?(?:am|pm))?$/i;
 const regex12hLike = /^\d{1,2}(?::|\.|)\d{2}\s?(?:am|pm)$/i;
 const regex12h = /^([1-9]|1[0-2])(?::|\.|)[0-5]\d\s?(?:am|pm)$/i;

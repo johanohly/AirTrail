@@ -5,9 +5,11 @@ import { getFlightRoute as getAerodataboxFlightRoute } from './aerodatabox';
 
 import type { Airport, Aircraft, Airline } from '$lib/db/types';
 import { appConfig } from '$lib/server/utils/config';
+import type { FlightLookupDateKind } from '$lib/zod/flight';
 
 export type FlightLookupProviderOptions = {
   date?: Date;
+  dateKind?: FlightLookupDateKind;
 };
 
 export type FlightRoutePreference = {
@@ -92,7 +94,9 @@ export async function getFlightRoute(
   opts?: FlightLookupOptions,
 ): Promise<FlightLookupResult> {
   const provider = await getProvider();
-  const providerOptions = opts?.date ? { date: opts.date } : undefined;
+  const providerOptions = opts?.date
+    ? { date: opts.date, dateKind: opts.dateKind }
+    : undefined;
   const results = await provider.getFlightRoute(flightNumber, providerOptions);
   return preferRouteMatches(results, opts?.preferredRoute);
 }

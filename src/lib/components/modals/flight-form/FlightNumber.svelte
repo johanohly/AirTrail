@@ -1,6 +1,12 @@
 <script lang="ts">
   import { TZDate } from '@date-fns/tz';
-  import { isToday, isTomorrow, isYesterday, parseJSON } from 'date-fns';
+  import {
+    differenceInCalendarDays,
+    isToday,
+    isTomorrow,
+    isYesterday,
+    parseJSON,
+  } from 'date-fns';
   import { toast } from 'svelte-sonner';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
@@ -27,6 +33,7 @@
     type MergeChoices,
     type MergeField,
   } from './merge-fields';
+  import { getLookupDate } from './lookup-date';
 
   const prefs = $derived(getPreferences(page.data.user));
 
@@ -211,11 +218,14 @@
       .trim()
       .replace(/\s/g, '');
 
+    const lookupDate = getLookupDate($formData);
+
     let results: LookupResult[] = [];
     try {
       const tempResults = await api.flight.lookup.query({
         flightNumber: normalizedFlightNumber,
-        date: $formData.departure ?? undefined,
+        date: lookupDate?.date,
+        dateKind: lookupDate?.dateKind,
         preferredRoute:
           $formData.from || $formData.to
             ? {
@@ -256,7 +266,12 @@
       return;
     }
 
-    if (results.length === 1 && results[0]) {
+    if (
+      results.length === 1 &&
+      results[0] &&
+      // An actual date may be a day off, so the user always picks.
+      lookupDate?.dateKind !== 'actual'
+    ) {
       applyLookupResult(results[0]);
       return;
     }
@@ -274,7 +289,11 @@
     });
 
     lookupResults = sorted;
-    toast.info('Multiple flights found. Please choose one.');
+    toast.info(
+      lookupDate?.dateKind === 'actual'
+        ? 'Flights around the departure date found. Please choose yours.'
+        : 'Multiple flights found. Please choose one.',
+    );
   };
 </script>
 
@@ -322,7 +341,7 @@
   <Form.FieldErrors />
 </Form.Field>
 
-{#if lookupResults && lookupResults.length > 1}
+{#if lookupResults && lookupResults.length > 0}
   <div class="mt-3 space-y-2">
     <div
       class="flex items-center justify-between text-sm text-muted-foreground"
@@ -392,6 +411,13 @@
                     prefs,
                     r.arrival.timeZone,
                   )}
+                </div>
+              {/if}
+
+              <!-- A delay past midnight moves the departure to another day. -->
+              {#if r.departure && r.departureScheduled && differenceInCalendarDays(r.departure, r.departureScheduled) !== 0}
+                <div class="text-sm font-medium text-muted-foreground">
+                  Scheduled {resultDateLabel(r.departureScheduled)}
                 </div>
               {/if}
 
