@@ -25,6 +25,7 @@ import { getAircraftFromReg } from '$lib/server/utils/flight-lookup/aerodatabox'
 import { getFlightRoute } from '$lib/server/utils/flight-lookup/flight-lookup';
 import { validateFlightImportPermissions } from '$lib/server/utils/flight-import';
 import { generateCsv } from '$lib/utils/csv';
+import { FLIGHT_LOOKUP_DATE_KINDS } from '$lib/zod/flight';
 import { generateBackup, serializeBackup } from '$lib/server/utils/backup';
 import { hasPermission } from '$lib/server/authorization/authorize';
 import {
@@ -41,6 +42,7 @@ export const flightRouter = router({
       z.object({
         flightNumber: z.string(),
         date: z.string().datetime({ offset: true }).optional(),
+        dateKind: z.enum(FLIGHT_LOOKUP_DATE_KINDS).optional(),
         preferredRoute: z
           .object({
             from: z.string().optional(),
@@ -53,6 +55,7 @@ export const flightRouter = router({
       const results = await getFlightRoute(input.flightNumber, {
         // @ts-expect-error - We know the date string is a full ISO datetime string
         date: input.date ? parseISO(input.date.split('T')[0]) : undefined,
+        dateKind: input.dateKind,
         preferredRoute: input.preferredRoute,
       });
 

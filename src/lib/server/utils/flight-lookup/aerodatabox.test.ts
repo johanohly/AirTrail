@@ -1,4 +1,4 @@
-import { format, subDays } from 'date-fns';
+import { addDays, format, subDays } from 'date-fns';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getAircraftFromReg, getFlightRoute } from './aerodatabox';
@@ -221,5 +221,75 @@ describe('endpoint selection', () => {
       `https://api.aerodatabox.com/flights/number/SK728/${format(date, 'yyyy-MM-dd')}?dateLocalRole=Both&withAircraftImage=false&withLocation=false`,
     );
     expect(init).toEqual({ headers: { 'X-Api-Key': 'test-api-key' } });
+  });
+  it('getFlightRoute looks up the day before and after an actual departure date', async () => {
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
+      Response.json([]),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const date = subDays(new Date(), 10);
+
+    await expect(
+      getFlightRoute('CI22', { date, dateKind: 'actual' }),
+    ).rejects.toThrow('No matching flights found');
+
+    const [url] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(
+      `https://aerodatabox.p.rapidapi.com/flights/number/CI22/${format(subDays(date, 1), 'yyyy-MM-dd')}/${format(addDays(date, 1), 'yyyy-MM-dd')}?dateLocalRole=Both&withAircraftImage=false&withLocation=false`,
+    );
+  });
+
+  it('getFlightRoute keeps a single-date lookup for a scheduled date', async () => {
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
+      Response.json([]),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const date = subDays(new Date(), 10);
+
+    await expect(
+      getFlightRoute('CI22', { date, dateKind: 'scheduled' }),
+    ).rejects.toThrow('No matching flights found');
+
+    const [url] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(
+      `https://aerodatabox.p.rapidapi.com/flights/number/CI22/${format(date, 'yyyy-MM-dd')}?dateLocalRole=Both&withAircraftImage=false&withLocation=false`,
+    );
+  });
+
+  it('getFlightRoute returns every flight around an actual departure date', async () => {
+    const instance = (day: number) => ({
+      departure: {
+        airport: { icao: 'RCTP', timeZone: 'Asia/Taipei' },
+        scheduledTime: { local: `2026-11-${day} 23:35+08:00` },
+      },
+      arrival: {
+        airport: { icao: 'KSEA', timeZone: 'America/Los_Angeles' },
+        scheduledTime: { local: `2026-11-${day} 18:10-08:00` },
+      },
+    });
+    const delayed = instance(14);
+    Object.assign(delayed.departure, {
+      revisedTime: { local: '2026-11-15 00:22+08:00' },
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json([delayed, instance(15), instance(16)])),
+    );
+
+    const results = await getFlightRoute('CI22', {
+      date: subDays(new Date(), 10),
+      dateKind: 'actual',
+    });
+
+    expect(results.map((r) => r.departureScheduled?.getTime())).toEqual([
+      Date.parse('2026-11-14T15:35:00.000Z'),
+      Date.parse('2026-11-15T15:35:00.000Z'),
+      Date.parse('2026-11-16T15:35:00.000Z'),
+    ]);
+    expect(results[0]?.departure?.getTime()).toBe(
+      Date.parse('2026-11-14T16:22:00.000Z'),
+    );
   });
 });

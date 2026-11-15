@@ -75,7 +75,14 @@ export async function getFlightRoute(
   }
 
   let path: string;
-  if (date) {
+  if (date && opts?.dateKind === 'actual') {
+    // A delay can push the actual departure past midnight, so search ±1 day.
+    const fromDate = format(subDays(date, 1), 'yyyy-MM-dd');
+    const toDate = format(addDays(date, 1), 'yyyy-MM-dd');
+    path = `/flights/number/${encodeURIComponent(
+      cleaned,
+    )}/${fromDate}/${toDate}?dateLocalRole=Both&withAircraftImage=false&withLocation=false`;
+  } else if (date) {
     path = `/flights/number/${encodeURIComponent(
       cleaned,
     )}/${format(date, 'yyyy-MM-dd')}?dateLocalRole=Both&withAircraftImage=false&withLocation=false`;
