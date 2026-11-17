@@ -12,13 +12,10 @@ import { parseLocalISO, toUtc } from '$lib/utils/datetime';
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
 
-const ByAirFlight = z.object({
-  flight_date: z.string(),
+const ByAirFields = z.strictObject({
   flight_code: z.string().transform(nullTransformer),
   departure_airport_code: z.string(),
   arrival_airport_code: z.string(),
-  departure_time: z.string().transform(nullTransformer),
-  arrival_time: z.string().transform(nullTransformer),
   booking_code: z.string().transform(nullTransformer),
   seat_number: z.string().transform(nullTransformer),
   seat_type: z.string().transform(nullTransformer),
@@ -30,14 +27,60 @@ const ByAirFlight = z.object({
   byair_codeshare_id: z.string().transform(nullTransformer),
 });
 
+const LegacyByAirFlight = ByAirFields.extend({
+  flight_date: z.string(),
+  departure_time: z.string().transform(nullTransformer),
+  arrival_time: z.string().transform(nullTransformer),
+}).transform((row) => ({
+  ...row,
+  date: row.flight_date,
+  departure: row.departure_time
+    ? `${row.flight_date}T${row.departure_time}:00`
+    : null,
+  arrival: row.arrival_time
+    ? `${row.flight_date}T${row.arrival_time}:00`
+    : null,
+  departureScheduled: null,
+  arrivalScheduled: null,
+  inferArrivalDate: true,
+}));
+
+const ByAirDatetime = z
+  .string()
+  .transform((value) => value.replace(' ', 'T'))
+  .pipe(z.iso.datetime({ local: true, precision: -1 }));
+
+const ByAirActualDatetime = z
+  .union([z.literal(''), ByAirDatetime])
+  .transform(nullTransformer);
+
+const CurrentByAirFlight = ByAirFields.extend({
+  scheduled_departure: ByAirDatetime,
+  scheduled_arrival: ByAirDatetime,
+  actual_departure: ByAirActualDatetime,
+  actual_arrival: ByAirActualDatetime,
+}).transform((row) => {
+  const hasActualTimes =
+    row.actual_departure !== null || row.actual_arrival !== null;
+  return {
+    ...row,
+    date: row.scheduled_departure.slice(0, 10),
+    departure: hasActualTimes ? row.actual_departure : row.scheduled_departure,
+    arrival: hasActualTimes ? row.actual_arrival : row.scheduled_arrival,
+    departureScheduled: row.scheduled_departure,
+    arrivalScheduled: row.scheduled_arrival,
+    inferArrivalDate: false,
+  };
+});
+
+const ByAirFlight = z.union([CurrentByAirFlight, LegacyByAirFlight]);
+
 const parseByAirTime = (
-  date: string,
-  time: string | null,
+  value: string | null,
   airportTz: string,
 ): TZDate | null => {
-  if (!time) return null;
-  const iso = `${date}T${time}:00`;
-  const parsed = parseLocalISO(iso, airportTz);
+  if (!value) return null;
+  const parsed = parseLocalISO(value, airportTz);
   if (isNaN(parsed.getTime())) return null;
   return toUtc(parsed);
 };
@@ -148,19 +191,21 @@ export const processByAirFile = async (
     const from = mappedFrom ?? (await getAirportByIata(fromCode));
     const to = mappedTo ?? (await getAirportByIata(toCode));
 
-    const departure = parseByAirTime(
-      row.flight_date,
-      row.departure_time,
+    const departure = parseByAirTime(row.departure, from?.tz ?? 'UTC');
+    const arrival = parseByAirTime(row.arrival, to?.tz ?? 'UTC');
+
+    const departureScheduled = parseByAirTime(
+      row.departureScheduled,
       from?.tz ?? 'UTC',
     );
-    const arrival = parseByAirTime(
-      row.flight_date,
-      row.arrival_time,
+    const arrivalScheduled = parseByAirTime(
+      row.arrivalScheduled,
       to?.tz ?? 'UTC',
     );
 
     let adjustedArrival = arrival;
     while (
+      row.inferArrivalDate &&
       departure &&
       adjustedArrival &&
       isBefore(adjustedArrival, departure)
@@ -171,7 +216,9 @@ export const processByAirFile = async (
     const duration =
       departure && adjustedArrival
         ? differenceInSeconds(adjustedArrival, departure)
-        : null;
+        : departureScheduled && arrivalScheduled
+          ? differenceInSeconds(arrivalScheduled, departureScheduled)
+          : null;
 
     // Extract airline code from flight code (e.g., "SK501" -> "SK", "SL*1508" -> "SL")
     let airline = null;
@@ -198,7 +245,7 @@ export const processByAirFile = async (
       flightNumber = flightNumber.replace('*', '');
     }
 
-    const date = row.flight_date;
+    const date = row.date;
 
     const flightIndex = flights.length;
 
@@ -232,8 +279,8 @@ export const processByAirFile = async (
       to: to || null,
       departure: departure ? departure.toISOString() : null,
       arrival: adjustedArrival ? adjustedArrival.toISOString() : null,
-      departureScheduled: null,
-      arrivalScheduled: null,
+      departureScheduled: departureScheduled?.toISOString() ?? null,
+      arrivalScheduled: arrivalScheduled?.toISOString() ?? null,
       takeoffScheduled: null,
       takeoffActual: null,
       landingScheduled: null,
