@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { validatePassengerFlightReasons } from './flight-reasons';
+
 import type {
   CreateFlightPassenger,
   DatabaseConnection,
   FlightPassenger,
 } from '$lib/db/types';
-import { validatePassengerFlightReasons } from './flight-reasons';
 import {
   customFlightReasonsSchema,
   flightReasonLabel,
@@ -82,6 +84,14 @@ describe('passenger reason validation', () => {
         ]),
       ).rejects.toThrow('available flight reason');
     }
+  });
+
+  it('ignores passenger ids copied onto a new flight', async () => {
+    await expect(
+      validatePassengerFlightReasons(db, 'me', [
+        { ...passenger('Study abroad'), id: 55 },
+      ]),
+    ).resolves.toBeUndefined();
   });
 
   it('rejects removed reasons on new passengers', async () => {

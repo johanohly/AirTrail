@@ -1,31 +1,34 @@
+import { resolveFlightPassengerChanges } from '$lib/db/queries';
 import type {
   CreateFlightPassenger,
   DatabaseConnection,
   FlightPassenger,
 } from '$lib/db/types';
-import { FlightReasons } from '$lib/db/types';
-import { resolveFlightPassengerChanges } from '$lib/db/queries';
+import { isBuiltinFlightReason } from '$lib/utils/flight-reasons';
 
 export class FlightReasonValidationError extends Error {}
 
-/** Only the caller can assign their personal custom choices. Stored reasons
- * remain valid on the same passenger after an option is removed from settings. */
-export async function validatePassengerFlightReasons(
+/*
+ * A custom reason can only be picked from the actor's own list, for their own
+ * passenger row. A saved reason stays valid on the same passenger after it is
+ * removed from that list, so editing an old flight doesn't force a change.
+ */
+export const validatePassengerFlightReasons = async (
   db: DatabaseConnection,
   actorId: string,
   passengers: CreateFlightPassenger[],
   existing: FlightPassenger[] = [],
-) {
-  const { resolved } = resolveFlightPassengerChanges(existing, passengers);
-  const savedById = new Map(
-    existing.map((passenger) => [passenger.id, passenger]),
-  );
+) => {
+  // A new flight has nothing to match, and its passengers may still carry the
+  // ids of the flight they were copied from.
+  const resolved = existing.length
+    ? resolveFlightPassengerChanges(existing, passengers).resolved
+    : passengers.map((passenger) => ({ passenger, existing: undefined }));
   let customReasons: string[] | undefined;
   for (const { passenger, existing: matched } of resolved) {
     const reason = passenger.flightReason;
-    if (reason === null || FlightReasons.some((builtin) => builtin === reason))
-      continue;
-    const saved = matched && savedById.get(matched.id);
+    if (reason === null || isBuiltinFlightReason(reason)) continue;
+    const saved = matched && existing.find((row) => row.id === matched.id);
     if (
       saved &&
       saved.userId === passenger.userId &&
@@ -47,4 +50,4 @@ export async function validatePassengerFlightReasons(
       'Select an available flight reason for this passenger',
     );
   }
-}
+};
