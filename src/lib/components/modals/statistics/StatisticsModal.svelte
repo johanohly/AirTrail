@@ -15,6 +15,7 @@
   import PunctualitySection from './PunctualitySection.svelte';
   import RankedList from './RankedList.svelte';
   import RecordsSection from './RecordsSection.svelte';
+  import SeatMap from './SeatMap.svelte';
 
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
@@ -315,11 +316,11 @@
   </section>
 {/snippet}
 
-{#snippet lists(keys: FlightChartKey[])}
+{#snippet lists(keys: FlightChartKey[], columns?: string)}
   <div
     class={[
       'grid gap-x-7 gap-y-6 sm:grid-cols-2',
-      keys.length === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3',
+      columns ?? (keys.length === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'),
     ]}
   >
     {#each keys as chartKey (chartKey)}
@@ -623,13 +624,27 @@
       {#snippet aircraftLists()}
         {@render lists(['airlines', 'aircraft-models', 'aircraft-regs'])}
       {/snippet}
-      {#snippet boardLists()}
-        {@render lists(['seat-class', 'seat', 'reason', 'seat-numbers'])}
+      {#snippet boardSection()}
+        <!-- Wide screens get the seat map beside the lists, narrow ones stack
+             it below them. -->
+        <div
+          class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:gap-10"
+        >
+          {@render lists(
+            ['seat-class', 'seat', 'reason', 'seat-numbers'],
+            'lg:grid-cols-1 lg:content-start lg:self-start',
+          )}
+          <SeatMap
+            flights={countedFlights}
+            {seatUserId}
+            onOpen={(seat) => openChart('seat-numbers', seat)}
+          />
+        </div>
       {/snippet}
       {@render section('When', whenCharts)}
       {@render section('Where', whereLists)}
       {@render section('Airlines and aircraft', aircraftLists)}
-      {@render section('On board', boardLists)}
+      {@render section('On board', boardSection)}
       {#snippet punctuality()}
         <PunctualitySection
           flights={completedFlights}
