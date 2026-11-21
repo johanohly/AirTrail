@@ -113,13 +113,14 @@
     const start = value?.start as CalendarDate | undefined;
     const end = value?.end as CalendarDate | undefined;
 
-    if (!start && !end) {
+    // Outside range mode every tap sets `start`; a missing one means the
+    // selected day was tapped again, which clears it.
+    const anchor = mode === 'range' ? (start ?? end) : start;
+    if (!anchor) {
       updateFilters({ years: [], fromDate: undefined, toDate: undefined });
       return;
     }
-
-    const anchor = start ?? end;
-    if (anchor) calendarPlaceholder = anchor;
+    calendarPlaceholder = anchor;
 
     if (mode === 'single') {
       updateFilters({ years: [], fromDate: anchor, toDate: anchor });
