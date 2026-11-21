@@ -46,6 +46,13 @@ describe('getLookupDate', () => {
     );
   });
 
+  it('ignores a scheduled date after the departure', () => {
+    // The user moved the departure a day earlier after an earlier lookup.
+    expect(getLookupDate({ departure: nov14, departureScheduled: nov15 })).toBe(
+      nov14,
+    );
+  });
+
   it('returns null without either date', () => {
     expect(getLookupDate({ departure: null, departureScheduled: null })).toBe(
       null,
