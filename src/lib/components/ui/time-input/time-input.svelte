@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Time } from '@internationalized/date';
-  import { TimeField } from 'bits-ui';
+
+  import { TimeField } from '$lib/primitives';
 
   let {
     value = $bindable<Time | undefined>(),

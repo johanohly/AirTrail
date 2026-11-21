@@ -1,10 +1,12 @@
 <script lang="ts">
-  import { Select as SelectPrimitive, type WithoutChild } from 'bits-ui';
-
   import SelectScrollDownButton from './select-scroll-down-button.svelte';
   import SelectScrollUpButton from './select-scroll-up-button.svelte';
 
   import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
+  import {
+    Select as SelectPrimitive,
+    type WithoutChild,
+  } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

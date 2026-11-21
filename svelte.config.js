@@ -5,6 +5,12 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 /** @type {import('@sveltejs/kit').Config}*/
 const config = {
   preprocess: sequence([vitePreprocess(), preprocessMeltUI()]),
+  compilerOptions: {
+    // The vendored bits-ui source stays identical to upstream, so its
+    // warnings are upstream's to fix.
+    warningFilter: (warning) =>
+      !/(^|[\\/])src[\\/]lib[\\/]primitives[\\/]/.test(warning.filename ?? ''),
+  },
   kit: {
     adapter: adapter(),
     // Origin checking is reimplemented in src/hooks.server.ts so the OAuth

@@ -1,13 +1,12 @@
 <script lang="ts">
-  import {
-    Calendar as CalendarPrimitive,
-    type WithoutChildrenOrChild,
-  } from 'bits-ui';
-
   import * as Calendar from './index.js';
 
   import { Button } from '$lib/components/ui/button';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
+  import {
+    Calendar as CalendarPrimitive,
+    type WithoutChildrenOrChild,
+  } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { Tooltip as TooltipPrimitive } from 'bits-ui';
   import type { Snippet } from 'svelte';
 
   import * as Tooltip from '$lib/components/ui/tooltip';
+  import { Tooltip as TooltipPrimitive } from '$lib/primitives';
 
   let {
     content,

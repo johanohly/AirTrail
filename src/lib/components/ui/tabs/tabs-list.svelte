@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { Tabs as TabsPrimitive } from 'bits-ui';
-
+  import { Tabs as TabsPrimitive } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

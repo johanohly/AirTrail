@@ -1,6 +1,5 @@
 import { CalendarDate } from '@internationalized/date';
 import { isAfter, isBefore } from 'date-fns';
-import type { FilterModel, FiltersState } from 'bits-ui';
 
 import {
   routeMatchesEndpoints,
@@ -11,6 +10,7 @@ import {
   type Route,
 } from './types';
 
+import type { FilterModel, FiltersState } from '$lib/primitives';
 import { getFlightPassengerToken, type FlightData } from '$lib/utils';
 import { parseLocalISO } from '$lib/utils/datetime';
 import { formatDate } from '$lib/utils/preferences';

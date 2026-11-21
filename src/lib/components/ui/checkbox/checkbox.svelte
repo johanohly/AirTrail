@@ -1,10 +1,10 @@
 <script lang="ts">
   import { Check, Minus } from '@o7/icon/lucide';
+
   import {
     Checkbox as CheckboxPrimitive,
     type WithoutChildrenOrChild,
-  } from 'bits-ui';
-
+  } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

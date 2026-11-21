@@ -17,10 +17,11 @@
 </script>
 
 <script lang="ts">
-  import { Dialog as DialogPrimitive } from 'bits-ui';
   import type { Snippet } from 'svelte';
 
   import { DrawerRootState, type SnapPoint } from './internal.svelte';
+
+  import { Dialog as DialogPrimitive } from '$lib/primitives';
 
   let {
     open = $bindable(false),

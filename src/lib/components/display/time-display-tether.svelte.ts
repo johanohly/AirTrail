@@ -1,4 +1,4 @@
-import { Tooltip } from 'bits-ui';
+import { Tooltip } from '$lib/primitives';
 
 export type TimeDisplayMode = 'flight' | 'plain';
 

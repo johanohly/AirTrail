@@ -1,10 +1,10 @@
 <script lang="ts">
   import { ChevronDown } from '@o7/icon/lucide';
+
   import {
     Select as SelectPrimitive,
     type WithoutChildrenOrChild,
-  } from 'bits-ui';
-
+  } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

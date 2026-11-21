@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { Calendar as CalendarPrimitive } from 'bits-ui';
-
+  import { Calendar as CalendarPrimitive } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

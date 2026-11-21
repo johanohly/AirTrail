@@ -1,0 +1,100 @@
+import type { ArrowProps, ArrowPropsWithoutHTML } from "../utilities/arrow/types.js";
+import type { PopperLayerProps, PopperLayerStaticProps } from "../utilities/popper-layer/types.js";
+import type {
+	OnChangeFn,
+	WithChild,
+	WithChildNoChildrenSnippetProps,
+	WithChildren,
+	Without,
+} from "$lib/primitives/internal/types.js";
+import type {
+	BitsPrimitiveButtonAttributes,
+	BitsPrimitiveDivAttributes,
+} from "$lib/primitives/shared/attributes.js";
+import type { FloatingContentSnippetProps, StaticContentSnippetProps } from "$lib/primitives/shared/types.js";
+import type { PortalProps } from "$lib/primitives/types.js";
+import type { PresenceLayerProps } from "../utilities/presence-layer/types.js";
+
+export type PopoverRootPropsWithoutHTML = WithChildren<{
+	/**
+	 * The open state of the popover.
+	 */
+	open?: boolean;
+
+	/**
+	 * A callback that is called when the popover's open state changes.
+	 */
+	onOpenChange?: OnChangeFn<boolean>;
+
+	/**
+	 * A callback that is called when the popover's open state changes and the animation is complete.
+	 */
+	onOpenChangeComplete?: OnChangeFn<boolean>;
+}>;
+
+export type PopoverRootProps = PopoverRootPropsWithoutHTML;
+
+export type PopoverContentPropsWithoutHTML = WithChildNoChildrenSnippetProps<
+	Omit<PopperLayerProps, "content" | "loop">,
+	FloatingContentSnippetProps
+>;
+
+export type PopoverContentProps = PopoverContentPropsWithoutHTML &
+	Without<BitsPrimitiveDivAttributes, PopoverContentPropsWithoutHTML>;
+
+export type PopoverContentStaticPropsWithoutHTML = WithChildNoChildrenSnippetProps<
+	Omit<PopperLayerStaticProps, "content" | "loop">,
+	StaticContentSnippetProps
+>;
+
+export type PopoverContentStaticProps = PopoverContentStaticPropsWithoutHTML &
+	Without<BitsPrimitiveDivAttributes, PopoverContentStaticPropsWithoutHTML>;
+
+export type PopoverTriggerPropsWithoutHTML = WithChild<{
+	/**
+	 * Whether the popover should open when the trigger is hovered.
+	 * @default false
+	 */
+	openOnHover?: boolean;
+
+	/**
+	 * How long to wait before opening the popover on hover (ms).
+	 * Only applies when `openOnHover` is `true`.
+	 * @default 700
+	 */
+	openDelay?: number;
+
+	/**
+	 * How long to wait before closing the popover after hover ends (ms).
+	 * Only applies when `openOnHover` is `true`.
+	 * @default 300
+	 */
+	closeDelay?: number;
+}>;
+
+export type PopoverTriggerProps = PopoverTriggerPropsWithoutHTML &
+	Without<BitsPrimitiveButtonAttributes, PopoverTriggerPropsWithoutHTML>;
+
+export type PopoverClosePropsWithoutHTML = WithChild;
+
+export type PopoverCloseProps = PopoverClosePropsWithoutHTML &
+	Without<BitsPrimitiveButtonAttributes, PopoverClosePropsWithoutHTML>;
+
+export type PopoverArrowPropsWithoutHTML = ArrowPropsWithoutHTML;
+
+export type PopoverArrowProps = ArrowProps;
+
+export type PopoverPortalPropsWithoutHTML = PortalProps;
+export type PopoverPortalProps = PortalProps;
+
+export type PopoverOverlaySnippetProps = {
+	open: boolean;
+};
+
+export type PopoverOverlayPropsWithoutHTML = WithChild<
+	PresenceLayerProps,
+	PopoverOverlaySnippetProps
+>;
+
+export type PopoverOverlayProps = PopoverOverlayPropsWithoutHTML &
+	Without<BitsPrimitiveDivAttributes, PopoverOverlayPropsWithoutHTML>;

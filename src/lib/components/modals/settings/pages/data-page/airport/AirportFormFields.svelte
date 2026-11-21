@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { REGEXP_ONLY_CHARS } from 'bits-ui';
   import type { Infer, SuperForm } from 'sveltekit-superforms';
 
   import LocationField from './LocationField.svelte';
@@ -11,6 +10,7 @@
   import * as Select from '$lib/components/ui/select';
   import { HelpTooltip } from '$lib/components/ui/tooltip';
   import { AirportTypes } from '$lib/db/types';
+  import { REGEXP_ONLY_CHARS } from '$lib/primitives';
   import { snakeToTitleCase } from '$lib/utils/string.js';
   import type { airportSchema } from '$lib/zod/airport';
 

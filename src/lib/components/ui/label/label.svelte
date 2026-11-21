@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { Label as LabelPrimitive } from 'bits-ui';
-
+  import { Label as LabelPrimitive } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

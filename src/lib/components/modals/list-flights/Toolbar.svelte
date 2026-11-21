@@ -7,27 +7,26 @@
     X,
   } from '@o7/icon/lucide';
   import { Plus } from '@o7/icon/lucide';
-  import { Portal } from 'bits-ui';
   import { toast } from 'svelte-sonner';
 
   import { page as pageState } from '$app/state';
   import { hasClientPermission } from '$lib/authorization/permissions';
-  import type { FlightScope } from '$lib/flight-scope';
-
-  import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
+  import ResponsiveFilters from '$lib/components/flight-filters/ResponsiveFilters.svelte';
   import {
     clearTempFilters,
     type FlightFilters,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
-  import ResponsiveFilters from '$lib/components/flight-filters/ResponsiveFilters.svelte';
   import { Confirm } from '$lib/components/helpers';
+  import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Label } from '$lib/components/ui/label';
-  import * as Popover from '$lib/components/ui/popover';
   import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
+  import * as Popover from '$lib/components/ui/popover';
   import * as RadioGroup from '$lib/components/ui/radio-group';
   import * as Select from '$lib/components/ui/select';
+  import type { FlightScope } from '$lib/flight-scope';
+  import { Portal } from '$lib/primitives';
   import { flightScopeState, setFlightScope } from '$lib/state.svelte';
   import { api } from '$lib/trpc';
   import { invalidateFlightData } from '$lib/trpc/invalidation';

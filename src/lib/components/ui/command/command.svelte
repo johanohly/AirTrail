@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { Command as CommandPrimitive } from 'bits-ui';
-
+  import { Command as CommandPrimitive } from '$lib/primitives';
   import { cn } from '$lib/utils';
   import './command.pcss';
 

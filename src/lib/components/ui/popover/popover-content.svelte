@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { Popover as PopoverPrimitive } from 'bits-ui';
-
   import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
+  import { Popover as PopoverPrimitive } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

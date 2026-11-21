@@ -1,10 +1,10 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
+
   import {
     Dialog as DialogPrimitive,
     type WithoutChildrenOrChild,
-  } from 'bits-ui';
-  import type { Snippet } from 'svelte';
-
+  } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

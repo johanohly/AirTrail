@@ -1,9 +1,9 @@
-import { Tooltip as TooltipPrimitive } from 'bits-ui';
-
 import AutoTooltip from './auto-tooltip.svelte';
 import HelpTooltip from './help-tooltip.svelte';
 import TextTooltip from './text-tooltip.svelte';
 import Content from './tooltip-content.svelte';
+
+import { Tooltip as TooltipPrimitive } from '$lib/primitives';
 
 const Root = TooltipPrimitive.Root;
 const Portal = TooltipPrimitive.Portal;

@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { Select as SelectPrimitive } from 'bits-ui';
-
+  import { Select as SelectPrimitive } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

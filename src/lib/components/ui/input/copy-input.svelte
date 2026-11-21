@@ -1,9 +1,9 @@
 <script lang="ts">
   import { Copy } from '@o7/icon/lucide';
-  import type { WithElementRef } from 'bits-ui';
   import type { HTMLInputAttributes } from 'svelte/elements';
 
   import { Button } from '$lib/components/ui/button';
+  import type { WithElementRef } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

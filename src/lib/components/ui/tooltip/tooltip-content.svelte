@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { Tooltip as TooltipPrimitive } from 'bits-ui';
-
   import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
+  import { Tooltip as TooltipPrimitive } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

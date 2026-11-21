@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { Tooltip as TooltipPrimitive } from 'bits-ui';
   import type { Snippet } from 'svelte';
 
   import {
@@ -10,6 +9,7 @@
 
   import { page } from '$app/state';
   import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
+  import { Tooltip as TooltipPrimitive } from '$lib/primitives';
   import { cn } from '$lib/utils';
   import type { TimingSummary } from '$lib/utils/flight-timing';
   import {

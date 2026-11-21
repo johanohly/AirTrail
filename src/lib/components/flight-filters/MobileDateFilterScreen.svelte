@@ -1,7 +1,6 @@
 <script lang="ts">
   import { CalendarDate, type DateValue } from '@internationalized/date';
   import { ChevronLeft, ChevronRight } from '@o7/icon';
-  import { DateRangePicker } from 'bits-ui';
 
   import { page } from '$app/state';
   import {
@@ -12,6 +11,7 @@
   import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
   import { Button } from '$lib/components/ui/button';
   import * as CalendarParts from '$lib/components/ui/calendar';
+  import { DateRangePicker } from '$lib/primitives';
   import { cn } from '$lib/utils';
   import { getPreferences } from '$lib/utils/preferences';
 

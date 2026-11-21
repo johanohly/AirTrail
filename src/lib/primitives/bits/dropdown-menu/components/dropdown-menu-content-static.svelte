@@ -1,0 +1,113 @@
+<script lang="ts">
+	import { boxWith, mergeProps } from "svelte-toolbelt";
+	import type { DropdownMenuContentStaticProps } from "../types.js";
+	import { MenuContentState } from "$lib/primitives/bits/menu/menu.svelte.js";
+	import { createId } from "$lib/primitives/internal/create-id.js";
+	import { noop } from "$lib/primitives/internal/noop.js";
+	import PopperLayer from "$lib/primitives/bits/utilities/popper-layer/popper-layer.svelte";
+	import { getFloatingContentCSSVars } from "$lib/primitives/internal/floating-svelte/floating-utils.svelte.js";
+	import PopperLayerForceMount from "$lib/primitives/bits/utilities/popper-layer/popper-layer-force-mount.svelte";
+
+	const uid = $props.id();
+
+	let {
+		id = createId(uid),
+		child,
+		children,
+		ref = $bindable(null),
+		loop = true,
+		onInteractOutside = noop,
+		onEscapeKeydown = noop,
+		onCloseAutoFocus = noop,
+		forceMount = false,
+		style,
+		...restProps
+	}: DropdownMenuContentStaticProps = $props();
+
+	const contentState = MenuContentState.create({
+		id: boxWith(() => id),
+		loop: boxWith(() => loop),
+		ref: boxWith(
+			() => ref,
+			(v) => (ref = v)
+		),
+		onCloseAutoFocus: boxWith(() => onCloseAutoFocus),
+	});
+
+	const mergedProps = $derived(mergeProps(restProps, contentState.props));
+
+	function handleInteractOutside(e: PointerEvent) {
+		contentState.handleInteractOutside(e);
+		if (e.defaultPrevented) return;
+		onInteractOutside(e);
+		if (e.defaultPrevented) return;
+		contentState.parentMenu.onClose();
+	}
+	function handleEscapeKeydown(e: KeyboardEvent) {
+		onEscapeKeydown(e);
+		if (e.defaultPrevented) return;
+		contentState.parentMenu.onClose();
+	}
+</script>
+
+{#if forceMount}
+	<PopperLayerForceMount
+		{...mergedProps}
+		{...contentState.popperProps}
+		ref={contentState.opts.ref}
+		enabled={contentState.parentMenu.opts.open.current}
+		onInteractOutside={handleInteractOutside}
+		onEscapeKeydown={handleEscapeKeydown}
+		trapFocus
+		{loop}
+		forceMount={true}
+		isStatic
+		{id}
+		shouldRender={contentState.shouldRender}
+	>
+		{#snippet popper({ props })}
+			{@const finalProps = mergeProps(
+				props,
+				{ style: getFloatingContentCSSVars("dropdown-menu") },
+				{ style }
+			)}
+			{#if child}
+				{@render child({ props: finalProps, ...contentState.snippetProps })}
+			{:else}
+				<div {...finalProps}>
+					{@render children?.()}
+				</div>
+			{/if}
+		{/snippet}
+	</PopperLayerForceMount>
+{:else if !forceMount}
+	<PopperLayer
+		{...mergedProps}
+		{...contentState.popperProps}
+		ref={contentState.opts.ref}
+		open={contentState.parentMenu.opts.open.current}
+		onInteractOutside={handleInteractOutside}
+		onEscapeKeydown={handleEscapeKeydown}
+		trapFocus
+		{loop}
+		forceMount={false}
+		isStatic
+		{id}
+		shouldRender={contentState.shouldRender}
+	>
+		{#snippet popper({ props })}
+			{@const finalProps = mergeProps(
+				props,
+				{ style: getFloatingContentCSSVars("dropdown-menu") },
+				{ style }
+			)}
+			{#if child}
+				{@render child({ props: finalProps, ...contentState.snippetProps })}
+			{:else}
+				<div {...finalProps}>
+					{@render children?.()}
+				</div>
+			{/if}
+		{/snippet}
+	</PopperLayer>
+{/if}

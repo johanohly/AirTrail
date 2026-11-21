@@ -1,9 +1,9 @@
 <script lang="ts">
   import { ChevronRight } from '@o7/icon/lucide';
-  import { Collapsible, type WithoutChild } from 'bits-ui';
   import type { ClassValue } from 'clsx';
   import { slide } from 'svelte/transition';
 
+  import { Collapsible, type WithoutChild } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   type Props = WithoutChild<Collapsible.RootProps> & {

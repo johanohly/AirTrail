@@ -60,14 +60,13 @@
     X,
   } from '@o7/icon';
   import { Airlines } from '@o7/icon/material';
-  import { Filter, useDataTableFilters } from 'bits-ui';
   import { createRawSnippet } from 'svelte';
   import type { Component } from 'svelte';
-  import type { ColumnConfig, FilterIcon, FiltersState } from 'bits-ui';
 
   import './filter.css';
   import './filter-date.css';
 
+  import UserAvatar from '$lib/components/display/UserAvatar.svelte';
   import {
     bitsFiltersToFlightFilters,
     bitsSignature,
@@ -81,15 +80,16 @@
     FlightFilters,
     TempFilters,
   } from '$lib/components/flight-filters/types';
-  import UserAvatar from '$lib/components/display/UserAvatar.svelte';
+  import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
+  import type { Aircraft, Airline, Airport } from '$lib/db/types';
+  import type { ColumnConfig, FilterIcon, FiltersState } from '$lib/primitives';
+  import { Filter, useDataTableFilters } from '$lib/primitives';
   import {
     cn,
     getFlightPassengerLabel,
     getFlightPassengerToken,
     type FlightData,
   } from '$lib/utils';
-  import type { Aircraft, Airline, Airport } from '$lib/db/types';
-  import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
 
   type FlightFilterColumnConfig =
     | ColumnConfig<FlightData, 'option', string, 'departureAirports'>
