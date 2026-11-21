@@ -92,8 +92,6 @@
       !file.name.endsWith('.ics')
     ) {
       fileError = 'File type not supported';
-    } else if (file.size > 5 * 1024 * 1024) {
-      fileError = 'File must be less than 5MB';
     } else {
       fileError = null;
     }
