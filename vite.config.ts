@@ -137,14 +137,8 @@ const pwaOptions = {
     display: 'standalone',
     orientation: 'any',
     background_color: '#000000',
-    theme_color: '#3c83f6',
+    theme_color: '#000000',
     icons: [
-      {
-        src: '/favicon.svg',
-        sizes: 'any',
-        type: 'image/svg+xml',
-        purpose: 'any',
-      },
       {
         src: '/favicon.png',
         sizes: '96x96',
