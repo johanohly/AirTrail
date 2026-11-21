@@ -119,7 +119,7 @@ export const processLegacyAirTrailFile = async (
   const unknownAirports: Record<string, number[]> = {};
   const unknownAirlines: Record<string, number[]> = {};
   for (const rawFlight of data.flights) {
-    const { seats, ...legacyFlight } = rawFlight;
+    const { seats, flightReason: _flightReason, ...legacyFlight } = rawFlight;
     const passengers = seats.map((seat) => {
       const dataUser = dataUsers?.[seat.userId ?? ''];
       const mappedUserId =
