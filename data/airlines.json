@@ -5712,6 +5712,13 @@
     "defunct": false
   },
   {
+    "id": "expressjet-airlines",
+    "name": "ExpressJet Airlines",
+    "icao": "ASQ",
+    "iata": "EV",
+    "defunct": true
+  },
+  {
     "id": "exxaero",
     "name": "Exxaero",
     "icao": "XRO",
