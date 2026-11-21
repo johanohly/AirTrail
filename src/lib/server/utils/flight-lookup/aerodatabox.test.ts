@@ -1,7 +1,10 @@
-import { addDays, format, subDays } from 'date-fns';
+import { addDays, format, parseISO, subDays } from 'date-fns';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getAircraftFromReg, getFlightRoute } from './aerodatabox';
+
+import { getLookupDate } from '$lib/components/modals/flight-form/lookup-date';
+import { decomposeToLocal } from '$lib/utils/datetime/parse';
 
 const {
   getAircraftByIcao,
@@ -291,5 +294,117 @@ describe('endpoint selection', () => {
     expect(results[0]?.departure?.getTime()).toBe(
       Date.parse('2026-11-14T16:22:00.000Z'),
     );
+  });
+});
+
+describe('flights delayed past midnight', () => {
+  // FlightContract shape from the AeroDataBox OpenAPI spec. The spec doesn't
+  // say which time `dateLocal` matches; a real CI22 lookup (#831) shows it
+  // matches the scheduled date, which is what the fake below does.
+  const ci22 = (
+    reg: string,
+    scheduled: { utc: string; local: string },
+    arrival: { utc: string; local: string },
+    revised?: { utc: string; local: string },
+  ) => ({
+    number: 'CI 22',
+    status: 'Arrived',
+    departure: {
+      airport: { icao: 'RCTP', iata: 'TPE', timeZone: 'Asia/Taipei' },
+      scheduledTime: scheduled,
+      ...(revised ? { revisedTime: revised } : {}),
+      quality: ['Basic', 'Live'],
+    },
+    arrival: {
+      airport: { icao: 'KSEA', iata: 'SEA', timeZone: 'America/Los_Angeles' },
+      scheduledTime: arrival,
+      quality: ['Basic', 'Live'],
+    },
+    aircraft: { reg },
+    airline: { iata: 'CI', icao: 'CAL' },
+  });
+
+  const flights = [
+    ci22(
+      'B-18918',
+      { utc: '2026-11-14 15:35Z', local: '2026-11-14 23:35+08:00' },
+      { utc: '2026-11-15 02:10Z', local: '2026-11-14 18:10-08:00' },
+      { utc: '2026-11-14 16:22Z', local: '2026-11-15 00:22+08:00' },
+    ),
+    ci22(
+      'B-18916',
+      { utc: '2026-11-15 15:35Z', local: '2026-11-15 23:35+08:00' },
+      { utc: '2026-11-16 02:10Z', local: '2026-11-15 18:10-08:00' },
+    ),
+    ci22(
+      'B-18917',
+      { utc: '2026-11-16 15:35Z', local: '2026-11-16 23:35+08:00' },
+      { utc: '2026-11-17 02:10Z', local: '2026-11-16 18:10-08:00' },
+    ),
+  ];
+
+  const fakeAeroDataBox = vi.fn(async (url: string) => {
+    const [, from, to = from] =
+      url.match(/\/CI22\/([\d-]{10})(?:\/([\d-]{10}))?\?/) ?? [];
+    const inRange = (time: { local: string }) =>
+      time.local.slice(0, 10) >= from! && time.local.slice(0, 10) <= to!;
+    const hits = flights.filter(
+      (f) =>
+        inRange(f.departure.scheduledTime) || inRange(f.arrival.scheduledTime),
+    );
+    return hits.length
+      ? Response.json(hits)
+      : new Response(null, { status: 204 });
+  });
+
+  // Mirrors the edit form and the `flight.lookup` route.
+  const lookUpStoredFlight = async (stored: {
+    departure: string;
+    departureScheduled: string | null;
+  }) => {
+    const lookup = getLookupDate({
+      departure: decomposeToLocal(stored.departure, 'Asia/Taipei', 'en-US')
+        .date,
+      departureScheduled: decomposeToLocal(
+        stored.departureScheduled,
+        'Asia/Taipei',
+        'en-US',
+      ).date,
+    });
+    const results = await getFlightRoute('CI22', {
+      date: parseISO(lookup!.date.split('T')[0]!),
+      dateKind: lookup!.dateKind,
+    });
+    return results.map((r) => r.aircraftReg);
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers({
+      now: new Date('2026-11-21T12:00:00Z'),
+      toFake: ['Date'],
+    });
+    vi.clearAllMocks();
+    getAirlineByIcao.mockResolvedValue(null);
+    getAirlineByIata.mockResolvedValue(null);
+    getAirportByIcao.mockImplementation(async (icao: string) => ({
+      icao,
+      tz: icao === 'RCTP' ? 'Asia/Taipei' : 'America/Los_Angeles',
+    }));
+    vi.stubGlobal('fetch', fakeAeroDataBox);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('finds the delayed flight by its scheduled date', async () => {
+    await expect(
+      lookUpStoredFlight({
+        departure: '2026-11-14T16:22:00.000Z',
+        departureScheduled: '2026-11-14T15:35:00.000Z',
+      }),
+    ).resolves.toEqual(['B-18918']);
+    expect(fakeAeroDataBox.mock.calls[0]![0]).toContain('/CI22/2026-11-14?');
   });
 });

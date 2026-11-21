@@ -39,6 +39,12 @@
 
   const resultDateLabel = (date: TZDate) =>
     formatDate(date, prefs, date.timeZone);
+  // A delay past midnight moves the departure to another day than the one
+  // the airline files the flight under.
+  const departsOffSchedule = (r: LookupResult) =>
+    !!r.departure &&
+    !!r.departureScheduled &&
+    differenceInCalendarDays(r.departure, r.departureScheduled) !== 0;
   const resultRelativeLabel = (date: TZDate) => {
     if (isYesterday(date)) return 'Yesterday';
     if (isTomorrow(date)) return 'Tomorrow';
@@ -414,8 +420,7 @@
                 </div>
               {/if}
 
-              <!-- A delay past midnight moves the departure to another day. -->
-              {#if r.departure && r.departureScheduled && differenceInCalendarDays(r.departure, r.departureScheduled) !== 0}
+              {#if r.departureScheduled && departsOffSchedule(r)}
                 <div class="text-sm font-medium text-muted-foreground">
                   Scheduled {resultDateLabel(r.departureScheduled)}
                 </div>

@@ -1,15 +1,25 @@
 import type { FlightLookupDateKind } from '$lib/zod/flight';
 
-// AeroDataBox indexes flights by scheduled date, so prefer it.
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+// AeroDataBox files flights under their scheduled date, so prefer it. A
+// scheduled date more than a day from the departure is left over from an
+// earlier lookup, and the departure the user just picked wins.
 export const getLookupDate = (formData: {
   departure: string | null;
   departureScheduled: string | null;
 }): { date: string; dateKind: FlightLookupDateKind } | null => {
-  if (formData.departureScheduled) {
-    return { date: formData.departureScheduled, dateKind: 'scheduled' };
+  const { departure, departureScheduled } = formData;
+  if (
+    departureScheduled &&
+    (!departure ||
+      Math.abs(Date.parse(departure) - Date.parse(departureScheduled)) <=
+        ONE_DAY_MS)
+  ) {
+    return { date: departureScheduled, dateKind: 'scheduled' };
   }
-  if (formData.departure) {
-    return { date: formData.departure, dateKind: 'actual' };
+  if (departure) {
+    return { date: departure, dateKind: 'actual' };
   }
   return null;
 };
