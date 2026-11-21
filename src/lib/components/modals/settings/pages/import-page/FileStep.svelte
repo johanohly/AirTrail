@@ -38,9 +38,7 @@
       {/if}
     </Card>
   </label>
-  <p class="text-xs text-muted-foreground">
-    Supported: CSV, TXT, JSON, ICS. Max 5MB.
-  </p>
+  <p class="text-xs text-muted-foreground">Supported: CSV, TXT, JSON, ICS.</p>
 </div>
 <input
   onchange={validateFile}
