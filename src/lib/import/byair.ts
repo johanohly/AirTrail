@@ -12,13 +12,10 @@ import { parseLocalISO, toUtc } from '$lib/utils/datetime';
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
 
-const ByAirFlight = z.object({
-  flight_date: z.string(),
+const ByAirFields = z.object({
   flight_code: z.string().transform(nullTransformer),
   departure_airport_code: z.string(),
   arrival_airport_code: z.string(),
-  departure_time: z.string().transform(nullTransformer),
-  arrival_time: z.string().transform(nullTransformer),
   booking_code: z.string().transform(nullTransformer),
   seat_number: z.string().transform(nullTransformer),
   seat_type: z.string().transform(nullTransformer),
@@ -30,14 +27,61 @@ const ByAirFlight = z.object({
   byair_codeshare_id: z.string().transform(nullTransformer),
 });
 
+const LegacyByAirFlight = ByAirFields.extend({
+  flight_date: z.string(),
+  departure_time: z.string().transform(nullTransformer),
+  arrival_time: z.string().transform(nullTransformer),
+}).transform((row) => ({
+  ...row,
+  date: row.flight_date,
+  departure: row.departure_time
+    ? `${row.flight_date}T${row.departure_time}:00`
+    : null,
+  arrival: row.arrival_time
+    ? `${row.flight_date}T${row.arrival_time}:00`
+    : null,
+  departureScheduled: null,
+  arrivalScheduled: null,
+  arrivalHasDate: false,
+  durationFromScheduled: false,
+}));
+
+const toLocalISO = (value: string) => value.trim().replace(' ', 'T');
+
+const ByAirDatetime = z
+  .string()
+  .transform((value) => (value.trim() === '' ? null : toLocalISO(value)));
+
+const CurrentByAirFlight = ByAirFields.extend({
+  scheduled_departure: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}/)
+    .transform(toLocalISO),
+  scheduled_arrival: ByAirDatetime,
+  actual_departure: ByAirDatetime,
+  actual_arrival: ByAirDatetime,
+}).transform((row) => ({
+  ...row,
+  date: row.scheduled_departure.slice(0, 10),
+  departure: row.actual_departure ?? row.scheduled_departure,
+  arrival: row.actual_arrival ?? row.scheduled_arrival,
+  departureScheduled: row.scheduled_departure,
+  arrivalScheduled: row.scheduled_arrival,
+  arrivalHasDate: true,
+  // Mixing an actual departure with a scheduled arrival can give a duration
+  // of minutes, so only a full actual pair beats the schedule.
+  durationFromScheduled: !(row.actual_departure && row.actual_arrival),
+}));
+
+const ByAirFlight = z.union([CurrentByAirFlight, LegacyByAirFlight]);
+
 const parseByAirTime = (
-  date: string,
-  time: string | null,
+  value: string | null,
   airportTz: string,
 ): TZDate | null => {
-  if (!time) return null;
-  const iso = `${date}T${time}:00`;
-  const parsed = parseLocalISO(iso, airportTz);
+  if (!value) return null;
+  const parsed = parseLocalISO(value, airportTz);
   if (isNaN(parsed.getTime())) return null;
   return toUtc(parsed);
 };
@@ -148,29 +192,38 @@ export const processByAirFile = async (
     const from = mappedFrom ?? (await getAirportByIata(fromCode));
     const to = mappedTo ?? (await getAirportByIata(toCode));
 
-    const departure = parseByAirTime(
-      row.flight_date,
-      row.departure_time,
-      from?.tz ?? 'UTC',
-    );
-    const arrival = parseByAirTime(
-      row.flight_date,
-      row.arrival_time,
-      to?.tz ?? 'UTC',
-    );
+    const fromTz = from?.tz ?? 'UTC';
+    const toTz = to?.tz ?? 'UTC';
+    const departure = parseByAirTime(row.departure, fromTz);
+    let arrival = parseByAirTime(row.arrival, toTz);
+    const departureScheduled = parseByAirTime(row.departureScheduled, fromTz);
+    let arrivalScheduled = parseByAirTime(row.arrivalScheduled, toTz);
 
-    let adjustedArrival = arrival;
-    while (
-      departure &&
-      adjustedArrival &&
-      isBefore(adjustedArrival, departure)
-    ) {
-      adjustedArrival = addDays(adjustedArrival, 1, { in: tz('UTC') });
+    if (!row.arrivalHasDate) {
+      while (departure && arrival && isBefore(arrival, departure)) {
+        arrival = addDays(arrival, 1, { in: tz('UTC') });
+      }
+    } else {
+      // The server rejects an arrival before its departure. A delayed actual
+      // departure paired with the scheduled arrival is the common cause.
+      if (departure && arrival && isBefore(arrival, departure)) {
+        arrival = null;
+      }
+      if (
+        departureScheduled &&
+        arrivalScheduled &&
+        isBefore(arrivalScheduled, departureScheduled)
+      ) {
+        arrivalScheduled = null;
+      }
     }
 
+    const [durationFrom, durationTo] = row.durationFromScheduled
+      ? [departureScheduled, arrivalScheduled]
+      : [departure, arrival];
     const duration =
-      departure && adjustedArrival
-        ? differenceInSeconds(adjustedArrival, departure)
+      durationFrom && durationTo
+        ? differenceInSeconds(durationTo, durationFrom)
         : null;
 
     // Extract airline code from flight code (e.g., "SK501" -> "SK", "SL*1508" -> "SL")
@@ -197,8 +250,6 @@ export const processByAirFile = async (
     if (flightNumber) {
       flightNumber = flightNumber.replace('*', '');
     }
-
-    const date = row.flight_date;
 
     const flightIndex = flights.length;
 
@@ -227,13 +278,13 @@ export const processByAirFile = async (
     };
 
     flights.push({
-      date,
+      date: row.date,
       from: from || null,
       to: to || null,
       departure: departure ? departure.toISOString() : null,
-      arrival: adjustedArrival ? adjustedArrival.toISOString() : null,
-      departureScheduled: null,
-      arrivalScheduled: null,
+      arrival: arrival ? arrival.toISOString() : null,
+      departureScheduled: departureScheduled?.toISOString() ?? null,
+      arrivalScheduled: arrivalScheduled?.toISOString() ?? null,
       takeoffScheduled: null,
       takeoffActual: null,
       landingScheduled: null,
