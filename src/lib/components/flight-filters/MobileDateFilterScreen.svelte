@@ -23,13 +23,35 @@
 
   const prefs = $derived(getPreferences(page.data.user));
 
+  type DateMode = 'single' | 'range' | 'from' | 'to';
+
+  const DATE_MODES: { value: DateMode; label: string }[] = [
+    { value: 'single', label: 'Exact' },
+    { value: 'range', label: 'Range' },
+    { value: 'from', label: 'From' },
+    { value: 'to', label: 'Until' },
+  ];
+
+  const inferDateMode = (f: FlightFilters): DateMode => {
+    if (f.fromDate && f.toDate) {
+      return f.fromDate.compare(f.toDate) === 0 ? 'single' : 'range';
+    }
+    if (f.fromDate) return 'from';
+    if (f.toDate) return 'to';
+    return 'single';
+  };
+
+  // The mode can't be derived from the dates alone: a range with only its
+  // first day picked has the same `fromDate` and `toDate` as an exact date.
+  let mode = $state<DateMode>(inferDateMode(filters));
   let calendarPlaceholder = $state<DateValue | undefined>(undefined);
 
   function updateFilters(next: Partial<FlightFilters>) {
     filters = cloneFlightFilters(filters, next);
   }
 
-  function setDateMode(mode: 'single' | 'range' | 'from' | 'to') {
+  function setDateMode(next: DateMode) {
+    mode = next;
     const today = new CalendarDate(
       new Date().getFullYear(),
       new Date().getMonth() + 1,
@@ -40,6 +62,7 @@
     if (mode === 'single') {
       updateFilters({ years: [], fromDate: anchor, toDate: anchor });
     } else if (mode === 'range') {
+      if (!filters.fromDate && !filters.toDate) return;
       updateFilters({
         years: [],
         fromDate: filters.fromDate ?? anchor,
@@ -52,19 +75,9 @@
     }
   }
 
-  function dateMode() {
-    if (filters.fromDate && filters.toDate) {
-      return filters.fromDate.compare(filters.toDate) === 0
-        ? 'single'
-        : 'range';
-    }
-    if (filters.fromDate) return 'from';
-    if (filters.toDate) return 'to';
-    return 'single';
-  }
-
   function setThisYear() {
     const year = new Date().getFullYear();
+    mode = 'range';
     updateFilters({
       years: [],
       fromDate: new CalendarDate(year, 1, 1),
@@ -72,13 +85,21 @@
     });
   }
 
-  const dateRangeValue = $derived.by(() => ({
-    start: filters.fromDate,
-    end:
-      filters.fromDate && filters.toDate?.compare(filters.fromDate) === 0
-        ? undefined
-        : filters.toDate,
-  }));
+  // Outside range mode the selected day is passed as a finished one-day range,
+  // so the calendar starts over on the next tap instead of extending it.
+  const dateRangeValue = $derived.by(() => {
+    if (mode !== 'range') {
+      const anchor = filters.fromDate ?? filters.toDate;
+      return { start: anchor, end: anchor };
+    }
+    return {
+      start: filters.fromDate,
+      end:
+        filters.fromDate && filters.toDate?.compare(filters.fromDate) === 0
+          ? undefined
+          : filters.toDate,
+    };
+  });
 
   $effect(() => {
     const anchor = filters.fromDate ?? filters.toDate;
@@ -91,7 +112,6 @@
   ) {
     const start = value?.start as CalendarDate | undefined;
     const end = value?.end as CalendarDate | undefined;
-    const mode = dateMode();
 
     if (!start && !end) {
       updateFilters({ years: [], fromDate: undefined, toDate: undefined });
@@ -123,19 +143,19 @@
       {dateFilterSummary(filters, prefs)}
     </div>
     <div class="mb-4 flex gap-2 overflow-x-auto">
-      {#each [{ value: 'single', label: 'Exact' }, { value: 'range', label: 'Range' }, { value: 'from', label: 'From' }, { value: 'to', label: 'Until' }] as mode (mode.value)}
+      {#each DATE_MODES as option (option.value)}
         <button
           type="button"
           class={cn(
             'h-8 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors',
-            dateMode() === mode.value
+            mode === option.value
               ? 'border-foreground bg-foreground text-background'
               : 'bg-background text-muted-foreground active:bg-muted',
           )}
-          onclick={() =>
-            setDateMode(mode.value as 'single' | 'range' | 'from' | 'to')}
+          aria-pressed={mode === option.value}
+          onclick={() => setDateMode(option.value)}
         >
-          {mode.label}
+          {option.label}
         </button>
       {/each}
     </div>
@@ -173,7 +193,7 @@
                   >
                     {#each weekdays as day (day)}
                       <DateRangePicker.HeadCell
-                        class="w-10 text-center text-xs font-normal text-muted-foreground"
+                        class="w-9 text-center text-xs font-normal text-muted-foreground min-[360px]:w-10"
                       >
                         {day.slice(0, 2)}
                       </DateRangePicker.HeadCell>
@@ -187,11 +207,11 @@
                         <DateRangePicker.Cell
                           {date}
                           month={month.value}
-                          class="relative m-0 size-10 overflow-visible p-0 text-center text-sm"
+                          class="relative m-0 size-9 overflow-visible p-0 text-center text-sm min-[360px]:size-10"
                         >
                           <DateRangePicker.Day
                             class={cn(
-                              'group relative inline-flex size-10 items-center justify-center rounded-md border border-transparent bg-transparent p-0 text-sm font-normal transition-colors',
+                              'group relative inline-flex size-9 min-[360px]:size-10 items-center justify-center rounded-md border border-transparent bg-transparent p-0 text-sm font-normal transition-colors',
                               'hover:bg-muted focus-visible:ring-1 focus-visible:ring-ring',
                               'data-disabled:pointer-events-none data-disabled:text-foreground/30 data-outside-month:pointer-events-none data-outside-month:text-muted-foreground/40',
                               'data-highlighted:rounded-none data-highlighted:bg-muted',
