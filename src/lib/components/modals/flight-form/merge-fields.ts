@@ -23,6 +23,8 @@ export type MergeFieldKey =
   | 'arrival'
   | 'departureScheduled'
   | 'arrivalScheduled'
+  | 'takeoffActual'
+  | 'landingActual'
   | 'departureTerminal'
   | 'departureGate'
   | 'arrivalTerminal'
@@ -119,7 +121,7 @@ const dateTimeDisplay = (date: TZDate, formatTime: FormatTime): string =>
 const rawDateTimeDisplay = (
   dateIso: string | null,
   time: string | null,
-): string => (dateIso ? `${dateIso.slice(0, 10)} ${time ?? ''}`.trim() : '');
+): string => [dateIso?.slice(0, 10), time].filter(Boolean).join(' ');
 
 const normalizedWallDateTime = (
   dateIso: string | null,
@@ -164,6 +166,8 @@ const dateTimeFields = {
     timeField: 'arrivalScheduledTime',
     airportField: 'to',
   },
+  takeoffActual: { timeField: 'takeoffActualTime', airportField: 'from' },
+  landingActual: { timeField: 'landingActualTime', airportField: 'to' },
 } as const;
 
 type DateTimeFieldKey = keyof typeof dateTimeFields;
@@ -191,6 +195,85 @@ const publicState = (descriptor: MergeDescriptor): MergeFieldState => ({
   currentPresent: descriptor.currentPresent,
   fetchedPresent: descriptor.fetchedPresent,
   equal: descriptor.equal,
+});
+
+const dateTimeDescriptor = (
+  key: DateTimeFieldKey,
+  label: string,
+  current: FlightFormData,
+  fetched: TZDate | null,
+  formatTime: FormatTime,
+): MergeDescriptor => {
+  const { timeField, airportField } = dateTimeFields[key];
+  const currentDate = current[key];
+  const currentTime = current[timeField];
+  const currentTimeZone = current[airportField]?.tz;
+  const currentDateTime = toDateTime(currentDate, currentTime, currentTimeZone);
+  const currentDisplay = currentDateTime
+    ? dateTimeDisplay(currentDateTime, formatTime)
+    : rawDateTimeDisplay(currentDate, currentTime);
+  const fetchedDisplay = fetched ? dateTimeDisplay(fetched, formatTime) : '';
+  const currentWallDateTime = normalizedWallDateTime(currentDate, currentTime);
+  const fetchedWallDateTime = fetched
+    ? `${format(fetched, 'yyyy-MM-dd')} ${format(fetched, 'HH:mm')}`
+    : null;
+  const equal = currentDateTime
+    ? !!fetched && currentDateTime.getTime() === fetched.getTime()
+    : !!currentWallDateTime && currentWallDateTime === fetchedWallDateTime;
+
+  return {
+    key,
+    label,
+    currentDisplay,
+    fetchedDisplay,
+    currentPresent: !!currentDate,
+    fetchedPresent: !!fetched,
+    equal,
+    fetchedPatch: (targets) =>
+      fetched ? dateTimePatch(key, fetched, targets[airportField]?.tz) : {},
+    currentPatchForTargets: (targets) => {
+      const targetTimeZone = targets[airportField]?.tz;
+      if (
+        !currentDateTime ||
+        !currentTimeZone ||
+        !targetTimeZone ||
+        currentTimeZone === targetTimeZone
+      ) {
+        return {};
+      }
+      return dateTimePatch(key, currentDateTime, targetTimeZone);
+    },
+  };
+};
+
+const planFromDescriptors = (
+  descriptors: MergeDescriptor[],
+  targetsFor: (fetchedKeys: Set<MergeFieldKey>) => TargetAirports,
+): MergePlan => ({
+  states: descriptors.map(publicState),
+  buildPatch: (choices) => {
+    const fetchedKeys = new Set(
+      descriptors
+        .filter(
+          (descriptor) =>
+            descriptor.fetchedPresent &&
+            (!isConflict(descriptor) || choices[descriptor.key] === 'fetched'),
+        )
+        .map((descriptor) => descriptor.key),
+    );
+    const targets = targetsFor(fetchedKeys);
+    const patch: MergePatch = {};
+
+    for (const descriptor of descriptors) {
+      if (fetchedKeys.has(descriptor.key)) {
+        Object.assign(patch, descriptor.fetchedPatch(targets));
+      } else if (descriptor.currentPatchForTargets) {
+        Object.assign(patch, descriptor.currentPatchForTargets(targets));
+      }
+    }
+
+    return patch;
+  },
 });
 
 /**
@@ -266,62 +349,6 @@ export function buildMergePlan(args: {
       () => ({ [key]: fetchedValue ?? null }) as MergePatch,
     );
 
-  const dateTimeState = (
-    key: DateTimeFieldKey,
-    label: string,
-    currentDate: string | null,
-    currentTime: string | null,
-    currentTimeZone: string | null | undefined,
-    fetched: TZDate | null,
-  ): MergeDescriptor => {
-    const currentDateTime = toDateTime(
-      currentDate,
-      currentTime,
-      currentTimeZone,
-    );
-    const currentDisplay = currentDateTime
-      ? dateTimeDisplay(currentDateTime, formatTime)
-      : rawDateTimeDisplay(currentDate, currentTime);
-    const fetchedDisplay = fetched ? dateTimeDisplay(fetched, formatTime) : '';
-    const airportField = dateTimeFields[key].airportField;
-    const currentWallDateTime = normalizedWallDateTime(
-      currentDate,
-      currentTime,
-    );
-    const fetchedWallDateTime = fetched
-      ? `${format(fetched, 'yyyy-MM-dd')} ${format(fetched, 'HH:mm')}`
-      : null;
-    const equal = currentDateTime
-      ? !!fetched && currentDateTime.getTime() === fetched.getTime()
-      : !!currentWallDateTime && currentWallDateTime === fetchedWallDateTime;
-
-    return make(
-      {
-        key,
-        label,
-        currentDisplay,
-        fetchedDisplay,
-        currentPresent: !!currentDate,
-        fetchedPresent: !!fetched,
-        equal,
-      },
-      (targets) =>
-        fetched ? dateTimePatch(key, fetched, targets[airportField]?.tz) : {},
-      (targets) => {
-        const targetTimeZone = targets[airportField]?.tz;
-        if (
-          !currentDateTime ||
-          !currentTimeZone ||
-          !targetTimeZone ||
-          currentTimeZone === targetTimeZone
-        ) {
-          return {};
-        }
-        return dateTimePatch(key, currentDateTime, targetTimeZone);
-      },
-    );
-  };
-
   const descriptors: MergeDescriptor[] = [
     entityState(
       'from',
@@ -365,37 +392,33 @@ export function buildMergePlan(args: {
       current.aircraftReg,
       result.aircraftReg,
     ),
-    dateTimeState(
+    dateTimeDescriptor(
       'departure',
       'Departure time',
-      current.departure,
-      current.departureTime,
-      current.from?.tz,
+      current,
       sources.departure,
+      formatTime,
     ),
-    dateTimeState(
+    dateTimeDescriptor(
       'arrival',
       'Arrival time',
-      current.arrival,
-      current.arrivalTime,
-      current.to?.tz,
+      current,
       sources.arrival,
+      formatTime,
     ),
-    dateTimeState(
+    dateTimeDescriptor(
       'departureScheduled',
       'Scheduled departure',
-      current.departureScheduled,
-      current.departureScheduledTime,
-      current.from?.tz,
+      current,
       sources.departureScheduled,
+      formatTime,
     ),
-    dateTimeState(
+    dateTimeDescriptor(
       'arrivalScheduled',
       'Scheduled arrival',
-      current.arrivalScheduled,
-      current.arrivalScheduledTime,
-      current.to?.tz,
+      current,
       sources.arrivalScheduled,
+      formatTime,
     ),
     stringState(
       'departureTerminal',
@@ -423,37 +446,44 @@ export function buildMergePlan(args: {
     ),
   ];
 
-  const buildPatch = (choices: MergeChoices): MergePatch => {
-    const fetchedKeys = new Set(
-      descriptors
-        .filter(
-          (descriptor) =>
-            descriptor.fetchedPresent &&
-            (!isConflict(descriptor) || choices[descriptor.key] === 'fetched'),
-        )
-        .map((descriptor) => descriptor.key),
+  return planFromDescriptors(descriptors, (fetchedKeys) => ({
+    from: fetchedKeys.has('from') ? result.from : current.from,
+    to: fetchedKeys.has('to') ? result.to : current.to,
+  }));
+}
+
+/*
+ * Merge plan for takeoff and landing times detected from a track. A time typed
+ * without its date still counts as a value, so it goes to the conflict picker
+ * rather than being replaced.
+ */
+export function buildTrackTimesMergePlan(args: {
+  current: FlightFormData;
+  detected: { takeoffActual: TZDate | null; landingActual: TZDate | null };
+  formatTime: FormatTime;
+}): MergePlan {
+  const { current, detected, formatTime } = args;
+  const descriptors = (
+    [
+      ['takeoffActual', 'Takeoff'],
+      ['landingActual', 'Landing'],
+    ] as const
+  ).map(([key, label]) => {
+    const descriptor = dateTimeDescriptor(
+      key,
+      label,
+      current,
+      detected[key],
+      formatTime,
     );
-    const targets: TargetAirports = {
-      from: fetchedKeys.has('from') ? result.from : current.from,
-      to: fetchedKeys.has('to') ? result.to : current.to,
+    return {
+      ...descriptor,
+      currentPresent:
+        descriptor.currentPresent ||
+        isPresent(current[dateTimeFields[key].timeField]),
     };
-    const patch: MergePatch = {};
-
-    for (const descriptor of descriptors) {
-      if (fetchedKeys.has(descriptor.key)) {
-        Object.assign(patch, descriptor.fetchedPatch(targets));
-      } else if (descriptor.currentPatchForTargets) {
-        Object.assign(patch, descriptor.currentPatchForTargets(targets));
-      }
-    }
-
-    return patch;
-  };
-
-  return {
-    states: descriptors.map(publicState),
-    buildPatch,
-  };
+  });
+  return planFromDescriptors(descriptors, () => current);
 }
 
 /** Build just the display/conflict state when no patch is needed. */

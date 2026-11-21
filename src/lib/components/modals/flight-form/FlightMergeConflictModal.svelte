@@ -11,6 +11,7 @@
     applied,
     onResolve,
     onCancel,
+    source = 'lookup',
   }: {
     open?: boolean;
     /** Conflicting fields the user must resolve. */
@@ -19,7 +20,26 @@
     applied: MergeField[];
     onResolve: (choices: MergeChoices) => void;
     onCancel: () => void;
+    source?: 'lookup' | 'track';
   } = $props();
+
+  const COPY = {
+    lookup: {
+      description:
+        'Some values fetched from AeroDataBox conflict with the current values.',
+      fetched: 'Fetched',
+      useAll: 'Use all fetched',
+      applied: 'Also filled in from the lookup',
+    },
+    track: {
+      description:
+        'The times detected from the track differ from the current values.',
+      fetched: 'Track',
+      useAll: 'Use all from track',
+      applied: 'Also filled in from the track',
+    },
+  };
+  const copy = $derived(COPY[source]);
 
   let choices = $state<MergeChoices>({});
   let resolved = $state(false);
@@ -59,16 +79,18 @@
     <h2 class="text-lg font-medium">Resolve data conflicts</h2>
   </ModalHeader>
   <ModalBody>
-    <div class="mb-3 flex items-center justify-between gap-3">
+    <div
+      class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+    >
       <p class="text-sm text-muted-foreground">
-        Some values fetched from AeroDataBox conflict with the current values.
+        {copy.description}
       </p>
       <div class="flex shrink-0 gap-2">
         <Button variant="outline" size="sm" onclick={() => setAll('current')}>
           Keep all current
         </Button>
         <Button variant="outline" size="sm" onclick={() => setAll('fetched')}>
-          Use all fetched
+          {copy.useAll}
         </Button>
       </div>
     </div>
@@ -82,7 +104,7 @@
             {field.label}
           </legend>
           <div class="grid grid-cols-2 gap-2">
-            {#each [{ value: 'current', title: 'Current', display: field.currentDisplay }, { value: 'fetched', title: 'Fetched', display: field.fetchedDisplay }] as option (option.value)}
+            {#each [{ value: 'current', title: 'Current', display: field.currentDisplay }, { value: 'fetched', title: copy.fetched, display: field.fetchedDisplay }] as option (option.value)}
               {@const selected = choices[field.key] === option.value}
               <button
                 type="button"
@@ -116,7 +138,7 @@
         <p
           class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
         >
-          Also filled in from the lookup
+          {copy.applied}
         </p>
         <div class="grid gap-1.5">
           {#each applied as field (field.key)}

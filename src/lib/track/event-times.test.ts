@@ -1,3 +1,4 @@
+import { format } from 'date-fns';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -28,6 +29,10 @@ const form = {
   arrivalScheduled: null,
   arrivalScheduledTime: null,
 } as FlightFormData;
+
+/** Wall-clock date and time in the detected value's airport timezone. */
+const local = (date: Date | null) =>
+  date ? format(date, 'yyyy-MM-dd HH:mm') : null;
 
 describe('track event times', () => {
   it('uses the confirming report at the sixty-second boundary', () => {
@@ -155,30 +160,37 @@ describe('track event times', () => {
       detectTrackEventTimes(track([0, 10, 0, 10, 0], [0, 90, 100, 110, 120])),
     ).toEqual({ takeoff: null, landing: 120 });
   });
-  it('does not fill a side with a partially populated field', () => {
-    const input = track([0, 10, 0], [0, 1, 2]);
-    for (const field of ['takeoffActual', 'takeoffActualTime']) {
-      const { values } = prepareTrackEventTimes(input, {
-        ...form,
-        [field]:
-          field === 'takeoffActual' ? '1970-01-01T00:00:00.000Z' : '12:00',
-      });
-      expect(values.takeoffActual).toBeUndefined();
-      expect(values.takeoffActualTime).toBeUndefined();
-      expect(values.landingActualTime).toBe('08:00');
-    }
+  it('detects both sides regardless of existing values', () => {
+    const { detected } = prepareTrackEventTimes(track([0, 10, 0], [0, 1, 2]), {
+      ...form,
+      takeoffActual: '1970-01-01T00:00:00.000Z',
+      takeoffActualTime: '12:00',
+    });
+    expect(local(detected.takeoffActual)).toBe('1970-01-01 00:00');
+    expect(local(detected.landingActual)).toBe('1970-01-01 08:00');
+  });
+  it('rounds detected times down to the minute', () => {
+    const { detected } = prepareTrackEventTimes(
+      track([0, 10, 0], [100, 159, 219]),
+      form,
+    );
+    expect(detected.takeoffActual?.getTime()).toBe(120_000);
+    expect(detected.landingActual?.getTime()).toBe(180_000);
   });
   it('fills nothing when either side is over 24 hours from the schedule', () => {
     const result = prepareTrackEventTimes(track([0, 10], [90000, 90001]), form);
-    expect(result.values).toEqual({});
+    expect(result.detected).toEqual({
+      takeoffActual: null,
+      landingActual: null,
+    });
     expect(result.warnings).toHaveLength(1);
   });
   it('does not fill times on partial-date flights', () => {
-    const { values } = prepareTrackEventTimes(track([0, 10, 0], [0, 1, 2]), {
+    const { detected } = prepareTrackEventTimes(track([0, 10, 0], [0, 1, 2]), {
       ...form,
       datePrecision: 'month',
     });
-    expect(values).toEqual({});
+    expect(detected).toEqual({ takeoffActual: null, landingActual: null });
   });
   it('allows exactly 24 hours and converts arrival to the airport day', () => {
     const result = prepareTrackEventTimes(
@@ -186,22 +198,21 @@ describe('track event times', () => {
       form,
     );
     expect(result.warnings).toEqual([]);
-    expect(result.values.takeoffActualTime).toBe('00:00');
-    expect(result.values.landingActualTime).toBe('08:00');
-    expect(result.values.landingActual).toBe('1970-01-02T00:00:00.000Z');
+    expect(local(result.detected.takeoffActual)).toBe('1970-01-02 00:00');
+    expect(local(result.detected.landingActual)).toBe('1970-01-02 08:00');
   });
   it('validates track endpoints when event detection is unavailable', () => {
     expect(
       prepareTrackEventTimes(track([10, 20], [90000, 90010]), form).warnings,
     ).toHaveLength(1);
   });
-  it('fills canonical 24-hour times the form validator accepts', () => {
-    const { values } = prepareTrackEventTimes(track([0, 10], [46800, 46803]), {
-      ...form,
-      departureScheduled: null,
-      departureScheduledTime: null,
-    });
-    expect(values.takeoffActualTime).toBe('13:00');
+  it('detects times in the airport timezone', () => {
+    const { detected } = prepareTrackEventTimes(
+      track([0, 10], [46800, 46803]),
+      { ...form, departureScheduled: null, departureScheduledTime: null },
+    );
+    expect(local(detected.takeoffActual)).toBe('1970-01-01 13:00');
+    expect(detected.takeoffActual?.timeZone).toBe('UTC');
   });
   it('skips only the side whose airport is missing', () => {
     const input = track([0, 10, 0], [0, 1, 2]);
@@ -209,20 +220,26 @@ describe('track event times', () => {
       ...form,
       from: null,
     } as unknown as FlightFormData);
-    expect(withoutDeparture.values.takeoffActual).toBeUndefined();
-    expect(withoutDeparture.values.landingActualTime).toBe('08:00');
+    expect(withoutDeparture.detected.takeoffActual).toBeNull();
+    expect(local(withoutDeparture.detected.landingActual)).toBe(
+      '1970-01-01 08:00',
+    );
     const withoutArrival = prepareTrackEventTimes(input, {
       ...form,
       to: null,
     } as unknown as FlightFormData);
-    expect(withoutArrival.values.takeoffActualTime).toBe('00:00');
-    expect(withoutArrival.values.landingActual).toBeUndefined();
-  });
-  it('clears old autofill so a replacement can populate new times', () => {
-    const { values } = prepareTrackEventTimes(
-      track([0, 10, 0], [0, 1, 2]),
-      form,
+    expect(local(withoutArrival.detected.takeoffActual)).toBe(
+      '1970-01-01 00:00',
     );
+    expect(withoutArrival.detected.landingActual).toBeNull();
+  });
+  it('clears only the values a track filled', () => {
+    const values = {
+      takeoffActual: '1970-01-01T00:00:00.000Z',
+      takeoffActualTime: '00:00',
+      landingActual: '1970-01-01T00:00:00.000Z',
+      landingActualTime: '08:00',
+    };
     const populated = { ...form, ...values };
     const cleared = {
       ...populated,
@@ -232,12 +249,6 @@ describe('track event times', () => {
     expect(cleared.takeoffActualTime).toBeNull();
     expect(cleared.landingActual).toBeNull();
     expect(cleared.landingActualTime).toBeNull();
-    const replacement = prepareTrackEventTimes(
-      track([0, 10, 0], [120, 121, 122]),
-      cleared,
-    );
-    expect(replacement.values.takeoffActualTime).toBe('00:02');
-    expect(replacement.values.landingActualTime).toBe('08:02');
   });
   it('preserves manual entries and edits when clearing track times', () => {
     const filled = {
