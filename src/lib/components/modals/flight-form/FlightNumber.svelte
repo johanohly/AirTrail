@@ -39,8 +39,8 @@
 
   const resultDateLabel = (date: TZDate) =>
     formatDate(date, prefs, date.timeZone);
-  // A delay past midnight moves the departure to another day than the one
-  // the airline files the flight under.
+  // A delay past midnight moves the departure off the day the flight is
+  // filed under, and both cards would otherwise show the same date.
   const departsOffSchedule = (r: LookupResult) =>
     !!r.departure &&
     !!r.departureScheduled &&
