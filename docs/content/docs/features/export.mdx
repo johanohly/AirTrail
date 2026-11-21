@@ -115,8 +115,8 @@ The seat and reason columns come from your own passenger entry. Other passengers
 
 <Callout>
   The JSON format can be reimported into AirTrail using the [import
-  feature](/docs/features/import). Use the **AirTrail** importer for current
-  exports and **AirTrail (pre-v3)** for legacy exports.
+  feature](/docs/features/import) with the **AirTrail** importer, whichever
+  AirTrail version made it.
 </Callout>
 
 The JSON export is the complete AirTrail backup format. It contains every passenger on each flight, custom field values, and flight tracks.
@@ -127,6 +127,7 @@ The JSON file follows this structure:
 
 ```json
 {
+  "schemaVersion": 1,
   "users": [
     {
       "id": "user_id",
@@ -233,6 +234,7 @@ The JSON file follows this structure:
 
 Notes on the structure:
 
+- `schemaVersion` identifies the backup format. It increases when the format changes in a way that matters for import. Exports made before AirTrail added it have no `schemaVersion`.
 - `users` lists only the users who are passengers on the exported flights.
 - A passenger has either a `userId` or a `guestName`. `user` is `null` for guests.
 - `track` is present only for flights with a [flight track](/docs/features/flight-tracks). Track coordinates are `[longitude, latitude, altitude]` with altitude in meters. Depending on the source file, a track can also contain `groundSpeedKt`, `trackDeg`, `ground`, and `estimated` arrays.

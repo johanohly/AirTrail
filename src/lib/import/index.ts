@@ -5,7 +5,6 @@ import { processFlightyFile } from '$lib/import/flighty';
 import { processFR24File } from '$lib/import/fr24';
 import { processJetLogFile } from '$lib/import/jetlog';
 import { processJetLoversFile } from '$lib/import/jetlovers';
-import { processLegacyAirTrailFile } from '$lib/import/legacy-airtrail';
 import { processLogMyTripFile } from '$lib/import/logmytrip';
 import type { PlatformOptions, ProcessResult } from '$lib/import/model';
 import { processMilesAndMoreFile } from '$lib/import/milesandmore';
@@ -21,7 +20,6 @@ type Processor = (
 
 const processors: Record<PlatformValue, Processor> = {
   airtrail: processAirTrailFile,
-  'legacy-airtrail': processLegacyAirTrailFile,
   jetlog: processJetLogFile,
   fr24: processFR24File,
   aita: processAITAFile,

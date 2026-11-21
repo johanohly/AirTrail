@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { processAirTrailFile } from './airtrail';
 
+import { BACKUP_SCHEMA_VERSION } from '$lib/backup';
+
 const {
   getAirportByIcao,
   getAirlineByIcao,
@@ -151,6 +153,7 @@ describe('processAirTrailFile', () => {
 
   it('imports later v3 JSON exports with nested airport, airline, and aircraft objects', async () => {
     const content = JSON.stringify({
+      schemaVersion: BACKUP_SCHEMA_VERSION,
       users: exportedUsers,
       flights: [
         {
@@ -260,6 +263,58 @@ describe('processAirTrailFile', () => {
     const result = await processAirTrailFile(content, baseOptions);
 
     expect(result.flights[0]?.passengers[0]?.flightReason).toBe('business');
+  });
+
+  it('imports pre-v3 exports without asking for the format', async () => {
+    const content = JSON.stringify({
+      users: exportedUsers,
+      flights: [
+        {
+          date: '2023-03-02',
+          from: { code: 'EKCH' },
+          to: { code: 'EIDW' },
+          departure: null,
+          arrival: null,
+          duration: null,
+          airline: 'SAS',
+          flightNumber: 'SK123',
+          aircraft: 'A20N',
+          aircraftReg: null,
+          flightReason: 'business',
+          note: null,
+          seats: [
+            {
+              userId: 'export-user',
+              guestName: null,
+              seat: 'window',
+              seatNumber: '12A',
+              seatClass: 'economy',
+            },
+          ],
+        },
+      ],
+    });
+
+    const result = await processAirTrailFile(content, baseOptions);
+
+    expect(result.flights).toHaveLength(1);
+    expect(result.flights[0]?.airline).toMatchObject({ icao: 'SAS' });
+    expect(result.flights[0]?.passengers).toEqual([
+      expect.objectContaining({ userId: 'local-user', seatNumber: '12A' }),
+    ]);
+    expect(result.exportedUsers).toEqual([]);
+  });
+
+  it('rejects exports from a newer backup format', async () => {
+    const content = JSON.stringify({
+      schemaVersion: BACKUP_SCHEMA_VERSION + 1,
+      users: exportedUsers,
+      flights: [],
+    });
+
+    await expect(processAirTrailFile(content, baseOptions)).rejects.toThrow(
+      'This file needs a newer version of AirTrail',
+    );
   });
 
   it('falls back to names when nested airline or aircraft objects have no ICAO code', async () => {

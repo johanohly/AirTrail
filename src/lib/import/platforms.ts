@@ -102,18 +102,7 @@ export const platforms = [
   {
     name: 'AirTrail',
     value: 'airtrail',
-    description: 'JSON export from AirTrail (re-import your data).',
-    extensions: ['.json'],
-    options: {
-      filterOwner: false,
-      airlineFromFlightNumber: false,
-    },
-  },
-  {
-    name: 'AirTrail (pre-v3)',
-    value: 'legacy-airtrail',
-    description:
-      'JSON export from AirTrail (exported from a pre-v3 version of AirTrail).',
+    description: 'JSON export from any version of AirTrail.',
     extensions: ['.json'],
     options: {
       filterOwner: false,

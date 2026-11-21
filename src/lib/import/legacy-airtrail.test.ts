@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { processLegacyAirTrailFile } from './legacy-airtrail';
+import { processLegacyAirTrailData } from './legacy-airtrail';
 
 vi.mock('$app/state', () => ({
   page: { data: { user: { id: 'local-user', username: 'john' } } },
@@ -24,9 +24,9 @@ const options = {
   importMode: 'personal' as const,
 };
 
-describe('processLegacyAirTrailFile', () => {
+describe('processLegacyAirTrailData', () => {
   it('moves the flight reason onto the passengers', async () => {
-    const content = JSON.stringify({
+    const data = {
       users: [{ id: 'old-user', username: 'john', displayName: 'John' }],
       flights: [
         {
@@ -53,9 +53,9 @@ describe('processLegacyAirTrailFile', () => {
           ],
         },
       ],
-    });
+    };
 
-    const { flights } = await processLegacyAirTrailFile(content, options);
+    const { flights } = await processLegacyAirTrailData(data, options);
 
     expect(flights[0]).not.toHaveProperty('flightReason');
     expect(flights[0]?.passengers).toEqual([
