@@ -1,5 +1,14 @@
 import { z } from 'zod';
+
 import { FlightReasons } from '$lib/db/types';
+import { toTitleCase } from '$lib/utils/string';
+
+export type BuiltinFlightReason = (typeof FlightReasons)[number];
+
+export const isBuiltinFlightReason = (
+  reason: string,
+): reason is BuiltinFlightReason =>
+  FlightReasons.some((builtin) => builtin === reason);
 
 export const customFlightReasonsSchema = z
   .array(
@@ -9,8 +18,7 @@ export const customFlightReasonsSchema = z
       .min(1)
       .max(100)
       .refine(
-        (reason) =>
-          !FlightReasons.some((builtin) => builtin === reason.toLowerCase()),
+        (reason) => !isBuiltinFlightReason(reason.toLowerCase()),
         'Built-in reasons are always available',
       ),
   )
@@ -22,18 +30,15 @@ export const customFlightReasonsSchema = z
     'Flight reasons must be unique',
   );
 
-// Saved labels are kept verbatim, including reasons removed from settings.
-export const flightReasonSchema = z.string().min(1).nullable();
+// Saved reasons are kept verbatim, including ones removed from settings.
+export const flightReasonSchema = z.string().min(1).max(100).nullable();
 
 export const flightReasonLabel = (reason: string): string =>
-  FlightReasons.some((builtin) => builtin === reason)
-    ? reason.charAt(0).toUpperCase() + reason.slice(1)
-    : reason;
+  isBuiltinFlightReason(reason) ? toTitleCase(reason) : reason;
 
+/** Built-ins first, the user's own reasons next, and Other last. */
 export const flightReasonOptions = (custom: readonly string[]) => [
-  'leisure',
-  'business',
-  'crew',
+  ...FlightReasons.filter((reason) => reason !== 'other'),
   ...custom,
   'other',
 ];

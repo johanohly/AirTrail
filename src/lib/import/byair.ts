@@ -9,6 +9,7 @@ import { parseCsv } from '$lib/utils';
 import { getAirlineByIata, getAirlineByIcao } from '$lib/utils/data/airlines';
 import { getAirportByIata } from '$lib/utils/data/airports/cache';
 import { parseLocalISO, toUtc } from '$lib/utils/datetime';
+import type { BuiltinFlightReason } from '$lib/utils/flight-reasons';
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
 
@@ -143,7 +144,7 @@ const mapSeatClass = (
 
 const mapFlightReason = (
   purpose: string | null,
-): FlightPassenger['flightReason'] => {
+): BuiltinFlightReason | null => {
   if (!purpose) return null;
   const normalized = purpose.toLowerCase().trim();
   switch (normalized) {

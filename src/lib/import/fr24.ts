@@ -15,6 +15,7 @@ import { getAircraftByIcao } from '$lib/utils/data/aircraft';
 import { getAirlineByCodes } from '$lib/utils/data/airlines';
 import { getAirportByIcao } from '$lib/utils/data/airports/cache';
 import { parseLocalISO, toUtc } from '$lib/utils/datetime';
+import type { BuiltinFlightReason } from '$lib/utils/flight-reasons';
 
 const FR24_AIRPORT_REGEX = /\(([a-zA-Z0-9]{3})\/(?<ICAO>[a-zA-Z]{4})\)/;
 const FR24_SEAT_TYPE_MAP: Record<string, FlightPassenger['seat']> = {
@@ -29,13 +30,12 @@ const FR24_FLIGHT_CLASS_MAP: Record<string, FlightPassenger['seatClass']> = {
   '4': 'economy+',
   '5': 'private',
 };
-const FR24_FLIGHT_REASON_MAP: Record<string, FlightPassenger['flightReason']> =
-  {
-    '1': 'leisure',
-    '2': 'business',
-    '3': 'crew',
-    '4': 'other',
-  };
+const FR24_FLIGHT_REASON_MAP: Record<string, BuiltinFlightReason | null> = {
+  '1': 'leisure',
+  '2': 'business',
+  '3': 'crew',
+  '4': 'other',
+};
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
 const FR24_DATE_REGEX =
