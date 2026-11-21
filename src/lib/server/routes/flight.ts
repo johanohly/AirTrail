@@ -25,6 +25,7 @@ import { getAircraftFromReg } from '$lib/server/utils/flight-lookup/aerodatabox'
 import { getFlightRoute } from '$lib/server/utils/flight-lookup/flight-lookup';
 import { validateFlightImportPermissions } from '$lib/server/utils/flight-import';
 import { generateCsv } from '$lib/utils/csv';
+import { resolveFlightDistance } from '$lib/utils/flight-distance';
 import { generateBackup, serializeBackup } from '$lib/server/utils/backup';
 import { hasPermission } from '$lib/server/authorization/authorize';
 import {
@@ -228,23 +229,31 @@ export const flightRouter = router({
       throw new TRPCError({ code: 'FORBIDDEN' });
     }
     const res = await listFlights(user.id);
-    const flights = res.map(({ id: _, passengers, ...flight }) => {
-      const passenger = passengers.find(
-        (passenger) => passenger.userId === user.id,
-      );
+    const flights = res.map(
+      ({ id: _, passengers, manualDistance, trackDistance, ...flight }) => {
+        const passenger = passengers.find(
+          (passenger) => passenger.userId === user.id,
+        );
+        const distance = resolveFlightDistance({
+          ...flight,
+          manualDistance,
+          trackDistance,
+        });
 
-      return {
-        ...flight,
-        from: flight.from?.name,
-        to: flight.to?.name,
-        airline: flight.airline?.name,
-        aircraft: flight.aircraft?.name,
-        seat: passenger?.seat,
-        seatNumber: passenger?.seatNumber,
-        seatClass: passenger?.seatClass,
-        flightReason: passenger?.flightReason,
-      };
-    });
+        return {
+          ...flight,
+          distanceKm: distance ? Math.round(distance.km) : null,
+          from: flight.from?.name,
+          to: flight.to?.name,
+          airline: flight.airline?.name,
+          aircraft: flight.aircraft?.name,
+          seat: passenger?.seat,
+          seatNumber: passenger?.seatNumber,
+          seatClass: passenger?.seatClass,
+          flightReason: passenger?.flightReason,
+        };
+      },
+    );
 
     return generateCsv(flights);
   }),

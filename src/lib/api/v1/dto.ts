@@ -12,6 +12,7 @@ import type {
   FlightPassenger,
   User,
 } from '$lib/db/types';
+import { resolveFlightDistance } from '$lib/utils/flight-distance';
 
 export const toAirportDto = (airport: Airport | null) =>
   airport
@@ -74,6 +75,15 @@ export type FlightTrackSummary = {
   sourceName: string | null;
 };
 
+const toFlightDistanceDto = (flight: Flight) => {
+  const distance = resolveFlightDistance(flight);
+  return {
+    distanceKm: distance?.km ?? null,
+    distanceSource: distance?.source ?? null,
+    manualDistanceKm: flight.manualDistance,
+  };
+};
+
 export const toFlightDto = (
   flight: Flight,
   track: FlightTrackSummary | null = null,
@@ -90,6 +100,7 @@ export const toFlightDto = (
   landingScheduled: flight.landingScheduled,
   landingActual: flight.landingActual,
   duration: flight.duration,
+  ...toFlightDistanceDto(flight),
   departureTerminal: flight.departureTerminal,
   departureGate: flight.departureGate,
   arrivalTerminal: flight.arrivalTerminal,

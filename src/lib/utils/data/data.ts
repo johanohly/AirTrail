@@ -5,8 +5,13 @@ import { resolveFlightTimeline } from './flight-timeline';
 
 import { page } from '$app/state';
 import type { Airport, Flight, FlightPassenger } from '$lib/db/types';
-import { distanceBetween, toTitleCase } from '$lib/utils';
+import { toTitleCase } from '$lib/utils';
 import { nowIn } from '$lib/utils/datetime';
+import {
+  greatCircleDistance,
+  resolveFlightDistance,
+  type FlightDistanceSource,
+} from '$lib/utils/flight-distance';
 
 type ExcludedType<T, U> = {
   [P in keyof T as P extends keyof U ? never : P]: T[P];
@@ -19,6 +24,7 @@ type FlightOverrides = {
   departure: TZDate | null;
   arrival: TZDate | null;
   distance: number | null;
+  distanceSource: FlightDistanceSource | null;
   raw: Flight;
 };
 export type FlightData = ExcludedType<Flight, FlightOverrides> &
@@ -43,6 +49,7 @@ export const prepareFlightData = (data: Flight[]): FlightData[] => {
   return data
     .map((flight) => {
       const timeline = resolveFlightTimeline(flight);
+      const distance = resolveFlightDistance(flight);
 
       return {
         ...flight,
@@ -51,13 +58,8 @@ export const prepareFlightData = (data: Flight[]): FlightData[] => {
         dateEnd: timeline.dateEnd,
         departure: timeline.recordedDeparture,
         arrival: timeline.recordedArrival,
-        distance:
-          flight.from && flight.to
-            ? distanceBetween(
-                [flight.from.lon, flight.from.lat],
-                [flight.to.lon, flight.to.lat],
-              ) / 1000
-            : null,
+        distance: distance?.km ?? null,
+        distanceSource: distance?.source ?? null,
         raw: flight,
       };
     })
@@ -87,7 +89,7 @@ export const prepareFlightArcData = (data: FlightData[]) => {
       .join('-');
     if (!routeMap[key]) {
       routeMap[key] = {
-        distance: flight.distance!,
+        distance: greatCircleDistance(flight.from, flight.to)!,
         from: flight.from,
         to: flight.to,
         flights: [],

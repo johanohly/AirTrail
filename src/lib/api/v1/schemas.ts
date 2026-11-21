@@ -9,6 +9,7 @@ import {
 } from '$lib/db/types';
 import { flightTrackInputSchema } from '$lib/track/schema';
 import { isKnownCountryCode } from '$lib/utils/data/countries';
+import { MAX_MANUAL_DISTANCE_KM } from '$lib/utils/flight-distance';
 
 const nullableText = z.string().max(500).nullable().optional().default(null);
 const nullableDateTime = z
@@ -46,6 +47,12 @@ export const flightInputSchema = z.object({
   landingScheduled: nullableDateTime,
   landingActual: nullableDateTime,
   duration: z.number().int().nonnegative().nullable().optional().default(null),
+  manualDistanceKm: z
+    .number()
+    .positive()
+    .max(MAX_MANUAL_DISTANCE_KM)
+    .nullable()
+    .optional(),
   departureTerminal: nullableText,
   departureGate: nullableText,
   arrivalTerminal: nullableText,

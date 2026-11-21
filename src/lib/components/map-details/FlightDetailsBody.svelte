@@ -101,14 +101,20 @@
     gateLabel(flight.arrivalTerminal, flight.arrivalGate),
   );
 
-  type Row = { label: string; value: string };
+  // Says why a flight's distance differs from its route's.
+  const distanceHint = $derived(
+    flight.distanceSource === 'track' ? 'flown' : undefined,
+  );
+
+  type Row = { label: string; value: string; hint?: string };
   const rows = $derived.by(() => {
     const r: Row[] = [];
     if (flight.airline?.name)
       r.push({ label: 'Airline', value: flight.airline.name });
     if (flight.aircraft || flight.aircraftReg)
       r.push({ label: 'Aircraft', value: formatAircraft(flight) });
-    if (distanceLabel) r.push({ label: 'Distance', value: distanceLabel });
+    if (distanceLabel)
+      r.push({ label: 'Distance', value: distanceLabel, hint: distanceHint });
     if (durationLabel) r.push({ label: 'Duration', value: durationLabel });
     if (avgSpeedLabel) r.push({ label: 'Avg. speed', value: avgSpeedLabel });
     if (seatLabel) r.push({ label: 'Seat', value: seatLabel });
@@ -126,7 +132,12 @@
     <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
       {#each rows as row (row.label)}
         <dt class="text-muted-foreground">{row.label}</dt>
-        <dd class="text-right font-medium tabular-nums">{row.value}</dd>
+        <dd class="text-right font-medium tabular-nums">
+          {#if row.hint}
+            <span class="font-normal text-muted-foreground">{row.hint}</span>
+          {/if}
+          {row.value}
+        </dd>
       {/each}
     </dl>
   {/if}

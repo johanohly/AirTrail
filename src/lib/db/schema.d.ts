@@ -157,6 +157,10 @@ export type flight = {
      */
     landingActual: string | null;
     duration: number | null;
+    /**
+     * Kilometres, entered by hand. Takes precedence over the track and great-circle distance.
+     */
+    manualDistance: number | null;
     departureTerminal: string | null;
     departureGate: string | null;
     arrivalTerminal: string | null;
@@ -200,6 +204,10 @@ export type flight_track = {
     sourceFormat: 'gpx' | 'kml' | 'csv' | 'readsb';
     sourceName: string | null;
     pointCount: number;
+    /**
+     * Kilometres flown along the track. Null until measured.
+     */
+    distance: number | null;
     createdAt: Generated<Timestamp>;
     updatedAt: Generated<Timestamp>;
 };

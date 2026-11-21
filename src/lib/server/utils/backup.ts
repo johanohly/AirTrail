@@ -156,7 +156,7 @@ export const generateBackup = async (scope: ResolvedFlightScope) => {
   const cfByPassenger = buildCfByFlight(passengerCfValueRows, entityLookup);
 
   const flights = res.map((flight: Flight) => ({
-    ...omit(flight, ['id']),
+    ...omit(flight, ['id', 'trackDistance']),
     from: flight.from ? omit(flight.from, ['id']) : null,
     to: flight.to ? omit(flight.to, ['id']) : null,
     airline: flight.airline ? omit(flight.airline, ['id']) : null,

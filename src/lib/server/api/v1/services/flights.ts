@@ -129,10 +129,12 @@ const resolveReferences = async (
     aircraftId: _aircraftId,
     airlineId: _airlineId,
     customFields: _customFields,
+    manualDistanceKm,
     ...rest
   } = input;
   return {
     ...rest,
+    manualDistance: manualDistanceKm,
     from,
     to,
     aircraft: aircraft ?? null,

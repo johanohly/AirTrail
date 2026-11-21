@@ -69,6 +69,8 @@ export type Flight = Omit<
   passengers: FlightPassenger[];
   aircraft: Aircraft | null;
   airline: Airline | null;
+  /** Kilometres measured along the stored track, if there is one. */
+  trackDistance: number | null;
   /** Only `flight.list` attaches these, for the flight list. */
   customFieldValues?: FlightCustomFieldValue[];
 };
@@ -87,9 +89,11 @@ export type CreateFlightPassenger = Omit<
 };
 type FlightRecord = Omit<
   Selectable<flight>,
-  'id' | 'fromId' | 'toId' | 'aircraftId' | 'airlineId'
+  'id' | 'fromId' | 'toId' | 'aircraftId' | 'airlineId' | 'manualDistance'
 >;
 export type CreateFlight = FlightRecord & {
+  /** Left out to keep the stored value on update. */
+  manualDistance?: number | null;
   from: CreateFlightAirport | null;
   to: CreateFlightAirport | null;
   aircraft: CreateFlightEntityReference<Aircraft> | null;

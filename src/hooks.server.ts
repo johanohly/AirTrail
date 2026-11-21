@@ -15,6 +15,7 @@ import { demoMode, isPublicDemo } from '$lib/server/demo/mode';
 import { seedDemo } from '$lib/server/demo/seed';
 import { validateAirlineIcons } from '$lib/server/utils/airline';
 import { isSetup } from '$lib/server/utils/auth';
+import { backfillTrackDistances } from '$lib/server/utils/track-distance';
 import { appConfig } from '$lib/server/utils/config';
 import {
   ensureInitialDataSync,
@@ -41,6 +42,9 @@ export const init: ServerInit = async () => {
   await ensureInitialDataSync();
   await validateAirlineIcons();
   await syncAirlineIcons({ onlyIfNoIcons: true });
+  backfillTrackDistances().catch((err) =>
+    console.error('Error measuring flight track distances:', err),
+  );
 
   if (demoMode() !== 'off' && !(await isSetup())) {
     console.log('Seeding the demo...');

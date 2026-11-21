@@ -8,6 +8,7 @@ import {
 import type { NavigateFlights } from '$lib/flight-navigation';
 import { mapDetailsState, openFlightDetails } from '$lib/state.svelte';
 import { type FlightData } from '$lib/utils';
+import { greatCircleDistance } from '$lib/utils/flight-distance';
 import {
   convertDistance,
   formatCompactFlightDate,
@@ -68,11 +69,12 @@ export function useRouteDetails(
     return ids.size;
   });
 
+  // The route's own length, not any one flight's flown distance.
   const distance = $derived.by(() => {
-    const km = routeFlights.find(
-      (f) => typeof f.distance === 'number',
-    )?.distance;
-    if (typeof km !== 'number') return null;
+    const km = routeAirports
+      ? greatCircleDistance(routeAirports.from, routeAirports.to)
+      : null;
+    if (km === null) return null;
     return Math.round(convertDistance(km, prefs));
   });
 

@@ -4,6 +4,7 @@ import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import type { DB } from './schema';
 import type { CreateFlight, CreateFlightPassenger } from './types';
 
+import { measureTrackDistance } from '$lib/track/distance';
 import {
   flightTrackInputSchema,
   toFlightTrackPayload,
@@ -115,6 +116,13 @@ export const resolveFlightPassengerChanges = (
   return { resolved, removedIds };
 };
 
+const trackDistance = (db: Kysely<DB>, flightId: Expression<number>) =>
+  db
+    .selectFrom('flightTrack')
+    .select('flightTrack.distance')
+    .whereRef('flightTrack.flightId', '=', flightId)
+    .as('trackDistance');
+
 const passengers = (db: Kysely<DB>, flightId: Expression<number>) => {
   return jsonArrayFrom(
     db
@@ -141,7 +149,8 @@ export const listFlightBaseQuery = (db: Kysely<DB>, userId?: string) => {
     )
     .select(({ ref }) => [aircraft(db, ref('flight.aircraftId'))])
     .select(({ ref }) => [airline(db, ref('flight.airlineId'))])
-    .select((eb) => [passengers(db, eb.ref('flight.id'))]);
+    .select((eb) => [passengers(db, eb.ref('flight.id'))])
+    .select((eb) => [trackDistance(db, eb.ref('flight.id'))]);
 
   if (!userId) {
     return query;
@@ -209,6 +218,7 @@ export const getFlightPrimitive = async (db: Kysely<DB>, id: number) => {
     .select(({ ref }) => [aircraft(db, ref('flight.aircraftId'))])
     .select(({ ref }) => [airline(db, ref('flight.airlineId'))])
     .select((eb) => [passengers(db, eb.ref('flight.id'))])
+    .select((eb) => [trackDistance(db, eb.ref('flight.id'))])
     .where('id', '=', id)
     .executeTakeFirst();
 };
@@ -379,33 +389,33 @@ export const updateFlightPrimitiveWithConnection = async (
   return persistedPassengers;
 };
 
-const normalizeFlightTrackInput = (track: FlightTrackInput): FlightTrackInput =>
-  flightTrackInputSchema.parse(track);
+const flightTrackRow = (flightId: number, track: FlightTrackInput) => {
+  const validTrack = flightTrackInputSchema.parse(track);
+  return {
+    flightId,
+    track: toFlightTrackPayload(validTrack),
+    sourceFormat: validTrack.sourceFormat,
+    sourceName: validTrack.sourceName ?? null,
+    pointCount: validTrack.coordinates.length,
+    distance: measureTrackDistance(validTrack),
+    updatedAt: new Date(),
+  };
+};
 
 export const upsertFlightTrackPrimitiveWithConnection = async (
   db: Kysely<DB>,
   flightId: number,
   track: FlightTrackInput,
 ) => {
-  const validTrack = normalizeFlightTrackInput(track);
-  const payload = toFlightTrackPayload(validTrack);
+  const row = flightTrackRow(flightId, track);
+  const { flightId: _flightId, ...values } = row;
 
   await db
     .insertInto('flightTrack')
-    .values({
-      flightId,
-      track: payload,
-      sourceFormat: validTrack.sourceFormat,
-      sourceName: validTrack.sourceName ?? null,
-      pointCount: validTrack.coordinates.length,
-      updatedAt: new Date(),
-    })
+    .values(row)
     .onConflict((oc) =>
       oc.column('flightId').doUpdateSet({
-        track: payload,
-        sourceFormat: validTrack.sourceFormat,
-        sourceName: validTrack.sourceName ?? null,
-        pointCount: validTrack.coordinates.length,
+        ...values,
         updatedAt: sql`CURRENT_TIMESTAMP`,
       }),
     )
@@ -473,20 +483,8 @@ export const createManyFlightsPrimitive = async (
     await trx.insertInto('flightPassenger').values(passengerData).execute();
 
     const trackData = flights.flatMap((flight, index) => {
-      const track = data[index]?.track
-        ? normalizeFlightTrackInput(data[index].track)
-        : null;
-      if (!track) return [];
-      return [
-        {
-          flightId: flight.id,
-          track: toFlightTrackPayload(track),
-          sourceFormat: track.sourceFormat,
-          sourceName: track.sourceName ?? null,
-          pointCount: track.coordinates.length,
-          updatedAt: new Date(),
-        },
-      ];
+      const track = data[index]?.track;
+      return track ? [flightTrackRow(flight.id, track)] : [];
     });
 
     if (trackData.length) {

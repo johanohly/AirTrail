@@ -10,6 +10,7 @@
   import type { flightSchema } from '$lib/zod/flight';
 
   import AircraftPhotoButton from './AircraftPhotoButton.svelte';
+  import DistanceField from './DistanceField.svelte';
 
   let {
     form,
@@ -59,7 +60,10 @@
         <Form.FieldErrors />
       </Form.Field>
     </div>
-    <AirlineField {form} />
+    <div class="grid grid-cols-[2fr_minmax(7.5rem,1fr)] gap-2">
+      <AirlineField {form} />
+      <DistanceField {form} />
+    </div>
     <Form.Field {form} name="note">
       <Form.Control>
         {#snippet children({ props })}

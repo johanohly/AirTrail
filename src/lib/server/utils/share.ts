@@ -34,6 +34,8 @@ interface SanitizedFlight {
   from: Airport;
   to: Airport;
   duration: number | null;
+  manualDistance: number | null;
+  trackDistance: number | null;
   flightReason: string | null;
   aircraftReg: string | null;
   passengers: FlightPassenger[];
@@ -383,6 +385,9 @@ export function sanitizeFlightData(
       from: flight.from!, // Always include complete from airport
       to: flight.to!, // Always include complete to airport
       duration: flight.duration,
+      manualDistance: flight.manualDistance,
+      trackDistance:
+        share.showMap && share.showTracks ? flight.trackDistance : null,
       flightReason: userPassengers[0]?.flightReason ?? null,
       aircraftReg: share.showAircraft ? flight.aircraftReg : null,
       passengers: userPassengers,

@@ -1329,6 +1329,18 @@ components:
           format: date-time
         duration:
           type: [integer, 'null']
+        distanceKm:
+          type: [number, 'null']
+          description: >-
+            The distance shown and counted in statistics: the manual distance,
+            else the distance flown along the track, else the great-circle
+            distance between the airports.
+        distanceSource:
+          type: [string, 'null']
+          enum: [manual, track, great-circle]
+        manualDistanceKm:
+          type: [number, 'null']
+          description: Distance entered by hand, in kilometres.
         departureTerminal:
           type: [string, 'null']
         departureGate:
@@ -1405,6 +1417,14 @@ components:
         duration:
           type: [integer, 'null']
           minimum: 0
+        manualDistanceKm:
+          type: [number, 'null']
+          exclusiveMinimum: 0
+          maximum: 40075
+          description: >-
+            Distance entered by hand, in kilometres. Overrides the track and
+            great-circle distance. Omit it to keep the stored value; send null
+            to clear it.
         departureTerminal:
           type: [string, 'null']
           maxLength: 500
@@ -1538,6 +1558,7 @@ components:
           type: integer
         distanceKm:
           type: integer
+          description: Sum of each completed flight's `distanceKm`.
         durationSeconds:
           type: integer
         airports:
@@ -1792,10 +1813,8 @@ components:
           type: boolean
         order:
           type: integer
-        defaultValue:
-          {}
-        options:
-          {}
+        defaultValue: {}
+        options: {}
     CustomFieldsResponse:
       type: object
       required: [data]
