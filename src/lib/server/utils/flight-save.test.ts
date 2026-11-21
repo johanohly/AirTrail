@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ApiScope } from '$lib/api/v1/scopes';
 import type { Permission } from '$lib/authorization/permissions';
-import type { CreateFlight, CreateFlightPassenger } from '$lib/db/types';
+import type { CreateFlight } from '$lib/db/types';
 import { AuthorizationError } from '$lib/server/authorization/authorize';
 import type { AuthorizationContext } from '$lib/server/authorization/context';
 
@@ -11,22 +11,12 @@ const mocks = vi.hoisted(() => ({
   flightOwnership: vi.fn(),
   createFlightPrimitiveWithConnection: vi.fn(),
   updateFlightPrimitiveWithConnection: vi.fn(),
-  readReasonSettings: vi.fn(),
 }));
 
 vi.mock('$lib/db', () => ({
   db: {
     transaction: () => ({
-      execute: (run: (trx: object) => unknown) =>
-        run({
-          selectFrom: () => ({
-            select: () => ({
-              where: () => ({
-                executeTakeFirstOrThrow: mocks.readReasonSettings,
-              }),
-            }),
-          }),
-        }),
+      execute: (run: (trx: object) => unknown) => run({}),
     }),
   },
 }));
@@ -86,10 +76,7 @@ const writer = (
   };
 };
 
-const passenger = (
-  userId: string | null,
-  id?: number,
-): CreateFlightPassenger => ({
+const passenger = (userId: string | null, id?: number) => ({
   ...(id === undefined ? {} : { id }),
   userId,
   guestName: userId ? null : 'Guest',
@@ -111,9 +98,6 @@ const update = (w: ReturnType<typeof writer>, flight: CreateFlight) =>
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.readReasonSettings.mockResolvedValue({
-    customFlightReasons: ['Study abroad'],
-  });
   mocks.createFlightPrimitiveWithConnection.mockResolvedValue({
     flightId: 7,
     passengers: [],
@@ -127,13 +111,6 @@ beforeEach(() => {
 });
 
 describe('creating a flight', () => {
-  it('validates a custom reason before writing a new flight', async () => {
-    const w = writer(role('flight.create.own'));
-    await expect(
-      create(w, values([{ ...passenger('me'), flightReason: 'Unconfigured' }])),
-    ).rejects.toThrow('available flight reason');
-    expect(mocks.createFlightPrimitiveWithConnection).not.toHaveBeenCalled();
-  });
   it('needs only create.own for a flight with just the caller', async () => {
     const w = writer(role('flight.create.own'));
     await expect(create(w, values([passenger('me')]))).resolves.toBe(7);
@@ -177,20 +154,6 @@ describe('creating a flight', () => {
 });
 
 describe('updating a flight', () => {
-  it('preserves a removed reason while editing unrelated flight details', async () => {
-    const saved = { ...passenger('me', 10), flightReason: 'Removed' };
-    mocks.getFlightPrimitive.mockResolvedValue({ id: 1, passengers: [saved] });
-    const w = writer(role('flight.update.own'));
-    await expect(update(w, values([saved], { note: 'Changed' }))).resolves.toBe(
-      1,
-    );
-    expect(mocks.updateFlightPrimitiveWithConnection).toHaveBeenCalledWith(
-      expect.anything(),
-      1,
-      expect.objectContaining({ passengers: [saved], note: 'Changed' }),
-    );
-    expect(mocks.readReasonSettings).not.toHaveBeenCalled();
-  });
   it('reports a missing flight as not found', async () => {
     mocks.getFlightPrimitive.mockResolvedValue(undefined);
     const w = writer(role('flight.update.any'));

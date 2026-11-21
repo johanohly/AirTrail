@@ -4,7 +4,6 @@ import { PassengerResolutionError } from '$lib/db/queries';
 import { AuthorizationError } from '$lib/server/authorization/authorize';
 import { RoleOperationError } from '$lib/server/authorization/roles';
 import { CustomFieldValidationError } from '$lib/server/utils/custom-fields';
-import { FlightReasonValidationError } from '$lib/server/utils/flight-reasons';
 import {
   ApiOperationError,
   apiV1Error,
@@ -43,7 +42,6 @@ export const asApiOperationError = (
 ): ApiOperationError | null => {
   if (error instanceof ApiOperationError) return error;
   if (
-    error instanceof FlightReasonValidationError ||
     error instanceof CustomFieldValidationError ||
     error instanceof PassengerResolutionError
   )

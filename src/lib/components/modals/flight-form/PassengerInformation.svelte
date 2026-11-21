@@ -26,6 +26,17 @@
   import type { flightSchema } from '$lib/zod/flight';
 
   const reasonsQuery = trpc.user.flightReasons.query();
+  // Your own reasons are offered on your row only; other rows keep theirs.
+  const reasonOptions = (
+    passenger:
+      { userId: string | null; flightReason: string | null } | undefined,
+  ) =>
+    flightReasonOptions(
+      passenger?.userId === page.data.user?.id
+        ? ($reasonsQuery.data ?? [])
+        : [],
+      passenger?.flightReason,
+    );
 
   let {
     form,
@@ -184,7 +195,7 @@
                           </span>
                         </Select.Trigger>
                         <Select.Content>
-                          {#each flightReasonOptions($formData.passengers[index]?.userId === page.data.user?.id ? ($reasonsQuery.data ?? []) : []) as reason}
+                          {#each reasonOptions($formData.passengers[index]) as reason (reason)}
                             <Select.Item
                               value={reason}
                               label={flightReasonLabel(reason)}

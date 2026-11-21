@@ -36,9 +36,21 @@ export const flightReasonSchema = z.string().min(1).max(100).nullable();
 export const flightReasonLabel = (reason: string): string =>
   isBuiltinFlightReason(reason) ? toTitleCase(reason) : reason;
 
-/** Built-ins first, the user's own reasons next, and Other last. */
-export const flightReasonOptions = (custom: readonly string[]) => [
-  ...FlightReasons.filter((reason) => reason !== 'other'),
-  ...custom,
-  'other',
-];
+/*
+ * Built-ins first, then the user's own reasons, then Other. A saved reason that
+ * isn't in the list (removed since, or another passenger's) stays selectable.
+ */
+export const flightReasonOptions = (
+  custom: readonly string[],
+  current?: string | null,
+) => {
+  const own =
+    current && !isBuiltinFlightReason(current) && !custom.includes(current)
+      ? [...custom, current]
+      : custom;
+  return [
+    ...FlightReasons.filter((reason) => reason !== 'other'),
+    ...own,
+    'other',
+  ];
+};

@@ -46,10 +46,6 @@ import {
 } from '$lib/server/utils/flight-import';
 import { distanceBetween } from '$lib/utils';
 import {
-  FlightReasonValidationError,
-  validatePassengerFlightReasons,
-} from './flight-reasons';
-import {
   estimateFlightDuration,
   isBeforeEpoch,
   mergeTimeWithDate,
@@ -328,11 +324,6 @@ export const saveFlightAggregate = async (
     if (values.passengers.length > 1)
       requireScope(flightScope('passengers.manage', ownership));
     return db.transaction().execute(async (trx) => {
-      await validatePassengerFlightReasons(
-        trx,
-        authorization.userId,
-        values.passengers,
-      );
       const plan = await planFlightAggregate(trx, {
         existing: null,
         values,
@@ -349,13 +340,6 @@ export const saveFlightAggregate = async (
     if (!canAccessResolvedOwnership(authorization, 'update', ownership))
       throw new AuthorizationError('Flight not found', 404);
     requireScope(flightScope('update', ownership));
-
-    await validatePassengerFlightReasons(
-      trx,
-      authorization.userId,
-      values.passengers,
-      existing.passengers,
-    );
 
     const plan = await planFlightAggregate(trx, {
       existing,
@@ -683,7 +667,6 @@ export const validateAndSaveFlight = async (
       };
     }
     if (
-      e instanceof FlightReasonValidationError ||
       e instanceof CustomFieldValidationError ||
       e instanceof PassengerResolutionError
     ) {
