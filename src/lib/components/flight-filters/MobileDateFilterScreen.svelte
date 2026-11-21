@@ -169,7 +169,7 @@
               >
                 <DateRangePicker.GridHead>
                   <DateRangePicker.GridRow
-                    class="mb-1 flex w-full justify-between"
+                    class="mb-1 flex w-full justify-center"
                   >
                     {#each weekdays as day (day)}
                       <DateRangePicker.HeadCell
@@ -182,7 +182,7 @@
                 </DateRangePicker.GridHead>
                 <DateRangePicker.GridBody>
                   {#each month.weeks as weekDates (weekDates)}
-                    <DateRangePicker.GridRow class="flex w-full">
+                    <DateRangePicker.GridRow class="flex w-full justify-center">
                       {#each weekDates as date (date)}
                         <DateRangePicker.Cell
                           {date}
