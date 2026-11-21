@@ -224,14 +224,11 @@
       .trim()
       .replace(/\s/g, '');
 
-    const lookupDate = getLookupDate($formData);
-
     let results: LookupResult[] = [];
     try {
       const tempResults = await api.flight.lookup.query({
         flightNumber: normalizedFlightNumber,
-        date: lookupDate?.date,
-        dateKind: lookupDate?.dateKind,
+        date: getLookupDate($formData) ?? undefined,
         preferredRoute:
           $formData.from || $formData.to
             ? {
@@ -272,12 +269,7 @@
       return;
     }
 
-    if (
-      results.length === 1 &&
-      results[0] &&
-      // An actual date may be a day off, so the user always picks.
-      lookupDate?.dateKind !== 'actual'
-    ) {
+    if (results.length === 1 && results[0]) {
       applyLookupResult(results[0]);
       return;
     }
@@ -295,11 +287,7 @@
     });
 
     lookupResults = sorted;
-    toast.info(
-      lookupDate?.dateKind === 'actual'
-        ? 'Flights around the departure date found. Please choose yours.'
-        : 'Multiple flights found. Please choose one.',
-    );
+    toast.info('Multiple flights found. Please choose one.');
   };
 </script>
 
@@ -347,7 +335,7 @@
   <Form.FieldErrors />
 </Form.Field>
 
-{#if lookupResults && lookupResults.length > 0}
+{#if lookupResults && lookupResults.length > 1}
   <div class="mt-3 space-y-2">
     <div
       class="flex items-center justify-between text-sm text-muted-foreground"

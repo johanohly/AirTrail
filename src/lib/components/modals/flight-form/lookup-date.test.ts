@@ -11,26 +11,26 @@ describe('getLookupDate', () => {
     // Scheduled 23:35 on Nov 14, delayed past midnight to Nov 15.
     expect(
       getLookupDate({ departure: nov15, departureScheduled: nov14 }),
-    ).toEqual({ date: nov14, dateKind: 'scheduled' });
+    ).toEqual(nov14);
   });
 
-  it('falls back to the departure date as an actual date', () => {
+  it('falls back to the departure date', () => {
     expect(
       getLookupDate({ departure: nov15, departureScheduled: null }),
-    ).toEqual({ date: nov15, dateKind: 'actual' });
+    ).toEqual(nov15);
   });
 
   it('uses the scheduled date when there is no departure date', () => {
     expect(
       getLookupDate({ departure: null, departureScheduled: nov14 }),
-    ).toEqual({ date: nov14, dateKind: 'scheduled' });
+    ).toEqual(nov14);
   });
 
   it('ignores a scheduled date left over from another day', () => {
     // The user moved the departure after an earlier lookup set Nov 14.
     expect(
       getLookupDate({ departure: nov20, departureScheduled: nov14 }),
-    ).toEqual({ date: nov20, dateKind: 'actual' });
+    ).toEqual(nov20);
   });
 
   it('returns null without either date', () => {
