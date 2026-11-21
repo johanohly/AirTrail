@@ -156,6 +156,7 @@
                 <Form.ElementField
                   {form}
                   name="passengers[{index}].flightReason"
+                  class="min-w-0"
                 >
                   <Form.Control>
                     {#snippet children({ props })}
@@ -173,12 +174,14 @@
                         }}
                         allowDeselect
                       >
-                        <Select.Trigger {...props} size="sm">
-                          {$formData.passengers[index]?.flightReason
-                            ? flightReasonLabel(
-                                $formData.passengers[index].flightReason,
-                              )
-                            : 'Select reason'}
+                        <Select.Trigger {...props} size="sm" class="min-w-0">
+                          <span class="truncate">
+                            {$formData.passengers[index]?.flightReason
+                              ? flightReasonLabel(
+                                  $formData.passengers[index].flightReason,
+                                )
+                              : 'Select reason'}
+                          </span>
                         </Select.Trigger>
                         <Select.Content>
                           {#each flightReasonOptions($formData.passengers[index]?.userId === page.data.user?.id ? ($reasonsQuery.data ?? []) : []) as reason}
