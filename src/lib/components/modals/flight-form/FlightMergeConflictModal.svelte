@@ -79,7 +79,9 @@
     <h2 class="text-lg font-medium">Resolve data conflicts</h2>
   </ModalHeader>
   <ModalBody>
-    <div class="mb-3 flex items-center justify-between gap-3">
+    <div
+      class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+    >
       <p class="text-sm text-muted-foreground">
         {copy.description}
       </p>
