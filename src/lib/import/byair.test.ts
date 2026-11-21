@@ -142,7 +142,7 @@ describe('processByAirFile', () => {
     expect(flight).toMatchObject({
       departure: '2025-06-02T15:40:00.000+00:00',
       arrival: '2025-06-03T01:30:00.000+00:00',
-      duration: 35400,
+      duration: 36000,
     });
   });
 

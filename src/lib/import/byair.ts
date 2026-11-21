@@ -43,6 +43,7 @@ const LegacyByAirFlight = ByAirFields.extend({
   departureScheduled: null,
   arrivalScheduled: null,
   arrivalHasDate: false,
+  durationFromScheduled: false,
 }));
 
 const toLocalISO = (value: string) => value.trim().replace(' ', 'T');
@@ -68,6 +69,9 @@ const CurrentByAirFlight = ByAirFields.extend({
   departureScheduled: row.scheduled_departure,
   arrivalScheduled: row.scheduled_arrival,
   arrivalHasDate: true,
+  // Mixing an actual departure with a scheduled arrival can give a duration
+  // of minutes, so only a full actual pair beats the schedule.
+  durationFromScheduled: !(row.actual_departure && row.actual_arrival),
 }));
 
 const ByAirFlight = z.union([CurrentByAirFlight, LegacyByAirFlight]);
@@ -214,12 +218,13 @@ export const processByAirFile = async (
       }
     }
 
+    const [durationFrom, durationTo] = row.durationFromScheduled
+      ? [departureScheduled, arrivalScheduled]
+      : [departure, arrival];
     const duration =
-      departure && arrival
-        ? differenceInSeconds(arrival, departure)
-        : departureScheduled && arrivalScheduled
-          ? differenceInSeconds(arrivalScheduled, departureScheduled)
-          : null;
+      durationFrom && durationTo
+        ? differenceInSeconds(durationTo, durationFrom)
+        : null;
 
     // Extract airline code from flight code (e.g., "SK501" -> "SK", "SL*1508" -> "SL")
     let airline = null;
