@@ -80,20 +80,16 @@ const AirTrailFile = z.object({
     .min(1, 'At least one user is required'),
 });
 
-export const processLegacyAirTrailFile = async (
-  input: string,
+export const isLegacyAirTrailFile = (data: unknown) =>
+  AirTrailFile.safeParse(data).success;
+
+export const processLegacyAirTrailData = async (
+  parsed: unknown,
   options: PlatformOptions,
 ) => {
   const user = page.data.user;
   if (!user) {
     throw new Error('User not found');
-  }
-
-  let parsed;
-  try {
-    parsed = JSON.parse(input);
-  } catch (_) {
-    throw new Error('Invalid JSON found in AirTrail file');
   }
 
   const result = AirTrailFile.safeParse(parsed);

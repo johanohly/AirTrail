@@ -1,3 +1,4 @@
+import { BACKUP_SCHEMA_VERSION } from '$lib/backup';
 import { db } from '$lib/db';
 import type { Flight } from '$lib/db/types';
 import {
@@ -174,7 +175,7 @@ export const generateBackup = async (scope: ResolvedFlightScope) => {
       : {}),
   }));
 
-  return { users, flights };
+  return { schemaVersion: BACKUP_SCHEMA_VERSION, users, flights };
 };
 
 const isObject = (value: unknown): value is Record<string, unknown> =>

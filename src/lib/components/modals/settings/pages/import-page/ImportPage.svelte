@@ -278,7 +278,8 @@
 
       exportedUsers = result.exportedUsers;
 
-      if (platform.value === 'airtrail') {
+      // Pre-v3 AirTrail exports have no user mapping to choose.
+      if (platform.value === 'airtrail' && result.exportedUsers.length > 0) {
         userMapping = Object.fromEntries(
           result.exportedUsers
             .filter((user) => user.mappedUserId)
@@ -300,7 +301,7 @@
       await executeImport();
       files = null;
       importing = false;
-      step = 4;
+      step = platform.value === 'airtrail' ? 5 : 4;
     } catch (error) {
       toast.error(getImportErrorMessage(error, 'Failed to import file'));
       console.error(error);

@@ -7,6 +7,11 @@ import {
   type Airport,
   type CreateFlight,
 } from '$lib/db/types';
+import { BACKUP_SCHEMA_VERSION } from '$lib/backup';
+import {
+  isLegacyAirTrailFile,
+  processLegacyAirTrailData,
+} from '$lib/import/legacy-airtrail';
 import type { PlatformOptions } from '$lib/import/model';
 import { flightTrackInputSchema } from '$lib/track/schema';
 import { api } from '$lib/trpc';
@@ -181,8 +186,23 @@ export const processAirTrailFile = async (
     throw new Error('Invalid JSON found in AirTrail file');
   }
 
+  const schemaVersion =
+    parsed && typeof parsed === 'object' && 'schemaVersion' in parsed
+      ? parsed.schemaVersion
+      : undefined;
+  if (
+    typeof schemaVersion === 'number' &&
+    schemaVersion > BACKUP_SCHEMA_VERSION
+  ) {
+    throw new Error('This file needs a newer version of AirTrail');
+  }
+
   const result = AirTrailFile.safeParse(parsed);
   if (!result.success) {
+    // Exports from before v3 have no schema version and a different shape.
+    if (schemaVersion === undefined && isLegacyAirTrailFile(parsed)) {
+      return processLegacyAirTrailData(parsed, options);
+    }
     throw new Error(result.error.message);
   }
 
