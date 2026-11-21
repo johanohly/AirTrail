@@ -1,6 +1,12 @@
 <script lang="ts">
   import { TZDate } from '@date-fns/tz';
-  import { isToday, isTomorrow, isYesterday, parseJSON } from 'date-fns';
+  import {
+    differenceInCalendarDays,
+    isToday,
+    isTomorrow,
+    isYesterday,
+    parseJSON,
+  } from 'date-fns';
   import { toast } from 'svelte-sonner';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
@@ -27,11 +33,18 @@
     type MergeChoices,
     type MergeField,
   } from './merge-fields';
+  import { getLookupDate } from './lookup-date';
 
   const prefs = $derived(getPreferences(page.data.user));
 
   const resultDateLabel = (date: TZDate) =>
     formatDate(date, prefs, date.timeZone);
+  // A delay past midnight moves the departure off the day the flight is
+  // filed under, and both cards would otherwise show the same date.
+  const departsOffSchedule = (r: LookupResult) =>
+    !!r.departure &&
+    !!r.departureScheduled &&
+    differenceInCalendarDays(r.departure, r.departureScheduled) !== 0;
   const resultRelativeLabel = (date: TZDate) => {
     if (isYesterday(date)) return 'Yesterday';
     if (isTomorrow(date)) return 'Tomorrow';
@@ -215,7 +228,7 @@
     try {
       const tempResults = await api.flight.lookup.query({
         flightNumber: normalizedFlightNumber,
-        date: $formData.departure ?? undefined,
+        date: getLookupDate($formData) ?? undefined,
         preferredRoute:
           $formData.from || $formData.to
             ? {
@@ -392,6 +405,12 @@
                     prefs,
                     r.arrival.timeZone,
                   )}
+                </div>
+              {/if}
+
+              {#if r.departureScheduled && departsOffSchedule(r)}
+                <div class="text-sm font-medium text-muted-foreground">
+                  Scheduled {resultDateLabel(r.departureScheduled)}
                 </div>
               {/if}
 
