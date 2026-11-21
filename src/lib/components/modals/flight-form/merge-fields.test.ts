@@ -440,3 +440,59 @@ describe('buildTrackTimesMergePlan', () => {
     });
   });
 });
+
+describe('track times and the flight lookup', () => {
+  const hkg = airport(4, 'VHHH', 'HKG', 'Asia/Hong_Kong');
+  const lhr = airport(2, 'EGLL', 'LHR', 'Europe/London');
+  const cdg = airport(3, 'LFPG', 'CDG', 'Europe/Paris');
+
+  it('asks before replacing a time typed without its date', () => {
+    const { states, buildPatch } = buildTrackTimesMergePlan({
+      current: baseForm({ from: hkg, to: lhr, takeoffActualTime: '09:00' }),
+      detected: {
+        takeoffActual: new TZDate('2026-01-01T14:05:00Z', 'Asia/Hong_Kong'),
+        landingActual: null,
+      },
+      formatTime,
+    });
+    const state = byKey(states, 'takeoffActual');
+    expect(isConflict(state)).toBe(true);
+    expect(state.currentDisplay).toBe('09:00');
+    expect(buildPatch({ takeoffActual: 'current' })).toEqual({});
+  });
+
+  it('leaves takeoff and landing alone when a lookup changes the airport', () => {
+    const current = baseForm({
+      from: lhr,
+      to: hkg,
+      takeoffActual: '2026-01-01T00:00:00.000Z',
+      takeoffActualTime: '14:05',
+    });
+    const plan = buildMergePlan({
+      current,
+      result: {
+        from: cdg,
+        to: hkg,
+        airline: null,
+        departure: null,
+        arrival: null,
+        departureScheduled: null,
+        arrivalScheduled: null,
+      },
+      aircraft: null,
+      sources: {
+        departure: null,
+        arrival: null,
+        departureScheduled: null,
+        arrivalScheduled: null,
+      },
+      formatTime,
+    });
+    expect(plan.states.map((state) => state.key)).not.toContain(
+      'takeoffActual',
+    );
+    const patch = plan.buildPatch({ from: 'fetched' });
+    expect(patch.from).toEqual(cdg);
+    expect(patch.takeoffActualTime).toBeUndefined();
+  });
+});

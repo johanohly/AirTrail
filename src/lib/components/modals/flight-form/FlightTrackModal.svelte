@@ -176,7 +176,8 @@
   /**
    * Detect takeoff and landing from the track and merge them into the form.
    * Empty fields are filled, and differing values go to the conflict picker.
-   * `quiet` (on upload) only reports a fill, as an upload did before.
+   * `quiet` (on upload) skips the toasts, since the note under the track
+   * already says which times were filled.
    */
   const applyDetectedTimes = async (
     trackInput: FlightTrackInput,
@@ -247,7 +248,9 @@
     }
     filledTimes = { ...filledTimes, ...filled };
 
-    if (Object.keys(filled).length) toast.success('Times filled from track');
+    if (!quiet && Object.keys(filled).length) {
+      toast.success('Times filled from track');
+    }
   };
 
   // The file input has no `accept` filter because iOS has no system type for
@@ -518,9 +521,7 @@
     open={true}
     fields={mergeState.fields}
     applied={mergeState.applied}
-    description="The times detected from the track differ from the current values."
-    fetchedLabel="Track"
-    appliedLabel="Also filled in from the track"
+    source="track"
     onResolve={(choices) => mergeState?.resolve(choices)}
     onCancel={() => mergeState?.resolve(null)}
   />
