@@ -17,12 +17,7 @@
   } = $props();
 </script>
 
-<button
-  type="button"
-  class="relative flex h-7 w-full items-center justify-between gap-2.5 rounded px-2 text-left text-[13px] outline-none transition-colors hover:bg-hover focus-visible:ring-1 focus-visible:ring-ring"
-  aria-expanded={expanded}
-  {onclick}
->
+{#snippet content()}
   {#if share > 0}
     <span
       class="absolute inset-y-0 left-0 rounded bg-primary/13 dark:bg-primary/25"
@@ -33,4 +28,21 @@
     {@render children()}
   </span>
   <span class="relative shrink-0 font-medium tabular-nums">{value}</span>
-</button>
+{/snippet}
+
+{#if onclick}
+  <button
+    type="button"
+    class="relative flex h-7 w-full items-center justify-between gap-2.5 rounded px-2 text-left text-[13px] outline-none transition-colors hover:bg-hover focus-visible:ring-1 focus-visible:ring-ring"
+    aria-expanded={expanded}
+    {onclick}
+  >
+    {@render content()}
+  </button>
+{:else}
+  <div
+    class="relative flex h-7 w-full items-center justify-between gap-2.5 rounded px-2 text-[13px]"
+  >
+    {@render content()}
+  </div>
+{/if}

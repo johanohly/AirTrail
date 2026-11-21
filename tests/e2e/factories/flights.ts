@@ -10,6 +10,7 @@ export interface FlightInput {
   toId: number;
   departure?: string | null;
   arrival?: string | null;
+  arrivalScheduled?: string | null;
   duration?: number | null;
   flightNumber?: string | null;
   aircraftReg?: string | null;
@@ -42,6 +43,7 @@ export const flightsFactory = {
         toId: input.toId,
         departure: input.departure ?? null,
         arrival: input.arrival ?? null,
+        arrivalScheduled: input.arrivalScheduled ?? null,
         duration: input.duration ?? null,
         flightNumber: input.flightNumber ?? null,
         aircraftReg: input.aircraftReg ?? null,

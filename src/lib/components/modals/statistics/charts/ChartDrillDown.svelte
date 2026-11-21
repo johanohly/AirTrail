@@ -1,9 +1,9 @@
 <script lang="ts">
   import { sortByDepartureDesc } from '../../list-flights/flight-list-groups';
-  import FlightCard from '../../list-flights/FlightCard.svelte';
   import { CHART_NOUNS, createDetailsLookup } from '../breakdown';
   import BreakdownLabel from '../BreakdownLabel.svelte';
   import BreakdownRow from '../BreakdownRow.svelte';
+  import DrillDownFlights from '../DrillDownFlights.svelte';
   import DrillDownSheet from '../DrillDownSheet.svelte';
 
   import { Input } from '$lib/components/ui/input';
@@ -15,7 +15,6 @@
   } from '$lib/stats/aggregations';
   import { pluralize, type FlightData } from '$lib/utils';
 
-  const FLIGHT_PREVIEW_LIMIT = 5;
   const SEARCH_THRESHOLD = 8;
 
   let {
@@ -74,38 +73,6 @@
     );
 </script>
 
-{#snippet expansion(key: string)}
-  {@const matching = flightsFor(key)}
-  {@const visible = fullyExpanded.includes(key)
-    ? matching
-    : matching.slice(0, FLIGHT_PREVIEW_LIMIT)}
-  {@const hidden = matching.length - visible.length}
-  <div class="mb-2 ml-2 mt-1 border-l pl-3">
-    {#each visible as flight (flight.id)}
-      {#if onOpenFlight}
-        <button
-          type="button"
-          class="w-full rounded px-1 py-2 text-left outline-none transition-colors hover:bg-hover focus-visible:ring-1 focus-visible:ring-ring"
-          onclick={() => onOpenFlight(flight.id)}
-        >
-          <FlightCard {flight} compact />
-        </button>
-      {:else}
-        <div class="px-1 py-2"><FlightCard {flight} compact /></div>
-      {/if}
-    {/each}
-    {#if hidden > 0}
-      <button
-        type="button"
-        class="rounded px-1 py-1.5 text-[12.5px] text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
-        onclick={() => (fullyExpanded = [...fullyExpanded, key])}
-      >
-        Show {hidden} more {pluralize(hidden, 'flight')}
-      </button>
-    {/if}
-  </div>
-{/snippet}
-
 <DrillDownSheet title={FLIGHT_CHARTS[chartKey].title} {subtitle} {onBack}>
   {#if breakdown.entries.length > SEARCH_THRESHOLD}
     <Input
@@ -125,7 +92,12 @@
         <BreakdownLabel {chartKey} entryKey={key} details={detailsFor(key)} />
       </BreakdownRow>
       {#if expandedKey === key}
-        {@render expansion(key)}
+        <DrillDownFlights
+          flights={flightsFor(key)}
+          showAll={fullyExpanded.includes(key)}
+          onShowAll={() => (fullyExpanded = [...fullyExpanded, key])}
+          {onOpenFlight}
+        />
       {/if}
     {:else}
       <p class="py-3 text-sm text-muted-foreground">No matches</p>
@@ -140,7 +112,12 @@
         <span class="text-muted-foreground">Not recorded</span>
       </BreakdownRow>
       {#if expandedKey === 'No Data'}
-        {@render expansion('No Data')}
+        <DrillDownFlights
+          flights={flightsFor('No Data')}
+          showAll={fullyExpanded.includes('No Data')}
+          onShowAll={() => (fullyExpanded = [...fullyExpanded, 'No Data'])}
+          {onOpenFlight}
+        />
       {/if}
     {/if}
   </div>

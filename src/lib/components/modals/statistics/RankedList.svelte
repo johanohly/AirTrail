@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { ChevronRight } from '@o7/icon/lucide';
-
   import { createDetailsLookup, CHART_NOUNS } from './breakdown';
   import BreakdownLabel from './BreakdownLabel.svelte';
   import BreakdownRow from './BreakdownRow.svelte';
+  import ShowAllButton from './ShowAllButton.svelte';
 
   import {
     FLIGHT_CHARTS,
@@ -62,14 +61,9 @@
     {/if}
   </div>
   {#if breakdown.entries.length > VISIBLE_ROWS}
-    <button
-      type="button"
-      class="mt-1 flex items-center gap-0.5 rounded px-2 py-1 text-[12.5px] text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
-      onclick={() => onOpen(chartKey)}
-    >
+    <ShowAllButton onclick={() => onOpen(chartKey)}>
       All {breakdown.entries.length}
       {CHART_NOUNS[chartKey][1]}
-      <ChevronRight size={13} />
-    </button>
+    </ShowAllButton>
   {/if}
 </div>

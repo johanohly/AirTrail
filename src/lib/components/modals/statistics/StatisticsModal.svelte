@@ -9,6 +9,9 @@
   import FlightsPerWeekday from './charts/FlightsPerWeekday.svelte';
   import FlightsPerYear from './charts/FlightsPerYear.svelte';
   import BreakdownRow from './BreakdownRow.svelte';
+  import DelayedFlightsSheet from './DelayedFlightsSheet.svelte';
+  import { parseDrillDown, type DrillDown } from './drill-down';
+  import PunctualityDrillDown from './PunctualityDrillDown.svelte';
   import PunctualitySection from './PunctualitySection.svelte';
   import RankedList from './RankedList.svelte';
   import RecordsSection from './RecordsSection.svelte';
@@ -37,9 +40,9 @@
     COUNTRY_BAR_CHARTS,
     COUNTRY_CHARTS,
     countriesByContinentDetails,
-    FLIGHT_CHARTS,
     type FlightChartKey,
   } from '$lib/stats/aggregations';
+  import type { PunctualityGroupKey } from '$lib/stats/punctuality';
   import {
     readIncludeUpcoming,
     writeIncludeUpcoming,
@@ -139,15 +142,13 @@
   );
   let earthCircumnavigations = $derived(totalDistance / 40075);
 
-  let activeChart: FlightChartKey | null = $state(null);
-  let activeEntry: string | null = $state(null);
-  let activeContinent: string | null = $state(null);
+  let drillDown: DrillDown | null = $state.raw(null);
   let modalHistory: ModalHistoryHandle | undefined = $state();
   let wasOpen = $state(false);
   let scrollEl: HTMLElement | undefined;
   /** The control that opened the drill-down, so focus can return to it. */
   let drillDownOpener: Element | null = null;
-  const drillDownOpen = $derived(Boolean(activeChart || activeContinent));
+  const drillDownOpen = $derived(drillDown !== null);
 
   const countryStatus = $derived(
     COUNTRY_CHARTS['visited-country-status'].aggregate(visitedCountries),
@@ -191,37 +192,24 @@
       hasClientPermission(page.data.authorization, 'flight.import.own'),
   );
 
-  const openChart = (key: FlightChartKey, entry?: string) => {
+  const openDrillDown = (next: DrillDown) => {
     drillDownOpener = document.activeElement;
-    activeChart = key;
-    activeEntry = entry ?? null;
-    modalHistory?.push({ activeChart, activeEntry, activeContinent });
+    drillDown = next;
+    modalHistory?.push(next);
   };
 
-  const openContinent = (continent: string) => {
-    drillDownOpener = document.activeElement;
-    activeContinent = continent;
-    modalHistory?.push({ activeChart, activeEntry, activeContinent });
-  };
+  const openChart = (chart: FlightChartKey, entry?: string) =>
+    openDrillDown({ kind: 'chart', chart, entry: entry ?? null });
+
+  const openContinent = (continent: string) =>
+    openDrillDown({ kind: 'continent', continent });
+
+  const openPunctuality = (group: PunctualityGroupKey, entry?: string) =>
+    openDrillDown({ kind: 'punctuality', group, entry: entry ?? null });
 
   const restoreDrilldown = async (state: unknown) => {
-    const drilldown = state as
-      | {
-          activeChart?: unknown;
-          activeEntry?: unknown;
-          activeContinent?: unknown;
-        }
-      | undefined;
-    const chart = drilldown?.activeChart;
-    const nextChart =
-      typeof chart === 'string' && chart in FLIGHT_CHARTS
-        ? (chart as FlightChartKey)
-        : null;
-    const nextContinent =
-      typeof drilldown?.activeContinent === 'string'
-        ? drilldown.activeContinent
-        : null;
-    const closing = drillDownOpen && !nextChart && !nextContinent;
+    const next = parseDrillDown(state);
+    const closing = drillDownOpen && !next;
 
     // When the sheet unmounts with focus inside it, the dialog's focus scope
     // moves focus to the first control at the top, which scrolls the
@@ -231,10 +219,7 @@
       if (dialog instanceof HTMLElement) dialog.focus({ preventScroll: true });
     }
 
-    activeChart = nextChart;
-    activeEntry =
-      typeof drilldown?.activeEntry === 'string' ? drilldown.activeEntry : null;
-    activeContinent = nextContinent;
+    drillDown = next;
     if (!closing) return;
 
     // Once the statistics are interactive again, keyboard users resume on
@@ -248,15 +233,12 @@
   };
 
   $effect(() => {
-    const closedFromDrilldown =
-      wasOpen && !open && (activeChart || activeContinent);
+    const closedFromDrilldown = wasOpen && !open && drillDown;
     wasOpen = open;
 
     if (closedFromDrilldown) {
       drillDownOpener = null;
-      activeChart = null;
-      activeEntry = null;
-      activeContinent = null;
+      drillDown = null;
     }
 
     if (open) {
@@ -628,7 +610,13 @@
       {@render section('Airlines and aircraft', aircraftLists)}
       {@render section('On board', boardLists)}
       {#snippet punctuality()}
-        <PunctualitySection flights={completedFlights} onOpen={openChart} />
+        <PunctualitySection
+          flights={completedFlights}
+          onOpenGroup={openPunctuality}
+          onOpenDelayedFlights={() =>
+            openDrillDown({ kind: 'delayed-flights' })}
+          {onOpenFlight}
+        />
       {/snippet}
       {#snippet records()}
         <RecordsSection
@@ -645,20 +633,34 @@
     {/if}
   </div>
 
-  {#if activeContinent}
+  {#if drillDown?.kind === 'continent'}
     <ContinentDrillDown
-      continent={activeContinent}
-      countries={countriesByContinentDetailsData[activeContinent] || []}
+      continent={drillDown.continent}
+      countries={countriesByContinentDetailsData[drillDown.continent] || []}
       onBack={() => modalHistory?.back()}
     />
-  {:else if activeChart}
+  {:else if drillDown?.kind === 'chart'}
     <ChartDrillDown
-      chartKey={activeChart}
-      initialEntry={activeEntry}
+      chartKey={drillDown.chart}
+      initialEntry={drillDown.entry}
       flights={countedFlights}
       onBack={() => modalHistory?.back()}
       {onOpenFlight}
       {seatUserId}
+    />
+  {:else if drillDown?.kind === 'punctuality'}
+    <PunctualityDrillDown
+      group={drillDown.group}
+      initialEntry={drillDown.entry}
+      flights={completedFlights}
+      onBack={() => modalHistory?.back()}
+      {onOpenFlight}
+    />
+  {:else if drillDown?.kind === 'delayed-flights'}
+    <DelayedFlightsSheet
+      flights={completedFlights}
+      onBack={() => modalHistory?.back()}
+      {onOpenFlight}
     />
   {/if}
 </Modal>
