@@ -29,11 +29,13 @@ export {
 	Portal,
 	IsUsingKeyboard,
 	computeCommandScore,
+	createColumns,
 	createTypedDataTableFilters,
 	filterFns,
 	getBitsConfig,
 	useDataTableFilters,
 } from "./bits/index.js";
+export { matchesWordPrefix } from "./bits/menu-data/utils.js";
 
 export * from "./shared/index.js";
 export type * from "./shared/index.js";

@@ -14,6 +14,7 @@ import type {
 	RadioGroupDef,
 	RowRenderContext,
 	ScoredNode,
+	SearchMatch,
 	SeparatorDef,
 	SubmenuDef,
 } from "./types.js";
@@ -126,7 +127,7 @@ export function flattenNodes<TMeta>(
 					deep,
 					breadcrumbs: [...breadcrumbs, node.title],
 					breadcrumbIds: [...breadcrumbIds, node.id],
-					group: null,
+					group,
 					radioGroup: null,
 				})
 			);
@@ -136,9 +137,24 @@ export function flattenNodes<TMeta>(
 	return result;
 }
 
+const foldText = (text: string) =>
+	text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+/** Whether a word in `text` starts with `query`, ignoring case and accents. */
+export function matchesWordPrefix(text: string, query: string): boolean {
+	const needle = foldText(query.trim());
+	if (!needle) return false;
+	const haystack = foldText(text);
+	for (let index = haystack.indexOf(needle); index !== -1; index = haystack.indexOf(needle, index + 1)) {
+		if (index === 0 || !/[\p{L}\p{N}]/u.test(haystack[index - 1]!)) return true;
+	}
+	return false;
+}
+
 export function scoreNodes<TMeta>(
 	flattenedNodes: Array<FlattenedNode<TMeta>>,
-	query: string
+	query: string,
+	match: SearchMatch = "fuzzy"
 ): Array<ScoredNode<TMeta>> {
 	if (!query) {
 		return flattenedNodes.map((node) => ({ ...node, score: 1 }));
@@ -151,7 +167,18 @@ export function scoreNodes<TMeta>(
 			flattenedNode.node.kind === "submenu"
 				? (flattenedNode.node.label ?? flattenedNode.node.title)
 				: flattenedNode.node.label;
-		const score = computeCommandScore(label, query, flattenedNode.node.keywords);
+		// Word-prefix scores only rank direct hits above deep ones, so results keep
+		// their menu order otherwise.
+		const score =
+			match === "word-prefix"
+				? [label, ...(flattenedNode.node.keywords ?? [])].some((text) =>
+						matchesWordPrefix(text, query)
+					)
+					? flattenedNode.breadcrumbs.length
+						? 1
+						: 2
+					: 0
+				: computeCommandScore(label, query, flattenedNode.node.keywords);
 
 		if (score > 0) {
 			results.push({ ...flattenedNode, score });
@@ -331,6 +358,7 @@ export interface FilterNodesOptions<TMeta = unknown> {
 	groupSearchBehavior?: GroupBehavior;
 	radioGroupSearchBehavior?: RadioGroupBehavior;
 	sortGroups?: boolean;
+	match?: SearchMatch;
 }
 
 function collectAllRadioGroupItems<TMeta>(
@@ -450,7 +478,7 @@ function filterNodesFlatten<TMeta>(options: FilterNodesOptions<TMeta>) {
 		flattened,
 		radioGroupSearchBehavior === "preserve-show-all"
 	);
-	const scored = scoreNodes(flattened, query);
+	const scored = scoreNodes(flattened, query, options.match);
 	const radioGroupedItems = new Map<
 		string,
 		{ radioGroupDef: RadioGroupDef<TMeta>; items: Array<ScoredNode<TMeta>>; breadcrumbs: string[] }
@@ -514,7 +542,7 @@ function filterNodesPreserve<TMeta>(options: FilterNodesOptions<TMeta>) {
 		flattened,
 		radioGroupSearchBehavior === "preserve-show-all"
 	);
-	const scored = scoreNodes(flattened, query);
+	const scored = scoreNodes(flattened, query, options.match);
 	const groupedItems = new Map<
 		string,
 		{ groupDef: GroupDef<TMeta>; items: Array<ScoredNode<TMeta>>; breadcrumbs: string[] }

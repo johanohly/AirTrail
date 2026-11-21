@@ -41,8 +41,10 @@
 	function withSeparator(nodes: FilterCheckboxItemDef[]): FilterNodeDef[] {
 		if (!showSeparator || initialValues.length === 0) return nodes;
 		const initial = initialValues.map(String);
-		const selected = nodes.filter((node) => initial.includes(node.id));
-		const unselected = nodes.filter((node) => !initial.includes(node.id));
+		const isInitial = (node: FilterCheckboxItemDef) =>
+			node.meta?.kind === "option" && initial.includes(node.meta.option.value);
+		const selected = nodes.filter(isInitial);
+		const unselected = nodes.filter((node) => !isInitial(node));
 		if (selected.length === 0 || unselected.length === 0) return nodes;
 		return [...selected, { kind: "separator", id: "selected-separator" }, ...unselected];
 	}
@@ -72,7 +74,7 @@
 	void strategy;
 </script>
 
-<DataSurface content={nodes}>
+<DataSurface content={nodes} deepSearch={{ match: "word-prefix" }}>
 	<DataInput placeholder={`Search ${column.displayName.toLowerCase()}...`} />
 	<DataList>
 		{#snippet children({ nodes: displayNodes })}

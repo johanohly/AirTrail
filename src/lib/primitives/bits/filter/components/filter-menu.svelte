@@ -9,7 +9,7 @@
 	import DataEmpty from "$lib/primitives/bits/menu-data/components/data-empty.svelte";
 	import type { FilterMenuProps } from "../types.js";
 	import { filterAttrs, useFilterContext } from "../filter.svelte.js";
-	import { createColumnNodes, type FilterMenuNodeMeta } from "../menu-nodes.js";
+	import { createColumnNodes, createGroupedColumnNodes } from "../menu-nodes.js";
 	import FilterTrigger from "./filter-trigger.svelte";
 	import FilterMenuNode from "./filter-menu-node.svelte";
 
@@ -23,6 +23,7 @@
 		children,
 		open = $bindable(false),
 		onOpenChange,
+		groups,
 	}: FilterMenuProps<TData, TContext> = $props();
 
 	const context = useFilterContext<TData, TContext>();
@@ -37,7 +38,9 @@
 		filters.filter((filter) => visibleColumns.some((column) => column.id === filter.columnId))
 	);
 	const nodes = $derived<ReturnType<typeof createColumnNodes>>(
-		createColumnNodes({ columns, filters, actions, locale, strategy })
+		groups
+			? createGroupedColumnNodes({ columns, filters, actions, locale, strategy, groups })
+			: createColumnNodes({ columns, filters, actions, locale, strategy })
 	);
 </script>
 
@@ -65,7 +68,7 @@
 	</Trigger>
 	<Portal>
 		<Content align="start" sideOffset={8} data-filter-menu-content>
-			<DataSurface content={nodes}>
+			<DataSurface content={nodes} deepSearch={{ match: "word-prefix", sortGroups: false }}>
 				<DataInput placeholder="Search filters..." data-filter-menu-input />
 				<DataList data-filter-menu-list>
 					{#snippet children({ nodes: displayNodes })}

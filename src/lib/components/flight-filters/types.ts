@@ -1,5 +1,7 @@
 import type { CalendarDate } from '@internationalized/date';
 
+import type { OptionFilterId } from './definitions';
+
 export type Route = {
   a: string;
   b: string;
@@ -17,38 +19,28 @@ export type MultiOptionFilterOperator =
   | 'exclude if all'
   | 'exclude exactly';
 
-export type LocationFilterValues = {
+export type OptionFilterState = {
+  values: string[];
+  operator: OptionFilterOperator | MultiOptionFilterOperator;
+};
+
+export type FlightFilters = {
+  /** Only filters with values selected have an entry. */
+  options: Partial<Record<OptionFilterId, OptionFilterState>>;
+  fromDate: CalendarDate | undefined;
+  toDate: CalendarDate | undefined;
+  /** An airport or route pinned from the map details. */
+  airportsEither: string[];
+  routes: Route[];
+};
+
+/** The airports or route a map drilldown narrows the flight list to. */
+export type TempFilters = {
   departureAirports: string[];
   arrivalAirports: string[];
   airportsEither: string[];
   routes: Route[];
 };
-
-export type LocationFilterOperators = {
-  departureAirportsOperator: OptionFilterOperator;
-  arrivalAirportsOperator: OptionFilterOperator;
-};
-
-export type FlightFilters = LocationFilterValues &
-  LocationFilterOperators & {
-    years: string[];
-    yearsOperator: OptionFilterOperator;
-    fromDate: CalendarDate | undefined;
-    toDate: CalendarDate | undefined;
-    passengers: string[];
-    passengersOperator: MultiOptionFilterOperator;
-    airline: string[];
-    airlineOperator: OptionFilterOperator;
-    aircraft: string[];
-    aircraftOperator: OptionFilterOperator;
-    aircraftRegs: string[];
-    aircraftRegsOperator: OptionFilterOperator;
-  };
-
-export type TempFilters = LocationFilterValues;
-
-export type LocationFilters = LocationFilterValues &
-  Partial<LocationFilterOperators>;
 
 export const createDefaultTempFilters = (): TempFilters => ({
   departureAirports: [],

@@ -4,6 +4,7 @@
 	import MenuRadioGroup from "$lib/primitives/bits/menu/components/menu-radio-group.svelte";
 	import MenuRadioItem from "$lib/primitives/bits/menu/components/menu-radio-item.svelte";
 	import MenuGroup from "$lib/primitives/bits/menu/components/menu-group.svelte";
+	import MenuGroupHeading from "$lib/primitives/bits/menu/components/menu-group-heading.svelte";
 	import MenuSeparator from "$lib/primitives/bits/menu/components/menu-separator.svelte";
 	import MenuSub from "$lib/primitives/bits/menu/components/menu-sub.svelte";
 	import MenuSubTrigger from "$lib/primitives/bits/menu/components/menu-sub-trigger.svelte";
@@ -54,6 +55,9 @@
 		strategy?: FilterStrategy;
 	} = $props();
 
+	// Each closed row would otherwise mount its own portal root.
+	let subMounted = $state(false);
+
 	function rowLabel(row: DisplayRowNode<FilterMenuNodeMeta>) {
 		const node = row.node;
 		if (node.kind === "submenu") return node.label ?? node.title;
@@ -95,7 +99,12 @@
 </script>
 
 {#if isDisplayGroupNode(displayNode)}
-	<MenuGroup aria-label={displayNode.group.label}>
+	<MenuGroup>
+		{#if displayNode.group.label}
+			<MenuGroupHeading {...{ [filterAttrs["menu-group-heading"]]: "" }}>
+				{displayNode.group.label}
+			</MenuGroupHeading>
+		{/if}
 		{#each displayNode.items as item (`group-${displayNode.group.id}-${item.node.id}`)}
 			<Self displayNode={item} {actions} {filters} {locale} {strategy} />
 		{/each}
@@ -118,11 +127,19 @@
 	{#if node.kind === "submenu"}
 		{@const meta = node.meta}
 		{@const column = meta?.kind === "column" ? meta.column : undefined}
-		<MenuSub>
+		{@const icon = column?.icon ?? (meta?.kind === "custom" ? meta.icon : undefined)}
+		<MenuSub
+			onOpenChange={(open) => {
+				if (open) subMounted = true;
+			}}
+			onOpenChangeComplete={(open) => {
+				if (!open) subMounted = false;
+			}}
+		>
 			<MenuSubTrigger id={node.id} disabled={node.disabled} openDelay={0}>
 				<span>
-					{#if column?.icon}
-						<FilterIcon icon={column.icon} part="menu" />
+					{#if icon}
+						<FilterIcon {icon} part="menu" />
 					{/if}
 					<FilterLabelWithBreadcrumbs
 						label={rowLabel(row)}
@@ -135,66 +152,71 @@
 					</svg>
 				</span>
 			</MenuSubTrigger>
-			<Portal>
-				<MenuSubContent
-					sideOffset={8}
-					align={getSubmenuAlign(meta)}
-					collisionAvoidance={{ side: "flip", align: "shift" }}
-				>
-					{#if column && meta?.kind === "column" && meta.editor === "text"}
-						<FilterTextEditor column={column as Column<unknown, "text">} {actions} />
-					{:else if column && meta?.kind === "column" && meta.editor === "number"}
-						<FilterNumberEditor
-							column={column as Column<unknown, "number">}
-							{actions}
-							baseUnit={(
-								column.meta as { number?: { unit?: DurationUnit } } | undefined
-							)?.number?.unit}
-						/>
-					{:else if column && meta?.kind === "column" && meta.editor === "date"}
-						<FilterDateEditor
-							filter={findFilter(column, "date") as FilterModel<"date"> | undefined}
-							column={column as Column<unknown, "date">}
-							{actions}
-						/>
-					{:else if column && meta?.kind === "column" && (meta.editor === "option" || meta.editor === "multiOption")}
-						<FilterOptionEditor
-							column={column as
-								| Column<unknown, "option">
-								| Column<unknown, "multiOption">}
-							{actions}
-							filter={findFilter(column, meta.editor) as
-								| FilterModel<"option">
-								| FilterModel<"multiOption">
-								| undefined}
-							{locale}
-							{strategy}
-						/>
-					{:else}
-						<DataSurface content={node.nodes ?? []}>
-							<DataInput
-								placeholder={meta?.kind === "column"
-									? meta.inputPlaceholder
-									: "Search..."}
+			{#if subMounted}
+				<Portal>
+					<MenuSubContent
+						sideOffset={8}
+						align={getSubmenuAlign(meta)}
+						collisionAvoidance={{ side: "flip", align: "shift" }}
+					>
+						{#if column && meta?.kind === "column" && meta.editor === "text"}
+							<FilterTextEditor column={column as Column<unknown, "text">} {actions} />
+						{:else if column && meta?.kind === "column" && meta.editor === "number"}
+							<FilterNumberEditor
+								column={column as Column<unknown, "number">}
+								{actions}
+								baseUnit={(
+									column.meta as { number?: { unit?: DurationUnit } } | undefined
+								)?.number?.unit}
 							/>
-							<DataList>
-								{#snippet children({ nodes })}
-									{#each nodes as childNode, index (`submenu-${node.id}-${index}`)}
-										<Self
-											displayNode={childNode}
-											{actions}
-											{filters}
-											{locale}
-											{strategy}
-										/>
-									{/each}
-								{/snippet}
-							</DataList>
-							<DataEmpty>No matching options.</DataEmpty>
-						</DataSurface>
-					{/if}
-				</MenuSubContent>
-			</Portal>
+						{:else if column && meta?.kind === "column" && meta.editor === "date"}
+							<FilterDateEditor
+								filter={findFilter(column, "date") as FilterModel<"date"> | undefined}
+								column={column as Column<unknown, "date">}
+								{actions}
+							/>
+						{:else if column && meta?.kind === "column" && (meta.editor === "option" || meta.editor === "multiOption")}
+							<FilterOptionEditor
+								column={column as
+									| Column<unknown, "option">
+									| Column<unknown, "multiOption">}
+								{actions}
+								filter={findFilter(column, meta.editor) as
+									| FilterModel<"option">
+									| FilterModel<"multiOption">
+									| undefined}
+								{locale}
+								{strategy}
+							/>
+						{:else}
+							<DataSurface content={node.nodes ?? []} deepSearch={{ match: "word-prefix" }}>
+								<DataInput
+									placeholder={meta?.kind === "column"
+										? meta.inputPlaceholder
+										: "Search..."}
+									visibility={meta?.kind === "custom" && meta.search === false
+										? "hidden"
+										: "always"}
+								/>
+								<DataList>
+									{#snippet children({ nodes })}
+										{#each nodes as childNode, index (`submenu-${node.id}-${index}`)}
+											<Self
+												displayNode={childNode}
+												{actions}
+												{filters}
+												{locale}
+												{strategy}
+											/>
+										{/each}
+									{/snippet}
+								</DataList>
+								<DataEmpty>No matching options.</DataEmpty>
+							</DataSurface>
+						{/if}
+					</MenuSubContent>
+				</Portal>
+			{/if}
 		</MenuSub>
 	{:else if node.kind === "checkbox-item"}
 		{@const option = node.meta?.kind === "option" ? node.meta.option : undefined}
@@ -231,6 +253,11 @@
 						breadcrumbs={row.context.isDeepSearchResult ? row.context.breadcrumbs : []}
 					/>
 				</span>
+				{#if option?.description}
+					<span {...{ [filterAttrs["menu-description"]]: "" }}>
+						{option.description}
+					</span>
+				{/if}
 				{#if option?.count}
 					<span {...{ [filterAttrs["menu-count"]]: "" }}>
 						{new Intl.NumberFormat().format(option.count)}

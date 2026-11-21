@@ -8,6 +8,7 @@ import type {
 	BitsPrimitiveSpanAttributes,
 } from "$lib/primitives/shared/attributes.js";
 import type { PortalProps } from "$lib/primitives/bits/utilities/portal/types.js";
+import type { FilterNodeDef } from "./menu-nodes.js";
 
 export type ElementType<T> = T extends (infer U)[] ? U : T;
 export type Nullable<T> = T | null | undefined;
@@ -39,6 +40,7 @@ export interface ColumnOption {
 	icon?: FilterIcon;
 	count?: number;
 	keywords?: string[];
+	description?: string;
 }
 
 export interface ColumnOptionExtended extends ColumnOption {
@@ -101,6 +103,8 @@ export type ColumnConfig<
 	icon?: FilterIcon;
 	type: TType;
 	hidden?: boolean;
+	group?: string;
+	pluralName?: string;
 	options?: TType extends OptionBasedColumnDataType ? ColumnOption[] : never;
 	facetedOptions?: TType extends OptionBasedColumnDataType ? Map<string, number> : never;
 	min?: TType extends "number" ? number : TType extends "bigint" ? bigint : never;
@@ -450,6 +454,12 @@ export type FilterMenuPropsWithoutHTML<TData = unknown, TContext = any> = {
 	children?: Snippet;
 	open?: boolean;
 	onOpenChange?: OnChangeFn<boolean>;
+	groups?: FilterMenuGroup[];
+};
+export type FilterMenuGroup = {
+	id: string;
+	label?: string;
+	nodes?: FilterNodeDef[];
 };
 export type FilterMenuProps<TData = unknown, TContext = any> = FilterMenuPropsWithoutHTML<
 	TData,

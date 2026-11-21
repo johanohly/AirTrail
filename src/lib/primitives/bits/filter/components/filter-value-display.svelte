@@ -68,6 +68,7 @@
 	});
 
 	const optionDisplayName = $derived.by(() => {
+		if (column.pluralName) return column.pluralName.toLowerCase();
 		const name = column.displayName.toLowerCase();
 		if (column.type !== "option") return name;
 		return name.endsWith("s") ? `${name}es` : `${name}s`;

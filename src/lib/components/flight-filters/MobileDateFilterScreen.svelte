@@ -4,8 +4,13 @@
 
   import { page } from '$app/state';
   import {
+    activeDatePreset,
     cloneFlightFilters,
     dateFilterSummary,
+    datePresets,
+    todayCalendarDate,
+    toggleDatePreset,
+    type DatePresetId,
   } from '$lib/components/flight-filters/model';
   import type { FlightFilters } from '$lib/components/flight-filters/types';
   import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
@@ -60,29 +65,27 @@
     const anchor = filters.fromDate ?? filters.toDate ?? today;
 
     if (mode === 'single') {
-      updateFilters({ years: [], fromDate: anchor, toDate: anchor });
+      updateFilters({ fromDate: anchor, toDate: anchor });
     } else if (mode === 'range') {
       if (!filters.fromDate && !filters.toDate) return;
       updateFilters({
-        years: [],
         fromDate: filters.fromDate ?? anchor,
         toDate: filters.toDate ?? anchor,
       });
     } else if (mode === 'from') {
-      updateFilters({ years: [], fromDate: anchor, toDate: undefined });
+      updateFilters({ fromDate: anchor, toDate: undefined });
     } else {
-      updateFilters({ years: [], fromDate: undefined, toDate: anchor });
+      updateFilters({ fromDate: undefined, toDate: anchor });
     }
   }
 
-  function setThisYear() {
-    const year = new Date().getFullYear();
-    mode = 'range';
-    updateFilters({
-      years: [],
-      fromDate: new CalendarDate(year, 1, 1),
-      toDate: new CalendarDate(year, 12, 31),
-    });
+  const today = todayCalendarDate();
+  const activePreset = $derived(activeDatePreset(filters, today));
+
+  function togglePreset(id: DatePresetId) {
+    filters = toggleDatePreset(filters, id, today);
+    mode = filters.fromDate ? 'range' : mode;
+    calendarPlaceholder = filters.fromDate;
   }
 
   // Outside range mode the selected day is passed as a finished one-day range,
@@ -117,20 +120,19 @@
     // selected day was tapped again, which clears it.
     const anchor = mode === 'range' ? (start ?? end) : start;
     if (!anchor) {
-      updateFilters({ years: [], fromDate: undefined, toDate: undefined });
+      updateFilters({ fromDate: undefined, toDate: undefined });
       return;
     }
     calendarPlaceholder = anchor;
 
     if (mode === 'single') {
-      updateFilters({ years: [], fromDate: anchor, toDate: anchor });
+      updateFilters({ fromDate: anchor, toDate: anchor });
     } else if (mode === 'from') {
-      updateFilters({ years: [], fromDate: anchor, toDate: undefined });
+      updateFilters({ fromDate: anchor, toDate: undefined });
     } else if (mode === 'to') {
-      updateFilters({ years: [], fromDate: undefined, toDate: anchor });
+      updateFilters({ fromDate: undefined, toDate: anchor });
     } else {
       updateFilters({
-        years: [],
         fromDate: start,
         toDate: end ?? start,
       });
@@ -142,6 +144,23 @@
   <div class="max-h-[72dvh] overflow-y-auto p-4">
     <div class="mb-3 text-sm text-muted-foreground">
       {dateFilterSummary(filters, prefs)}
+    </div>
+    <div class="mb-3 flex gap-2 overflow-x-auto">
+      {#each datePresets as preset (preset.id)}
+        <button
+          type="button"
+          class={cn(
+            'h-8 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors',
+            activePreset === preset.id
+              ? 'border-foreground bg-foreground text-background'
+              : 'bg-background text-muted-foreground active:bg-muted',
+          )}
+          aria-pressed={activePreset === preset.id}
+          onclick={() => togglePreset(preset.id)}
+        >
+          {preset.label}
+        </button>
+      {/each}
     </div>
     <div class="mb-4 flex gap-2 overflow-x-auto">
       {#each DATE_MODES as option (option.value)}
@@ -235,22 +254,12 @@
       </DateRangePicker.Calendar>
     </DateRangePicker.Root>
 
-    <div class="mt-4 grid grid-cols-2 gap-2">
-      <Button variant="outline" class="h-11" onclick={setThisYear}>
-        This year
-      </Button>
-      <Button
-        variant="outline"
-        class="h-11"
-        onclick={() =>
-          updateFilters({
-            years: [],
-            fromDate: undefined,
-            toDate: undefined,
-          })}
-      >
-        Clear date
-      </Button>
-    </div>
+    <Button
+      variant="outline"
+      class="mt-4 h-11 w-full"
+      onclick={() => updateFilters({ fromDate: undefined, toDate: undefined })}
+    >
+      Clear date
+    </Button>
   </div>
 </AnimatedSizeContainer>

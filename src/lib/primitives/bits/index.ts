@@ -13,6 +13,7 @@ export { Dialog } from "./dialog/index.js";
 export { DropdownMenu } from "./dropdown-menu/index.js";
 export {
 	Filter,
+	createColumns,
 	createTypedDataTableFilters,
 	filterFns,
 	useDataTableFilters,

@@ -19,7 +19,7 @@
   import {
     createDefaultFilters,
     hasFlightFilters,
-    matchesFlight,
+    flightMatcher,
     perYearFilters,
     selectedFilterYears,
     toggleFilterYear,
@@ -100,10 +100,12 @@
   );
   const flightsPerYearSource = $derived.by(() => {
     if (!canPickYear) return countedFlights;
-    const yearFilters = perYearFilters(filters);
+    const matchesYearFilters = flightMatcher(perYearFilters(filters), {
+      seatUserId,
+    });
     return flights.filter(
       (flight) =>
-        matchesFlight(flight, yearFilters) &&
+        matchesYearFilters(flight) &&
         (includeUpcoming || isCompletedFlight(flight.raw)),
     );
   });
