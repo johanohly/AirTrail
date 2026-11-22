@@ -29,6 +29,7 @@
   } from '$lib/components/flight-filters/model';
   import { Button } from '$lib/components/ui/button';
   import { Switch } from '$lib/components/ui/switch';
+  import { HelpTooltip } from '$lib/components/ui/tooltip';
   import { hasClientPermission } from '$lib/authorization/permissions';
   import { flightScopeState, openModalsState } from '$lib/state.svelte';
   import { Modal } from '$lib/components/ui/modal';
@@ -114,6 +115,11 @@
   });
 
   const prefs = $derived(getPreferences(page.data.user));
+
+  const EARTH_CIRCUMFERENCE_KM = 40_075;
+  const MOON_DISTANCE_KM = 384_400;
+  const SUN_DISTANCE_KM = 149_597_870;
+
   let totalDuration = $derived.by(() =>
     Duration.fromSeconds(
       countedFlights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
@@ -140,7 +146,7 @@
       (c) => c.status === 'visited' || c.status === 'lived',
     ).length,
   );
-  let earthCircumnavigations = $derived(totalDistance / 40075);
+  let earthCircumnavigations = $derived(totalDistance / EARTH_CIRCUMFERENCE_KM);
 
   let drillDown: DrillDown | null = $state.raw(null);
   let modalHistory: ModalHistoryHandle | undefined = $state();
@@ -248,7 +254,7 @@
           (acc, curr) => (acc += curr.distance ?? 0),
           0,
         );
-        earthCircumnavigations = totalDistance / 40075;
+        earthCircumnavigations = totalDistance / EARTH_CIRCUMFERENCE_KM;
         const duration = Duration.fromSeconds(
           countedFlights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
         );
@@ -277,7 +283,7 @@
 
 {#snippet total(
   label: string,
-  sub: string | null,
+  sub: string | import('svelte').Snippet | null,
   cell: string,
   value: import('svelte').Snippet,
 )}
@@ -289,7 +295,9 @@
       {@render value()}
     </div>
     {#if sub}
-      <div class="truncate text-[13px] text-muted-foreground">{sub}</div>
+      <div class="truncate text-[13px] text-muted-foreground">
+        {#if typeof sub === 'string'}{sub}{:else}{@render sub()}{/if}
+      </div>
     {/if}
   </div>
 {/snippet}
@@ -466,6 +474,19 @@
 {/snippet}
 
 {#snippet flightsValue()}<NumberFlow value={flightCount} />{/snippet}
+{#snippet distanceSub()}
+  <!-- The Moon and the Sun go in a popover, where there is room. A popover
+       rather than a tooltip, so a tap opens it too. -->
+  <HelpTooltip>
+    <span class="underline decoration-dotted underline-offset-2">
+      {round(earthCircumnavigations, 2)}× around Earth
+    </span>
+    {#snippet content()}
+      <p>{round(totalDistance / MOON_DISTANCE_KM, 2)}× to the Moon</p>
+      <p>{round(totalDistance / SUN_DISTANCE_KM, 4)}× to the Sun</p>
+    {/snippet}
+  </HelpTooltip>
+{/snippet}
 {#snippet distanceValue()}
   <NumberFlow
     value={convertDistance(totalDistance, prefs)}
@@ -564,7 +585,7 @@
         )}
         {@render total(
           'Distance',
-          `${round(earthCircumnavigations, 2)}× around Earth`,
+          distanceSub,
           'order-4 col-span-3 lg:order-none lg:col-span-1 lg:border-l lg:pl-6',
           distanceValue,
         )}
