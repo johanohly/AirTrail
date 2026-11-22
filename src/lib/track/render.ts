@@ -82,16 +82,14 @@ const collectMandatoryIndices = (samples: FlightTrackSample[]) => {
 };
 
 type Span = readonly [start: number, end: number];
-type WorstPoint = (start: number, end: number) => number | undefined;
 
 const spansBetween = (indices: number[]): Span[] =>
   indices.slice(1).map((end, offset) => [indices[offset]!, end]);
 
-// Core RDP loop. Keep the worst point above tolerance and split its span.
 const refine = (
   spans: Span[],
   selected: Set<number>,
-  worstPoint: WorstPoint,
+  worstPoint: (start: number, end: number) => number | undefined,
 ) => {
   const pending = [...spans];
   while (pending.length) {
@@ -121,90 +119,53 @@ export const reduceFlightTrackForMap = (
   track: FlightTrackPayload,
 ): FlightTrackPayload => {
   const samples = toFlightTrackSamples(track);
+  if (samples.length < 2) return track;
   // Detect gaps on the original samples before reduction changes point spacing.
   const renderSamples = materializeEstimatedGaps(samples);
-  if (samples.length < 2) return track;
+  const unchanged = () =>
+    renderSamples === samples ? track : fromFlightTrackSamples(renderSamples);
 
   const mandatory = collectMandatoryIndices(renderSamples);
-  const spans = spansBetween(mandatory).filter(
-    ([start, end]) => end - start > 1,
-  );
-  if (!spans.length) {
-    return renderSamples === samples
-      ? track
-      : fromFlightTrackSamples(renderSamples);
-  }
+  if (mandatory.length === renderSamples.length) return unchanged();
 
-  const vectors = samples.map(({ coordinate: [lon, lat] }) =>
+  const vectors = renderSamples.map(({ coordinate: [lon, lat] }) =>
     toUnitVector(lon, lat),
   );
-  const altitudes = samples.map(({ coordinate }) => coordinate[2]);
-  // Vertical RDP uses cumulative distance along the original observations.
-  const distances = [0];
-  for (let index = 1; index < vectors.length; index++) {
-    distances.push(
-      distances[index - 1]! +
-        sphericalDistance(vectors[index - 1]!, vectors[index]!),
-    );
-  }
+  const altitudes = renderSamples.map(({ coordinate }) => coordinate[2]);
 
-  const findWorstPoint = (
-    start: number,
-    end: number,
-    mode: 'horizontal' | 'vertical' | 'combined',
-  ) => {
-    const startAltitude = altitudes[start];
-    const endAltitude = altitudes[end];
-    const checkVertical =
-      mode !== 'horizontal' &&
-      startAltitude !== undefined &&
-      endAltitude !== undefined;
-    const arc =
-      mode === 'vertical'
-        ? undefined
-        : createGreatCircleArc(vectors[start]!, vectors[end]!);
-    if (arc?.kind === 'antipodal') {
+  // A point's score is its worst error relative to the tolerance, so a score
+  // above 1 means the retained arc misses it.
+  const findWorstPoint = (start: number, end: number) => {
+    const arc = createGreatCircleArc(vectors[start]!, vectors[end]!);
+    if (arc.kind === 'antipodal') {
       // Keep an observation to disambiguate the route rather than choosing an arc.
       return start + Math.floor((end - start) / 2);
     }
-    const spanDistance = distances[end]! - distances[start]!;
+    const startAltitude = altitudes[start];
+    const endAltitude = altitudes[end];
 
     let worstIndex: number | undefined;
     let worstScore = 1;
     for (let index = start + 1; index < end; index++) {
-      // Horizontal RDP measures the distance to the finite great-circle arc.
       const point = vectors[index]!;
       const projection =
-        arc?.kind === 'arc' ? projectOntoArc(arc, point) : undefined;
-      let score = arc
-        ? (projection?.distance ?? sphericalDistance(vectors[start]!, point)) /
-          HORIZONTAL_TOLERANCE_METERS
-        : 0;
-      if (checkVertical) {
-        // Vertical RDP measures altitude error at the original distance fraction.
-        const altitude = altitudes[index]!;
-        const progress =
-          spanDistance === 0
-            ? undefined
-            : (distances[index]! - distances[start]!) / spanDistance;
-        let error = altitudeError(
+        arc.kind === 'arc' ? projectOntoArc(arc, point) : undefined;
+      let score =
+        (projection?.distance ?? sphericalDistance(vectors[start]!, point)) /
+        HORIZONTAL_TOLERANCE_METERS;
+      const altitude = altitudes[index];
+      if (
+        altitude !== undefined &&
+        startAltitude !== undefined &&
+        endAltitude !== undefined
+      ) {
+        // The renderer interpolates altitude by position along the retained arc.
+        const error = altitudeError(
           altitude,
           startAltitude,
           endAltitude,
-          progress,
+          projection?.progress,
         );
-        if (mode === 'combined') {
-          // The renderer interpolates altitude by distance along the retained arc.
-          error = Math.max(
-            error,
-            altitudeError(
-              altitude,
-              startAltitude,
-              endAltitude,
-              projection?.progress,
-            ),
-          );
-        }
         score = Math.max(score, error / VERTICAL_TOLERANCE_METERS);
       }
       if (score > worstScore) {
@@ -215,22 +176,10 @@ export const reduceFlightTrackForMap = (
     return worstIndex;
   };
 
-  // Each independent pass starts from the same mandatory boundaries.
   const selected = new Set(mandatory);
-  refine(spans, selected, (start, end) =>
-    findWorstPoint(start, end, 'horizontal'),
-  );
-  refine(spans, selected, (start, end) =>
-    findWorstPoint(start, end, 'vertical'),
-  );
-  // Revalidate the union because points from either pass can change both errors.
-  const combined = [...selected].sort((a, b) => a - b);
-  refine(spansBetween(combined), selected, (start, end) =>
-    findWorstPoint(start, end, 'combined'),
-  );
+  refine(spansBetween(mandatory), selected, findWorstPoint);
 
-  if (selected.size === samples.length && renderSamples === samples)
-    return track;
+  if (selected.size === renderSamples.length) return unchanged();
   return fromFlightTrackSamples(
     [...selected].sort((a, b) => a - b).map((index) => renderSamples[index]!),
   );

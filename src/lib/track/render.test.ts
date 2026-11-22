@@ -24,7 +24,6 @@ const expectReconstructionWithinTolerance = (
   original: FlightTrackCoordinate[],
   retained: FlightTrackCoordinate[],
 ) => {
-  const distances = cumulativeDistances(original);
   const indices = retained.map((coordinate) => original.indexOf(coordinate));
   for (let edge = 1; edge < indices.length; edge++) {
     const start = indices[edge - 1]!;
@@ -45,17 +44,13 @@ const expectReconstructionWithinTolerance = (
         to[2] === undefined
       )
         continue;
-      for (const progress of [
-        (distances[index]! - distances[start]!) /
-          (distances[end]! - distances[start]!),
+      const progress =
         groundDistance(from, nearest.geometry.coordinates as [number, number]) /
-          arcLength,
-      ]) {
-        const reconstructedAltitude = from[2] + progress * (to[2] - from[2]);
-        expect(
-          Math.abs(coordinate[2] - reconstructedAltitude),
-        ).toBeLessThanOrEqual(15);
-      }
+        arcLength;
+      const reconstructedAltitude = from[2] + progress * (to[2] - from[2]);
+      expect(
+        Math.abs(coordinate[2] - reconstructedAltitude),
+      ).toBeLessThanOrEqual(15);
     }
   }
 };
@@ -236,7 +231,7 @@ describe('flight track map reduction', () => {
     );
   });
 
-  it('refines a climb that fits original distance but not retained-arc progress', () => {
+  it('refines a climb whose altitude misses the retained arc', () => {
     const horizontal: FlightTrackCoordinate[] = Array.from(
       { length: 21 },
       (_, index) => [

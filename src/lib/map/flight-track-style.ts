@@ -304,8 +304,7 @@ export const getFlightTrackAltitudeSections = (
     endProgress: (index: number) => {
       if (index === count - 1) return 1;
       const boundary = altitudeBoundaries[bandAt(index) - (climbing ? 0 : 1)]!;
-      // Halve the operands before subtraction to avoid overflow for large inputs.
-      return (boundary / 2 - start / 2) / (end / 2 - start / 2);
+      return (boundary - start) / (end - start);
     },
   };
 };
