@@ -306,7 +306,22 @@ describe('flight track map reduction', () => {
     expect(reduced.coordinates).toHaveLength(MAX_RENDERED_FLIGHT_TRACK_POINTS);
     expect(reduced.coordinates[0]).toBe(coordinates[0]);
     expect(reduced.coordinates.at(-1)).toBe(coordinates.at(-1));
-    expect(reduceFlightTrackForMap(track)).toEqual(reduced);
+  });
+
+  it('spreads the budget across a track with equal errors everywhere', () => {
+    const coordinates: FlightTrackCoordinate[] = Array.from(
+      { length: 201 },
+      (_, index) => [index * 0.001, index % 2 ? 0.001 : 0],
+    );
+    const track = { coordinates, ground: coordinates.map(() => true) };
+    const kept = reduceFlightTrackForMap(track, 20).coordinates.map(
+      (coordinate) => coordinates.indexOf(coordinate),
+    );
+    expect(kept).toHaveLength(20);
+    const widestGap = Math.max(
+      ...kept.slice(1).map((index, offset) => index - kept[offset]!),
+    );
+    expect(widestGap).toBeLessThanOrEqual(30);
   });
 
   it('stops below the budget when the fallback meets H30/V15', () => {
@@ -331,7 +346,7 @@ describe('flight track map reduction', () => {
     const track: FlightTrackPayload = {
       coordinates: [
         [0, 0],
-        [0.001, 0.000_4], // About 44 m horizontally (score 1.5).
+        [0.001, 0.000_7], // About 78 m horizontally (score 2.6).
         [0.002, 0],
         [0.003, 0, 1_000],
         [0.004, 0, 1_030], // 30 m vertically (score 2).
@@ -343,7 +358,7 @@ describe('flight track map reduction', () => {
       ground: [true, true, true, false, false, false, false, false, false],
       times: [0, 1, 2, 3, 4, 5, 90, 91, 92],
     };
-    const retained = [0, 2, 3, 4, 5, 6, 7, 8];
+    const retained = [0, 1, 2, 3, 5, 6, 7, 8];
     expect(reduceFlightTrackForMap(track, 8)).toEqual({
       coordinates: retained.map((index) => track.coordinates[index]),
       ground: retained.map((index) => track.ground![index]),

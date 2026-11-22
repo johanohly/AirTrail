@@ -99,10 +99,8 @@ const refine = (
   findWorstPoint: FindWorstPoint,
 ) => {
   const selected = new Set(mandatory);
-  if (selected.size > maxPoints) return selected;
-
-  // Core RDP keeps splitting spans until they meet H30/V15. Once the
-  // selection exceeds the budget, finishing this pass cannot make it fit.
+  // Once the selection exceeds the budget, finishing this pass cannot make it
+  // fit.
   const pending = spansBetween(mandatory);
   while (pending.length && selected.size <= maxPoints) {
     const [start, end] = pending.pop()!;
@@ -174,7 +172,6 @@ const refineToBudget = (
   while (heap.length && selected.size < maxPoints) {
     const { start, end, index } = dequeue();
     selected.add(index);
-    if (selected.size >= maxPoints) break;
     enqueue(start, index);
     enqueue(index, end);
   }
@@ -210,7 +207,8 @@ export const reduceFlightTrackForMap = (
   );
   const altitudes = renderSamples.map(({ coordinate }) => coordinate[2]);
 
-  // Both passes use the same horizontal and vertical error relative to H30/V15.
+  // A point's score is its worst error relative to the tolerance, so a score
+  // above 1 means the retained arc misses it.
   const findWorstPoint = (
     start: number,
     end: number,
@@ -275,8 +273,9 @@ export const reduceFlightTrackForMap = (
   );
 
   if (selected.size > maxPoints) {
-    // Start over from the original observations. Ground interiors now compete
-    // for the same budget as airborne points.
+    // Noisy loggers and long ground recordings can stay dense at H30/V15.
+    // Spend the budget where the error is largest, with ground points
+    // competing for it too.
     selected = refineToBudget(
       collectMandatoryIndices(renderSamples, false),
       maxPoints,
