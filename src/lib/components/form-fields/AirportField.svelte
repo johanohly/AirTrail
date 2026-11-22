@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
 
@@ -15,9 +16,11 @@
   let {
     field,
     form,
+    labelAction,
   }: {
     field: 'from' | 'to';
     form: SuperForm<z.infer<typeof flightSchema>>;
+    labelAction?: Snippet;
   } = $props();
   const { form: formData } = form;
 
@@ -31,7 +34,10 @@
 <Form.Field {form} name={field} class="flex flex-col">
   <Form.Control>
     {#snippet children({ props })}
-      <Form.Label>{toTitleCase(field)} *</Form.Label>
+      <div class="flex items-center justify-between gap-2">
+        <Form.Label>{toTitleCase(field)} *</Form.Label>
+        {@render labelAction?.()}
+      </div>
       <AirportPicker
         bind:value={$formData[field]}
         placeholder="Choose an airport"

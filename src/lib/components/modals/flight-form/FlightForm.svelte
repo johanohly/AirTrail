@@ -2,6 +2,7 @@
   import { differenceInSeconds } from 'date-fns';
   import type { SuperForm } from 'sveltekit-superforms';
 
+  import DistanceField from './DistanceField.svelte';
   import FlightInformation from './FlightInformation.svelte';
   import FlightNumber from './FlightNumber.svelte';
   import FlightTimetable from './FlightTimetable.svelte';
@@ -10,6 +11,7 @@
   import { confirmation } from '$lib/components/helpers/confirm';
   import { AirportField, DateTimeField } from '$lib/components/form-fields';
   import { mergeTimeWithDate } from '$lib/utils/datetime';
+  import { isSameAirportRoute } from '$lib/utils/flight-distance';
   import type { FlightFormData } from '$lib/zod/flight';
   import type { CustomFieldDefinition } from '$lib/utils/custom-fields';
 
@@ -222,6 +224,25 @@
     prevHasTimetableData = hasTimetableData;
   });
 
+  // Most flights take their distance from the route or the track, so the
+  // field hides behind a link unless the flight returns to its own airport.
+  // Once it holds a value it stays for the rest of the edit, so clearing it
+  // doesn't pull the input away mid-typing.
+  let distanceRequested = $state(false);
+  let keepDistanceField = $state(false);
+  const hasManualDistance = $derived(
+    typeof $formData.manualDistance === 'number',
+  );
+  $effect(() => {
+    if (hasManualDistance) keepDistanceField = true;
+  });
+  const showDistanceField = $derived(
+    distanceRequested ||
+      keepDistanceField ||
+      hasManualDistance ||
+      isSameAirportRoute($formData.from, $formData.to),
+  );
+
   const durationWarning = $derived.by(() => {
     const { departure, departureTime, arrival, arrivalTime, from, to } =
       $formData;
@@ -252,6 +273,16 @@
   });
 </script>
 
+{#snippet setDistanceLink()}
+  <button
+    type="button"
+    class="text-xs text-muted-foreground transition hover:text-foreground"
+    onclick={() => (distanceRequested = true)}
+  >
+    Set distance
+  </button>
+{/snippet}
+
 <div
   class="grid w-full gap-y-4 max-md:overflow-auto md:grid-cols-[3fr_2fr] max-md:max-h-[calc(100dvh-200px)] max-md:min-h-[min(566px,_calc(100dvh-200px))]"
 >
@@ -263,7 +294,14 @@
       <div class="flex flex-col gap-4 py-4 md:py-0">
         <FlightNumber {form} onLookupApplied={handleLookupApplied} />
         <AirportField field="from" {form} />
-        <AirportField field="to" {form} />
+        <AirportField
+          field="to"
+          {form}
+          labelAction={showDistanceField ? undefined : setDistanceLink}
+        />
+        {#if showDistanceField}
+          <DistanceField {form} autofocus={distanceRequested} />
+        {/if}
         {#if showTimetable && !partialDateMode}
           <FlightTimetable
             {form}

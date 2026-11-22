@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveFlightDistance } from './flight-distance';
+import { isSameAirportRoute, resolveFlightDistance } from './flight-distance';
 
 const CPH = { lat: 55.618, lon: 12.656 };
 const ARN = { lat: 59.652, lon: 17.919 };
@@ -77,5 +77,19 @@ describe('resolveFlightDistance', () => {
     >[0];
 
     expect(resolveFlightDistance(partial)?.source).toBe('great-circle');
+  });
+});
+
+describe('isSameAirportRoute', () => {
+  it('spots a flight back to its own airport', () => {
+    expect(isSameAirportRoute(CPH, CPH)).toBe(true);
+  });
+
+  it('rejects a flight between two airports', () => {
+    expect(isSameAirportRoute(CPH, ARN)).toBe(false);
+  });
+
+  it('needs both airports', () => {
+    expect(isSameAirportRoute(CPH, null)).toBe(false);
   });
 });
