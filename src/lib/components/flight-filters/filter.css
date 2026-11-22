@@ -1,3 +1,10 @@
+/*
+ * This sheet can be injected ahead of app.css, and the first `@layer` seen
+ * sets the order. Declaring it here keeps `components` above Tailwind's
+ * `base`, whose button reset would otherwise win.
+ */
+@layer properties, theme, base, components, utilities;
+
 @layer components {
   .airtrail-filter-root {
     display: flex;
