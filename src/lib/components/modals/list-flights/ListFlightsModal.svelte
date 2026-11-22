@@ -23,6 +23,7 @@
   import { createFlightListAccess } from './flight-list-access';
   import MobileFlightList from './MobileFlightList.svelte';
   import PastFlightsDivider from './PastFlightsDivider.svelte';
+  import TailNumberLink from './TailNumberLink.svelte';
   import Toolbar from './Toolbar.svelte';
 
   import { page as appPage } from '$app/state';
@@ -45,7 +46,11 @@
   import * as Tooltip from '$lib/components/ui/tooltip';
   import type { NavigateFlights } from '$lib/flight-navigation';
   import { canShowFlightOnMap } from '$lib/flight-visibility';
-  import { flightAddedState, flightListFocusState } from '$lib/state.svelte';
+  import {
+    appConfig,
+    flightAddedState,
+    flightListFocusState,
+  } from '$lib/state.svelte';
   import {
     cn,
     cancelHighlight,
@@ -102,6 +107,9 @@
   });
 
   const prefs = $derived(getPreferences(appPage.data.user));
+  const aircraftPhotosEnabled = $derived(
+    appConfig.config?.integrations?.aircraftPhotosEnabled ?? false,
+  );
   const access = $derived(
     createFlightListAccess({
       authorization: appPage.data.authorization,
@@ -734,21 +742,34 @@
 
 {#snippet flightAndTailNumber(flight: (typeof formattedFlights)[number])}
   {@const hasAircraftDetails = flight.aircraft || flight.aircraftReg}
-  {#if flight.flightNumber || hasAircraftDetails}
-    <Tooltip.AutoTooltip
-      text={flight.flightNumber ?? formatAircraft(flight)}
-      class="text-sm truncate"
-    />
+  {#if flight.flightNumber}
+    <Tooltip.AutoTooltip text={flight.flightNumber} class="text-sm truncate" />
+  {:else if hasAircraftDetails}
+    {@render aircraftLine(flight, 'text-sm truncate')}
   {:else}
     <p class="text-sm text-transparent">.</p>
   {/if}
   {#if flight.flightNumber && hasAircraftDetails}
-    <Tooltip.AutoTooltip
-      text={formatAircraft(flight)}
-      class="text-sm text-muted-foreground truncate"
-    />
+    {@render aircraftLine(flight, 'text-sm text-muted-foreground truncate')}
   {:else}
     <p class="text-sm text-transparent">.</p>
+  {/if}
+{/snippet}
+
+{#snippet aircraftLine(
+  flight: (typeof formattedFlights)[number],
+  className: string,
+)}
+  {#if aircraftPhotosEnabled && flight.aircraftReg}
+    <p class={className}>
+      {#if flight.aircraft?.name}
+        {flight.aircraft.name} (<TailNumberLink reg={flight.aircraftReg} />)
+      {:else}
+        <TailNumberLink reg={flight.aircraftReg} />
+      {/if}
+    </p>
+  {:else}
+    <Tooltip.AutoTooltip text={formatAircraft(flight)} class={className} />
   {/if}
 {/snippet}
 
