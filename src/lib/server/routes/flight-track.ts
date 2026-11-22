@@ -14,10 +14,12 @@ import {
   type FlightTrackRow,
   type FlightTrackSourceFormat,
 } from '$lib/track/schema';
+import { canFillOwnFlightTimes } from '$lib/authorization/permissions';
 import {
   canAccessFlight,
   canListFlights,
 } from '$lib/server/authorization/flight';
+import { fillTrackTimes } from '$lib/server/utils/track-event-times';
 
 const parseTrackRow = (
   row: {
@@ -94,5 +96,16 @@ export const flightTrackRouter = router({
         .executeTakeFirst();
 
       return row ? parseTrackRow(row) : null;
+    }),
+  fillTimes: authedProcedure
+    .input(z.array(z.number().int()).max(10_000))
+    .mutation(async ({ ctx: { user, authorization }, input }) => {
+      if (!canFillOwnFlightTimes(authorization)) {
+        throw new TRPCError({ code: 'FORBIDDEN' });
+      }
+      // Only the caller's own flights are filled, which `flight.update.own`
+      // covers, so an id that isn't theirs (or no longer exists) is skipped
+      // rather than failing the whole batch.
+      return await fillTrackTimes(user.id, input);
     }),
 });

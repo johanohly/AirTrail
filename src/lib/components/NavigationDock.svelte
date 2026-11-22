@@ -11,6 +11,7 @@
   import { page } from '$app/state';
   import {
     canDeduplicateOwnFlights,
+    canFillOwnFlightTimes,
     hasClientPermission,
   } from '$lib/authorization/permissions';
   import {
@@ -64,6 +65,7 @@
     const items = [];
     if (
       canDeduplicateOwnFlights(page.data.authorization) ||
+      canFillOwnFlightTimes(page.data.authorization) ||
       hasClientPermission(page.data.authorization, 'tools.sql.execute')
     ) {
       items.push({ label: 'Tools', href: '/tools' });
