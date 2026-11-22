@@ -407,6 +407,9 @@ export const flightValuesFromForm = (
     customFields = {},
     track,
   } = data;
+  // Left undefined when a caller of the legacy save API omits it, so an
+  // update keeps the stored value.
+  const { manualDistance } = data;
 
   if (data.datePrecision !== 'day') {
     if (!data.departure) {
@@ -452,6 +455,7 @@ export const flightValuesFromForm = (
       note,
       passengers: data.passengers,
       track,
+      manualDistance,
     };
 
     return { values, customFields };
@@ -632,6 +636,7 @@ export const flightValuesFromForm = (
     note,
     passengers: data.passengers,
     track,
+    manualDistance,
   };
 
   return { values, customFields };

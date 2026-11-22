@@ -10,6 +10,7 @@ import { flightAirportSchema } from '$lib/zod/airport';
 import { aircraftSchema } from '$lib/zod/aircraft';
 import { airlineSchema } from '$lib/zod/airline';
 import { flightTrackInputSchema } from '$lib/track/schema';
+import { MAX_MANUAL_DISTANCE_KM } from '$lib/utils/flight-distance';
 
 const regex24h = /^([01]?\d|2[0-3])(?::|\.|)[0-5]\d(?:\s?(?:am|pm))?$/i;
 const regex12hLike = /^\d{1,2}(?::|\.|)\d{2}\s?(?:am|pm)$/i;
@@ -144,6 +145,13 @@ export const flightOptionalInformationSchema = z.object({
     .max(10, 'Aircraft registration is too long')
     .nullable(),
   note: z.string().max(1000, 'Note is too long').nullable(),
+  /** Kilometres, whatever unit the form shows it in. */
+  manualDistance: z
+    .number()
+    .positive('Enter a distance above zero')
+    .max(MAX_MANUAL_DISTANCE_KM, 'Distance is too long')
+    .nullable()
+    .optional(),
   departureTerminal: z.string().max(10).nullable().optional(),
   departureGate: z.string().max(10).nullable().optional(),
   arrivalTerminal: z.string().max(10).nullable().optional(),

@@ -56,6 +56,14 @@ Select the airports first, because a side without an airport is skipped. Nothing
 
 Removing or replacing the track clears times it filled, unless you edited them. This only applies until the flight is saved. After that, the times are kept like any others.
 
+### Distance
+
+A flight with a track counts the distance flown along it, in its details and in statistics, instead of the great-circle distance between the airports. The details pane marks it as **flown**.
+
+AirTrail leaves out points the aircraft couldn't have reached from the previous one at 1,500 km/h, which removes the jumps that GPS jamming and spoofing put into recorded tracks. This needs timestamps in the file. If the measured distance is still below 90% of the great-circle distance, or more than 1.5 times it plus 1,000 km, the track is treated as incomplete or unreliable and the great-circle distance is used instead. A flight that lands where it took off always uses its track.
+
+A distance entered in the flight form's **Distance** field takes precedence over the track.
+
 ## Replace or remove a track
 
 Open the flight's edit form and click **Flight Track**.

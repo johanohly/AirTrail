@@ -1,5 +1,5 @@
 import type { Flight } from '$lib/db/types';
-import { distanceBetween } from '$lib/utils';
+import { resolveFlightDistance } from '$lib/utils/flight-distance';
 import { isCompletedFlight } from '$lib/utils/data/flight-timeline';
 
 export { isCompletedFlight };
@@ -86,13 +86,7 @@ export const computeFlightStatsSummary = (
   const airportIds = new Set<string>();
 
   for (const flight of flights) {
-    if (flight.from && flight.to) {
-      totalDistanceKm +=
-        distanceBetween(
-          [flight.from.lon, flight.from.lat],
-          [flight.to.lon, flight.to.lat],
-        ) / 1000;
-    }
+    totalDistanceKm += resolveFlightDistance(flight)?.km ?? 0;
 
     if (flight.duration !== null) {
       totalDurationSeconds += flight.duration;

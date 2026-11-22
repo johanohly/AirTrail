@@ -203,6 +203,8 @@ model flight {
   /// YYYY-MM-DDTHH:mm:ss.sssZ (ISO-8601)
   landing_actual      String?
   duration            Int?
+  /// Kilometres, entered by hand. Takes precedence over the track and great-circle distance.
+  manual_distance     Float?
 
   departure_terminal String?
   departure_gate     String?
@@ -237,6 +239,8 @@ model flight_track {
   source_format String
   source_name   String?
   point_count   Int
+  /// Kilometres flown along the track. Null until measured.
+  distance      Float?
 
   created_at DateTime @default(now()) @db.Timestamptz
   updated_at DateTime @default(now()) @updatedAt @db.Timestamptz

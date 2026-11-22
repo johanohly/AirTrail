@@ -202,6 +202,29 @@ describe('processAirTrailFile', () => {
     ]);
   });
 
+  it('keeps a manual distance from the export', async () => {
+    const content = JSON.stringify({
+      schemaVersion: BACKUP_SCHEMA_VERSION,
+      users: exportedUsers,
+      flights: [
+        {
+          ...flightBase,
+          from: airportObject('EKCH'),
+          to: airportObject('EKCH'),
+          airline: null,
+          aircraft: null,
+          manualDistance: 106,
+          trackDistance: 120,
+        },
+      ],
+    });
+
+    const result = await processAirTrailFile(content, baseOptions);
+
+    expect(result.flights[0]!.manualDistance).toBe(106);
+    expect(result.flights[0]).not.toHaveProperty('trackDistance');
+  });
+
   it('imports v3.0 JSON exports with nested database IDs and no timetable fields', async () => {
     const content = JSON.stringify({
       users: exportedUsers,

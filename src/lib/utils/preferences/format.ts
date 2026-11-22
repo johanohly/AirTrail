@@ -5,6 +5,8 @@ import {
   kmToMiles,
   kmToNauticalMiles,
   ktToKmh,
+  milesToKm,
+  nauticalMilesToKm,
   ktToMph,
   ktToMs,
 } from './convert';
@@ -34,6 +36,19 @@ export const convertDistance = (km: number, prefs: DistancePrefs): number => {
     case 'km':
     default:
       return km;
+  }
+};
+
+/** The inverse of `convertDistance`. */
+export const distanceToKm = (value: number, prefs: DistancePrefs): number => {
+  switch (prefs.distanceUnit) {
+    case 'mi':
+      return milesToKm(value);
+    case 'nm':
+      return nauticalMilesToKm(value);
+    case 'km':
+    default:
+      return value;
   }
 };
 

@@ -76,6 +76,8 @@ const flight = (overrides: Partial<Flight> = {}): Flight => ({
   landingScheduled: null,
   landingActual: null,
   duration: 6600, // stored in seconds (110 minutes)
+  manualDistance: null,
+  trackDistance: null,
   departureTerminal: null,
   departureGate: null,
   arrivalTerminal: null,
