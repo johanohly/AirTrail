@@ -7,6 +7,7 @@
   import PopoverTooltipArrow from './PopoverTooltipArrow.svelte';
   import { timeDisplayTether } from './time-display-tether.svelte';
   import type { TimeDisplayPayload } from './time-display-tether.svelte';
+  import { offsetLabel } from './zone-label';
 
   import { page } from '$app/state';
   import { PreferenceField } from '$lib/components/preferences';
@@ -29,21 +30,6 @@
     typeof Intl !== 'undefined'
       ? Intl.DateTimeFormat().resolvedOptions().timeZone
       : 'UTC';
-
-  const offsetLabel = (tz: string, at: Date): string => {
-    try {
-      const parts = new Intl.DateTimeFormat('en-US', {
-        timeZone: tz,
-        timeZoneName: 'shortOffset',
-      }).formatToParts(at);
-      const raw = parts.find((p) => p.type === 'timeZoneName')?.value ?? tz;
-      if (raw === 'UTC' || raw === 'GMT' || raw.startsWith('GMT')) return raw;
-      if (/^[+-]\d/.test(raw)) return `GMT${raw}`;
-      return raw;
-    } catch {
-      return tz;
-    }
-  };
 
   type Row = {
     badge: string;
@@ -257,7 +243,9 @@
                     </div>
                     {#if payload.note}
                       <p class="text-[11px] text-muted-foreground">
-                        {payload.note}
+                        {payload.note}{payload.noteZone
+                          ? ` ${payload.noteZone}`
+                          : ''}
                       </p>
                     {/if}
                   </div>
