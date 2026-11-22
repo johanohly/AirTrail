@@ -93,6 +93,7 @@ const lookUpPhoto = async (reg: string): Promise<AircraftPhotoResult> => {
     const photo = first
       ? {
           thumbnailSrc: first.thumbnail_large?.src ?? first.thumbnail.src,
+          smallThumbnailSrc: first.thumbnail.src,
           link: first.link,
           photographer: first.photographer,
         }

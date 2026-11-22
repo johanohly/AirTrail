@@ -3,6 +3,8 @@
   import { setContext } from 'svelte';
   import { toast } from 'svelte-sonner';
 
+  import { popoverTooltipClass } from './popover-tooltip';
+  import PopoverTooltipArrow from './PopoverTooltipArrow.svelte';
   import { timeDisplayTether } from './time-display-tether.svelte';
   import type { TimeDisplayPayload } from './time-display-tether.svelte';
 
@@ -201,7 +203,7 @@
               <div
                 {...props}
                 style:z-index={payload.zIndex}
-                class="bg-popover text-popover-foreground rounded-md border shadow-md p-3 min-w-[260px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+                class={cn(popoverTooltipClass, 'p-3 min-w-[260px]')}
               >
                 <div class="flex flex-col gap-3">
                   <div class="flex flex-col gap-1">
@@ -288,29 +290,7 @@
                     {/each}
                   </div>
                 </div>
-                <TooltipPrimitive.Arrow width={12} height={6}>
-                  <svg
-                    width="12"
-                    height="6"
-                    viewBox="0 0 12 6"
-                    preserveAspectRatio="none"
-                    data-arrow=""
-                    style="display: block; overflow: visible;"
-                  >
-                    <polygon
-                      points="-1,-1 13,-1 6,6"
-                      fill="var(--color-popover)"
-                    />
-                    <polyline
-                      points="0,0 6,6 12,0"
-                      fill="none"
-                      stroke="var(--color-border)"
-                      stroke-width="1"
-                      stroke-linejoin="round"
-                      vector-effect="non-scaling-stroke"
-                    />
-                  </svg>
-                </TooltipPrimitive.Arrow>
+                <PopoverTooltipArrow />
               </div>
             </div>
           {/snippet}

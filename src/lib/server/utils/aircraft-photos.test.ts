@@ -30,6 +30,7 @@ const FOUND = {
   status: 'found',
   photo: {
     thumbnailSrc: 'https://t.plnspttrs.net/large.jpg',
+    smallThumbnailSrc: 'https://t.plnspttrs.net/thumb.jpg',
     link: 'https://www.planespotters.net/photo/1/a?utm_source=api',
     photographer: 'Jane Doe',
   },

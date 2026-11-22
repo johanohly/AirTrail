@@ -21,6 +21,8 @@ export const PHOTO_BROWSER_CACHE_MS = 5 * 60 * 1000;
 
 export type AircraftPhoto = {
   thumbnailSrc: string;
+  /** Planespotters' small thumbnail (about 200×133), for hover previews. */
+  smallThumbnailSrc: string;
   link: string;
   photographer: string;
 };
