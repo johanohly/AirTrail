@@ -53,7 +53,7 @@ interface SanitizedFlight {
   landingActual?: string | null;
   date?: string | null;
   datePrecision?: FlightDatePrecision;
-  track?: FlightTrackInput;
+  track?: FlightTrackInput & { pointCount: number };
 }
 
 // Zod schemas for input validation
@@ -301,21 +301,24 @@ export async function getPublicShareData(slug: string) {
           .where('flightId', 'in', flightIds)
           .execute()
       : [];
-  const tracksByFlight = new Map<number, FlightTrackInput>(
+  const tracksByFlight = new Map(
     trackRows.map((row) => {
       const track = flightTrackPayloadSchema.parse(row.track);
       const renderTrack = reduceFlightTrackForMap(track);
       return [
         row.flightId,
-        toFlightTrackInput(
-          {
-            ...renderTrack,
-            sourceFormat: row.sourceFormat,
-            sourceName: row.sourceName,
-          },
-          { includeTimes: share.showTimes },
-        ),
-      ];
+        {
+          ...toFlightTrackInput(
+            {
+              ...renderTrack,
+              sourceFormat: row.sourceFormat,
+              sourceName: row.sourceName,
+            },
+            { includeTimes: share.showTimes },
+          ),
+          pointCount: track.coordinates.length,
+        },
+      ] as const;
     }),
   );
 
