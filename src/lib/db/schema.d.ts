@@ -161,6 +161,10 @@ export type flight = {
      * Kilometres, entered by hand. Takes precedence over the track and great-circle distance.
      */
     manualDistance: number | null;
+    /**
+     * Order among flights with the same date and precision and no time, set by moving a flight. Falls back to `id`.
+     */
+    sortKey: number | null;
     departureTerminal: string | null;
     departureGate: string | null;
     arrivalTerminal: string | null;

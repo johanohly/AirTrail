@@ -1,11 +1,15 @@
 <script lang="ts">
   import autoAnimate from '@formkit/auto-animate';
   import {
+    ArrowDown,
     ArrowLeftRight,
+    ArrowUp,
+    EllipsisVertical,
     MapPin,
     Plane,
     PlaneTakeoff,
     PlaneLanding,
+    Trash2,
     X,
   } from '@o7/icon/lucide';
   import { tick } from 'svelte';
@@ -40,6 +44,7 @@
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
   import { Card } from '$lib/components/ui/card';
+  import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
   import { Modal } from '$lib/components/ui/modal';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { LabelledSeparator, Separator } from '$lib/components/ui/separator';
@@ -62,6 +67,11 @@
   } from '$lib/utils';
   import { formatAircraft } from '$lib/utils/data/aircraft';
   import {
+    listMoveOptions,
+    type MoveDirection,
+    type MoveOptions,
+  } from '$lib/utils/data/flight-order';
+  import {
     buildTimingSummary,
     type TimingStatus,
   } from '$lib/utils/flight-timing';
@@ -78,6 +88,7 @@
     filteredFlights,
     focusedFlightOutsideFilters = false,
     deleteFlight,
+    moveFlight,
     readonly = false,
     seatUserId,
     showPassengerDetails = false,
@@ -91,6 +102,7 @@
     filteredFlights: FlightData[];
     focusedFlightOutsideFilters?: boolean;
     deleteFlight?: (id: number) => Promise<void>;
+    moveFlight?: (id: number, direction: MoveDirection) => Promise<void>;
     readonly?: boolean;
     seatUserId?: string;
     showPassengerDetails?: boolean;
@@ -222,6 +234,14 @@
   );
 
   let selecting = $state(false);
+
+  // Worked out on the whole list rather than the filtered one, the same set
+  // the server moves a flight within.
+  const moveOptions = $derived(
+    readonly || !moveFlight
+      ? new Map<number, MoveOptions>()
+      : listMoveOptions(sortByDepartureDesc(flights).map((f) => f.raw)),
+  );
   // Share visitors aren't signed in, so they can't look up photos, and the
   // links would only get in the way of picking rows while selecting.
   const showTailNumberLinks = $derived(
@@ -516,6 +536,8 @@
         {canUpdateFlight}
         {canDeleteFlight}
         onShowOnMap={readonly || !onNavigate ? undefined : showFlightOnMap}
+        {moveOptions}
+        onMove={(flight, direction) => moveFlight?.(flight.id, direction)}
         {readonly}
       />
       <div class="h-[130px] sm:h-[90px]"></div>
@@ -787,35 +809,77 @@
 {/snippet}
 
 {#snippet actions(flight: (typeof formattedFlights)[number])}
+  {@const canMap = !!onNavigate && canShowFlightOnMap(flight)}
+  {@const moves = canUpdateFlight(flight)
+    ? moveOptions.get(flight.id)
+    : undefined}
+  {@const canDelete = canDeleteFlight(flight)}
   <div class="flex items-center gap-2">
-    {#if onNavigate && canShowFlightOnMap(flight)}
-      <Button
-        variant="outline"
-        size="icon"
-        disabled={selecting}
-        aria-label="Show on map"
-        title="Show on map"
-        onclick={() => showFlightOnMap(flight)}
-      >
-        <MapPin size="20" />
-      </Button>
-    {/if}
     {#if canUpdateFlight(flight)}
       <EditFlightAction {flight} triggerDisabled={selecting} />
     {/if}
-    {#if canDeleteFlight(flight)}
-      <Button
-        variant="outline"
-        size="icon"
-        disabled={selecting}
-        aria-label="Delete flight"
-        title="Delete flight"
-        onclick={() => handleDelete(flight)}
-      >
-        <X size="24" />
-      </Button>
+    {#if canMap || moves || canDelete}
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger disabled={selecting}>
+          {#snippet child({ props })}
+            <Button
+              {...props}
+              variant="outline"
+              size="icon"
+              aria-label="More actions"
+              title="More actions"
+              data-testid="flight-actions-button"
+            >
+              <EllipsisVertical size={16} />
+            </Button>
+          {/snippet}
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Content align="end">
+          {@render flightMenuItems(flight, { canMap, moves, canDelete })}
+        </DropdownMenu.Content>
+      </DropdownMenu.Root>
     {/if}
   </div>
+{/snippet}
+
+{#snippet flightMenuItems(
+  flight: FlightData,
+  {
+    canMap,
+    moves,
+    canDelete,
+  }: { canMap: boolean; moves: MoveOptions | undefined; canDelete: boolean },
+)}
+  {#if canMap}
+    <DropdownMenu.Item onSelect={() => showFlightOnMap(flight)}>
+      <MapPin size={16} />
+      Show on map
+    </DropdownMenu.Item>
+  {/if}
+  {#if moves?.later}
+    <DropdownMenu.Item onSelect={() => moveFlight?.(flight.id, 'later')}>
+      <ArrowUp size={16} />
+      Move later
+    </DropdownMenu.Item>
+  {/if}
+  {#if moves?.earlier}
+    <DropdownMenu.Item onSelect={() => moveFlight?.(flight.id, 'earlier')}>
+      <ArrowDown size={16} />
+      Move earlier
+    </DropdownMenu.Item>
+  {/if}
+  {#if canDelete}
+    {#if canMap || moves}
+      <DropdownMenu.Separator />
+    {/if}
+    <DropdownMenu.Item
+      variant="destructive"
+      onSelect={() => handleDelete(flight)}
+    >
+      <Trash2 size={16} />
+      Delete
+    </DropdownMenu.Item>
+  {/if}
 {/snippet}
 
 {#snippet passengerBadge(passengers: string[])}

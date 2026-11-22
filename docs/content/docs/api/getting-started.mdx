@@ -109,7 +109,7 @@ Single resources are wrapped in `data`, and lists also include `page`.
 
 ## Pagination
 
-`GET /api/v1/flights` uses cursor pagination. Flights are sorted by flight date, newest first, then by ID.
+`GET /api/v1/flights` uses cursor pagination. Flights are sorted by flight date, newest first, then in the order you set by moving flights that share a date, then by ID.
 
 - `limit` sets the page size, from 1 to 100. The default is 50.
 - Omit `cursor` for the first page.

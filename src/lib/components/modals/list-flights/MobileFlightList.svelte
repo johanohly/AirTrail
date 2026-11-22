@@ -8,6 +8,10 @@
   import SwipeableFlightRow from './SwipeableFlightRow.svelte';
 
   import type { FlightData } from '$lib/utils';
+  import type {
+    MoveDirection,
+    MoveOptions,
+  } from '$lib/utils/data/flight-order';
   import { cn } from '$lib/utils';
 
   type Flight = FlightData & {
@@ -24,6 +28,8 @@
     canUpdateFlight = () => true,
     canDeleteFlight = () => true,
     onShowOnMap,
+    moveOptions,
+    onMove,
     readonly = false,
   }: {
     flightsByYear: FlightListYear<Flight>[];
@@ -34,6 +40,8 @@
     canUpdateFlight?: (flight: FlightData) => boolean;
     canDeleteFlight?: (flight: FlightData) => boolean;
     onShowOnMap?: (flight: FlightData) => void;
+    moveOptions?: Map<number, MoveOptions>;
+    onMove?: (flight: FlightData, direction: MoveDirection) => void;
     readonly?: boolean;
   } = $props();
 
@@ -77,6 +85,10 @@
           {#each group.flights as flight (flight.id)}
             {@const isSelected =
               !readonly && selecting && selectedFlights.includes(flight.id)}
+            {@const moves =
+              readonly || !canUpdateFlight(flight)
+                ? undefined
+                : moveOptions?.get(flight.id)}
             <div id="flight-list-row-{flight.id}" class="isolate scroll-mt-24">
               <SwipeableFlightRow
                 bind:this={swipeableRefs[flight.id]}
@@ -93,6 +105,12 @@
                 !flight.to
                   ? undefined
                   : () => onShowOnMap?.(flight)}
+                onMoveLater={moves?.later
+                  ? () => onMove?.(flight, 'later')
+                  : undefined}
+                onMoveEarlier={moves?.earlier
+                  ? () => onMove?.(flight, 'earlier')
+                  : undefined}
               >
                 {#snippet children({ isInteracting })}
                   <button

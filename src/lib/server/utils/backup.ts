@@ -7,6 +7,7 @@ import {
 } from '$lib/track/schema';
 import { omit } from '$lib/utils/other';
 import { listFlightsInScope } from '$lib/server/utils/flight';
+import { orderNewestFirst } from '$lib/utils/data/flight-order';
 import type { ResolvedFlightScope } from '$lib/flight-scope';
 
 type CfValueRow = {
@@ -69,7 +70,12 @@ const buildCfByFlight = (
 };
 
 export const generateBackup = async (scope: ResolvedFlightScope) => {
-  const res = await listFlightsInScope(scope);
+  // Oldest first, so an import, which numbers flights in file order, keeps the
+  // order of flights that share a date and have no time.
+  const res = orderNewestFirst(
+    await listFlightsInScope(scope),
+    (flight) => flight,
+  ).reverse();
   const userIds = referencedBackupUserIds(res);
   const users =
     userIds.length === 0
@@ -156,7 +162,7 @@ export const generateBackup = async (scope: ResolvedFlightScope) => {
   const cfByPassenger = buildCfByFlight(passengerCfValueRows, entityLookup);
 
   const flights = res.map((flight: Flight) => ({
-    ...omit(flight, ['id', 'trackDistance']),
+    ...omit(flight, ['id', 'trackDistance', 'sortKey']),
     from: flight.from ? omit(flight.from, ['id']) : null,
     to: flight.to ? omit(flight.to, ['id']) : null,
     airline: flight.airline ? omit(flight.airline, ['id']) : null,

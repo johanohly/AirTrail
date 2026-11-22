@@ -334,10 +334,18 @@ describe('flight scope resolution', () => {
 
 describe('pagination', () => {
   it('round-trips a cursor', () => {
-    const cursor = encodeCursor({ date: '2026-01-01', id: 42 });
+    const cursor = encodeCursor({ date: '2026-01-01', id: 42, sortKey: 40.5 });
     expect(parsePage('10', cursor)).toEqual({
       limit: 10,
-      cursor: { date: '2026-01-01', id: 42 },
+      cursor: { date: '2026-01-01', rank: 40.5, id: 42 },
+    });
+  });
+
+  it('reads a cursor issued before flights could be moved', () => {
+    const cursor = btoa(JSON.stringify({ date: '2026-01-01', id: 42 }));
+    expect(parsePage('10', cursor)).toEqual({
+      limit: 10,
+      cursor: { date: '2026-01-01', rank: 42, id: 42 },
     });
   });
 

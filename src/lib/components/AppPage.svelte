@@ -37,6 +37,7 @@
   import { Card } from '$lib/components/ui/card';
   import type { FlightScope } from '$lib/flight-scope';
   import { prepareFlightData } from '$lib/utils';
+  import type { MoveDirection } from '$lib/utils/data/flight-order';
   import { readViewFromPath, stripViewPath } from '$lib/view-paths';
 
   const user = $derived(page.data.user);
@@ -154,6 +155,20 @@
     },
   };
   const deleteFlightMutation = trpc.flight.delete.mutation(invalidator);
+  const moveFlightMutation = trpc.flight.move.mutation(invalidator);
+
+  const moveFlight = async (id: number, direction: MoveDirection) => {
+    try {
+      await $moveFlightMutation.mutateAsync({
+        id,
+        direction,
+        scope: flightScopeState.current,
+      });
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to move flight');
+    }
+  };
 
   const deleteFlight = async (id: number) => {
     const toastId = toast.loading('Deleting flight...');
@@ -250,6 +265,7 @@
     filteredFlights={drilldownFlights}
     {focusedFlightOutsideFilters}
     {deleteFlight}
+    {moveFlight}
     seatUserId={effectiveSeatUserId}
     {showPassengerDetails}
     {trackedFlightIds}

@@ -1,6 +1,12 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { MapPin, SquarePen, Trash2 } from '@o7/icon/lucide';
+  import {
+    ArrowDown,
+    ArrowUp,
+    MapPin,
+    SquarePen,
+    Trash2,
+  } from '@o7/icon/lucide';
 
   import { cn } from '$lib/utils';
 
@@ -11,12 +17,16 @@
     onEdit,
     onDelete,
     onShowOnMap,
+    onMoveLater,
+    onMoveEarlier,
     children,
   }: {
     disabled?: boolean;
     onEdit?: () => void;
     onDelete?: () => void;
     onShowOnMap?: () => void;
+    onMoveLater?: () => void;
+    onMoveEarlier?: () => void;
     children: Snippet<[{ isInteracting: boolean }]>;
   } = $props();
 
@@ -338,6 +348,17 @@
     resetPosition();
     onShowOnMap?.();
   };
+
+  // A move re-sorts the list in place, so like "Map" it fires directly.
+  const handleMoveClick = (e: MouseEvent, move: (() => void) | undefined) => {
+    if (hasMoved || actionPending) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    resetPosition();
+    move?.();
+  };
 </script>
 
 <!-- While actions are revealed the row owns every gesture (including vertical
@@ -360,6 +381,28 @@
     style:touch-action="none"
     onpointerdown={handlePointerDown}
   >
+    {#if onMoveLater}
+      <button
+        type="button"
+        class="flex-1 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors"
+        onclick={(e) => handleMoveClick(e, onMoveLater)}
+      >
+        <ArrowUp size={22} />
+        <span class="text-xs font-medium">Later</span>
+      </button>
+      <div class="w-px bg-border"></div>
+    {/if}
+    {#if onMoveEarlier}
+      <button
+        type="button"
+        class="flex-1 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors"
+        onclick={(e) => handleMoveClick(e, onMoveEarlier)}
+      >
+        <ArrowDown size={22} />
+        <span class="text-xs font-medium">Earlier</span>
+      </button>
+      <div class="w-px bg-border"></div>
+    {/if}
     {#if onShowOnMap}
       <button
         type="button"

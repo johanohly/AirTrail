@@ -72,7 +72,8 @@ paths:
         - bearerAuth: [flight.read.own]
       summary: List visible flights
       description: >-
-        Returns flights in deterministic descending order by flight date, then descending ID.
+        Returns flights in deterministic descending order by flight date, then by the order
+        set by moving flights that share a date, then descending ID.
         Results are cursor-paginated. Start without a cursor, then pass the returned
         `page.nextCursor` value unchanged as `cursor` to fetch the next page. When `page.nextCursor`
         is `null`, the response is the last page. Cursors are opaque and must not be decoded or

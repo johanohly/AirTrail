@@ -206,6 +206,8 @@ model flight {
   duration            Int?
   /// Kilometres, entered by hand. Takes precedence over the track and great-circle distance.
   manual_distance     Float?
+  /// Order among flights with the same date and precision and no time, set by moving a flight. Falls back to `id`.
+  sort_key            Float?
 
   departure_terminal String?
   departure_gate     String?

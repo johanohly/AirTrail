@@ -5,6 +5,7 @@ import type { DB } from '$lib/db/schema';
 
 export interface FlightInput {
   date: string;
+  datePrecision?: 'day' | 'month' | 'year';
   fromId: number;
   toId: number;
   departure?: string | null;
@@ -36,6 +37,7 @@ export const flightsFactory = {
       .insertInto('flight')
       .values({
         date: input.date,
+        datePrecision: input.datePrecision ?? 'day',
         fromId: input.fromId,
         toId: input.toId,
         departure: input.departure ?? null,
