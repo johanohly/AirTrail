@@ -1,7 +1,6 @@
 import { TZDate } from '@date-fns/tz';
 import { describe, expect, it } from 'vitest';
 
-import { COUNTRIES } from '$lib/data/countries';
 import {
   arrivalDelayMinutes,
   countFlightsPerYear,
@@ -18,6 +17,8 @@ import {
   seatNumberDistribution,
   toBreakdown,
 } from './aggregations';
+
+import { COUNTRIES } from '$lib/data/countries';
 import type { FlightData } from '$lib/utils';
 
 describe('country statistics', () => {
@@ -49,6 +50,53 @@ describe('country statistics', () => {
 });
 
 describe('passenger reason statistics', () => {
+  it('counts removed custom reasons with their original labels and filters by passenger', () => {
+    const customFlights = [
+      {
+        passengers: [
+          { userId: 'one', flightReason: 'Study abroad' },
+          { userId: 'two', flightReason: 'VIP' },
+        ],
+      },
+      { passengers: [{ userId: 'one', flightReason: null }] },
+    ] as FlightData[];
+    expect(reasonDistribution(customFlights, { userId: 'one' })).toMatchObject({
+      'Study abroad': 1,
+      'No Data': 1,
+    });
+    expect(
+      reasonDistribution(customFlights, { userId: 'one' }),
+    ).not.toHaveProperty('VIP');
+    expect(reasonDistribution(customFlights, {})).toMatchObject({
+      'Study abroad': 1,
+      VIP: 1,
+      'No Data': 1,
+    });
+    expect(
+      flightMatchesChartBucket(customFlights[0]!, 'reason', 'Study abroad', {
+        userId: 'one',
+      }),
+    ).toBe(true);
+    expect(
+      flightMatchesChartBucket(customFlights[0]!, 'reason', 'VIP', {
+        userId: 'one',
+      }),
+    ).toBe(false);
+  });
+  it('counts a stored reason with a built-in label in the built-in bucket', () => {
+    const mixed = [
+      { passengers: [{ userId: 'one', flightReason: 'leisure' }] },
+      { passengers: [{ userId: 'one', flightReason: 'Leisure' }] },
+      { passengers: [{ userId: 'one', flightReason: '__proto__' }] },
+    ] as FlightData[];
+    for (const ctx of [{}, { userId: 'one' }]) {
+      const counts = Object.entries(reasonDistribution(mixed, ctx));
+      expect(counts).toContainEqual(['Leisure', 2]);
+      expect(counts).toContainEqual(['__proto__', 1]);
+      expect(counts.map(([label]) => label)).not.toContain('No Data');
+    }
+  });
+
   const flights = [
     {
       passengers: [

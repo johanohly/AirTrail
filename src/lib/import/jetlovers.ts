@@ -11,6 +11,7 @@ import {
   getAirlineByName,
 } from '$lib/utils/data/airlines';
 import { getAirportByIata } from '$lib/utils/data/airports/cache';
+import type { BuiltinFlightReason } from '$lib/utils/flight-reasons';
 
 const nullTransformer = (value: string) => {
   const trimmed = value.trim();
@@ -47,10 +48,7 @@ const JETLOVERS_SEAT_CLASS_MAP: Record<string, FlightPassenger['seatClass']> = {
   P: 'economy+',
   Y: 'economy',
 };
-const JETLOVERS_FLIGHT_REASON_MAP: Record<
-  string,
-  NonNullable<FlightPassenger['flightReason']>
-> = {
+const JETLOVERS_FLIGHT_REASON_MAP: Record<string, BuiltinFlightReason> = {
   B: 'business',
   L: 'leisure',
   C: 'crew',
@@ -72,9 +70,7 @@ const mapSeatClass = (
   return mapNullableCode(JETLOVERS_SEAT_CLASS_MAP, seatClass);
 };
 
-const mapFlightReason = (
-  reason: string | null,
-): FlightPassenger['flightReason'] => {
+const mapFlightReason = (reason: string | null): BuiltinFlightReason | null => {
   return mapNullableCode(JETLOVERS_FLIGHT_REASON_MAP, reason);
 };
 

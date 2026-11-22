@@ -16,6 +16,7 @@ import {
   getAirportByIcao,
 } from '$lib/utils/data/airports/cache';
 import { parseLocalISO, toUtc } from '$lib/utils/datetime';
+import type { BuiltinFlightReason } from '$lib/utils/flight-reasons';
 
 const MAX_NOTE_LENGTH = 1000;
 
@@ -44,10 +45,7 @@ const SEAT_CLASS_MAP: Record<string, FlightPassenger['seatClass']> = {
   first: 'first',
   private: 'private',
 };
-const FLIGHT_REASON_MAP: Record<
-  string,
-  NonNullable<FlightPassenger['flightReason']>
-> = {
+const FLIGHT_REASON_MAP: Record<string, BuiltinFlightReason> = {
   vacations: 'leisure',
   vacation: 'leisure',
   leisure: 'leisure',

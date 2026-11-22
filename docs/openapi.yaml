@@ -538,7 +538,7 @@ components:
         flightReason:
           type: [string, 'null']
           description: 'This passenger’s reason for taking the flight.'
-          enum: ['leisure', 'business', 'crew', 'other', null]
+          minLength: 1
     FlightPassengerInput:
       type: object
       description: 'A passenger on the flight. Provide either `userId` or `guestName`; at least one passenger must have a `userId`.'
@@ -575,7 +575,7 @@ components:
         flightReason:
           type: [string, 'null']
           description: 'This passenger’s reason for taking the flight.'
-          enum: ['leisure', 'business', 'crew', 'other', null]
+          minLength: 1
         customFields:
           '$ref': '#/components/schemas/CustomFieldsInput'
     Flight:

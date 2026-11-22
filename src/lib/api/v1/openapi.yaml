@@ -1172,7 +1172,7 @@ components:
             - private
         flightReason:
           type: [string, 'null']
-          enum: [leisure, business, crew, other]
+          description: One of leisure, business, crew or other, or a custom reason.
     PassengerInput:
       type: object
       description: Exactly one of userId and guestName is required.
@@ -1208,7 +1208,7 @@ components:
             - private
         flightReason:
           type: [string, 'null']
-          enum: [leisure, business, crew, other]
+          description: One of leisure, business, crew or other, or a custom reason of up to 100 characters.
         customFields:
           type: object
           additionalProperties: true

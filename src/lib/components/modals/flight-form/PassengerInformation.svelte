@@ -14,19 +14,29 @@
   import * as Select from '$lib/components/ui/select';
   import { Separator } from '$lib/components/ui/separator';
   import { TextTooltip } from '$lib/components/ui/tooltip/index.js';
+  import { SeatClasses, SeatTypeLabels, SeatTypes } from '$lib/db/types';
+  import { page } from '$app/state';
+  import { trpc } from '$lib/trpc';
   import {
-    FlightReasons,
-    SeatClasses,
-    SeatTypeLabels,
-    SeatTypes,
-  } from '$lib/db/types';
+    flightReasonOptions,
+    flightReasonLabel,
+  } from '$lib/utils/flight-reasons';
   import { cn, toTitleCase } from '$lib/utils';
   import type { CustomFieldDefinition } from '$lib/utils/custom-fields';
   import type { flightSchema } from '$lib/zod/flight';
 
-  type FlightReason = (typeof FlightReasons)[number];
-  const isFlightReason = (value: string): value is FlightReason =>
-    FlightReasons.some((reason) => reason === value);
+  const reasonsQuery = trpc.user.flightReasons.query();
+  // Your own reasons are offered on your row only; other rows keep theirs.
+  const reasonOptions = (
+    passenger:
+      { userId: string | null; flightReason: string | null } | undefined,
+  ) =>
+    flightReasonOptions(
+      passenger?.userId === page.data.user?.id
+        ? ($reasonsQuery.data ?? [])
+        : [],
+      passenger?.flightReason,
+    );
 
   let {
     form,
@@ -157,6 +167,7 @@
                 <Form.ElementField
                   {form}
                   name="passengers[{index}].flightReason"
+                  class="min-w-0"
                 >
                   <Form.Control>
                     {#snippet children({ props })}
@@ -169,23 +180,27 @@
                           // Assign through the store so superforms sees it.
                           if ($formData.passengers[index]) {
                             $formData.passengers[index].flightReason =
-                              isFlightReason(value) ? value : null;
+                              value || null;
                           }
                         }}
                         allowDeselect
                       >
-                        <Select.Trigger {...props} size="sm">
-                          {$formData.passengers[index]?.flightReason
-                            ? toTitleCase(
-                                $formData.passengers[index].flightReason,
-                              )
-                            : 'Select reason'}
+                        <Select.Trigger {...props} size="sm" class="min-w-0">
+                          <span class="truncate">
+                            {$formData.passengers[index]?.flightReason
+                              ? flightReasonLabel(
+                                  $formData.passengers[index].flightReason,
+                                )
+                              : 'Select reason'}
+                          </span>
                         </Select.Trigger>
                         <Select.Content>
-                          <Select.Item value="leisure" label="Leisure" />
-                          <Select.Item value="business" label="Business" />
-                          <Select.Item value="crew" label="Crew" />
-                          <Select.Item value="other" label="Other" />
+                          {#each reasonOptions($formData.passengers[index]) as reason (reason)}
+                            <Select.Item
+                              value={reason}
+                              label={flightReasonLabel(reason)}
+                            />
+                          {/each}
                         </Select.Content>
                       </Select.Root>
                       <input

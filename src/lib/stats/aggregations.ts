@@ -1,13 +1,21 @@
+import { parseISO } from 'date-fns';
+
+import { COUNTRIES } from '$lib/data/countries';
 import {
   ContinentMap,
   type VisitedCountry,
   VisitedCountryStatus,
   wasVisited,
 } from '$lib/db/types';
-import { parseISO } from 'date-fns';
-
-import { COUNTRIES } from '$lib/data/countries';
+import { FlightReasons } from '$lib/db/types';
 import { type FlightData, toTitleCase } from '$lib/utils';
+import { flightReasonLabel } from '$lib/utils/flight-reasons';
+
+// Keep custom labels distinct from the chart's synthetic buckets.
+const reasonBucketLabel = (reason: string) =>
+  ['No Data', 'Others'].includes(reason)
+    ? `${reason} (reason)`
+    : flightReasonLabel(reason);
 
 export type FlightChartKey =
   | 'seat-class'
@@ -248,7 +256,11 @@ export const flightMatchesChartBucket = (
     }
 
     return passengers.some(
-      (seat) => seat[field] && toTitleCase(seat[field]) === bucket,
+      (seat) =>
+        seat[field] &&
+        (field === 'flightReason'
+          ? reasonBucketLabel(seat[field])
+          : toTitleCase(seat[field])) === bucket,
     );
   }
 
@@ -396,43 +408,37 @@ export function reasonDistribution(
   ctx: StatsContext,
   options?: AggregationOptions,
 ): Record<string, number> {
-  const categories = ['leisure', 'business', 'crew', 'other'];
+  // Keyed by label, so a stored "Leisure" and the built-in "leisure" share a
+  // bucket, the same way the drill-down matches them.
+  const counts = new Map<string, number>(
+    FlightReasons.map((reason) => [reasonBucketLabel(reason), 0]),
+  );
+  const add = (label: string) =>
+    counts.set(label, (counts.get(label) ?? 0) + 1);
 
   if (!ctx.userId) {
-    const passengers = flights.flatMap((flight) => flight.passengers);
-    const counts = categories.reduce<Record<string, number>>(
-      (acc, category) => {
-        acc[toTitleCase(category)] = passengers.filter(
-          (passenger) => passenger.flightReason === category,
-        ).length;
-        return acc;
-      },
-      {},
-    );
-    const totalClassified = Object.values(counts).reduce((a, b) => a + b, 0);
-    const noData = passengers.length - totalClassified;
-    if (noData > 0) counts['No Data'] = noData;
-    return sortAndLimit(counts, options);
+    for (const passenger of flights.flatMap((flight) => flight.passengers)) {
+      add(
+        passenger.flightReason
+          ? reasonBucketLabel(passenger.flightReason)
+          : 'No Data',
+      );
+    }
+  } else {
+    for (const flight of flights) {
+      const labels = new Set(
+        flight.passengers
+          .filter((passenger) => passenger.userId === ctx.userId)
+          .map((passenger) => passenger.flightReason)
+          .filter((reason): reason is string => !!reason)
+          .map(reasonBucketLabel),
+      );
+      if (labels.size === 0) add('No Data');
+      labels.forEach(add);
+    }
   }
 
-  const counts = categories.reduce<Record<string, number>>((acc, category) => {
-    acc[toTitleCase(category)] = flights.filter((flight) =>
-      flight.passengers.some(
-        (passenger) =>
-          passenger.userId === ctx.userId &&
-          passenger.flightReason === category,
-      ),
-    ).length;
-    return acc;
-  }, {});
-
-  const totalClassified = Object.values(counts).reduce((a, b) => a + b, 0);
-  const noData = flights.length - totalClassified;
-  if (noData > 0) {
-    counts['No Data'] = noData;
-  }
-
-  return sortAndLimit(counts, options);
+  return sortAndLimit(Object.fromEntries(counts), options);
 }
 
 export function continentDistribution(

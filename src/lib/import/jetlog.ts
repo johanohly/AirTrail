@@ -14,6 +14,7 @@ import {
   parseLocalISO,
   toUtc,
 } from '$lib/utils/datetime';
+import type { BuiltinFlightReason } from '$lib/utils/flight-reasons';
 
 const nullTransformer = (v: string) => (v === '' ? null : v);
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -193,7 +194,7 @@ export const processJetLogFile = async (
           seatClass: seatClass as FlightPassenger['seatClass'],
           seatNumber: null,
           guestName: null,
-          flightReason: row.purpose as FlightPassenger['flightReason'],
+          flightReason: row.purpose as BuiltinFlightReason | null,
         },
       ],
     });

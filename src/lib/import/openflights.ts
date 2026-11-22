@@ -19,6 +19,7 @@ import {
   getAirportByIcao,
 } from '$lib/utils/data/airports/cache';
 import { parseLocalISO, toUtc } from '$lib/utils/datetime';
+import type { BuiltinFlightReason } from '$lib/utils/flight-reasons';
 
 const OPENFLIGHTS_RAW_BASE_URL =
   'https://raw.githubusercontent.com/jpatokal/openflights/master/data';
@@ -260,9 +261,7 @@ const mapSeatClass = (
   }
 };
 
-const mapFlightReason = (
-  reason: string | null,
-): FlightPassenger['flightReason'] => {
+const mapFlightReason = (reason: string | null): BuiltinFlightReason | null => {
   switch (reason?.toUpperCase()) {
     case 'B':
       return 'business';

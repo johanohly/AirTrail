@@ -5,6 +5,7 @@
 
   import {
     DateTimePreview,
+    FlightReasonsField,
     PreferenceField,
     PresetPicker,
     UnitsPreview,
@@ -41,6 +42,19 @@
       <PreferenceField field="flightTimeDisplay" />
     </div>
     <DateTimePreview />
+  </section>
+
+  <Separator />
+
+  <section class="space-y-3">
+    <div class="space-y-1">
+      <h4 class="text-sm font-semibold">Flight reasons</h4>
+      <p class="text-sm text-muted-foreground">
+        Leisure, Business, Crew and Other are always available. Reasons you add
+        here show up when you pick a reason for yourself on a flight.
+      </p>
+    </div>
+    <FlightReasonsField />
   </section>
 </PageHeader>
 
