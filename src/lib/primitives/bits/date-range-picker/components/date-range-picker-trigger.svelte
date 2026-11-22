@@ -1,0 +1,27 @@
+<script lang="ts">
+	import { mergeProps } from "svelte-toolbelt";
+	import type { DateRangePickerTriggerProps } from "../types.js";
+	import PopoverTrigger from "$lib/primitives/bits/popover/components/popover-trigger.svelte";
+	import { dateRangeFieldAttrs } from "$lib/primitives/bits/date-range-field/date-range-field.svelte.js";
+	import {
+		handleSegmentNavigation,
+		isSegmentNavigationKey,
+	} from "$lib/primitives/internal/date-time/field/segments.js";
+
+	let { ref = $bindable(null), onkeydown, ...restProps }: DateRangePickerTriggerProps = $props();
+
+	function onKeydown(e: KeyboardEvent) {
+		if (isSegmentNavigationKey(e.key)) {
+			const currNode = e.currentTarget as HTMLElement;
+			const dateFieldInputNode = currNode.closest(
+				dateRangeFieldAttrs.selector("root")
+			) as HTMLElement;
+			if (!dateFieldInputNode) return;
+			handleSegmentNavigation(e, dateFieldInputNode);
+		}
+	}
+
+	const mergedProps = $derived(mergeProps({ onkeydown }, { onkeydown: onKeydown }));
+</script>
+
+<PopoverTrigger {...restProps} bind:ref data-segment="trigger" {...mergedProps} />

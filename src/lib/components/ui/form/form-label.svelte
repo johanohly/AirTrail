@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { WithoutChild } from 'bits-ui';
   import * as FormPrimitive from 'formsnap';
 
   import { Label } from '$lib/components/ui/label';
+  import type { WithoutChild } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

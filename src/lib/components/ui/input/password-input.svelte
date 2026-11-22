@@ -1,8 +1,8 @@
 <script lang="ts">
   import { Eye, EyeOff } from '@o7/icon/lucide';
-  import type { WithElementRef } from 'bits-ui';
   import type { HTMLInputAttributes } from 'svelte/elements';
 
+  import type { WithElementRef } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

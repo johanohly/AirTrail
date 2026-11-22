@@ -1,13 +1,13 @@
 <script lang="ts">
   import { ChevronRight, Info, TriangleAlert } from '@o7/icon/lucide';
-  import { Collapsible } from 'bits-ui';
   import { onDestroy, tick } from 'svelte';
   import { toast } from 'svelte-sonner';
   import { defaults, type Infer, superForm } from 'sveltekit-superforms';
   import { zod4 as zod } from 'sveltekit-superforms/adapters';
 
-  import { PageHeader } from '.';
   import OAuthRoleMappings from './oauth-role-mappings/OAuthRoleMappings.svelte';
+
+  import { PageHeader } from '.';
 
   import { invalidateAll } from '$app/navigation';
   import { Locked } from '$lib/components/helpers';
@@ -19,6 +19,7 @@
   import * as Select from '$lib/components/ui/select';
   import { Switch } from '$lib/components/ui/switch';
   import * as Tabs from '$lib/components/ui/tabs';
+  import { Collapsible } from '$lib/primitives';
   import { appConfig } from '$lib/state.svelte';
   import { api } from '$lib/trpc';
   import { cancelHighlight, cn, highlightElement } from '$lib/utils';

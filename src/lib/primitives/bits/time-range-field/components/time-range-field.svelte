@@ -1,0 +1,145 @@
+<script lang="ts" module>
+	import type { TimeRange, TimeValue } from "$lib/primitives/shared/date/types.js";
+	import type { Time } from "@internationalized/date";
+
+	type T = unknown;
+</script>
+
+<script lang="ts" generics="T extends TimeValue = Time">
+	import { watch } from "runed";
+	import { boxWith, mergeProps } from "svelte-toolbelt";
+	import { TimeRangeFieldRootState } from "../time-range-field.svelte.js";
+	import type { TimeRangeFieldRootProps } from "../types.js";
+	import { createId } from "$lib/primitives/internal/create-id.js";
+	import { noop } from "$lib/primitives/internal/noop.js";
+	import { getDefaultTime } from "$lib/primitives/internal/date-time/utils.js";
+	import { resolveLocaleProp } from "$lib/primitives/bits/utilities/config/prop-resolvers.js";
+
+	const uid = $props.id();
+
+	let {
+		id = createId(uid),
+		ref = $bindable(null),
+		value = $bindable(),
+		onValueChange = noop,
+		placeholder = $bindable(),
+		onPlaceholderChange = noop,
+		disabled = false,
+		readonly = false,
+		required = false,
+		hourCycle,
+		granularity,
+		locale,
+		hideTimeZone = false,
+		validate = noop,
+		onInvalid = noop,
+		maxValue,
+		minValue,
+		readonlySegments = [],
+		children,
+		child,
+		onStartValueChange = noop,
+		onEndValueChange = noop,
+		errorMessageId,
+		...restProps
+	}: TimeRangeFieldRootProps<T> = $props();
+
+	let startValue = $state<T | undefined>(value?.start);
+	let endValue = $state<T | undefined>(value?.end);
+
+	function handleDefaultPlaceholder() {
+		if (placeholder !== undefined) return;
+		const defaultPlaceholder = getDefaultTime({ granularity, defaultValue: value?.start });
+		placeholder = defaultPlaceholder;
+	}
+
+	// SSR
+	handleDefaultPlaceholder();
+
+	watch.pre(
+		() => placeholder,
+		() => {
+			handleDefaultPlaceholder();
+		}
+	);
+
+	function handleDefaultValue() {
+		if (value !== undefined) return;
+		const defaultValue = { start: undefined, end: undefined };
+		value = defaultValue;
+	}
+
+	// SSR
+	handleDefaultValue();
+
+	/**
+	 * Covers an edge case where when a spread props object is reassigned,
+	 * the props are reset to their default values, which would make value
+	 * undefined which causes errors to be thrown.
+	 */
+	watch.pre(
+		() => value,
+		() => {
+			handleDefaultValue();
+		}
+	);
+
+	const rootState = TimeRangeFieldRootState.create({
+		id: boxWith(() => id),
+		ref: boxWith(
+			() => ref,
+			(v) => (ref = v)
+		),
+		disabled: boxWith(() => disabled),
+		readonly: boxWith(() => readonly),
+		required: boxWith(() => required),
+		hourCycle: boxWith(() => hourCycle),
+		granularity: boxWith(() => granularity),
+		locale: resolveLocaleProp(() => locale),
+		hideTimeZone: boxWith(() => hideTimeZone),
+		validate: boxWith(() => validate),
+		maxValue: boxWith(() => maxValue),
+		minValue: boxWith(() => minValue),
+		placeholder: boxWith(
+			() => placeholder as TimeValue,
+			(v) => {
+				placeholder = v;
+				onPlaceholderChange(v);
+			}
+		),
+		readonlySegments: boxWith(() => readonlySegments),
+		value: boxWith(
+			() => value as TimeRange<T>,
+			(v) => {
+				value = v;
+				onValueChange(v);
+			}
+		),
+		startValue: boxWith(
+			() => startValue,
+			(v) => {
+				startValue = v;
+				onStartValueChange(v);
+			}
+		),
+		endValue: boxWith(
+			() => endValue,
+			(v) => {
+				endValue = v;
+				onEndValueChange(v);
+			}
+		),
+		onInvalid: boxWith(() => onInvalid),
+		errorMessageId: boxWith(() => errorMessageId),
+	});
+
+	const mergedProps = $derived(mergeProps(restProps, rootState.props));
+</script>
+
+{#if child}
+	{@render child({ props: mergedProps })}
+{:else}
+	<div {...mergedProps}>
+		{@render children?.()}
+	</div>
+{/if}

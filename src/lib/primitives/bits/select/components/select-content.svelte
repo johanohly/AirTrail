@@ -1,0 +1,89 @@
+<script lang="ts">
+	import { boxWith, mergeProps } from "svelte-toolbelt";
+	import type { SelectContentProps } from "../types.js";
+	import { SelectContentState } from "../select.svelte.js";
+	import PopperLayer from "$lib/primitives/bits/utilities/popper-layer/popper-layer.svelte";
+	import { noop } from "$lib/primitives/internal/noop.js";
+	import PopperLayerForceMount from "$lib/primitives/bits/utilities/popper-layer/popper-layer-force-mount.svelte";
+	import { createId } from "$lib/primitives/internal/create-id.js";
+
+	const uid = $props.id();
+
+	let {
+		id = createId(uid),
+		ref = $bindable(null),
+		forceMount = false,
+		side = "bottom",
+		onInteractOutside = noop,
+		onEscapeKeydown = noop,
+		children,
+		child,
+		preventScroll = false,
+		style,
+		...restProps
+	}: SelectContentProps = $props();
+
+	const contentState = SelectContentState.create({
+		id: boxWith(() => id),
+		ref: boxWith(
+			() => ref,
+			(v) => (ref = v)
+		),
+		onInteractOutside: boxWith(() => onInteractOutside),
+		onEscapeKeydown: boxWith(() => onEscapeKeydown),
+	});
+
+	const mergedProps = $derived(mergeProps(restProps, contentState.props));
+</script>
+
+{#if forceMount}
+	<PopperLayerForceMount
+		{...mergedProps}
+		{...contentState.popperProps}
+		ref={contentState.opts.ref}
+		{side}
+		enabled={contentState.root.opts.open.current}
+		{id}
+		{preventScroll}
+		forceMount={true}
+		shouldRender={contentState.shouldRender}
+	>
+		{#snippet popper({ props, wrapperProps })}
+			{@const finalProps = mergeProps(props, { style: contentState.props.style }, { style })}
+			{#if child}
+				{@render child({ props: finalProps, wrapperProps, ...contentState.snippetProps })}
+			{:else}
+				<div {...wrapperProps}>
+					<div {...finalProps}>
+						{@render children?.()}
+					</div>
+				</div>
+			{/if}
+		{/snippet}
+	</PopperLayerForceMount>
+{:else if !forceMount}
+	<PopperLayer
+		{...mergedProps}
+		{...contentState.popperProps}
+		ref={contentState.opts.ref}
+		{side}
+		open={contentState.root.opts.open.current}
+		{id}
+		{preventScroll}
+		forceMount={false}
+		shouldRender={contentState.shouldRender}
+	>
+		{#snippet popper({ props, wrapperProps })}
+			{@const finalProps = mergeProps(props, { style: contentState.props.style }, { style })}
+			{#if child}
+				{@render child({ props: finalProps, wrapperProps, ...contentState.snippetProps })}
+			{:else}
+				<div {...wrapperProps}>
+					<div {...finalProps}>
+						{@render children?.()}
+					</div>
+				</div>
+			{/if}
+		{/snippet}
+	</PopperLayer>
+{/if}

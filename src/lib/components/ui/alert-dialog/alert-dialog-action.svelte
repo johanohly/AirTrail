@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { AlertDialog as AlertDialogPrimitive } from 'bits-ui';
-
   import { buttonVariants } from '$lib/components/ui/button';
+  import { AlertDialog as AlertDialogPrimitive } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

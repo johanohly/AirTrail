@@ -13,6 +13,7 @@ const gitignorePath = fileURLToPath(new URL('./.gitignore', import.meta.url));
 
 export default ts.config(
   includeIgnoreFile(gitignorePath),
+  { ignores: ['src/lib/primitives/'] },
   js.configs.recommended,
   ...ts.configs.recommended,
   ...svelte.configs['flat/recommended'],
@@ -81,6 +82,17 @@ export default ts.config(
         },
       ],
       'import-x/no-unresolved': 'off',
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'bits-ui',
+              message: "Import the vendored copy from '$lib/primitives'.",
+            },
+          ],
+        },
+      ],
     },
   },
   {

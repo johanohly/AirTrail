@@ -1,0 +1,103 @@
+<script lang="ts">
+	import { afterSleep, boxWith, mergeProps } from "svelte-toolbelt";
+	import type { AlertDialogContentProps } from "../types.js";
+	import DismissibleLayer from "$lib/primitives/bits/utilities/dismissible-layer/dismissible-layer.svelte";
+	import EscapeLayer from "$lib/primitives/bits/utilities/escape-layer/escape-layer.svelte";
+	import FocusScope from "$lib/primitives/bits/utilities/focus-scope/focus-scope.svelte";
+	import TextSelectionLayer from "$lib/primitives/bits/utilities/text-selection-layer/text-selection-layer.svelte";
+	import { createId } from "$lib/primitives/internal/create-id.js";
+	import { noop } from "$lib/primitives/internal/noop.js";
+	import ScrollLock from "$lib/primitives/bits/utilities/scroll-lock/scroll-lock.svelte";
+	import { DialogContentState } from "$lib/primitives/bits/dialog/dialog.svelte.js";
+
+	const uid = $props.id();
+
+	let {
+		id = createId(uid),
+		children,
+		child,
+		ref = $bindable(null),
+		forceMount = false,
+		interactOutsideBehavior = "ignore",
+		onCloseAutoFocus = noop,
+		onEscapeKeydown = noop,
+		onOpenAutoFocus = noop,
+		onInteractOutside = noop,
+		preventScroll = true,
+		trapFocus = true,
+		restoreScrollDelay = null,
+		...restProps
+	}: AlertDialogContentProps = $props();
+
+	const contentState = DialogContentState.create({
+		id: boxWith(() => id),
+		ref: boxWith(
+			() => ref,
+			(v) => (ref = v)
+		),
+	});
+
+	const mergedProps = $derived(mergeProps(restProps, contentState.props));
+</script>
+
+{#if contentState.shouldRender || forceMount}
+	<FocusScope
+		ref={contentState.opts.ref}
+		loop
+		{trapFocus}
+		enabled={contentState.root.opts.open.current}
+		{onCloseAutoFocus}
+		onOpenAutoFocus={(e) => {
+			onOpenAutoFocus(e);
+			if (e.defaultPrevented) return;
+			e.preventDefault();
+			afterSleep(0, () => contentState.opts.ref.current?.focus());
+		}}
+	>
+		{#snippet focusScope({ props: focusScopeProps })}
+			<EscapeLayer
+				{...mergedProps}
+				enabled={contentState.root.opts.open.current}
+				ref={contentState.opts.ref}
+				onEscapeKeydown={(e) => {
+					onEscapeKeydown(e);
+					if (e.defaultPrevented) return;
+					contentState.root.handleClose();
+				}}
+			>
+				<DismissibleLayer
+					{...mergedProps}
+					ref={contentState.opts.ref}
+					enabled={contentState.root.opts.open.current}
+					{interactOutsideBehavior}
+					onInteractOutside={(e) => {
+						onInteractOutside(e);
+						if (e.defaultPrevented) return;
+						contentState.root.handleClose();
+					}}
+				>
+					<TextSelectionLayer
+						{...mergedProps}
+						ref={contentState.opts.ref}
+						enabled={contentState.root.opts.open.current}
+					>
+						{#if child}
+							{#if contentState.root.opts.open.current}
+								<ScrollLock {preventScroll} {restoreScrollDelay} />
+							{/if}
+							{@render child({
+								props: mergeProps(mergedProps, focusScopeProps),
+								...contentState.snippetProps,
+							})}
+						{:else}
+							<ScrollLock {preventScroll} />
+							<div {...mergeProps(mergedProps, focusScopeProps)}>
+								{@render children?.()}
+							</div>
+						{/if}
+					</TextSelectionLayer>
+				</DismissibleLayer>
+			</EscapeLayer>
+		{/snippet}
+	</FocusScope>
+{/if}

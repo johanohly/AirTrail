@@ -4,20 +4,20 @@
 >
   import { type DateValue, parseDate } from '@internationalized/date';
   import { CalendarDays, ChevronLeft, ChevronRight, X } from '@o7/icon/lucide';
-  import { DateRangePicker } from 'bits-ui';
   import {
     formFieldProxy,
     type FormPathLeaves,
     type SuperForm,
   } from 'sveltekit-superforms';
 
-  import * as Form from '$lib/components/ui/form';
+  import { Button } from '$lib/components/ui/button';
   import * as Calendar from '$lib/components/ui/calendar';
+  import * as Form from '$lib/components/ui/form';
   import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
   import { Portal } from '$lib/components/ui/popover';
-  import { cn } from '$lib/utils';
-  import { Button } from '$lib/components/ui/button';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
+  import { DateRangePicker } from '$lib/primitives';
+  import { cn } from '$lib/utils';
 
   let {
     form,

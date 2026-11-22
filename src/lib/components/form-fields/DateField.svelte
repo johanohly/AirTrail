@@ -4,7 +4,6 @@
 >
   import { type DateValue, parseDate } from '@internationalized/date';
   import { CalendarDays } from '@o7/icon/lucide';
-  import { DateField } from 'bits-ui';
   import {
     formFieldProxy,
     type FormPathLeaves,
@@ -14,6 +13,7 @@
   import { Calendar } from '$lib/components/ui/calendar';
   import * as Form from '$lib/components/ui/form';
   import * as Popover from '$lib/components/ui/popover';
+  import { DateField } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

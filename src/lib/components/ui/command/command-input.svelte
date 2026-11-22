@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Search } from '@o7/icon/lucide';
-  import { Command as CommandPrimitive } from 'bits-ui';
 
+  import { Command as CommandPrimitive } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

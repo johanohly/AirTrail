@@ -1,10 +1,10 @@
 <script lang="ts">
+  import { fade } from 'svelte/transition';
+
   import {
     ScrollArea as ScrollAreaPrimitive,
     type WithoutChild,
-  } from 'bits-ui';
-  import { fade } from 'svelte/transition';
-
+  } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

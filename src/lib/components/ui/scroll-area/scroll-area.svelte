@@ -1,11 +1,10 @@
 <script lang="ts">
+  import { Scrollbar } from './index.js';
+
   import {
     ScrollArea as ScrollAreaPrimitive,
     type WithoutChild,
-  } from 'bits-ui';
-
-  import { Scrollbar } from './index.js';
-
+  } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

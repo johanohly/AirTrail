@@ -1,7 +1,10 @@
 <script lang="ts">
   import { Check } from '@o7/icon/lucide';
-  import { Select as SelectPrimitive, type WithoutChild } from 'bits-ui';
 
+  import {
+    Select as SelectPrimitive,
+    type WithoutChild,
+  } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

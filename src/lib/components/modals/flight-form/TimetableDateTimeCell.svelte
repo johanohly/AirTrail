@@ -2,7 +2,6 @@
   import type { TZDate } from '@date-fns/tz';
   import { type DateValue, parseDate, Time } from '@internationalized/date';
   import { CalendarDays } from '@o7/icon/lucide';
-  import { DateField } from 'bits-ui';
   import type { SuperForm } from 'sveltekit-superforms';
   import { z } from 'zod';
 
@@ -11,6 +10,7 @@
   import * as Form from '$lib/components/ui/form';
   import * as Popover from '$lib/components/ui/popover';
   import { TimeInput } from '$lib/components/ui/time-input';
+  import { DateField } from '$lib/primitives';
   import { cn } from '$lib/utils';
   import { dateValueFromISO, mergeTimeWithDate } from '$lib/utils/datetime';
   import { formatTimeValue, parseTimeValue } from '$lib/utils/datetime/time';

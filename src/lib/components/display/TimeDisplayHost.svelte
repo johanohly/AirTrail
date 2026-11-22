@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { cn } from '$lib/utils';
-  import { Tooltip as TooltipPrimitive } from 'bits-ui';
   import { Settings2 } from '@o7/icon/lucide';
   import { setContext } from 'svelte';
   import { toast } from 'svelte-sonner';
@@ -15,6 +13,8 @@
     type ModalContext,
   } from '$lib/components/ui/modal/Modal.svelte';
   import * as Popover from '$lib/components/ui/popover';
+  import { Tooltip as TooltipPrimitive } from '$lib/primitives';
+  import { cn } from '$lib/utils';
   import {
     formatDate,
     formatTime,

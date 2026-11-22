@@ -1,7 +1,7 @@
 <script lang="ts">
   import { type DateValue } from '@internationalized/date';
-  import { Calendar as CalendarPrimitive } from 'bits-ui';
 
+  import { Calendar as CalendarPrimitive } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {

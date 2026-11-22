@@ -2,8 +2,7 @@
   import {
     Switch as SwitchPrimitive,
     type WithoutChildrenOrChild,
-  } from 'bits-ui';
-
+  } from '$lib/primitives';
   import { cn } from '$lib/utils';
 
   let {
