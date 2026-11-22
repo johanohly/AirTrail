@@ -25,10 +25,13 @@ async function openDrillDownFromBottomOfStatistics(page: Page) {
   await expect(scroller.getByRole('button', { name: 'Filter' })).toBeFocused();
 
   // None of the flights has a reason, so the last "Not recorded" row opens a
-  // drill-down listing all of them from the bottom of the page.
+  // drill-down listing all of them from the bottom of the page. It is opened
+  // from the keyboard because a click lets Playwright scroll the row into view
+  // itself, which now and then resets the scroll position under test.
   const row = scroller.getByRole('button', { name: /^Not recorded/ }).last();
   await scroller.evaluate((el) => (el.scrollTop = el.scrollHeight));
-  await row.click();
+  await row.focus();
+  await page.keyboard.press('Enter');
   const sheet = page.getByTestId('statistics-drill-down');
   await expect(sheet).toBeVisible();
   const scrollTop = await scroller.evaluate((el) => el.scrollTop);
@@ -73,8 +76,13 @@ test('returning from a flight keeps focus on it in the drill-down', async ({
 
   const flight = sheet.getByRole('button', { name: /JFK.*LHR/ }).first();
   await flight.click();
-  // The flight list opens on top of the statistics.
+  // The flight list opens on top of the statistics. It handles Escape once
+  // it has taken focus, which happens just after it appears.
   await expect(page.getByRole('dialog')).toHaveCount(2);
+  const flightList = page
+    .getByRole('dialog')
+    .filter({ hasNot: page.getByTestId('statistics-scroll') });
+  await expect(flightList.locator(':focus')).toHaveCount(1);
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(1);
   await expect(sheet).toBeVisible();
