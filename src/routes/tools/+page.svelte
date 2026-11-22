@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { CopyMinus, Database } from '@o7/icon/lucide';
+  import { CopyMinus, Database, PlaneTakeoff } from '@o7/icon/lucide';
 
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
   import {
     canDeduplicateOwnFlights,
+    canFillOwnFlightTimes,
     hasClientPermission,
   } from '$lib/authorization/permissions';
 </script>
@@ -36,6 +37,20 @@
           <p class="text-sm font-medium leading-none">Remove Duplicates</p>
           <p class="text-muted-foreground text-sm">
             Find and remove duplicate flights.
+          </p>
+        </div>
+      </a>
+    {/if}
+    {#if canFillOwnFlightTimes(page.data.authorization)}
+      <a
+        href={resolve('/tools/fill-times')}
+        class="flex items-center space-x-4 rounded-md border p-4 transition-colors hover:bg-card-hover"
+      >
+        <PlaneTakeoff class="shrink-0" />
+        <div class="space-y-1">
+          <p class="text-sm font-medium leading-none">Fill Times from Tracks</p>
+          <p class="text-muted-foreground text-sm">
+            Fill takeoff and landing times from saved tracks.
           </p>
         </div>
       </a>

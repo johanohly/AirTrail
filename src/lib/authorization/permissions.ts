@@ -292,6 +292,12 @@ export const canDeduplicateOwnFlights = (
   hasPermission(authorization, 'flight.read.own') &&
   hasPermission(authorization, 'flight.delete.own');
 
+export const canFillOwnFlightTimes = (
+  authorization: PermissionSubject | null,
+) =>
+  hasPermission(authorization, 'flight.read.own') &&
+  hasPermission(authorization, 'flight.update.own');
+
 export const canSetDefaultRole = (authorization: PermissionSubject | null) =>
   hasPermission(authorization, 'roles.manage') &&
   hasPermission(authorization, 'users.roles.assign') &&
