@@ -7,7 +7,6 @@ export const flightTrackSourceFormats = [
   'readsb',
 ] as const;
 export const MAX_STORED_FLIGHT_TRACK_POINTS = 100_000;
-export const MAX_RENDERED_FLIGHT_TRACK_POINTS = 5_000;
 
 export const flightTrackCoordinateSchema = z
   .union([
