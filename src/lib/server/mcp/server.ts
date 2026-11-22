@@ -157,7 +157,8 @@ export const createMcpServer = (principal: ApiPrincipal) => {
   tool(
     'api-v1-set-flight-track',
     {
-      description: 'Replace a flight track',
+      description:
+        'Replace a flight track and fill empty takeoff and landing times from it',
       inputSchema: flightTrackInputSchema.extend(idInput),
     },
     'Unable to save track',

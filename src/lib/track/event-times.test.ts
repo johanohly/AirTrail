@@ -5,6 +5,8 @@ import {
   clearTrackEventTimes,
   detectTrackEventTimes,
   prepareTrackEventTimes,
+  resolveStoredTrackEventTimes,
+  type StoredEventFlight,
 } from './event-times';
 import type { FlightTrackInput } from './schema';
 import type { FlightFormData } from '$lib/zod/flight';
@@ -307,5 +309,137 @@ describe('track timing check', () => {
     expect(warnings).toEqual([
       'Departure track time differs from the original schedule by more than 24 hours. Check that this track belongs to this flight.',
     ]);
+  });
+});
+
+describe('stored flight track times', () => {
+  // Takeoff at 07:00:30 UTC, landing at 08:59:45 UTC.
+  const stored = track([0, 10, 10, 0], [25170, 25230, 32370, 32385]);
+  const flight = {
+    datePrecision: 'day',
+    from: { tz: 'UTC' },
+    to: { tz: 'Asia/Hong_Kong' },
+    departureScheduled: '1970-01-01T07:00:00.000Z',
+    departure: null,
+    takeoffScheduled: null,
+    takeoffActual: null,
+    arrivalScheduled: null,
+    arrival: '1970-01-01T09:05:00.000Z',
+    landingScheduled: null,
+    landingActual: null,
+  } satisfies StoredEventFlight;
+  /** UTC ISO string as stored, or the reason nothing was detected. */
+  const iso = (result: ReturnType<typeof resolveStoredTrackEventTimes>) => {
+    const side = ({ at, reason }: typeof result.takeoffActual) =>
+      at ? new Date(at.getTime()).toISOString() : reason;
+    return {
+      takeoff: side(result.takeoffActual),
+      landing: side(result.landingActual),
+    };
+  };
+
+  it('detects both sides rounded down to the minute', () => {
+    expect(iso(resolveStoredTrackEventTimes(stored, flight))).toEqual({
+      takeoff: '1970-01-01T07:00:00.000Z',
+      landing: '1970-01-01T08:59:00.000Z',
+    });
+  });
+  it('gives the same times as the flight form for the same track', () => {
+    const { detected } = prepareTrackEventTimes(stored, {
+      ...form,
+      departureScheduled: '1970-01-01T00:00:00.000Z',
+      departureScheduledTime: '07:00',
+    });
+    const result = resolveStoredTrackEventTimes(stored, flight);
+    expect(result.takeoffActual.at?.getTime()).toBe(
+      detected.takeoffActual?.getTime(),
+    );
+    expect(result.landingActual.at?.getTime()).toBe(
+      detected.landingActual?.getTime(),
+    );
+    expect(result.landingActual.at?.timeZone).toBe('Asia/Hong_Kong');
+  });
+  it('detects regardless of a stored takeoff or landing', () => {
+    expect(
+      iso(
+        resolveStoredTrackEventTimes(stored, {
+          ...flight,
+          takeoffActual: '1970-01-01T07:05:00.000Z',
+        }),
+      ).takeoff,
+    ).toBe('1970-01-01T07:00:00.000Z');
+  });
+  it('detects nothing on partial-date flights, ignoring their stored day', () => {
+    expect(
+      iso(
+        resolveStoredTrackEventTimes(stored, {
+          ...flight,
+          datePrecision: 'month',
+          departure: '1970-03-01T00:00:00.000Z',
+        }),
+      ),
+    ).toEqual({ takeoff: 'inexact-date', landing: 'inexact-date' });
+  });
+  it('detects nothing when either side is over 24 hours from the flight', () => {
+    const result = resolveStoredTrackEventTimes(stored, {
+      ...flight,
+      arrival: '1970-01-03T09:05:00.000Z',
+    });
+    expect(iso(result)).toEqual({ takeoff: 'mismatch', landing: 'mismatch' });
+    expect(result.mismatches).toEqual([
+      { side: 'arrival', reference: 'the entered time' },
+    ]);
+  });
+  it('detects a side without flight times to compare against', () => {
+    expect(
+      iso(
+        resolveStoredTrackEventTimes(stored, {
+          ...flight,
+          departureScheduled: null,
+          arrival: null,
+        }),
+      ),
+    ).toEqual({
+      takeoff: '1970-01-01T07:00:00.000Z',
+      landing: '1970-01-01T08:59:00.000Z',
+    });
+  });
+  it('skips a side without an airport', () => {
+    expect(
+      iso(resolveStoredTrackEventTimes(stored, { ...flight, to: null })),
+    ).toEqual({ takeoff: '1970-01-01T07:00:00.000Z', landing: 'no-airport' });
+  });
+  it('says when the track starts or ends in the air', () => {
+    expect(
+      iso(
+        resolveStoredTrackEventTimes(
+          track([10, 10, 0], [25170, 25230, 25260]),
+          flight,
+        ),
+      ),
+    ).toEqual({ takeoff: 'in-air', landing: '1970-01-01T07:01:00.000Z' });
+    expect(
+      iso(resolveStoredTrackEventTimes(track([0, 10], [25170, 25230]), flight))
+        .landing,
+    ).toBe('in-air');
+  });
+  it('tells a missing transition apart from a track without timestamps', () => {
+    expect(
+      iso(resolveStoredTrackEventTimes(track([0, 10], [25170, 25300]), flight))
+        .takeoff,
+    ).toBe('not-detected');
+    expect(
+      iso(
+        resolveStoredTrackEventTimes(
+          {
+            coordinates: [
+              [0, 0, 0],
+              [0, 0, 10],
+            ],
+          },
+          flight,
+        ),
+      ),
+    ).toEqual({ takeoff: 'no-times', landing: 'no-times' });
   });
 });

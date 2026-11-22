@@ -11,6 +11,7 @@ import {
   getFlight as loadFlight,
   listFlightsInScope,
   saveFlightAggregate,
+  withTrackEventTimes,
 } from '$lib/server/utils/flight';
 import { computeCompletedFlightStatsSummary } from '$lib/stats/summary';
 import {
@@ -149,7 +150,7 @@ const saveFlight = async (
 ) =>
   saveFlightAggregate(apiFlightWriter(principal), {
     id,
-    values: await resolveReferences(db, input),
+    values: withTrackEventTimes(await resolveReferences(db, input)),
     customFields: input.customFields,
   });
 
