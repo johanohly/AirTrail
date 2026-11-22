@@ -14,8 +14,16 @@
   } from '$lib/utils/preferences';
   import type { FlightFormData } from '$lib/zod/flight';
 
-  let { form }: { form: SuperForm<FlightFormData> } = $props();
+  let {
+    form,
+    autofocus = false,
+  }: { form: SuperForm<FlightFormData>; autofocus?: boolean } = $props();
   const { form: formData } = form;
+
+  let input = $state<HTMLInputElement | null>(null);
+  $effect(() => {
+    if (autofocus) input?.focus();
+  });
 
   const prefs = $derived(getPreferences(page.data.user));
 
@@ -66,6 +74,7 @@
           min="0"
           step="any"
           {placeholder}
+          bind:ref={input}
           bind:value={getValue, setValue}
           class="pr-10"
           {...props}

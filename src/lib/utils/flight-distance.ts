@@ -41,6 +41,15 @@ export const greatCircleDistance = (
     ? distanceBetween([from.lon, from.lat], [to.lon, to.lat]) / 1000
     : null;
 
+/** Whether a flight lands where it took off, like a sightseeing or training flight. */
+export const isSameAirportRoute = (
+  from: DistanceAirport | null,
+  to: DistanceAirport | null,
+) => {
+  const km = greatCircleDistance(from, to);
+  return km !== null && km < SAME_AIRPORT_KM;
+};
+
 export const isPlausibleTrackDistance = (
   trackKm: number,
   greatCircleKm: number,
