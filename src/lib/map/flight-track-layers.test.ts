@@ -4,8 +4,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildFlightTrackPaths,
-  findFullyTrackedRouteKeys,
-  getRouteKey,
   type FlightArc,
   type FlightTrackPath,
 } from './flight-layer-data';
