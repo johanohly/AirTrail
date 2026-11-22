@@ -132,7 +132,7 @@ const refineToBudget = (
   // Required observations take precedence over the nominal point budget.
   if (selected.size >= maxPoints) return selected;
 
-  // The heap stores one split candidate per current span.
+  // The heap stores one split candidate per span that still exceeds H30/V15.
   const heap: Split[] = [];
   const enqueue = (start: number, end: number) => {
     const candidate = findWorstPoint(start, end);
@@ -214,7 +214,7 @@ export const reduceFlightTrackForMap = (
   const findWorstPoint = (
     start: number,
     end: number,
-    useBudget: boolean,
+    preferBalancedSplits: boolean,
   ): Candidate | undefined => {
     if (end - start < 2) return undefined;
     const midpoint = (start + end) / 2;
@@ -227,7 +227,7 @@ export const reduceFlightTrackForMap = (
     const endAltitude = altitudes[end];
 
     let worstIndex: number | undefined;
-    let worstScore = useBudget ? -Infinity : 1;
+    let worstScore = 1;
     for (let index = start + 1; index < end; index++) {
       const point = vectors[index]!;
       const projection =
@@ -254,7 +254,7 @@ export const reduceFlightTrackForMap = (
       // straight tracks where every point can have the same error.
       if (
         score > worstScore ||
-        (useBudget &&
+        (preferBalancedSplits &&
           score === worstScore &&
           worstIndex !== undefined &&
           Math.abs(index - midpoint) < Math.abs(worstIndex - midpoint))
@@ -276,7 +276,7 @@ export const reduceFlightTrackForMap = (
 
   if (selected.size > maxPoints) {
     // Start over from the original observations. Ground interiors now compete
-    // for the same budget as airborne points, even below the normal tolerance.
+    // for the same budget as airborne points.
     selected = refineToBudget(
       collectMandatoryIndices(renderSamples, false),
       maxPoints,
