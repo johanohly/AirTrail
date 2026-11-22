@@ -79,11 +79,13 @@ Requirements:
 - Square aspect ratio preferred
 - Named exactly as the airline's `id` field
 
+SVG icons you add or change are optimized with [SVGO](https://github.com/svg/svgo) when you run `bun run data:format`, and the PR check fails if they aren't. SVGs that embed a raster `<image>` are skipped.
+
 ### Formatting
 
-JSON files must be sorted alphabetically by `id`.
+JSON files must be sorted alphabetically by `id`, and SVG icons added or changed on your branch must be optimized.
 
 ```bash
-bun run data:format     # Format files
-bun run data:check      # Check formatting
+bun run data:format     # Format files and optimize changed icons
+bun run data:check      # Check formatting and icon optimization
 ```
