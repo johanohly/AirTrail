@@ -89,8 +89,8 @@ export function useRouteDetails(
       f.routes.length === 1 &&
       f.routes[0]?.a === selectedRoute.a &&
       f.routes[0]?.b === selectedRoute.b &&
-      f.departureAirports.length === 0 &&
-      f.arrivalAirports.length === 0 &&
+      !f.options.departureAirports &&
+      !f.options.arrivalAirports &&
       f.airportsEither.length === 0
     );
   });
@@ -104,8 +104,8 @@ export function useRouteDetails(
       return;
     }
 
-    f.departureAirports = [];
-    f.arrivalAirports = [];
+    delete f.options.departureAirports;
+    delete f.options.arrivalAirports;
     f.airportsEither = [];
     f.routes = [normalizeRoute(selectedRoute.a, selectedRoute.b)];
   };

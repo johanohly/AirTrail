@@ -14,7 +14,12 @@
   import * as Select from '$lib/components/ui/select';
   import { Separator } from '$lib/components/ui/separator';
   import { TextTooltip } from '$lib/components/ui/tooltip/index.js';
-  import { FlightReasons, SeatClasses, SeatTypes } from '$lib/db/types';
+  import {
+    FlightReasons,
+    SeatClasses,
+    SeatTypeLabels,
+    SeatTypes,
+  } from '$lib/db/types';
   import { cn, toTitleCase } from '$lib/utils';
   import type { CustomFieldDefinition } from '$lib/utils/custom-fields';
   import type { flightSchema } from '$lib/zod/flight';
@@ -46,16 +51,6 @@
     }
     return valid;
   }
-
-  const seatTypeLabels: Record<string, string> = {
-    window: 'Window',
-    middle: 'Middle',
-    aisle: 'Aisle',
-    pilot: 'Pilot',
-    copilot: 'Co-pilot',
-    jumpseat: 'Jumpseat',
-    other: 'Other',
-  };
 
   const getExcludedUserIds = (currentIndex: number): string[] => {
     return $formData.passengers
@@ -249,7 +244,7 @@
                               }
                             }}
                           >
-                            {seatTypeLabels[type] ?? toTitleCase(type)}
+                            {SeatTypeLabels[type]}
                           </button>
                         {/each}
                       </div>

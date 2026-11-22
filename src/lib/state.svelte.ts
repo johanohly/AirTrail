@@ -185,6 +185,14 @@ export const setFlightScope = (scope: FlightScope) => {
   flightScopeState.current = scope;
 };
 
+/* The user whose seats the shown flights are about, or none for all users. */
+export const scopeSeatUserId = (currentUserId: string | undefined) => {
+  const scope = flightScopeState.current;
+  if (scope.scope === 'all') return undefined;
+  if (scope.scope === 'user') return scope.userId;
+  return currentUserId;
+};
+
 export const versionState = $state<{
   currentVersion: string;
   latestVersion: string | null;

@@ -7,13 +7,10 @@
   import { hasClientPermission } from '$lib/authorization/permissions';
   import {
     createDefaultFilters,
-    matchesFlight,
-    matchesLocationFilters,
-    matchesNonLocationFilters,
+    flightMatcher,
   } from '$lib/components/flight-filters/model';
   import {
     createDefaultTempFilters,
-    hasTempFilters as hasActiveTempFilters,
     type FlightFilters,
     type TempFilters,
   } from '$lib/components/flight-filters/types';
@@ -32,6 +29,7 @@
     openAirportDetails,
     openFlightDetails,
     openModalsState,
+    scopeSeatUserId,
     setFlightScope,
   } from '$lib/state.svelte';
   import { trpc } from '$lib/trpc';
@@ -113,13 +111,7 @@
   let filters: FlightFilters = $state(createDefaultFilters());
   let tempFilters: TempFilters = $state(createDefaultTempFilters());
 
-  const effectiveSeatUserId = $derived.by(() => {
-    if (flightScopeState.current.scope === 'all') return undefined;
-    if (flightScopeState.current.scope === 'user') {
-      return flightScopeState.current.userId;
-    }
-    return user?.id;
-  });
+  const effectiveSeatUserId = $derived(scopeSeatUserId(user?.id));
 
   const showPassengerDetails = $derived(
     flightScopeState.current.scope !== 'mine',
@@ -134,21 +126,15 @@
     }
   });
 
-  const filteredFlights = $derived.by(() => {
-    return flights.filter((flight) => matchesFlight(flight, filters));
-  });
+  const filteredFlights = $derived(
+    flights.filter(flightMatcher(filters, { seatUserId: effectiveSeatUserId })),
+  );
 
-  const filteredDrilldownFlights = $derived.by(() => {
-    const locationFilters = hasActiveTempFilters(tempFilters)
-      ? tempFilters
-      : filters;
-
-    return flights.filter(
-      (flight) =>
-        matchesLocationFilters(flight, locationFilters) &&
-        matchesNonLocationFilters(flight, filters),
-    );
-  });
+  const filteredDrilldownFlights = $derived(
+    flights.filter(
+      flightMatcher(filters, { seatUserId: effectiveSeatUserId, tempFilters }),
+    ),
+  );
 
   const focusedListResult = $derived.by(() =>
     includeFocusedFlightInList(

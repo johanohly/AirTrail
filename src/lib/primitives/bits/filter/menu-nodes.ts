@@ -21,6 +21,8 @@ import type {
 	ColumnOptionExtended,
 	DataTableFilterActions,
 	DurationUnit,
+	FilterIcon,
+	FilterMenuGroup,
 	FilterModel,
 	FilterStrategy,
 	Locale,
@@ -63,7 +65,8 @@ export type FilterMenuNodeMeta =
 	| { kind: "text"; data: TextFilterItemData }
 	| { kind: "number"; data: NumberFilterItemData }
 	| { kind: "operator"; label: string; shortcut?: string }
-	| { kind: "boolean"; column: Column<unknown, "boolean"> };
+	| { kind: "boolean"; column: Column<unknown, "boolean"> }
+	| { kind: "custom"; icon?: FilterIcon; search?: boolean };
 
 export type FilterNodeDef = NodeDef<FilterMenuNodeMeta>;
 export type FilterItemDef = ItemDef<FilterMenuNodeMeta>;
@@ -194,13 +197,14 @@ function createSelectableMenuInternal({
 			icon: option.icon,
 			count: counts?.get(option.value) ?? option.count ?? 0,
 			keywords: option.keywords,
+			description: option.description,
 		};
 
 		return {
 			kind: "checkbox-item" as const,
-			id: option.value,
+			id: `${column.id}-option-${option.value}`,
 			label: option.label,
-			keywords: [option.value, option.label, ...(option.keywords ?? [])],
+			keywords: option.keywords,
 			checked: selected,
 			onCheckedChange: (checked: boolean) => {
 				if (checked) {
@@ -426,4 +430,39 @@ export function createColumnNodes<TData>({
 				meta: { kind: "column", column: column as Column<unknown> },
 			};
 		});
+}
+
+export function createGroupedColumnNodes<TData>({
+	groups,
+	...opts
+}: Parameters<typeof createColumnNodes<TData>>[0] & {
+	groups: FilterMenuGroup[];
+}): FilterNodeDef[] {
+	const columnNodes = createColumnNodes(opts);
+	const groupOf = (node: FilterNodeDef) =>
+		node.meta?.kind === "column" || node.meta?.kind === "boolean"
+			? node.meta.column.group
+			: undefined;
+	const knownGroups = new Set(groups.map((group) => group.id));
+	const result: FilterNodeDef[] = [];
+
+	for (const group of groups) {
+		const nodes = [
+			...(group.nodes ?? []),
+			...columnNodes.filter((node) => groupOf(node) === group.id),
+		];
+		if (!nodes.length) continue;
+		if (result.length) result.push({ kind: "separator", id: `${group.id}-separator` });
+		result.push({ kind: "group", id: group.id, label: group.label, nodes });
+	}
+
+	const ungrouped = columnNodes.filter((node) => {
+		const group = groupOf(node);
+		return !group || !knownGroups.has(group);
+	});
+	if (ungrouped.length && result.length) {
+		result.push({ kind: "separator", id: "ungrouped-separator" });
+	}
+	result.push(...ungrouped);
+	return result;
 }

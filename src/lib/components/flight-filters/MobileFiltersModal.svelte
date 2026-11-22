@@ -1,48 +1,38 @@
 <script lang="ts">
-  import {
-    Calendar as CalendarIcon,
-    Check,
-    ChevronRight,
-    Hash,
-    Plane,
-    PlaneLanding,
-    PlaneTakeoff,
-    Search,
-    UsersRound,
-    X,
-    Plus,
-  } from '@o7/icon';
-  import { Airlines } from '@o7/icon/material';
-  import type { Component } from 'svelte';
+  import { Check, ChevronRight, Search, X, Plus } from '@o7/icon';
 
-  import MobileDateFilterScreen from './MobileDateFilterScreen.svelte';
-  import { page } from '$app/state';
-  import UserAvatar from '$lib/components/display/UserAvatar.svelte';
   import {
-    clearFilterColumn,
+    FILTER_DEFINITIONS,
+    FILTER_GROUPS,
+    filterDefinition,
+    type FilterDefinition,
+    type FilterId,
+    type FilterOption,
+    type FilterScope,
+    type OptionFilterId,
+  } from './definitions';
+  import MobileDateFilterScreen from './MobileDateFilterScreen.svelte';
+  import {
+    clearFilter,
     createDefaultFilters,
     dateFilterSummary,
-    isFilterColumnActive,
-    matchesLocationFilters,
-    optionColumnOperator,
-    optionColumnValues,
-    pluralMultiOptionOperators,
-    pluralOptionOperators,
-    setOptionColumnOperator,
-    setOptionColumnValues,
-    singularMultiOptionOperators,
-    singularOptionOperators,
-    type FilterColumnId,
-    type NonPassengerOptionColumnId,
-    type OptionColumnId,
-  } from '$lib/components/flight-filters/model';
+    filterOptions,
+    filterScope,
+    isFilterActive,
+    operatorChoices,
+    optionFilterState,
+    setOptionFilter,
+  } from './model';
   import {
     hasTempFilters as hasActiveTempFilters,
     type FlightFilters,
     type MultiOptionFilterOperator,
     type OptionFilterOperator,
     type TempFilters,
-  } from '$lib/components/flight-filters/types';
+  } from './types';
+
+  import { page } from '$app/state';
+  import UserAvatar from '$lib/components/display/UserAvatar.svelte';
   import AnimatedSizeContainer from '$lib/components/ui/animated-size-container.svelte';
   import { Button } from '$lib/components/ui/button';
   import {
@@ -51,39 +41,16 @@
     ModalFooter,
     ModalHeader,
   } from '$lib/components/ui/modal';
-  import {
-    cn,
-    getFlightPassengerLabel,
-    getFlightPassengerToken,
-    type FlightData,
-  } from '$lib/utils';
+  import { scopeSeatUserId } from '$lib/state.svelte';
+  import { matchesWordPrefix } from '$lib/primitives';
+  import { cn, type FlightData } from '$lib/utils';
   import { getPreferences } from '$lib/utils/preferences';
 
   type Screen =
     | { kind: 'home' }
     | { kind: 'subjects' }
-    | { kind: 'filter'; columnId: OptionColumnId }
+    | { kind: 'filter'; id: OptionFilterId }
     | { kind: 'date' };
-
-  type FilterColumn = {
-    id: FilterColumnId;
-    label: string;
-    icon: Component<{ size?: number; class?: string; 'aria-hidden'?: boolean }>;
-    type: 'option' | 'multiOption' | 'date';
-    hidden?: boolean;
-  };
-
-  type FilterOption = {
-    value: string;
-    label: string;
-    shortLabel?: string;
-    count?: number;
-    keywords?: string[];
-    kind?: 'airport' | 'airline' | 'passenger';
-    country?: string | null;
-    iconPath?: string | null;
-    username?: string;
-  };
 
   let {
     open = $bindable(),
@@ -105,370 +72,194 @@
   let search = $state('');
   let wasOpen = $state(open);
 
-  const tempLocationFiltersActive = $derived(
+  const drilldownActive = $derived(
     hasTempFilters || hasActiveTempFilters(tempFilters),
   );
+  const seatUserId = $derived(scopeSeatUserId(page.data.user?.id));
+  // The filters only shape the options through the seat scope, so a string
+  // key keeps other filter changes from rebuilding every option list.
+  const scopeKey = $derived(JSON.stringify(filterScope(filters, seatUserId)));
+  const options = $derived(
+    filterOptions(flights ?? [], {
+      scope: JSON.parse(scopeKey) as FilterScope,
+      tempFilters,
+    }),
+  );
 
-  const scopedFlights = $derived.by(() => {
-    if (!tempLocationFiltersActive || !tempFilters) return flights ?? [];
-    return (flights ?? []).filter((flight) =>
-      matchesLocationFilters(flight, tempFilters),
-    );
-  });
+  const visibleDefinitions = $derived(
+    FILTER_DEFINITIONS.filter(
+      (definition) => !(drilldownActive && 'replacedByDrilldown' in definition),
+    ),
+  );
 
-  const columns = $derived<FilterColumn[]>([
-    {
-      id: 'departureAirports',
-      label: 'Departure Airport',
-      icon: PlaneTakeoff,
-      type: 'option',
-      hidden: tempLocationFiltersActive,
-    },
-    {
-      id: 'arrivalAirports',
-      label: 'Arrival Airport',
-      icon: PlaneLanding,
-      type: 'option',
-      hidden: tempLocationFiltersActive,
-    },
-    { id: 'date', label: 'Date', icon: CalendarIcon, type: 'date' },
-    {
-      id: 'passengers',
-      label: 'Passenger',
-      icon: UsersRound,
-      type: 'multiOption',
-    },
-    { id: 'airline', label: 'Airline', icon: Airlines, type: 'option' },
-    { id: 'aircraft', label: 'Aircraft', icon: Plane, type: 'option' },
-    { id: 'aircraftRegs', label: 'Tail Number', icon: Hash, type: 'option' },
-  ]);
+  // An operator picked before any value, applied with the first value.
+  let pendingOperator = $state<
+    OptionFilterOperator | MultiOptionFilterOperator | undefined
+  >();
 
-  const visibleColumns = $derived(columns.filter((column) => !column.hidden));
-
-  function resetNavigation() {
-    screen = { kind: 'home' };
-    search = '';
-  }
-
-  function go(next: Screen) {
+  function go(next: Screen, keepSearch = false) {
     screen = next;
-    search = '';
+    pendingOperator = undefined;
+    if (!keepSearch) search = '';
   }
 
-  function back() {
-    if (screen.kind === 'home') return;
-    if (screen.kind === 'subjects') {
-      go({ kind: 'home' });
-      return;
-    }
-    go({ kind: 'home' });
+  function openFilter(id: FilterId, keepSearch = false) {
+    go(id === 'date' ? { kind: 'date' } : { kind: 'filter', id }, keepSearch);
   }
 
-  function columnById(columnId: FilterColumnId) {
-    return columns.find((column) => column.id === columnId);
-  }
-
-  function uniqueAirportOptions(
-    selector: (flight: FlightData) => FlightData['from'],
-  ) {
-    const options = new Map<string, FilterOption>();
-    for (const flight of scopedFlights) {
-      const airport = selector(flight);
-      if (!airport) continue;
-      const value = airport.id.toString();
-      const existing = options.get(value);
-      if (existing) {
-        existing.count = (existing.count ?? 0) + 1;
-      } else {
-        options.set(value, {
-          value,
-          label: `${airport.iata ?? airport.icao} | ${airport.name}`,
-          shortLabel: airport.iata ?? airport.icao,
-          keywords: [airport.iata, airport.icao].filter(
-            (code): code is string => !!code,
-          ),
-          count: 1,
-          kind: 'airport',
-          country: airport.country,
-        });
-      }
-    }
-    return sortOptions(Array.from(options.values()));
-  }
-
-  function countedOptions(
-    values: Array<FilterOption | undefined | null>,
-    key = (option: FilterOption) => option.value,
-  ) {
-    const options = new Map<string, FilterOption>();
-    for (const option of values) {
-      if (!option) continue;
-      const id = key(option);
-      const existing = options.get(id);
-      if (existing) {
-        existing.count = (existing.count ?? 0) + 1;
-      } else {
-        options.set(id, { ...option, count: option.count ?? 1 });
-      }
-    }
-    return sortOptions(Array.from(options.values()));
-  }
-
-  function sortOptions(options: FilterOption[]) {
-    return options.sort(
-      (a, b) =>
-        (b.count ?? 0) - (a.count ?? 0) || a.label.localeCompare(b.label),
+  // The same matching as the desktop menu search.
+  function matchesQuery(option: FilterOption, query: string) {
+    return [option.label, option.shortLabel, ...(option.keywords ?? [])].some(
+      (text) => !!text && matchesWordPrefix(text, query),
     );
   }
 
-  const optionsByColumn = $derived.by(() => {
-    const passengers = new Map<string, FilterOption>();
+  /*
+   * Filters whose name matches the search, then those with a matching option,
+   * which show the options that matched.
+   */
+  type SubjectEntry = { definition: FilterDefinition; matched?: string[] };
 
-    for (const flight of scopedFlights) {
-      for (const passenger of flight.passengers) {
-        const value = getFlightPassengerToken(passenger);
-        const label = getFlightPassengerLabel(passenger);
-        if (!value || !label) continue;
-        const existing = passengers.get(value);
-        if (existing) {
-          existing.count = (existing.count ?? 0) + 1;
-        } else {
-          passengers.set(value, {
-            value,
-            label,
-            count: 1,
-            kind: 'passenger',
-            username:
-              passenger.user?.username ??
-              `guest:${passenger.guestName ?? label}`,
-          });
-        }
+  const subjectGroups = $derived.by(() => {
+    const query = search.trim();
+    return FILTER_GROUPS.map((group) => {
+      const inGroup = visibleDefinitions.filter(
+        (definition) => definition.group === group.id,
+      );
+      if (!query) {
+        return {
+          ...group,
+          entries: inGroup.map((definition): SubjectEntry => ({ definition })),
+        };
       }
-    }
-
-    return {
-      departureAirports: uniqueAirportOptions((flight) => flight.from),
-      arrivalAirports: uniqueAirportOptions((flight) => flight.to),
-      passengers: sortOptions(Array.from(passengers.values())),
-      airline: countedOptions(
-        scopedFlights.map((flight) =>
-          flight.airline
-            ? {
-                value: flight.airline.name,
-                label: flight.airline.name,
-                keywords: [flight.airline.iata, flight.airline.icao].filter(
-                  (code): code is string => !!code,
-                ),
-                kind: 'airline',
-                iconPath: flight.airline.iconPath,
-              }
-            : null,
-        ),
-      ),
-      aircraft: countedOptions(
-        scopedFlights.map((flight) =>
-          flight.aircraft
-            ? {
-                value: flight.aircraft.name,
-                label: flight.aircraft.name,
-                keywords: [flight.aircraft.icao].filter(
-                  (code): code is string => !!code,
-                ),
-              }
-            : null,
-        ),
-      ),
-      aircraftRegs: countedOptions(
-        scopedFlights.map((flight) =>
-          flight.aircraftReg
-            ? { value: flight.aircraftReg, label: flight.aircraftReg }
-            : null,
-        ),
-      ),
-    } satisfies Record<OptionColumnId, FilterOption[]>;
+      const byName = inGroup.filter((definition) =>
+        matchesWordPrefix(definition.label, query),
+      );
+      const byOption = inGroup.flatMap((definition): SubjectEntry[] => {
+        if (definition.kind !== 'option' || byName.includes(definition)) {
+          return [];
+        }
+        const matched = options[definition.id].filter((option) =>
+          matchesQuery(option, query),
+        );
+        return matched.length
+          ? [{ definition, matched: matched.map(({ label }) => label) }]
+          : [];
+      });
+      return {
+        ...group,
+        entries: [
+          ...byName.map((definition): SubjectEntry => ({ definition })),
+          ...byOption,
+        ],
+      };
+    }).filter((group) => group.entries.length);
   });
 
-  function valuesFor(columnId: OptionColumnId) {
-    return optionColumnValues(filters, columnId);
-  }
-
-  function operatorFor(columnId: OptionColumnId) {
-    if (columnId === 'passengers') {
-      return optionColumnOperator(filters, columnId);
-    }
-    return optionColumnOperator(filters, columnId);
-  }
-
-  function setOperator(
-    columnId: OptionColumnId,
-    operator: OptionFilterOperator | MultiOptionFilterOperator,
-  ) {
-    if (columnId === 'passengers') {
-      filters = setOptionColumnOperator(
-        filters,
-        columnId,
-        operator as MultiOptionFilterOperator,
-      );
-      return;
-    }
-
-    filters = setOptionColumnOperator(
-      filters,
-      columnId as NonPassengerOptionColumnId,
-      operator as OptionFilterOperator,
-    );
-  }
-
-  function setValues(columnId: OptionColumnId, values: string[]) {
-    filters = setOptionColumnValues(filters, columnId, values);
-  }
-
-  function toggleValue(columnId: OptionColumnId, value: string) {
-    const currentValues = valuesFor(columnId);
-    const nextValues = currentValues.includes(value)
-      ? currentValues.filter((item) => item !== value)
-      : [...currentValues, value];
-    setValues(columnId, nextValues);
-  }
-
-  function clearColumn(columnId: FilterColumnId) {
-    filters = clearFilterColumn(filters, columnId);
-  }
-
-  function isColumnActive(columnId: FilterColumnId) {
-    return isFilterColumnActive(filters, columnId);
-  }
-
-  const activeColumns = $derived(
-    visibleColumns.filter((column) => isColumnActive(column.id)),
+  const activeDefinitions = $derived(
+    visibleDefinitions.filter((definition) =>
+      isFilterActive(filters, definition.id),
+    ),
   );
 
   $effect(() => {
     if (open && !wasOpen) {
       screen =
-        activeColumns.length === 0 && !tempLocationFiltersActive
+        activeDefinitions.length === 0 && !drilldownActive
           ? { kind: 'subjects' }
           : { kind: 'home' };
       search = '';
     } else if (!open && wasOpen) {
-      resetNavigation();
+      go({ kind: 'home' });
     }
 
     wasOpen = open;
   });
 
-  function dateSummary() {
-    return dateFilterSummary(filters, prefs);
-  }
-
-  function selectedOptions(columnId: OptionColumnId) {
-    const optionMap = new Map(
-      optionsByColumn[columnId].map((option) => [option.value, option]),
+  function selectedOptions(id: OptionFilterId) {
+    const byValue = new Map(
+      options[id].map((option) => [option.value, option]),
     );
-    return valuesFor(columnId).map(
-      (value) =>
-        optionMap.get(value)?.shortLabel ??
-        optionMap.get(value)?.label ??
-        value,
+    return optionFilterState(filters, id).values.map(
+      (value) => byValue.get(value) ?? { value, label: value, count: 0 },
     );
   }
 
-  function selectedOptionObjects(columnId: OptionColumnId) {
-    const optionMap = new Map(
-      optionsByColumn[columnId].map((option) => [option.value, option]),
+  function valueSummary(id: FilterId) {
+    if (id === 'date') return dateFilterSummary(filters, prefs);
+    const labels = selectedOptions(id).map(
+      (option) => option.shortLabel ?? option.label,
     );
-    return valuesFor(columnId)
-      .map((value) => optionMap.get(value))
-      .filter((option): option is FilterOption => !!option);
-  }
-
-  function valueSummary(columnId: FilterColumnId) {
-    if (columnId === 'date') return dateSummary();
-    const labels = selectedOptions(columnId);
     if (!labels.length) return 'Choose values';
     if (labels.length <= 2) return labels.join(', ');
     return `${labels.slice(0, 2).join(', ')} +${labels.length - 2}`;
   }
 
-  function filteredOptions(columnId: OptionColumnId) {
-    const query = search.trim().toLowerCase();
-    if (!query) return optionsByColumn[columnId];
-    return optionsByColumn[columnId].filter(
-      (option) =>
-        option.label.toLowerCase().includes(query) ||
-        option.value.toLowerCase().includes(query) ||
-        option.shortLabel?.toLowerCase().includes(query) ||
-        option.keywords?.some((keyword) =>
-          keyword.toLowerCase().includes(query),
-        ),
-    );
+  function filteredOptions(id: OptionFilterId) {
+    const query = search.trim();
+    if (!query) return options[id];
+    return options[id].filter((option) => matchesQuery(option, query));
   }
 
-  function optionCount(columnId: OptionColumnId) {
-    return valuesFor(columnId).length;
+  function toggleValue(id: OptionFilterId, value: string) {
+    const { values } = optionFilterState(filters, id);
+    filters = setOptionFilter(filters, id, {
+      values: values.includes(value)
+        ? values.filter((item) => item !== value)
+        : [...values, value],
+      operator: values.length ? undefined : pendingOperator,
+    });
   }
 
-  function operatorsFor(columnId: OptionColumnId) {
-    const hasMultipleValues = valuesFor(columnId).length > 1;
-    if (columnId === 'passengers') {
-      return hasMultipleValues
-        ? pluralMultiOptionOperators
-        : singularMultiOptionOperators;
+  function setOperator(
+    id: OptionFilterId,
+    operator: OptionFilterOperator | MultiOptionFilterOperator,
+  ) {
+    if (optionFilterState(filters, id).values.length) {
+      filters = setOptionFilter(filters, id, { operator });
+    } else {
+      pendingOperator = operator;
     }
-
-    return hasMultipleValues ? pluralOptionOperators : singularOptionOperators;
-  }
-
-  function hasOptionIcon(option: FilterOption) {
-    return (
-      (option.kind === 'airport' && !!option.country) ||
-      (option.kind === 'airline' && !!option.iconPath) ||
-      option.kind === 'passenger'
-    );
-  }
-
-  function clearAll() {
-    filters = createDefaultFilters();
   }
 
   const title = $derived.by(() => {
     if (screen.kind === 'subjects') return 'Add filter';
-    if (screen.kind === 'filter')
-      return columnById(screen.columnId)?.label ?? 'Filter';
+    if (screen.kind === 'filter') return filterDefinition(screen.id).label;
     if (screen.kind === 'date') return 'Date';
     return 'Filters';
   });
 </script>
 
 {#snippet optionIcon(option: FilterOption, size = 20)}
-  {#if option.kind === 'airport' && option.country}
+  {@const style = `--mobile-filter-icon-size: ${size}px`}
+  {#if option.icon?.kind === 'flag'}
     <img
-      src={`https://flagcdn.com/${option.country.toLowerCase()}.svg`}
+      src={`https://flagcdn.com/${option.icon.country.toLowerCase()}.svg`}
       alt=""
       class="h-[calc(var(--mobile-filter-icon-size)*0.72)] w-[var(--mobile-filter-icon-size)] rounded-[2px] object-cover"
-      style={`--mobile-filter-icon-size: ${size}px`}
+      {style}
     />
-  {:else if option.kind === 'airline' && option.iconPath}
+  {:else if option.icon?.kind === 'logo'}
     <img
-      src={`/api/uploads/${option.iconPath}`}
+      src={option.icon.src}
       alt=""
       class="size-[var(--mobile-filter-icon-size)] object-contain"
-      style={`--mobile-filter-icon-size: ${size}px`}
+      {style}
     />
-  {:else if option.kind === 'passenger'}
+  {:else if option.icon?.kind === 'avatar'}
     <UserAvatar
-      username={option.username}
+      username={option.icon.username}
       {size}
       animated={false}
       class="size-[var(--mobile-filter-icon-size)]"
-      style={`--mobile-filter-icon-size: ${size}px`}
+      {style}
     />
   {/if}
 {/snippet}
 
-{#snippet valueIconStack(columnId: OptionColumnId)}
-  {@const selected = selectedOptionObjects(columnId)
-    .filter(hasOptionIcon)
+{#snippet valueIconStack(id: OptionFilterId)}
+  {@const selected = selectedOptions(id)
+    .filter((option) => option.icon)
     .slice(0, 3)}
   {#if selected.length}
     <span class="flex shrink-0 items-center pl-1">
@@ -488,17 +279,22 @@
   <ModalHeader class="border-b px-4 py-3">
     <div class="flex min-h-9 items-center gap-2">
       {#if screen.kind !== 'home'}
-        <Button variant="ghost" size="icon-sm" aria-label="Back" onclick={back}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Back"
+          onclick={() => go({ kind: 'home' })}
+        >
           <ChevronRight size={18} class="rotate-180" />
         </Button>
       {/if}
       <h2 class="min-w-0 flex-1 truncate text-base font-semibold">{title}</h2>
-      {#if screen.kind === 'home' && activeColumns.length > 0}
+      {#if screen.kind === 'home' && activeDefinitions.length > 0}
         <Button
           variant="ghost"
           size="sm"
           class="px-2 text-muted-foreground"
-          onclick={clearAll}
+          onclick={() => (filters = createDefaultFilters())}
         >
           Clear
         </Button>
@@ -529,57 +325,53 @@
             <ChevronRight size={18} class="text-muted-foreground" />
           </button>
 
-          {#if activeColumns.length}
+          {#if activeDefinitions.length}
             <div class="space-y-2">
-              {#each activeColumns as column (column.id)}
+              {#each activeDefinitions as definition (definition.id)}
                 <div
                   class="group flex w-full items-center gap-2 rounded-xl border bg-background p-2.5 shadow-xs"
                 >
                   <button
                     type="button"
                     class="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left transition-colors active:bg-muted"
-                    onclick={() =>
-                      go(
-                        column.id === 'date'
-                          ? { kind: 'date' }
-                          : { kind: 'filter', columnId: column.id },
-                      )}
+                    onclick={() => openFilter(definition.id)}
                   >
                     <span
                       class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
                     >
-                      <column.icon size={17} aria-hidden />
+                      <definition.icon size={17} aria-hidden />
                     </span>
                     <span class="min-w-0 flex-1">
                       <span class="flex min-w-0 items-center gap-1.5">
                         <span class="truncate text-sm font-semibold">
-                          {column.label}
+                          {definition.label}
                         </span>
-                        {#if column.id !== 'date'}
+                        {#if definition.kind === 'option'}
                           <span
                             class="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
                           >
-                            {operatorFor(column.id)}
+                            {optionFilterState(filters, definition.id).operator}
                           </span>
                         {/if}
                       </span>
                       <span
                         class="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground"
                       >
-                        {#if column.id !== 'date'}
-                          {@render valueIconStack(column.id)}
+                        {#if definition.kind === 'option'}
+                          {@render valueIconStack(definition.id)}
                         {/if}
-                        <span class="truncate">{valueSummary(column.id)}</span>
+                        <span class="truncate">
+                          {valueSummary(definition.id)}
+                        </span>
                       </span>
                     </span>
                   </button>
                   <button
                     type="button"
                     class="flex size-10 shrink-0 items-center justify-center rounded-md text-muted-foreground active:bg-muted"
-                    aria-label={`Remove ${column.label} filter`}
-                    onclick={(event) => {
-                      clearColumn(column.id);
-                    }}
+                    aria-label={`Remove ${definition.label} filter`}
+                    onclick={() =>
+                      (filters = clearFilter(filters, definition.id))}
                   >
                     <X size={16} />
                   </button>
@@ -609,162 +401,163 @@
             </label>
           </div>
           <div class="min-h-0 flex-1 overflow-y-auto p-2">
-            {#each visibleColumns.filter((column) => column.label
-                .toLowerCase()
-                .includes(search.toLowerCase())) as column (column.id)}
-              <button
-                type="button"
-                class="flex min-h-14 w-full items-center gap-3 rounded-lg px-3 text-left active:bg-muted"
-                onclick={() =>
-                  go(
-                    column.id === 'date'
-                      ? { kind: 'date' }
-                      : { kind: 'filter', columnId: column.id },
-                  )}
+            {#each subjectGroups as group (group.id)}
+              <div
+                class="px-3 pt-3 pb-1 text-xs font-medium text-muted-foreground"
               >
-                <span
-                  class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+                {group.label}
+              </div>
+              {#each group.entries as { definition, matched } (definition.id)}
+                {@const active = isFilterActive(filters, definition.id)}
+                <button
+                  type="button"
+                  class="flex min-h-14 w-full items-center gap-3 rounded-lg px-3 text-left active:bg-muted"
+                  onclick={() => openFilter(definition.id, !!matched)}
                 >
-                  <column.icon size={17} aria-hidden />
-                </span>
-                <span class="min-w-0 flex-1">
-                  <span class="block truncate text-sm font-semibold"
-                    >{column.label}</span
+                  <span
+                    class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
                   >
-                  <span class="block truncate text-xs text-muted-foreground">
-                    {isColumnActive(column.id)
-                      ? valueSummary(column.id)
-                      : 'Not applied'}
+                    <definition.icon size={17} aria-hidden />
                   </span>
-                </span>
-                {#if isColumnActive(column.id)}
-                  <Check size={16} class="text-foreground" />
-                {:else}
-                  <ChevronRight size={18} class="text-muted-foreground" />
-                {/if}
-              </button>
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-sm font-semibold">
+                      {definition.label}
+                    </span>
+                    <span class="block truncate text-xs text-muted-foreground">
+                      {#if matched}
+                        {matched.join(', ')}
+                      {:else}
+                        {active ? valueSummary(definition.id) : 'Not applied'}
+                      {/if}
+                    </span>
+                  </span>
+                  {#if active}
+                    <Check size={16} class="text-foreground" />
+                  {:else}
+                    <ChevronRight size={18} class="text-muted-foreground" />
+                  {/if}
+                </button>
+              {/each}
+            {:else}
+              <div class="p-6 text-center text-sm text-muted-foreground">
+                No matching filters.
+              </div>
             {/each}
           </div>
         </div>
       {:else if screen.kind === 'filter'}
-        {@const columnId = screen.columnId}
-        {@const column = columnById(columnId)}
-        {#if column}
-          <div class="flex max-h-[72dvh] flex-col">
-            <div class="space-y-3 border-b p-3">
-              <div class="flex gap-2 overflow-x-auto pb-0.5">
-                {#each operatorsFor(columnId) as operator (operator.value)}
-                  <button
-                    type="button"
-                    class={cn(
-                      'h-8 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors',
-                      operatorFor(columnId) === operator.value
-                        ? 'border-foreground bg-foreground text-background'
-                        : 'bg-background text-muted-foreground active:bg-muted',
-                    )}
-                    onclick={() => setOperator(columnId, operator.value)}
-                  >
-                    {operator.label}
-                  </button>
-                {/each}
-              </div>
-              <label
-                class="flex h-10 items-center gap-2 rounded-md border bg-background px-3 text-sm"
-              >
-                <Search size={16} class="text-muted-foreground" />
-                <input
-                  bind:value={search}
-                  class="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
-                  placeholder={`Search ${column.label.toLowerCase()}`}
-                />
-              </label>
-            </div>
-            <div class="min-h-0 flex-1 overflow-y-auto p-2">
-              {#each filteredOptions(columnId) as option (option.value)}
-                {@const selected = valuesFor(columnId).includes(option.value)}
+        {@const id = screen.id}
+        {@const state = optionFilterState(filters, id)}
+        {@const operator = state.values.length
+          ? state.operator
+          : (pendingOperator ?? state.operator)}
+        <div class="flex max-h-[72dvh] flex-col">
+          <div class="space-y-3 border-b p-3">
+            <div class="flex gap-2 overflow-x-auto pb-0.5">
+              {#each operatorChoices(id, state.values.length) as choice (choice.value)}
                 <button
                   type="button"
-                  class="flex min-h-12 w-full items-center gap-3 rounded-lg px-3 text-left active:bg-muted"
-                  onclick={() => toggleValue(columnId, option.value)}
+                  class={cn(
+                    'h-8 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors',
+                    operator === choice.value
+                      ? 'border-foreground bg-foreground text-background'
+                      : 'bg-background text-muted-foreground active:bg-muted',
+                  )}
+                  onclick={() => setOperator(id, choice.value)}
                 >
-                  <span
-                    class={cn(
-                      'flex size-5 shrink-0 items-center justify-center rounded border',
-                      selected &&
-                        'border-foreground bg-foreground text-background',
-                    )}
-                  >
-                    {#if selected}
-                      <Check size={14} />
-                    {/if}
-                  </span>
-                  {#if hasOptionIcon(option)}
-                    <span
-                      class="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-sm text-muted-foreground"
-                    >
-                      {@render optionIcon(option, 22)}
-                    </span>
-                  {/if}
-                  <span class="min-w-0 flex-1">
-                    <span class="block truncate text-sm font-medium"
-                      >{option.label}</span
-                    >
-                    {#if option.shortLabel}
-                      <span class="block text-xs text-muted-foreground">
-                        {option.shortLabel}
-                      </span>
-                    {/if}
-                  </span>
-                  {#if option.count}
-                    <span
-                      class="shrink-0 text-xs tabular-nums text-muted-foreground"
-                    >
-                      {option.count}
-                    </span>
-                  {/if}
+                  {choice.label}
                 </button>
               {/each}
             </div>
+            <label
+              class="flex h-10 items-center gap-2 rounded-md border bg-background px-3 text-sm"
+            >
+              <Search size={16} class="text-muted-foreground" />
+              <input
+                bind:value={search}
+                class="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
+                placeholder={`Search ${filterDefinition(id).label.toLowerCase()}`}
+              />
+            </label>
           </div>
-        {/if}
+          <div class="min-h-0 flex-1 overflow-y-auto p-2">
+            {#each filteredOptions(id) as option (option.value)}
+              {@const selected = state.values.includes(option.value)}
+              {@const secondary = option.description ?? option.shortLabel}
+              <button
+                type="button"
+                class="flex min-h-12 w-full items-center gap-3 rounded-lg px-3 text-left active:bg-muted"
+                onclick={() => toggleValue(id, option.value)}
+              >
+                <span
+                  class={cn(
+                    'flex size-5 shrink-0 items-center justify-center rounded border',
+                    selected &&
+                      'border-foreground bg-foreground text-background',
+                  )}
+                >
+                  {#if selected}
+                    <Check size={14} />
+                  {/if}
+                </span>
+                {#if option.icon}
+                  <span
+                    class="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-sm text-muted-foreground"
+                  >
+                    {@render optionIcon(option, 22)}
+                  </span>
+                {/if}
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate text-sm font-medium">
+                    {option.label}
+                  </span>
+                  {#if secondary}
+                    <span class="block truncate text-xs text-muted-foreground">
+                      {secondary}
+                    </span>
+                  {/if}
+                </span>
+                <span
+                  class="shrink-0 text-xs tabular-nums text-muted-foreground"
+                >
+                  {option.count}
+                </span>
+              </button>
+            {:else}
+              <div class="p-6 text-center text-sm text-muted-foreground">
+                No matching options.
+              </div>
+            {/each}
+          </div>
+        </div>
       {:else if screen.kind === 'date'}
         <MobileDateFilterScreen bind:filters />
       {/if}
     </AnimatedSizeContainer>
   </ModalBody>
 
-  {#if screen.kind === 'home'}
+  {#if screen.kind !== 'subjects'}
+    {@const selectedCount =
+      screen.kind === 'home'
+        ? activeDefinitions.length
+        : screen.kind === 'filter'
+          ? optionFilterState(filters, screen.id).values.length
+          : 0}
     <ModalFooter class="border-t p-3">
-      <Button class="h-11 w-full" onclick={() => (open = false)}>
-        Done
-        {#if activeColumns.length}
-          <span
-            class="ml-1 rounded bg-primary-foreground/15 px-1.5 py-0.5 text-xs"
-          >
-            {activeColumns.length}
-          </span>
-        {/if}
-      </Button>
-    </ModalFooter>
-  {:else if screen.kind === 'filter'}
-    {@const columnId = screen.columnId}
-    <ModalFooter class="border-t p-3">
-      <Button class="h-11 w-full" onclick={() => go({ kind: 'home' })}>
-        Done
-        {#if optionCount(columnId)}
-          <span
-            class="ml-1 rounded bg-primary-foreground/15 px-1.5 py-0.5 text-xs"
-          >
-            {optionCount(columnId)}
-          </span>
-        {/if}
-      </Button>
-    </ModalFooter>
-  {:else if screen.kind === 'date'}
-    <ModalFooter class="border-t p-3">
-      <Button class="h-11 w-full" onclick={() => go({ kind: 'home' })}
-        >Done</Button
+      <Button
+        class="h-11 w-full"
+        onclick={() =>
+          screen.kind === 'home' ? (open = false) : go({ kind: 'home' })}
       >
+        Done
+        {#if selectedCount}
+          <span
+            class="ml-1 rounded bg-primary-foreground/15 px-1.5 py-0.5 text-xs"
+          >
+            {selectedCount}
+          </span>
+        {/if}
+      </Button>
     </ModalFooter>
   {/if}
 </Modal>

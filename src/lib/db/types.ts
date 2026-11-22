@@ -134,6 +134,15 @@ export const SeatTypes = [
   'jumpseat',
   'other',
 ] as const;
+export const SeatTypeLabels: Record<(typeof SeatTypes)[number], string> = {
+  window: 'Window',
+  aisle: 'Aisle',
+  middle: 'Middle',
+  pilot: 'Pilot',
+  copilot: 'Co-pilot',
+  jumpseat: 'Jumpseat',
+  other: 'Other',
+};
 export const SeatClasses = [
   'economy',
   'economy+',

@@ -33,8 +33,8 @@ export function useAirportDetails(
     return (
       f.airportsEither.length === 1 &&
       f.airportsEither[0] === airport.id.toString() &&
-      f.departureAirports.length === 0 &&
-      f.arrivalAirports.length === 0 &&
+      !f.options.departureAirports &&
+      !f.options.arrivalAirports &&
       f.routes.length === 0
     );
   });
@@ -48,8 +48,8 @@ export function useAirportDetails(
       return;
     }
 
-    f.departureAirports = [];
-    f.arrivalAirports = [];
+    delete f.options.departureAirports;
+    delete f.options.arrivalAirports;
     f.routes = [];
     f.airportsEither = [airport.id.toString()];
   };

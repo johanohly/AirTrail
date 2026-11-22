@@ -42,6 +42,7 @@ export function resolveDeepSearchConfig(
 			groupSearchBehavior: "preserve",
 			radioGroupSearchBehavior: "preserve",
 			sortGroups: true,
+			match: "fuzzy",
 		};
 	}
 
@@ -51,6 +52,7 @@ export function resolveDeepSearchConfig(
 		groupSearchBehavior: deepSearch.groupSearchBehavior ?? "preserve",
 		radioGroupSearchBehavior: deepSearch.radioGroupSearchBehavior ?? "preserve",
 		sortGroups: deepSearch.sortGroups ?? true,
+		match: deepSearch.match ?? "fuzzy",
 	};
 }
 
@@ -287,6 +289,7 @@ export class DataMenuSurfaceState<TMeta = any> {
 			groupSearchBehavior: config.groupSearchBehavior as GroupBehavior,
 			radioGroupSearchBehavior: config.radioGroupSearchBehavior as RadioGroupBehavior,
 			sortGroups: config.sortGroups,
+			match: config.match,
 		});
 	}
 

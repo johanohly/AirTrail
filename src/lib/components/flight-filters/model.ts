@@ -2,56 +2,44 @@ import { CalendarDate } from '@internationalized/date';
 import { isAfter, isBefore } from 'date-fns';
 
 import {
+  buildFilterOptions,
+  flightValues,
+  OPTION_FILTERS,
+  optionFilterDefinition,
+  type FilterId,
+  type FilterOption,
+  type FilterScope,
+  type OptionFilterId,
+} from './definitions';
+import {
+  hasTempFilters,
   routeMatchesEndpoints,
   type FlightFilters,
-  type LocationFilters,
   type MultiOptionFilterOperator,
   type OptionFilterOperator,
-  type Route,
+  type OptionFilterState,
+  type TempFilters,
 } from './types';
 
 import type { FilterModel, FiltersState } from '$lib/primitives';
-import { getFlightPassengerToken, type FlightData } from '$lib/utils';
+import type { FlightData } from '$lib/utils';
 import { parseLocalISO } from '$lib/utils/datetime';
 import { formatDate } from '$lib/utils/preferences';
 import type { Preferences } from '$lib/zod/user';
-
-export type FilterColumnId =
-  | 'departureAirports'
-  | 'arrivalAirports'
-  | 'date'
-  | 'passengers'
-  | 'airline'
-  | 'aircraft'
-  | 'aircraftRegs';
-
-export type OptionColumnId = Exclude<FilterColumnId, 'date'>;
-export type NonPassengerOptionColumnId = Exclude<OptionColumnId, 'passengers'>;
 
 export type OperatorChoice<TOperator extends string> = {
   value: TOperator;
   label: string;
 };
 
-export const optionOperators: ReadonlyArray<
-  OperatorChoice<OptionFilterOperator>
-> = [
+const optionOperators: ReadonlyArray<OperatorChoice<OptionFilterOperator>> = [
   { value: 'is', label: 'Is' },
   { value: 'is not', label: 'Is not' },
   { value: 'is any of', label: 'Is any of' },
   { value: 'is none of', label: 'Is none of' },
 ];
 
-export const singularOptionOperators = optionOperators.filter(
-  (operator) => operator.value === 'is' || operator.value === 'is not',
-);
-
-export const pluralOptionOperators = optionOperators.filter(
-  (operator) =>
-    operator.value === 'is any of' || operator.value === 'is none of',
-);
-
-export const multiOptionOperators: ReadonlyArray<
+const multiOptionOperators: ReadonlyArray<
   OperatorChoice<MultiOptionFilterOperator>
 > = [
   { value: 'include', label: 'Include' },
@@ -64,309 +52,163 @@ export const multiOptionOperators: ReadonlyArray<
   { value: 'exclude exactly', label: 'Exclude exactly' },
 ];
 
-export const singularMultiOptionOperators = multiOptionOperators.filter(
-  (operator) =>
-    operator.value === 'include' ||
-    operator.value === 'exclude' ||
-    operator.value === 'include exactly' ||
-    operator.value === 'exclude exactly',
-);
+const SINGULAR_OPERATORS = new Set<string>([
+  'is',
+  'is not',
+  'include',
+  'exclude',
+  'include exactly',
+  'exclude exactly',
+]);
 
-export const pluralMultiOptionOperators = multiOptionOperators.filter(
-  (operator) => operator.value !== 'include' && operator.value !== 'exclude',
-);
+const PLURAL_OPERATORS = new Set<string>([
+  'is any of',
+  'is none of',
+  'include any of',
+  'include all of',
+  'include exactly',
+  'exclude if any of',
+  'exclude if all',
+  'exclude exactly',
+]);
 
-export function createDefaultFilters(): FlightFilters {
-  return {
-    departureAirports: [],
-    departureAirportsOperator: 'is any of',
-    arrivalAirports: [],
-    arrivalAirportsOperator: 'is any of',
-    airportsEither: [],
-    routes: [],
-    years: [],
-    yearsOperator: 'is any of',
-    fromDate: undefined,
-    toDate: undefined,
-    passengers: [],
-    passengersOperator: 'include any of',
-    airline: [],
-    airlineOperator: 'is any of',
-    aircraft: [],
-    aircraftOperator: 'is any of',
-    aircraftRegs: [],
-    aircraftRegsOperator: 'is any of',
-  };
+/* The operators that fit a filter with this many values selected. */
+export const operatorChoices = (
+  id: OptionFilterId,
+  valueCount: number,
+): ReadonlyArray<
+  OperatorChoice<OptionFilterOperator | MultiOptionFilterOperator>
+> => {
+  const choices = optionFilterDefinition(id).multi
+    ? multiOptionOperators
+    : optionOperators;
+  const fitting = valueCount > 1 ? PLURAL_OPERATORS : SINGULAR_OPERATORS;
+  return choices.filter((choice) => fitting.has(choice.value));
+};
+
+const defaultOperator = (id: OptionFilterId) =>
+  optionFilterDefinition(id).multi ? 'include any of' : 'is any of';
+
+/* Keeps an operator's meaning when the number of selected values changes. */
+export function normalizeOperator(
+  operator: OptionFilterOperator | MultiOptionFilterOperator,
+  valueCount: number,
+): OptionFilterOperator | MultiOptionFilterOperator {
+  if (valueCount > 1) {
+    if (operator === 'is') return 'is any of';
+    if (operator === 'is not') return 'is none of';
+    if (operator === 'include') return 'include any of';
+    if (operator === 'exclude') return 'exclude if any of';
+    return operator;
+  }
+  if (operator === 'is any of') return 'is';
+  if (operator === 'is none of') return 'is not';
+  if (operator === 'include any of' || operator === 'include all of') {
+    return 'include';
+  }
+  if (operator === 'exclude if any of' || operator === 'exclude if all') {
+    return 'exclude';
+  }
+  return operator;
 }
+
+export const createDefaultFilters = (): FlightFilters => ({
+  options: {},
+  fromDate: undefined,
+  toDate: undefined,
+  airportsEither: [],
+  routes: [],
+});
 
 export function cloneFlightFilters(
   source: FlightFilters,
   next: Partial<FlightFilters> = {},
 ): FlightFilters {
+  const merged = { ...source, ...next };
   return {
-    ...source,
-    departureAirports: [...source.departureAirports],
-    arrivalAirports: [...source.arrivalAirports],
-    airportsEither: [...source.airportsEither],
-    routes: source.routes.map((route) => ({ ...route })),
-    years: [...source.years],
-    passengers: [...source.passengers],
-    airline: [...source.airline],
-    aircraft: [...source.aircraft],
-    aircraftRegs: [...source.aircraftRegs],
-    ...next,
+    ...merged,
+    airportsEither: [...merged.airportsEither],
+    routes: merged.routes.map((route) => ({ ...route })),
+    options: Object.fromEntries(
+      Object.entries(merged.options).map(([id, state]) => [
+        id,
+        { ...state, values: [...state.values] },
+      ]),
+    ),
   };
 }
 
-export function hasFlightFilters(filters: FlightFilters | undefined): boolean {
-  return !!(
-    filters &&
-    (filters.departureAirports.length > 0 ||
-      filters.arrivalAirports.length > 0 ||
-      filters.airportsEither.length > 0 ||
-      filters.routes.length > 0 ||
-      filters.years.length > 0 ||
-      filters.fromDate ||
-      filters.toDate ||
-      filters.passengers.length > 0 ||
-      filters.airline.length > 0 ||
-      filters.aircraft.length > 0 ||
-      filters.aircraftRegs.length > 0)
-  );
-}
+const hasDateFilter = (filters: FlightFilters) =>
+  !!(filters.fromDate || filters.toDate);
 
-export function normalizeOptionOperator(
-  operator: OptionFilterOperator,
-  valueCount: number,
-): OptionFilterOperator {
-  if (valueCount > 1) {
-    if (operator === 'is') return 'is any of';
-    if (operator === 'is not') return 'is none of';
-    return operator;
+export const hasFlightFilters = (filters: FlightFilters | undefined) =>
+  !!filters &&
+  (hasDateFilter(filters) ||
+    Object.keys(filters.options).length > 0 ||
+    filters.airportsEither.length > 0 ||
+    filters.routes.length > 0);
+
+export const isFilterActive = (filters: FlightFilters, id: FilterId) =>
+  id === 'date' ? hasDateFilter(filters) : !!filters.options[id];
+
+export const optionFilterState = (
+  filters: FlightFilters,
+  id: OptionFilterId,
+): OptionFilterState => {
+  const state = filters.options[id];
+  if (!state) {
+    return { values: [], operator: normalizeOperator(defaultOperator(id), 0) };
   }
+  return {
+    values: state.values,
+    operator: normalizeOperator(state.operator, state.values.length),
+  };
+};
 
-  if (operator === 'is any of') return 'is';
-  if (operator === 'is none of') return 'is not';
-  return operator;
-}
-
-export function normalizeMultiOptionOperator(
-  operator: MultiOptionFilterOperator,
-  valueCount: number,
-): MultiOptionFilterOperator {
-  if (valueCount > 1) {
-    if (operator === 'include') return 'include any of';
-    if (operator === 'exclude') return 'exclude if any of';
-    return operator;
-  }
-
-  if (operator === 'exclude if any of' || operator === 'exclude if all') {
-    return 'exclude';
-  }
-
-  if (operator === 'include any of' || operator === 'include all of') {
-    return 'include';
-  }
-
-  return operator;
-}
-
-function setEquals(a: string[], b: string[]) {
-  const aSet = new Set(a);
-  const bSet = new Set(b);
-  return aSet.size === bSet.size && [...aSet].every((value) => bSet.has(value));
-}
-
-export function optionColumnValues(
+export function setOptionFilter(
   filters: FlightFilters,
-  columnId: OptionColumnId,
-): string[] {
-  return filters[columnId];
-}
-
-export function rawOptionColumnOperator(
-  filters: FlightFilters,
-  columnId: 'passengers',
-): MultiOptionFilterOperator;
-export function rawOptionColumnOperator(
-  filters: FlightFilters,
-  columnId: NonPassengerOptionColumnId,
-): OptionFilterOperator;
-export function rawOptionColumnOperator(
-  filters: FlightFilters,
-  columnId: OptionColumnId,
-): OptionFilterOperator | MultiOptionFilterOperator {
-  switch (columnId) {
-    case 'passengers':
-      return filters.passengersOperator;
-    case 'departureAirports':
-      return filters.departureAirportsOperator;
-    case 'arrivalAirports':
-      return filters.arrivalAirportsOperator;
-    case 'airline':
-      return filters.airlineOperator;
-    case 'aircraft':
-      return filters.aircraftOperator;
-    case 'aircraftRegs':
-      return filters.aircraftRegsOperator;
-  }
-}
-
-export function optionColumnOperator(
-  filters: FlightFilters,
-  columnId: 'passengers',
-): MultiOptionFilterOperator;
-export function optionColumnOperator(
-  filters: FlightFilters,
-  columnId: NonPassengerOptionColumnId,
-): OptionFilterOperator;
-export function optionColumnOperator(
-  filters: FlightFilters,
-  columnId: OptionColumnId,
-): OptionFilterOperator | MultiOptionFilterOperator {
-  const valueCount = optionColumnValues(filters, columnId).length;
-  return columnId === 'passengers'
-    ? normalizeMultiOptionOperator(filters.passengersOperator, valueCount)
-    : normalizeOptionOperator(
-        rawOptionColumnOperator(filters, columnId),
-        valueCount,
-      );
-}
-
-export function setOptionColumnOperator(
-  filters: FlightFilters,
-  columnId: 'passengers',
-  operator: MultiOptionFilterOperator,
-): FlightFilters;
-export function setOptionColumnOperator(
-  filters: FlightFilters,
-  columnId: NonPassengerOptionColumnId,
-  operator: OptionFilterOperator,
-): FlightFilters;
-export function setOptionColumnOperator(
-  filters: FlightFilters,
-  columnId: OptionColumnId,
-  operator: OptionFilterOperator | MultiOptionFilterOperator,
+  id: OptionFilterId,
+  next: Partial<OptionFilterState>,
 ): FlightFilters {
-  switch (columnId) {
-    case 'passengers':
-      return cloneFlightFilters(filters, {
-        passengersOperator: operator as MultiOptionFilterOperator,
-      });
-    case 'departureAirports':
-      return cloneFlightFilters(filters, {
-        departureAirportsOperator: operator as OptionFilterOperator,
-      });
-    case 'arrivalAirports':
-      return cloneFlightFilters(filters, {
-        arrivalAirportsOperator: operator as OptionFilterOperator,
-      });
-    case 'airline':
-      return cloneFlightFilters(filters, {
-        airlineOperator: operator as OptionFilterOperator,
-      });
-    case 'aircraft':
-      return cloneFlightFilters(filters, {
-        aircraftOperator: operator as OptionFilterOperator,
-      });
-    case 'aircraftRegs':
-      return cloneFlightFilters(filters, {
-        aircraftRegsOperator: operator as OptionFilterOperator,
-      });
+  const current = optionFilterState(filters, id);
+  const values = next.values ?? current.values;
+  const options = { ...filters.options };
+  if (values.length) {
+    options[id] = {
+      values,
+      operator: normalizeOperator(
+        next.operator ?? current.operator,
+        values.length,
+      ),
+    };
+  } else {
+    delete options[id];
   }
+  return cloneFlightFilters(filters, { options });
 }
 
-function normalizeOperatorForCount(
+export function clearFilter(
   filters: FlightFilters,
-  columnId: OptionColumnId,
-  valueCount: number,
-) {
-  if (columnId === 'passengers') {
-    return normalizeMultiOptionOperator(filters.passengersOperator, valueCount);
-  }
-
-  return normalizeOptionOperator(
-    rawOptionColumnOperator(filters, columnId),
-    valueCount,
-  );
-}
-
-export function setOptionColumnValues(
-  filters: FlightFilters,
-  columnId: OptionColumnId,
-  values: string[],
+  id: FilterId,
 ): FlightFilters {
-  const operator = normalizeOperatorForCount(filters, columnId, values.length);
-
-  switch (columnId) {
-    case 'passengers':
-      return cloneFlightFilters(filters, {
-        passengers: values,
-        passengersOperator: operator as MultiOptionFilterOperator,
-      });
-    case 'departureAirports':
-      return cloneFlightFilters(filters, {
-        departureAirports: values,
-        departureAirportsOperator: operator as OptionFilterOperator,
-      });
-    case 'arrivalAirports':
-      return cloneFlightFilters(filters, {
-        arrivalAirports: values,
-        arrivalAirportsOperator: operator as OptionFilterOperator,
-      });
-    case 'airline':
-      return cloneFlightFilters(filters, {
-        airline: values,
-        airlineOperator: operator as OptionFilterOperator,
-      });
-    case 'aircraft':
-      return cloneFlightFilters(filters, {
-        aircraft: values,
-        aircraftOperator: operator as OptionFilterOperator,
-      });
-    case 'aircraftRegs':
-      return cloneFlightFilters(filters, {
-        aircraftRegs: values,
-        aircraftRegsOperator: operator as OptionFilterOperator,
-      });
-  }
-}
-
-export function clearFilterColumn(
-  filters: FlightFilters,
-  columnId: FilterColumnId,
-): FlightFilters {
-  if (columnId === 'date') {
+  if (id === 'date') {
     return cloneFlightFilters(filters, {
-      years: [],
       fromDate: undefined,
       toDate: undefined,
     });
   }
-
-  return setOptionColumnValues(filters, columnId, []);
-}
-
-export function isFilterColumnActive(
-  filters: FlightFilters,
-  columnId: FilterColumnId,
-): boolean {
-  if (columnId === 'date') {
-    return !!(filters.years.length || filters.fromDate || filters.toDate);
-  }
-
-  return optionColumnValues(filters, columnId).length > 0;
+  return setOptionFilter(filters, id, { values: [] });
 }
 
 /*
- * The years a date filter selects, or an empty list when it selects something
- * else: no date, a custom range, or "every year but".
+ * The years a filter selects, or an empty list when it selects something
+ * else: no year, "every year but", or a range that isn't one whole year.
  */
 export function selectedFilterYears(filters: FlightFilters): string[] {
-  if (filters.years.length) {
-    return filters.yearsOperator === 'is' ||
-      filters.yearsOperator === 'is any of'
-      ? filters.years
+  const year = filters.options.year;
+  if (year) {
+    return year.operator === 'is' || year.operator === 'is any of'
+      ? year.values
       : [];
   }
   return filters.fromDate && isFullYearRange(filters.fromDate, filters.toDate)
@@ -380,9 +222,8 @@ export function selectedFilterYears(filters: FlightFilters): string[] {
  * those are not a choice between years.
  */
 export function perYearFilters(filters: FlightFilters): FlightFilters {
-  return selectedFilterYears(filters).length
-    ? clearFilterColumn(filters, 'date')
-    : filters;
+  if (!selectedFilterYears(filters).length) return filters;
+  return clearFilter(clearFilter(filters, 'year'), 'date');
 }
 
 /* Filters to one year, or back to all years if that is the only one selected. */
@@ -390,16 +231,92 @@ export function toggleFilterYear(
   filters: FlightFilters,
   year: string,
 ): FlightFilters {
+  const withoutDates = clearFilter(filters, 'date');
   const selected = selectedFilterYears(filters);
   if (selected.length === 1 && selected[0] === year) {
-    return clearFilterColumn(filters, 'date');
+    return clearFilter(withoutDates, 'year');
   }
-  return cloneFlightFilters(filters, {
-    years: [year],
-    yearsOperator: 'is',
-    fromDate: undefined,
-    toDate: undefined,
+  return setOptionFilter(withoutDates, 'year', {
+    values: [year],
+    operator: 'is',
   });
+}
+
+export type DatePresetId =
+  | 'past-30-days'
+  | 'past-90-days'
+  | 'past-12-months'
+  | 'this-year'
+  | 'last-year';
+
+export const datePresets: ReadonlyArray<{ id: DatePresetId; label: string }> = [
+  { id: 'past-30-days', label: 'Past 30 days' },
+  { id: 'past-90-days', label: 'Past 90 days' },
+  { id: 'past-12-months', label: 'Past 12 months' },
+  { id: 'this-year', label: 'This year' },
+  { id: 'last-year', label: 'Last year' },
+];
+
+export function todayCalendarDate(): CalendarDate {
+  const now = new Date();
+  return new CalendarDate(now.getFullYear(), now.getMonth() + 1, now.getDate());
+}
+
+/*
+ * The date range a preset stands for, resolved against `today`. Rolling
+ * windows are fixed when applied; they don't move on later days.
+ */
+export function datePresetRange(
+  id: DatePresetId,
+  today: CalendarDate,
+): { fromDate: CalendarDate; toDate: CalendarDate } {
+  switch (id) {
+    case 'past-30-days':
+      return { fromDate: today.subtract({ days: 29 }), toDate: today };
+    case 'past-90-days':
+      return { fromDate: today.subtract({ days: 89 }), toDate: today };
+    case 'past-12-months':
+      return {
+        fromDate: today.subtract({ years: 1 }).add({ days: 1 }),
+        toDate: today,
+      };
+    case 'this-year':
+      return {
+        fromDate: new CalendarDate(today.year, 1, 1),
+        toDate: new CalendarDate(today.year, 12, 31),
+      };
+    case 'last-year':
+      return {
+        fromDate: new CalendarDate(today.year - 1, 1, 1),
+        toDate: new CalendarDate(today.year - 1, 12, 31),
+      };
+  }
+}
+
+/* The preset whose exact range is applied, if any. */
+export function activeDatePreset(
+  filters: FlightFilters,
+  today: CalendarDate,
+): DatePresetId | undefined {
+  return datePresets.find(({ id }) => {
+    const range = datePresetRange(id, today);
+    return (
+      filters.fromDate?.compare(range.fromDate) === 0 &&
+      filters.toDate?.compare(range.toDate) === 0
+    );
+  })?.id;
+}
+
+/* Applies a preset, or clears the date if that preset is already applied. */
+export function toggleDatePreset(
+  filters: FlightFilters,
+  id: DatePresetId,
+  today: CalendarDate,
+): FlightFilters {
+  if (activeDatePreset(filters, today) === id) {
+    return clearFilter(filters, 'date');
+  }
+  return cloneFlightFilters(filters, datePresetRange(id, today));
 }
 
 export function formatDateLabel(
@@ -414,37 +331,14 @@ export function dateFilterSummary(
   filters: FlightFilters,
   prefs: Pick<Preferences, 'dateFormat'>,
 ) {
-  if (filters.years.length) {
-    if (filters.years.length <= 2) return filters.years.join(', ');
-    return `${filters.years.slice(0, 2).join(', ')} +${filters.years.length - 2}`;
+  const { fromDate, toDate } = filters;
+  if (fromDate && toDate) {
+    if (fromDate.compare(toDate) === 0) return formatDateLabel(fromDate, prefs);
+    return `${formatDateLabel(fromDate, prefs)} - ${formatDateLabel(toDate, prefs)}`;
   }
-
-  if (filters.fromDate && filters.toDate) {
-    if (filters.fromDate.compare(filters.toDate) === 0) {
-      return formatDateLabel(filters.fromDate, prefs);
-    }
-    return `${formatDateLabel(filters.fromDate, prefs)} - ${formatDateLabel(filters.toDate, prefs)}`;
-  }
-  if (filters.fromDate)
-    return `From ${formatDateLabel(filters.fromDate, prefs)}`;
-  if (filters.toDate) return `Until ${formatDateLabel(filters.toDate, prefs)}`;
+  if (fromDate) return `From ${formatDateLabel(fromDate, prefs)}`;
+  if (toDate) return `Until ${formatDateLabel(toDate, prefs)}`;
   return 'Choose date';
-}
-
-function calendarDateToDate(value: CalendarDate) {
-  return new Date(value.year, value.month - 1, value.day);
-}
-
-function dateToCalendarDate(value: Date) {
-  return new CalendarDate(
-    value.getFullYear(),
-    value.getMonth() + 1,
-    value.getDate(),
-  );
-}
-
-function isSameCalendarDate(a: CalendarDate, b: CalendarDate) {
-  return a.compare(b) === 0;
 }
 
 function isFullYearRange(fromDate?: CalendarDate, toDate?: CalendarDate) {
@@ -457,350 +351,176 @@ function isFullYearRange(fromDate?: CalendarDate, toDate?: CalendarDate) {
   );
 }
 
-function normalizeDateRange(
-  fromDate: CalendarDate,
-  toDate: CalendarDate,
-): [CalendarDate, CalendarDate] {
-  return fromDate.compare(toDate) <= 0
-    ? [fromDate, toDate]
-    : [toDate, fromDate];
-}
+const calendarDateToDate = (value: CalendarDate) =>
+  new Date(value.year, value.month - 1, value.day);
 
-function stringValues(filter: FilterModel) {
-  return filter.values
-    .map((value) => (typeof value === 'string' ? value : undefined))
-    .filter((value): value is string => !!value);
-}
+const dateToCalendarDate = (value: unknown) =>
+  value instanceof Date
+    ? new CalendarDate(
+        value.getFullYear(),
+        value.getMonth() + 1,
+        value.getDate(),
+      )
+    : undefined;
 
-function firstDateValue(filter: FilterModel) {
-  const value = filter.values[0];
-  return value instanceof Date ? dateToCalendarDate(value) : undefined;
-}
+function dateFilterToBits(source: FlightFilters): FilterModel | undefined {
+  const { fromDate, toDate } = source;
+  const filter = (operator: string, dates: CalendarDate[]): FilterModel => ({
+    columnId: 'date',
+    type: 'date',
+    operator: operator as FilterModel<'date'>['operator'],
+    values: dates.map(calendarDateToDate),
+  });
 
-function optionFilter(
-  columnId: string,
-  values: string[],
-  operator: OptionFilterOperator = values.length > 1 ? 'is any of' : 'is',
-): FilterModel<'option'> | undefined {
-  if (!values.length) return undefined;
-  return {
-    columnId,
-    type: 'option',
-    operator,
-    values,
-  };
-}
-
-function multiOptionFilter(
-  columnId: string,
-  values: string[],
-  operator: MultiOptionFilterOperator = values.length > 1
-    ? 'include any of'
-    : 'include',
-): FilterModel<'multiOption'> | undefined {
-  if (!values.length) return undefined;
-  return {
-    columnId,
-    type: 'multiOption',
-    operator,
-    values,
-  };
-}
-
-function dateFilterFromFlightFilters(
-  source: FlightFilters,
-): FilterModel<'date'> | FilterModel<'option'> | undefined {
-  if (source.years.length) {
-    return {
-      columnId: 'year',
-      type: 'option',
-      operator: source.yearsOperator,
-      values: source.years,
-    };
+  if (fromDate && toDate) {
+    const [start, end] =
+      fromDate.compare(toDate) <= 0 ? [fromDate, toDate] : [toDate, fromDate];
+    return start.compare(end) === 0
+      ? filter('is', [start])
+      : filter('is between', [start, end]);
   }
-
-  if (
-    source.fromDate &&
-    source.toDate &&
-    isFullYearRange(source.fromDate, source.toDate)
-  ) {
-    return {
-      columnId: 'year',
-      type: 'option',
-      operator: 'is',
-      values: [source.fromDate.year.toString()],
-    };
-  }
-
-  if (source.fromDate && source.toDate) {
-    const [fromDate, toDate] = normalizeDateRange(
-      source.fromDate,
-      source.toDate,
-    );
-
-    if (isSameCalendarDate(fromDate, toDate)) {
-      return {
-        columnId: 'date',
-        type: 'date',
-        operator: 'is',
-        values: [calendarDateToDate(fromDate)],
-      };
-    }
-
-    return {
-      columnId: 'date',
-      type: 'date',
-      operator: 'is between',
-      values: [calendarDateToDate(fromDate), calendarDateToDate(toDate)],
-    };
-  }
-
-  if (source.fromDate) {
-    return {
-      columnId: 'date',
-      type: 'date',
-      operator: 'is on or after',
-      values: [calendarDateToDate(source.fromDate)],
-    };
-  }
-
-  if (source.toDate) {
-    return {
-      columnId: 'date',
-      type: 'date',
-      operator: 'is on or before',
-      values: [calendarDateToDate(source.toDate)],
-    };
-  }
+  if (fromDate) return filter('is on or after', [fromDate]);
+  if (toDate) return filter('is on or before', [toDate]);
 }
 
 export function flightFiltersToBits(source: FlightFilters): FiltersState {
-  const nextFilters: FiltersState = [];
-
-  for (const filter of [
-    optionFilter(
-      'departureAirports',
-      source.departureAirports,
-      source.departureAirportsOperator,
-    ),
-    optionFilter(
-      'arrivalAirports',
-      source.arrivalAirports,
-      source.arrivalAirportsOperator,
-    ),
-    dateFilterFromFlightFilters(source),
-    multiOptionFilter(
-      'passengers',
-      source.passengers,
-      source.passengersOperator,
-    ),
-    optionFilter('airline', source.airline, source.airlineOperator),
-    optionFilter('aircraft', source.aircraft, source.aircraftOperator),
-    optionFilter(
-      'aircraftRegs',
-      source.aircraftRegs,
-      source.aircraftRegsOperator,
-    ),
-  ]) {
-    if (filter) nextFilters.push(filter);
+  const result: FiltersState = [];
+  for (const definition of OPTION_FILTERS) {
+    const state = source.options[definition.id];
+    if (!state) continue;
+    result.push({
+      columnId: definition.id,
+      type: definition.multi ? 'multiOption' : 'option',
+      operator: state.operator,
+      values: state.values,
+    } as FilterModel);
   }
-
-  return nextFilters;
+  const date = dateFilterToBits(source);
+  if (date) result.push(date);
+  return result;
 }
 
-function applyDateFilter(target: FlightFilters, filter: FilterModel) {
-  if (filter.columnId !== 'date') return;
-
-  const firstDate = firstDateValue(filter);
-  const secondValue = filter.values[1];
-  const secondDate =
-    secondValue instanceof Date ? dateToCalendarDate(secondValue) : undefined;
-
-  if (!firstDate) return;
+function applyBitsDateFilter(target: FlightFilters, filter: FilterModel) {
+  const first = dateToCalendarDate(filter.values[0]);
+  const second = dateToCalendarDate(filter.values[1]);
+  if (!first) return;
 
   switch (filter.operator) {
     case 'is':
-      target.fromDate = firstDate;
-      target.toDate = firstDate;
+      target.fromDate = first;
+      target.toDate = first;
       break;
     case 'is before':
-      target.toDate = firstDate.subtract({ days: 1 });
+      target.toDate = first.subtract({ days: 1 });
       break;
     case 'is on or before':
-      target.toDate = firstDate;
+      target.toDate = first;
       break;
     case 'is after':
-      target.fromDate = firstDate.add({ days: 1 });
+      target.fromDate = first.add({ days: 1 });
       break;
     case 'is on or after':
-      target.fromDate = firstDate;
+      target.fromDate = first;
       break;
     case 'is between':
-      if (secondDate) {
-        const [fromDate, toDate] = normalizeDateRange(firstDate, secondDate);
-        target.fromDate = fromDate;
-        target.toDate = toDate;
+      if (second) {
+        [target.fromDate, target.toDate] =
+          first.compare(second) <= 0 ? [first, second] : [second, first];
       }
       break;
   }
 }
 
-function resetBitsManagedFilters(base?: FlightFilters): FlightFilters {
-  return cloneFlightFilters(base ?? createDefaultFilters(), {
-    departureAirports: [],
-    departureAirportsOperator: 'is any of',
-    arrivalAirports: [],
-    arrivalAirportsOperator: 'is any of',
-    years: [],
-    yearsOperator: 'is any of',
-    fromDate: undefined,
-    toDate: undefined,
-    passengers: [],
-    passengersOperator: 'include any of',
-    airline: [],
-    airlineOperator: 'is any of',
-    aircraft: [],
-    aircraftOperator: 'is any of',
-    aircraftRegs: [],
-    aircraftRegsOperator: 'is any of',
-  });
-}
-
+/* The filters the bits state describes, keeping `base`'s map pins. */
 export function bitsFiltersToFlightFilters(
   source: FiltersState,
-  base?: FlightFilters,
+  base: FlightFilters,
 ): FlightFilters {
-  const nextFilters = resetBitsManagedFilters(base);
-  const dateFilters: FilterModel[] = [];
+  let result = cloneFlightFilters(createDefaultFilters(), {
+    airportsEither: base.airportsEither,
+    routes: base.routes,
+  });
+  const optionIds = new Set<string>(OPTION_FILTERS.map(({ id }) => id));
 
   for (const filter of source) {
-    switch (filter.columnId) {
-      case 'departureAirports':
-        nextFilters.departureAirports = stringValues(filter);
-        nextFilters.departureAirportsOperator =
-          filter.operator as OptionFilterOperator;
-        break;
-      case 'arrivalAirports':
-        nextFilters.arrivalAirports = stringValues(filter);
-        nextFilters.arrivalAirportsOperator =
-          filter.operator as OptionFilterOperator;
-        break;
-      case 'passengers':
-        nextFilters.passengers = stringValues(filter);
-        nextFilters.passengersOperator =
-          filter.operator as MultiOptionFilterOperator;
-        break;
-      case 'airline':
-        nextFilters.airline = stringValues(filter);
-        nextFilters.airlineOperator = filter.operator as OptionFilterOperator;
-        break;
-      case 'aircraft':
-        nextFilters.aircraft = stringValues(filter);
-        nextFilters.aircraftOperator = filter.operator as OptionFilterOperator;
-        break;
-      case 'aircraftRegs':
-        nextFilters.aircraftRegs = stringValues(filter);
-        nextFilters.aircraftRegsOperator =
-          filter.operator as OptionFilterOperator;
-        break;
-      case 'year':
-        nextFilters.years = stringValues(filter);
-        nextFilters.yearsOperator = normalizeOptionOperator(
-          filter.operator as OptionFilterOperator,
-          nextFilters.years.length,
-        );
-        break;
-      case 'date':
-        dateFilters.push(filter);
-        break;
+    if (filter.columnId === 'date') {
+      applyBitsDateFilter(result, filter);
+    } else if (optionIds.has(filter.columnId)) {
+      result = setOptionFilter(result, filter.columnId as OptionFilterId, {
+        values: filter.values.filter(
+          (value): value is string => typeof value === 'string',
+        ),
+        operator: filter.operator as OptionFilterState['operator'],
+      });
     }
   }
-
-  dateFilters.forEach((filter) => applyDateFilter(nextFilters, filter));
-
-  return nextFilters;
-}
-
-function serializeFilterValue(value: unknown) {
-  if (value instanceof Date) {
-    return `${value.getFullYear()}-${value.getMonth() + 1}-${value.getDate()}`;
-  }
-
-  return String(value);
+  return result;
 }
 
 export function bitsSignature(source: FiltersState) {
   return JSON.stringify(
     source.map((filter) => ({
       columnId: filter.columnId,
-      type: filter.type,
       operator: filter.operator,
-      values: filter.values.map(serializeFilterValue),
+      values: filter.values.map((value) =>
+        value instanceof Date ? dateToCalendarDate(value)?.toString() : value,
+      ),
     })),
   );
 }
 
-export function flightSignature(source: FlightFilters) {
-  return JSON.stringify({
-    departureAirports: source.departureAirports,
-    departureAirportsOperator: source.departureAirportsOperator,
-    arrivalAirports: source.arrivalAirports,
-    arrivalAirportsOperator: source.arrivalAirportsOperator,
-    airportsEither: source.airportsEither,
-    routes: source.routes,
-    years: source.years,
-    yearsOperator: source.yearsOperator,
+export const flightSignature = (source: FlightFilters) =>
+  JSON.stringify({
+    options: OPTION_FILTERS.map(({ id }) => source.options[id] ?? null),
     fromDate: source.fromDate?.toString(),
     toDate: source.toDate?.toString(),
-    passengers: source.passengers,
-    passengersOperator: source.passengersOperator,
-    airline: source.airline,
-    airlineOperator: source.airlineOperator,
-    aircraft: source.aircraft,
-    aircraftOperator: source.aircraftOperator,
-    aircraftRegs: source.aircraftRegs,
-    aircraftRegsOperator: source.aircraftRegsOperator,
+    airportsEither: source.airportsEither,
+    routes: source.routes,
   });
-}
 
-export function routeMatches(flight: FlightData, route: Route): boolean {
-  return routeMatchesEndpoints(flight.from?.id, flight.to?.id, route);
+const INCLUSIVE_PASSENGER_OPERATORS = new Set<string>([
+  'include',
+  'include any of',
+  'include all of',
+  'include exactly',
+]);
+
+/*
+ * Seat filters read the rows of the passengers an inclusive passenger filter
+ * picks. Otherwise they read the shown user's row, or every row when all
+ * users' flights are shown. An excluding passenger filter doesn't count: the
+ * flight matched because those people aren't on it.
+ */
+export function filterScope(
+  filters: FlightFilters,
+  seatUserId?: string,
+): FilterScope {
+  const passengers = filters.options.passengers;
+  if (passengers && INCLUSIVE_PASSENGER_OPERATORS.has(passengers.operator)) {
+    return { passengerTokens: passengers.values };
+  }
+  return { seatUserId };
 }
 
 export function optionMatches(
-  value: string | null | undefined,
+  values: string[],
   selectedValues: string[],
-  operator: OptionFilterOperator = 'is any of',
+  operator: OptionFilterOperator | MultiOptionFilterOperator,
 ) {
-  if (!selectedValues.length) return true;
-
-  const found = value ? selectedValues.includes(value) : false;
+  const present = new Set(values);
+  const hasAny = selectedValues.some((value) => present.has(value));
+  const hasAll = selectedValues.every((value) => present.has(value));
+  const exactly =
+    hasAll && [...present].every((value) => selectedValues.includes(value));
 
   switch (operator) {
     case 'is':
     case 'is any of':
-      return found;
-    case 'is not':
-    case 'is none of':
-      return !found;
-  }
-}
-
-export function multiOptionMatches(
-  values: string[],
-  selectedValues: string[],
-  operator: MultiOptionFilterOperator = 'include any of',
-) {
-  if (!selectedValues.length) return true;
-
-  const present = new Set(values);
-  const hasAny = selectedValues.some((value) => present.has(value));
-  const hasAll = selectedValues.every((value) => present.has(value));
-
-  switch (operator) {
     case 'include':
     case 'include any of':
       return hasAny;
+    case 'is not':
+    case 'is none of':
     case 'exclude':
     case 'exclude if any of':
       return !hasAny;
@@ -809,159 +529,116 @@ export function multiOptionMatches(
     case 'exclude if all':
       return !hasAll;
     case 'include exactly':
-      return setEquals(values, selectedValues);
+      return exactly;
     case 'exclude exactly':
-      return !setEquals(values, selectedValues);
+      return !exactly;
   }
 }
 
-export function matchesLocationFilters(
+export function matchesTempFilters(
   flight: FlightData,
-  locationFilters: LocationFilters,
+  {
+    departureAirports = [],
+    arrivalAirports = [],
+    airportsEither = [],
+    routes = [],
+  }: Partial<TempFilters>,
 ) {
-  const fromId = flight.from?.id.toString();
-  const toId = flight.to?.id.toString();
-  const departureAirports = locationFilters.departureAirports ?? [];
-  const arrivalAirports = locationFilters.arrivalAirports ?? [];
-
-  if (
-    !optionMatches(
-      fromId,
-      departureAirports,
-      locationFilters.departureAirportsOperator,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    !optionMatches(
-      toId,
-      arrivalAirports,
-      locationFilters.arrivalAirportsOperator,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    locationFilters.airportsEither.length &&
-    (!fromId ||
-      !toId ||
-      ![fromId, toId].some((id) => locationFilters.airportsEither.includes(id)))
-  ) {
-    return false;
-  }
-
-  if (
-    locationFilters.routes.length &&
-    !locationFilters.routes.some((route) => routeMatches(flight, route))
-  ) {
-    return false;
-  }
-
-  return true;
-}
-
-function getFilterBoundary(
-  date: NonNullable<FlightFilters['fromDate']>,
-  tzId: string,
-  end = false,
-) {
-  return parseLocalISO(
-    `${date.toString()}T${end ? '23:59:59.999' : '00:00'}`,
-    tzId,
+  const fromId = flight.from?.id.toString() ?? '';
+  const toId = flight.to?.id.toString() ?? '';
+  return (
+    (!departureAirports.length || departureAirports.includes(fromId)) &&
+    (!arrivalAirports.length || arrivalAirports.includes(toId)) &&
+    (!airportsEither.length ||
+      (!!fromId &&
+        !!toId &&
+        (airportsEither.includes(fromId) || airportsEither.includes(toId)))) &&
+    (!routes.length ||
+      routes.some((route) => routeMatchesEndpoints(fromId, toId, route)))
   );
 }
 
-export function matchesNonLocationFilters(
-  flight: FlightData,
-  filters: FlightFilters,
-) {
-  if (
-    !optionMatches(
-      flight.date?.getFullYear().toString(),
-      filters.years,
-      filters.yearsOperator,
-    )
-  ) {
-    return false;
-  }
+const dateBoundary = (date: CalendarDate, tzId: string, end = false) =>
+  parseLocalISO(`${date.toString()}T${end ? '23:59:59.999' : '00:00'}`, tzId);
 
+function matchesDateRange(flight: FlightData, filters: FlightFilters) {
+  const { fromDate, toDate } = filters;
   if (
-    filters.fromDate &&
+    fromDate &&
     (!flight.dateEnd ||
       isBefore(
         flight.dateEnd,
-        getFilterBoundary(filters.fromDate, flight.dateEnd.timeZone ?? 'UTC'),
+        dateBoundary(fromDate, flight.dateEnd.timeZone ?? 'UTC'),
       ))
   ) {
     return false;
   }
-
-  if (
-    filters.toDate &&
+  return !(
+    toDate &&
     (!flight.dateStart ||
       isAfter(
         flight.dateStart,
-        getFilterBoundary(
-          filters.toDate,
-          flight.dateStart.timeZone ?? 'UTC',
-          true,
-        ),
+        dateBoundary(toDate, flight.dateStart.timeZone ?? 'UTC', true),
       ))
-  ) {
-    return false;
-  }
-
-  if (
-    !multiOptionMatches(
-      flight.passengers
-        .map((passenger) => getFlightPassengerToken(passenger))
-        .filter((token): token is string => !!token),
-      filters.passengers,
-      filters.passengersOperator,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    !optionMatches(
-      flight.airline?.name,
-      filters.airline,
-      filters.airlineOperator,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    !optionMatches(
-      flight.aircraft?.name,
-      filters.aircraft,
-      filters.aircraftOperator,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    !optionMatches(
-      flight.aircraftReg,
-      filters.aircraftRegs,
-      filters.aircraftRegsOperator,
-    )
-  ) {
-    return false;
-  }
-
-  return true;
+  );
 }
 
-export function matchesFlight(flight: FlightData, filters: FlightFilters) {
-  return (
-    matchesLocationFilters(flight, filters) &&
-    matchesNonLocationFilters(flight, filters)
-  );
+export type FlightMatcherContext = {
+  seatUserId?: string;
+  /** An active map drilldown, which replaces the airport filters. */
+  tempFilters?: TempFilters;
+};
+
+/* A test for whether a flight passes every active filter. */
+export function flightMatcher(
+  filters: FlightFilters,
+  { seatUserId, tempFilters }: FlightMatcherContext = {},
+) {
+  const drilldown =
+    tempFilters && hasTempFilters(tempFilters) ? tempFilters : undefined;
+  const scope = filterScope(filters, seatUserId);
+  const active = OPTION_FILTERS.flatMap((definition) => {
+    const state = filters.options[definition.id];
+    if (!state || (drilldown && definition.replacedByDrilldown)) return [];
+    return [{ definition, state }];
+  });
+
+  // A drilldown replaces the map pins and the airport filters, as it picks
+  // the airports itself.
+  const location = drilldown ?? {
+    airportsEither: filters.airportsEither,
+    routes: filters.routes,
+  };
+
+  return (flight: FlightData) =>
+    matchesTempFilters(flight, location) &&
+    matchesDateRange(flight, filters) &&
+    active.every(({ definition, state }) =>
+      optionMatches(
+        flightValues(definition, flight, scope),
+        state.values,
+        state.operator,
+      ),
+    );
+}
+
+/*
+ * Every option filter's options for these flights, with counts. A map
+ * drilldown narrows the flights the options come from. Desktop and mobile both
+ * read this, so they offer the same options and counts.
+ */
+export function filterOptions(
+  flights: FlightData[],
+  { scope, tempFilters }: { scope: FilterScope; tempFilters?: TempFilters },
+): Record<OptionFilterId, FilterOption[]> {
+  const source =
+    tempFilters && hasTempFilters(tempFilters)
+      ? flights.filter((flight) => matchesTempFilters(flight, tempFilters))
+      : flights;
+  return Object.fromEntries(
+    OPTION_FILTERS.map((definition) => [
+      definition.id,
+      buildFilterOptions(definition, source, scope),
+    ]),
+  ) as Record<OptionFilterId, FilterOption[]>;
 }

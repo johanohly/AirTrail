@@ -165,7 +165,11 @@ export interface DeepSearchConfig {
 	groupSearchBehavior?: GroupBehavior;
 	radioGroupSearchBehavior?: RadioGroupBehavior;
 	sortGroups?: boolean;
+	match?: SearchMatch;
 }
+
+/** "word-prefix" matches where a word of the label or a keyword starts with the query. */
+export type SearchMatch = "fuzzy" | "word-prefix";
 
 export type DeepSearchProp = boolean | DeepSearchConfig;
 export type DataInputVisibility = "always" | "typing" | "hidden";
