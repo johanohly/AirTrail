@@ -2,7 +2,11 @@ import { distance, lineString, nearestPointOnLine } from '@turf/turf';
 import { describe, expect, it } from 'vitest';
 
 import { reduceFlightTrackForMap } from './render';
-import type { FlightTrackCoordinate, FlightTrackPayload } from './schema';
+import {
+  MAX_RENDERED_FLIGHT_TRACK_POINTS,
+  type FlightTrackCoordinate,
+  type FlightTrackPayload,
+} from './schema';
 
 const groundDistance = (
   left: FlightTrackCoordinate,
@@ -292,14 +296,64 @@ describe('flight track map reduction', () => {
     expect(reduceFlightTrackForMap(track)).toBe(track);
   });
 
-  it('loosens the tolerances until a dense track fits the cap', () => {
-    const coordinates: FlightTrackCoordinate[] = Array.from(
-      { length: 20_000 },
-      (_, index) => [index * 0.001, Math.sin(index * 0.37) * 0.000_5, 0],
-    );
-    const reduced = reduceFlightTrackForMap({ coordinates });
-    expect(reduced.coordinates.length).toBeLessThanOrEqual(5_000);
-    expect(reduced.coordinates[0]).toEqual(coordinates[0]);
-    expect(reduced.coordinates.at(-1)).toEqual(coordinates.at(-1));
+  it.each([
+    ['noisy', (index: number) => Math.sin(index * 0.37) * 0.000_5],
+    ['straight', () => 0],
+  ] as const)(
+    'uses the whole budget on an oversized %s ground track',
+    (_, latitudeAt) => {
+      const coordinates: FlightTrackCoordinate[] = Array.from(
+        { length: 20_000 },
+        (_, index) => [index * 0.001, latitudeAt(index), 0],
+      );
+      const track = { coordinates };
+      const reduced = reduceFlightTrackForMap(track);
+      expect(reduced.coordinates).toHaveLength(
+        MAX_RENDERED_FLIGHT_TRACK_POINTS,
+      );
+      expect(reduced.coordinates[0]).toBe(coordinates[0]);
+      expect(reduced.coordinates.at(-1)).toBe(coordinates.at(-1));
+      expect(reduceFlightTrackForMap(track)).toEqual(reduced);
+    },
+  );
+
+  it('allocates the last slot to the greatest normalized error across spans', () => {
+    const track: FlightTrackPayload = {
+      coordinates: [
+        [0, 0],
+        [0.001, 0.000_4], // About 44 m horizontally (score 1.5).
+        [0.002, 0],
+        [0.003, 0, 1_000],
+        [0.004, 0, 1_030], // 30 m vertically (score 2).
+        [0.005, 0, 1_000],
+        [0.006, 0, 1_000],
+        [0.007, 0, 1_000],
+        [0.008, 0, 1_000],
+      ],
+      ground: [true, true, true, false, false, false, false, false, false],
+      times: [0, 1, 2, 3, 4, 5, 90, 91, 92],
+    };
+    const retained = [0, 2, 3, 4, 5, 6, 7, 8];
+    expect(reduceFlightTrackForMap(track, 8)).toEqual({
+      coordinates: retained.map((index) => track.coordinates[index]),
+      ground: retained.map((index) => track.ground![index]),
+      times: retained.map((index) => track.times![index]),
+      estimated: retained.map((index) => index === 6),
+    });
+  });
+
+  it('preserves mandatory gap observations even when they exceed the budget', () => {
+    const length = MAX_RENDERED_FLIGHT_TRACK_POINTS + 2;
+    const coordinates: FlightTrackCoordinate[] = Array.from({ length }, () => [
+      0, 0,
+    ]);
+    const track = {
+      coordinates,
+      estimated: coordinates.map((_, index) => index >= 3),
+    };
+    expect(reduceFlightTrackForMap(track)).toEqual({
+      coordinates: [coordinates[0], ...coordinates.slice(2)],
+      estimated: [false, ...track.estimated.slice(2)],
+    });
   });
 });
