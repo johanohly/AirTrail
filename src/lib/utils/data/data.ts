@@ -39,6 +39,7 @@ export const formatSimpleFlight = (flight: FlightData) => ({
   dateStart: flight.dateStart,
   datePrecision: flight.datePrecision,
   airline: flight.airline,
+  raw: flight.raw,
 });
 
 export type SimpleFlight = ReturnType<typeof formatSimpleFlight>;

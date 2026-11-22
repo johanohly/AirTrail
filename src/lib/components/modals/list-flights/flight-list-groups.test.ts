@@ -146,6 +146,90 @@ describe('sortByDepartureDesc', () => {
 
     expect(order([undated, ...dubaiConnection])).toEqual([2, 1, 4]);
   });
+
+  const ORD = airport(6, 'America/Chicago', 41.9786, -87.9048);
+
+  const untimed = (
+    id: number,
+    from: Airport,
+    to: Airport,
+    date: string,
+    datePrecision: Flight['datePrecision'] = 'month',
+  ) =>
+    ({
+      ...flight({ id, from, to, date, departure: '', arrival: '' }),
+      datePrecision,
+      departure: null,
+      arrival: null,
+    }) as Flight;
+
+  it('orders flights without a time on the order they were added', () => {
+    // Midnight in Chicago is later than midnight in London, which used to
+    // put the return leg before the outbound one.
+    const outbound = untimed(10, ORD, LHR, '1998-07-01');
+    const inbound = untimed(11, LHR, ORD, '1998-07-01');
+
+    expect(order([outbound, inbound])).toEqual([11, 10]);
+    expect(order([inbound, outbound])).toEqual([11, 10]);
+  });
+
+  it('still orders flights without a time on their date first', () => {
+    const july = untimed(10, LHR, ORD, '1998-07-01');
+    const augustFirstDay = untimed(11, ORD, LHR, '1998-08-01', 'day');
+    const august = untimed(12, LHR, CDG, '1998-08-01');
+    const year = untimed(13, CDG, LHR, '1998-01-01', 'year');
+
+    expect(order([year, august, july, augustFirstDay])).toEqual([
+      12, 11, 10, 13,
+    ]);
+  });
+
+  it('places flights without a time at the start of their day', () => {
+    const july = untimed(10, LHR, ORD, '1998-07-01');
+    const midJuly = flight({
+      id: 2,
+      from: LHR,
+      to: CDG,
+      date: '1998-07-15',
+      departure: '1998-07-15T08:00:00.000Z',
+      arrival: '1998-07-15T09:00:00.000Z',
+    });
+    const june = flight({
+      id: 1,
+      from: LHR,
+      to: CDG,
+      date: '1998-06-20',
+      departure: '1998-06-20T08:00:00.000Z',
+      arrival: '1998-06-20T09:00:00.000Z',
+    });
+
+    expect(order([june, july, midJuly])).toEqual([2, 10, 1]);
+  });
+
+  it('keeps an evening flight below flights without a time on the next day', () => {
+    const HND = airport(7, 'Asia/Tokyo', 35.5494, 139.7798);
+    // Midnight in Tokyo on 1 July is still the evening of 30 June in London.
+    const tokyo = untimed(11, HND, ORD, '1998-07-01', 'day');
+    const chicago = untimed(10, ORD, LHR, '1998-07-01', 'day');
+    const evening = flight({
+      id: 1,
+      from: LHR,
+      to: CDG,
+      date: '1998-06-30',
+      departure: '1998-06-30T20:00:00.000Z',
+      arrival: '1998-06-30T21:00:00.000Z',
+    });
+
+    expect(order([evening, chicago, tokyo])).toEqual([11, 10, 1]);
+  });
+
+  it('sorts a flight from an unknown timezone without throwing', () => {
+    const unknown = airport(8, 'Bogus/Zone', 0, 0);
+    const july = untimed(10, unknown, LHR, '1998-07-01');
+    const august = untimed(11, LHR, ORD, '1998-08-01');
+
+    expect(order([july, august])).toEqual([11, 10]);
+  });
 });
 
 describe('buildFlightListYears', () => {

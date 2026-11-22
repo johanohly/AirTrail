@@ -3,6 +3,7 @@
 
   import { page } from '$app/state';
   import { AirlineIcon } from '$lib/components/display';
+  import { sortByDepartureDesc } from '$lib/components/modals/list-flights/flight-list-groups';
   import { Button } from '$lib/components/ui/button';
   import { mapDetailsState } from '$lib/state.svelte';
   import type { FlightData } from '$lib/utils';
@@ -26,17 +27,11 @@
 
   const inlineFlightTarget = 14;
 
-  const byDateDesc = (a: FlightData, b: FlightData) => {
-    const ad = a.date?.getTime() ?? 0;
-    const bd = b.date?.getTime() ?? 0;
-    return bd - ad;
-  };
-
   const departures = $derived(
-    flights.filter((f) => f.from?.id === airportId).sort(byDateDesc),
+    sortByDepartureDesc(flights.filter((f) => f.from?.id === airportId)),
   );
   const arrivals = $derived(
-    flights.filter((f) => f.to?.id === airportId).sort(byDateDesc),
+    sortByDepartureDesc(flights.filter((f) => f.to?.id === airportId)),
   );
 
   const formatFlightNumber = (flightNumber: string | null | undefined) => {
