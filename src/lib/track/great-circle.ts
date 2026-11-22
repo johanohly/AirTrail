@@ -27,6 +27,7 @@ const angleBetween = (a: Vector, b: Vector) =>
 export const sphericalDistance = (a: Vector, b: Vector) =>
   angleBetween(a, b) * EARTH_RADIUS_METERS;
 
+// Build the shorter great-circle arc from its angle and plane.
 export const createGreatCircleArc = (start: Vector, end: Vector) => {
   const axis = cross(start, end);
   const axisLength = Math.hypot(...axis);
@@ -53,6 +54,7 @@ export const createGreatCircleArc = (start: Vector, end: Vector) => {
 type Arc = Extract<ReturnType<typeof createGreatCircleArc>, { kind: 'arc' }>;
 
 export const projectOntoArc = (arc: Arc, point: Vector) => {
+  // Resolve the projection angle in the plane of the great circle.
   const along = Math.atan2(dot(point, arc.tangent), dot(point, arc.start));
   if (along >= 0 && along <= arc.angle) {
     const crossTrack = Math.atan2(
@@ -65,6 +67,7 @@ export const projectOntoArc = (arc: Arc, point: Vector) => {
     };
   }
 
+  // Outside the finite arc, one of the endpoints is closest.
   const startDistance = sphericalDistance(arc.start, point);
   const endDistance = sphericalDistance(arc.end, point);
   return startDistance <= endDistance
@@ -72,6 +75,7 @@ export const projectOntoArc = (arc: Arc, point: Vector) => {
     : { progress: 1, distance: endDistance };
 };
 
+// Advance by a fraction of the arc angle and convert back to longitude/latitude.
 export const interpolateGreatCircleArc = (
   arc: Arc,
   progress: number,

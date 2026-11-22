@@ -184,6 +184,7 @@ export const prepareFlightTrackLayerData = (
           preparedRuns.push(run);
         }
 
+        // Share geometry between the picking path and the visible colour sections.
         const end = sections.endProgress(index);
         while (nextSubdivision / divisions < end) {
           run.displayPath.push(

@@ -17,6 +17,7 @@ const unwrapLongitude = (longitude: number, previous: number) => {
   return longitude;
 };
 
+// Prepare display subdivision for each pair of retained observations.
 export const prepareFlightTrackDisplaySegments = (
   path: FlightTrackCoordinate[],
 ) =>

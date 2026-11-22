@@ -87,6 +87,7 @@ type WorstPoint = (start: number, end: number) => number | undefined;
 const spansBetween = (indices: number[]): Span[] =>
   indices.slice(1).map((end, offset) => [indices[offset]!, end]);
 
+// Core RDP loop. Keep the worst point above tolerance and split its span.
 const refine = (
   spans: Span[],
   selected: Set<number>,
@@ -120,6 +121,7 @@ export const reduceFlightTrackForMap = (
   track: FlightTrackPayload,
 ): FlightTrackPayload => {
   const samples = toFlightTrackSamples(track);
+  // Detect gaps on the original samples before reduction changes point spacing.
   const renderSamples = materializeEstimatedGaps(samples);
   if (samples.length < 2) return track;
 
@@ -137,6 +139,7 @@ export const reduceFlightTrackForMap = (
     toUnitVector(lon, lat),
   );
   const altitudes = samples.map(({ coordinate }) => coordinate[2]);
+  // Vertical RDP uses cumulative distance along the original observations.
   const distances = [0];
   for (let index = 1; index < vectors.length; index++) {
     distances.push(
@@ -169,6 +172,7 @@ export const reduceFlightTrackForMap = (
     let worstIndex: number | undefined;
     let worstScore = 1;
     for (let index = start + 1; index < end; index++) {
+      // Horizontal RDP measures the distance to the finite great-circle arc.
       const point = vectors[index]!;
       const projection =
         arc?.kind === 'arc' ? projectOntoArc(arc, point) : undefined;
@@ -177,6 +181,7 @@ export const reduceFlightTrackForMap = (
           HORIZONTAL_TOLERANCE_METERS
         : 0;
       if (checkVertical) {
+        // Vertical RDP measures altitude error at the original distance fraction.
         const altitude = altitudes[index]!;
         const progress =
           spanDistance === 0
@@ -189,6 +194,7 @@ export const reduceFlightTrackForMap = (
           progress,
         );
         if (mode === 'combined') {
+          // The renderer interpolates altitude by distance along the retained arc.
           error = Math.max(
             error,
             altitudeError(
@@ -217,7 +223,7 @@ export const reduceFlightTrackForMap = (
   refine(spans, selected, (start, end) =>
     findWorstPoint(start, end, 'vertical'),
   );
-  // A point added by either pass changes the reconstruction of both.
+  // Revalidate the union because points from either pass can change both errors.
   const combined = [...selected].sort((a, b) => a - b);
   refine(spansBetween(combined), selected, (start, end) =>
     findWorstPoint(start, end, 'combined'),
