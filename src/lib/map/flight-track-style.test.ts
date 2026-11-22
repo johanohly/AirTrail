@@ -19,7 +19,6 @@ const track = (
 ) =>
   ({
     flightId: 1,
-    originalPointCount: coordinates.length,
     samples: toFlightTrackSamples({ coordinates, ...options }),
   }) as FlightTrackPath;
 

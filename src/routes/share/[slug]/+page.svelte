@@ -78,6 +78,7 @@
             {
               flightId: flight.id,
               ...flight.track,
+              pointCount: flight.track.coordinates.length,
             },
           ]
         : [],

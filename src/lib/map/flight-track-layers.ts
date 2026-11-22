@@ -39,29 +39,6 @@ export type FlightTrackLayerData = {
   solidRuns: RenderableFlightTrackRun[];
   estimatedRuns: RenderableFlightTrackRun[];
   groundRuns: RenderableFlightTrackRun[];
-  skippedTracks: FlightTrackDisplayFailure[];
-};
-
-export type FlightTrackDisplayFailure = {
-  flightId: number;
-  originalPointCount: number;
-  reducedPointCount: number;
-  requiredPoints: number;
-  pointLimit: number;
-};
-
-export const formatFlightTrackDisplayWarning = (
-  failure: FlightTrackDisplayFailure,
-  flightNumber?: string | null,
-  flightDate?: string | null,
-) => {
-  // The flight ID is also the track's primary key.
-  const identity = [flightDate, `track ID: ${failure.flightId}`]
-    .filter(Boolean)
-    .join(', ');
-  const flight = flightNumber ? `flight ${flightNumber}` : 'flight';
-  const count = (value: number) => value.toLocaleString();
-  return `Unable to render ${flight} (${identity}). The required display geometry contains ${count(failure.requiredPoints)} points, exceeding the ${count(failure.pointLimit)}-point limit. The track has ${count(failure.originalPointCount)} original and ${count(failure.reducedPointCount)} retained points. Your stored flight data has not been modified. Please report this issue to the AirTrail community with the flight and track identifiers.`;
 };
 
 type FlightTrackLayerOptions = {
@@ -100,7 +77,11 @@ const estimatedPathStyle = new PathStyleExtension({
 });
 const ESTIMATED_UNDERLAY_WIDTH_SCALE = 0.56;
 
-const prepareTrackEdges = (path: FlightTrackPath, splitByAltitude: boolean) => {
+const prepareTrackEdges = (
+  path: FlightTrackPath,
+  splitByAltitude: boolean,
+  interpolateAltitude: boolean,
+) => {
   let requiredPoints = 1; // The start of the picking path.
   let previousStyle: FlightTrackEdgeStyle | undefined;
   const segments = prepareFlightTrackDisplaySegments(
@@ -112,7 +93,9 @@ const prepareTrackEdges = (path: FlightTrackPath, splitByAltitude: boolean) => {
     const style = getFlightTrackEdgeStyle(start, end, splitByAltitude);
     const sections = getFlightTrackAltitudeSections(
       start.coordinate[2],
-      segment.coincident ? undefined : end.coordinate[2],
+      segment.coincident || !interpolateAltitude
+        ? undefined
+        : end.coordinate[2],
       style,
     );
     const visibleLayerCount =
@@ -142,27 +125,19 @@ export const prepareFlightTrackLayerData = (
 ): FlightTrackLayerData => {
   const preparedPaths: RenderableFlightTrackPath[] = [];
   const preparedRuns: RenderableFlightTrackRun[] = [];
-  const skippedTracks: FlightTrackDisplayFailure[] = [];
 
   for (const path of paths) {
     if (path.samples.length < 2) continue;
-    const { edges, requiredPoints } = prepareTrackEdges(
-      path,
-      style === 'altitude',
-    );
-    if (requiredPoints > MAX_FLIGHT_TRACK_DISPLAY_POINTS) {
-      skippedTracks.push({
-        flightId: path.flightId,
-        originalPointCount: path.originalPointCount,
-        reducedPointCount: path.samples.length,
-        requiredPoints,
-        pointLimit: MAX_FLIGHT_TRACK_DISPLAY_POINTS,
-      });
-      continue;
+    let prepared = prepareTrackEdges(path, style === 'altitude', true);
+    // Altitude glitches can split edges into hundreds of colour bands. Colour
+    // each edge by its start instead when the bands would not fit the budget.
+    if (prepared.requiredPoints > MAX_FLIGHT_TRACK_DISPLAY_POINTS) {
+      prepared = prepareTrackEdges(path, style === 'altitude', false);
     }
+    const { edges, requiredPoints } = prepared;
 
     const ceiling = findSharedDepthCeiling(requiredPoints, edges);
-    const { samples, originalPointCount, ...identity } = path;
+    const { samples, ...identity } = path;
     const [lon, lat] = samples[0]!.coordinate;
     const displayPath: [number, number][] = [[lon, lat]];
     let run: RenderableFlightTrackRun | undefined;
@@ -209,7 +184,6 @@ export const prepareFlightTrackLayerData = (
     solidRuns: preparedRuns.filter((run) => !run.estimated),
     estimatedRuns: preparedRuns.filter((run) => run.estimated),
     groundRuns: preparedRuns.filter((run) => run.ground),
-    skippedTracks,
   };
 };
 

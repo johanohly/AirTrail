@@ -12,7 +12,6 @@ import {
 import { MAX_FLIGHT_TRACK_DISPLAY_POINTS } from './flight-track-display-geometry';
 import {
   buildFlightTrackLayers,
-  formatFlightTrackDisplayWarning,
   type FlightTrackRenderContext,
   prepareFlightTrackLayerData,
   type RenderableFlightTrackPath,
@@ -31,7 +30,6 @@ import type { FlightData } from '$lib/utils';
 const paths = [
   {
     flightId: 1,
-    originalPointCount: 3,
     samples: toFlightTrackSamples({
       coordinates: [
         [10, 55, 0],
@@ -83,7 +81,6 @@ const buildFlightTrackDisplayPath = (coordinates: FlightTrackCoordinate[]) =>
     [
       {
         flightId: 1,
-        originalPointCount: coordinates.length,
         samples: toFlightTrackSamples({ coordinates }),
       } as FlightTrackPath,
     ],
@@ -247,7 +244,6 @@ describe('flight track layers', () => {
       [
         {
           flightId: 2,
-          originalPointCount: coordinates.length,
           samples: toFlightTrackSamples({ coordinates }),
         } as FlightTrackPath,
       ],
@@ -418,7 +414,6 @@ describe('flight track layers', () => {
       [
         {
           flightId: 7,
-          originalPointCount: 5,
           samples: toFlightTrackSamples(track),
         } as FlightTrackPath,
       ],
@@ -443,83 +438,34 @@ describe('flight track layers', () => {
     );
   });
 
-  it('skips only the track whose required colour sections exceed the display budget', () => {
+  it('colours each edge by its start when altitude bands would overflow the budget', () => {
     const coordinates: FlightTrackCoordinate[] = Array.from(
       { length: 70 },
       (_, index) => [index * 0.001, 0, index % 2 === 0 ? 0 : 16_000],
     );
     const oversized = {
       flightId: 42,
-      originalPointCount: 150,
       samples: toFlightTrackSamples({ coordinates }),
     } as FlightTrackPath;
     const data = prepareFlightTrackLayerData([...paths, oversized], 'altitude');
 
-    expect(data.paths.map((path) => path.flightId)).toEqual([1]);
-    expect(data.solidRuns.every((run) => run.flightId === 1)).toBe(true);
-    expect(data.estimatedRuns.every((run) => run.flightId === 1)).toBe(true);
-    expect(data.skippedTracks).toEqual([
-      {
-        flightId: 42,
-        originalPointCount: 150,
-        reducedPointCount: 70,
-        requiredPoints: 51_062,
-        pointLimit: 50_000,
-      },
-    ]);
-    const warning = formatFlightTrackDisplayWarning(
-      data.skippedTracks[0]!,
-      'AT830',
-      '2026-11-22',
-    );
-    expect(warning).toContain('flight AT830 (2026-11-22, track ID: 42)');
-    expect(warning).toContain((51_062).toLocaleString());
-    expect(warning).toContain((50_000).toLocaleString());
-    expect(warning).toContain('150 original and 70 retained');
-    const arcs = [
-      { from: { id: 1 }, to: { id: 2 }, flights: [{ id: 1 }] },
-      { from: { id: 2 }, to: { id: 3 }, flights: [{ id: 42 }] },
-      {
-        from: { id: 3 },
-        to: { id: 4 },
-        flights: [{ id: 1 }, { id: 42 }],
-      },
-    ] as FlightArc[];
-    const fullyTrackedRoutes = findFullyTrackedRouteKeys(
-      arcs,
-      new Set(data.paths.map((path) => path.flightId)),
-    );
+    expect(data.paths.map((path) => path.flightId)).toEqual([1, 42]);
     expect(
-      arcs.filter(
-        (arc) => !fullyTrackedRoutes.has(getRouteKey(arc.from.id, arc.to.id)),
-      ),
-    ).toEqual([arcs[1], arcs[2]]);
-    expect(formatFlightTrackDisplayWarning(data.skippedTracks[0]!)).toContain(
-      'track ID: 42',
+      data.solidRuns
+        .filter((run) => run.flightId === 42)
+        .map((run) => run.altitudeFeet),
+    ).toEqual(
+      Array.from({ length: 69 }, (_, index) => (index % 2 === 0 ? 0 : 51_000)),
     );
-    expect(
-      prepareFlightTrackLayerData([oversized], 'standard').skippedTracks,
-    ).toEqual([]);
-    const standardData = prepareFlightTrackLayerData(
-      [...paths, oversized],
-      'standard',
-    );
-    expect(
-      findFullyTrackedRouteKeys(
-        arcs,
-        new Set(standardData.paths.map((path) => path.flightId)),
-      ).size,
-    ).toBe(3);
   });
 
-  it('skips a track whose required observations alone exceed the weighted display budget', () => {
+  it('renders a track whose observations alone exceed the display budget', () => {
     const coordinates: FlightTrackCoordinate[] = Array.from(
       { length: 25_001 },
       (_, index) => [index * 0.000_01, 0],
     );
     const track = {
       flightId: 8,
-      originalPointCount: coordinates.length,
       samples: toFlightTrackSamples({
         coordinates,
         ground: coordinates.map(() => true),
@@ -527,9 +473,7 @@ describe('flight track layers', () => {
     } as FlightTrackPath;
 
     const data = prepareFlightTrackLayerData([track], 'standard');
-    expect(data.paths).toEqual([]);
-    expect(data.solidRuns).toEqual([]);
-    expect(data.skippedTracks[0]?.requiredPoints).toBe(50_002);
-    expect(track.samples).toHaveLength(25_001);
+    expect(data.paths[0]!.displayPath).toHaveLength(25_001);
+    expect(data.solidRuns).toHaveLength(1);
   });
 });

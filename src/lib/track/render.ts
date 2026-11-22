@@ -6,6 +6,7 @@ import {
 } from './great-circle';
 import {
   fromFlightTrackSamples,
+  MAX_RENDERED_FLIGHT_TRACK_POINTS,
   toFlightTrackSamples,
   type FlightTrackPayload,
   type FlightTrackSample,
@@ -13,6 +14,8 @@ import {
 
 const HORIZONTAL_TOLERANCE_METERS = 30;
 const VERTICAL_TOLERANCE_METERS = 15;
+/** Largest factor the tolerances are loosened by to fit the point cap. */
+const MAX_TOLERANCE_SCALE = 1_024;
 
 // tar1090 subtracts up to 60 seconds between history samples, then applies
 // a 15-second airborne or 30-second ground stale timeout.
@@ -58,7 +61,10 @@ const materializeEstimatedGaps = (
 const preserveAsGround = ({ point, coordinate }: FlightTrackSample) =>
   point.ground ?? coordinate[2] === 0;
 
-const collectMandatoryIndices = (samples: FlightTrackSample[]) => {
+const collectMandatoryIndices = (
+  samples: FlightTrackSample[],
+  keepGround: boolean,
+) => {
   const indices = [0];
   for (let index = 1; index < samples.length; index++) {
     const previous = samples[index - 1]!;
@@ -74,7 +80,7 @@ const collectMandatoryIndices = (samples: FlightTrackSample[]) => {
     ) {
       if (indices.at(-1) !== index - 1) indices.push(index - 1);
       indices.push(index);
-    } else if (ground || index === samples.length - 1) {
+    } else if ((keepGround && ground) || index === samples.length - 1) {
       indices.push(index);
     }
   }
@@ -117,6 +123,7 @@ const altitudeError = (
 
 export const reduceFlightTrackForMap = (
   track: FlightTrackPayload,
+  maxPoints = MAX_RENDERED_FLIGHT_TRACK_POINTS,
 ): FlightTrackPayload => {
   const samples = toFlightTrackSamples(track);
   if (samples.length < 2) return track;
@@ -125,9 +132,6 @@ export const reduceFlightTrackForMap = (
   const unchanged = () =>
     renderSamples === samples ? track : fromFlightTrackSamples(renderSamples);
 
-  const mandatory = collectMandatoryIndices(renderSamples);
-  if (mandatory.length === renderSamples.length) return unchanged();
-
   const vectors = renderSamples.map(({ coordinate: [lon, lat] }) =>
     toUnitVector(lon, lat),
   );
@@ -135,7 +139,7 @@ export const reduceFlightTrackForMap = (
 
   // A point's score is its worst error relative to the tolerance, so a score
   // above 1 means the retained arc misses it.
-  const findWorstPoint = (start: number, end: number) => {
+  const findWorstPoint = (start: number, end: number, scale: number) => {
     const arc = createGreatCircleArc(vectors[start]!, vectors[end]!);
     if (arc.kind === 'antipodal') {
       // Keep an observation to disambiguate the route rather than choosing an arc.
@@ -152,7 +156,7 @@ export const reduceFlightTrackForMap = (
         arc.kind === 'arc' ? projectOntoArc(arc, point) : undefined;
       let score =
         (projection?.distance ?? sphericalDistance(vectors[start]!, point)) /
-        HORIZONTAL_TOLERANCE_METERS;
+        (HORIZONTAL_TOLERANCE_METERS * scale);
       const altitude = altitudes[index];
       if (
         altitude !== undefined &&
@@ -166,7 +170,7 @@ export const reduceFlightTrackForMap = (
           endAltitude,
           projection?.progress,
         );
-        score = Math.max(score, error / VERTICAL_TOLERANCE_METERS);
+        score = Math.max(score, error / (VERTICAL_TOLERANCE_METERS * scale));
       }
       if (score > worstScore) {
         worstIndex = index;
@@ -176,8 +180,26 @@ export const reduceFlightTrackForMap = (
     return worstIndex;
   };
 
-  const selected = new Set(mandatory);
-  refine(spansBetween(mandatory), selected, findWorstPoint);
+  const simplify = (scale: number) => {
+    const mandatory = collectMandatoryIndices(renderSamples, scale === 1);
+    const selected = new Set(mandatory);
+    refine(spansBetween(mandatory), selected, (start, end) =>
+      findWorstPoint(start, end, scale),
+    );
+    return selected;
+  };
+
+  // Noisy loggers and long ground recordings can stay dense at the normal
+  // tolerances. Loosen them, and simplify ground points too, until the track
+  // fits the cap.
+  let selected = simplify(1);
+  for (
+    let scale = 2;
+    selected.size > maxPoints && scale <= MAX_TOLERANCE_SCALE;
+    scale *= 2
+  ) {
+    selected = simplify(scale);
+  }
 
   if (selected.size === renderSamples.length) return unchanged();
   return fromFlightTrackSamples(

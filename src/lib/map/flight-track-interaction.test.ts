@@ -16,7 +16,6 @@ const track = (flightId: number, fromId: number, toId: number) =>
     ...arc(fromId, toId),
     flightId,
     samples: [],
-    originalPointCount: 0,
   }) as FlightTrackPath;
 const context = (
   overrides: Partial<RouteInteractionContext> = {},

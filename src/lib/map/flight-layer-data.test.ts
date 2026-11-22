@@ -27,7 +27,6 @@ describe('flight track layer data', () => {
     expect(paths[0]!.samples.map((sample) => sample.coordinate)).toEqual(
       coordinates,
     );
-    expect(paths[0]!.originalPointCount).toBe(45);
   });
 
   it('carries aligned flags into render paths', () => {

@@ -17,7 +17,6 @@ export type FlightTrackIdentity = FlightArc & {
 
 export type FlightTrackPath = FlightTrackIdentity & {
   samples: FlightTrackSample[];
-  originalPointCount: number;
 };
 
 export const getRouteKey = (fromId: number, toId: number) =>
@@ -110,7 +109,6 @@ export const buildFlightTrackPaths = (
       ...arc,
       flightId: track.flightId,
       samples: toFlightTrackSamples(track),
-      originalPointCount: track.pointCount,
     });
   }
 

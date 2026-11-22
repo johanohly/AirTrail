@@ -283,12 +283,23 @@ describe('flight track map reduction', () => {
     });
   });
 
-  it('keeps all ground observations even above 5,000 points', () => {
+  it('keeps every ground observation when the track fits the cap', () => {
     const coordinates: FlightTrackCoordinate[] = Array.from(
-      { length: 5_001 },
+      { length: 5_000 },
       (_, index) => [10 + index * 0.000_001, 55, 70],
     );
     const track = { coordinates, ground: coordinates.map(() => true) };
     expect(reduceFlightTrackForMap(track)).toBe(track);
+  });
+
+  it('loosens the tolerances until a dense track fits the cap', () => {
+    const coordinates: FlightTrackCoordinate[] = Array.from(
+      { length: 20_000 },
+      (_, index) => [index * 0.001, Math.sin(index * 0.37) * 0.000_5, 0],
+    );
+    const reduced = reduceFlightTrackForMap({ coordinates });
+    expect(reduced.coordinates.length).toBeLessThanOrEqual(5_000);
+    expect(reduced.coordinates[0]).toEqual(coordinates[0]);
+    expect(reduced.coordinates.at(-1)).toEqual(coordinates.at(-1));
   });
 });

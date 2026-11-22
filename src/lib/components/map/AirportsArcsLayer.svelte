@@ -13,7 +13,6 @@
     updatedDeckGlContext,
     Popup,
   } from 'svelte-maplibre';
-  import { toast } from 'svelte-sonner';
 
   import { AirportPopup, ArcPopup } from '.';
 
@@ -39,7 +38,6 @@
   } from '$lib/map/flight-track-interaction';
   import {
     buildFlightTrackLayers,
-    formatFlightTrackDisplayWarning,
     prepareFlightTrackLayerData,
   } from '$lib/map/flight-track-layers';
   import {
@@ -66,7 +64,6 @@
   } from '$lib/state.svelte';
   import type { FlightTrackRow } from '$lib/track/schema';
   import { type FlightData, prepareVisitedAirports } from '$lib/utils';
-  import { formatFlightDate } from '$lib/utils/preferences';
   import { isMediumScreen } from '$lib/utils/size';
 
   const AIRPORT_COLOR = (alpha: number): Color => [16, 185, 129, alpha]; // Tailwind emerald-500
@@ -164,8 +161,7 @@
   });
 
   const trackFlightIds = $derived.by(() => {
-    // Only replace airport arcs once their tracks can actually be rendered.
-    return new Set(flightTrackLayerData.paths.map((track) => track.flightId));
+    return new Set(activeFlightTracks.map((track) => track.flightId));
   });
 
   const fullyTrackedRouteKeys = $derived.by(() => {
@@ -188,43 +184,6 @@
       mapPreferences.flightTrackStyle,
     ),
   );
-
-  let reportedTrackWarnings = new Map<string, string>();
-  $effect(() => {
-    const warnings = new Map<string, string>();
-    for (const failure of flightTrackLayerData.skippedTracks) {
-      const flight = flightById.get(failure.flightId);
-      const flightNumber = flight?.flightNumber;
-      const flightDate = flight?.date
-        ? formatFlightDate(flight.date, flight.datePrecision, {
-            dateFormat: 'iso',
-          })
-        : undefined;
-      const message = formatFlightTrackDisplayWarning(
-        failure,
-        flightNumber,
-        flightDate,
-      );
-      const id = `flight-track-limit-${failure.flightId}`;
-      warnings.set(id, message);
-      if (reportedTrackWarnings.get(id) !== message) {
-        console.warn('Flight track exceeds the map display limit', {
-          ...failure,
-          trackId: failure.flightId,
-          flightNumber,
-          flightDate,
-        });
-        toast.warning(message, { id, duration: Infinity, closeButton: true });
-      }
-    }
-    for (const id of reportedTrackWarnings.keys()) {
-      if (!warnings.has(id)) toast.dismiss(id);
-    }
-    reportedTrackWarnings = warnings;
-  });
-  onDestroy(() => {
-    for (const id of reportedTrackWarnings.keys()) toast.dismiss(id);
-  });
 
   let id = getId('deckgl-layer');
   let hoveredAirport: VisitedAirport | undefined = $state.raw(undefined);
