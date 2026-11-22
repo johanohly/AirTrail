@@ -7,9 +7,17 @@ import type {
   FlightTrackIdentity,
   FlightTrackPath,
 } from './flight-layer-data';
-import { buildFlightTrackDisplayPaths } from './flight-track-display-geometry';
 import {
-  buildFlightTrackRuns,
+  appendDisplayPoint,
+  findSharedDepthCeiling,
+  MAX_FLIGHT_TRACK_DISPLAY_POINTS,
+  prepareFlightTrackDisplaySegments,
+} from './flight-track-display-geometry';
+import {
+  flightTrackStylesMatch,
+  getFlightTrackAltitudeSections,
+  getFlightTrackEdgeStyle,
+  type FlightTrackEdgeStyle,
   type FlightTrackRun,
 } from './flight-track-style';
 import type { FlightTrackStyle } from './map-preferences.svelte';
@@ -31,6 +39,29 @@ export type FlightTrackLayerData = {
   solidRuns: RenderableFlightTrackRun[];
   estimatedRuns: RenderableFlightTrackRun[];
   groundRuns: RenderableFlightTrackRun[];
+  skippedTracks: FlightTrackDisplayFailure[];
+};
+
+export type FlightTrackDisplayFailure = {
+  flightId: number;
+  originalPointCount: number;
+  reducedPointCount: number;
+  requiredPoints: number;
+  pointLimit: number;
+};
+
+export const formatFlightTrackDisplayWarning = (
+  failure: FlightTrackDisplayFailure,
+  flightNumber?: string | null,
+  flightDate?: string | null,
+) => {
+  // The flight ID is also the track's primary key.
+  const identity = [flightDate, `track ID: ${failure.flightId}`]
+    .filter(Boolean)
+    .join(', ');
+  const flight = flightNumber ? `flight ${flightNumber}` : 'flight';
+  const count = (value: number) => value.toLocaleString();
+  return `Unable to render ${flight} (${identity}). The required display geometry contains ${count(failure.requiredPoints)} points, exceeding the ${count(failure.pointLimit)}-point limit. The track has ${count(failure.originalPointCount)} original and ${count(failure.reducedPointCount)} retained points. Your stored flight data has not been modified. Please report this issue to the AirTrail community with the flight and track identifiers.`;
 };
 
 type FlightTrackLayerOptions = {
@@ -69,40 +100,107 @@ const estimatedPathStyle = new PathStyleExtension({
 });
 const ESTIMATED_UNDERLAY_WIDTH_SCALE = 0.56;
 
+const prepareTrackEdges = (path: FlightTrackPath, splitByAltitude: boolean) => {
+  let requiredPoints = 1; // The start of the picking path.
+  let previousStyle: FlightTrackEdgeStyle | undefined;
+  const segments = prepareFlightTrackDisplaySegments(
+    path.samples.map((sample) => sample.coordinate),
+  );
+  const edges = segments.map((segment, index) => {
+    const start = path.samples[index]!;
+    const end = path.samples[index + 1]!;
+    const style = getFlightTrackEdgeStyle(start, end, splitByAltitude);
+    const sections = getFlightTrackAltitudeSections(
+      start.coordinate[2],
+      segment.coincident ? undefined : end.coordinate[2],
+      style,
+    );
+    const visibleLayerCount =
+      (style.estimated ? 2 : 1) + (style.ground ? 1 : 0);
+    const layerCount = visibleLayerCount + 1; // Include the picking layer.
+    const firstStyle = { ...style, altitudeFeet: sections.altitudeAt(0) };
+
+    // Each section adds one endpoint per layer. Each new style run also
+    // repeats its start in its visible layers.
+    requiredPoints += sections.count * layerCount;
+    requiredPoints += (sections.count - 1) * visibleLayerCount;
+    if (!previousStyle || !flightTrackStylesMatch(previousStyle, firstStyle)) {
+      requiredPoints += visibleLayerCount;
+    }
+    previousStyle = {
+      ...style,
+      altitudeFeet: sections.altitudeAt(sections.count - 1),
+    };
+    return { ...segment, sections, style, layerCount };
+  });
+  return { edges, requiredPoints };
+};
+
 export const prepareFlightTrackLayerData = (
   paths: FlightTrackPath[],
   style: FlightTrackStyle,
 ): FlightTrackLayerData => {
   const preparedPaths: RenderableFlightTrackPath[] = [];
   const preparedRuns: RenderableFlightTrackRun[] = [];
+  const skippedTracks: FlightTrackDisplayFailure[] = [];
 
   for (const path of paths) {
-    const sourcePath = path.samples.map((sample) => sample.coordinate);
-    const runs = buildFlightTrackRuns([path], {
-      splitByAltitude: style === 'altitude',
-    });
-    const [trackDisplayPath, ...runDisplayPaths] = buildFlightTrackDisplayPaths(
-      [
-        { path: sourcePath, layerCount: 1 },
-        ...runs.map((run) => ({
-          path: run.path,
-          layerCount:
-            (run.estimated ? 2 : 1) +
-            (style === 'altitude' && run.ground ? 1 : 0),
-        })),
-      ],
+    if (path.samples.length < 2) continue;
+    const { edges, requiredPoints } = prepareTrackEdges(
+      path,
+      style === 'altitude',
     );
+    if (requiredPoints > MAX_FLIGHT_TRACK_DISPLAY_POINTS) {
+      skippedTracks.push({
+        flightId: path.flightId,
+        originalPointCount: path.originalPointCount,
+        reducedPointCount: path.samples.length,
+        requiredPoints,
+        pointLimit: MAX_FLIGHT_TRACK_DISPLAY_POINTS,
+      });
+      continue;
+    }
 
-    preparedPaths.push({
-      ...path,
-      displayPath: trackDisplayPath!,
-    });
-    preparedRuns.push(
-      ...runs.map((run, index) => ({
-        ...run,
-        displayPath: runDisplayPaths[index]!,
-      })),
-    );
+    const ceiling = findSharedDepthCeiling(requiredPoints, edges);
+    const { samples, originalPointCount, ...identity } = path;
+    const [lon, lat] = samples[0]!.coordinate;
+    const displayPath: [number, number][] = [[lon, lat]];
+    let run: RenderableFlightTrackRun | undefined;
+    for (const edge of edges) {
+      const { sections, coordinateAt } = edge;
+      const divisions = 2 ** Math.min(edge.subdivisionDepth, ceiling);
+      let nextSubdivision = 1;
+      for (let index = 0; index < sections.count; index++) {
+        const sectionStyle = {
+          ...edge.style,
+          altitudeFeet: sections.altitudeAt(index),
+        };
+        if (!run || !flightTrackStylesMatch(run, sectionStyle)) {
+          run = {
+            ...identity,
+            ...sectionStyle,
+            displayPath: [displayPath.at(-1)!],
+          };
+          preparedRuns.push(run);
+        }
+
+        const end = sections.endProgress(index);
+        while (nextSubdivision / divisions < end) {
+          run.displayPath.push(
+            appendDisplayPoint(
+              displayPath,
+              coordinateAt(nextSubdivision / divisions),
+            ),
+          );
+          nextSubdivision++;
+        }
+        if (nextSubdivision / divisions === end) nextSubdivision++;
+        run.displayPath.push(
+          appendDisplayPoint(displayPath, coordinateAt(end)),
+        );
+      }
+    }
+    preparedPaths.push({ ...path, displayPath });
   }
 
   return {
@@ -110,6 +208,7 @@ export const prepareFlightTrackLayerData = (
     solidRuns: preparedRuns.filter((run) => !run.estimated),
     estimatedRuns: preparedRuns.filter((run) => run.estimated),
     groundRuns: preparedRuns.filter((run) => run.ground),
+    skippedTracks,
   };
 };
 

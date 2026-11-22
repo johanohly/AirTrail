@@ -1,15 +1,16 @@
 import type { Color } from '@deck.gl/core';
 
-import type { FlightTrackIdentity, FlightTrackPath } from './flight-layer-data';
+import type { FlightTrackIdentity } from './flight-layer-data';
 
-import type { FlightTrackCoordinate } from '$lib/track/schema';
+import type { FlightTrackSample } from '$lib/track/schema';
 
-export type FlightTrackRun = FlightTrackIdentity & {
-  path: FlightTrackCoordinate[];
+export type FlightTrackEdgeStyle = {
   altitudeFeet: number | null;
   ground: boolean;
   estimated: boolean;
 };
+
+export type FlightTrackRun = FlightTrackIdentity & FlightTrackEdgeStyle;
 
 export type FlightTrackAltitudeColorStop = {
   at: number;
@@ -17,6 +18,9 @@ export type FlightTrackAltitudeColorStop = {
 };
 
 const METERS_TO_FEET = 3.280839895013123;
+const ALTITUDE_ROUNDING_CHANGE_FEET = 8_000;
+const LOW_ALTITUDE_STEP_FEET = 50;
+const HIGH_ALTITUDE_STEP_FEET = 500;
 
 export const FLIGHT_TRACK_ALTITUDE_COLOR_STOPS: readonly FlightTrackAltitudeColorStop[] =
   [
@@ -171,7 +175,10 @@ const darkenEstimated = (color: Color): Color => {
 export const metersToFeet = (meters: number) => meters * METERS_TO_FEET;
 
 export const roundFlightTrackAltitude = (altitudeFeet: number) => {
-  const interval = altitudeFeet < 8_000 ? 50 : 500;
+  const interval =
+    altitudeFeet < ALTITUDE_ROUNDING_CHANGE_FEET
+      ? LOW_ALTITUDE_STEP_FEET
+      : HIGH_ALTITUDE_STEP_FEET;
   return interval * Math.round(altitudeFeet / interval);
 };
 
@@ -197,58 +204,108 @@ export const getFlightTrackColor = ({
   return estimated ? darkenEstimated(color) : color;
 };
 
-const getEdgeStyle = (
-  track: FlightTrackPath,
-  index: number,
+export const getFlightTrackEdgeStyle = (
+  start: FlightTrackSample,
+  end: FlightTrackSample,
   splitByAltitude: boolean,
-) => {
-  const sample = track.samples[index]!;
-  const coordinate = sample.coordinate;
-  const ground = splitByAltitude && (sample.point.ground ?? false);
-  const altitudeFeet =
-    !splitByAltitude || ground || coordinate[2] === undefined
-      ? null
-      : roundFlightTrackAltitude(metersToFeet(coordinate[2]));
+): FlightTrackEdgeStyle => {
+  const ground = splitByAltitude && (start.point.ground ?? false);
+  const altitude = start.coordinate[2];
   return {
-    altitudeFeet,
+    altitudeFeet:
+      !splitByAltitude || ground || altitude === undefined
+        ? null
+        : roundFlightTrackAltitude(metersToFeet(altitude)),
     ground,
-    estimated: track.samples[index + 1]?.incomingEdge.estimated ?? false,
+    estimated: end.incomingEdge.estimated ?? false,
   };
 };
 
-const stylesMatch = (
-  left: ReturnType<typeof getEdgeStyle>,
-  right: ReturnType<typeof getEdgeStyle>,
+export const flightTrackStylesMatch = (
+  left: FlightTrackEdgeStyle,
+  right: FlightTrackEdgeStyle,
 ) =>
   left.altitudeFeet === right.altitudeFeet &&
   left.ground === right.ground &&
   left.estimated === right.estimated;
 
-export const buildFlightTrackRuns = (
-  tracks: FlightTrackPath[],
-  { splitByAltitude = true }: { splitByAltitude?: boolean } = {},
-) => {
-  const runs: FlightTrackRun[] = [];
+// Colour bands outside the palette range all share the same end colours.
+const altitudeBands = [
+  ...Array.from(
+    { length: ALTITUDE_ROUNDING_CHANGE_FEET / LOW_ALTITUDE_STEP_FEET },
+    (_, index) => index * LOW_ALTITUDE_STEP_FEET,
+  ),
+  ...Array.from(
+    {
+      length:
+        (FLIGHT_TRACK_MAX_ALTITUDE_FEET - ALTITUDE_ROUNDING_CHANGE_FEET) /
+          HIGH_ALTITUDE_STEP_FEET +
+        1,
+    },
+    (_, index) =>
+      ALTITUDE_ROUNDING_CHANGE_FEET + index * HIGH_ALTITUDE_STEP_FEET,
+  ),
+];
+const altitudeBoundaries = altitudeBands
+  .slice(1)
+  .map(
+    (altitude, index) =>
+      (altitude + altitudeBands[index]!) / 2 / METERS_TO_FEET,
+  );
 
-  for (const track of tracks) {
-    const { samples, ...identity } = track;
-    if (samples.length < 2) continue;
-
-    let style = getEdgeStyle(track, 0, splitByAltitude);
-    let path: FlightTrackCoordinate[] = [samples[0]!.coordinate];
-
-    for (let index = 0; index < samples.length - 1; index++) {
-      const edgeStyle = getEdgeStyle(track, index, splitByAltitude);
-      if (!stylesMatch(style, edgeStyle)) {
-        if (path.length >= 2) runs.push({ ...identity, ...style, path });
-        style = edgeStyle;
-        path = [samples[index]!.coordinate];
-      }
-      path.push(samples[index + 1]!.coordinate);
+const findBand = (altitude: number, includeBoundary: boolean) => {
+  let low = 0;
+  let high = altitudeBoundaries.length;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    const boundary = altitudeBoundaries[middle]!;
+    if (altitude > boundary || (includeBoundary && altitude === boundary)) {
+      low = middle + 1;
+    } else {
+      high = middle;
     }
+  }
+  return low;
+};
 
-    if (path.length >= 2) runs.push({ ...identity, ...style, path });
+export const getFlightTrackAltitudeSections = (
+  start: number | undefined,
+  end: number | undefined,
+  style: FlightTrackEdgeStyle,
+) => {
+  if (
+    style.altitudeFeet === null ||
+    start === undefined ||
+    end === undefined ||
+    start === end
+  ) {
+    return {
+      count: 1,
+      altitudeAt: () =>
+        style.altitudeFeet === null
+          ? null
+          : Math.max(
+              0,
+              Math.min(FLIGHT_TRACK_MAX_ALTITUDE_FEET, style.altitudeFeet),
+            ),
+      endProgress: () => 1,
+    };
   }
 
-  return runs;
+  const climbing = end > start;
+  const low = findBand(Math.min(start, end), true);
+  const high = findBand(Math.max(start, end), false);
+  const count = high - low + 1;
+  const bandAt = (index: number) => (climbing ? low + index : high - index);
+
+  return {
+    count,
+    altitudeAt: (index: number) => altitudeBands[bandAt(index)]!,
+    endProgress: (index: number) => {
+      if (index === count - 1) return 1;
+      const boundary = altitudeBoundaries[bandAt(index) - (climbing ? 0 : 1)]!;
+      // Halve the operands before subtraction to avoid overflow for large inputs.
+      return (boundary / 2 - start / 2) / (end / 2 - start / 2);
+    },
+  };
 };
