@@ -13,6 +13,7 @@ export type TimeDisplayPayload = {
   headline: string | null;
   headlineStatus: 'early' | 'late' | null;
   note: string | null;
+  noteZone: string | null;
   zIndex: number | undefined;
 };
 

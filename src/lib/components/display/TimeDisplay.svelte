@@ -6,6 +6,7 @@
     type TimeDisplayMode,
     type TimeDisplaySide,
   } from './time-display-tether.svelte';
+  import { zoneLabel } from './zone-label';
 
   import { page } from '$app/state';
   import { getModalContext } from '$lib/components/ui/modal/Modal.svelte';
@@ -91,6 +92,10 @@
             .map((n) => `${n.label} ${formatTime(n.date, prefs, primaryTz)}`)
             .join(', ')
         : null,
+      noteZone: zoneLabel(primaryTz, date, {
+        tz: mode === 'flight' ? airportTz : null,
+        label: airportLabel,
+      }),
       zIndex: modalZ !== undefined ? modalZ + 5 : undefined,
     };
   });
