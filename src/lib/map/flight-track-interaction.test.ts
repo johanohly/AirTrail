@@ -12,7 +12,11 @@ const airport = (id: number) => ({ id });
 const arc = (fromId: number, toId: number) =>
   ({ from: airport(fromId), to: airport(toId) }) as FlightArc;
 const track = (flightId: number, fromId: number, toId: number) =>
-  ({ ...arc(fromId, toId), flightId, samples: [] }) as FlightTrackPath;
+  ({
+    ...arc(fromId, toId),
+    flightId,
+    samples: [],
+  }) as FlightTrackPath;
 const context = (
   overrides: Partial<RouteInteractionContext> = {},
 ): RouteInteractionContext => ({

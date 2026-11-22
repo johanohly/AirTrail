@@ -18,7 +18,9 @@ describe('flight track layer data', () => {
       [-179, 56, 2_000],
       [-178, 57],
     ] as FlightTrackRow['coordinates'];
-    const tracks = [{ flightId: 7, coordinates }] as FlightTrackRow[];
+    const tracks = [
+      { flightId: 7, coordinates, pointCount: 45 },
+    ] as FlightTrackRow[];
 
     const paths = buildFlightTrackPaths(flights, arcs, tracks);
 

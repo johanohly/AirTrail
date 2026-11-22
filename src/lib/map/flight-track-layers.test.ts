@@ -7,10 +7,7 @@ import {
   type FlightArc,
   type FlightTrackPath,
 } from './flight-layer-data';
-import {
-  buildFlightTrackDisplayPath,
-  MAX_FLIGHT_TRACK_DISPLAY_POINTS,
-} from './flight-track-display-geometry';
+import { MAX_FLIGHT_TRACK_DISPLAY_POINTS } from './flight-track-display-geometry';
 import {
   buildFlightTrackLayers,
   type FlightTrackRenderContext,
@@ -18,7 +15,9 @@ import {
   type RenderableFlightTrackPath,
   type RenderableFlightTrackRun,
 } from './flight-track-layers';
+import { getFlightTrackColor } from './flight-track-style';
 
+import { reduceFlightTrackForMap } from '$lib/track/render';
 import {
   toFlightTrackSamples,
   type FlightTrackCoordinate,
@@ -74,6 +73,17 @@ type RuntimePathLayerProps<T> = {
 
 const runtimeProps = <T>(layer: { props: unknown }) =>
   layer.props as RuntimePathLayerProps<T>;
+
+const buildFlightTrackDisplayPath = (coordinates: FlightTrackCoordinate[]) =>
+  prepareFlightTrackLayerData(
+    [
+      {
+        flightId: 1,
+        samples: toFlightTrackSamples({ coordinates }),
+      } as FlightTrackPath,
+    ],
+    'standard',
+  ).paths[0]!.displayPath;
 
 describe('flight track layers', () => {
   it('adaptively follows the globe without changing source coordinates', () => {
@@ -174,7 +184,7 @@ describe('flight track layers', () => {
     const trackPaths = buildFlightTrackPaths(
       [{ id: 7, from: { id: 1 }, to: { id: 2 } }] as FlightData[],
       [{ from: { id: 1 }, to: { id: 2 } }] as FlightArc[],
-      [{ flightId: 7, coordinates }] as FlightTrackRow[],
+      [{ flightId: 7, coordinates, pointCount: 2 }] as FlightTrackRow[],
     );
 
     const data = prepareFlightTrackLayerData(trackPaths, 'standard');
@@ -209,7 +219,7 @@ describe('flight track layers', () => {
     ).toHaveLength(5);
   });
 
-  it('bounds tessellation for pathological maximum-size tracks', () => {
+  it('bounds optional tessellation for long tracks', () => {
     const source: FlightTrackCoordinate[] = Array.from(
       { length: 5_000 },
       (_, index): FlightTrackCoordinate =>
@@ -264,7 +274,9 @@ describe('flight track layers', () => {
 
     const altitudeData = prepareFlightTrackLayerData(paths, 'altitude');
     expect(altitudeData.solidRuns).toHaveLength(1);
-    expect(altitudeData.estimatedRuns).toHaveLength(1);
+    expect(altitudeData.estimatedRuns.map((run) => run.altitudeFeet)).toEqual(
+      Array.from({ length: 21 }, (_, index) => 1_000 + index * 50),
+    );
     expect(altitudeData.groundRuns).toHaveLength(1);
   });
 
@@ -380,5 +392,86 @@ describe('flight track layers', () => {
         },
       ),
     ).toEqual([24, 24, 27, 60]);
+  });
+
+  it('colours a reduced descent by reconstructed altitude and keeps solid edges solid', () => {
+    const coordinates: FlightTrackCoordinate[] = [
+      170, 175, 180, -175, -170,
+    ].map((longitude, index) => [
+      longitude,
+      0,
+      (35_000 - index * 1_750) * 0.3048,
+    ]);
+    const track = reduceFlightTrackForMap({
+      coordinates,
+      times: [0, 30, 60, 90, 120],
+    });
+    expect(track.coordinates).toEqual([coordinates[0], coordinates[4]]);
+    expect(track.times).toEqual([0, 120]);
+    const data = prepareFlightTrackLayerData(
+      [
+        {
+          flightId: 7,
+          samples: toFlightTrackSamples(track),
+        } as FlightTrackPath,
+      ],
+      'altitude',
+    );
+
+    expect(data.estimatedRuns).toEqual([]);
+    expect(data.solidRuns.map((run) => run.altitudeFeet)).toEqual(
+      Array.from({ length: 15 }, (_, index) => 35_000 - index * 500),
+    );
+    expect(data.solidRuns[0]!.displayPath.at(-1)![0]).toBeCloseTo(
+      170 + 20 / 28,
+      8,
+    );
+    expect(data.solidRuns.at(-1)!.displayPath.at(-1)).toEqual([190, 0]);
+    const context = renderContext();
+    context.appearance.getAltitudeColor = getFlightTrackColor;
+    const layers = buildFlightTrackLayers({ data, style: 'altitude', context });
+    const { getColor } = runtimeProps<RenderableFlightTrackRun>(layers[2]!);
+    expect(getColor(data.solidRuns[0]!)).not.toEqual(
+      getColor(data.solidRuns.at(-1)!),
+    );
+  });
+
+  it('colours each edge by its start when altitude bands would overflow the budget', () => {
+    const coordinates: FlightTrackCoordinate[] = Array.from(
+      { length: 70 },
+      (_, index) => [index * 0.001, 0, index % 2 === 0 ? 0 : 16_000],
+    );
+    const oversized = {
+      flightId: 42,
+      samples: toFlightTrackSamples({ coordinates }),
+    } as FlightTrackPath;
+    const data = prepareFlightTrackLayerData([...paths, oversized], 'altitude');
+
+    expect(data.paths.map((path) => path.flightId)).toEqual([1, 42]);
+    expect(
+      data.solidRuns
+        .filter((run) => run.flightId === 42)
+        .map((run) => run.altitudeFeet),
+    ).toEqual(
+      Array.from({ length: 69 }, (_, index) => (index % 2 === 0 ? 0 : 51_000)),
+    );
+  });
+
+  it('renders a track whose observations alone exceed the display budget', () => {
+    const coordinates: FlightTrackCoordinate[] = Array.from(
+      { length: 25_001 },
+      (_, index) => [index * 0.000_01, 0],
+    );
+    const track = {
+      flightId: 8,
+      samples: toFlightTrackSamples({
+        coordinates,
+        ground: coordinates.map(() => true),
+      }),
+    } as FlightTrackPath;
+
+    const data = prepareFlightTrackLayerData([track], 'standard');
+    expect(data.paths[0]!.displayPath).toHaveLength(25_001);
+    expect(data.solidRuns).toHaveLength(1);
   });
 });

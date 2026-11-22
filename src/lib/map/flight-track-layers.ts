@@ -7,9 +7,17 @@ import type {
   FlightTrackIdentity,
   FlightTrackPath,
 } from './flight-layer-data';
-import { buildFlightTrackDisplayPaths } from './flight-track-display-geometry';
 import {
-  buildFlightTrackRuns,
+  appendDisplayPoint,
+  findSharedDepthCeiling,
+  MAX_FLIGHT_TRACK_DISPLAY_POINTS,
+  prepareFlightTrackDisplaySegments,
+} from './flight-track-display-geometry';
+import {
+  flightTrackStylesMatch,
+  getFlightTrackAltitudeSections,
+  getFlightTrackEdgeStyle,
+  type FlightTrackEdgeStyle,
   type FlightTrackRun,
 } from './flight-track-style';
 import type { FlightTrackStyle } from './map-preferences.svelte';
@@ -69,6 +77,48 @@ const estimatedPathStyle = new PathStyleExtension({
 });
 const ESTIMATED_UNDERLAY_WIDTH_SCALE = 0.56;
 
+const prepareTrackEdges = (
+  path: FlightTrackPath,
+  splitByAltitude: boolean,
+  interpolateAltitude: boolean,
+) => {
+  let requiredPoints = 1; // The start of the picking path.
+  let previousStyle: FlightTrackEdgeStyle | undefined;
+  const segments = prepareFlightTrackDisplaySegments(
+    path.samples.map((sample) => sample.coordinate),
+  );
+  const edges = segments.map((segment, index) => {
+    const start = path.samples[index]!;
+    const end = path.samples[index + 1]!;
+    const style = getFlightTrackEdgeStyle(start, end, splitByAltitude);
+    const sections = getFlightTrackAltitudeSections(
+      start.coordinate[2],
+      segment.coincident || !interpolateAltitude
+        ? undefined
+        : end.coordinate[2],
+      style,
+    );
+    const visibleLayerCount =
+      (style.estimated ? 2 : 1) + (style.ground ? 1 : 0);
+    const layerCount = visibleLayerCount + 1; // Include the picking layer.
+    const firstStyle = { ...style, altitudeFeet: sections.altitudeAt(0) };
+
+    // Each section adds one endpoint per layer. Each new style run also
+    // repeats its start in its visible layers.
+    requiredPoints += sections.count * layerCount;
+    requiredPoints += (sections.count - 1) * visibleLayerCount;
+    if (!previousStyle || !flightTrackStylesMatch(previousStyle, firstStyle)) {
+      requiredPoints += visibleLayerCount;
+    }
+    previousStyle = {
+      ...style,
+      altitudeFeet: sections.altitudeAt(sections.count - 1),
+    };
+    return { ...segment, sections, style, layerCount };
+  });
+  return { edges, requiredPoints };
+};
+
 export const prepareFlightTrackLayerData = (
   paths: FlightTrackPath[],
   style: FlightTrackStyle,
@@ -77,32 +127,56 @@ export const prepareFlightTrackLayerData = (
   const preparedRuns: RenderableFlightTrackRun[] = [];
 
   for (const path of paths) {
-    const sourcePath = path.samples.map((sample) => sample.coordinate);
-    const runs = buildFlightTrackRuns([path], {
-      splitByAltitude: style === 'altitude',
-    });
-    const [trackDisplayPath, ...runDisplayPaths] = buildFlightTrackDisplayPaths(
-      [
-        { path: sourcePath, layerCount: 1 },
-        ...runs.map((run) => ({
-          path: run.path,
-          layerCount:
-            (run.estimated ? 2 : 1) +
-            (style === 'altitude' && run.ground ? 1 : 0),
-        })),
-      ],
-    );
+    if (path.samples.length < 2) continue;
+    let prepared = prepareTrackEdges(path, style === 'altitude', true);
+    // Altitude glitches can split edges into hundreds of colour bands. Colour
+    // each edge by its start instead when the bands would not fit the budget.
+    if (prepared.requiredPoints > MAX_FLIGHT_TRACK_DISPLAY_POINTS) {
+      prepared = prepareTrackEdges(path, style === 'altitude', false);
+    }
+    const { edges, requiredPoints } = prepared;
 
-    preparedPaths.push({
-      ...path,
-      displayPath: trackDisplayPath!,
-    });
-    preparedRuns.push(
-      ...runs.map((run, index) => ({
-        ...run,
-        displayPath: runDisplayPaths[index]!,
-      })),
-    );
+    const ceiling = findSharedDepthCeiling(requiredPoints, edges);
+    const { samples, ...identity } = path;
+    const [lon, lat] = samples[0]!.coordinate;
+    const displayPath: [number, number][] = [[lon, lat]];
+    let run: RenderableFlightTrackRun | undefined;
+    for (const edge of edges) {
+      const { sections, coordinateAt } = edge;
+      const divisions = 2 ** Math.min(edge.subdivisionDepth, ceiling);
+      let nextSubdivision = 1;
+      for (let index = 0; index < sections.count; index++) {
+        const sectionStyle = {
+          ...edge.style,
+          altitudeFeet: sections.altitudeAt(index),
+        };
+        if (!run || !flightTrackStylesMatch(run, sectionStyle)) {
+          run = {
+            ...identity,
+            ...sectionStyle,
+            displayPath: [displayPath.at(-1)!],
+          };
+          preparedRuns.push(run);
+        }
+
+        // Share geometry between the picking path and the visible colour sections.
+        const end = sections.endProgress(index);
+        while (nextSubdivision / divisions < end) {
+          run.displayPath.push(
+            appendDisplayPoint(
+              displayPath,
+              coordinateAt(nextSubdivision / divisions),
+            ),
+          );
+          nextSubdivision++;
+        }
+        if (nextSubdivision / divisions === end) nextSubdivision++;
+        run.displayPath.push(
+          appendDisplayPoint(displayPath, coordinateAt(end)),
+        );
+      }
+    }
+    preparedPaths.push({ ...path, displayPath });
   }
 
   return {
