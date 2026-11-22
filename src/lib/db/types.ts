@@ -89,7 +89,13 @@ export type CreateFlightPassenger = Omit<
 };
 type FlightRecord = Omit<
   Selectable<flight>,
-  'id' | 'fromId' | 'toId' | 'aircraftId' | 'airlineId' | 'manualDistance'
+  | 'id'
+  | 'fromId'
+  | 'toId'
+  | 'aircraftId'
+  | 'airlineId'
+  | 'manualDistance'
+  | 'sortKey'
 >;
 export type CreateFlight = FlightRecord & {
   /** Left out to keep the stored value on update. */

@@ -266,6 +266,7 @@ export const createFlightPrimitiveWithConnection = async (
       toId,
       aircraftId,
       airlineId,
+      sortKey: null,
     })
     .returning('id')
     .executeTakeFirstOrThrow();
@@ -327,6 +328,11 @@ export const updateFlightPrimitiveWithConnection = async (
       toId,
       aircraftId,
       airlineId,
+      // A moved flight's place only means something among flights with the
+      // same date and precision, so it is dropped when either changes.
+      sortKey: sql<
+        number | null
+      >`case when ${sql.ref('date')} = ${flightData.date} and ${sql.ref('datePrecision')} = ${flightData.datePrecision} then ${sql.ref('sortKey')} end`,
     })
     .where('id', '=', id)
     .executeTakeFirstOrThrow();
@@ -456,6 +462,7 @@ export const createManyFlightsPrimitive = async (
             toId: to?.id ?? null,
             aircraftId: aircraft?.id ?? null,
             airlineId: airline?.id ?? null,
+            sortKey: null,
           }),
         ),
       )

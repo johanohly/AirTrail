@@ -12,6 +12,7 @@ import {
   resolveFlightScope,
 } from '$lib/flight-scope';
 import { attachFlightCustomFieldValues } from '$lib/server/utils/custom-fields';
+import { moveFlight } from '$lib/server/utils/flight-move';
 import {
   createFlight,
   createManyFlights,
@@ -92,6 +93,33 @@ export const flightRouter = router({
         resolveFlightScope(input, user.id),
       );
       return await attachFlightCustomFieldValues(db, flights);
+    }),
+  move: authedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        direction: z.enum(['earlier', 'later']),
+        scope: flightScopeSchema.optional().default(DEFAULT_FLIGHT_SCOPE),
+      }),
+    )
+    .mutation(async ({ ctx: { user, authorization }, input }) => {
+      if (!canListFlights(authorization, input.scope)) {
+        throw new TRPCError({ code: 'FORBIDDEN' });
+      }
+      if (!(await canAccessFlight(authorization, 'update', input.id))) {
+        throw new TRPCError({ code: 'NOT_FOUND' });
+      }
+      const moved = await moveFlight(
+        input.id,
+        input.direction,
+        resolveFlightScope(input.scope, user.id),
+      );
+      if (!moved) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `This flight can't move ${input.direction}`,
+        });
+      }
     }),
   guests: permissionProcedure('flight.read.own').query(
     async ({ ctx: { user } }) => {
@@ -230,7 +258,14 @@ export const flightRouter = router({
     }
     const res = await listFlights(user.id);
     const flights = res.map(
-      ({ id: _, passengers, manualDistance, trackDistance, ...flight }) => {
+      ({
+        id: _,
+        sortKey: _sortKey,
+        passengers,
+        manualDistance,
+        trackDistance,
+        ...flight
+      }) => {
         const passenger = passengers.find(
           (passenger) => passenger.userId === user.id,
         );

@@ -1,18 +1,26 @@
+import { sql } from 'kysely';
+
 import { db } from '$lib/db';
 import { listFlightBaseQuery } from '$lib/db/queries';
 import type { Flight } from '$lib/db/types';
 import type { ResolvedFlightScope } from '$lib/flight-scope';
 import type { FlightTrackSummary } from '$lib/api/v1/dto';
+import { flightRank } from '$lib/utils/data/flight-order';
 
-export type DecodedCursor = { date: string; id: number };
+/** `rank` is missing from cursors issued before flights could be moved. */
+export type DecodedCursor = { date: string; rank: number; id: number };
 
 /** A page request whose cursor has already been decoded and trusted. */
 export type FlightPage = { limit: number; cursor: DecodedCursor | null };
 
-export const encodeCursor = (flight: Pick<Flight, 'date' | 'id'>) =>
-  Buffer.from(JSON.stringify({ date: flight.date, id: flight.id })).toString(
-    'base64url',
-  );
+export const encodeCursor = (flight: Pick<Flight, 'date' | 'id' | 'sortKey'>) =>
+  Buffer.from(
+    JSON.stringify({
+      date: flight.date,
+      rank: flightRank(flight),
+      id: flight.id,
+    }),
+  ).toString('base64url');
 
 export const decodeCursor = (value: string): DecodedCursor | null => {
   try {
@@ -24,13 +32,20 @@ export const decodeCursor = (value: string): DecodedCursor | null => {
     }
     const date: unknown = Reflect.get(parsed, 'date');
     const id: unknown = Reflect.get(parsed, 'id');
-    return typeof date === 'string' && Number.isSafeInteger(id)
-      ? { date, id: Number(id) }
+    const rank: unknown = Reflect.get(parsed, 'rank') ?? id;
+    return typeof date === 'string' &&
+      Number.isSafeInteger(id) &&
+      typeof rank === 'number' &&
+      Number.isFinite(rank)
+      ? { date, rank, id: Number(id) }
       : null;
   } catch {
     return null;
   }
 };
+
+/** Matches the app's tiebreak between flights on one date: see `flightRank`. */
+const rank = sql<number>`coalesce(${sql.ref('flight.sortKey')}, ${sql.ref('flight.id')})`;
 
 export const listFlightsPage = async (
   scope: ResolvedFlightScope,
@@ -41,6 +56,7 @@ export const listFlightsPage = async (
     scope.scope === 'user' ? scope.userId : undefined,
   )
     .orderBy('flight.date', 'desc')
+    .orderBy(rank, 'desc')
     .orderBy('flight.id', 'desc');
 
   const cursor = page.cursor;
@@ -50,7 +66,13 @@ export const listFlightsPage = async (
         eb('flight.date', '<', cursor.date),
         eb.and([
           eb('flight.date', '=', cursor.date),
-          eb('flight.id', '<', cursor.id),
+          eb.or([
+            eb(rank, '<', cursor.rank),
+            eb.and([
+              eb(rank, '=', cursor.rank),
+              eb('flight.id', '<', cursor.id),
+            ]),
+          ]),
         ]),
       ]),
     );

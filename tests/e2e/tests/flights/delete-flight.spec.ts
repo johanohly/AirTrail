@@ -71,11 +71,8 @@ test.describe('Delete Flight', () => {
         // Wait for the card to be visible
         await expect(flightCard).toBeVisible({ timeout: 5000 });
 
-        // Find all buttons in the card and click the last one
-        const allButtons = flightCard.locator('button');
-
-        // The delete button is the last button in the actions area
-        await allButtons.last().click();
+        await flightCard.getByTestId('flight-actions-button').click();
+        await page.getByRole('menuitem', { name: 'Delete' }).click();
 
         const confirmationDialog = page.getByRole('dialog').filter({
           has: page.getByRole('heading', {
@@ -171,10 +168,8 @@ test.describe('Delete Flight', () => {
 
         await expect(flightCard).toBeVisible({ timeout: 5000 });
 
-        // Find the delete button (last button in the card is the delete button)
-        const allButtons = flightCard.locator('button');
-
-        await allButtons.last().click();
+        await flightCard.getByTestId('flight-actions-button').click();
+        await page.getByRole('menuitem', { name: 'Delete' }).click();
 
         // Click cancel button
         await page.getByRole('button', { name: 'Cancel' }).click();
