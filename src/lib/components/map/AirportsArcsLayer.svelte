@@ -164,7 +164,8 @@
   });
 
   const trackFlightIds = $derived.by(() => {
-    return new Set(activeFlightTracks.map((track) => track.flightId));
+    // Only replace airport arcs once their tracks can actually be rendered.
+    return new Set(flightTrackLayerData.paths.map((track) => track.flightId));
   });
 
   const fullyTrackedRouteKeys = $derived.by(() => {

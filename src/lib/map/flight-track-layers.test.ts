@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildFlightTrackPaths,
+  findFullyTrackedRouteKeys,
+  getRouteKey,
   type FlightArc,
   type FlightTrackPath,
 } from './flight-layer-data';
@@ -474,12 +476,40 @@ describe('flight track layers', () => {
     expect(warning).toContain((51_062).toLocaleString());
     expect(warning).toContain((50_000).toLocaleString());
     expect(warning).toContain('150 original and 70 retained');
+    const arcs = [
+      { from: { id: 1 }, to: { id: 2 }, flights: [{ id: 1 }] },
+      { from: { id: 2 }, to: { id: 3 }, flights: [{ id: 42 }] },
+      {
+        from: { id: 3 },
+        to: { id: 4 },
+        flights: [{ id: 1 }, { id: 42 }],
+      },
+    ] as FlightArc[];
+    const fullyTrackedRoutes = findFullyTrackedRouteKeys(
+      arcs,
+      new Set(data.paths.map((path) => path.flightId)),
+    );
+    expect(
+      arcs.filter(
+        (arc) => !fullyTrackedRoutes.has(getRouteKey(arc.from.id, arc.to.id)),
+      ),
+    ).toEqual([arcs[1], arcs[2]]);
     expect(formatFlightTrackDisplayWarning(data.skippedTracks[0]!)).toContain(
       'track ID: 42',
     );
     expect(
       prepareFlightTrackLayerData([oversized], 'standard').skippedTracks,
     ).toEqual([]);
+    const standardData = prepareFlightTrackLayerData(
+      [...paths, oversized],
+      'standard',
+    );
+    expect(
+      findFullyTrackedRouteKeys(
+        arcs,
+        new Set(standardData.paths.map((path) => path.flightId)),
+      ).size,
+    ).toBe(3);
   });
 
   it('skips a track whose required observations alone exceed the weighted display budget', () => {
