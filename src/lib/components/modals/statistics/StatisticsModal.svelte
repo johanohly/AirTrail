@@ -9,9 +9,13 @@
   import FlightsPerWeekday from './charts/FlightsPerWeekday.svelte';
   import FlightsPerYear from './charts/FlightsPerYear.svelte';
   import BreakdownRow from './BreakdownRow.svelte';
+  import DelayedFlightsSheet from './DelayedFlightsSheet.svelte';
+  import { parseDrillDown, type DrillDown } from './drill-down';
+  import PunctualityDrillDown from './PunctualityDrillDown.svelte';
   import PunctualitySection from './PunctualitySection.svelte';
   import RankedList from './RankedList.svelte';
   import RecordsSection from './RecordsSection.svelte';
+  import SeatMap from './SeatMap.svelte';
 
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
@@ -26,6 +30,7 @@
   } from '$lib/components/flight-filters/model';
   import { Button } from '$lib/components/ui/button';
   import { Switch } from '$lib/components/ui/switch';
+  import { HelpTooltip } from '$lib/components/ui/tooltip';
   import { hasClientPermission } from '$lib/authorization/permissions';
   import { flightScopeState, openModalsState } from '$lib/state.svelte';
   import { Modal } from '$lib/components/ui/modal';
@@ -37,9 +42,9 @@
     COUNTRY_BAR_CHARTS,
     COUNTRY_CHARTS,
     countriesByContinentDetails,
-    FLIGHT_CHARTS,
     type FlightChartKey,
   } from '$lib/stats/aggregations';
+  import type { PunctualityGroupKey } from '$lib/stats/punctuality';
   import {
     readIncludeUpcoming,
     writeIncludeUpcoming,
@@ -111,6 +116,11 @@
   });
 
   const prefs = $derived(getPreferences(page.data.user));
+
+  const EARTH_CIRCUMFERENCE_KM = 40_075;
+  const MOON_DISTANCE_KM = 384_400;
+  const SUN_DISTANCE_KM = 149_597_870;
+
   let totalDuration = $derived.by(() =>
     Duration.fromSeconds(
       countedFlights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
@@ -137,17 +147,15 @@
       (c) => c.status === 'visited' || c.status === 'lived',
     ).length,
   );
-  let earthCircumnavigations = $derived(totalDistance / 40075);
+  let earthCircumnavigations = $derived(totalDistance / EARTH_CIRCUMFERENCE_KM);
 
-  let activeChart: FlightChartKey | null = $state(null);
-  let activeEntry: string | null = $state(null);
-  let activeContinent: string | null = $state(null);
+  let drillDown: DrillDown | null = $state.raw(null);
   let modalHistory: ModalHistoryHandle | undefined = $state();
   let wasOpen = $state(false);
   let scrollEl: HTMLElement | undefined;
   /** The control that opened the drill-down, so focus can return to it. */
   let drillDownOpener: Element | null = null;
-  const drillDownOpen = $derived(Boolean(activeChart || activeContinent));
+  const drillDownOpen = $derived(drillDown !== null);
 
   const countryStatus = $derived(
     COUNTRY_CHARTS['visited-country-status'].aggregate(visitedCountries),
@@ -191,37 +199,24 @@
       hasClientPermission(page.data.authorization, 'flight.import.own'),
   );
 
-  const openChart = (key: FlightChartKey, entry?: string) => {
+  const openDrillDown = (next: DrillDown) => {
     drillDownOpener = document.activeElement;
-    activeChart = key;
-    activeEntry = entry ?? null;
-    modalHistory?.push({ activeChart, activeEntry, activeContinent });
+    drillDown = next;
+    modalHistory?.push(next);
   };
 
-  const openContinent = (continent: string) => {
-    drillDownOpener = document.activeElement;
-    activeContinent = continent;
-    modalHistory?.push({ activeChart, activeEntry, activeContinent });
-  };
+  const openChart = (chart: FlightChartKey, entry?: string) =>
+    openDrillDown({ kind: 'chart', chart, entry: entry ?? null });
+
+  const openContinent = (continent: string) =>
+    openDrillDown({ kind: 'continent', continent });
+
+  const openPunctuality = (group: PunctualityGroupKey, entry?: string) =>
+    openDrillDown({ kind: 'punctuality', group, entry: entry ?? null });
 
   const restoreDrilldown = async (state: unknown) => {
-    const drilldown = state as
-      | {
-          activeChart?: unknown;
-          activeEntry?: unknown;
-          activeContinent?: unknown;
-        }
-      | undefined;
-    const chart = drilldown?.activeChart;
-    const nextChart =
-      typeof chart === 'string' && chart in FLIGHT_CHARTS
-        ? (chart as FlightChartKey)
-        : null;
-    const nextContinent =
-      typeof drilldown?.activeContinent === 'string'
-        ? drilldown.activeContinent
-        : null;
-    const closing = drillDownOpen && !nextChart && !nextContinent;
+    const next = parseDrillDown(state);
+    const closing = drillDownOpen && !next;
 
     // When the sheet unmounts with focus inside it, the dialog's focus scope
     // moves focus to the first control at the top, which scrolls the
@@ -231,10 +226,7 @@
       if (dialog instanceof HTMLElement) dialog.focus({ preventScroll: true });
     }
 
-    activeChart = nextChart;
-    activeEntry =
-      typeof drilldown?.activeEntry === 'string' ? drilldown.activeEntry : null;
-    activeContinent = nextContinent;
+    drillDown = next;
     if (!closing) return;
 
     // Once the statistics are interactive again, keyboard users resume on
@@ -248,15 +240,12 @@
   };
 
   $effect(() => {
-    const closedFromDrilldown =
-      wasOpen && !open && (activeChart || activeContinent);
+    const closedFromDrilldown = wasOpen && !open && drillDown;
     wasOpen = open;
 
     if (closedFromDrilldown) {
       drillDownOpener = null;
-      activeChart = null;
-      activeEntry = null;
-      activeContinent = null;
+      drillDown = null;
     }
 
     if (open) {
@@ -266,7 +255,7 @@
           (acc, curr) => (acc += curr.distance ?? 0),
           0,
         );
-        earthCircumnavigations = totalDistance / 40075;
+        earthCircumnavigations = totalDistance / EARTH_CIRCUMFERENCE_KM;
         const duration = Duration.fromSeconds(
           countedFlights.reduce((acc, curr) => (acc += curr.duration ?? 0), 0),
         );
@@ -295,7 +284,7 @@
 
 {#snippet total(
   label: string,
-  sub: string | null,
+  sub: string | import('svelte').Snippet | null,
   cell: string,
   value: import('svelte').Snippet,
 )}
@@ -307,7 +296,9 @@
       {@render value()}
     </div>
     {#if sub}
-      <div class="truncate text-[13px] text-muted-foreground">{sub}</div>
+      <div class="truncate text-[13px] text-muted-foreground">
+        {#if typeof sub === 'string'}{sub}{:else}{@render sub()}{/if}
+      </div>
     {/if}
   </div>
 {/snippet}
@@ -325,11 +316,11 @@
   </section>
 {/snippet}
 
-{#snippet lists(keys: FlightChartKey[])}
+{#snippet lists(keys: FlightChartKey[], columns?: string)}
   <div
     class={[
       'grid gap-x-7 gap-y-6 sm:grid-cols-2',
-      keys.length === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3',
+      columns ?? (keys.length === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'),
     ]}
   >
     {#each keys as chartKey (chartKey)}
@@ -484,6 +475,19 @@
 {/snippet}
 
 {#snippet flightsValue()}<NumberFlow value={flightCount} />{/snippet}
+{#snippet distanceSub()}
+  <!-- The Moon and the Sun go in a popover, where there is room. A popover
+       rather than a tooltip, so a tap opens it too. -->
+  <HelpTooltip>
+    <span class="underline decoration-dotted underline-offset-2">
+      {round(earthCircumnavigations, 2)}× around Earth
+    </span>
+    {#snippet content()}
+      <p>{round(totalDistance / MOON_DISTANCE_KM, 2)}× to the Moon</p>
+      <p>{round(totalDistance / SUN_DISTANCE_KM, 4)}× to the Sun</p>
+    {/snippet}
+  </HelpTooltip>
+{/snippet}
 {#snippet distanceValue()}
   <NumberFlow
     value={convertDistance(totalDistance, prefs)}
@@ -582,7 +586,7 @@
         )}
         {@render total(
           'Distance',
-          `${round(earthCircumnavigations, 2)}× around Earth`,
+          distanceSub,
           'order-4 col-span-3 lg:order-none lg:col-span-1 lg:border-l lg:pl-6',
           distanceValue,
         )}
@@ -620,15 +624,35 @@
       {#snippet aircraftLists()}
         {@render lists(['airlines', 'aircraft-models', 'aircraft-regs'])}
       {/snippet}
-      {#snippet boardLists()}
-        {@render lists(['seat-class', 'seat', 'reason', 'seat-numbers'])}
+      {#snippet boardSection()}
+        <!-- Wide screens get the seat map beside the lists, narrow ones stack
+             it below them. -->
+        <div
+          class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:gap-10"
+        >
+          {@render lists(
+            ['seat-class', 'seat', 'reason', 'seat-numbers'],
+            'lg:grid-cols-1 lg:content-start lg:self-start',
+          )}
+          <SeatMap
+            flights={countedFlights}
+            {seatUserId}
+            onOpen={(seat) => openChart('seat-numbers', seat)}
+          />
+        </div>
       {/snippet}
       {@render section('When', whenCharts)}
       {@render section('Where', whereLists)}
       {@render section('Airlines and aircraft', aircraftLists)}
-      {@render section('On board', boardLists)}
+      {@render section('On board', boardSection)}
       {#snippet punctuality()}
-        <PunctualitySection flights={completedFlights} onOpen={openChart} />
+        <PunctualitySection
+          flights={completedFlights}
+          onOpenGroup={openPunctuality}
+          onOpenDelayedFlights={() =>
+            openDrillDown({ kind: 'delayed-flights' })}
+          {onOpenFlight}
+        />
       {/snippet}
       {#snippet records()}
         <RecordsSection
@@ -645,20 +669,34 @@
     {/if}
   </div>
 
-  {#if activeContinent}
+  {#if drillDown?.kind === 'continent'}
     <ContinentDrillDown
-      continent={activeContinent}
-      countries={countriesByContinentDetailsData[activeContinent] || []}
+      continent={drillDown.continent}
+      countries={countriesByContinentDetailsData[drillDown.continent] || []}
       onBack={() => modalHistory?.back()}
     />
-  {:else if activeChart}
+  {:else if drillDown?.kind === 'chart'}
     <ChartDrillDown
-      chartKey={activeChart}
-      initialEntry={activeEntry}
+      chartKey={drillDown.chart}
+      initialEntry={drillDown.entry}
       flights={countedFlights}
       onBack={() => modalHistory?.back()}
       {onOpenFlight}
       {seatUserId}
+    />
+  {:else if drillDown?.kind === 'punctuality'}
+    <PunctualityDrillDown
+      group={drillDown.group}
+      initialEntry={drillDown.entry}
+      flights={completedFlights}
+      onBack={() => modalHistory?.back()}
+      {onOpenFlight}
+    />
+  {:else if drillDown?.kind === 'delayed-flights'}
+    <DelayedFlightsSheet
+      flights={completedFlights}
+      onBack={() => modalHistory?.back()}
+      {onOpenFlight}
     />
   {/if}
 </Modal>

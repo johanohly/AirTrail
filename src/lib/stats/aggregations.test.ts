@@ -2,15 +2,12 @@ import { TZDate } from '@date-fns/tz';
 import { describe, expect, it } from 'vitest';
 
 import {
-  arrivalDelayMinutes,
   countFlightsPerYear,
   countriesByContinentDetails,
   countriesByContinentDistribution,
   countryDistribution,
-  DELAY_THRESHOLD_MINUTES,
   flightMatchesChartBucket,
   normalizeSeatNumber,
-  punctualityReport,
   reasonDistribution,
   routeDistribution,
   routeLabelForFlight,
@@ -330,130 +327,5 @@ describe('toBreakdown', () => {
       ],
       missing: 3,
     });
-  });
-});
-
-const makeFlight = ({
-  arrivalScheduled = null,
-  arrival = null,
-  airline = null,
-}: {
-  arrivalScheduled?: string | null;
-  arrival?: string | null;
-  airline?: { name: string } | null;
-} = {}) =>
-  ({ airline, raw: { arrivalScheduled, arrival } }) as unknown as FlightData;
-
-describe('arrivalDelayMinutes', () => {
-  it('returns null when scheduled or actual arrival is missing', () => {
-    expect(arrivalDelayMinutes(makeFlight())).toBeNull();
-    expect(
-      arrivalDelayMinutes(
-        makeFlight({ arrivalScheduled: '2024-01-01T10:00:00Z' }),
-      ),
-    ).toBeNull();
-  });
-
-  it('returns null for unparseable timestamps', () => {
-    expect(
-      arrivalDelayMinutes(
-        makeFlight({ arrivalScheduled: 'not-a-date', arrival: 'nope' }),
-      ),
-    ).toBeNull();
-  });
-
-  it('computes signed minutes between actual and scheduled', () => {
-    expect(
-      arrivalDelayMinutes(
-        makeFlight({
-          arrivalScheduled: '2024-01-01T10:00:00Z',
-          arrival: '2024-01-01T10:25:00Z',
-        }),
-      ),
-    ).toBe(25);
-    expect(
-      arrivalDelayMinutes(
-        makeFlight({
-          arrivalScheduled: '2024-01-01T10:00:00Z',
-          arrival: '2024-01-01T09:50:00Z',
-        }),
-      ),
-    ).toBe(-10);
-  });
-});
-
-describe('punctualityReport', () => {
-  it('counts a delay just over the threshold as delayed', () => {
-    const report = punctualityReport([
-      makeFlight({
-        arrivalScheduled: '2024-01-01T10:00:00Z',
-        arrival: '2024-01-01T10:15:30Z',
-      }),
-    ]);
-    expect(report.delayedFlights).toBe(1);
-  });
-
-  it('reports nothing when no flight has scheduled/actual times', () => {
-    const report = punctualityReport([makeFlight(), makeFlight()]);
-    expect(report.assessedFlights).toBe(0);
-    expect(report.delayedFlights).toBe(0);
-    expect(report.delayRate).toBe(0);
-    expect(report.worstAirlines).toEqual([]);
-  });
-
-  it('only counts delays beyond the threshold and ignores early/on-time', () => {
-    const onTime = makeFlight({
-      arrivalScheduled: '2024-01-01T10:00:00Z',
-      arrival: `2024-01-01T10:${String(DELAY_THRESHOLD_MINUTES).padStart(2, '0')}:00Z`, // exactly at threshold → not delayed
-    });
-    const early = makeFlight({
-      arrivalScheduled: '2024-01-01T10:00:00Z',
-      arrival: '2024-01-01T09:45:00Z',
-    });
-    const delayed = makeFlight({
-      arrivalScheduled: '2024-01-01T10:00:00Z',
-      arrival: '2024-01-01T10:40:00Z', // 40 min late
-    });
-
-    const report = punctualityReport([onTime, early, delayed]);
-    expect(report.assessedFlights).toBe(3);
-    expect(report.delayedFlights).toBe(1);
-    expect(report.totalDelayMinutes).toBe(40);
-    expect(report.worstDelayMinutes).toBe(40);
-    expect(report.delayRate).toBeCloseTo((1 / 3) * 100);
-  });
-
-  it('ranks worst airlines by accumulated delay and respects the limit', () => {
-    const flights = [
-      makeFlight({
-        airline: { name: 'Alpha' },
-        arrivalScheduled: '2024-01-01T10:00:00Z',
-        arrival: '2024-01-01T10:30:00Z', // +30
-      }),
-      makeFlight({
-        airline: { name: 'Alpha' },
-        arrivalScheduled: '2024-01-01T10:00:00Z',
-        arrival: '2024-01-01T10:05:00Z', // on time
-      }),
-      makeFlight({
-        airline: { name: 'Beta' },
-        arrivalScheduled: '2024-01-01T10:00:00Z',
-        arrival: '2024-01-01T12:00:00Z', // +120
-      }),
-    ];
-
-    const report = punctualityReport(flights, { worstAirlineLimit: 1 });
-    expect(report.worstAirlines).toHaveLength(1);
-    expect(report.worstAirlines[0]).toMatchObject({
-      airline: 'Beta',
-      totalDelayMinutes: 120,
-      delayedFlights: 1,
-      assessedFlights: 1,
-    });
-
-    const full = punctualityReport(flights);
-    expect(full.worstAirlines.map((a) => a.airline)).toEqual(['Beta', 'Alpha']);
-    const alpha = full.worstAirlines.find((a) => a.airline === 'Alpha')!;
-    expect(alpha.delayRate).toBeCloseTo(50); // 1 of 2 Alpha flights delayed
   });
 });

@@ -2,31 +2,67 @@
   import { createDetailsLookup } from './breakdown';
   import BreakdownLabel from './BreakdownLabel.svelte';
   import BreakdownRow from './BreakdownRow.svelte';
+  import DelayedFlightRow from './DelayedFlightRow.svelte';
+  import ShowAllButton from './ShowAllButton.svelte';
 
   import { HelpTooltip } from '$lib/components/ui/tooltip';
   import {
     DELAY_THRESHOLD_MINUTES,
+    formatDelay,
+    formatSignedDelay,
+    PUNCTUALITY_GROUPS,
     punctualityReport,
-    type FlightChartKey,
-  } from '$lib/stats/aggregations';
-  import type { FlightData } from '$lib/utils';
-  import { Duration } from '$lib/utils/datetime';
+    type PunctualityGroupKey,
+  } from '$lib/stats/punctuality';
+  import { pluralize, type FlightData } from '$lib/utils';
   import { round } from '$lib/utils/number';
 
   let {
     flights,
-    onOpen,
+    onOpenGroup,
+    onOpenDelayedFlights,
+    onOpenFlight,
   }: {
     flights: FlightData[];
-    onOpen: (key: FlightChartKey, entry?: string) => void;
+    onOpenGroup: (group: PunctualityGroupKey, entry?: string) => void;
+    onOpenDelayedFlights: () => void;
+    onOpenFlight?: (flightId: number) => void;
   } = $props();
 
+  const DISPLAY_LIMIT = 3;
+
   const report = $derived(punctualityReport(flights));
-  const largest = $derived(report.worstAirlines[0]?.totalDelayMinutes ?? 0);
-  const detailsFor = $derived(createDetailsLookup('airlines', flights));
-  const duration = (minutes: number) =>
-    Duration.fromSeconds(minutes * 60).toString(true);
 </script>
+
+{#snippet groupList(group: PunctualityGroupKey)}
+  {@const { noun, plural, labelKey } = PUNCTUALITY_GROUPS[group]}
+  {@const entries = report.groups[group]}
+  {@const detailsFor = createDetailsLookup(labelKey, flights)}
+  <div class="min-w-0">
+    <h4 class="mb-1.5 text-[13px] font-semibold">Delays by {noun}</h4>
+    <div class="space-y-0.5">
+      {#each entries.slice(0, DISPLAY_LIMIT) as entry (entry.key)}
+        <BreakdownRow
+          share={entry.totalDelayMinutes / entries[0]!.totalDelayMinutes}
+          value={formatSignedDelay(entry.totalDelayMinutes)}
+          onclick={() => onOpenGroup(group, entry.key)}
+        >
+          <BreakdownLabel
+            chartKey={labelKey}
+            entryKey={entry.key}
+            details={detailsFor(entry.key)}
+          />
+        </BreakdownRow>
+      {/each}
+    </div>
+    {#if entries.length > DISPLAY_LIMIT}
+      <ShowAllButton onclick={() => onOpenGroup(group)}>
+        All {entries.length}
+        {plural}
+      </ShowAllButton>
+    {/if}
+  </div>
+{/snippet}
 
 {#if report.assessedFlights === 0}
   <p class="text-sm text-muted-foreground">
@@ -51,45 +87,56 @@
     <div>
       <div class="text-[13px] text-muted-foreground">Total time lost</div>
       <div class="text-[26px] font-bold tracking-tight">
-        {report.totalDelayMinutes > 0
-          ? duration(report.totalDelayMinutes)
-          : '0m'}
+        {formatDelay(report.totalDelayMinutes)}
       </div>
       {#if report.worstDelayMinutes > 0}
         <div class="text-[13px] text-muted-foreground">
-          Worst delay {duration(report.worstDelayMinutes)}
+          Worst delay {formatDelay(report.worstDelayMinutes)}
         </div>
       {/if}
     </div>
-    <div class="min-w-0 sm:col-span-2 lg:col-span-1">
-      <h4 class="mb-1.5 text-[13px] font-semibold">Most delays by airline</h4>
-      {#if report.worstAirlines.length}
-        <div class="space-y-0.5">
-          {#each report.worstAirlines as airline (airline.airline)}
-            <BreakdownRow
-              share={airline.totalDelayMinutes / largest}
-              value={duration(airline.totalDelayMinutes)}
-              onclick={() =>
-                onOpen(
-                  'airlines',
-                  airline.airline === 'Unknown airline'
-                    ? 'No Data'
-                    : airline.airline,
-                )}
-            >
-              <BreakdownLabel
-                chartKey="airlines"
-                entryKey={airline.airline}
-                details={detailsFor(airline.airline)}
-              />
-            </BreakdownRow>
-          {/each}
+    <div>
+      <div class="text-[13px] text-muted-foreground">Ahead of schedule</div>
+      <div class="text-[26px] font-bold tracking-tight">
+        {formatDelay(report.totalEarlyMinutes)}
+      </div>
+      {#if report.earlyFlights > 0}
+        <div class="text-[13px] text-muted-foreground">
+          {report.earlyFlights}
+          {pluralize(report.earlyFlights, 'flight')} early, best {formatDelay(
+            report.bestEarlyMinutes,
+          )}
         </div>
-      {:else}
-        <p class="px-2 text-sm text-muted-foreground">
-          Every assessed flight arrived on time.
-        </p>
       {/if}
     </div>
   </div>
+
+  {#if report.delayedFlights === 0}
+    <p class="mt-6 text-sm text-muted-foreground">
+      Every assessed flight arrived on time.
+    </p>
+  {:else}
+    <div class="mt-6 grid gap-x-7 gap-y-6 sm:grid-cols-2 xl:grid-cols-4">
+      {@render groupList('airlines')}
+      {@render groupList('routes')}
+      {@render groupList('departure-airports')}
+      <div class="min-w-0">
+        <h4 class="mb-1.5 text-[13px] font-semibold">Most delayed flights</h4>
+        <div class="space-y-0.5">
+          {#each report.delays.slice(0, DISPLAY_LIMIT) as delay (delay.flight.id)}
+            <DelayedFlightRow
+              {delay}
+              largest={report.worstDelayMinutes}
+              onclick={onOpenFlight && (() => onOpenFlight(delay.flight.id))}
+            />
+          {/each}
+        </div>
+        {#if report.delayedFlights > DISPLAY_LIMIT}
+          <ShowAllButton onclick={onOpenDelayedFlights}>
+            All {report.delayedFlights} delayed flights
+          </ShowAllButton>
+        {/if}
+      </div>
+    </div>
+  {/if}
 {/if}
