@@ -12,7 +12,10 @@ const daysAgo = (days: number) => {
   return date.toISOString().slice(0, 10);
 };
 
-/* Three flights: BA100 to London, AF200 to Paris last week, AF300 to New York. */
+/*
+ * Three flights: BA100 to London for business, AF200 to Paris last week to
+ * visit family, AF300 to New York with no reason.
+ */
 const seedFlights = async (page: Page) => {
   const { user } = await usersFactory.create();
   const { airport: jfk } = await airportsFactory.getOrCreate(JFK);
@@ -23,8 +26,13 @@ const seedFlights = async (page: Page) => {
     { flightNumber: 'AF200', fromId: lhr.id, toId: cdg.id, date: daysAgo(7) },
     { flightNumber: 'AF300', fromId: cdg.id, toId: jfk.id, date: '2024-05-01' },
   ];
-  for (const flight of flights) {
-    await flightsFactory.create({ userId: user.id, ...flight });
+  const reasons = ['business', 'Visiting family', null];
+  for (const [index, flight] of flights.entries()) {
+    await flightsFactory.create({
+      userId: user.id,
+      ...flight,
+      passenger: { flightReason: reasons[index] },
+    });
   }
   await login(page, user);
   await page.goto('/flights');
@@ -62,6 +70,20 @@ test.describe('Flight filters', () => {
     await menu.getByRole('combobox').fill('france');
     await menu
       .getByRole('menuitemcheckbox', { name: 'Arrival country / France' })
+      .click();
+
+    await expectFlights(page, ['AF200']);
+  });
+
+  test('offers and filters by a custom flight reason', async ({ page }) => {
+    await seedFlights(page);
+    await page.getByRole('button', { name: 'Filter', exact: true }).click();
+    const menu = page.locator('[data-filter-menu-content]');
+    await menu.getByRole('combobox').fill('visiting');
+    await menu
+      .getByRole('menuitemcheckbox', {
+        name: 'Flight reason / Visiting family',
+      })
       .click();
 
     await expectFlights(page, ['AF200']);

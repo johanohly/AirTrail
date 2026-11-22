@@ -39,6 +39,7 @@ type FlightInput = {
     guestName?: string;
     seatClass?: string;
     seatNumber?: string;
+    flightReason?: string;
   }>;
 };
 
@@ -90,6 +91,7 @@ const flight = ({
       seat: null,
       seatClass: passenger.seatClass ?? null,
       seatNumber: passenger.seatNumber ?? null,
+      flightReason: passenger.flightReason ?? null,
     })),
   } as unknown as FlightData;
 };
@@ -198,6 +200,69 @@ describe('month and day filters', () => {
   it('ignores dates without a day for the day of month', () => {
     expect(matchingIds(flights, withOption('dayOfMonth', ['1']))).toEqual([]);
     expect(matchingIds(flights, withOption('dayOfMonth', ['15']))).toEqual([1]);
+  });
+});
+
+describe('flight reason filter', () => {
+  const flights = [
+    flight({
+      id: 1,
+      passengers: [
+        { userId: 'maya', flightReason: 'Study abroad' },
+        { userId: 'jonas', flightReason: 'business' },
+      ],
+    }),
+    flight({
+      id: 2,
+      passengers: [{ userId: 'maya', flightReason: 'leisure' }],
+    }),
+    flight({ id: 3, passengers: [{ userId: 'maya' }] }),
+  ];
+  const business = withOption('flightReason', ['Business']);
+
+  it("reads the shown user's reason", () => {
+    expect(matchingIds(flights, business, { seatUserId: 'maya' })).toEqual([]);
+    expect(matchingIds(flights, business, { seatUserId: 'jonas' })).toEqual([
+      1,
+    ]);
+  });
+
+  it("reads anyone's reason when all users are shown", () => {
+    expect(matchingIds(flights, business)).toEqual([1]);
+  });
+
+  it('excludes flights with the reason, keeping ones without any', () => {
+    const notLeisure = withOption('flightReason', ['Leisure'], 'is not');
+    expect(matchingIds(flights, notLeisure, { seatUserId: 'maya' })).toEqual([
+      1, 3,
+    ]);
+  });
+
+  it('offers custom reasons as typed and built-ins in title case', () => {
+    const options = filterOptions(flights, {
+      scope: filterScope(createDefaultFilters(), 'maya'),
+    });
+    expect(
+      options.flightReason.map(({ value, label }) => [value, label]),
+    ).toEqual([
+      ['Leisure', 'Leisure'],
+      ['Study abroad', 'Study abroad'],
+    ]);
+  });
+
+  it('merges a saved reason with the built-in it spells', () => {
+    const spelled = [
+      flight({ id: 1, passengers: [{ flightReason: 'business' }] }),
+      flight({ id: 2, passengers: [{ flightReason: 'Business ' }] }),
+      flight({ id: 3, passengers: [{ flightReason: ' ' }] }),
+    ];
+    const options = filterOptions(spelled, {
+      scope: filterScope(createDefaultFilters()),
+    });
+    expect(options.flightReason).toEqual([
+      { value: 'Business', label: 'Business', count: 2 },
+    ]);
+    expect(matchingIds(spelled, business)).toEqual([1, 2]);
   });
 });
 

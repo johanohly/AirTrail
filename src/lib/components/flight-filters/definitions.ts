@@ -1,6 +1,7 @@
 import {
   Armchair,
   ArrowLeftRight,
+  Briefcase,
   Calendar,
   CalendarCheck,
   CalendarDays,
@@ -39,6 +40,7 @@ import {
   toTitleCase,
   type FlightData,
 } from '$lib/utils';
+import { flightReasonLabel } from '$lib/utils/flight-reasons';
 
 /*
  * Every flight filter is one entry in `FILTER_DEFINITIONS`. The entry says
@@ -71,7 +73,7 @@ export type FilterOption = {
 
 type OptionDetails = Omit<FilterOption, 'value' | 'count'>;
 
-/** Whose passenger rows the seat filters read. */
+/** Whose passenger rows the seat and reason filters read. */
 export type FilterScope = {
   /** Picked by an inclusive passenger filter. */
   passengerTokens?: string[];
@@ -163,10 +165,10 @@ const continentOptions = Object.entries(ContinentMap).map(([value, label]) => ({
 }));
 
 /*
- * The passenger rows the seat filters read: those picked by an inclusive
- * passenger filter, else the shown user's row, else every row.
+ * The passenger rows the seat and reason filters read: those picked by an
+ * inclusive passenger filter, else the shown user's row, else every row.
  */
-const seatPassengers = (
+const scopedPassengers = (
   flight: FlightData,
   scope: FilterScope,
 ): FlightPassenger[] => {
@@ -398,12 +400,28 @@ export const FILTER_DEFINITIONS = [
   },
   {
     kind: 'option',
+    id: 'flightReason',
+    label: 'Flight reason',
+    group: 'flight',
+    icon: Briefcase,
+    // Options come from the flights rather than a fixed list, so a user's own
+    // reasons show up too. They're keyed by label, as in the statistics, so a
+    // saved "Business" and the built-in "business" are one option.
+    values: (flight, scope) =>
+      scopedPassengers(flight, scope).map(
+        (passenger) =>
+          passenger.flightReason &&
+          flightReasonLabel(passenger.flightReason.trim()),
+      ),
+  },
+  {
+    kind: 'option',
     id: 'seatClass',
     label: 'Seat class',
     group: 'seat',
     icon: Armchair,
     values: (flight, scope) =>
-      seatPassengers(flight, scope).map((passenger) => passenger.seatClass),
+      scopedPassengers(flight, scope).map((passenger) => passenger.seatClass),
     known: SeatClasses.map((value) => ({ value, label: toTitleCase(value) })),
   },
   {
@@ -413,7 +431,7 @@ export const FILTER_DEFINITIONS = [
     group: 'seat',
     icon: PersonStanding,
     values: (flight, scope) =>
-      seatPassengers(flight, scope).map((passenger) => passenger.seat),
+      scopedPassengers(flight, scope).map((passenger) => passenger.seat),
     known: SeatTypes.map((value) => ({
       value,
       label: SeatTypeLabels[value],
@@ -426,7 +444,7 @@ export const FILTER_DEFINITIONS = [
     group: 'seat',
     icon: LocateFixed,
     values: (flight, scope) =>
-      seatPassengers(flight, scope).map(
+      scopedPassengers(flight, scope).map(
         (passenger) =>
           normalizeSeatNumber(passenger.seatNumber) ??
           passenger.seatNumber?.trim(),
