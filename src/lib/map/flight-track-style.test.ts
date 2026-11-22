@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { FlightTrackPath } from './flight-layer-data';
+import { prepareFlightTrackLayerData } from './flight-track-layers';
 import {
-  buildFlightTrackRuns,
   getFlightTrackColor,
   metersToFeet,
   roundFlightTrackAltitude,
@@ -19,8 +19,17 @@ const track = (
 ) =>
   ({
     flightId: 1,
+    originalPointCount: coordinates.length,
     samples: toFlightTrackSamples({ coordinates, ...options }),
   }) as FlightTrackPath;
+
+const buildRuns = (
+  tracks: FlightTrackPath[],
+  style: 'altitude' | 'standard' = 'altitude',
+) => {
+  const data = prepareFlightTrackLayerData(tracks, style);
+  return [...data.solidRuns, ...data.estimatedRuns];
+};
 
 describe('flight track styling', () => {
   it('converts metres and rounds like tar1090', () => {
@@ -101,13 +110,13 @@ describe('flight track styling', () => {
   });
 
   it('merges consecutive edges with the same rounded style', () => {
-    const runs = buildFlightTrackRuns([
+    const runs = buildRuns([
       track(
         [
           [10, 55, 304.8],
-          [11, 56, 307.8],
-          [12, 57, 365.76],
-          [13, 58, 368.8],
+          [10.01, 55, 307.8],
+          [10.02, 55, 304.8],
+          [10.03, 55, 306],
         ],
         { estimated: [false, false, false, true] },
       ),
@@ -117,46 +126,46 @@ describe('flight track styling', () => {
     expect(runs[0]).toMatchObject({
       altitudeFeet: 1_000,
       estimated: false,
-      path: [
-        [10, 55, 304.8],
-        [11, 56, 307.8],
-        [12, 57, 365.76],
+      displayPath: [
+        [10, 55],
+        [10.01, 55],
+        [10.02, 55],
       ],
     });
     expect(runs[1]).toMatchObject({
-      altitudeFeet: 1_200,
+      altitudeFeet: 1_000,
       estimated: true,
-      path: [
-        [12, 57, 365.76],
-        [13, 58, 368.8],
+      displayPath: [
+        [10.02, 55],
+        [10.03, 55],
       ],
     });
   });
 
   it('uses starting-point flight state and destination-point uncertainty', () => {
-    const runs = buildFlightTrackRuns([
+    const runs = buildRuns([
       track(
         [
           [10, 55, 0],
           [11, 56, 304.8],
-          [12, 57, 609.6],
+          [12, 57, 304.8],
         ],
         { ground: [true, false, false], estimated: [false, true, false] },
       ),
     ]);
 
     expect(runs).toHaveLength(2);
-    expect(runs[0]).toMatchObject({ ground: true, estimated: true });
-    expect(runs[1]).toMatchObject({ ground: false, estimated: false });
+    expect(runs[0]).toMatchObject({ ground: false, estimated: false });
+    expect(runs[1]).toMatchObject({ ground: true, estimated: true });
   });
 
   it('keeps ground runs together when recorded altitude changes', () => {
-    const runs = buildFlightTrackRuns([
+    const runs = buildRuns([
       track(
         [
           [10, 55, 0],
-          [11, 56, 100],
-          [12, 57, 200],
+          [10.01, 55, 100],
+          [10.02, 55, 200],
         ],
         { ground: [true, true, false] },
       ),
@@ -166,27 +175,27 @@ describe('flight track styling', () => {
     expect(runs[0]).toMatchObject({
       altitudeFeet: null,
       ground: true,
-      path: [
-        [10, 55, 0],
-        [11, 56, 100],
-        [12, 57, 200],
+      displayPath: [
+        [10, 55],
+        [10.01, 55],
+        [10.02, 55],
       ],
     });
   });
 
   it('only splits standard runs at estimated boundaries', () => {
-    const runs = buildFlightTrackRuns(
+    const runs = buildRuns(
       [
         track(
           [
             [10, 55, 0],
             [11, 56, 304.8],
-            [12, 57, 609.6],
+            [12, 57, 304.8],
           ],
           { ground: [true, false, false], estimated: [false, false, false] },
         ),
       ],
-      { splitByAltitude: false },
+      'standard',
     );
 
     expect(runs).toHaveLength(1);
