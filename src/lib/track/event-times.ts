@@ -14,7 +14,7 @@ type EventTrack = Pick<FlightTrackInput, 'coordinates' | 'times' | 'ground'>;
 const airborneAt = (track: EventTrack) => (i: number) =>
   track.ground
     ? track.ground[i] === false
-    : (track.coordinates[i]![2] ?? 0) > 0;
+    : (track.coordinates[i]?.[2] ?? 0) > 0;
 
 export const detectTrackEventTimes = (track: EventTrack) => {
   const times = track.times;

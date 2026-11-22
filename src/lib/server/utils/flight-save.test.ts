@@ -78,6 +78,7 @@ const {
   createManyFlights,
   fillFlightTimesFromTrackWithConnection,
   saveFlightAggregate,
+  validateAndSaveFlight,
   withTrackEventTimes,
 } = await import('./flight');
 
@@ -275,8 +276,22 @@ describe('takeoff and landing times from a written track', () => {
     expect(withTrackEventTimes(input)).toBe(input);
   });
 
-  it('does not fill on the shared save path the web form uses', async () => {
-    await create(writer(role('flight.create.own')), flight());
+  it('does not fill on the save path the web form uses', async () => {
+    const airport = { id: 1, tz: 'UTC', lat: 0, lon: 0 };
+    const result = await validateAndSaveFlight(
+      writer(role('flight.create.own')),
+      {
+        from: airport,
+        to: airport,
+        datePrecision: 'day',
+        departure: '1970-01-01T00:00:00.000Z',
+        departureTime: '07:00',
+        passengers: [passenger('me')],
+        customFields: {},
+        track,
+      } as unknown as Parameters<typeof validateAndSaveFlight>[1],
+    );
+    expect(result).toMatchObject({ success: true });
     expect(mocks.createFlightPrimitiveWithConnection).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ takeoffActual: null, landingActual: null }),
@@ -362,6 +377,37 @@ describe('takeoff and landing times from a written track', () => {
         ['id', '=', 5],
         ['takeoffActual', 'is', null],
       ],
+      [
+        { landingActual: '1970-01-01T08:59:00.000Z' },
+        ['id', '=', 5],
+        ['landingActual', 'is', null],
+      ],
+    ]);
+  });
+
+  it('leaves a side alone when the imported record has a time for it', async () => {
+    const existing = flight({
+      id: 5,
+      date: '1970-01-01',
+      from: { id: 1, tz: 'UTC' },
+      to: { id: 2, tz: 'UTC' },
+      track: undefined,
+      passengers: [passenger('me', 10)],
+    } as Partial<CreateFlight>);
+    mocks.existingFlights = [existing];
+    mocks.getFlightPrimitive.mockResolvedValue(existing);
+    await createManyFlights(
+      [
+        flight({
+          date: '1970-01-01',
+          from: { id: 1, tz: 'UTC' },
+          to: { id: 2, tz: 'UTC' },
+          takeoffActual: '1970-01-01T07:12:00.000Z',
+        }),
+      ],
+      'me',
+    );
+    expect(mocks.updates).toEqual([
       [
         { landingActual: '1970-01-01T08:59:00.000Z' },
         ['id', '=', 5],

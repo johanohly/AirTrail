@@ -122,6 +122,6 @@ Each coordinate is `[longitude, latitude]` or `[longitude, latitude, altitude]`,
 
 You can also send a `track` object when creating or updating a flight with `POST /api/v1/flights` or `PUT /api/v1/flights/{id}`. This needs the `tracks.write` scope. On update, omitting `track` keeps the current track and `"track": null` deletes it.
 
-Saving a track through the API or [MCP](/docs/api/model-context-protocol) fills empty takeoff and landing times from it, with the same rules as the flight form. Times that are already set, or sent in the same request, are kept.
+Saving a track through the API or [MCP](/docs/api/model-context-protocol) fills empty takeoff and landing times from it, with the same rules as the flight form. A time sent in the same request is kept, and so is one already stored when you use `PUT /api/v1/flights/{id}/track`. `PUT /api/v1/flights/{id}` replaces the whole flight, so include the current times there to keep them.
 
 The flight endpoints return only a track summary with the point count, format, file name, and last update time. See the [API overview](/docs/api/getting-started) for authentication.

@@ -23,7 +23,7 @@ import {
 import type { DB } from '$lib/db/schema';
 import type { CreateFlight, DatabaseConnection, Flight } from '$lib/db/types';
 import type { ResolvedFlightScope } from '$lib/flight-scope';
-import type { FlightTrackInput } from '$lib/track/schema';
+import type { FlightTrackPayload } from '$lib/track/schema';
 import {
   resolveStoredTrackEventTimes,
   type StoredEventFlight,
@@ -184,15 +184,20 @@ export const createFlight = async (data: CreateFlight) => {
   return await createFlightPrimitive(db, data);
 };
 
+type RunwayTimes = Pick<
+  Partial<CreateFlight>,
+  'takeoffActual' | 'landingActual'
+>;
+
 /*
  * The takeoff and landing times a track fills on a flight: only the empty
  * ones, as UTC ISO strings, and neither when it would put the landing before
  * the takeoff.
  */
-const trackTimesToFill = (
-  track: FlightTrackInput,
+export const trackTimesToFill = (
+  track: FlightTrackPayload,
   flight: StoredEventFlight,
-): Pick<Partial<CreateFlight>, 'takeoffActual' | 'landingActual'> => {
+): RunwayTimes => {
   const detected = resolveStoredTrackEventTimes(track, flight);
   const fill = {
     ...(!flight.takeoffActual &&
@@ -220,32 +225,38 @@ export const withTrackEventTimes = (values: CreateFlight): CreateFlight =>
     ? { ...values, ...trackTimesToFill(values.track, values) }
     : values;
 
-/** Fills an existing flight's empty takeoff and landing times from a track. */
+/**
+ * Fills an existing flight's empty takeoff and landing times from a track,
+ * leaving a side alone when `sent` has a time for it. Returns whether it
+ * filled any.
+ */
 export const fillFlightTimesFromTrackWithConnection = async (
   trx: DatabaseConnection,
   flightId: number,
-  track: FlightTrackInput,
+  track: FlightTrackPayload,
+  sent: RunwayTimes = {},
 ) => {
   const flight = await getFlightPrimitive(trx, flightId);
-  if (!flight) return;
-  const { takeoffActual, landingActual } = trackTimesToFill(track, flight);
-  // The null checks keep a value written after the flight was read.
-  if (takeoffActual) {
-    await trx
+  if (!flight) return false;
+  const fill = trackTimesToFill(track, {
+    ...flight,
+    takeoffActual: flight.takeoffActual ?? sent.takeoffActual ?? null,
+    landingActual: flight.landingActual ?? sent.landingActual ?? null,
+  });
+  let filled = false;
+  for (const column of ['takeoffActual', 'landingActual'] as const) {
+    const value = fill[column];
+    if (!value) continue;
+    // The null check keeps a value written after the flight was read.
+    const result = await trx
       .updateTable('flight')
-      .set({ takeoffActual })
+      .set({ [column]: value })
       .where('id', '=', flightId)
-      .where('takeoffActual', 'is', null)
-      .execute();
+      .where(column, 'is', null)
+      .executeTakeFirst();
+    if (result.numUpdatedRows > 0n) filled = true;
   }
-  if (landingActual) {
-    await trx
-      .updateTable('flight')
-      .set({ landingActual })
-      .where('id', '=', flightId)
-      .where('landingActual', 'is', null)
-      .execute();
-  }
+  return filled;
 };
 
 type FlightAggregatePlan = {
@@ -854,6 +865,7 @@ export const createManyFlights = async (
   const tracksToUpsert: Array<{
     flightId: number;
     track: NonNullable<CreateFlight['track']>;
+    sent: RunwayTimes;
   }> = [];
   const referenceUpdates: Array<{
     flightId: number;
@@ -866,7 +878,14 @@ export const createManyFlights = async (
     if (existingFlight) {
       const existingId = existingFlight.id;
       if (f.track) {
-        tracksToUpsert.push({ flightId: existingId, track: f.track });
+        tracksToUpsert.push({
+          flightId: existingId,
+          track: f.track,
+          sent: {
+            takeoffActual: f.takeoffActual,
+            landingActual: f.landingActual,
+          },
+        });
       }
       const referenceUpdate = getMissingFlightReferenceUpdate(
         existingFlight,
@@ -942,9 +961,14 @@ export const createManyFlights = async (
         }
       }
 
-      for (const { flightId, track } of tracksToUpsert) {
+      for (const { flightId, track, sent } of tracksToUpsert) {
         await upsertFlightTrackPrimitiveWithConnection(trx, flightId, track);
-        await fillFlightTimesFromTrackWithConnection(trx, flightId, track);
+        await fillFlightTimesFromTrackWithConnection(
+          trx,
+          flightId,
+          track,
+          sent,
+        );
       }
 
       if (passengersToAttach.length) {
