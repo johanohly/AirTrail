@@ -296,26 +296,36 @@ describe('flight track map reduction', () => {
     expect(reduceFlightTrackForMap(track)).toBe(track);
   });
 
-  it.each([
-    ['noisy', (index: number) => Math.sin(index * 0.37) * 0.000_5],
-    ['straight', () => 0],
-  ] as const)(
-    'uses the whole budget on an oversized %s ground track',
-    (_, latitudeAt) => {
-      const coordinates: FlightTrackCoordinate[] = Array.from(
-        { length: 20_000 },
-        (_, index) => [index * 0.001, latitudeAt(index), 0],
-      );
-      const track = { coordinates };
-      const reduced = reduceFlightTrackForMap(track);
-      expect(reduced.coordinates).toHaveLength(
-        MAX_RENDERED_FLIGHT_TRACK_POINTS,
-      );
-      expect(reduced.coordinates[0]).toBe(coordinates[0]);
-      expect(reduced.coordinates.at(-1)).toBe(coordinates.at(-1));
-      expect(reduceFlightTrackForMap(track)).toEqual(reduced);
-    },
-  );
+  it('stops at the budget when the ground track still exceeds V15', () => {
+    const coordinates: FlightTrackCoordinate[] = Array.from(
+      { length: MAX_RENDERED_FLIGHT_TRACK_POINTS + 2 },
+      (_, index) => [index * 0.001, 0, index % 2 === 0 ? 0 : 100],
+    );
+    const track = { coordinates, ground: coordinates.map(() => true) };
+    const reduced = reduceFlightTrackForMap(track);
+    expect(reduced.coordinates).toHaveLength(MAX_RENDERED_FLIGHT_TRACK_POINTS);
+    expect(reduced.coordinates[0]).toBe(coordinates[0]);
+    expect(reduced.coordinates.at(-1)).toBe(coordinates.at(-1));
+    expect(reduceFlightTrackForMap(track)).toEqual(reduced);
+  });
+
+  it('stops below the budget when the fallback meets H30/V15', () => {
+    const peak = 2_500;
+    const coordinates: FlightTrackCoordinate[] = Array.from(
+      { length: MAX_RENDERED_FLIGHT_TRACK_POINTS + 1 },
+      (_, index) => [index * 0.001, 0, index === peak ? 100 : 0],
+    );
+    const track = { coordinates, ground: coordinates.map(() => true) };
+    const reduced = reduceFlightTrackForMap(track);
+    expect(reduced.coordinates).toEqual([
+      coordinates[0],
+      coordinates[peak - 1],
+      coordinates[peak],
+      coordinates[peak + 1],
+      coordinates.at(-1),
+    ]);
+    expectReconstructionWithinTolerance(coordinates, reduced.coordinates);
+  });
 
   it('allocates the last slot to the greatest normalized error across spans', () => {
     const track: FlightTrackPayload = {
