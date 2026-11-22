@@ -218,6 +218,9 @@ paths:
       security:
         - bearerAuth: [tracks.write, flight.update.own]
       summary: Replace a flight track
+      description: >-
+        Empty takeoff and landing times on the flight are filled from the
+        track, with the same rules as the flight form.
       x-conditional-scopes: [flight.update.any]
       requestBody:
         required: true

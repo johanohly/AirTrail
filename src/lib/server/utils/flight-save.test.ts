@@ -12,12 +12,27 @@ const mocks = vi.hoisted(() => ({
   flightOwnership: vi.fn(),
   createFlightPrimitiveWithConnection: vi.fn(),
   updateFlightPrimitiveWithConnection: vi.fn(),
+  createManyFlightsPrimitive: vi.fn(),
+  upsertFlightTrackPrimitiveWithConnection: vi.fn(),
+  existingFlights: [] as unknown[],
+  updates: [] as unknown[][],
 }));
+
+/** Records `updateTable(...).set(...).where(...)` calls as `[set, ...wheres]`. */
+const recordingTrx = () => {
+  const query = {
+    set: (value: unknown) => (mocks.updates.push([value]), query),
+    where: (...args: unknown[]) => (mocks.updates.at(-1)!.push(args), query),
+    execute: async () => [],
+    executeTakeFirst: async () => ({ numUpdatedRows: 1n }),
+  };
+  return { updateTable: () => query };
+};
 
 vi.mock('$lib/db', () => ({
   db: {
     transaction: () => ({
-      execute: (run: (trx: object) => unknown) => run({}),
+      execute: (run: (trx: object) => unknown) => run(recordingTrx()),
     }),
   },
 }));
@@ -29,6 +44,16 @@ vi.mock('$lib/db/queries', async (importOriginal) => ({
     mocks.createFlightPrimitiveWithConnection,
   updateFlightPrimitiveWithConnection:
     mocks.updateFlightPrimitiveWithConnection,
+  createManyFlightsPrimitive: mocks.createManyFlightsPrimitive,
+  upsertFlightTrackPrimitiveWithConnection:
+    mocks.upsertFlightTrackPrimitiveWithConnection,
+  listFlightBaseQuery: () => {
+    const query = {
+      where: () => query,
+      execute: async () => mocks.existingFlights,
+    };
+    return query;
+  },
 }));
 
 vi.mock('$lib/server/authorization/flight', async (importOriginal) => ({
@@ -50,6 +75,7 @@ vi.mock('$lib/server/utils/custom-fields', async (importOriginal) => ({
 }));
 
 const {
+  createManyFlights,
   fillFlightTimesFromTrackWithConnection,
   saveFlightAggregate,
   withTrackEventTimes,
@@ -103,6 +129,8 @@ const update = (w: ReturnType<typeof writer>, flight: CreateFlight) =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.existingFlights = [];
+  mocks.updates = [];
   mocks.createFlightPrimitiveWithConnection.mockResolvedValue({
     flightId: 7,
     passengers: [],
@@ -259,21 +287,85 @@ describe('takeoff and landing times from a written track', () => {
     mocks.getFlightPrimitive.mockResolvedValue(
       flight({ landingActual: '1970-01-01T09:01:00.000Z' }),
     );
-    const updates: unknown[][] = [];
-    const query = {
-      set: (value: unknown) => (updates.push([value]), query),
-      where: (...args: unknown[]) => (updates.at(-1)!.push(args), query),
-      execute: async () => [],
-    };
-    const trx = { updateTable: () => query } as unknown as Parameters<
+    const trx = recordingTrx() as unknown as Parameters<
       typeof fillFlightTimesFromTrackWithConnection
     >[0];
     await fillFlightTimesFromTrackWithConnection(trx, 1, track);
-    expect(updates).toEqual([
+    expect(mocks.updates).toEqual([
       [
         { takeoffActual: '1970-01-01T07:00:00.000Z' },
         ['id', '=', 1],
         ['takeoffActual', 'is', null],
+      ],
+    ]);
+  });
+
+  it('fills nothing that would put the landing before the takeoff', () => {
+    expect(
+      withTrackEventTimes(flight({ takeoffActual: '1970-01-01T09:30:00Z' })),
+    ).toMatchObject({
+      takeoffActual: '1970-01-01T09:30:00Z',
+      landingActual: null,
+    });
+  });
+
+  it('fills imported flights, with or without deduplication', async () => {
+    for (const dedupe of [false, true]) {
+      mocks.createManyFlightsPrimitive.mockClear();
+      await createManyFlights(
+        [flight({ date: '1970-01-01', from: { id: 1, tz: 'UTC' } })],
+        'me',
+        dedupe,
+      );
+      expect(mocks.createManyFlightsPrimitive).toHaveBeenCalledWith(
+        expect.anything(),
+        [
+          expect.objectContaining({
+            takeoffActual: '1970-01-01T07:00:00.000Z',
+            landingActual: '1970-01-01T08:59:00.000Z',
+          }),
+        ],
+      );
+    }
+  });
+
+  it('fills an existing flight that an import attaches a track to', async () => {
+    const existing = flight({
+      id: 5,
+      date: '1970-01-01',
+      from: { id: 1, tz: 'UTC' },
+      to: { id: 2, tz: 'UTC' },
+      track: undefined,
+      passengers: [passenger('me', 10)],
+    } as Partial<CreateFlight>);
+    mocks.existingFlights = [existing];
+    mocks.getFlightPrimitive.mockResolvedValue(existing);
+    await createManyFlights(
+      [
+        flight({
+          date: '1970-01-01',
+          from: { id: 1, tz: 'UTC' },
+          to: { id: 2, tz: 'UTC' },
+        }),
+      ],
+      'me',
+    );
+    expect(mocks.createManyFlightsPrimitive).not.toHaveBeenCalled();
+    expect(mocks.upsertFlightTrackPrimitiveWithConnection).toHaveBeenCalledWith(
+      expect.anything(),
+      5,
+      track,
+    );
+    expect(mocks.updates).toEqual([
+      [
+        { takeoffActual: '1970-01-01T07:00:00.000Z' },
+        ['id', '=', 5],
+        ['takeoffActual', 'is', null],
+      ],
+      [
+        { landingActual: '1970-01-01T08:59:00.000Z' },
+        ['id', '=', 5],
+        ['landingActual', 'is', null],
       ],
     ]);
   });
