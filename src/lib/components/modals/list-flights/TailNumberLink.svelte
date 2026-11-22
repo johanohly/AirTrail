@@ -24,9 +24,6 @@
   });
 </script>
 
-<!-- Same box and behaviour as the flight time hover (TimeDisplayHost). The
-     photo is only looked up once the box opens, so the list doesn't fire one
-     Planespotters request per row. -->
 <TooltipPrimitive.Root delayDuration={250}>
   <TooltipPrimitive.Trigger onclick={(e) => e.stopPropagation()}>
     {#snippet child({ props })}
@@ -36,23 +33,19 @@
         target="_blank"
         rel="noopener"
         class="underline decoration-dotted underline-offset-2 hover:text-foreground"
+        >{reg}</a
       >
-        {reg}
-      </a>
     {/snippet}
-  </TooltipPrimitive.Trigger>
-  <TooltipPrimitive.Portal>
+  </TooltipPrimitive.Trigger><TooltipPrimitive.Portal>
     <TooltipPrimitive.Content sideOffset={8} side="top">
-      {#snippet child({ props, wrapperProps, open })}
+      {#snippet child({ props, wrapperProps })}
         <div {...wrapperProps}>
           <div
             {...props}
             style:z-index={zIndex}
             class={cn(popoverTooltipClass, 'p-1.5')}
           >
-            {#if open}
-              <TailPhotoPreview {reg} />
-            {/if}
+            <TailPhotoPreview {reg} />
             <PopoverTooltipArrow />
           </div>
         </div>

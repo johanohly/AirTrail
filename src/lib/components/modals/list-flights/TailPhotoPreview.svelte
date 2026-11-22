@@ -1,22 +1,24 @@
 <script lang="ts">
-  import { writable } from 'svelte/store';
+  import { toStore } from 'svelte/store';
 
+  import AircraftPhotoFigure from '$lib/components/map-details/AircraftPhotoFigure.svelte';
   import { trpc } from '$lib/trpc';
   import { PHOTO_BROWSER_CACHE_MS } from '$lib/zod/aircraft-photo';
 
   let { reg }: { reg: string } = $props();
 
-  const regStore = writable(reg);
-  $effect(() => {
-    regStore.set(reg);
-  });
-
   // Same query as the flight details photo, so the two share one cache entry.
-  const photoQuery = trpc.aircraft.getPhoto.query(regStore, {
-    staleTime: PHOTO_BROWSER_CACHE_MS,
-    gcTime: PHOTO_BROWSER_CACHE_MS,
-    refetchOnWindowFocus: false,
-  });
+  // A busy server answers `unavailable`, which shouldn't stick for minutes when
+  // the preview has no retry button.
+  const photoQuery = trpc.aircraft.getPhoto.query(
+    toStore(() => reg),
+    {
+      staleTime: (query) =>
+        query.state.data?.status === 'unavailable' ? 0 : PHOTO_BROWSER_CACHE_MS,
+      gcTime: PHOTO_BROWSER_CACHE_MS,
+      refetchOnWindowFocus: false,
+    },
+  );
 
   const result = $derived($photoQuery.data);
   const photo = $derived(result?.status === 'found' ? result.photo : null);
@@ -47,18 +49,8 @@
 {#if $photoQuery.isLoading || (photo && !imageReady && !imageFailed)}
   <div class="h-[133px] w-[200px] animate-pulse rounded-sm bg-muted"></div>
 {:else if photo && imageReady}
-  <figure class="w-[200px]">
-    <img
-      src={photo.smallThumbnailSrc}
-      alt={photo.photographer ? `${reg}, photo by ${photo.photographer}` : reg}
-      class="mx-auto h-auto max-h-[200px] w-auto max-w-full rounded-sm object-contain"
-    />
-    <figcaption class="mt-1 truncate text-[11px] text-muted-foreground">
-      {#if photo.photographer}© {photo.photographer} /{/if}
-      Planespotters.net
-    </figcaption>
-  </figure>
-{:else if $photoQuery.isError || result?.status === 'unavailable'}
+  <AircraftPhotoFigure {reg} {photo} small />
+{:else if $photoQuery.isError || result?.status === 'unavailable' || imageFailed}
   <p class="px-1 text-xs text-muted-foreground">Couldn't load photo</p>
 {:else}
   <p class="px-1 text-xs text-muted-foreground">No photo on Planespotters</p>

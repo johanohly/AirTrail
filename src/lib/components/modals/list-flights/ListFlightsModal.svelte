@@ -107,9 +107,7 @@
   });
 
   const prefs = $derived(getPreferences(appPage.data.user));
-  const aircraftPhotosEnabled = $derived(
-    appConfig.config?.integrations?.aircraftPhotosEnabled ?? false,
-  );
+
   const access = $derived(
     createFlightListAccess({
       authorization: appPage.data.authorization,
@@ -224,6 +222,13 @@
   );
 
   let selecting = $state(false);
+  // Share visitors aren't signed in, so they can't look up photos, and the
+  // links would only get in the way of picking rows while selecting.
+  const showTailNumberLinks = $derived(
+    !readonly &&
+      !selecting &&
+      (appConfig.config?.integrations?.aircraftPhotosEnabled ?? false),
+  );
   let selectedFlights = $state<number[]>([]);
   let handledFocusRequest = 0;
 
@@ -745,12 +750,12 @@
   {#if flight.flightNumber}
     <Tooltip.AutoTooltip text={flight.flightNumber} class="text-sm truncate" />
   {:else if hasAircraftDetails}
-    {@render aircraftLine(flight, 'text-sm truncate')}
+    {@render aircraftLine(flight, '')}
   {:else}
     <p class="text-sm text-transparent">.</p>
   {/if}
   {#if flight.flightNumber && hasAircraftDetails}
-    {@render aircraftLine(flight, 'text-sm text-muted-foreground truncate')}
+    {@render aircraftLine(flight, 'text-muted-foreground')}
   {:else}
     <p class="text-sm text-transparent">.</p>
   {/if}
@@ -760,16 +765,24 @@
   flight: (typeof formattedFlights)[number],
   className: string,
 )}
-  {#if aircraftPhotosEnabled && flight.aircraftReg}
-    <p class={className}>
+  {#if showTailNumberLinks && flight.aircraftReg}
+    <div class={cn('flex min-w-0 text-sm', className)}>
       {#if flight.aircraft?.name}
-        {flight.aircraft.name} (<TailNumberLink reg={flight.aircraftReg} />)
+        <div class="grid min-w-0 grid-cols-[minmax(0,1fr)]">
+          <Tooltip.AutoTooltip text={flight.aircraft.name} class="truncate" />
+        </div>
+        <span class="shrink-0"
+          >&nbsp;(<TailNumberLink reg={flight.aircraftReg} />)</span
+        >
       {:else}
         <TailNumberLink reg={flight.aircraftReg} />
       {/if}
-    </p>
+    </div>
   {:else}
-    <Tooltip.AutoTooltip text={formatAircraft(flight)} class={className} />
+    <Tooltip.AutoTooltip
+      text={formatAircraft(flight)}
+      class={cn('text-sm truncate', className)}
+    />
   {/if}
 {/snippet}
 
