@@ -1,4 +1,5 @@
 import { page } from '$app/state';
+import { sortByDepartureDesc } from '$lib/components/modals/list-flights/flight-list-groups';
 import {
   normalizeRoute,
   routeMatchesEndpoints,
@@ -45,9 +46,9 @@ export function useRouteDetails(
 
   const routeFlights = $derived.by(() => {
     if (!selectedRoute) return [];
-    return flights()
-      .filter((flight) => matchesRoute(flight, selectedRoute))
-      .sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0));
+    return sortByDepartureDesc(
+      flights().filter((flight) => matchesRoute(flight, selectedRoute)),
+    );
   });
 
   const routeAirports = $derived.by(() => {

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { AirlineIcon, RouteArrow } from '$lib/components/display';
+  import { sortByDepartureDesc } from '$lib/components/modals/list-flights/flight-list-groups';
   import type { SimpleFlight } from '$lib/utils';
   import { formatFlightDate, getPreferences } from '$lib/utils/preferences';
 
@@ -8,11 +9,7 @@
 
   const prefs = $derived(getPreferences(page.data.user));
 
-  const recentFlights = $derived(
-    [...flights]
-      .sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0))
-      .slice(0, 5),
-  );
+  const recentFlights = $derived(sortByDepartureDesc(flights).slice(0, 5));
 </script>
 
 <div class="border-t border-border/50 px-4 pt-2.5 pb-3">

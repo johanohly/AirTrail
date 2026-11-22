@@ -1,3 +1,6 @@
+import { format, isValid } from 'date-fns';
+
+import type { Flight } from '$lib/db/types';
 import { distanceBetween, type FlightData } from '$lib/utils';
 import {
   isCompletedFlight,
@@ -39,29 +42,78 @@ export type FlightListPage<T> = {
   years: FlightListYear<T>[];
 };
 
-/**
+type Sortable = Pick<FlightData, 'id' | 'dateStart' | 'raw'>;
+type Keyed<T> = { flight: T; at: number; day: string };
+
+/** The first day a flight's date covers, as `yyyy-MM-dd`. */
+const calendarDay = ({ date, datePrecision }: Flight) => {
+  const [year, month = '01', day = '01'] = date.split('-');
+  if (datePrecision === 'year') return `${year}-01-01`;
+  if (datePrecision === 'month') return `${year}-${month}-01`;
+  return `${year}-${month}-${day}`;
+};
+
+/*
  * Sorts newest first on the best known departure time. Actual times are only
  * recorded once a flight has been flown, so upcoming ones have to be ordered on
- * their scheduled time rather than on the start of their day. Flights without
- * any usable date sink to the bottom, where their year bucket renders.
+ * their scheduled time rather than on the start of their day.
+ *
+ * Flights without any time are ordered among themselves on their calendar date
+ * and then on the order they were added in, so flights logged with only a month
+ * keep the sequence they were entered in. Their start of day falls at a
+ * different instant in every timezone, which would otherwise order them on
+ * where they departed from. They are then merged with the timed flights on the
+ * local departure date, and on the start of their day within one date. Flights
+ * without any usable date sink to the bottom, where their year bucket renders.
  */
-export const sortByDepartureDesc = <T extends FlightData>(flights: T[]): T[] =>
-  flights
-    .map((flight) => ({
-      flight,
-      at:
-        (
-          resolveFlightTimeline(flight.raw).effectiveDeparture ??
-          flight.dateStart
-        )?.getTime() ?? null,
-    }))
-    .sort((a, b) => {
-      if (a.at === null || b.at === null) {
-        return (a.at === null ? 1 : 0) - (b.at === null ? 1 : 0);
-      }
-      return b.at - a.at;
-    })
-    .map(({ flight }) => flight);
+export const sortByDepartureDesc = <T extends Sortable>(flights: T[]): T[] => {
+  const timed: Keyed<T>[] = [];
+  const untimed: Keyed<T>[] = [];
+  const undated: T[] = [];
+
+  for (const flight of flights) {
+    const departure = resolveFlightTimeline(flight.raw).effectiveDeparture;
+    if (departure) {
+      timed.push({
+        flight,
+        at: departure.getTime(),
+        day: isValid(departure) ? format(departure, 'yyyy-MM-dd') : '',
+      });
+    } else if (flight.dateStart) {
+      untimed.push({
+        flight,
+        at: flight.dateStart.getTime(),
+        day: calendarDay(flight.raw),
+      });
+    } else {
+      undated.push(flight);
+    }
+  }
+
+  const newerDay = (a: Keyed<T>, b: Keyed<T>) =>
+    a.day === b.day ? 0 : a.day > b.day ? -1 : 1;
+  timed.sort((a, b) => b.at - a.at || b.flight.id - a.flight.id);
+  untimed.sort((a, b) => newerDay(a, b) || b.flight.id - a.flight.id);
+  const isOlder = (a: Keyed<T>, b: Keyed<T>) =>
+    (newerDay(a, b) || b.at - a.at) > 0;
+
+  const sorted: T[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < timed.length || j < untimed.length) {
+    const nextTimed = timed[i];
+    const nextUntimed = untimed[j];
+    if (nextTimed && (!nextUntimed || !isOlder(nextTimed, nextUntimed))) {
+      sorted.push(nextTimed.flight);
+      i++;
+    } else if (nextUntimed) {
+      sorted.push(nextUntimed.flight);
+      j++;
+    }
+  }
+
+  return [...sorted, ...undated.sort((a, b) => b.id - a.id)];
+};
 
 /**
  * True when `later` leaves from where `earlier` landed, or from an airport
