@@ -17,19 +17,16 @@ const ICONS_PATH = 'data/icons/airlines';
 const DEFAULT_BASE_REFS = ['upstream/main', 'origin/main'];
 const RASTER_IMAGE = /<image[\s>/]/i;
 
-function git(args, cwd) {
-  return execFileSync('git', args, {
+const git = (args, cwd) =>
+  execFileSync('git', args, {
     cwd,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore'],
   }).trim();
-}
 
-function lines(output) {
-  return output ? output.split('\n').filter(Boolean) : [];
-}
+const paths = (output) => output.split('\0').filter(Boolean);
 
-function resolveBase(root, base) {
+const resolveBase = (root, base) => {
   if (base) return base;
 
   for (const ref of DEFAULT_BASE_REFS) {
@@ -44,23 +41,33 @@ function resolveBase(root, base) {
     `Note: none of ${DEFAULT_BASE_REFS.join(', ')} found; only checking uncommitted icons.`,
   );
   return 'HEAD';
-}
+};
 
-function getChangedIcons(root, base) {
-  const changed = lines(
+const getChangedIcons = (root, base) => {
+  const changed = paths(
     git(
-      ['diff', '--name-only', '--diff-filter=ACMR', base, '--', ICONS_PATH],
+      [
+        'diff',
+        '-z',
+        '--name-only',
+        '--diff-filter=ACMR',
+        base,
+        '--',
+        ICONS_PATH,
+      ],
       root,
     ),
   );
-  const untracked = lines(
-    git(['ls-files', '--others', '--exclude-standard', '--', ICONS_PATH], root),
+  // No `--exclude-standard`: the root `.gitignore` has `Icon?`, which on
+  // case-insensitive file systems (macOS) also ignores `data/icons`.
+  const untracked = paths(
+    git(['ls-files', '-z', '--others', '--', ICONS_PATH], root),
   );
 
   return [...new Set([...changed, ...untracked])]
     .filter((file) => file.toLowerCase().endsWith('.svg'))
     .sort();
-}
+};
 
 const kb = (bytes) => `${(bytes / 1024).toFixed(1)}KB`;
 
@@ -68,7 +75,7 @@ const kb = (bytes) => `${(bytes / 1024).toFixed(1)}KB`;
  * @param {{ check?: boolean, base?: string }} options
  * @returns {{ changed: string[], errors: string[] }}
  */
-export function optimizeChangedIcons({ check = false, base } = {}) {
+export const optimizeChangedIcons = ({ check = false, base } = {}) => {
   const changed = [];
   const errors = [];
 
@@ -116,4 +123,4 @@ export function optimizeChangedIcons({ check = false, base } = {}) {
   }
 
   return { changed, errors };
-}
+};
