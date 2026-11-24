@@ -64,8 +64,13 @@ See [OAuth](/docs/features/oauth) for what each setting does.
 | `OAUTH_HIDE_PASSWORD_FORM` | `false` |
 | `OAUTH_BUTTON_TEXT` | `Log in with SSO` |
 | `OAUTH_ALLOW_INSECURE_HTTP` | `false` |
+| `OAUTH_ROLE_MAPPING_MODE` | |
+| `OAUTH_ROLE_CLAIM` | |
+| `OAUTH_ROLE_MAPPINGS` | |
 
 `OAUTH_ALLOW_INSECURE_HTTP=true` allows an identity provider served over plain HTTP. Use it only on a trusted local network.
+
+The `OAUTH_ROLE_*` variables replace the OAuth role mapping rules on startup. See [Roles from environment variables](/docs/features/oauth#roles-from-environment-variables).
 
 ### Integrations
 

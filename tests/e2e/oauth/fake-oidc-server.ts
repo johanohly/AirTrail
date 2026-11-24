@@ -14,6 +14,7 @@ type Profile = {
   sub: string;
   preferred_username: string;
   name?: string;
+  groups?: string[];
 };
 
 let currentProfile: Profile = {

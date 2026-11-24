@@ -1,5 +1,8 @@
+import { stringify } from 'devalue';
+
 import { usersFactory } from '@test/factories/users';
 import { isPathname } from '@test/fixtures/url';
+import { login } from '@test/helpers/auth';
 import { db, expect, test } from '@test/index';
 
 const fakeOidcProfileUrl = 'http://127.0.0.1:3001/__test/profile';
@@ -9,6 +12,7 @@ test.describe('OAuth', () => {
     sub: string;
     preferred_username: string;
     name?: string;
+    groups?: string[];
   }) => {
     await fetch(fakeOidcProfileUrl, {
       method: 'POST',
@@ -118,5 +122,68 @@ test.describe('OAuth', () => {
       .where('username', '=', username)
       .executeTakeFirst();
     expect(dbUser).toBeUndefined();
+  });
+
+  test('assigns roles from the environment and locks the role assignment settings', async ({
+    page,
+  }) => {
+    const username = `envrole_${Date.now().toString(36)}`;
+    await setFakeOidcProfile({
+      sub: `oauth-sub-${username}`,
+      preferred_username: username,
+      groups: ['staff', 'airtrail-e2e-admins'],
+    });
+
+    await page.goto('/login');
+    await page.getByRole('button', { name: 'Log in with SSO' }).click();
+    await page.waitForURL(isPathname('/'));
+
+    const dbUser = await db
+      .selectFrom('user')
+      .select(['roleId', 'roleAssignmentSource'])
+      .where('username', '=', username)
+      .executeTakeFirstOrThrow();
+    expect(dbUser).toEqual({
+      roleId: 'role-administrator',
+      roleAssignmentSource: 'oauth',
+    });
+
+    await page.context().clearCookies();
+    const { user } = await usersFactory.create();
+    await login(page, user);
+    await page.locator('id=settings-button').click();
+    await page.getByRole('button', { name: 'OAuth', exact: true }).click();
+    await page.getByRole('tab', { name: 'Role assignment' }).click();
+
+    await expect(
+      page.getByText(
+        'When UserInfo claim /groups contains "airtrail-e2e-admins", assign Administrator.',
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Save role assignment' }),
+    ).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Add rule' })).toHaveCSS(
+      'pointer-events',
+      'none',
+    );
+
+    await page.getByText('Test with sample claims').click();
+    await page
+      .getByLabel('UserInfo claims')
+      .fill(JSON.stringify({ groups: ['airtrail-e2e-admins'] }));
+    await page.getByRole('button', { name: 'Test rules' }).click();
+    await expect(
+      page.getByText('Administrator would be assigned'),
+    ).toBeVisible();
+
+    const update = await page.request.post(
+      '/api/trpc/role.updateOAuthMappings?batch=1',
+      { data: { 0: stringify({ mode: 'off', mappings: [] }) } },
+    );
+    expect(update.status()).toBe(403);
+    expect(await update.text()).toContain(
+      'Role assignment is set by environment variables',
+    );
   });
 });

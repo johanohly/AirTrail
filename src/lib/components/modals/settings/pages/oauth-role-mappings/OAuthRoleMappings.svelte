@@ -11,6 +11,7 @@
   import { onMount, tick } from 'svelte';
   import { toast } from 'svelte-sonner';
 
+  import { Locked } from '$lib/components/helpers';
   import { confirmation } from '$lib/components/helpers/confirm';
   import * as Alert from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
@@ -70,6 +71,7 @@
   let roles = $state<Array<{ id: string; name: string }>>([]);
   let defaultRoleName = $state('Default role');
   let oauthManagedUserCount = $state(0);
+  let envConfigured = $state(false);
   let loadState = $state<LoadState>({ kind: 'loading' });
   let saving = $state(false);
   let savedMode = $state<OAuthRoleMappingMode>('off');
@@ -166,6 +168,7 @@
       roles = roleData;
       defaultRoleName = settings.defaultRoleName;
       oauthManagedUserCount = settings.oauthManagedUserCount;
+      envConfigured = settings.envConfigured;
       savedMode = mode;
       savedMappings = nextMappings.map(toInput);
       savedFingerprint = JSON.stringify({
@@ -418,7 +421,7 @@
       </Alert.Description>
     </Alert.Root>
   {:else}
-    <div class="grid gap-2">
+    <Locked locked={envConfigured} tooltip={lockedTooltip} class="grid gap-2">
       <Label for="oauth-role-mapping-mode">When should rules run?</Label>
       <Select.Root
         type="single"
@@ -445,7 +448,7 @@
         Users without a match receive <strong>{defaultRoleName}</strong>. Manual
         role assignments are never overwritten.
       </p>
-    </div>
+    </Locked>
 
     {#if groupScopeMissing && showRules}
       <Alert.Root variant="warning">
@@ -474,8 +477,8 @@
         <Alert.Description>
           {oauthManagedUserCount} OAuth-managed
           {oauthManagedUserCount === 1 ? 'user' : 'users'} will be evaluated against
-          this policy on their next login. Test the current draft before publishing
-          it.
+          this policy on their next login.{#if !envConfigured}
+            Test the current draft before publishing it.{/if}
         </Alert.Description>
       </Alert.Root>
     {:else if mode === 'off'}
@@ -491,12 +494,12 @@
             {#if isDirty}
               This draft has unsaved changes.{/if}
           </p>
-          {#if mappings.length === 0}
+          {#if !envConfigured && mappings.length === 0}
             <Button variant="outline" size="sm" onclick={addMapping}>
               <Plus />
               Create first rule
             </Button>
-          {:else if !editInactiveRules}
+          {:else if !envConfigured && !editInactiveRules}
             <Button
               variant="outline"
               size="sm"
@@ -510,266 +513,270 @@
     {/if}
 
     {#if showRules}
-      {#if mappings.length === 0}
-        <div
-          class="rounded-lg border border-dashed p-6 text-center"
-          aria-live="polite"
-        >
-          <h4 class="font-medium">No assignment rules</h4>
-          <p class="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-            Add a rule such as &quot;When the UserInfo claim /groups contains
-            airtrail-admins, assign Administrator.&quot;
-          </p>
-          <Button class="mt-4" size="sm" onclick={addMapping}>
-            <Plus />
-            Add first rule
-          </Button>
-        </div>
-      {:else}
-        <div class="space-y-3">
-          {#each mappings as mapping, index (mapping.draftId)}
-            {@const errors = mappingErrors[index] ?? {}}
-            <fieldset class="space-y-4 rounded-lg border p-4">
-              <legend class="sr-only">{ruleLabel(mapping, index)}</legend>
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="flex min-w-0 items-center gap-2">
-                  <span class="text-sm font-semibold"
-                    >{ruleLabel(mapping, index)}</span
-                  >
-                  <Badge variant="outline">Priority {index + 1}</Badge>
-                  {#if !mapping.enabled}<Badge variant="secondary"
-                      >Disabled</Badge
-                    >{/if}
-                </div>
-                <div class="flex items-center gap-1">
-                  <Button
-                    id={`oauth-rule-${mapping.draftId}-move-up`}
-                    variant="ghost"
-                    size="icon"
-                    class="max-sm:size-11"
-                    aria-label={`Move ${ruleLabel(mapping, index)} up`}
-                    title="Move up"
-                    disabled={index === 0}
-                    onclick={() => move(index, -1)}><ArrowUp /></Button
-                  >
-                  <Button
-                    id={`oauth-rule-${mapping.draftId}-move-down`}
-                    variant="ghost"
-                    size="icon"
-                    class="max-sm:size-11"
-                    aria-label={`Move ${ruleLabel(mapping, index)} down`}
-                    title="Move down"
-                    disabled={index === mappings.length - 1}
-                    onclick={() => move(index, 1)}><ArrowDown /></Button
-                  >
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    class="max-sm:size-11"
-                    aria-label={`Duplicate ${ruleLabel(mapping, index)}`}
-                    title="Duplicate rule"
-                    onclick={() => duplicateMapping(index)}><Copy /></Button
-                  >
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    class="max-sm:size-11"
-                    aria-label={`Remove ${ruleLabel(mapping, index)}`}
-                    title="Remove rule"
-                    onclick={() => removeMapping(index)}><Trash2 /></Button
-                  >
-                </div>
-              </div>
-
-              <div class="grid gap-3 sm:grid-cols-[1fr_auto]">
-                <div class="grid gap-1.5">
-                  <Label for={`oauth-rule-${mapping.draftId}-name`}>
-                    Rule name <span class="font-normal text-muted-foreground"
-                      >(optional)</span
+      <Locked locked={envConfigured} tooltip={lockedTooltip} class="space-y-3">
+        {#if mappings.length === 0}
+          <div
+            class="rounded-lg border border-dashed p-6 text-center"
+            aria-live="polite"
+          >
+            <h4 class="font-medium">No assignment rules</h4>
+            <p class="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+              Add a rule such as &quot;When the UserInfo claim /groups contains
+              airtrail-admins, assign Administrator.&quot;
+            </p>
+            <Button class="mt-4" size="sm" onclick={addMapping}>
+              <Plus />
+              Add first rule
+            </Button>
+          </div>
+        {:else}
+          <div class="space-y-3">
+            {#each mappings as mapping, index (mapping.draftId)}
+              {@const errors = mappingErrors[index] ?? {}}
+              <fieldset class="space-y-4 rounded-lg border p-4">
+                <legend class="sr-only">{ruleLabel(mapping, index)}</legend>
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div class="flex min-w-0 items-center gap-2">
+                    <span class="text-sm font-semibold"
+                      >{ruleLabel(mapping, index)}</span
                     >
-                  </Label>
-                  <Input
-                    id={`oauth-rule-${mapping.draftId}-name`}
-                    bind:value={mapping.name}
-                    maxlength={80}
-                    placeholder={`Rule ${index + 1}`}
-                  />
-                </div>
-                <div class="flex items-center gap-2 sm:pt-7">
-                  <Label for={`oauth-rule-${mapping.draftId}-enabled`}
-                    >Enabled</Label
-                  >
-                  <Switch
-                    id={`oauth-rule-${mapping.draftId}-enabled`}
-                    bind:checked={mapping.enabled}
-                  />
-                </div>
-              </div>
-
-              <p class="rounded-md bg-muted/60 px-3 py-2 text-sm">
-                {ruleSummary(mapping)}
-              </p>
-
-              <details
-                class="rounded-md border bg-muted/20"
-                bind:open={mapping.conditionsOpen}
-              >
-                <summary
-                  class="cursor-pointer px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  Rule conditions
-                </summary>
-                <div
-                  class="grid items-start gap-3 border-t p-3 sm:grid-cols-2"
-                  class:opacity-60={!mapping.enabled}
-                >
-                  <div class="grid gap-1.5">
-                    <Label for={`oauth-rule-${mapping.draftId}-source`}
-                      >Claim source</Label
-                    >
-                    <Select.Root
-                      type="single"
-                      bind:value={mapping.claimSource}
-                      disabled={!mapping.enabled}
-                    >
-                      <Select.Trigger
-                        id={`oauth-rule-${mapping.draftId}-source`}
-                      >
-                        {mapping.claimSource === 'userinfo'
-                          ? 'UserInfo'
-                          : 'ID token'}
-                      </Select.Trigger>
-                      <Select.Content>
-                        <Select.Item value="userinfo" label="UserInfo" />
-                        <Select.Item value="id_token" label="ID token" />
-                      </Select.Content>
-                    </Select.Root>
-                    <p class="text-xs text-muted-foreground">
-                      UserInfo is fetched from the provider. The ID token is
-                      returned during login.
-                    </p>
+                    <Badge variant="outline">Priority {index + 1}</Badge>
+                    {#if !mapping.enabled}<Badge variant="secondary"
+                        >Disabled</Badge
+                      >{/if}
                   </div>
-                  <div class="grid gap-1.5">
-                    <Label for={`oauth-rule-${mapping.draftId}-path`}
-                      >Claim path</Label
+                  <div class="flex items-center gap-1" hidden={envConfigured}>
+                    <Button
+                      id={`oauth-rule-${mapping.draftId}-move-up`}
+                      variant="ghost"
+                      size="icon"
+                      class="max-sm:size-11"
+                      aria-label={`Move ${ruleLabel(mapping, index)} up`}
+                      title="Move up"
+                      disabled={index === 0}
+                      onclick={() => move(index, -1)}><ArrowUp /></Button
                     >
-                    <Input
-                      id={`oauth-rule-${mapping.draftId}-path`}
-                      bind:value={mapping.claimPath}
-                      placeholder="/groups"
-                      disabled={!mapping.enabled}
-                      aria-invalid={Boolean(errors.claimPath)}
-                      aria-describedby={errors.claimPath
-                        ? `oauth-rule-${mapping.draftId}-path-error`
-                        : undefined}
-                    />
-                    {#if errors.claimPath}
-                      <p
-                        id={`oauth-rule-${mapping.draftId}-path-error`}
-                        class="text-xs text-destructive"
+                    <Button
+                      id={`oauth-rule-${mapping.draftId}-move-down`}
+                      variant="ghost"
+                      size="icon"
+                      class="max-sm:size-11"
+                      aria-label={`Move ${ruleLabel(mapping, index)} down`}
+                      title="Move down"
+                      disabled={index === mappings.length - 1}
+                      onclick={() => move(index, 1)}><ArrowDown /></Button
+                    >
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      class="max-sm:size-11"
+                      aria-label={`Duplicate ${ruleLabel(mapping, index)}`}
+                      title="Duplicate rule"
+                      onclick={() => duplicateMapping(index)}><Copy /></Button
+                    >
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      class="max-sm:size-11"
+                      aria-label={`Remove ${ruleLabel(mapping, index)}`}
+                      title="Remove rule"
+                      onclick={() => removeMapping(index)}><Trash2 /></Button
+                    >
+                  </div>
+                </div>
+
+                <div class="grid gap-3 sm:grid-cols-[1fr_auto]">
+                  <div class="grid gap-1.5">
+                    <Label for={`oauth-rule-${mapping.draftId}-name`}>
+                      Rule name <span class="font-normal text-muted-foreground"
+                        >(optional)</span
                       >
-                        {errors.claimPath}
-                      </p>
-                    {:else}
+                    </Label>
+                    <Input
+                      id={`oauth-rule-${mapping.draftId}-name`}
+                      bind:value={mapping.name}
+                      maxlength={80}
+                      placeholder={`Rule ${index + 1}`}
+                    />
+                  </div>
+                  <div class="flex items-center gap-2 sm:pt-7">
+                    <Label for={`oauth-rule-${mapping.draftId}-enabled`}
+                      >Enabled</Label
+                    >
+                    <Switch
+                      id={`oauth-rule-${mapping.draftId}-enabled`}
+                      bind:checked={mapping.enabled}
+                    />
+                  </div>
+                </div>
+
+                <p class="rounded-md bg-muted/60 px-3 py-2 text-sm">
+                  {ruleSummary(mapping)}
+                </p>
+
+                <details
+                  class="rounded-md border bg-muted/20"
+                  bind:open={mapping.conditionsOpen}
+                >
+                  <summary
+                    class="cursor-pointer px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    Rule conditions
+                  </summary>
+                  <div
+                    class="grid items-start gap-3 border-t p-3 sm:grid-cols-2"
+                    class:opacity-60={!mapping.enabled}
+                  >
+                    <div class="grid gap-1.5">
+                      <Label for={`oauth-rule-${mapping.draftId}-source`}
+                        >Claim source</Label
+                      >
+                      <Select.Root
+                        type="single"
+                        bind:value={mapping.claimSource}
+                        disabled={!mapping.enabled}
+                      >
+                        <Select.Trigger
+                          id={`oauth-rule-${mapping.draftId}-source`}
+                        >
+                          {mapping.claimSource === 'userinfo'
+                            ? 'UserInfo'
+                            : 'ID token'}
+                        </Select.Trigger>
+                        <Select.Content>
+                          <Select.Item value="userinfo" label="UserInfo" />
+                          <Select.Item value="id_token" label="ID token" />
+                        </Select.Content>
+                      </Select.Root>
                       <p class="text-xs text-muted-foreground">
-                        JSON Pointer syntax. Nested claims look like
-                        /realm_access/roles.
+                        UserInfo is fetched from the provider. The ID token is
+                        returned during login.
                       </p>
-                    {/if}
-                  </div>
-                  <div class="grid gap-1.5">
-                    <Label for={`oauth-rule-${mapping.draftId}-comparison`}
-                      >Comparison</Label
-                    >
-                    <Select.Root
-                      type="single"
-                      bind:value={mapping.operator}
-                      disabled={!mapping.enabled}
-                    >
-                      <Select.Trigger
-                        id={`oauth-rule-${mapping.draftId}-comparison`}
+                    </div>
+                    <div class="grid gap-1.5">
+                      <Label for={`oauth-rule-${mapping.draftId}-path`}
+                        >Claim path</Label
                       >
-                        {mapping.operator === 'equals' ? 'Equals' : 'Contains'}
-                      </Select.Trigger>
-                      <Select.Content>
-                        <Select.Item value="equals" label="Equals" />
-                        <Select.Item value="contains" label="Contains" />
-                      </Select.Content>
-                    </Select.Root>
-                    <p class="text-xs text-muted-foreground">
-                      Contains finds a substring in text or an exact item in an
-                      array. Matching is case-sensitive.
-                    </p>
-                  </div>
-                  <div class="grid gap-1.5">
-                    <Label for={`oauth-rule-${mapping.draftId}-value`}
-                      >Expected value</Label
-                    >
-                    <Input
-                      id={`oauth-rule-${mapping.draftId}-value`}
-                      bind:value={mapping.claimValue}
-                      placeholder="airtrail-admins"
-                      disabled={!mapping.enabled}
-                      aria-invalid={Boolean(errors.claimValue)}
-                      aria-describedby={errors.claimValue
-                        ? `oauth-rule-${mapping.draftId}-value-error`
-                        : undefined}
-                    />
-                    {#if errors.claimValue}
-                      <p
-                        id={`oauth-rule-${mapping.draftId}-value-error`}
-                        class="text-xs text-destructive"
-                      >
-                        {errors.claimValue}
-                      </p>
-                    {/if}
-                  </div>
-                  <div class="grid gap-1.5 sm:col-span-2">
-                    <Label for={`oauth-rule-${mapping.draftId}-role`}
-                      >AirTrail role</Label
-                    >
-                    <Select.Root
-                      type="single"
-                      bind:value={mapping.roleId}
-                      disabled={!mapping.enabled}
-                    >
-                      <Select.Trigger
-                        id={`oauth-rule-${mapping.draftId}-role`}
-                        aria-invalid={Boolean(errors.roleId)}
-                        aria-describedby={errors.roleId
-                          ? `oauth-rule-${mapping.draftId}-role-error`
+                      <Input
+                        id={`oauth-rule-${mapping.draftId}-path`}
+                        bind:value={mapping.claimPath}
+                        placeholder="/groups"
+                        disabled={!mapping.enabled}
+                        aria-invalid={Boolean(errors.claimPath)}
+                        aria-describedby={errors.claimPath
+                          ? `oauth-rule-${mapping.draftId}-path-error`
                           : undefined}
-                        >{roleName(mapping.roleId)}</Select.Trigger
+                      />
+                      {#if errors.claimPath}
+                        <p
+                          id={`oauth-rule-${mapping.draftId}-path-error`}
+                          class="text-xs text-destructive"
+                        >
+                          {errors.claimPath}
+                        </p>
+                      {:else}
+                        <p class="text-xs text-muted-foreground">
+                          JSON Pointer syntax. Nested claims look like
+                          /realm_access/roles.
+                        </p>
+                      {/if}
+                    </div>
+                    <div class="grid gap-1.5">
+                      <Label for={`oauth-rule-${mapping.draftId}-comparison`}
+                        >Comparison</Label
                       >
-                      <Select.Content>
-                        {#each roles as role}<Select.Item
-                            value={role.id}
-                            label={role.name}
-                          />{/each}
-                      </Select.Content>
-                    </Select.Root>
-                    {#if errors.roleId}
-                      <p
-                        id={`oauth-rule-${mapping.draftId}-role-error`}
-                        class="text-xs text-destructive"
+                      <Select.Root
+                        type="single"
+                        bind:value={mapping.operator}
+                        disabled={!mapping.enabled}
                       >
-                        {errors.roleId}
+                        <Select.Trigger
+                          id={`oauth-rule-${mapping.draftId}-comparison`}
+                        >
+                          {mapping.operator === 'equals'
+                            ? 'Equals'
+                            : 'Contains'}
+                        </Select.Trigger>
+                        <Select.Content>
+                          <Select.Item value="equals" label="Equals" />
+                          <Select.Item value="contains" label="Contains" />
+                        </Select.Content>
+                      </Select.Root>
+                      <p class="text-xs text-muted-foreground">
+                        Contains finds a substring in text or an exact item in
+                        an array. Matching is case-sensitive.
                       </p>
-                    {/if}
+                    </div>
+                    <div class="grid gap-1.5">
+                      <Label for={`oauth-rule-${mapping.draftId}-value`}
+                        >Expected value</Label
+                      >
+                      <Input
+                        id={`oauth-rule-${mapping.draftId}-value`}
+                        bind:value={mapping.claimValue}
+                        placeholder="airtrail-admins"
+                        disabled={!mapping.enabled}
+                        aria-invalid={Boolean(errors.claimValue)}
+                        aria-describedby={errors.claimValue
+                          ? `oauth-rule-${mapping.draftId}-value-error`
+                          : undefined}
+                      />
+                      {#if errors.claimValue}
+                        <p
+                          id={`oauth-rule-${mapping.draftId}-value-error`}
+                          class="text-xs text-destructive"
+                        >
+                          {errors.claimValue}
+                        </p>
+                      {/if}
+                    </div>
+                    <div class="grid gap-1.5 sm:col-span-2">
+                      <Label for={`oauth-rule-${mapping.draftId}-role`}
+                        >AirTrail role</Label
+                      >
+                      <Select.Root
+                        type="single"
+                        bind:value={mapping.roleId}
+                        disabled={!mapping.enabled}
+                      >
+                        <Select.Trigger
+                          id={`oauth-rule-${mapping.draftId}-role`}
+                          aria-invalid={Boolean(errors.roleId)}
+                          aria-describedby={errors.roleId
+                            ? `oauth-rule-${mapping.draftId}-role-error`
+                            : undefined}
+                          >{roleName(mapping.roleId)}</Select.Trigger
+                        >
+                        <Select.Content>
+                          {#each roles as role}<Select.Item
+                              value={role.id}
+                              label={role.name}
+                            />{/each}
+                        </Select.Content>
+                      </Select.Root>
+                      {#if errors.roleId}
+                        <p
+                          id={`oauth-rule-${mapping.draftId}-role-error`}
+                          class="text-xs text-destructive"
+                        >
+                          {errors.roleId}
+                        </p>
+                      {/if}
+                    </div>
                   </div>
-                </div>
-              </details>
-            </fieldset>
-          {/each}
-        </div>
-      {/if}
+                </details>
+              </fieldset>
+            {/each}
+          </div>
+        {/if}
 
-      {#if mappings.length > 0}
-        <Button variant="outline" size="sm" onclick={addMapping}>
-          <Plus />
-          Add rule
-        </Button>
-      {/if}
+        {#if mappings.length > 0}
+          <Button variant="outline" size="sm" onclick={addMapping}>
+            <Plus />
+            Add rule
+          </Button>
+        {/if}
+      </Locked>
 
       <details class="rounded-lg border" open={mode === 'on_login'}>
         <summary
@@ -901,14 +908,15 @@
         <Button
           variant="outline"
           size="sm"
-          disabled={!isDirty || saving}
+          disabled={envConfigured || !isDirty || saving}
           onclick={reset}>Reset</Button
         >
         <Button
           size="sm"
           onclick={save}
           loading={saving}
-          disabled={!isDirty ||
+          disabled={envConfigured ||
+            !isDirty ||
             hasErrors ||
             (mode === 'on_login' && !testIsCurrent)}
           title={mode === 'on_login' && !testIsCurrent
@@ -923,3 +931,14 @@
     <p class="sr-only" aria-live="polite">{announcement}</p>
   {/if}
 </section>
+
+{#snippet lockedTooltip()}
+  <p>
+    These settings are locked because they are configured via environment
+    variables.
+  </p>
+  <p>
+    To change them, update or delete the environment variables and restart the
+    server.
+  </p>
+{/snippet}
