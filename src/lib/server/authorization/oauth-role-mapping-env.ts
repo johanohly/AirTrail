@@ -38,7 +38,7 @@ export const parseOAuthRoleMappingEnv = (
       `OAUTH_ROLE_MAPPING_MODE must be one of ${oauthRoleMappingModeSchema.options.join(', ')}`,
     );
   }
-  if (!claim !== !pairs.length) {
+  if (Boolean(claim) !== pairs.length > 0) {
     throw new Error(
       'OAUTH_ROLE_CLAIM and OAUTH_ROLE_MAPPINGS must be set together',
     );
