@@ -15,7 +15,6 @@ export {
   prepareVisitedAirports,
 } from './data/data';
 export { distanceBetween, linearClamped } from './distance';
-export { calculateBounds } from './latlng';
 export { leq, toTitleCase, pluralize } from './string';
 export { formatNumber, formatDuration } from './number';
 export { sortAndFilterByMatch } from './search';

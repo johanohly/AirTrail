@@ -6,7 +6,7 @@ import {
   type CameraFocusTarget,
   type CameraPadding,
 } from './camera-controller';
-import type { GlobeFitArc } from './globe-fit';
+import type { FitRoute, FitShape } from './fit-geometry';
 
 type CameraCall = {
   name: string;
@@ -24,12 +24,14 @@ const padding = (top = 0, right = 0, bottom = 0, left = 0): CameraPadding => ({
 const arc = {
   from: { id: 1, lat: 55.6, lon: 12.6 },
   to: { id: 2, lat: 40.7, lon: -74 },
-} as GlobeFitArc;
+} as FitRoute;
 
 const updatedArc = {
   from: { id: 3, lat: 1, lon: 3 },
   to: { id: 4, lat: 2, lon: 4 },
-} as GlobeFitArc;
+} as FitRoute;
+
+const shapeOf = (...arcs: FitRoute[]): FitShape => ({ arcs, tracks: [] });
 
 const createFrameScheduler = () => {
   let callback: FrameRequestCallback | null = null;
@@ -156,7 +158,7 @@ const reconcile = (
     selectionActive = focusTarget !== undefined,
     viewPadding = padding(),
     projection = 'mercator' as const,
-    overviewArcs = [arc],
+    overviewShape = shapeOf(arc),
     automaticFitRequest = 0,
   }: {
     focusRequest?: number;
@@ -164,7 +166,7 @@ const reconcile = (
     selectionActive?: boolean;
     viewPadding?: CameraPadding;
     projection?: 'globe' | 'mercator';
-    overviewArcs?: GlobeFitArc[];
+    overviewShape?: FitShape;
     automaticFitRequest?: number;
   } = {},
 ) =>
@@ -174,7 +176,7 @@ const reconcile = (
     focusTarget,
     padding: viewPadding,
     projection,
-    overviewArcs,
+    overviewShape,
     automaticFitRequest,
   });
 
@@ -282,7 +284,7 @@ describe('map camera controller', () => {
     reconcile(controller, { automaticFitRequest: 1 });
     expect(frames.request).not.toHaveBeenCalled();
 
-    controller.fit([arc], {
+    controller.fit(shapeOf(arc), {
       projection: 'mercator',
       padding: padding(),
     });
@@ -297,6 +299,40 @@ describe('map camera controller', () => {
       'setPadding',
       'fitBounds',
     ]);
+  });
+
+  it('keeps fitted routes clear of controls floating over the map', () => {
+    const fake = createFakeMap();
+    const frames = createFrameScheduler();
+    const obstruction = 81;
+    const controller = createMapCameraController(fake.map, {
+      frameScheduler: frames.scheduler,
+      bottomObstruction: () => obstruction,
+    });
+
+    controller.fit(shapeOf(arc), {
+      projection: 'mercator',
+      padding: padding(),
+    });
+    frames.flush();
+    // The dock reaches 81 px up, so the fit ends 24 px above it rather than
+    // at the usual 60 px margin.
+    expect(fake.calls[0]).toMatchObject({
+      name: 'setPadding',
+      options: padding(60, 60, 105, 60),
+    });
+
+    fake.calls.length = 0;
+    controller.fit(shapeOf(arc), {
+      projection: 'mercator',
+      padding: padding(40, 20, 464, 20),
+    });
+    frames.flush();
+    // An open phone pane already covers more than the dock.
+    expect(fake.calls[0]).toMatchObject({
+      name: 'setPadding',
+      options: padding(100, 80, 524, 80),
+    });
   });
 
   it('keeps the initial automatic fit after non-user map startup events', () => {
@@ -515,7 +551,7 @@ describe('map camera controller', () => {
       selectionActive: true,
       focusTarget: pointTarget(),
       viewPadding: detailPadding,
-      overviewArcs: [arc],
+      overviewShape: shapeOf(arc),
       automaticFitRequest: 1,
     });
     expect(frames.request).not.toHaveBeenCalled();
@@ -523,7 +559,7 @@ describe('map camera controller', () => {
     reconcile(controller, {
       selectionActive: false,
       viewPadding: padding(),
-      overviewArcs: [updatedArc],
+      overviewShape: shapeOf(updatedArc),
       automaticFitRequest: 1,
     });
     frames.flush();
@@ -532,9 +568,12 @@ describe('map camera controller', () => {
       'setPadding',
       'fitBounds',
     ]);
-    expect(fake.calls[1]?.options?.bounds).toEqual([
-      [3, 1],
-      [4, 2],
+    const [[west, south], [east, north]] = fake.calls[1]?.options?.bounds as [
+      [number, number],
+      [number, number],
+    ];
+    expect([west, south, east, north].map((n) => +n.toFixed(6))).toEqual([
+      3, 1, 4, 2,
     ]);
   });
 
