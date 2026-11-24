@@ -24,9 +24,9 @@
   import {
     buildArcFrequencyPercentileByRoute,
     buildFlightTrackPaths,
-    findFullyTrackedRouteKeys,
     getRouteKey,
     routeMatchesArc,
+    selectDrawnRoutes,
     type FlightArc,
     type FlightTrackPath,
   } from '$lib/map/flight-layer-data';
@@ -149,29 +149,20 @@
     return arcFrequencyPercentileByRoute[routeKey] ?? 0;
   };
 
-  const flightById = $derived.by(() => {
-    return new Map(flights.map((flight) => [flight.id, flight]));
-  });
-
-  const activeFlightTracks = $derived.by(() => {
-    return flightTracks.filter((track) => {
-      const flight = flightById.get(track.flightId);
-      return flight && getFlightRouteDisplay(flight) === 'tracks';
-    });
-  });
+  const drawnRoutes = $derived(
+    selectDrawnRoutes(
+      flights,
+      flightArcs,
+      flightTracks,
+      (flight) => getFlightRouteDisplay(flight) === 'tracks',
+    ),
+  );
+  const flightById = $derived(drawnRoutes.flightById);
+  const activeFlightTracks = $derived(drawnRoutes.tracks);
+  const visibleFlightArcs = $derived(drawnRoutes.arcs);
 
   const trackFlightIds = $derived.by(() => {
     return new Set(activeFlightTracks.map((track) => track.flightId));
-  });
-
-  const fullyTrackedRouteKeys = $derived.by(() => {
-    return findFullyTrackedRouteKeys(flightArcs, trackFlightIds);
-  });
-
-  const visibleFlightArcs = $derived.by(() => {
-    return flightArcs.filter(
-      (arc) => !fullyTrackedRouteKeys.has(getRouteKey(arc.from.id, arc.to.id)),
-    );
   });
 
   const flightTrackPaths = $derived.by(() => {

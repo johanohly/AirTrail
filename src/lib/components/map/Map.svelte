@@ -53,7 +53,12 @@
     type CameraFocusTarget,
     type MapCameraController,
   } from '$lib/map/camera-controller';
-  import { hasFallbackFlightArcs } from '$lib/map/flight-layer-data';
+  import {
+    buildFitShape,
+    getRouteKey,
+    hasFallbackFlightArcs,
+  } from '$lib/map/flight-layer-data';
+  import { bottomObstructionInset } from '$lib/map/map-obstructions';
   import { exposeRenderState } from '$lib/map/render-state';
   import {
     initMapPreferences,
@@ -206,8 +211,22 @@
     automaticFitRequest += 1;
   };
 
+  const drawsTrack = (flight: FlightData) =>
+    getFlightRouteDisplay(flight) === 'tracks';
+  const fitShape = $derived(
+    buildFitShape(drawnFlights, flightArcs, flightTracks, drawsTrack),
+  );
+  const overviewFitShape = $derived(
+    buildFitShape(
+      filteredFlights,
+      overviewFlightArcs,
+      flightTracks,
+      drawsTrack,
+    ),
+  );
+
   export const fitFlights = () => {
-    cameraController?.fit(flightArcs, {
+    cameraController?.fit(fitShape, {
       projection: mapPreferences.projection,
       padding: detailsPanePadding(),
     });
@@ -370,11 +389,15 @@
         );
         const routeArcs =
           selection.view === 'routes'
-            ? drawnFlights.flatMap(({ from, to }) =>
-                from && to && [from.id, to.id].includes(selection.airportId)
-                  ? [{ from, to }]
-                  : [],
-              )
+            ? [
+                ...new Map(
+                  drawnFlights.flatMap(({ from, to }) =>
+                    from && to && [from.id, to.id].includes(selection.airportId)
+                      ? [[getRouteKey(from.id, to.id), { from, to }] as const]
+                      : [],
+                  ),
+                ).values(),
+              ]
             : [];
         if (airport) {
           if (routeArcs.length > 0) {
@@ -428,7 +451,7 @@
       focusTarget,
       padding,
       projection: mapPreferences.projection,
-      overviewArcs: overviewFlightArcs,
+      overviewShape: overviewFitShape,
       automaticFitRequest,
     });
   });
@@ -441,6 +464,7 @@
       onPreviousViewChange: (available) => {
         showPreviousView = available;
       },
+      bottomObstruction: () => bottomObstructionInset(m.getContainer()),
     });
     cameraController = controller;
 

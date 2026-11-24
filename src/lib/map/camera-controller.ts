@@ -5,9 +5,8 @@ import {
   type Map as MapLibreMap,
 } from 'maplibre-gl';
 
-import { globeCameraForArcs, type GlobeFitArc } from './globe-fit';
-
-import { calculateBounds } from '$lib/utils/latlng';
+import { fitShapeBounds, type FitRoute, type FitShape } from './fit-geometry';
+import { globeCameraForShape } from './globe-fit';
 
 export type MapProjection = 'globe' | 'mercator';
 export type CameraPadding = {
@@ -19,11 +18,11 @@ export type CameraPadding = {
 
 export type CameraFocusTarget =
   | { type: 'point'; center: [number, number]; zoom: number }
-  | { type: 'arcs'; arcs: GlobeFitArc[]; projection: MapProjection };
+  | { type: 'arcs'; arcs: FitRoute[]; projection: MapProjection };
 
 type FitIntent = {
   type: 'fit';
-  arcs: GlobeFitArc[];
+  shape: FitShape;
   projection: MapProjection;
   padding: CameraPadding;
   source: 'automatic' | 'manual';
@@ -49,7 +48,7 @@ export type CameraViewState = {
   focusTarget?: CameraFocusTarget;
   padding: CameraPadding;
   projection: MapProjection;
-  overviewArcs: GlobeFitArc[];
+  overviewShape: FitShape;
   automaticFitRequest: number;
 };
 
@@ -70,6 +69,8 @@ type FrameScheduler = {
 
 type CameraControllerOptions = {
   onPreviousViewChange?: (available: boolean) => void;
+  /** Pixels that floating controls cover at the bottom of the map. */
+  bottomObstruction?: () => number;
   frameScheduler?: FrameScheduler;
 };
 
@@ -96,6 +97,13 @@ const defaultFrameScheduler: FrameScheduler = {
   request: (callback) => requestAnimationFrame(callback),
   cancel: (handle) => cancelAnimationFrame(handle),
 };
+
+/** Closest a fit zooms in, for sets that are a single airport or close to it. */
+const MAX_FIT_ZOOM = 12;
+/** Breathing room between fitted routes and the map edge or any pane. */
+const FIT_MARGIN = 60;
+/** Room kept between fitted routes and a control floating over the map. */
+const OBSTRUCTION_GAP = 24;
 
 const addPadding = (padding: CameraPadding, amount: number) => ({
   top: padding.top + amount,
@@ -165,21 +173,25 @@ export const createMapCameraController = (
     return eventData;
   };
 
-  const targetForArcs = (
-    arcs: GlobeFitArc[],
+  const targetForShape = (
+    shape: FitShape,
     projection: MapProjection,
     padding: CameraPadding,
   ) => {
     if (projection === 'globe') {
       const canvas = map.getCanvas();
-      return globeCameraForArcs(arcs, {
-        width: canvas.clientWidth,
-        height: canvas.clientHeight,
-        padding,
-      });
+      return globeCameraForShape(
+        shape,
+        {
+          width: canvas.clientWidth,
+          height: canvas.clientHeight,
+          padding,
+        },
+        MAX_FIT_ZOOM,
+      );
     }
 
-    const bounds = calculateBounds(arcs);
+    const bounds = fitShapeBounds(shape);
     if (!bounds) return undefined;
 
     const savedPadding = map.getPadding();
@@ -188,7 +200,7 @@ export const createMapCameraController = (
       // calculating its center. Pin the calculation to the target persistent
       // padding, then restore it before the next render.
       map.setPadding(padding);
-      const target = map.cameraForBounds(bounds);
+      const target = map.cameraForBounds(bounds, { maxZoom: MAX_FIT_ZOOM });
       if (!target?.center || target.zoom === undefined) return undefined;
       const center = LngLat.convert(target.center);
       return {
@@ -201,9 +213,13 @@ export const createMapCameraController = (
   };
 
   const executeFit = (intent: FitIntent) => {
-    const padding = addPadding(intent.padding, 60);
+    const padding = addPadding(intent.padding, FIT_MARGIN);
+    const obstruction = options.bottomObstruction?.() ?? 0;
+    if (obstruction > 0) {
+      padding.bottom = Math.max(padding.bottom, obstruction + OBSTRUCTION_GAP);
+    }
     if (intent.projection === 'globe') {
-      const target = targetForArcs(intent.arcs, intent.projection, padding);
+      const target = targetForShape(intent.shape, intent.projection, padding);
       if (!target) return;
       map.setPadding(padding);
       map.flyTo(
@@ -218,10 +234,10 @@ export const createMapCameraController = (
       return;
     }
 
-    const bounds = calculateBounds(intent.arcs);
+    const bounds = fitShapeBounds(intent.shape);
     if (!bounds) return;
     map.setPadding(padding);
-    map.fitBounds(bounds, undefined, beginProgrammaticMove());
+    map.fitBounds(bounds, { maxZoom: MAX_FIT_ZOOM }, beginProgrammaticMove());
     cameraMode = intent.resultMode;
   };
 
@@ -229,8 +245,8 @@ export const createMapCameraController = (
     const target =
       intent.target.type === 'point'
         ? intent.target
-        : targetForArcs(
-            intent.target.arcs,
+        : targetForShape(
+            { arcs: intent.target.arcs, tracks: [] },
             intent.target.projection,
             intent.padding,
           );
@@ -346,7 +362,7 @@ export const createMapCameraController = (
   const requestOverviewFit = (view: CameraViewState) => {
     request({
       type: 'fit',
-      arcs: view.overviewArcs,
+      shape: view.overviewShape,
       projection: view.projection,
       padding: view.padding,
       source: 'automatic',
@@ -388,7 +404,7 @@ export const createMapCameraController = (
 
   return {
     fit(
-      arcs: GlobeFitArc[],
+      shape: FitShape,
       config: {
         projection: MapProjection;
         padding: CameraPadding;
@@ -396,7 +412,7 @@ export const createMapCameraController = (
     ) {
       const intent: FitIntent = {
         type: 'fit',
-        arcs,
+        shape,
         projection: config.projection,
         padding: config.padding,
         source: 'manual',

@@ -79,6 +79,7 @@
 
 <nav
   aria-label="Main navigation"
+  data-map-obstruction="bottom"
   class="z-10 absolute bottom-6 left-1/2 translate-x-[-50%]"
 >
   <div class="flex gap-4">
