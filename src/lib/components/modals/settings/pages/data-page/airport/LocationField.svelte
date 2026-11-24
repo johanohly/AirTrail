@@ -7,7 +7,6 @@
   import { mode } from 'mode-watcher';
   import { onDestroy } from 'svelte';
   import {
-    AttributionControl,
     FullscreenControl,
     GeolocateControl,
     MapLibre,
@@ -17,6 +16,7 @@
   } from 'svelte-maplibre';
   import type { Infer, SuperForm } from 'sveltekit-superforms';
 
+  import MapCredits from '$lib/components/map/MapCredits.svelte';
   import * as Form from '$lib/components/ui/form';
   import * as Select from '$lib/components/ui/select';
   import { COUNTRIES } from '$lib/data/countries';
@@ -88,7 +88,7 @@
     </Marker>
   {/if}
 
-  <AttributionControl compact={true} />
+  <MapCredits />
   <NavigationControl />
   <GeolocateControl />
   <FullscreenControl position="top-right" />

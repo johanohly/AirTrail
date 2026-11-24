@@ -408,7 +408,6 @@ a.maplibregl-ctrl-logo::before {
   font-family: maplibregl-icons-core, sans-serif;
 }
 
-.maplibregl-ctrl .maplibregl-ctrl-attrib-button::before,
 .maplibregl-ctrl button .maplibregl-ctrl-icon::before,
 .maplibregl-ctrl
   button.maplibregl-ctrl-geolocate:disabled
