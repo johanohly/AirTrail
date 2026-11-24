@@ -207,7 +207,11 @@
   <NavigationControl />
   <GeolocateControl />
 
-  <VectorTileSource id="countries" url="pmtiles:///countries.pmtiles">
+  <VectorTileSource
+    id="countries"
+    url="pmtiles:///countries.pmtiles"
+    attribution="© EuroGeographics for the administrative boundaries"
+  >
     <FillLayer
       id="countries"
       sourceLayer="countries"
