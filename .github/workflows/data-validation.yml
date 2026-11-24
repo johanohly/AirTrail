@@ -24,22 +24,31 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
       - uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2
 
-      - name: Check JSON formatting
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Check data formatting
         id: format
         run: |
-          if ! bun scripts/data/format-data.js --check; then
+          set -o pipefail
+          if ! bun scripts/data/format-data.js --check --base ${{ github.event.pull_request.base.sha }} 2>&1 | tee format-output.txt; then
             echo "format_failed=true" >> $GITHUB_OUTPUT
-            echo "## ❌ JSON Formatting" >> $GITHUB_STEP_SUMMARY
+            echo "## ❌ Data Formatting" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Data files are not properly formatted or sorted." >> $GITHUB_STEP_SUMMARY
+            echo "Data files are not properly formatted or sorted, or changed SVG icons are not optimized." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat format-output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**To fix:** Run \`bun run data:format\` and commit the changes." >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
-          echo "## ✅ JSON Formatting" >> $GITHUB_STEP_SUMMARY
-          echo "All data files are properly formatted and sorted." >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Data Formatting" >> $GITHUB_STEP_SUMMARY
+          echo "All data files are properly formatted and sorted, and changed SVG icons are optimized." >> $GITHUB_STEP_SUMMARY
 
       - name: Validate data schema
         id: schema
@@ -198,7 +207,7 @@ jobs:
             body += `\n### How to Fix\n\n`;
             body += `See the [workflow summary](${runUrl}) for details.\n\n`;
             body += `**Common fixes:**\n`;
-            body += `- Run \`bun run data:format\` to fix formatting issues\n`;
+            body += `- Run \`bun run data:format\` to fix formatting issues and optimize SVG icons\n`;
             body += `- Ensure icon filenames match an airline \`id\` in \`airlines.json\`\n`;
             body += `- Check for missing required fields or invalid formats\n`;
           }
