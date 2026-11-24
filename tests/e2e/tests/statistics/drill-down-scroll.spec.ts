@@ -74,8 +74,12 @@ test('returning from a flight keeps focus on it in the drill-down', async ({
 }) => {
   const { sheet } = await openDrillDownFromBottomOfStatistics(page);
 
+  // The flight is opened from the keyboard, like the drill-down row. A click
+  // would leave the pointer over the flight list, where it can open an airport
+  // tooltip that then takes the Escape meant for the list.
   const flight = sheet.getByRole('button', { name: /JFK.*LHR/ }).first();
-  await flight.click();
+  await flight.focus();
+  await page.keyboard.press('Enter');
   // The flight list opens on top of the statistics. It handles Escape once
   // it has taken focus, which happens just after it appears.
   await expect(page.getByRole('dialog')).toHaveCount(2);

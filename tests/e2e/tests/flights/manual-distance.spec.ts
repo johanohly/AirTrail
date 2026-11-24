@@ -71,8 +71,7 @@ test.describe('Manual flight distance', () => {
     await expect(page.getByText('Flight updated successfully')).toBeVisible();
     await expect.poll(() => storedDistance(flight.id)).toBeCloseTo(106.2, 1);
 
-    await page.keyboard.press('Escape');
-    await page.reload();
+    await page.goto('/');
     modal = await openEditFlightModal(page);
     await expect(
       modal.getByRole('spinbutton', { name: 'Distance' }),
@@ -116,8 +115,7 @@ test.describe('Manual flight distance', () => {
     await expect(page.getByText('Flight updated successfully')).toBeVisible();
     await expect.poll(() => storedDistance(flight.id)).toBe(700);
 
-    await page.keyboard.press('Escape');
-    await page.reload();
+    await page.goto('/');
     modal = await openEditFlightModal(page);
     await expect(
       modal.getByRole('spinbutton', { name: 'Distance' }),
