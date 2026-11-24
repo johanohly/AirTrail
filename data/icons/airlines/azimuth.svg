@@ -1,15 +1,1 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg width="100%" height="100%" viewBox="0 0 1215 816" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
-    <g transform="matrix(4.166667,0,0,4.166667,0,0)">
-        <g id="path58" transform="matrix(4.076198,0,0,4.076198,-716.038777,0)">
-            <path d="M247.147,0C247.147,0 233.629,15.377 205.08,29.401C204.502,29.684 203.935,29.959 203.375,30.223C200.373,28.919 197.256,27.876 194.112,27.271C185.839,25.677 179.741,26.653 175.664,27.535L247.147,0Z" style="fill:rgb(243,112,33);fill-rule:nonzero;"/>
-        </g>
-        <g id="path62" transform="matrix(4.076198,0,0,4.076198,-716.038777,0)">
-            <path d="M187.283,35.997L175.663,27.534C179.741,26.651 185.838,25.678 194.111,27.271C197.255,27.877 200.373,28.918 203.374,30.222C196.897,33.283 191.603,35.077 187.283,35.997" style="fill:rgb(0,82,156);fill-rule:nonzero;"/>
-        </g>
-        <g id="path66" transform="matrix(4.076198,0,0,4.076198,-716.038777,0)">
-            <path d="M228.754,47.994L187.283,35.997C191.604,35.077 196.896,33.283 203.374,30.222C217.31,36.278 228.754,47.994 228.754,47.994" style="fill:rgb(0,178,213);fill-rule:nonzero;"/>
-        </g>
-    </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2" viewBox="0 0 1215 816"><path d="M247.147 0s-13.518 15.377-42.067 29.401q-.866.425-1.705.822c-3.002-1.304-6.119-2.347-9.263-2.952-8.273-1.594-14.371-.618-18.448.264z" style="fill:#f37021;fill-rule:nonzero" transform="translate(-2983.495)scale(16.98416)"/><path d="m187.283 35.997-11.62-8.463c4.078-.883 10.175-1.856 18.448-.263 3.144.606 6.262 1.647 9.263 2.951-6.477 3.061-11.771 4.855-16.091 5.775" style="fill:#00529c;fill-rule:nonzero" transform="translate(-2983.495)scale(16.98416)"/><path d="m228.754 47.994-41.471-11.997c4.321-.92 9.613-2.714 16.091-5.775 13.936 6.056 25.38 17.772 25.38 17.772" style="fill:#00b2d5;fill-rule:nonzero" transform="translate(-2983.495)scale(16.98416)"/></svg>

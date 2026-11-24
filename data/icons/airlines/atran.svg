@@ -1,12 +1,1 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg width="100%" height="100%" viewBox="0 0 151 151" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
-    <g transform="matrix(4.166667,0,0,4.166667,0,0)">
-        <g transform="matrix(0.860126,0,0,1,-6.881011,-4.472)">
-            <rect x="8" y="4.472" width="42" height="36.056" style="fill:rgb(3,84,160);fill-rule:nonzero;"/>
-        </g>
-        <g transform="matrix(1,0,0,1,-10.992869,-4.507)">
-            <path d="M27.395,24.316L19.718,14.533L19.436,14.115C19.224,13.905 19.084,13.556 18.943,13.276C18.802,12.787 18.732,12.437 18.732,12.158L18.379,12.996L14.858,21.451C14.647,22.01 14.576,22.639 14.788,23.267C14.858,23.546 15.07,23.827 15.21,24.106L15.281,24.245L21.69,32.352C22.184,32.91 23.028,33.05 23.592,32.561C23.803,32.421 23.944,32.211 24.014,32.071L27.395,24.316ZM21.057,13.975L25.494,19.845L39.86,19.845L43.451,11.32L21.408,11.32C20.915,11.32 20.562,11.529 20.352,11.879C20.141,12.298 20.141,12.857 20.704,13.556L21.057,13.975ZM33.944,33.75L39.154,21.382L30.07,21.382L26.056,31.025L25,33.4C24.929,33.54 24.859,33.61 24.859,33.75L33.944,33.75Z" style="fill:white;fill-rule:nonzero;"/>
-        </g>
-    </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2" viewBox="0 0 151 151"><path d="M8 4.472h42v36.056H8z" style="fill:#0354a0;fill-rule:nonzero" transform="matrix(3.58386 0 0 4.16667 -28.67 -18.633)"/><path d="m27.395 24.316-7.677-9.783-.282-.418c-.212-.21-.352-.559-.493-.839-.141-.489-.211-.839-.211-1.118l-.353.838-3.521 8.455c-.211.559-.282 1.188-.07 1.816.07.279.282.56.422.839l.071.139 6.409 8.107c.494.558 1.338.698 1.902.209.211-.14.352-.35.422-.49zm-6.338-10.341 4.437 5.87H39.86l3.591-8.525H21.408c-.493 0-.846.209-1.056.559-.211.419-.211.978.352 1.677zM33.944 33.75l5.21-12.368H30.07l-4.014 9.643L25 33.4c-.071.14-.141.21-.141.35z" style="fill:#fff;fill-rule:nonzero" transform="translate(-45.804 -18.78)scale(4.16667)"/></svg>
