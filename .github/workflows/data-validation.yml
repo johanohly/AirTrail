@@ -34,8 +34,7 @@ jobs:
         id: format
         run: |
           set -o pipefail
-          BASE_SHA=$(git merge-base ${{ github.event.pull_request.base.sha }} HEAD)
-          if ! bun scripts/data/format-data.js --check --base "$BASE_SHA" 2>&1 | tee format-output.txt; then
+          if ! bun scripts/data/format-data.js --check --base ${{ github.event.pull_request.base.sha }} 2>&1 | tee format-output.txt; then
             echo "format_failed=true" >> $GITHUB_OUTPUT
             echo "## ❌ Data Formatting" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY

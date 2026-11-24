@@ -21,13 +21,13 @@ const git = (args, cwd) =>
   execFileSync('git', args, {
     cwd,
     encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'ignore'],
+    stdio: ['ignore', 'pipe', 'pipe'],
   }).trim();
 
 const paths = (output) => output.split('\0').filter(Boolean);
 
 const resolveBase = (root, base) => {
-  if (base) return base;
+  if (base) return git(['merge-base', 'HEAD', base], root);
 
   for (const ref of DEFAULT_BASE_REFS) {
     try {
@@ -73,10 +73,9 @@ const kb = (bytes) => `${(bytes / 1024).toFixed(1)}KB`;
 
 /**
  * @param {{ check?: boolean, base?: string }} options
- * @returns {{ changed: string[], errors: string[] }}
+ * @returns {string[]} Errors, one per icon that isn't optimized or failed.
  */
 export const optimizeChangedIcons = ({ check = false, base } = {}) => {
-  const changed = [];
   const errors = [];
 
   let root;
@@ -86,12 +85,12 @@ export const optimizeChangedIcons = ({ check = false, base } = {}) => {
     files = getChangedIcons(root, resolveBase(root, base));
   } catch (err) {
     errors.push(`Could not determine changed icons: ${err.message}`);
-    return { changed, errors };
+    return errors;
   }
 
   if (files.length === 0) {
     console.log('No changed SVG icons');
-    return { changed, errors };
+    return errors;
   }
 
   for (const file of files) {
@@ -110,7 +109,7 @@ export const optimizeChangedIcons = ({ check = false, base } = {}) => {
       if (data === content) {
         console.log(`OK: ${file}`);
       } else if (check) {
-        changed.push(file);
+        errors.push(`Error: ${file} is not optimized`);
       } else {
         writeFileSync(filePath, data);
         console.log(
@@ -122,5 +121,5 @@ export const optimizeChangedIcons = ({ check = false, base } = {}) => {
     }
   }
 
-  return { changed, errors };
+  return errors;
 };

@@ -12,8 +12,8 @@
  *
  * Options:
  *   --check       Check if files are formatted (exit 1 if not)
- *   --base <ref>  Commit to compare icons against (default: merge base with
- *                 upstream/main or origin/main)
+ *   --base <ref>  Branch or commit whose merge base icons are compared
+ *                 against (default: upstream/main, then origin/main)
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -72,17 +72,7 @@ for (const { path, sortKey } of DATA_FILES) {
   }
 }
 
-const icons = optimizeChangedIcons({ check: CHECK_MODE, base: BASE });
-
-if (icons.changed.length > 0) {
-  console.error('Error: these icons are not optimized:');
-  for (const file of icons.changed) {
-    console.error(`  ${file}`);
-  }
-  hasErrors = true;
-}
-
-for (const error of icons.errors) {
+for (const error of optimizeChangedIcons({ check: CHECK_MODE, base: BASE })) {
   console.error(error);
   hasErrors = true;
 }
