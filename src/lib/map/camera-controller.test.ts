@@ -568,13 +568,9 @@ describe('map camera controller', () => {
       'setPadding',
       'fitBounds',
     ]);
-    const [[west, south], [east, north]] = fake.calls[1]?.options?.bounds as [
-      [number, number],
-      [number, number],
-    ];
-    expect([west, south, east, north].map((n) => +n.toFixed(6))).toEqual([
-      3, 1, 4, 2,
-    ]);
+    const bounds = fake.calls[1]?.options?.bounds as
+      [[number, number], [number, number]] | undefined;
+    expect(bounds?.flat().map((n) => +n.toFixed(6))).toEqual([3, 1, 4, 2]);
   });
 
   it('cancels deferred and future automatic fitting after user movement', () => {
