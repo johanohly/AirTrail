@@ -4,7 +4,6 @@
   import { mode } from 'mode-watcher';
   import { onDestroy, onMount, untrack } from 'svelte';
   import {
-    AttributionControl,
     Control,
     ControlButton,
     ControlGroup,
@@ -15,6 +14,7 @@
 
   import FlightTrackLegend from './FlightTrackLegend.svelte';
   import MapAppearanceControl from './MapAppearanceControl.svelte';
+  import MapCredits from './MapCredits.svelte';
   import MapFallback from './MapFallback.svelte';
   import MapStatusShelf from './MapStatusShelf.svelte';
   import OpenAipOverlay from './OpenAipOverlay.svelte';
@@ -512,7 +512,7 @@
     class="relative h-full"
     attributionControl={false}
   >
-    <AttributionControl compact={true} />
+    <MapCredits besideDock />
     <NavigationControl position="top-right" />
     <GeolocateControl position="top-right" />
     <Control position="top-right">

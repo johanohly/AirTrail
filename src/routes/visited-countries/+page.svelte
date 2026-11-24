@@ -11,7 +11,6 @@
     ControlGroup,
     ControlButton,
     GeolocateControl,
-    AttributionControl,
     NavigationControl,
     VectorTileSource,
     FillLayer,
@@ -20,6 +19,7 @@
   import { toast } from 'svelte-sonner';
 
   import { OnResizeEnd } from '$lib/components/helpers';
+  import { MapCredits } from '$lib/components/map';
   import {
     EditVisitedCountry,
     SetupVisitedCountries,
@@ -203,11 +203,15 @@
   onload={load}
   attributionControl={false}
 >
-  <AttributionControl compact={true} />
+  <MapCredits besideDock />
   <NavigationControl />
   <GeolocateControl />
 
-  <VectorTileSource id="countries" url="pmtiles:///countries.pmtiles">
+  <VectorTileSource
+    id="countries"
+    url="pmtiles:///countries.pmtiles"
+    attribution="© EuroGeographics for the administrative boundaries"
+  >
     <FillLayer
       id="countries"
       sourceLayer="countries"
