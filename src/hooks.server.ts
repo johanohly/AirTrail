@@ -11,6 +11,7 @@ import {
 import { isCrossSiteFormPost } from '$lib/server/security/csrf';
 import { lucia } from '$lib/server/auth';
 import { loadAuthorizationContext } from '$lib/server/authorization/context';
+import { applyOAuthRoleMappingEnv } from '$lib/server/authorization/oauth-role-mapping-env';
 import { demoMode, isPublicDemo } from '$lib/server/demo/mode';
 import { seedDemo } from '$lib/server/demo/seed';
 import { validateAirlineIcons } from '$lib/server/utils/airline';
@@ -27,6 +28,7 @@ import { ensureAirports } from '$lib/utils/data/airports/source';
 async function loadConfig() {
   await appConfig.get();
   await appConfig.loadFromEnv();
+  await applyOAuthRoleMappingEnv();
 }
 
 export const init: ServerInit = async () => {

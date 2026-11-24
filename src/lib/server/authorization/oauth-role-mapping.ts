@@ -363,22 +363,26 @@ export const replaceOAuthRoleSettings = async (
       }
     }
 
-    await trx
-      .updateTable('authorizationSettings')
-      .set({ oauthRoleMappingMode: mode })
-      .where('id', '=', 1)
-      .execute();
-    await trx.deleteFrom('oauthRoleMapping').execute();
-    if (mappings.length) {
-      await trx
-        .insertInto('oauthRoleMapping')
-        .values(
-          mappings.map((mapping, priority) => ({
-            ...mapping,
-            priority,
-          })),
-        )
-        .execute();
-    }
+    await writeOAuthRoleSettings(trx, mode, mappings);
   });
+};
+
+export const writeOAuthRoleSettings = async (
+  trx: DatabaseConnection,
+  mode: OAuthRoleMappingMode,
+  mappings: readonly OAuthRoleMappingInput[] | null,
+) => {
+  await trx
+    .updateTable('authorizationSettings')
+    .set({ oauthRoleMappingMode: mode })
+    .where('id', '=', 1)
+    .execute();
+  if (!mappings) return;
+  await trx.deleteFrom('oauthRoleMapping').execute();
+  if (mappings.length) {
+    await trx
+      .insertInto('oauthRoleMapping')
+      .values(mappings.map((mapping, priority) => ({ ...mapping, priority })))
+      .execute();
+  }
 };

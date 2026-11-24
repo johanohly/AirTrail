@@ -12,6 +12,7 @@ import {
   replaceOAuthRoleSettings,
   testOAuthRoleMappings,
 } from '$lib/server/authorization/oauth-role-mapping';
+import { oauthRoleMappingEnvConfigured } from '$lib/server/authorization/oauth-role-mapping-env';
 import {
   createRole,
   deleteRole,
@@ -111,6 +112,7 @@ export const roleRouter = router({
     async () => ({
       ...(await getOAuthRoleSettings()),
       oauthManagedUserCount: await getOAuthManagedUserCount(),
+      envConfigured: oauthRoleMappingEnvConfigured(),
     }),
   ),
   testOAuthMappings: permissionProcedure('instance.oauth.manage')
@@ -119,6 +121,12 @@ export const roleRouter = router({
   updateOAuthMappings: permissionProcedure('instance.oauth.manage')
     .input(oauthRoleMappingSettingsSchema)
     .mutation(async ({ ctx, input }) => {
+      if (oauthRoleMappingEnvConfigured()) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Role assignment is set by environment variables',
+        });
+      }
       try {
         await replaceOAuthRoleSettings(
           input.mode,

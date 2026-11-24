@@ -27,6 +27,7 @@
             { 'opacity-80 blur-[1px] select-none pointer-events-none': locked },
             className,
           )}
+          inert={locked}
         >
           {@render children()}
         </div>
