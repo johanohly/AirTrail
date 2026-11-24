@@ -14,8 +14,9 @@
 .DS_Store
 .AppleDouble
 .LSOverride
-# Icon must end with two \r
-Icon?
+# Only macOS custom-icon files ("Icon\r"). A plain "Icon?" would also hide the
+# icons folders on case-insensitive file systems.
+Icon[]
 # Thumbnails
 ._*
 # Files that might appear in the root of a volume
