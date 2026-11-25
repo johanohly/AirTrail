@@ -683,10 +683,7 @@
 
 {#snippet airlineAndDelay(flight)}
   {#if flight.airline}
-    <Tooltip.AutoTooltip
-      text={flight.airline.name}
-      class="text-sm truncate"
-    />
+    <Tooltip.AutoTooltip text={flight.airline.name} class="text-sm truncate" />
     {#if flight.depDelayMinutes != null && flight.arrDelayMinutes != null}
       <p class="text-sm text-muted-foreground truncate">
         Dep +{formatDelay(flight.depDelayMinutes)}, Arr +{formatDelay(

@@ -30,12 +30,7 @@ export interface FlightWithSeats extends FlightInput {
       | null;
     seatNumber?: string | null;
     seatClass?:
-      | 'economy'
-      | 'economy+'
-      | 'business'
-      | 'first'
-      | 'private'
-      | null;
+      'economy' | 'economy+' | 'business' | 'first' | 'private' | null;
     guestName?: string | null;
   };
 }

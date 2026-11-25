@@ -64,9 +64,7 @@
   // a competitor or hold a credit.
   let allCarriers = $state(false);
 
-  const carrierPrefix = $derived(
-    userFlightNumber.slice(0, 2).toUpperCase(),
-  );
+  const carrierPrefix = $derived(userFlightNumber.slice(0, 2).toUpperCase());
 
   const visibleRoutes = $derived.by(() => {
     if (allCarriers || !carrierPrefix) return routes;
@@ -99,9 +97,7 @@
     <div
       class="flex items-center justify-between border-t border-border px-3 py-2"
     >
-      <span class="text-xs text-muted-foreground">
-        All carriers
-      </span>
+      <span class="text-xs text-muted-foreground"> All carriers </span>
       <Switch bind:checked={allCarriers} />
     </div>
     <div class="border-t border-border divide-y divide-border">
@@ -113,9 +109,7 @@
       {/if}
       {#each visibleRoutes as r, i (i)}
         {@const offset = daysOffset(r.schedDep, userSchedDep, r.originTz)}
-        <div
-          class="flex items-center justify-between gap-3 p-3 text-sm"
-        >
+        <div class="flex items-center justify-between gap-3 p-3 text-sm">
           <div class="min-w-0">
             <div class="font-medium truncate">
               {cleanAirline(r.airline)}

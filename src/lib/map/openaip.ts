@@ -74,9 +74,7 @@ type OpenAipSymbolLayer = OpenAipLayerBase & {
 };
 
 export type OpenAipOverlayLayer =
-  | OpenAipFillLayer
-  | OpenAipLineLayer
-  | OpenAipSymbolLayer;
+  OpenAipFillLayer | OpenAipLineLayer | OpenAipSymbolLayer;
 
 export type OpenAipTheme = 'light' | 'dark';
 

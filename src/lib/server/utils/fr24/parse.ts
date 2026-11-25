@@ -90,4 +90,3 @@ export function parseLeg(raw: unknown): FR24Leg {
     status: (status.text ?? 'Unknown') as string,
   };
 }
-

@@ -185,8 +185,7 @@
 
   const getProjectionType = () => {
     const projection = map?.getProjection?.() as
-      | { type?: string; name?: string }
-      | undefined;
+      { type?: string; name?: string } | undefined;
     return projection?.type ?? projection?.name ?? 'unknown';
   };
 

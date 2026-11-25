@@ -1,9 +1,7 @@
 <script lang="ts">
   import type { FR24Leg } from '$lib/server/utils/fr24';
 
-  import RotationLegRow, {
-    type LegState,
-  } from './RotationLegRow.svelte';
+  import RotationLegRow, { type LegState } from './RotationLegRow.svelte';
 
   import { Separator } from '$lib/components/ui/separator';
 
@@ -52,7 +50,9 @@
 
 <section class="space-y-1">
   <header class="flex items-baseline justify-between mb-2">
-    <h3 class="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+    <h3
+      class="text-sm font-semibold tracking-wide text-muted-foreground uppercase"
+    >
       Today's rotation
     </h3>
     {#if yourLeg.tail}

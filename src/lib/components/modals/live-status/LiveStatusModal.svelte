@@ -135,18 +135,14 @@
   const isRotationFetching = $derived($rotationQuery.isFetching);
 </script>
 
-<Modal
-  bind:open
-  class="max-w-2xl"
-  closeButton
->
+<Modal bind:open class="max-w-2xl" closeButton>
   <div class="space-y-4 p-2 sm:p-4">
     <header class="flex items-start justify-between gap-3">
       <div>
         <h2 class="text-2xl font-bold tracking-tight">Live status</h2>
         <p class="text-sm text-muted-foreground">
-          Real-time rotation history for the aircraft assigned to your
-          upcoming flights.
+          Real-time rotation history for the aircraft assigned to your upcoming
+          flights.
         </p>
       </div>
       <!-- Manual refresh. Disabled while a fetch is already in flight so
@@ -162,10 +158,7 @@
         disabled={isRotationFetching || !rotation}
         onclick={() => $rotationQuery.refetch()}
       >
-        <RefreshCw
-          size="16"
-          class={cn(isRotationFetching && 'animate-spin')}
-        />
+        <RefreshCw size="16" class={cn(isRotationFetching && 'animate-spin')} />
       </button>
     </header>
 
@@ -174,7 +167,9 @@
         Loading upcoming flights…
       </p>
     {:else if $upcomingQuery.isError}
-      <div class="rounded-md border border-destructive/40 bg-destructive/10 p-4">
+      <div
+        class="rounded-md border border-destructive/40 bg-destructive/10 p-4"
+      >
         <p class="text-sm font-medium">Couldn't load upcoming flights</p>
         <p class="text-xs text-muted-foreground mt-1">
           {$upcomingQuery.error?.message ?? 'Unknown error'}
@@ -194,23 +189,23 @@
           Fetching from FlightRadar24…
         </p>
       {:else if isRotationError}
-        <div class="rounded-md border border-destructive/40 bg-destructive/10 p-4">
+        <div
+          class="rounded-md border border-destructive/40 bg-destructive/10 p-4"
+        >
           <p class="text-sm font-medium">FlightRadar24 unreachable</p>
           <p class="text-xs text-muted-foreground mt-1">
-            Hit the refresh button to try again, or close and reopen the
-            modal.
+            Hit the refresh button to try again, or close and reopen the modal.
           </p>
         </div>
       {:else if rotation?.kind === 'tail_not_found'}
         <div class="rounded-md border border-border bg-card/40 p-4">
           <p class="text-sm font-medium">Not tracked by FlightRadar24</p>
           <p class="text-xs text-muted-foreground mt-1">
-            This flight isn't on the {selected?.from.iata} departures board or
-            the {selected?.to.iata} arrivals board right now. If your flight is
-            still upcoming, aircraft assignments usually appear within ~12
-            hours of departure — check back closer to your flight time. If
-            your flight already landed, FR24 may have aged it out of the live
-            boards.
+            This flight isn't on the {selected?.from.iata} departures board or the
+            {selected?.to.iata} arrivals board right now. If your flight is still
+            upcoming, aircraft assignments usually appear within ~12 hours of departure
+            — check back closer to your flight time. If your flight already landed,
+            FR24 may have aged it out of the live boards.
           </p>
         </div>
       {:else if rotation?.kind === 'ok'}

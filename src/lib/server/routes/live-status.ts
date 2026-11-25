@@ -45,7 +45,9 @@ export const liveStatusRouter = router({
   // string comparison works without any timezone parsing.
   listUpcoming: authedProcedure.query(async ({ ctx: { user } }) => {
     const now = new Date();
-    const in24hIso = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+    const in24hIso = new Date(
+      now.getTime() + 24 * 60 * 60 * 1000,
+    ).toISOString();
     const sixHoursAgoIso = new Date(
       now.getTime() - 6 * 60 * 60 * 1000,
     ).toISOString();
@@ -173,6 +175,7 @@ export const liveStatusRouter = router({
               yourLeg.tail,
               yourLeg.schedDep,
               input.originTz,
+              originIata,
             )
           : [];
 

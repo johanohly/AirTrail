@@ -60,8 +60,7 @@ export const openModalsState = $state<OpenModalsState>({
 });
 
 export type MapDetailsSelection =
-  | { type: 'airport'; airportId: number }
-  | { type: 'route'; route: Route };
+  { type: 'airport'; airportId: number } | { type: 'route'; route: Route };
 
 export const mapDetailsState = $state<{
   selection: MapDetailsSelection | null;
