@@ -35,6 +35,16 @@ export type FlightLookupResultItem = {
   departureGate?: string | null;
   arrivalTerminal?: string | null;
   arrivalGate?: string | null;
+  /**
+   * Runway times (wheels-off / touchdown) and the taxi / airborne durations
+   * derived from them. These are informational only — derived at fetch time,
+   * shown as a hint in the lookup results, and never persisted.
+   */
+  departureRunway?: TZDate | null;
+  arrivalRunway?: TZDate | null;
+  taxiOut?: number | null;
+  taxiIn?: number | null;
+  airborneTime?: number | null;
 };
 
 export type FlightLookupResult = FlightLookupResultItem[];

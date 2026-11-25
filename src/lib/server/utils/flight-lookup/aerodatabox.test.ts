@@ -195,6 +195,9 @@ describe('endpoint selection', () => {
     expect(url).toContain(
       'https://aerodatabox.p.rapidapi.com/flights/number/SK728/',
     );
+    // The platform defines these params on the single-date endpoint only.
+    expect(url).not.toContain('withAircraftImage');
+    expect(url).not.toContain('withLocation');
     expect(init).toEqual({ headers: { 'x-rapidapi-key': 'test-api-key' } });
   });
 
@@ -221,5 +224,228 @@ describe('endpoint selection', () => {
       `https://api.aerodatabox.com/flights/number/SK728/${format(date, 'yyyy-MM-dd')}?dateLocalRole=Both&withAircraftImage=false&withLocation=false`,
     );
     expect(init).toEqual({ headers: { 'X-Api-Key': 'test-api-key' } });
+  });
+});
+
+describe('getFlightRoute movement times', () => {
+  const utc = (iso: string) => Date.parse(iso);
+
+  const airport = (icao: string, tzId: string) => ({
+    id: 1,
+    icao,
+    iata: icao,
+    lat: 0,
+    lon: 0,
+    tz: tzId,
+    name: icao,
+    municipality: null,
+    type: 'large_airport',
+    continent: 'EU',
+    country: 'DK',
+    custom: false,
+  });
+
+  const mockAirports = (depTz: string, arrTz: string) => {
+    getAirportByIcao.mockImplementation(async (icao: string) =>
+      icao === 'EKCH' ? airport('EKCH', depTz) : airport('LFPG', arrTz),
+    );
+  };
+
+  // Departure in Copenhagen (+02:00 in June), arrival in New York (-04:00), so
+  // every delta must be computed on instants rather than local wall times.
+  const flight = (
+    departure: Record<string, unknown>,
+    arrival: Record<string, unknown>,
+  ) => ({
+    departure: {
+      airport: { icao: 'EKCH', timeZone: 'Europe/Copenhagen' },
+      ...departure,
+    },
+    arrival: {
+      airport: { icao: 'LFPG', timeZone: 'America/New_York' },
+      ...arrival,
+    },
+  });
+
+  const lookup = async (body: unknown) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json(body)),
+    );
+    const result = await getFlightRoute('SK728');
+    return result[0]!;
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getConfig.mockResolvedValue({
+      integrations: {
+        aeroDataBoxKey: 'test-api-key',
+        aeroDataBoxEndpoint: 'rapidapi',
+      },
+    });
+    mockAirports('Europe/Copenhagen', 'America/New_York');
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('sets actual from revisedTime and leaves runway and derived values null when only revisedTime exists', async () => {
+    const result = await lookup([
+      flight(
+        { revisedTime: { utc: '2026-06-15T08:05:00Z' } },
+        { revisedTime: { utc: '2026-06-15T11:45:00Z' } },
+      ),
+    ]);
+
+    expect(result.departure?.getTime()).toBe(utc('2026-06-15T08:05:00Z'));
+    expect(result.departure?.timeZone).toBe('Europe/Copenhagen');
+    expect(result.arrival?.getTime()).toBe(utc('2026-06-15T11:45:00Z'));
+    expect(result.arrival?.timeZone).toBe('America/New_York');
+    expect(result.departureRunway).toBeNull();
+    expect(result.arrivalRunway).toBeNull();
+    expect(result.taxiOut).toBeNull();
+    expect(result.taxiIn).toBeNull();
+    expect(result.airborneTime).toBeNull();
+  });
+
+  it('derives taxi and airborne minutes from runway times across timezones', async () => {
+    const result = await lookup([
+      flight(
+        {
+          revisedTime: { utc: '2026-06-15T08:05:00Z' },
+          runwayTime: { utc: '2026-06-15T08:22:00Z' },
+        },
+        {
+          revisedTime: { utc: '2026-06-15T11:45:00Z' },
+          runwayTime: { utc: '2026-06-15T11:32:00Z' },
+        },
+      ),
+    ]);
+
+    expect(result.departureRunway?.getTime()).toBe(utc('2026-06-15T08:22:00Z'));
+    expect(result.departureRunway?.timeZone).toBe('Europe/Copenhagen');
+    expect(result.arrivalRunway?.getTime()).toBe(utc('2026-06-15T11:32:00Z'));
+    expect(result.arrivalRunway?.timeZone).toBe('America/New_York');
+    expect(result.taxiOut).toBe(17);
+    expect(result.taxiIn).toBe(13);
+    expect(result.airborneTime).toBe(190);
+  });
+
+  it('suppresses derived values when runwayTime equals revisedTime', async () => {
+    const result = await lookup([
+      flight(
+        {
+          revisedTime: { utc: '2026-06-15T08:05:00Z' },
+          runwayTime: { utc: '2026-06-15T08:05:00Z' },
+        },
+        {
+          revisedTime: { utc: '2026-06-15T11:45:00Z' },
+          runwayTime: { utc: '2026-06-15T11:45:00Z' },
+        },
+      ),
+    ]);
+
+    expect(result.departure?.getTime()).toBe(utc('2026-06-15T08:05:00Z'));
+    expect(result.taxiOut).toBeNull();
+    expect(result.taxiIn).toBeNull();
+    expect(result.airborneTime).toBeNull();
+  });
+
+  it('rejects a negative taxi-out time', async () => {
+    const result = await lookup([
+      flight(
+        {
+          revisedTime: { utc: '2026-06-15T08:05:00Z' },
+          runwayTime: { utc: '2026-06-15T07:50:00Z' },
+        },
+        { revisedTime: { utc: '2026-06-15T11:45:00Z' } },
+      ),
+    ]);
+
+    expect(result.taxiOut).toBeNull();
+    expect(result.taxiIn).toBeNull();
+    expect(result.airborneTime).toBeNull();
+  });
+
+  it('rejects an implausible airborne time', async () => {
+    const result = await lookup([
+      flight(
+        {
+          revisedTime: { utc: '2026-06-15T08:05:00Z' },
+          runwayTime: { utc: '2026-06-15T08:22:00Z' },
+        },
+        {
+          revisedTime: { utc: '2026-06-16T09:40:00Z' },
+          runwayTime: { utc: '2026-06-16T09:32:00Z' },
+        },
+      ),
+    ]);
+
+    // 25h 10m between wheels off and touchdown.
+    expect(result.airborneTime).toBeNull();
+    expect(result.taxiOut).toBe(17);
+    expect(result.taxiIn).toBe(8);
+  });
+
+  it('never uses predictedTime', async () => {
+    const result = await lookup([
+      flight(
+        {
+          revisedTime: { utc: '2026-06-15T08:05:00Z' },
+          predictedTime: { utc: '2026-06-15T12:00:00Z' },
+        },
+        {
+          revisedTime: { utc: '2026-06-15T11:45:00Z' },
+          predictedTime: { utc: '2026-06-15T18:00:00Z' },
+        },
+      ),
+    ]);
+
+    expect(result.departure?.getTime()).toBe(utc('2026-06-15T08:05:00Z'));
+    expect(result.arrival?.getTime()).toBe(utc('2026-06-15T11:45:00Z'));
+  });
+
+  it('parses the utc and local members of a time to the same instant', async () => {
+    const result = await lookup([
+      flight(
+        {
+          revisedTime: {
+            utc: '2026-03-08T00:30:00Z',
+            local: '2026-03-08 01:30+01:00',
+          },
+        },
+        {
+          revisedTime: {
+            utc: '2026-03-08T04:00:00Z',
+            local: '2026-03-08 00:00-04:00',
+          },
+        },
+      ),
+    ]);
+
+    expect(result.departure?.getTime()).toBe(utc('2026-03-08T00:30:00Z'));
+    expect(result.departure?.timeZone).toBe('Europe/Copenhagen');
+    expect(result.arrival?.getTime()).toBe(utc('2026-03-08T04:00:00Z'));
+    expect(result.arrival?.timeZone).toBe('America/New_York');
+  });
+
+  it('falls back to scheduledTime and derives nothing when revisedTime is absent', async () => {
+    const result = await lookup([
+      flight(
+        {
+          scheduledTime: { utc: '2026-06-15T08:00:00Z' },
+          runwayTime: { utc: '2026-06-15T08:22:00Z' },
+        },
+        { scheduledTime: { utc: '2026-06-15T11:30:00Z' } },
+      ),
+    ]);
+
+    expect(result.departure?.getTime()).toBe(utc('2026-06-15T08:00:00Z'));
+    expect(result.departureRunway?.getTime()).toBe(utc('2026-06-15T08:22:00Z'));
+    expect(result.taxiOut).toBeNull();
+    expect(result.taxiIn).toBeNull();
+    expect(result.airborneTime).toBeNull();
   });
 });
