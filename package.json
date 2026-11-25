@@ -40,7 +40,7 @@
     "@node-rs/argon2": "^2.0.2",
     "@tanstack/query-persist-client-core": "^5.101.2",
     "@tanstack/query-sync-storage-persister": "^5.101.2",
-    "flightradarapi": "^1.5.1",
+    "flightradarapi": "^1.7.1",
     "geo-tz": "^8.1.6",
     "memoize": "^10.2.0",
     "pg": "^8.20.0"
