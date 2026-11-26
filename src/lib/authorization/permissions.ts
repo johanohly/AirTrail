@@ -123,7 +123,8 @@ export const PERMISSION_CATALOG = [
     key: 'users.update',
     group: 'users',
     access: { row: 'users', action: 'write' },
-    description: 'Edit users with fewer permissions.',
+    description:
+      'Edit users with fewer permissions, including their profile picture.',
   },
   {
     key: 'users.delete',

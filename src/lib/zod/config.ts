@@ -62,6 +62,7 @@ export const oauthConfigSchema = z.object({
   autoLogin: z.boolean().nullable().default(false),
   hidePasswordForm: z.boolean().nullable().default(false),
   buttonText: z.string().nullable().default('Log in with SSO'),
+  syncPicture: z.boolean().default(false),
 });
 
 export const integrationsConfigSchema = z.object({

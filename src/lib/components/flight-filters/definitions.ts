@@ -58,7 +58,12 @@ export type FilterIconComponent = Component<{
 export type FilterOptionIcon =
   | { kind: 'flag'; country: string }
   | { kind: 'logo'; src: string }
-  | { kind: 'avatar'; username: string };
+  | {
+      kind: 'avatar';
+      username: string;
+      userId?: string | null;
+      avatarHash?: string | null;
+    };
 
 export type FilterOption = {
   value: string;
@@ -470,6 +475,8 @@ export const FILTER_DEFINITIONS = [
         icon: {
           kind: 'avatar',
           username: passenger?.user?.username ?? `guest:${label}`,
+          userId: passenger?.user?.id ?? null,
+          avatarHash: passenger?.user?.avatarHash ?? null,
         },
       };
     },

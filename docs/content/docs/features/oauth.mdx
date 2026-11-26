@@ -46,6 +46,7 @@ Settings that are configured in the `.env` file will not be editable in the sett
 | Auto Login         | `OAUTH_AUTO_LOGIN`                 | `false`              | Whether to automatically launch the OAuth login flow when a user visits the login page. To prevent redirection, add `?autoLogin=false` to the end of the url. |
 | Hide Password Form | `OAUTH_HIDE_PASSWORD_FORM`         | `false`              | Whether to hide the password authentication form when OAuth is enabled.                                                                                       |
 | Button Text        | `OAUTH_BUTTON_TEXT`                | `Log in with SSO`    | The text to display on the OAuth login button.                                                                                                                |
+| Provider picture   | `OAUTH_SYNC_PICTURE`               | `false`              | Copy each user's profile picture from the `picture` claim at login. Users with a linked OAuth account then cannot upload their own. See [Profile pictures](#profile-pictures). |
 | Allow insecure HTTP | `OAUTH_ALLOW_INSECURE_HTTP`       | `false`              | Allow an identity provider served over plain HTTP. Environment only; use it only on a trusted local network.                                                 |
 | Role mapping mode  | `OAUTH_ROLE_MAPPING_MODE`          |                      | When role mapping rules run: `off`, `on_create` or `on_login`. See [Roles from environment variables](#roles-from-environment-variables).                  |
 | Role claim         | `OAUTH_ROLE_CLAIM`                 |                      | The UserInfo claim the rules read, such as `groups` or `/realm_access/roles`.                                                                                 |
@@ -54,6 +55,16 @@ Settings that are configured in the `.env` file will not be editable in the sett
 ## Usernames for new OAuth users
 
 Auto Register takes the username from the `preferred_username` claim. If your provider doesn't send it, as with Google, AirTrail uses the part of the user's verified email before the `@`. Add `email` to the scope for this, for example `openid profile email`. If that username is taken, log in to the existing account and link it under **Settings → Security** instead.
+
+## Profile pictures
+
+With **Use Provider Profile Picture** (`OAUTH_SYNC_PICTURE=true`) on, AirTrail reads the `picture` claim from UserInfo, or from the ID token if UserInfo has none, every time a user logs in with OAuth. It downloads the image, resizes it to 256×256 and stores it in the database, so the provider's URL is never shown to other users and can expire.
+
+- Your scope must include `profile`. The default `openid profile` does.
+- Users with a linked OAuth account can't upload or remove their picture, and admins can't upload one for them. An admin can still remove a synced picture, for example an inappropriate one; the next login copies it again. Local accounts without a link work as usual.
+- If the provider stops sending a picture, the copied one is removed at the next login and the generated avatar returns. A picture the user uploaded before the setting was turned on stays until the provider sends one.
+- A picture that can't be downloaded is logged and skipped; the login still succeeds.
+- AirTrail fetches the picture from whatever host the provider names, including hosts on your local network. Picture URLs must use HTTPS unless `OAUTH_ALLOW_INSECURE_HTTP=true`.
 
 ## Roles for OAuth users
 

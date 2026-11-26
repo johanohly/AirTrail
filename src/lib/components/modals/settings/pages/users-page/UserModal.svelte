@@ -7,6 +7,7 @@
   import { invalidateAll } from '$app/navigation';
   import { page } from '$app/state';
   import { hasClientPermission } from '$lib/authorization/permissions';
+  import { EditableAvatar } from '$lib/components/display';
   import * as Form from '$lib/components/ui/form';
   import { Input } from '$lib/components/ui/input';
   import {
@@ -114,6 +115,25 @@
     icon={User}
   />
   <ModalBody>
+    {#if isEdit && user}
+      <div class="mb-2">
+        <EditableAvatar
+          {user}
+          forOtherUser
+          editable={canUpdateProfile && !page.data.demo}
+          onChanged={async (avatarHash) => {
+            if (user) {
+              user = {
+                ...user,
+                avatarHash,
+                avatarSource: avatarHash ? 'upload' : null,
+              };
+            }
+            await invalidateAll();
+          }}
+        />
+      </div>
+    {/if}
     <form
       class="flex flex-col gap-2"
       method="POST"

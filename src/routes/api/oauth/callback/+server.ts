@@ -15,6 +15,7 @@ import {
   updateOAuthManagedUserRole,
 } from '$lib/server/authorization/oauth-role-mapping';
 import { createSession, getUserWithOAuthId } from '$lib/server/utils/auth';
+import { syncOAuthPicture } from '$lib/server/utils/avatar';
 import { appConfig } from '$lib/server/utils/config';
 import {
   getOAuthProfile,
@@ -196,6 +197,13 @@ export const POST: RequestHandler = async ({ cookies, request, locals }) => {
   if (!user) {
     return error(500, 'Failed to create user');
   }
+
+  await syncOAuthPicture(
+    user,
+    config.oauth.syncPicture,
+    profile,
+    idTokenClaims,
+  );
 
   await createSession(lucia, user.id, cookies);
   return json({ success: true, redirectTo: postLoginTarget(cookies) });

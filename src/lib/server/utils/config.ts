@@ -107,6 +107,7 @@ export class AppConfig {
           autoLogin: false,
           hidePasswordForm: false,
           buttonText: 'Log in with SSO',
+          syncPicture: false,
         },
         integrations: {
           aeroDataBoxKey: null,

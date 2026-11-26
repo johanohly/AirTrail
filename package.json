@@ -47,7 +47,8 @@
     "geo-tz": "^8.1.10",
     "memoize": "^11.0.0",
     "pg": "^8.23.1",
-    "pmtiles": "^4.5.0"
+    "pmtiles": "^4.5.0",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@date-fns/tz": "^1.5.0",
@@ -123,7 +124,6 @@
     "prisma-kysely": "3.2.1",
     "runed": "^0.35.1",
     "semver": "^7.8.5",
-    "sharp": "^0.35.5",
     "start-server-and-test": "^3.0.13",
     "svelte": "^5.57.3",
     "svelte-check": "^4.7.7",

@@ -249,6 +249,8 @@
   {:else if option.icon?.kind === 'avatar'}
     <UserAvatar
       username={option.icon.username}
+      userId={option.icon.userId}
+      avatarHash={option.icon.avatarHash ?? null}
       {size}
       animated={false}
       class="size-[var(--mobile-filter-icon-size)]"

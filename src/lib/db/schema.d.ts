@@ -348,6 +348,14 @@ export type user = {
     roleAssignmentSource: Generated<'local' | 'oauth'>;
     oauthId: string | null;
     /**
+     * Short hash of the stored picture; null means the generated avatar.
+     */
+    avatarHash: string | null;
+    /**
+     * @kyselyType('upload' | 'oauth')
+     */
+    avatarSource: 'upload' | 'oauth' | null;
+    /**
      * @kyselyType('km' | 'mi' | 'nm')
      */
     distanceUnit: Generated<'km' | 'mi' | 'nm'>;
@@ -380,6 +388,11 @@ export type user = {
      */
     flightTimeDisplay: Generated<'airport' | 'utc' | 'system'>;
     customFlightReasons: Generated<string[]>;
+};
+export type user_avatar = {
+    userId: string;
+    data: Buffer;
+    updatedAt: Generated<Timestamp>;
 };
 export type visited_country = {
     id: Generated<number>;
@@ -421,5 +434,6 @@ export type DB = {
     publicShare: public_share;
     session: session;
     user: user;
+    userAvatar: user_avatar;
     visitedCountry: visited_country;
 };

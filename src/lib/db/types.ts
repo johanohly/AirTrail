@@ -28,6 +28,8 @@ export const publicUserFields = [
   'roleId',
   'isOwner',
   'roleAssignmentSource',
+  'avatarHash',
+  'avatarSource',
   'distanceUnit',
   'windSpeedUnit',
   'temperatureUnit',
@@ -52,7 +54,7 @@ export type Airport = Selectable<airport>;
 export type CreateAirport = Insertable<airport>;
 export type FlightPassengerRecord = Selectable<flight_passenger>;
 export type FlightPassenger = FlightPassengerRecord & {
-  user: Pick<User, 'id' | 'displayName' | 'username'> | null;
+  user: Pick<User, 'id' | 'displayName' | 'username' | 'avatarHash'> | null;
 };
 export type FlightCustomFieldValue = {
   label: string;
