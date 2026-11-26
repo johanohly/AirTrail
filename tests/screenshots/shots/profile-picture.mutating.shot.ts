@@ -24,8 +24,25 @@ const samplePicture = () =>
     .toBuffer();
 
 test('settings-general', async ({ page, openAs, openSettings, capture }) => {
+  const captureTheme = async (theme: 'light' | 'dark') => {
+    await page.emulateMedia({ colorScheme: theme });
+    await openAs('maya');
+    const dialog = await openSettings('General');
+    const avatar = dialog.getByRole('button', {
+      name: 'Change profile picture',
+    });
+    await expect(avatar.locator('img')).toHaveJSProperty('complete', true);
+
+    // The upload icon and the remove button only show on hover.
+    await avatar.hover();
+    await expect(
+      dialog.getByRole('button', { name: 'Remove profile picture' }),
+    ).toBeVisible();
+    await capture('settings-general', { dialog }, theme);
+  };
+
   await openAs('maya');
-  let dialog = await openSettings('General');
+  const dialog = await openSettings('General');
 
   await dialog.locator('input[type="file"]').setInputFiles({
     name: 'maya.png',
@@ -37,22 +54,9 @@ test('settings-general', async ({ page, openAs, openSettings, capture }) => {
       dialog.getByRole('button', { name: 'Change profile picture' }),
     ).toBeVisible();
 
-    for (const theme of ['light', 'dark'] as const) {
-      await page.emulateMedia({ colorScheme: theme });
-      await openAs('maya');
-      dialog = await openSettings('General');
-      const avatar = dialog.getByRole('button', {
-        name: 'Change profile picture',
-      });
-      await expect(avatar.locator('img')).toHaveJSProperty('complete', true);
-
-      // The upload icon and the remove button only show on hover.
-      await avatar.hover();
-      await expect(
-        dialog.getByRole('button', { name: 'Remove profile picture' }),
-      ).toBeVisible();
-      await capture('settings-general', { dialog }, theme);
-    }
+    // One theme at a time: both share this page and Maya's picture.
+    await captureTheme('light');
+    await captureTheme('dark');
   } finally {
     const response = await page.request.delete('/api/users/avatar');
     expect(response.ok()).toBe(true);

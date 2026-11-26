@@ -107,7 +107,8 @@ export const test = base.extend<ShotFixtures>({
   },
 
   capture: async ({ page }, use, testInfo) => {
-    await use(async (name, target = { viewport: true }, themeOverride) => {
+    await use(async (name, target, themeOverride) => {
+      target ??= { viewport: true };
       await settle(page);
       await page.addStyleTag({ content: hideForCapture });
       // Focus rings and scroll offsets left by filling in forms vary per run.

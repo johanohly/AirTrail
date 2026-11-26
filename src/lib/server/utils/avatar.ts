@@ -130,18 +130,13 @@ const readLimited = async (response: Response, limit: number) => {
   if (declared > limit) throw new AvatarError('Picture is too large');
   if (!response.body) throw new AvatarError('Picture response is empty');
 
-  const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.byteLength;
-    if (total > limit) {
-      await reader.cancel();
-      throw new AvatarError('Picture is too large');
-    }
-    chunks.push(value);
+  // Throwing out of the loop cancels the stream, so the rest isn't read.
+  for await (const chunk of response.body) {
+    total += chunk.byteLength;
+    if (total > limit) throw new AvatarError('Picture is too large');
+    chunks.push(chunk);
   }
   return Buffer.concat(chunks);
 };
