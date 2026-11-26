@@ -13,7 +13,8 @@ test.describe('Logout', () => {
     await page.locator('id=settings-button').click();
     await page.getByRole('button', { name: 'Log out' }).click();
 
-    await page.waitForURL(/\/login(\?|$)/u);
+    // autoLogin=false stops OAuth auto-login from signing the user back in.
+    await page.waitForURL('/login?autoLogin=false');
 
     await page.goto('/');
     await page.waitForURL(/\/login(\?|$)/u);

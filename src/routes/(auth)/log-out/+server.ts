@@ -3,6 +3,7 @@ import { error, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 import { lucia } from '$lib/server/auth';
+import { deleteSession } from '$lib/server/utils/auth';
 
 export const POST: RequestHandler = async (event) => {
   if (!event.locals.session) {
@@ -10,12 +11,8 @@ export const POST: RequestHandler = async (event) => {
   }
 
   await lucia.invalidateSession(event.locals.session.id);
+  await deleteSession(lucia, event.cookies);
 
-  const sessionCookie = lucia.createBlankSessionCookie();
-  event.cookies.set(sessionCookie.name, sessionCookie.value, {
-    path: '.',
-    ...sessionCookie.attributes,
-  });
-
-  redirect(302, '/login');
+  // Skip OAuth auto-login, or the provider's session logs the user straight back in.
+  redirect(302, '/login?autoLogin=false');
 };
