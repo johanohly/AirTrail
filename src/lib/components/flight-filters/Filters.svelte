@@ -135,11 +135,15 @@
     }));
   }
 
-  function passengerAvatarIcon(username: string): FilterIcon {
+  function passengerAvatarIcon(
+    icon: Extract<FilterOptionIcon, { kind: 'avatar' }>,
+  ): FilterIcon {
     const Icon: Component<FilterIconProps> = (internals, props) =>
       UserAvatar(internals, {
         ...props,
-        username,
+        username: icon.username,
+        userId: icon.userId,
+        avatarHash: icon.avatarHash ?? null,
         size: props.size ?? 16,
         animated: false,
         class: cn('airtrail-filter-user-avatar', props.class),
@@ -158,7 +162,7 @@
       case 'logo':
         return imageIcon('data-filter-airline-icon', icon.src);
       case 'avatar':
-        return passengerAvatarIcon(icon.username);
+        return passengerAvatarIcon(icon);
     }
   }
 

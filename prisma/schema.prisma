@@ -30,6 +30,11 @@ model user {
 
   oauth_id String? @unique
 
+  /// Short hash of the stored picture; null means the generated avatar.
+  avatar_hash   String?
+  /// @kyselyType('upload' | 'oauth')
+  avatar_source String?
+
   /// @kyselyType('km' | 'mi' | 'nm')
   distance_unit       String @default("km")
   /// @kyselyType('kt' | 'mph' | 'kmh' | 'ms')
@@ -61,6 +66,15 @@ model user {
   oauth_access_tokens          oauth_access_token[]
   oauth_refresh_tokens         oauth_refresh_token[]
   calendar_feed                calendar_feed?
+  avatar                       user_avatar?
+}
+
+model user_avatar {
+  user_id    String   @id
+  data       Bytes
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  user user @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model calendar_feed {

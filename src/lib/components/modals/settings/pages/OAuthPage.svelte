@@ -473,6 +473,36 @@
             </Form.Control>
           </Form.Field>
         </Locked>
+        <Locked
+          locked={appConfig.envConfigured?.oauth?.syncPicture ?? false}
+          tooltip={lockedTooltip}
+        >
+          <Form.Field
+            {form}
+            name="syncPicture"
+            class="flex flex-row items-center justify-between"
+          >
+            <Form.Control>
+              {#snippet children({ props })}
+                <div class="grid gap-1">
+                  <Form.Label>Use Provider Profile Picture</Form.Label>
+                  <Form.Description>
+                    Copy each user's picture from the provider's
+                    <code>picture</code> claim at login. Users with a linked account
+                    cannot upload their own.
+                  </Form.Description>
+                </div>
+                <Switch
+                  bind:checked={
+                    () => $formData.syncPicture ?? false,
+                    (value) => ($formData.syncPicture = value)
+                  }
+                  {...props}
+                />
+              {/snippet}
+            </Form.Control>
+          </Form.Field>
+        </Locked>
         <div class="space-y-3 border-t pt-4">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>

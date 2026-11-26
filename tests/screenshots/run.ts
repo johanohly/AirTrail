@@ -129,7 +129,9 @@ const main = async () => {
 
   step('Capturing');
   rmSync(RAW_DIR, { recursive: true, force: true });
-  const grep = filters.length ? ['--grep', filters.join('|')] : [];
+  // A filtered run skips project dependencies, which would otherwise capture
+  // every shot before a mutating one.
+  const grep = filters.length ? ['--grep', filters.join('|'), '--no-deps'] : [];
   const capture = spawnSync(
     'bunx',
     [

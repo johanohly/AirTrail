@@ -23,8 +23,15 @@ type CaptureTarget =
 type ShotFixtures = {
   /** Log in as a demo account and open `path`. */
   openAs: (account: DemoAccount, path?: string) => Promise<void>;
-  /** Save the current page as `<name>.<theme>.png`. */
-  capture: (name: string, target?: CaptureTarget) => Promise<void>;
+  /**
+   * Save the current page as `<name>.<theme>.png`. The theme is the project's
+   * colour scheme unless given.
+   */
+  capture: (
+    name: string,
+    target?: CaptureTarget,
+    theme?: 'light' | 'dark',
+  ) => Promise<void>;
   /** Wait until the map has rendered its tiles and routes. */
   waitForMap: () => Promise<void>;
   /** Open Settings on a tab and return the dialog. */
@@ -100,7 +107,8 @@ export const test = base.extend<ShotFixtures>({
   },
 
   capture: async ({ page }, use, testInfo) => {
-    await use(async (name, target = { viewport: true }) => {
+    await use(async (name, target, themeOverride) => {
+      target ??= { viewport: true };
       await settle(page);
       await page.addStyleTag({ content: hideForCapture });
       // Focus rings and scroll offsets left by filling in forms vary per run.
@@ -113,7 +121,11 @@ export const test = base.extend<ShotFixtures>({
             el.scrollTop = 0;
         });
       await mkdir(RAW_DIR, { recursive: true });
-      const path = join(RAW_DIR, `${name}.${testInfo.project.name}.png`);
+      const theme =
+        themeOverride ??
+        testInfo.project.use.colorScheme ??
+        testInfo.project.name;
+      const path = join(RAW_DIR, `${name}.${theme}.png`);
       const options = { path, animations: 'disabled', caret: 'hide' } as const;
 
       if ('dialog' in target) {

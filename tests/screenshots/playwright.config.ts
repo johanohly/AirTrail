@@ -24,8 +24,26 @@ export default defineConfig({
     locale: 'en-US',
     timezoneId: DEMO_TIMEZONE,
   },
+  /*
+   * Shots in `*.mutating.shot.ts` change demo data and undo it afterwards.
+   * They run after every other shot, so no other capture sees the change.
+   */
   projects: [
-    { name: 'light', use: { colorScheme: 'light' } },
-    { name: 'dark', use: { colorScheme: 'dark' } },
+    {
+      name: 'light',
+      testIgnore: '*.mutating.shot.ts',
+      use: { colorScheme: 'light' },
+    },
+    {
+      name: 'dark',
+      testIgnore: '*.mutating.shot.ts',
+      use: { colorScheme: 'dark' },
+    },
+    {
+      // Captures both themes itself, so one test holds the change at a time.
+      name: 'mutating',
+      testMatch: '*.mutating.shot.ts',
+      dependencies: ['light', 'dark'],
+    },
   ],
 });

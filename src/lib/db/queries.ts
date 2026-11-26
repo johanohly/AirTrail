@@ -132,7 +132,12 @@ const passengers = (db: Kysely<DB>, flightId: Expression<number>) => {
         jsonObjectFrom(
           db
             .selectFrom('user')
-            .select(['user.id', 'user.displayName', 'user.username'])
+            .select([
+              'user.id',
+              'user.displayName',
+              'user.username',
+              'user.avatarHash',
+            ])
             .whereRef('user.id', '=', ref('flightPassenger.userId')),
         ).as('user'),
       ])
